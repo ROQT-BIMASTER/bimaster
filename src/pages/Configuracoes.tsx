@@ -3,11 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { MunicipioAtribuicao } from "@/components/admin/MunicipioAtribuicao";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EditarPerfil } from "@/components/configuracoes/EditarPerfil";
+import { GerenciamentoUsuarios } from "@/components/configuracoes/GerenciamentoUsuarios";
+import { ConfiguracoesNotificacoes } from "@/components/configuracoes/ConfiguracoesNotificacoes";
 
 interface Profile {
   id: string;
@@ -15,6 +16,9 @@ interface Profile {
   email: string;
   tipo_usuario: string;
   status: string;
+  telefone?: string;
+  cargo?: string;
+  departamento?: string;
 }
 
 const Configuracoes = () => {
@@ -83,6 +87,10 @@ const Configuracoes = () => {
     );
   }
 
+  const handleUpdateProfile = (updatedProfile: Profile) => {
+    setProfile(updatedProfile);
+  };
+
   const isAdmin = profile?.tipo_usuario === 'admin';
 
   return (
@@ -99,34 +107,13 @@ const Configuracoes = () => {
           <Tabs defaultValue="perfil" className="space-y-4">
             <TabsList>
               <TabsTrigger value="perfil">Meu Perfil</TabsTrigger>
+              <TabsTrigger value="usuarios">Gerenciar Usuários</TabsTrigger>
+              <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
               <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>
             </TabsList>
 
             <TabsContent value="perfil" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informações do Perfil</CardTitle>
-                  <CardDescription>Suas informações pessoais e de conta</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Nome</Label>
-                    <Input value={profile?.nome || ""} disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input value={profile?.email || ""} disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Tipo de Usuário</Label>
-                    <Input value={profile?.tipo_usuario || ""} disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <Input value={profile?.status || ""} disabled />
-                  </div>
-                </CardContent>
-              </Card>
+              <EditarPerfil profile={profile!} onUpdate={handleUpdateProfile} />
 
               <Card>
                 <CardHeader>
@@ -141,49 +128,45 @@ const Configuracoes = () => {
               </Card>
             </TabsContent>
 
+            <TabsContent value="usuarios">
+              <GerenciamentoUsuarios />
+            </TabsContent>
+
+            <TabsContent value="notificacoes">
+              <ConfiguracoesNotificacoes />
+            </TabsContent>
+
             <TabsContent value="municipios">
               <MunicipioAtribuicao />
             </TabsContent>
           </Tabs>
         ) : (
-          <div className="grid gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Informações do Perfil</CardTitle>
-                <CardDescription>Suas informações pessoais e de conta</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Nome</Label>
-                  <Input value={profile?.nome || ""} disabled />
-                </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input value={profile?.email || ""} disabled />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tipo de Usuário</Label>
-                  <Input value={profile?.tipo_usuario || ""} disabled />
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Input value={profile?.status || ""} disabled />
-                </div>
-              </CardContent>
-            </Card>
+          <Tabs defaultValue="perfil" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="perfil">Meu Perfil</TabsTrigger>
+              <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
+            </TabsList>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Segurança</CardTitle>
-                <CardDescription>Gerencie sua senha e segurança da conta</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleResetPassword}>
-                  Redefinir Senha
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+            <TabsContent value="perfil" className="space-y-4">
+              <EditarPerfil profile={profile!} onUpdate={handleUpdateProfile} />
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Segurança</CardTitle>
+                  <CardDescription>Gerencie sua senha e segurança da conta</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={handleResetPassword}>
+                    Redefinir Senha
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="notificacoes">
+              <ConfiguracoesNotificacoes />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </DashboardLayout>
