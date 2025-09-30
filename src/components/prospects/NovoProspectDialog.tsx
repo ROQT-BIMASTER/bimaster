@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,17 +18,39 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [municipios, setMunicipios] = useState<Array<{ id: string; nome: string; uf: string }>>([]);
   const [formData, setFormData] = useState({
     nome_empresa: "",
     cnpj: "",
     contato_principal: "",
     email: "",
     telefone: "",
+    endereco: "",
+    municipio_id: "",
+    porte_empresa: "",
     status: "novo",
     categoria: "",
     observacoes: "",
   });
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchMunicipios();
+  }, []);
+
+  const fetchMunicipios = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("municipios")
+        .select("id, nome, uf")
+        .order("nome");
+      
+      if (error) throw error;
+      setMunicipios(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar municípios:", error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +72,9 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
           contato_principal: validatedData.contato_principal || null,
           email: validatedData.email || null,
           telefone: validatedData.telefone || null,
+          endereco: formData.endereco || null,
+          municipio_id: formData.municipio_id || null,
+          porte_empresa: formData.porte_empresa || null,
           categoria: (validatedData.categoria || null) as "A" | "B" | "C" | "D" | null,
           observacoes: validatedData.observacoes || null,
         },
@@ -68,6 +93,9 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
         contato_principal: "",
         email: "",
         telefone: "",
+        endereco: "",
+        municipio_id: "",
+        porte_empresa: "",
         status: "novo",
         categoria: "",
         observacoes: "",
@@ -180,12 +208,57 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
               {errors.telefone && <p className="text-sm text-destructive">{errors.telefone}</p>}
             </div>
             <div className="space-y-2">
+              <Label htmlFor="porte_empresa">Porte da Empresa</Label>
+              <Select value={formData.porte_empresa} onValueChange={(value) => setFormData({ ...formData, porte_empresa: value })}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Selecione o porte" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="MEI">MEI</SelectItem>
+                  <SelectItem value="Micro">Microempresa</SelectItem>
+                  <SelectItem value="Pequena">Pequena</SelectItem>
+                  <SelectItem value="Média">Média</SelectItem>
+                  <SelectItem value="Grande">Grande</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="endereco">Endereço Completo</Label>
+            <Input
+              id="endereco"
+              value={formData.endereco}
+              onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+              placeholder="Rua, número, bairro, cidade - UF"
+              maxLength={300}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="municipio_id">Município</Label>
+            <Select value={formData.municipio_id} onValueChange={(value) => setFormData({ ...formData, municipio_id: value })}>
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Selecione um município" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-50 max-h-[300px]">
+                {municipios.map((municipio) => (
+                  <SelectItem key={municipio.id} value={municipio.id}>
+                    {municipio.nome} - {municipio.uf}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-background">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-popover z-50">
                   <SelectItem value="novo">Novo</SelectItem>
                   <SelectItem value="em_contato">Em Contato</SelectItem>
                   <SelectItem value="proposta_enviada">Proposta Enviada</SelectItem>
@@ -195,22 +268,21 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="categoria">Categoria</Label>
-            <Select value={formData.categoria} onValueChange={(value) => setFormData({ ...formData, categoria: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="A">A</SelectItem>
-                  <SelectItem value="B">B</SelectItem>
-                  <SelectItem value="C">C</SelectItem>
-                  <SelectItem value="D">D</SelectItem>
+            <div className="space-y-2">
+              <Label htmlFor="categoria">Categoria</Label>
+              <Select value={formData.categoria} onValueChange={(value) => setFormData({ ...formData, categoria: value })}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="A">A - Alta Prioridade</SelectItem>
+                  <SelectItem value="B">B - Média Prioridade</SelectItem>
+                  <SelectItem value="C">C - Baixa Prioridade</SelectItem>
+                  <SelectItem value="D">D - Mínima Prioridade</SelectItem>
                 </SelectContent>
-            </Select>
-            {errors.categoria && <p className="text-sm text-destructive">{errors.categoria}</p>}
+              </Select>
+              {errors.categoria && <p className="text-sm text-destructive">{errors.categoria}</p>}
+            </div>
           </div>
 
           <div className="space-y-2">

@@ -16,6 +16,8 @@ interface Prospect {
   email: string | null;
   telefone: string | null;
   cnpj: string | null;
+  endereco: string | null;
+  porte_empresa: string | null;
   status: string;
   categoria: string | null;
   ultimo_contato: string | null;
@@ -34,7 +36,7 @@ interface ProspectDetailDialogProps {
 export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }: ProspectDetailDialogProps) => {
   const [formData, setFormData] = useState<Prospect | null>(null);
   const [loading, setLoading] = useState(false);
-  const [municipios, setMunicipios] = useState<Array<{ id: string; nome: string }>>([]);
+  const [municipios, setMunicipios] = useState<Array<{ id: string; nome: string; uf: string }>>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
     try {
       const { data } = await supabase
         .from("municipios")
-        .select("id, nome")
+        .select("id, nome, uf")
         .order("nome");
       
       setMunicipios(data || []);
@@ -73,6 +75,8 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
           email: formData.email,
           telefone: formData.telefone,
           cnpj: formData.cnpj,
+          endereco: formData.endereco,
+          porte_empresa: formData.porte_empresa,
           status: formData.status as "novo" | "em_contato" | "proposta_enviada" | "negociacao" | "ganho" | "perdido",
           categoria: formData.categoria as "A" | "B" | "C" | "D" | null,
           ultimo_contato: formData.ultimo_contato,
@@ -209,15 +213,44 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
               value={formData.municipio_id || ""}
               onValueChange={(value) => setFormData({ ...formData, municipio_id: value || null })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-background">
                 <SelectValue placeholder="Selecione um município" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-popover z-50 max-h-[300px]">
                 {municipios.map((municipio) => (
                   <SelectItem key={municipio.id} value={municipio.id}>
-                    {municipio.nome}
+                    {municipio.nome} - {municipio.uf}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="endereco">Endereço Completo</Label>
+            <Input
+              id="endereco"
+              value={formData.endereco || ""}
+              onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+              placeholder="Rua, número, bairro"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="porte_empresa">Porte da Empresa</Label>
+            <Select
+              value={formData.porte_empresa || ""}
+              onValueChange={(value) => setFormData({ ...formData, porte_empresa: value || null })}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Selecione o porte" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-50">
+                <SelectItem value="MEI">MEI</SelectItem>
+                <SelectItem value="Micro">Microempresa</SelectItem>
+                <SelectItem value="Pequena">Pequena</SelectItem>
+                <SelectItem value="Média">Média</SelectItem>
+                <SelectItem value="Grande">Grande</SelectItem>
               </SelectContent>
             </Select>
           </div>

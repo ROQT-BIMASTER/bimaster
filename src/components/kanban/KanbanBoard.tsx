@@ -26,6 +26,8 @@ interface Prospect {
   email: string | null;
   telefone: string | null;
   cnpj: string | null;
+  endereco: string | null;
+  porte_empresa: string | null;
   status: string;
   categoria: string | null;
   ultimo_contato: string | null;

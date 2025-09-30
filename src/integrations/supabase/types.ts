@@ -223,11 +223,13 @@ export type Database = {
           contato_principal: string | null
           created_at: string | null
           email: string | null
+          endereco: string | null
           id: string
           importado_planilha: boolean | null
           municipio_id: string | null
           nome_empresa: string
           observacoes: string | null
+          porte_empresa: string | null
           proxima_acao: string | null
           status: Database["public"]["Enums"]["prospect_status"]
           telefone: string | null
@@ -241,11 +243,13 @@ export type Database = {
           contato_principal?: string | null
           created_at?: string | null
           email?: string | null
+          endereco?: string | null
           id?: string
           importado_planilha?: boolean | null
           municipio_id?: string | null
           nome_empresa: string
           observacoes?: string | null
+          porte_empresa?: string | null
           proxima_acao?: string | null
           status?: Database["public"]["Enums"]["prospect_status"]
           telefone?: string | null
@@ -259,11 +263,13 @@ export type Database = {
           contato_principal?: string | null
           created_at?: string | null
           email?: string | null
+          endereco?: string | null
           id?: string
           importado_planilha?: boolean | null
           municipio_id?: string | null
           nome_empresa?: string
           observacoes?: string | null
+          porte_empresa?: string | null
           proxima_acao?: string | null
           status?: Database["public"]["Enums"]["prospect_status"]
           telefone?: string | null
