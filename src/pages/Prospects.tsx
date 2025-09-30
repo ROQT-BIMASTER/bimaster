@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { NovoProspectDialog } from "@/components/prospects/NovoProspectDialog";
 import { ProspectDetailDialog } from "@/components/kanban/ProspectDetailDialog";
 import { AIInsightsChat } from "@/components/chat/AIInsightsChat";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 interface Prospect {
   id: string;
@@ -54,6 +53,7 @@ const Prospects = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -131,17 +131,14 @@ const Prospects = () => {
             <p className="text-muted-foreground">Gerencie seus prospects e oportunidades</p>
           </div>
           <div className="flex gap-2">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  Insights de IA
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl h-[700px] p-0">
-                <AIInsightsChat />
-              </DialogContent>
-            </Dialog>
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => setChatOpen(true)}
+            >
+              <Sparkles className="h-4 w-4" />
+              Insights de IA
+            </Button>
             <NovoProspectDialog onSuccess={fetchProspects} />
           </div>
         </div>
@@ -237,6 +234,11 @@ const Prospects = () => {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onUpdate={fetchProspects}
+      />
+
+      <AIInsightsChat 
+        open={chatOpen}
+        onOpenChange={setChatOpen}
       />
     </DashboardLayout>
   );

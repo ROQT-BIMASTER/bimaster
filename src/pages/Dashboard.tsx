@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Building2, TrendingUp, Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, Building2, TrendingUp, Activity, Sparkles } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MetricasDistribuicao } from "@/components/admin/MetricasDistribuicao";
 import { FunilProspeccao } from "@/components/dashboard/FunilProspeccao";
+import { AIInsightsChat } from "@/components/chat/AIInsightsChat";
 
 interface Stats {
   totalProspects: number;
@@ -39,6 +41,7 @@ const Dashboard = () => {
   const [activityData, setActivityData] = useState<ActivityData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -156,9 +159,19 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-          <p className="text-muted-foreground">Visão geral do seu CRM</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+            <p className="text-muted-foreground">Visão geral do seu CRM</p>
+          </div>
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={() => setChatOpen(true)}
+          >
+            <Sparkles className="h-4 w-4" />
+            Insights de IA
+          </Button>
         </div>
 
         {isAdmin && <MetricasDistribuicao />}
@@ -222,6 +235,11 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
+
+      <AIInsightsChat 
+        open={chatOpen}
+        onOpenChange={setChatOpen}
+      />
     </DashboardLayout>
   );
 };
