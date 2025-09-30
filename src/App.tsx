@@ -15,6 +15,7 @@ import Kanban from "./pages/Kanban";
 import Tarefas from "./pages/Tarefas";
 import Mapa from "./pages/Mapa";
 import Chat from "./pages/Chat";
+import Planos from "./pages/Planos";
 import AguardandoAprovacao from "./pages/AguardandoAprovacao";
 import NotFound from "./pages/NotFound";
 
@@ -39,6 +40,7 @@ const App = () => {
           <Route path="/dashboard/tarefas" element={<Tarefas />} />
           <Route path="/dashboard/mapa" element={<Mapa />} />
           <Route path="/dashboard/chat" element={<Chat />} />
+          <Route path="/dashboard/planos" element={<Planos />} />
           <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
           <Route path="/dashboard/importar" element={<ImportarClientes />} />
           <Route path="/dashboard/auditoria" element={<Auditoria />} />
