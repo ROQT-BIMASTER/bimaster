@@ -15,26 +15,28 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <Toaster />
-    <Sonner />
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/auth/login" element={<Auth />} />
-        <Route path="/auth/signup" element={<Auth />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/dashboard/prospects" element={<Prospects />} />
-        <Route path="/dashboard/municipios" element={<Municipios />} />
-        <Route path="/dashboard/atividades" element={<Atividades />} />
-        <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
-        <Route path="/dashboard/importar" element={<ImportarClientes />} />
-        <Route path="/dashboard/auditoria" element={<Auditoria />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/auth/login" element={<Auth />} />
+          <Route path="/auth/signup" element={<Auth />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard/prospects" element={<Prospects />} />
+          <Route path="/dashboard/municipios" element={<Municipios />} />
+          <Route path="/dashboard/atividades" element={<Atividades />} />
+          <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
+          <Route path="/dashboard/importar" element={<ImportarClientes />} />
+          <Route path="/dashboard/auditoria" element={<Auditoria />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
