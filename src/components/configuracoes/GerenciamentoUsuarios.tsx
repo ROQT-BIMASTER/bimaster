@@ -140,6 +140,17 @@ export const GerenciamentoUsuarios = () => {
       if (authError) throw authError;
       
       if (authData.user) {
+        // Atualizar status para ativo e aprovação para admins
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({ 
+            status: "ativo",
+            aprovado: validatedData.tipo_usuario === "admin" ? true : undefined
+          })
+          .eq("id", authData.user.id);
+
+        if (updateError) throw updateError;
+
         // Vincular municípios se for vendedor
         if (validatedData.tipo_usuario === "vendedor" && selectedMunicipios.length > 0) {
           const { error: vinculoError } = await supabase
