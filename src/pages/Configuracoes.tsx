@@ -11,6 +11,7 @@ import { EditarPerfil } from "@/components/configuracoes/EditarPerfil";
 import { GerenciamentoUsuarios } from "@/components/configuracoes/GerenciamentoUsuarios";
 import { ConfiguracoesNotificacoes } from "@/components/configuracoes/ConfiguracoesNotificacoes";
 import { ConfiguracaoMapbox } from "@/components/configuracoes/ConfiguracaoMapbox";
+import { PermissoesDeAcesso } from "@/components/configuracoes/PermissoesDeAcesso";
 import { Shield, UserCog, User, CheckCircle } from "lucide-react";
 
 interface Profile {
@@ -221,6 +222,7 @@ const Configuracoes = () => {
               <TabsTrigger value="perfil">Meu Perfil</TabsTrigger>
               {isAdmin && <TabsTrigger value="usuarios">Gerenciar Usuários</TabsTrigger>}
               <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
+              {isAdmin && <TabsTrigger value="permissoes">Permissões</TabsTrigger>}
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
               {isAdmin && <TabsTrigger value="integracoes">Integrações</TabsTrigger>}
             </TabsList>
@@ -250,6 +252,12 @@ const Configuracoes = () => {
             <TabsContent value="notificacoes">
               <ConfiguracoesNotificacoes />
             </TabsContent>
+
+            {isAdmin && (
+              <TabsContent value="permissoes">
+                <PermissoesDeAcesso />
+              </TabsContent>
+            )}
 
             {isAdmin && (
               <TabsContent value="municipios">
