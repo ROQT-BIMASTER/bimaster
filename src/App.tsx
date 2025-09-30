@@ -11,6 +11,7 @@ import Municipios from "./pages/Municipios";
 import Atividades from "./pages/Atividades";
 import Configuracoes from "./pages/Configuracoes";
 import ImportarClientes from "./pages/ImportarClientes";
+import Auditoria from "./pages/Auditoria";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/dashboard/atividades" element={<Atividades />} />
           <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
           <Route path="/dashboard/importar" element={<ImportarClientes />} />
+          <Route path="/dashboard/auditoria" element={<Auditoria />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
