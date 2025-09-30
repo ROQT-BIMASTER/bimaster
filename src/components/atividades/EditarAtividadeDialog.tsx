@@ -40,6 +40,7 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
     tipo: "ligacao",
     descricao: "",
     resultado: "",
+    status: "pendente",
     data_atividade: new Date().toISOString().split('T')[0],
     proximo_followup: "",
   });
@@ -49,11 +50,13 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
     if (open) {
       fetchProspects();
       if (atividade) {
+        const status = atividade.resultado === "positivo" ? "concluida" : "pendente";
         setFormData({
           prospect_id: atividade.prospect_id,
           tipo: atividade.tipo,
           descricao: atividade.descricao,
           resultado: atividade.resultado || "",
+          status: status,
           data_atividade: atividade.data_atividade.split('T')[0],
           proximo_followup: atividade.proximo_followup || "",
         });
@@ -90,13 +93,21 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
     try {
       const validatedData = atividadeSchema.parse(formData);
 
+      // Define o resultado baseado no status selecionado
+      let resultadoFinal: "positivo" | "neutro" | "negativo" | null = null;
+      if (formData.status === "concluida") {
+        resultadoFinal = validatedData.resultado as "positivo" | "neutro" | "negativo" || "positivo";
+      } else {
+        resultadoFinal = null;
+      }
+
       const { error } = await supabase
         .from("atividades")
         .update({
           prospect_id: validatedData.prospect_id,
           tipo: validatedData.tipo as "ligacao" | "email" | "reuniao" | "visita" | "proposta",
           descricao: validatedData.descricao,
-          resultado: (validatedData.resultado || null) as "positivo" | "neutro" | "negativo" | null,
+          resultado: resultadoFinal,
           data_atividade: validatedData.data_atividade,
           proximo_followup: validatedData.proximo_followup || null,
         })
@@ -164,6 +175,19 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
+              <Label htmlFor="status">Status *</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })} required>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="concluida">Concluída</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="tipo">Tipo de Atividade *</Label>
               <Select value={formData.tipo} onValueChange={(value) => setFormData({ ...formData, tipo: value })} required>
                 <SelectTrigger>
@@ -177,19 +201,19 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="data_atividade">Data da Atividade *</Label>
-              <Input
-                id="data_atividade"
-                type="date"
-                value={formData.data_atividade}
-                onChange={(e) => setFormData({ ...formData, data_atividade: e.target.value })}
-                required
-                max={new Date().toISOString().split('T')[0]}
-              />
-              {errors.data_atividade && <p className="text-sm text-destructive">{errors.data_atividade}</p>}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="data_atividade">Data da Atividade *</Label>
+            <Input
+              id="data_atividade"
+              type="date"
+              value={formData.data_atividade}
+              onChange={(e) => setFormData({ ...formData, data_atividade: e.target.value })}
+              required
+              max={new Date().toISOString().split('T')[0]}
+            />
+            {errors.data_atividade && <p className="text-sm text-destructive">{errors.data_atividade}</p>}
           </div>
 
           <div className="space-y-2">
@@ -208,19 +232,21 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="resultado">Resultado</Label>
-              <Select value={formData.resultado} onValueChange={(value) => setFormData({ ...formData, resultado: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o resultado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="positivo">Positivo</SelectItem>
-                  <SelectItem value="neutro">Neutro</SelectItem>
-                  <SelectItem value="negativo">Negativo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {formData.status === "concluida" && (
+              <div className="space-y-2">
+                <Label htmlFor="resultado">Resultado</Label>
+                <Select value={formData.resultado} onValueChange={(value) => setFormData({ ...formData, resultado: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o resultado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="positivo">Positivo</SelectItem>
+                    <SelectItem value="neutro">Neutro</SelectItem>
+                    <SelectItem value="negativo">Negativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="proximo_followup">Próximo Follow-up</Label>
