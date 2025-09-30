@@ -17,6 +17,7 @@ interface Prospect {
   telefone: string | null;
   cnpj: string | null;
   endereco: string | null;
+  municipio: string | null;
   porte_empresa: string | null;
   status: string;
   categoria: string | null;
@@ -76,6 +77,7 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
           telefone: formData.telefone,
           cnpj: formData.cnpj,
           endereco: formData.endereco,
+          municipio: formData.municipio,
           porte_empresa: formData.porte_empresa,
           status: formData.status as "novo" | "em_contato" | "proposta_enviada" | "negociacao" | "ganho" | "perdido",
           categoria: formData.categoria as "A" | "B" | "C" | "D" | null,
@@ -208,22 +210,13 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="municipio_id">Município</Label>
-            <Select
-              value={formData.municipio_id || ""}
-              onValueChange={(value) => setFormData({ ...formData, municipio_id: value || null })}
-            >
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Selecione um município" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover z-50 max-h-[300px]">
-                {municipios.map((municipio) => (
-                  <SelectItem key={municipio.id} value={municipio.id}>
-                    {municipio.nome} - {municipio.uf}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="municipio">Município</Label>
+            <Input
+              id="municipio"
+              value={formData.municipio || ""}
+              onChange={(e) => setFormData({ ...formData, municipio: e.target.value })}
+              placeholder="Digite o município"
+            />
           </div>
 
           <div className="grid gap-2">
