@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Session } from "@supabase/supabase-js";
+import logoUnion from "@/assets/logo-union.png";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -50,9 +51,12 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <main className="flex-1">
-          <header className="h-14 border-b flex items-center px-4 bg-card">
-            <SidebarTrigger />
-            <h1 className="ml-4 text-lg font-semibold">CRM - Gestão de Prospects</h1>
+          <header className="h-14 border-b flex items-center justify-between px-4 bg-card">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger />
+              <h1 className="text-lg font-semibold">CRM - Gestão de Prospects</h1>
+            </div>
+            <img src={logoUnion} alt="Union Logo" className="h-10" />
           </header>
           <div className="p-6">{children}</div>
         </main>

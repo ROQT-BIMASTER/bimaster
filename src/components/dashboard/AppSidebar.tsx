@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import logoUnion from "@/assets/logo-union.png";
 import {
   Sidebar,
   SidebarContent,
@@ -64,8 +65,8 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarContent>
-        <div className="p-4">
-          <h2 className="text-xl font-bold text-sidebar-foreground">CRM Sistema</h2>
+        <div className="p-4 border-b">
+          <img src={logoUnion} alt="Union Logo" className="w-32 mx-auto" />
         </div>
         <SidebarGroup>
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
