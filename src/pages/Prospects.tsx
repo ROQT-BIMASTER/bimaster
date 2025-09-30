@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { NovoProspectDialog } from "@/components/prospects/NovoProspectDialog";
 
 interface Prospect {
   id: string;
@@ -83,10 +83,7 @@ const Prospects = () => {
             <h2 className="text-3xl font-bold tracking-tight">Prospects</h2>
             <p className="text-muted-foreground">Gerencie seus prospects e oportunidades</p>
           </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Prospect
-          </Button>
+          <NovoProspectDialog onSuccess={fetchProspects} />
         </div>
 
         <Card>

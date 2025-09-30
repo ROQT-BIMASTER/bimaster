@@ -3,9 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { NovaAtividadeDialog } from "@/components/atividades/NovaAtividadeDialog";
 
 interface Atividade {
   id: string;
@@ -69,10 +68,7 @@ const Atividades = () => {
             <h2 className="text-3xl font-bold tracking-tight">Atividades</h2>
             <p className="text-muted-foreground">Histórico de atividades e interações</p>
           </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Atividade
-          </Button>
+          <NovaAtividadeDialog onSuccess={fetchAtividades} />
         </div>
 
         <Card>
