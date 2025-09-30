@@ -37,7 +37,6 @@ interface ProspectDetailDialogProps {
 export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }: ProspectDetailDialogProps) => {
   const [formData, setFormData] = useState<Prospect | null>(null);
   const [loading, setLoading] = useState(false);
-  const [municipios, setMunicipios] = useState<Array<{ id: string; nome: string; uf: string }>>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -45,23 +44,6 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
       setFormData(prospect);
     }
   }, [prospect]);
-
-  useEffect(() => {
-    fetchMunicipios();
-  }, []);
-
-  const fetchMunicipios = async () => {
-    try {
-      const { data } = await supabase
-        .from("municipios")
-        .select("id, nome, uf")
-        .order("nome");
-      
-      setMunicipios(data || []);
-    } catch (error) {
-      console.error("Erro ao carregar municípios:", error);
-    }
-  };
 
   const handleSave = async () => {
     if (!formData) return;
@@ -84,7 +66,6 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
           ultimo_contato: formData.ultimo_contato,
           proxima_acao: formData.proxima_acao,
           observacoes: formData.observacoes,
-          municipio_id: formData.municipio_id,
         })
         .eq("id", formData.id);
 

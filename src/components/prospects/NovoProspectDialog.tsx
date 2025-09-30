@@ -18,7 +18,6 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [municipios, setMunicipios] = useState<Array<{ id: string; nome: string; uf: string }>>([]);
   const [formData, setFormData] = useState({
     nome_empresa: "",
     cnpj: "",
@@ -27,31 +26,12 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
     telefone: "",
     endereco: "",
     municipio: "",
-    municipio_id: "",
     porte_empresa: "",
     status: "novo",
     categoria: "",
     observacoes: "",
   });
   const { toast } = useToast();
-
-  useEffect(() => {
-    fetchMunicipios();
-  }, []);
-
-  const fetchMunicipios = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("municipios")
-        .select("id, nome, uf")
-        .order("nome");
-      
-      if (error) throw error;
-      setMunicipios(data || []);
-    } catch (error) {
-      console.error("Erro ao carregar municípios:", error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +55,6 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
           telefone: validatedData.telefone || null,
           endereco: formData.endereco || null,
           municipio: formData.municipio || null,
-          municipio_id: formData.municipio_id || null,
           porte_empresa: formData.porte_empresa || null,
           categoria: (validatedData.categoria || null) as "A" | "B" | "C" | "D" | null,
           observacoes: validatedData.observacoes || null,
@@ -97,7 +76,6 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
         telefone: "",
         endereco: "",
         municipio: "",
-        municipio_id: "",
         porte_empresa: "",
         status: "novo",
         categoria: "",
