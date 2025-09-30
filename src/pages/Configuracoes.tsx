@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditarPerfil } from "@/components/configuracoes/EditarPerfil";
 import { GerenciamentoUsuarios } from "@/components/configuracoes/GerenciamentoUsuarios";
 import { ConfiguracoesNotificacoes } from "@/components/configuracoes/ConfiguracoesNotificacoes";
+import { ConfiguracaoMapbox } from "@/components/configuracoes/ConfiguracaoMapbox";
 import { Shield, UserCog, User, CheckCircle } from "lucide-react";
 
 interface Profile {
@@ -221,6 +222,7 @@ const Configuracoes = () => {
               {isAdmin && <TabsTrigger value="usuarios">Gerenciar Usuários</TabsTrigger>}
               <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="integracoes">Integrações</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="perfil" className="space-y-4">
@@ -252,6 +254,12 @@ const Configuracoes = () => {
             {isAdmin && (
               <TabsContent value="municipios">
                 <MunicipioAtribuicao />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="integracoes">
+                <ConfiguracaoMapbox />
               </TabsContent>
             )}
           </Tabs>
