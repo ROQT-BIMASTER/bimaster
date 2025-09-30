@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      assinaturas: {
+        Row: {
+          cancelado_em: string | null
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          id: string
+          plano_id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          cancelado_em?: string | null
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          plano_id: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          cancelado_em?: string | null
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          plano_id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assinaturas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atividades: {
         Row: {
           created_at: string | null
@@ -266,6 +316,45 @@ export type Database = {
           },
         ]
       }
+      planos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          limites: Json
+          nome: string
+          preco: number
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          limites?: Json
+          nome: string
+          preco?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          limites?: Json
+          nome?: string
+          preco?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           aprovado: boolean
@@ -273,6 +362,7 @@ export type Database = {
           email: string
           id: string
           nome: string
+          plano_id: string | null
           status: string
           supervisor_id: string | null
           tipo_usuario: Database["public"]["Enums"]["user_type"]
@@ -284,6 +374,7 @@ export type Database = {
           email: string
           id: string
           nome: string
+          plano_id?: string | null
           status?: string
           supervisor_id?: string | null
           tipo_usuario?: Database["public"]["Enums"]["user_type"]
@@ -295,12 +386,20 @@ export type Database = {
           email?: string
           id?: string
           nome?: string
+          plano_id?: string | null
           status?: string
           supervisor_id?: string | null
           tipo_usuario?: Database["public"]["Enums"]["user_type"]
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_supervisor_id_fkey"
             columns: ["supervisor_id"]
