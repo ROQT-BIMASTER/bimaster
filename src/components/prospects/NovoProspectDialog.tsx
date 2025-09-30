@@ -26,6 +26,7 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
     email: "",
     telefone: "",
     endereco: "",
+    municipio: "",
     municipio_id: "",
     porte_empresa: "",
     status: "novo",
@@ -73,6 +74,7 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
           email: validatedData.email || null,
           telefone: validatedData.telefone || null,
           endereco: formData.endereco || null,
+          municipio: formData.municipio || null,
           municipio_id: formData.municipio_id || null,
           porte_empresa: formData.porte_empresa || null,
           categoria: (validatedData.categoria || null) as "A" | "B" | "C" | "D" | null,
@@ -94,6 +96,7 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
         email: "",
         telefone: "",
         endereco: "",
+        municipio: "",
         municipio_id: "",
         porte_empresa: "",
         status: "novo",
@@ -236,19 +239,14 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="municipio_id">Município</Label>
-            <Select value={formData.municipio_id} onValueChange={(value) => setFormData({ ...formData, municipio_id: value })}>
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Selecione um município" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover z-50 max-h-[300px]">
-                {municipios.map((municipio) => (
-                  <SelectItem key={municipio.id} value={municipio.id}>
-                    {municipio.nome} - {municipio.uf}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="municipio">Município</Label>
+            <Input
+              id="municipio"
+              value={formData.municipio}
+              onChange={(e) => setFormData({ ...formData, municipio: e.target.value })}
+              placeholder="Digite o município"
+              maxLength={100}
+            />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

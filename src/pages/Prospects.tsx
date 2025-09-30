@@ -18,6 +18,7 @@ interface Prospect {
   telefone: string | null;
   cnpj: string | null;
   endereco: string | null;
+  municipio: string | null;
   porte_empresa: string | null;
   status: string;
   categoria: string | null;
