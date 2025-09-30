@@ -1,4 +1,4 @@
-import { Home, Users, Building2, FileText, LogOut, Settings, Upload, Shield } from "lucide-react";
+import { Home, Users, Building2, FileText, LogOut, Settings, Upload, Shield, LayoutGrid } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
   { title: "Prospects", url: "/dashboard/prospects", icon: Users },
+  { title: "Kanban", url: "/dashboard/kanban", icon: LayoutGrid },
   { title: "Municípios", url: "/dashboard/municipios", icon: Building2 },
   { title: "Atividades", url: "/dashboard/atividades", icon: FileText },
 ];
