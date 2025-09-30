@@ -112,7 +112,20 @@ export const ProspectMap = () => {
         if (geocodedProspects.length === 0) {
           toast({
             title: "Erro",
-            description: "Não foi possível geocodificar nenhum endereço",
+            description: "Não foi possível geocodificar nenhum endereço. Verifique se o token do Mapbox está configurado corretamente.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Buscar token do Mapbox de forma segura
+        const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-mapbox-token');
+        
+        if (tokenError || !tokenData?.token) {
+          toast({
+            title: "Configuração necessária",
+            description: "Token do Mapbox não configurado. Configure MAPBOX_ACCESS_TOKEN nos secrets.",
             variant: "destructive",
           });
           setLoading(false);
@@ -120,12 +133,7 @@ export const ProspectMap = () => {
         }
 
         // Inicializar mapa
-        const { data: secretData } = await supabase.functions.invoke('geocode-address', {
-          body: { address: 'test' },
-        });
-
-        // Usar token público (deve ser configurado)
-        mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
+        mapboxgl.accessToken = tokenData.token;
 
         const bounds = new mapboxgl.LngLatBounds();
         geocodedProspects.forEach(p => bounds.extend([p.longitude, p.latitude]));
@@ -172,10 +180,11 @@ export const ProspectMap = () => {
         console.error("Erro ao carregar mapa:", error);
         toast({
           title: "Erro",
-          description: "Não foi possível carregar o mapa",
+          description: error instanceof Error ? error.message : "Não foi possível carregar o mapa",
           variant: "destructive",
         });
         setLoading(false);
+        setGeocoding(false);
       }
     };
 
