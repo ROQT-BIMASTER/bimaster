@@ -3,12 +3,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Building2, TrendingUp, Activity } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
+import { format, subDays, startOfDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Stats {
   totalProspects: number;
   totalMunicipios: number;
   prospectsEmNegociacao: number;
   atividadesHoje: number;
+}
+
+interface PipelineData {
+  stage: string;
+  count: number;
+  percentage: number;
+  fill: string;
+}
+
+interface ActivityData {
+  date: string;
+  count: number;
 }
 
 const Dashboard = () => {
@@ -18,6 +33,8 @@ const Dashboard = () => {
     prospectsEmNegociacao: 0,
     atividadesHoje: 0,
   });
+  const [pipelineData, setPipelineData] = useState<PipelineData[]>([]);
+  const [activityData, setActivityData] = useState<ActivityData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,6 +59,51 @@ const Dashboard = () => {
           prospectsEmNegociacao: negociacaoResult.count || 0,
           atividadesHoje: atividadesResult.count || 0,
         });
+
+        // Fetch pipeline data
+        const stages = ['novo', 'em_contato', 'proposta_enviada', 'negociacao', 'ganho'] as const;
+        const stageLabels = ['Novo', 'Contato', 'Proposta', 'Negociação', 'Ganho'];
+        const stageColors = ['hsl(217, 91%, 60%)', 'hsl(199, 89%, 48%)', 'hsl(173, 58%, 39%)', 'hsl(142, 71%, 45%)', 'hsl(120, 100%, 40%)'];
+        
+        const pipelineCounts = await Promise.all(
+          stages.map(stage =>
+            supabase.from("prospects").select("*", { count: "exact", head: true }).eq("status", stage)
+          )
+        );
+
+        const total = pipelineCounts.reduce((sum, result) => sum + (result.count || 0), 0);
+        
+        const pipeline = stages.map((stage, index) => ({
+          stage: stageLabels[index],
+          count: pipelineCounts[index].count || 0,
+          percentage: total > 0 ? Math.round(((pipelineCounts[index].count || 0) / total) * 100) : 0,
+          fill: stageColors[index],
+        }));
+
+        setPipelineData(pipeline);
+
+        // Fetch activity data for last 30 days
+        const dates = Array.from({ length: 30 }, (_, i) => {
+          const date = subDays(new Date(), 29 - i);
+          return format(startOfDay(date), 'yyyy-MM-dd');
+        });
+
+        const activityCounts = await Promise.all(
+          dates.map(date =>
+            supabase
+              .from("atividades")
+              .select("*", { count: "exact", head: true })
+              .gte("data_atividade", date)
+              .lt("data_atividade", format(subDays(new Date(date), -1), 'yyyy-MM-dd'))
+          )
+        );
+
+        const activities = dates.map((date, index) => ({
+          date: format(new Date(date), 'dd/MM', { locale: ptBR }),
+          count: activityCounts[index].count || 0,
+        }));
+
+        setActivityData(activities);
       } catch (error) {
         console.error("Erro ao carregar estatísticas:", error);
       } finally {
@@ -106,20 +168,78 @@ const Dashboard = () => {
           </div>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Bem-vindo ao CRM Sistema</CardTitle>
-            <CardDescription>
-              Gerencie seus prospects, municípios e atividades de forma eficiente
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Use o menu lateral para navegar entre as diferentes seções do sistema. Você pode
-              gerenciar prospects, visualizar municípios atribuídos e registrar atividades.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pipeline de Vendas</CardTitle>
+              <CardDescription>Funil de conversão dos prospects</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={pipelineData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="stage" />
+                  <YAxis />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-card border rounded-lg p-3 shadow-lg">
+                            <p className="font-semibold">{payload[0].payload.stage}</p>
+                            <p className="text-sm">Prospects: {payload[0].payload.count}</p>
+                            <p className="text-sm">Percentual: {payload[0].payload.percentage}%</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                    {pipelineData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Atividades - Últimos 30 Dias</CardTitle>
+              <CardDescription>Linha do tempo de atividades registradas</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={activityData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-card border rounded-lg p-3 shadow-lg">
+                            <p className="font-semibold">{payload[0].payload.date}</p>
+                            <p className="text-sm">Atividades: {payload[0].payload.count}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="count" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    dot={{ fill: "hsl(var(--primary))" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </DashboardLayout>
   );
