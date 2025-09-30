@@ -1,7 +1,8 @@
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -13,29 +14,40 @@ import ImportarClientes from "./pages/ImportarClientes";
 import Auditoria from "./pages/Auditoria";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Create query client inside the component to avoid issues
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <Toaster />
-    <Sonner />
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/auth/login" element={<Auth />} />
-        <Route path="/auth/signup" element={<Auth />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/dashboard/prospects" element={<Prospects />} />
-        <Route path="/dashboard/municipios" element={<Municipios />} />
-        <Route path="/dashboard/atividades" element={<Atividades />} />
-        <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
-        <Route path="/dashboard/importar" element={<ImportarClientes />} />
-        <Route path="/dashboard/auditoria" element={<Auditoria />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth/login" element={<Auth />} />
+            <Route path="/auth/signup" element={<Auth />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/prospects" element={<Prospects />} />
+            <Route path="/dashboard/municipios" element={<Municipios />} />
+            <Route path="/dashboard/atividades" element={<Atividades />} />
+            <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
+            <Route path="/dashboard/importar" element={<ImportarClientes />} />
+            <Route path="/dashboard/auditoria" element={<Auditoria />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </React.StrictMode>
+  );
+};
 
 export default App;
