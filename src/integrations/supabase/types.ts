@@ -268,6 +268,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          aprovado: boolean
           created_at: string | null
           email: string
           id: string
@@ -278,6 +279,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          aprovado?: boolean
           created_at?: string | null
           email: string
           id: string
@@ -288,6 +290,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          aprovado?: boolean
           created_at?: string | null
           email?: string
           id?: string

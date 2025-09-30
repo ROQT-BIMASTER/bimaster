@@ -15,6 +15,7 @@ import Kanban from "./pages/Kanban";
 import Tarefas from "./pages/Tarefas";
 import Mapa from "./pages/Mapa";
 import Chat from "./pages/Chat";
+import AguardandoAprovacao from "./pages/AguardandoAprovacao";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => {
           <Route path="/" element={<Index />} />
           <Route path="/auth/login" element={<Auth />} />
           <Route path="/auth/signup" element={<Auth />} />
+          <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/prospects" element={<Prospects />} />
           <Route path="/dashboard/municipios" element={<Municipios />} />

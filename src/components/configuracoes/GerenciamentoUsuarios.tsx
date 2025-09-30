@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Pencil, Trash2, Search } from "lucide-react";
+import { UserPlus, Pencil, Trash2, Search, CheckCircle, XCircle } from "lucide-react";
 import { userSchema } from "@/lib/validations/user";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,6 +19,7 @@ interface Usuario {
   email: string;
   tipo_usuario: "admin" | "supervisor" | "vendedor";
   status: "ativo" | "inativo";
+  aprovado: boolean;
 }
 
 interface Municipio {
@@ -82,6 +83,7 @@ export const GerenciamentoUsuarios = () => {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
+        .order("aprovado", { ascending: true })
         .order("nome");
       
       if (error) throw error;
@@ -92,7 +94,8 @@ export const GerenciamentoUsuarios = () => {
         nome: profile.nome,
         email: profile.email,
         tipo_usuario: profile.tipo_usuario as "admin" | "supervisor" | "vendedor",
-        status: (profile.status === "ativo" ? "ativo" : "inativo") as "ativo" | "inativo"
+        status: (profile.status === "ativo" ? "ativo" : "inativo") as "ativo" | "inativo",
+        aprovado: profile.aprovado || false
       }));
       
       setUsuarios(usuariosFormatados);
@@ -331,6 +334,33 @@ export const GerenciamentoUsuarios = () => {
     }
   };
 
+  const handleAprovarUsuario = async (userId: string, aprovar: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ aprovado: aprovar })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: aprovar ? "Usuário aprovado!" : "Aprovação revogada",
+        description: aprovar 
+          ? "O usuário agora pode acessar o sistema."
+          : "O acesso do usuário foi revogado.",
+      });
+
+      fetchUsuarios();
+    } catch (error) {
+      console.error("Erro ao atualizar aprovação:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar a aprovação do usuário",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredUsuarios = usuarios.filter(u =>
     u.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -486,12 +516,13 @@ export const GerenciamentoUsuarios = () => {
                     <TableHead>Email</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Aprovação</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredUsuarios.map((usuario) => (
-                    <TableRow key={usuario.id}>
+                    <TableRow key={usuario.id} className={!usuario.aprovado ? "bg-muted/50" : ""}>
                       <TableCell className="font-medium">{usuario.nome}</TableCell>
                       <TableCell>{usuario.email}</TableCell>
                       <TableCell>
@@ -504,8 +535,33 @@ export const GerenciamentoUsuarios = () => {
                           {usuario.status}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        <Badge variant={usuario.aprovado ? "default" : "outline"}>
+                          {usuario.aprovado ? "Aprovado" : "Pendente"}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          {!usuario.aprovado && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleAprovarUsuario(usuario.id, true)}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {usuario.aprovado && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleAprovarUsuario(usuario.id, false)}
+                              className="text-orange-600 hover:text-orange-700"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"

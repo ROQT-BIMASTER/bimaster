@@ -16,16 +16,37 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const checkUserStatus = async (session: Session | null) => {
+      if (!session) {
+        navigate("/auth/login");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("aprovado")
+        .eq("id", session.user.id)
+        .single();
+
+      if (profile && !profile.aprovado) {
+        navigate("/aguardando-aprovacao");
+      }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (!session) {
+      if (session) {
+        setTimeout(() => checkUserStatus(session), 0);
+      } else {
         navigate("/auth/login");
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (!session) {
+      if (session) {
+        checkUserStatus(session);
+      } else {
         navigate("/auth/login");
       }
       setLoading(false);
