@@ -20,9 +20,10 @@ interface Prospect {
 
 interface ProspectCardProps {
   prospect: Prospect;
+  onClick: () => void;
 }
 
-export const ProspectCard = ({ prospect }: ProspectCardProps) => {
+export const ProspectCard = ({ prospect, onClick }: ProspectCardProps) => {
   const {
     attributes,
     listeners,
@@ -67,7 +68,16 @@ export const ProspectCard = ({ prospect }: ProspectCardProps) => {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <Card className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow">
+      <Card 
+        className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+        onClick={(e) => {
+          // Só abre o dialog se não estiver arrastando
+          if (!isDragging) {
+            e.stopPropagation();
+            onClick();
+          }
+        }}
+      >
         <CardHeader className="p-4 pb-2">
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="text-sm font-semibold line-clamp-1">

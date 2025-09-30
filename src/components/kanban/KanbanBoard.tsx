@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ProspectDetailDialog } from "./ProspectDetailDialog";
 import { 
   DndContext, 
   DragEndEvent, 
@@ -24,10 +25,13 @@ interface Prospect {
   contato_principal: string | null;
   email: string | null;
   telefone: string | null;
+  cnpj: string | null;
   status: string;
   categoria: string | null;
   ultimo_contato: string | null;
   proxima_acao: string | null;
+  observacoes: string | null;
+  municipio_id: string | null;
 }
 
 const STAGES = [
@@ -42,6 +46,8 @@ const STAGES = [
 export const KanbanBoard = () => {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -147,6 +153,15 @@ export const KanbanBoard = () => {
     return prospects.filter((p) => p.status === status);
   };
 
+  const handleProspectClick = (prospect: Prospect) => {
+    setSelectedProspect(prospect);
+    setDialogOpen(true);
+  };
+
+  const handleProspectUpdate = () => {
+    fetchProspects();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -158,29 +173,44 @@ export const KanbanBoard = () => {
   const activeProspect = prospects.find((p) => p.id === activeId);
 
   return (
-    <DndContext 
-      sensors={sensors} 
-      onDragStart={handleDragStart} 
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-      collisionDetection={closestCorners}
-    >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {STAGES.map((stage) => {
-          const stageProspects = getProspectsByStatus(stage.id);
-          return (
-            <KanbanColumn
-              key={stage.id}
-              stage={stage}
-              prospects={stageProspects}
-            />
-          );
-        })}
-      </div>
+    <>
+      <DndContext 
+        sensors={sensors} 
+        onDragStart={handleDragStart} 
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        collisionDetection={closestCorners}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          {STAGES.map((stage) => {
+            const stageProspects = getProspectsByStatus(stage.id);
+            return (
+              <KanbanColumn
+                key={stage.id}
+                stage={stage}
+                prospects={stageProspects}
+                onProspectClick={handleProspectClick}
+              />
+            );
+          })}
+        </div>
 
-      <DragOverlay>
-        {activeProspect ? <ProspectCard prospect={activeProspect} /> : null}
-      </DragOverlay>
-    </DndContext>
+        <DragOverlay>
+          {activeProspect ? (
+            <ProspectCard 
+              prospect={activeProspect} 
+              onClick={() => {}}
+            />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+
+      <ProspectDetailDialog
+        prospect={selectedProspect}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onUpdate={handleProspectUpdate}
+      />
+    </>
   );
 };

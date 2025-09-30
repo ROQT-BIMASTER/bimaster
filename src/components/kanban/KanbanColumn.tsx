@@ -23,9 +23,10 @@ interface KanbanColumnProps {
     color: string;
   };
   prospects: Prospect[];
+  onProspectClick: (prospect: Prospect) => void;
 }
 
-export const KanbanColumn = ({ stage, prospects }: KanbanColumnProps) => {
+export const KanbanColumn = ({ stage, prospects, onProspectClick }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
   });
@@ -54,7 +55,11 @@ export const KanbanColumn = ({ stage, prospects }: KanbanColumnProps) => {
           strategy={verticalListSortingStrategy}
         >
           {prospects.map((prospect) => (
-            <ProspectCard key={prospect.id} prospect={prospect} />
+            <ProspectCard 
+              key={prospect.id} 
+              prospect={prospect}
+              onClick={() => onProspectClick(prospect)}
+            />
           ))}
           {prospects.length === 0 && (
             <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
