@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, Pencil, Trash2, Search } from "lucide-react";
 import { userSchema } from "@/lib/validations/user";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Usuario {
   id: string;
@@ -19,20 +21,22 @@ interface Usuario {
   status: "ativo" | "inativo";
 }
 
+interface Municipio {
+  id: string;
+  nome: string;
+  uf: string;
+}
+
 export const GerenciamentoUsuarios = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  // Dados mockados para demonstração
-  const [usuarios, setUsuarios] = useState<Usuario[]>([
-    { id: "1", nome: "Admin Sistema", email: "admin@empresa.com", tipo_usuario: "admin", status: "ativo" },
-    { id: "2", nome: "João Supervisor", email: "joao@empresa.com", tipo_usuario: "supervisor", status: "ativo" },
-    { id: "3", nome: "Maria Vendedora", email: "maria@empresa.com", tipo_usuario: "vendedor", status: "ativo" },
-    { id: "4", nome: "Pedro Vendedor", email: "pedro@empresa.com", tipo_usuario: "vendedor", status: "inativo" },
-  ]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [municipios, setMunicipios] = useState<Municipio[]>([]);
+  const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const [novoUsuario, setNovoUsuario] = useState({
     nome: "",
@@ -40,6 +44,49 @@ export const GerenciamentoUsuarios = () => {
     tipo_usuario: "vendedor" as const,
     senha: "",
   });
+
+  useEffect(() => {
+    fetchUsuarios();
+    fetchMunicipios();
+  }, []);
+
+  const fetchUsuarios = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("nome");
+      
+      if (error) throw error;
+      
+      // Converter dados do banco para o formato esperado
+      const usuariosFormatados = (data || []).map(profile => ({
+        id: profile.id,
+        nome: profile.nome,
+        email: profile.email,
+        tipo_usuario: profile.tipo_usuario as "admin" | "supervisor" | "vendedor",
+        status: (profile.status === "ativo" ? "ativo" : "inativo") as "ativo" | "inativo"
+      }));
+      
+      setUsuarios(usuariosFormatados);
+    } catch (error) {
+      console.error("Erro ao carregar usuários:", error);
+    }
+  };
+
+  const fetchMunicipios = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("municipios")
+        .select("id, nome, uf")
+        .order("nome");
+      
+      if (error) throw error;
+      setMunicipios(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar municípios:", error);
+    }
+  };
 
   const handleAddUser = () => {
     setErrors({});
@@ -184,6 +231,38 @@ export const GerenciamentoUsuarios = () => {
                     {errors.senha && <p className="text-sm text-destructive">{errors.senha}</p>}
                     <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, com letras maiúsculas, minúsculas e números</p>
                   </div>
+
+                  {novoUsuario.tipo_usuario === "vendedor" && (
+                    <div className="space-y-2">
+                      <Label>Vincular Municípios</Label>
+                      <div className="border rounded-md p-4 max-h-48 overflow-y-auto space-y-2">
+                        {municipios.map((municipio) => (
+                          <div key={municipio.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={municipio.id}
+                              checked={selectedMunicipios.includes(municipio.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedMunicipios([...selectedMunicipios, municipio.id]);
+                                } else {
+                                  setSelectedMunicipios(selectedMunicipios.filter(id => id !== municipio.id));
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={municipio.id}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                              {municipio.nome} - {municipio.uf}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Selecione os municípios que este vendedor irá gerenciar
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsDialogOpen(false)}>

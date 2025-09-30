@@ -57,10 +57,27 @@ const Prospects = () => {
 
   const fetchProspects = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Verificar tipo de usuário
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tipo_usuario")
+        .eq("id", user.id)
+        .single();
+
+      let query = supabase
         .from("prospects")
         .select("*")
         .order("created_at", { ascending: false });
+
+      // Se não for admin ou supervisor, filtrar por vendedor_id
+      if (profile?.tipo_usuario === "vendedor") {
+        query = query.eq("vendedor_id", user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setProspects(data || []);
