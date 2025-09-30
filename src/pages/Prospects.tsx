@@ -5,10 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Edit } from "lucide-react";
+import { Search, Edit, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NovoProspectDialog } from "@/components/prospects/NovoProspectDialog";
 import { ProspectDetailDialog } from "@/components/kanban/ProspectDetailDialog";
+import { AIInsightsChat } from "@/components/chat/AIInsightsChat";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 interface Prospect {
   id: string;
@@ -128,7 +130,20 @@ const Prospects = () => {
             <h2 className="text-3xl font-bold tracking-tight">Prospects</h2>
             <p className="text-muted-foreground">Gerencie seus prospects e oportunidades</p>
           </div>
-          <NovoProspectDialog onSuccess={fetchProspects} />
+          <div className="flex gap-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Insights de IA
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl h-[700px] p-0">
+                <AIInsightsChat />
+              </DialogContent>
+            </Dialog>
+            <NovoProspectDialog onSuccess={fetchProspects} />
+          </div>
         </div>
 
         <Card>
