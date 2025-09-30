@@ -136,6 +136,10 @@ const ImportarClientes = () => {
           const emailIdx = headers.findIndex(h => h.includes('email'));
           const telefoneIdx = headers.findIndex(h => h.includes('telefone') || h.includes('fone'));
           const contatoIdx = headers.findIndex(h => h.includes('contato'));
+          const enderecoIdx = headers.findIndex(h => h.includes('endereco') || h.includes('endereço'));
+          const porteIdx = headers.findIndex(h => h.includes('porte'));
+          const categoriaIdx = headers.findIndex(h => h.includes('categoria'));
+          const observacoesIdx = headers.findIndex(h => h.includes('observa') || h.includes('obs'));
 
           const nome_empresa = values[nomeIdx] || '';
           const municipio_nome = values[municipioIdx] || '';
@@ -200,6 +204,10 @@ const ImportarClientes = () => {
             email: values[emailIdx] || null,
             telefone: values[telefoneIdx] || null,
             contato_principal: values[contatoIdx] || null,
+            endereco: values[enderecoIdx] || null,
+            porte_empresa: values[porteIdx] || null,
+            categoria: values[categoriaIdx] || null,
+            observacoes: values[observacoesIdx] || null,
             importado_planilha: true,
             status: 'novo',
             uf: uf || null
@@ -254,8 +262,8 @@ const ImportarClientes = () => {
   };
 
   const downloadTemplate = () => {
-    const template = "nome_empresa,cnpj,municipio,uf,contato_principal,email,telefone\n" +
-                    "Empresa Exemplo,12.345.678/0001-90,São Paulo,SP,João Silva,joao@exemplo.com,11999999999";
+    const template = "nome_empresa,cnpj,municipio,uf,endereco,contato_principal,email,telefone,porte_empresa,categoria,observacoes\n" +
+                    "Empresa Exemplo,12.345.678/0001-90,São Paulo,SP,Rua Exemplo 123,João Silva,joao@exemplo.com,(11) 99999-9999,Médio,A,Cliente em potencial";
     const blob = new Blob([template], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -339,10 +347,14 @@ const ImportarClientes = () => {
                 <p className="font-medium mt-4">Campos opcionais:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                   <li>cnpj</li>
-                  <li>uf</li>
+                  <li>uf (estado)</li>
+                  <li>endereco</li>
                   <li>contato_principal</li>
                   <li>email</li>
                   <li>telefone</li>
+                  <li>porte_empresa (Pequeno, Médio, Grande)</li>
+                  <li>categoria (A, B, C, D)</li>
+                  <li>observacoes</li>
                 </ul>
               </div>
               <Button onClick={downloadTemplate} variant="outline" className="w-full">
