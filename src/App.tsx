@@ -1,6 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
@@ -18,26 +17,24 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth/login" element={<Auth />} />
-          <Route path="/auth/signup" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/prospects" element={<Prospects />} />
-          <Route path="/dashboard/municipios" element={<Municipios />} />
-          <Route path="/dashboard/atividades" element={<Atividades />} />
-          <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
-          <Route path="/dashboard/importar" element={<ImportarClientes />} />
-          <Route path="/dashboard/auditoria" element={<Auditoria />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <Toaster />
+    <Sonner />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/auth/login" element={<Auth />} />
+        <Route path="/auth/signup" element={<Auth />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard/prospects" element={<Prospects />} />
+        <Route path="/dashboard/municipios" element={<Municipios />} />
+        <Route path="/dashboard/atividades" element={<Atividades />} />
+        <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
+        <Route path="/dashboard/importar" element={<ImportarClientes />} />
+        <Route path="/dashboard/auditoria" element={<Auditoria />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
