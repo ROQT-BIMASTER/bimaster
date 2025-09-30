@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Calendar, Clock, CheckCircle2, Circle, AlertCircle } from "lucide-react";
 import { format, isToday, isFuture, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { EditarAtividadeDialog } from "@/components/atividades/EditarAtividadeDialog";
 
 interface Atividade {
   id: string;
@@ -37,6 +38,8 @@ const tipoLabels: Record<string, string> = {
 export const TaskBoard = () => {
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editandoAtividade, setEditandoAtividade] = useState<Atividade | null>(null);
+  const [dialogAberto, setDialogAberto] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -67,6 +70,11 @@ export const TaskBoard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAbrirEdicao = (atividade: Atividade) => {
+    setEditandoAtividade(atividade);
+    setDialogAberto(true);
   };
 
   const getPriorityColor = (atividade: Atividade) => {
@@ -119,6 +127,7 @@ export const TaskBoard = () => {
           <Card 
             key={atividade.id} 
             className={`hover:shadow-md transition-all cursor-pointer ${getPriorityColor(atividade)}`}
+            onClick={() => handleAbrirEdicao(atividade)}
           >
             <CardContent className="p-4">
               <div className="space-y-3">
@@ -180,21 +189,30 @@ export const TaskBoard = () => {
   }
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4">
-      <TaskColumn
-        title="Pendentes"
-        tasks={pendentes}
-        icon={<Circle className="h-5 w-5 text-muted-foreground" />}
-      />
-      <TaskColumn
-        title="Concluídas"
-        tasks={concluidas}
-        icon={<CheckCircle2 className="h-5 w-5 text-success" />}
-      />
-      <TaskColumn
-        title="Outras"
-        tasks={outras}
-        icon={<AlertCircle className="h-5 w-5 text-warning" />}
+    <div className="space-y-4">
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        <TaskColumn
+          title="Pendentes"
+          tasks={pendentes}
+          icon={<Circle className="h-5 w-5 text-muted-foreground" />}
+        />
+        <TaskColumn
+          title="Concluídas"
+          tasks={concluidas}
+          icon={<CheckCircle2 className="h-5 w-5 text-success" />}
+        />
+        <TaskColumn
+          title="Outras"
+          tasks={outras}
+          icon={<AlertCircle className="h-5 w-5 text-warning" />}
+        />
+      </div>
+
+      <EditarAtividadeDialog
+        atividade={editandoAtividade}
+        open={dialogAberto}
+        onOpenChange={setDialogAberto}
+        onSuccess={fetchAtividades}
       />
     </div>
   );

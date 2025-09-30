@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { NovaAtividadeDialog } from "@/components/atividades/NovaAtividadeDialog";
+import { EditarAtividadeDialog } from "@/components/atividades/EditarAtividadeDialog";
 
 interface Atividade {
   id: string;
@@ -32,6 +33,8 @@ const resultadoColors: Record<string, string> = {
 const Atividades = () => {
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editandoAtividade, setEditandoAtividade] = useState<Atividade | null>(null);
+  const [dialogAberto, setDialogAberto] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -60,6 +63,11 @@ const Atividades = () => {
     }
   };
 
+  const handleAbrirEdicao = (atividade: Atividade) => {
+    setEditandoAtividade(atividade);
+    setDialogAberto(true);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -82,7 +90,11 @@ const Atividades = () => {
             ) : (
               <div className="space-y-4">
                 {atividades.map((atividade) => (
-                  <Card key={atividade.id} className="hover:shadow-md transition-shadow">
+                  <Card 
+                    key={atividade.id} 
+                    className="hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => handleAbrirEdicao(atividade)}
+                  >
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
@@ -116,6 +128,13 @@ const Atividades = () => {
             )}
           </CardContent>
         </Card>
+
+        <EditarAtividadeDialog
+          atividade={editandoAtividade}
+          open={dialogAberto}
+          onOpenChange={setDialogAberto}
+          onSuccess={fetchAtividades}
+        />
       </div>
     </DashboardLayout>
   );
