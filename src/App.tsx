@@ -1,4 +1,3 @@
-import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -14,40 +13,30 @@ import ImportarClientes from "./pages/ImportarClientes";
 import Auditoria from "./pages/Auditoria";
 import NotFound from "./pages/NotFound";
 
-// Create query client inside the component to avoid issues
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+const queryClient = new QueryClient();
 
-const App = () => {
+function App() {
   return (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth/login" element={<Auth />} />
-            <Route path="/auth/signup" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/dashboard/prospects" element={<Prospects />} />
-            <Route path="/dashboard/municipios" element={<Municipios />} />
-            <Route path="/dashboard/atividades" element={<Atividades />} />
-            <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
-            <Route path="/dashboard/importar" element={<ImportarClientes />} />
-            <Route path="/dashboard/auditoria" element={<Auditoria />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/auth/login" element={<Auth />} />
+          <Route path="/auth/signup" element={<Auth />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard/prospects" element={<Prospects />} />
+          <Route path="/dashboard/municipios" element={<Municipios />} />
+          <Route path="/dashboard/atividades" element={<Atividades />} />
+          <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
+          <Route path="/dashboard/importar" element={<ImportarClientes />} />
+          <Route path="/dashboard/auditoria" element={<Auditoria />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
-};
+}
 
 export default App;
