@@ -62,7 +62,7 @@ export const FunilProspeccao = ({ data }: FunilProspeccaoProps) => {
         <CardDescription>Taxa de conversão por etapa do processo</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width="100%" height={300}>
           <FunnelChart>
             <Tooltip content={<CustomTooltip />} />
             <Funnel
