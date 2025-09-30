@@ -101,6 +101,97 @@ export type Database = {
         }
         Relationships: []
       }
+      conversas: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      conversas_participantes: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          id: string
+          ultima_leitura: string | null
+          usuario_id: string
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          id?: string
+          ultima_leitura?: string | null
+          usuario_id: string
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          id?: string
+          ultima_leitura?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversas_participantes_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mensagens: {
+        Row: {
+          conteudo: string
+          conversa_id: string
+          created_at: string
+          id: string
+          lida: boolean
+          remetente_id: string
+        }
+        Insert: {
+          conteudo: string
+          conversa_id: string
+          created_at?: string
+          id?: string
+          lida?: boolean
+          remetente_id: string
+        }
+        Update: {
+          conteudo?: string
+          conversa_id?: string
+          created_at?: string
+          id?: string
+          lida?: boolean
+          remetente_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       municipios: {
         Row: {
           created_at: string | null
@@ -226,6 +317,7 @@ export type Database = {
           endereco: string | null
           id: string
           importado_planilha: boolean | null
+          municipio: string | null
           municipio_id: string | null
           nome_empresa: string
           observacoes: string | null
@@ -246,6 +338,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           importado_planilha?: boolean | null
+          municipio?: string | null
           municipio_id?: string | null
           nome_empresa: string
           observacoes?: string | null
@@ -266,6 +359,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           importado_planilha?: boolean | null
+          municipio?: string | null
           municipio_id?: string | null
           nome_empresa?: string
           observacoes?: string | null
