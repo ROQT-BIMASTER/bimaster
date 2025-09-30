@@ -257,7 +257,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin_or_supervisor: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       activity_result: "positivo" | "neutro" | "negativo"
