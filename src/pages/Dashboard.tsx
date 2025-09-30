@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Building2, TrendingUp, Activity } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MetricasDistribuicao } from "@/components/admin/MetricasDistribuicao";
+import { FunilProspeccao } from "@/components/dashboard/FunilProspeccao";
 
 interface Stats {
   totalProspects: number;
@@ -181,41 +182,8 @@ const Dashboard = () => {
           </div>
         )}
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pipeline de Vendas</CardTitle>
-              <CardDescription>Funil de conversão dos prospects</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={pipelineData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="stage" />
-                  <YAxis />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="bg-card border rounded-lg p-3 shadow-lg">
-                            <p className="font-semibold">{payload[0].payload.stage}</p>
-                            <p className="text-sm">Prospects: {payload[0].payload.count}</p>
-                            <p className="text-sm">Percentual: {payload[0].payload.percentage}%</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                    {pipelineData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <div className="grid gap-6">
+          <FunilProspeccao data={pipelineData} />
 
           <Card>
             <CardHeader>
