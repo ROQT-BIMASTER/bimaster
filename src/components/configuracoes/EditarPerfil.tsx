@@ -3,14 +3,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Phone, Building } from "lucide-react";
+import { User, Mail, Phone, Building, Shield } from "lucide-react";
 import { profileSchema, ProfileFormData } from "@/lib/validations/profile";
 
 interface Profile {
   id: string;
   nome: string;
   email: string;
+  tipo_usuario?: string;
+  status?: string;
   telefone?: string;
   cargo?: string;
   departamento?: string;
@@ -26,6 +29,30 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
   const [formData, setFormData] = useState(profile);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
+
+  const getTipoUsuarioLabel = () => {
+    switch (profile?.tipo_usuario) {
+      case 'admin':
+        return 'Administrador';
+      case 'supervisor':
+        return 'Supervisor';
+      case 'vendedor':
+        return 'Vendedor';
+      default:
+        return 'Usuário';
+    }
+  };
+
+  const getTipoUsuarioVariant = () => {
+    switch (profile?.tipo_usuario) {
+      case 'admin':
+        return 'default';
+      case 'supervisor':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
+  };
 
   const handleSave = () => {
     setErrors({});
@@ -64,6 +91,21 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
         <CardDescription>Atualize suas informações pessoais</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="tipo_usuario">
+            <Shield className="inline-block w-4 h-4 mr-2" />
+            Tipo de Usuário
+          </Label>
+          <div className="flex items-center gap-2">
+            <Badge variant={getTipoUsuarioVariant() as any} className="text-sm px-3 py-1">
+              {getTipoUsuarioLabel()}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              (Não pode ser alterado por você)
+            </span>
+          </div>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="nome">
             <User className="inline-block w-4 h-4 mr-2" />

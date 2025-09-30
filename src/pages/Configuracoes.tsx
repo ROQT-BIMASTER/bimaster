@@ -3,12 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { MunicipioAtribuicao } from "@/components/admin/MunicipioAtribuicao";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditarPerfil } from "@/components/configuracoes/EditarPerfil";
 import { GerenciamentoUsuarios } from "@/components/configuracoes/GerenciamentoUsuarios";
 import { ConfiguracoesNotificacoes } from "@/components/configuracoes/ConfiguracoesNotificacoes";
+import { Shield, UserCog, User, CheckCircle } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -92,24 +94,133 @@ const Configuracoes = () => {
   };
 
   const isAdmin = profile?.tipo_usuario === 'admin';
+  const isSupervisor = profile?.tipo_usuario === 'supervisor';
+  const isVendedor = profile?.tipo_usuario === 'vendedor';
+
+  const getTipoUsuarioLabel = () => {
+    switch (profile?.tipo_usuario) {
+      case 'admin':
+        return 'Administrador';
+      case 'supervisor':
+        return 'Supervisor';
+      case 'vendedor':
+        return 'Vendedor';
+      default:
+        return 'Usuário';
+    }
+  };
+
+  const getTipoUsuarioIcon = () => {
+    switch (profile?.tipo_usuario) {
+      case 'admin':
+        return <Shield className="w-4 h-4" />;
+      case 'supervisor':
+        return <UserCog className="w-4 h-4" />;
+      case 'vendedor':
+        return <User className="w-4 h-4" />;
+      default:
+        return <User className="w-4 h-4" />;
+    }
+  };
+
+  const getTipoUsuarioVariant = () => {
+    switch (profile?.tipo_usuario) {
+      case 'admin':
+        return 'default';
+      case 'supervisor':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
+  };
+
+  const getPermissoes = () => {
+    if (isAdmin) {
+      return [
+        'Gerenciar todos os usuários',
+        'Atribuir municípios aos vendedores',
+        'Visualizar todas as atividades',
+        'Gerenciar prospects de todos os vendedores',
+        'Acesso total ao sistema'
+      ];
+    } else if (isSupervisor) {
+      return [
+        'Visualizar atividades da equipe',
+        'Gerenciar prospects da equipe',
+        'Visualizar relatórios de vendas',
+        'Acompanhar métricas de desempenho'
+      ];
+    } else {
+      return [
+        'Gerenciar seus próprios prospects',
+        'Registrar suas atividades',
+        'Visualizar seus relatórios',
+        'Atualizar seu perfil'
+      ];
+    }
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Configurações</h2>
-          <p className="text-muted-foreground">
-            {isAdmin ? "Gerencie o sistema e suas informações" : "Gerencie suas informações pessoais"}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Configurações</h2>
+            <p className="text-muted-foreground">
+              {isAdmin ? "Gerencie o sistema e suas informações" : "Gerencie suas informações pessoais"}
+            </p>
+          </div>
+          <Badge variant={getTipoUsuarioVariant() as any} className="flex items-center gap-2 px-4 py-2">
+            {getTipoUsuarioIcon()}
+            <span className="font-semibold">{getTipoUsuarioLabel()}</span>
+          </Badge>
         </div>
 
-        {isAdmin ? (
+        <Card className="border-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Informações da Conta
+            </CardTitle>
+            <CardDescription>Detalhes sobre seu perfil e permissões no sistema</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Tipo de Usuário</p>
+                <p className="text-lg font-semibold">{getTipoUsuarioLabel()}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Status</p>
+                <div className="flex items-center gap-2">
+                  <Badge variant={profile?.status === 'ativo' ? 'default' : 'secondary'}>
+                    {profile?.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+            
+            <div className="pt-4 border-t">
+              <p className="text-sm font-medium mb-3">Permissões do seu perfil:</p>
+              <div className="space-y-2">
+                {getPermissoes().map((permissao, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 mt-0.5 text-primary" />
+                    <span className="text-sm text-muted-foreground">{permissao}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {isAdmin || isSupervisor ? (
           <Tabs defaultValue="perfil" className="space-y-4">
             <TabsList>
               <TabsTrigger value="perfil">Meu Perfil</TabsTrigger>
-              <TabsTrigger value="usuarios">Gerenciar Usuários</TabsTrigger>
+              {isAdmin && <TabsTrigger value="usuarios">Gerenciar Usuários</TabsTrigger>}
               <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
-              <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>
+              {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="perfil" className="space-y-4">
@@ -128,17 +239,21 @@ const Configuracoes = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="usuarios">
-              <GerenciamentoUsuarios />
-            </TabsContent>
+            {isAdmin && (
+              <TabsContent value="usuarios">
+                <GerenciamentoUsuarios />
+              </TabsContent>
+            )}
 
             <TabsContent value="notificacoes">
               <ConfiguracoesNotificacoes />
             </TabsContent>
 
-            <TabsContent value="municipios">
-              <MunicipioAtribuicao />
-            </TabsContent>
+            {isAdmin && (
+              <TabsContent value="municipios">
+                <MunicipioAtribuicao />
+              </TabsContent>
+            )}
           </Tabs>
         ) : (
           <Tabs defaultValue="perfil" className="space-y-4">
