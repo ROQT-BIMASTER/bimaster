@@ -4,9 +4,11 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NovoProspectDialog } from "@/components/prospects/NovoProspectDialog";
+import { ProspectDetailDialog } from "@/components/kanban/ProspectDetailDialog";
 
 interface Prospect {
   id: string;
@@ -14,10 +16,13 @@ interface Prospect {
   contato_principal: string | null;
   email: string | null;
   telefone: string | null;
+  cnpj: string | null;
   status: string;
   categoria: string | null;
   ultimo_contato: string | null;
   proxima_acao: string | null;
+  observacoes: string | null;
+  municipio_id: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -42,6 +47,8 @@ const Prospects = () => {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -74,6 +81,11 @@ const Prospects = () => {
     prospect.contato_principal?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     prospect.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleEditProspect = (prospect: Prospect) => {
+    setSelectedProspect(prospect);
+    setDialogOpen(true);
+  };
 
   return (
     <DashboardLayout>
@@ -110,11 +122,28 @@ const Prospects = () => {
             ) : (
               <div className="space-y-4">
                 {filteredProspects.map((prospect) => (
-                  <Card key={prospect.id} className="hover:shadow-md transition-shadow">
+                  <Card 
+                    key={prospect.id} 
+                    className="hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => handleEditProspect(prospect)}
+                  >
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-lg">{prospect.nome_empresa}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-lg">{prospect.nome_empresa}</h3>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditProspect(prospect);
+                              }}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          </div>
                           <p className="text-sm text-muted-foreground">
                             {prospect.contato_principal || "Sem contato principal"}
                           </p>
@@ -154,6 +183,13 @@ const Prospects = () => {
           </CardContent>
         </Card>
       </div>
+
+      <ProspectDetailDialog
+        prospect={selectedProspect}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onUpdate={fetchProspects}
+      />
     </DashboardLayout>
   );
 };
