@@ -38,10 +38,15 @@ export const GerenciamentoUsuarios = () => {
   const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [novoUsuario, setNovoUsuario] = useState({
+  const [novoUsuario, setNovoUsuario] = useState<{
+    nome: string;
+    email: string;
+    tipo_usuario: "admin" | "supervisor" | "vendedor";
+    senha: string;
+  }>({
     nome: "",
     email: "",
-    tipo_usuario: "vendedor" as const,
+    tipo_usuario: "vendedor",
     senha: "",
   });
 
@@ -49,6 +54,28 @@ export const GerenciamentoUsuarios = () => {
     fetchUsuarios();
     fetchMunicipios();
   }, []);
+
+  useEffect(() => {
+    if (editingUser && isDialogOpen) {
+      fetchUserMunicipios(editingUser.id);
+    } else if (!isDialogOpen) {
+      setSelectedMunicipios([]);
+    }
+  }, [editingUser, isDialogOpen]);
+
+  const fetchUserMunicipios = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("municipios_usuarios")
+        .select("municipio_id")
+        .eq("usuario_id", userId);
+      
+      if (error) throw error;
+      setSelectedMunicipios(data?.map(m => m.municipio_id) || []);
+    } catch (error) {
+      console.error("Erro ao carregar municípios do usuário:", error);
+    }
+  };
 
   const fetchUsuarios = async () => {
     try {
@@ -88,37 +115,105 @@ export const GerenciamentoUsuarios = () => {
     }
   };
 
-  const handleAddUser = () => {
+  const handleAddUser = async () => {
     setErrors({});
+    setLoading(true);
     
     try {
       const validatedData = userSchema.parse(novoUsuario);
       
-      const newUser: Usuario = {
-        id: String(usuarios.length + 1),
-        nome: validatedData.nome,
+      // Criar usuário no auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validatedData.email,
-        tipo_usuario: validatedData.tipo_usuario,
-        status: "ativo",
-      };
+        password: validatedData.senha,
+        options: {
+          data: {
+            nome: validatedData.nome,
+            tipo_usuario: validatedData.tipo_usuario
+          }
+        }
+      });
+
+      if (authError) throw authError;
       
-      setUsuarios([...usuarios, newUser]);
+      if (authData.user) {
+        // Vincular municípios se for vendedor
+        if (validatedData.tipo_usuario === "vendedor" && selectedMunicipios.length > 0) {
+          const { error: vinculoError } = await supabase
+            .from("municipios_usuarios")
+            .insert(
+              selectedMunicipios.map(municipioId => ({
+                usuario_id: authData.user.id,
+                municipio_id: municipioId
+              }))
+            );
+
+          if (vinculoError) throw vinculoError;
+        }
+      }
+      
       setIsDialogOpen(false);
       setNovoUsuario({ nome: "", email: "", tipo_usuario: "vendedor", senha: "" });
+      setSelectedMunicipios([]);
       
       toast({
-        title: "Usuário adicionado",
-        description: `${newUser.nome} foi validado e adicionado com sucesso`,
+        title: "Usuário criado",
+        description: `${validatedData.nome} foi criado com sucesso`,
       });
+      
+      fetchUsuarios();
     } catch (error: any) {
-      const fieldErrors: Record<string, string> = {};
-      error.errors?.forEach((err: any) => {
-        fieldErrors[err.path[0]] = err.message;
-      });
-      setErrors(fieldErrors);
+      console.error("Erro ao criar usuário:", error);
+      
+      if (error.errors) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors?.forEach((err: any) => {
+          fieldErrors[err.path[0]] = err.message;
+        });
+        setErrors(fieldErrors);
+      }
+      
       toast({
-        title: "Erro de validação",
-        description: "Verifique os campos destacados",
+        title: "Erro",
+        description: error.message || "Não foi possível criar o usuário",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateUserMunicipios = async (userId: string) => {
+    try {
+      // Remover vínculos antigos
+      await supabase
+        .from("municipios_usuarios")
+        .delete()
+        .eq("usuario_id", userId);
+
+      // Adicionar novos vínculos
+      if (selectedMunicipios.length > 0) {
+        const { error } = await supabase
+          .from("municipios_usuarios")
+          .insert(
+            selectedMunicipios.map(municipioId => ({
+              usuario_id: userId,
+              municipio_id: municipioId
+            }))
+          );
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Municípios atualizados",
+        description: "Os municípios do vendedor foram atualizados com sucesso",
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar municípios:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar os municípios",
         variant: "destructive",
       });
     }
@@ -126,27 +221,114 @@ export const GerenciamentoUsuarios = () => {
 
   const handleEditUser = (user: Usuario) => {
     setEditingUser(user);
+    setNovoUsuario({
+      nome: user.nome,
+      email: user.email,
+      tipo_usuario: user.tipo_usuario,
+      senha: ""
+    });
     setIsDialogOpen(true);
   };
 
-  const handleDeleteUser = (userId: string) => {
-    setUsuarios(usuarios.filter(u => u.id !== userId));
-    toast({
-      title: "Usuário removido",
-      description: "O usuário foi removido com sucesso (interface only)",
-    });
+  const handleSaveEdit = async () => {
+    if (!editingUser) return;
+    
+    setLoading(true);
+    try {
+      // Atualizar perfil
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          nome: novoUsuario.nome,
+          tipo_usuario: novoUsuario.tipo_usuario
+        })
+        .eq("id", editingUser.id);
+
+      if (profileError) throw profileError;
+
+      // Atualizar municípios se for vendedor
+      if (novoUsuario.tipo_usuario === "vendedor") {
+        await handleUpdateUserMunicipios(editingUser.id);
+      }
+
+      toast({
+        title: "Usuário atualizado",
+        description: "As informações foram atualizadas com sucesso",
+      });
+
+      setIsDialogOpen(false);
+      setEditingUser(null);
+      setNovoUsuario({ nome: "", email: "", tipo_usuario: "vendedor", senha: "" });
+      setSelectedMunicipios([]);
+      fetchUsuarios();
+    } catch (error) {
+      console.error("Erro ao atualizar usuário:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o usuário",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleToggleStatus = (userId: string) => {
-    setUsuarios(usuarios.map(u => 
-      u.id === userId 
-        ? { ...u, status: u.status === "ativo" ? "inativo" : "ativo" }
-        : u
-    ));
-    toast({
-      title: "Status atualizado",
-      description: "O status do usuário foi alterado (interface only)",
-    });
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm("Tem certeza que deseja remover este usuário?")) return;
+    
+    try {
+      // A deleção em cascata cuidará dos vínculos em municipios_usuarios
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Usuário removido",
+        description: "O usuário foi removido com sucesso",
+      });
+      
+      fetchUsuarios();
+    } catch (error) {
+      console.error("Erro ao remover usuário:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover o usuário",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleStatus = async (userId: string) => {
+    try {
+      const user = usuarios.find(u => u.id === userId);
+      if (!user) return;
+
+      const newStatus = user.status === "ativo" ? "inativo" : "ativo";
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status: newStatus })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Status atualizado",
+        description: "O status do usuário foi alterado",
+      });
+      
+      fetchUsuarios();
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o status",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredUsuarios = usuarios.filter(u =>
@@ -265,11 +447,19 @@ export const GerenciamentoUsuarios = () => {
                   )}
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => {
+                    setIsDialogOpen(false);
+                    setEditingUser(null);
+                    setNovoUsuario({ nome: "", email: "", tipo_usuario: "vendedor", senha: "" });
+                    setSelectedMunicipios([]);
+                  }}>
                     Cancelar
                   </Button>
-                  <Button onClick={handleAddUser}>
-                    {editingUser ? "Salvar Alterações" : "Criar Usuário"}
+                  <Button 
+                    onClick={editingUser ? handleSaveEdit : handleAddUser}
+                    disabled={loading}
+                  >
+                    {loading ? "Salvando..." : (editingUser ? "Salvar Alterações" : "Criar Usuário")}
                   </Button>
                 </DialogFooter>
               </DialogContent>

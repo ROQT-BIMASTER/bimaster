@@ -72,9 +72,22 @@ const Prospects = () => {
         .select("*")
         .order("created_at", { ascending: false });
 
-      // Se não for admin ou supervisor, filtrar por vendedor_id
+      // Se não for admin ou supervisor, filtrar por municípios vinculados ao vendedor
       if (profile?.tipo_usuario === "vendedor") {
-        query = query.eq("vendedor_id", user.id);
+        // Buscar municípios vinculados ao vendedor
+        const { data: vinculos } = await supabase
+          .from("municipios_usuarios")
+          .select("municipio_id")
+          .eq("usuario_id", user.id);
+
+        const municipiosIds = vinculos?.map(v => v.municipio_id) || [];
+        
+        if (municipiosIds.length > 0) {
+          query = query.in("municipio_id", municipiosIds);
+        } else {
+          // Se não tem municípios vinculados, não mostrar nenhum prospect
+          query = query.eq("vendedor_id", user.id);
+        }
       }
 
       const { data, error } = await query;
