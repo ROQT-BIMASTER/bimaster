@@ -6,6 +6,7 @@ import { Users, Building2, TrendingUp, Activity } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
 import { format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { MetricasDistribuicao } from "@/components/admin/MetricasDistribuicao";
 
 interface Stats {
   totalProspects: number;
@@ -36,12 +37,22 @@ const Dashboard = () => {
   const [pipelineData, setPipelineData] = useState<PipelineData[]>([]);
   const [activityData, setActivityData] = useState<ActivityData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+
+        // Verificar se é admin
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("tipo_usuario")
+          .eq("id", user.id)
+          .single();
+
+        setIsAdmin(profile?.tipo_usuario === 'admin');
 
         const [prospectsResult, municipiosResult, negociacaoResult, atividadesResult] = await Promise.all([
           supabase.from("prospects").select("*", { count: "exact", head: true }),
@@ -148,6 +159,8 @@ const Dashboard = () => {
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
           <p className="text-muted-foreground">Visão geral do seu CRM</p>
         </div>
+
+        {isAdmin && <MetricasDistribuicao />}
 
         {loading ? (
           <div className="text-center py-8">Carregando estatísticas...</div>

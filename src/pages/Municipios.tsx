@@ -13,6 +13,8 @@ interface Municipio {
   uf: string;
   regiao: string;
   vendedor_id: string | null;
+  vendedor_nome?: string;
+  total_prospects?: number;
 }
 
 const regiaoColors: Record<string, string> = {
@@ -37,11 +39,26 @@ const Municipios = () => {
     try {
       const { data, error } = await supabase
         .from("municipios")
-        .select("*")
+        .select(`
+          *,
+          profiles!municipios_vendedor_id_fkey (nome),
+          prospects (count)
+        `)
         .order("nome", { ascending: true });
 
       if (error) throw error;
-      setMunicipios(data || []);
+      
+      const municipiosFormatados = (data || []).map(m => ({
+        id: m.id,
+        nome: m.nome,
+        uf: m.uf,
+        regiao: m.regiao,
+        vendedor_id: m.vendedor_id,
+        vendedor_nome: (m.profiles as any)?.nome,
+        total_prospects: m.prospects?.[0]?.count || 0
+      }));
+      
+      setMunicipios(municipiosFormatados);
     } catch (error) {
       console.error("Erro ao carregar municípios:", error);
       toast({
@@ -95,13 +112,25 @@ const Municipios = () => {
                         <h3 className="font-semibold">{municipio.nome}</h3>
                         <Badge variant="outline">{municipio.uf}</Badge>
                       </div>
-                      <div className="flex gap-2">
-                        <Badge className={regiaoColors[municipio.regiao]}>
-                          {municipio.regiao.replace("_", " ")}
-                        </Badge>
-                        {municipio.vendedor_id && (
-                          <Badge variant="secondary">Atribuído</Badge>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Badge className={regiaoColors[municipio.regiao]}>
+                            {municipio.regiao.replace("_", " ")}
+                          </Badge>
+                          {municipio.vendedor_id ? (
+                            <Badge variant="default">Coberto</Badge>
+                          ) : (
+                            <Badge variant="destructive">Descoberto</Badge>
+                          )}
+                        </div>
+                        {municipio.vendedor_nome && (
+                          <p className="text-sm text-muted-foreground">
+                            Vendedor: {municipio.vendedor_nome}
+                          </p>
                         )}
+                        <p className="text-sm font-medium">
+                          {municipio.total_prospects || 0} {municipio.total_prospects === 1 ? 'prospect' : 'prospects'}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
