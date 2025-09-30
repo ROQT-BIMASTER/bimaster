@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { User, Mail, Phone, Building } from "lucide-react";
+import { profileSchema, ProfileFormData } from "@/lib/validations/profile";
 
 interface Profile {
   id: string;
@@ -23,16 +24,32 @@ interface EditarPerfilProps {
 export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(profile);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   const handleSave = () => {
-    // Aqui só atualizamos localmente, sem salvar no banco ainda
-    onUpdate(formData);
-    setIsEditing(false);
-    toast({
-      title: "Perfil atualizado",
-      description: "Suas informações foram atualizadas com sucesso (interface only)",
-    });
+    setErrors({});
+    
+    try {
+      const validatedData = profileSchema.parse(formData);
+      onUpdate({ ...profile, ...validatedData });
+      setIsEditing(false);
+      toast({
+        title: "Perfil atualizado",
+        description: "Suas informações foram validadas e atualizadas com sucesso",
+      });
+    } catch (error: any) {
+      const fieldErrors: Record<string, string> = {};
+      error.errors?.forEach((err: any) => {
+        fieldErrors[err.path[0]] = err.message;
+      });
+      setErrors(fieldErrors);
+      toast({
+        title: "Erro de validação",
+        description: "Verifique os campos destacados",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCancel = () => {
@@ -57,7 +74,9 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
             value={formData.nome}
             onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
             disabled={!isEditing}
+            maxLength={100}
           />
+          {errors.nome && <p className="text-sm text-destructive">{errors.nome}</p>}
         </div>
 
         <div className="space-y-2">
@@ -71,7 +90,9 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             disabled={!isEditing}
+            maxLength={255}
           />
+          {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
         </div>
 
         <div className="space-y-2">
@@ -85,7 +106,9 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
             onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
             disabled={!isEditing}
             placeholder="(00) 00000-0000"
+            maxLength={15}
           />
+          {errors.telefone && <p className="text-sm text-destructive">{errors.telefone}</p>}
         </div>
 
         <div className="space-y-2">
@@ -99,7 +122,9 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
             onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
             disabled={!isEditing}
             placeholder="Ex: Vendedor Sênior"
+            maxLength={100}
           />
+          {errors.cargo && <p className="text-sm text-destructive">{errors.cargo}</p>}
         </div>
 
         <div className="space-y-2">
@@ -110,7 +135,9 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
             onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
             disabled={!isEditing}
             placeholder="Ex: Vendas"
+            maxLength={100}
           />
+          {errors.departamento && <p className="text-sm text-destructive">{errors.departamento}</p>}
         </div>
 
         <div className="flex gap-2 pt-4">

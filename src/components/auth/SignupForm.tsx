@@ -9,9 +9,24 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
 const signupSchema = z.object({
-  nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  nome: z
+    .string()
+    .trim()
+    .min(3, "Nome deve ter no mínimo 3 caracteres")
+    .max(100, "Nome deve ter no máximo 100 caracteres")
+    .regex(/^[a-zA-ZÀ-ÿ\s]+$/, "Nome deve conter apenas letras"),
+  email: z
+    .string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email deve ter no máximo 255 caracteres")
+    .toLowerCase(),
+  password: z
+    .string()
+    .min(8, "Senha deve ter no mínimo 8 caracteres")
+    .max(100, "Senha deve ter no máximo 100 caracteres")
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 
+      "Senha deve conter letras maiúsculas, minúsculas e números"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
@@ -100,6 +115,7 @@ export const SignupForm = () => {
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               required
+              maxLength={100}
             />
           </div>
           <div className="space-y-2">
@@ -111,6 +127,7 @@ export const SignupForm = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              maxLength={255}
             />
           </div>
           <div className="space-y-2">
@@ -118,21 +135,24 @@ export const SignupForm = () => {
             <Input
               id="password"
               type="password"
-              placeholder="••••••"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              maxLength={100}
             />
+            <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, com letras maiúsculas, minúsculas e números</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirmar Senha</Label>
             <Input
               id="confirmPassword"
               type="password"
-              placeholder="••••••"
+              placeholder="••••••••"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              maxLength={100}
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>

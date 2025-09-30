@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus } from "lucide-react";
+import { prospectSchema } from "@/lib/validations/prospect";
 
 interface NovoProspectDialogProps {
   onSuccess: () => void;
@@ -16,6 +17,7 @@ interface NovoProspectDialogProps {
 export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     nome_empresa: "",
     cnpj: "",
@@ -30,23 +32,26 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     setLoading(true);
 
     try {
+      const validatedData = prospectSchema.parse(formData);
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
       const { error } = await supabase.from("prospects").insert([
         {
-          nome_empresa: formData.nome_empresa,
+          nome_empresa: validatedData.nome_empresa,
           vendedor_id: user.id,
-          status: formData.status as "novo" | "em_contato" | "proposta_enviada" | "negociacao" | "ganho" | "perdido",
-          cnpj: formData.cnpj || null,
-          contato_principal: formData.contato_principal || null,
-          email: formData.email || null,
-          telefone: formData.telefone || null,
-          categoria: (formData.categoria || null) as "A" | "B" | "C" | "D" | null,
-          observacoes: formData.observacoes || null,
+          status: validatedData.status as "novo" | "em_contato" | "proposta_enviada" | "negociacao" | "ganho" | "perdido",
+          cnpj: validatedData.cnpj || null,
+          contato_principal: validatedData.contato_principal || null,
+          email: validatedData.email || null,
+          telefone: validatedData.telefone || null,
+          categoria: (validatedData.categoria || null) as "A" | "B" | "C" | "D" | null,
+          observacoes: validatedData.observacoes || null,
         },
       ]);
 
@@ -54,7 +59,7 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
 
       toast({
         title: "Sucesso",
-        description: "Prospect criado com sucesso",
+        description: "Prospect validado e criado com sucesso",
       });
 
       setFormData({
@@ -71,12 +76,24 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
       setOpen(false);
       onSuccess();
     } catch (error: any) {
-      console.error("Erro ao criar prospect:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível criar o prospect",
-        variant: "destructive",
-      });
+      if (error.errors) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          fieldErrors[err.path[0]] = err.message;
+        });
+        setErrors(fieldErrors);
+        toast({
+          title: "Erro de validação",
+          description: "Verifique os campos destacados",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: error.message || "Não foi possível criar o prospect",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -107,7 +124,9 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
                 onChange={(e) => setFormData({ ...formData, nome_empresa: e.target.value })}
                 required
                 placeholder="Ex: Empresa XYZ Ltda"
+                maxLength={200}
               />
+              {errors.nome_empresa && <p className="text-sm text-destructive">{errors.nome_empresa}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="cnpj">CNPJ</Label>
@@ -116,7 +135,9 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
                 value={formData.cnpj}
                 onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
                 placeholder="00.000.000/0000-00"
+                maxLength={18}
               />
+              {errors.cnpj && <p className="text-sm text-destructive">{errors.cnpj}</p>}
             </div>
           </div>
 
@@ -128,7 +149,9 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
                 value={formData.contato_principal}
                 onChange={(e) => setFormData({ ...formData, contato_principal: e.target.value })}
                 placeholder="Nome do contato"
+                maxLength={100}
               />
+              {errors.contato_principal && <p className="text-sm text-destructive">{errors.contato_principal}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -138,7 +161,9 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="contato@empresa.com"
+                maxLength={255}
               />
+              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
             </div>
           </div>
 
@@ -150,7 +175,9 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
                 value={formData.telefone}
                 onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
                 placeholder="(00) 00000-0000"
+                maxLength={15}
               />
+              {errors.telefone && <p className="text-sm text-destructive">{errors.telefone}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
@@ -183,6 +210,7 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
                   <SelectItem value="D">D</SelectItem>
                 </SelectContent>
             </Select>
+            {errors.categoria && <p className="text-sm text-destructive">{errors.categoria}</p>}
           </div>
 
           <div className="space-y-2">
@@ -193,7 +221,10 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
               onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
               placeholder="Informações adicionais sobre o prospect"
               rows={3}
+              maxLength={1000}
             />
+            {errors.observacoes && <p className="text-sm text-destructive">{errors.observacoes}</p>}
+            <p className="text-xs text-muted-foreground">{formData.observacoes.length}/1000 caracteres</p>
           </div>
 
           <DialogFooter>

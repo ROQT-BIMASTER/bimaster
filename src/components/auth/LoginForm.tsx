@@ -9,8 +9,16 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
 const loginSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  email: z
+    .string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email deve ter no máximo 255 caracteres")
+    .toLowerCase(),
+  password: z
+    .string()
+    .min(6, "Senha deve ter no mínimo 6 caracteres")
+    .max(100, "Senha deve ter no máximo 100 caracteres"),
 });
 
 export const LoginForm = () => {
@@ -86,6 +94,7 @@ export const LoginForm = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              maxLength={255}
             />
           </div>
           <div className="space-y-2">
@@ -97,6 +106,7 @@ export const LoginForm = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              maxLength={100}
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>

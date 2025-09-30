@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus } from "lucide-react";
+import { atividadeSchema } from "@/lib/validations/atividade";
 
 interface Prospect {
   id: string;
@@ -22,6 +23,7 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     prospect_id: "",
     tipo: "ligacao",
@@ -59,21 +61,24 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     setLoading(true);
 
     try {
+      const validatedData = atividadeSchema.parse(formData);
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
       const { error } = await supabase.from("atividades").insert([
         {
-          prospect_id: formData.prospect_id,
+          prospect_id: validatedData.prospect_id,
           vendedor_id: user.id,
-          tipo: formData.tipo as "ligacao" | "email" | "reuniao" | "visita" | "proposta",
-          descricao: formData.descricao,
-          resultado: (formData.resultado || null) as "positivo" | "neutro" | "negativo" | null,
-          data_atividade: formData.data_atividade,
-          proximo_followup: formData.proximo_followup || null,
+          tipo: validatedData.tipo as "ligacao" | "email" | "reuniao" | "visita" | "proposta",
+          descricao: validatedData.descricao,
+          resultado: (validatedData.resultado || null) as "positivo" | "neutro" | "negativo" | null,
+          data_atividade: validatedData.data_atividade,
+          proximo_followup: validatedData.proximo_followup || null,
         },
       ]);
 
@@ -81,7 +86,7 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
 
       toast({
         title: "Sucesso",
-        description: "Atividade registrada com sucesso",
+        description: "Atividade validada e registrada com sucesso",
       });
 
       setFormData({
@@ -96,12 +101,24 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
       setOpen(false);
       onSuccess();
     } catch (error: any) {
-      console.error("Erro ao criar atividade:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível registrar a atividade",
-        variant: "destructive",
-      });
+      if (error.errors) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          fieldErrors[err.path[0]] = err.message;
+        });
+        setErrors(fieldErrors);
+        toast({
+          title: "Erro de validação",
+          description: "Verifique os campos destacados",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: error.message || "Não foi possível registrar a atividade",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -137,6 +154,7 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
                 ))}
               </SelectContent>
             </Select>
+            {errors.prospect_id && <p className="text-sm text-destructive">{errors.prospect_id}</p>}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -163,7 +181,9 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
                 value={formData.data_atividade}
                 onChange={(e) => setFormData({ ...formData, data_atividade: e.target.value })}
                 required
+                max={new Date().toISOString().split('T')[0]}
               />
+              {errors.data_atividade && <p className="text-sm text-destructive">{errors.data_atividade}</p>}
             </div>
           </div>
 
@@ -176,7 +196,10 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
               placeholder="Descreva a atividade realizada"
               rows={4}
               required
+              maxLength={1000}
             />
+            {errors.descricao && <p className="text-sm text-destructive">{errors.descricao}</p>}
+            <p className="text-xs text-muted-foreground">{formData.descricao.length}/1000 caracteres</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -201,7 +224,9 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
                 type="date"
                 value={formData.proximo_followup}
                 onChange={(e) => setFormData({ ...formData, proximo_followup: e.target.value })}
+                min={new Date().toISOString().split('T')[0]}
               />
+              {errors.proximo_followup && <p className="text-sm text-destructive">{errors.proximo_followup}</p>}
             </div>
           </div>
 

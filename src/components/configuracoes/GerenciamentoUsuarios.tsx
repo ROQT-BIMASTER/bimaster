@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, Pencil, Trash2, Search } from "lucide-react";
+import { userSchema } from "@/lib/validations/user";
 
 interface Usuario {
   id: string;
@@ -23,6 +24,7 @@ export const GerenciamentoUsuarios = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   // Dados mockados para demonstração
   const [usuarios, setUsuarios] = useState<Usuario[]>([
@@ -40,22 +42,39 @@ export const GerenciamentoUsuarios = () => {
   });
 
   const handleAddUser = () => {
-    const newUser: Usuario = {
-      id: String(usuarios.length + 1),
-      nome: novoUsuario.nome,
-      email: novoUsuario.email,
-      tipo_usuario: novoUsuario.tipo_usuario,
-      status: "ativo",
-    };
+    setErrors({});
     
-    setUsuarios([...usuarios, newUser]);
-    setIsDialogOpen(false);
-    setNovoUsuario({ nome: "", email: "", tipo_usuario: "vendedor", senha: "" });
-    
-    toast({
-      title: "Usuário adicionado",
-      description: `${newUser.nome} foi adicionado com sucesso (interface only)`,
-    });
+    try {
+      const validatedData = userSchema.parse(novoUsuario);
+      
+      const newUser: Usuario = {
+        id: String(usuarios.length + 1),
+        nome: validatedData.nome,
+        email: validatedData.email,
+        tipo_usuario: validatedData.tipo_usuario,
+        status: "ativo",
+      };
+      
+      setUsuarios([...usuarios, newUser]);
+      setIsDialogOpen(false);
+      setNovoUsuario({ nome: "", email: "", tipo_usuario: "vendedor", senha: "" });
+      
+      toast({
+        title: "Usuário adicionado",
+        description: `${newUser.nome} foi validado e adicionado com sucesso`,
+      });
+    } catch (error: any) {
+      const fieldErrors: Record<string, string> = {};
+      error.errors?.forEach((err: any) => {
+        fieldErrors[err.path[0]] = err.message;
+      });
+      setErrors(fieldErrors);
+      toast({
+        title: "Erro de validação",
+        description: "Verifique os campos destacados",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditUser = (user: Usuario) => {
@@ -119,7 +138,9 @@ export const GerenciamentoUsuarios = () => {
                       value={novoUsuario.nome}
                       onChange={(e) => setNovoUsuario({ ...novoUsuario, nome: e.target.value })}
                       placeholder="Digite o nome"
+                      maxLength={100}
                     />
+                    {errors.nome && <p className="text-sm text-destructive">{errors.nome}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -129,7 +150,9 @@ export const GerenciamentoUsuarios = () => {
                       value={novoUsuario.email}
                       onChange={(e) => setNovoUsuario({ ...novoUsuario, email: e.target.value })}
                       placeholder="email@empresa.com"
+                      maxLength={255}
                     />
+                    {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="tipo">Tipo de Usuário</Label>
@@ -146,6 +169,7 @@ export const GerenciamentoUsuarios = () => {
                         <SelectItem value="admin">Administrador</SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.tipo_usuario && <p className="text-sm text-destructive">{errors.tipo_usuario}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="senha">Senha Inicial</Label>
@@ -155,7 +179,10 @@ export const GerenciamentoUsuarios = () => {
                       value={novoUsuario.senha}
                       onChange={(e) => setNovoUsuario({ ...novoUsuario, senha: e.target.value })}
                       placeholder="••••••••"
+                      maxLength={100}
                     />
+                    {errors.senha && <p className="text-sm text-destructive">{errors.senha}</p>}
+                    <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, com letras maiúsculas, minúsculas e números</p>
                   </div>
                 </div>
                 <DialogFooter>
