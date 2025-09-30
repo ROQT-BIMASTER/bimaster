@@ -397,6 +397,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      is_participant_of_conversa: {
+        Args: { conversa_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
     }
     Enums: {
       activity_result: "positivo" | "neutro" | "negativo"
