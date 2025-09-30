@@ -65,6 +65,42 @@ export type Database = {
           },
         ]
       }
+      auditoria_atribuicoes: {
+        Row: {
+          created_at: string | null
+          detalhes: Json | null
+          entidade_id: string
+          entidade_tipo: string
+          id: string
+          tipo: string
+          usuario_id: string | null
+          vendedor_antigo_id: string | null
+          vendedor_novo_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          detalhes?: Json | null
+          entidade_id: string
+          entidade_tipo: string
+          id?: string
+          tipo: string
+          usuario_id?: string | null
+          vendedor_antigo_id?: string | null
+          vendedor_novo_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          detalhes?: Json | null
+          entidade_id?: string
+          entidade_tipo?: string
+          id?: string
+          tipo?: string
+          usuario_id?: string | null
+          vendedor_antigo_id?: string | null
+          vendedor_novo_id?: string | null
+        }
+        Relationships: []
+      }
       municipios: {
         Row: {
           created_at: string | null
