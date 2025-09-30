@@ -1,10 +1,20 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { 
+  DndContext, 
+  DragEndEvent, 
+  DragOverlay, 
+  DragStartEvent, 
+  DragOverEvent,
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+  closestCorners,
+  useDroppable
+} from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ProspectCard } from "./ProspectCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { KanbanColumn } from "./KanbanColumn";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -72,6 +82,22 @@ export const KanbanBoard = () => {
     setActiveId(event.active.id as string);
   };
 
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Se estiver sobre uma coluna (stage), atualizar localmente
+    const overStage = STAGES.find(s => s.id === overId);
+    if (overStage) {
+      setProspects(prev => 
+        prev.map(p => p.id === activeId ? { ...p, status: overId } : p)
+      );
+    }
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
@@ -132,41 +158,22 @@ export const KanbanBoard = () => {
   const activeProspect = prospects.find((p) => p.id === activeId);
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext 
+      sensors={sensors} 
+      onDragStart={handleDragStart} 
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+      collisionDetection={closestCorners}
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {STAGES.map((stage) => {
           const stageProspects = getProspectsByStatus(stage.id);
           return (
-            <SortableContext
+            <KanbanColumn
               key={stage.id}
-              id={stage.id}
-              items={stageProspects.map((p) => p.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <Card className="flex flex-col h-full min-h-[500px]">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold">
-                      {stage.label}
-                    </CardTitle>
-                    <Badge variant="secondary" className="ml-2">
-                      {stageProspects.length}
-                    </Badge>
-                  </div>
-                  <div className={`h-1 w-full rounded-full ${stage.color}`} />
-                </CardHeader>
-                <CardContent className="flex-1 overflow-y-auto space-y-3">
-                  {stageProspects.map((prospect) => (
-                    <ProspectCard key={prospect.id} prospect={prospect} />
-                  ))}
-                  {stageProspects.length === 0 && (
-                    <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-                      Arraste prospects aqui
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </SortableContext>
+              stage={stage}
+              prospects={stageProspects}
+            />
           );
         })}
       </div>

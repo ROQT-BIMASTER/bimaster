@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Mail, Phone, Calendar } from "lucide-react";
+import { Building2, Mail, Phone, Calendar, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useSortable } from "@dnd-kit/sortable";
@@ -53,6 +53,18 @@ export const ProspectCard = ({ prospect }: ProspectCardProps) => {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "novo": return "Novo";
+      case "em_contato": return "Em Contato";
+      case "proposta_enviada": return "Proposta Enviada";
+      case "negociacao": return "Negociação";
+      case "ganho": return "Ganho";
+      case "perdido": return "Perdido";
+      default: return status;
+    }
+  };
+
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Card className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow">
@@ -69,26 +81,34 @@ export const ProspectCard = ({ prospect }: ProspectCardProps) => {
           </div>
         </CardHeader>
         <CardContent className="p-4 pt-2 space-y-2">
+          <div className="flex items-center gap-2 text-xs mb-2">
+            <CheckCircle2 className="h-3 w-3 text-primary" />
+            <span className="font-medium text-primary">{getStatusLabel(prospect.status)}</span>
+          </div>
+          
           {prospect.contato_principal && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Building2 className="h-3 w-3" />
               <span className="truncate">{prospect.contato_principal}</span>
             </div>
           )}
+          
           {prospect.email && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Mail className="h-3 w-3" />
+              <Mail className="h-3 w-3 flex-shrink-0" />
               <span className="truncate">{prospect.email}</span>
             </div>
           )}
+          
           {prospect.telefone && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Phone className="h-3 w-3" />
+              <Phone className="h-3 w-3 flex-shrink-0" />
               <span className="truncate">{prospect.telefone}</span>
             </div>
           )}
+          
           {prospect.proxima_acao && (
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 text-xs mt-2 pt-2 border-t">
               <Calendar className="h-3 w-3 text-primary" />
               <span className="font-medium text-primary">
                 {format(new Date(prospect.proxima_acao), "dd/MM/yyyy", { locale: ptBR })}
