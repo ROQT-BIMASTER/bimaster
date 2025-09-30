@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { MunicipioAtribuicao } from "@/components/admin/MunicipioAtribuicao";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Profile {
   id: string;
@@ -81,52 +83,108 @@ const Configuracoes = () => {
     );
   }
 
+  const isAdmin = profile?.tipo_usuario === 'admin';
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Configurações</h2>
-          <p className="text-muted-foreground">Gerencie suas informações pessoais</p>
+          <p className="text-muted-foreground">
+            {isAdmin ? "Gerencie o sistema e suas informações" : "Gerencie suas informações pessoais"}
+          </p>
         </div>
 
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informações do Perfil</CardTitle>
-              <CardDescription>Suas informações pessoais e de conta</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input value={profile?.nome || ""} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input value={profile?.email || ""} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>Tipo de Usuário</Label>
-                <Input value={profile?.tipo_usuario || ""} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Input value={profile?.status || ""} disabled />
-              </div>
-            </CardContent>
-          </Card>
+        {isAdmin ? (
+          <Tabs defaultValue="perfil" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="perfil">Meu Perfil</TabsTrigger>
+              <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>
+            </TabsList>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Segurança</CardTitle>
-              <CardDescription>Gerencie sua senha e segurança da conta</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={handleResetPassword}>
-                Redefinir Senha
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            <TabsContent value="perfil" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informações do Perfil</CardTitle>
+                  <CardDescription>Suas informações pessoais e de conta</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Nome</Label>
+                    <Input value={profile?.nome || ""} disabled />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input value={profile?.email || ""} disabled />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tipo de Usuário</Label>
+                    <Input value={profile?.tipo_usuario || ""} disabled />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Input value={profile?.status || ""} disabled />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Segurança</CardTitle>
+                  <CardDescription>Gerencie sua senha e segurança da conta</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={handleResetPassword}>
+                    Redefinir Senha
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="municipios">
+              <MunicipioAtribuicao />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <div className="grid gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Informações do Perfil</CardTitle>
+                <CardDescription>Suas informações pessoais e de conta</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nome</Label>
+                  <Input value={profile?.nome || ""} disabled />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input value={profile?.email || ""} disabled />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipo de Usuário</Label>
+                  <Input value={profile?.tipo_usuario || ""} disabled />
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Input value={profile?.status || ""} disabled />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Segurança</CardTitle>
+                <CardDescription>Gerencie sua senha e segurança da conta</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={handleResetPassword}>
+                  Redefinir Senha
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
