@@ -14,6 +14,7 @@ import Auditoria from "./pages/Auditoria";
 import Kanban from "./pages/Kanban";
 import Tarefas from "./pages/Tarefas";
 import Mapa from "./pages/Mapa";
+import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => {
           <Route path="/dashboard/kanban" element={<Kanban />} />
           <Route path="/dashboard/tarefas" element={<Tarefas />} />
           <Route path="/dashboard/mapa" element={<Mapa />} />
+          <Route path="/dashboard/chat" element={<Chat />} />
           <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
           <Route path="/dashboard/importar" element={<ImportarClientes />} />
           <Route path="/dashboard/auditoria" element={<Auditoria />} />
