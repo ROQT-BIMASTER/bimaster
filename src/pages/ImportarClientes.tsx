@@ -107,6 +107,27 @@ const ImportarClientes = () => {
     return resultado === parseInt(digitos.charAt(1));
   };
 
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if ((char === ',' || char === ';') && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
   const handleImport = async () => {
     if (!file) return;
 
@@ -121,13 +142,15 @@ const ImportarClientes = () => {
           throw new Error("Arquivo vazio ou sem dados");
         }
 
-        const headers = lines[0].split(/[,;]/).map(h => h.trim().toLowerCase());
+        const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
         const prospects = [];
         const erros: string[] = [];
         const detalhes: ImportResult['detalhes'] = [];
 
+        console.log("Cabeçalhos encontrados:", headers);
+
         for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(/[,;]/).map(v => v.trim());
+          const values = parseCSVLine(lines[i]);
           
           const nomeIdx = headers.findIndex(h => h.includes('empresa') || h.includes('nome'));
           const municipioIdx = headers.findIndex(h => h.includes('municipio') || h.includes('cidade'));
@@ -141,18 +164,21 @@ const ImportarClientes = () => {
           const categoriaIdx = headers.findIndex(h => h.includes('categoria'));
           const observacoesIdx = headers.findIndex(h => h.includes('observa') || h.includes('obs'));
 
-          const nome_empresa = values[nomeIdx] || '';
-          const municipio_nome = values[municipioIdx] || '';
-          const uf = values[ufIdx] || '';
-          const cnpj = values[cnpjIdx] || '';
+          const nome_empresa = (values[nomeIdx] || '').trim().replace(/^["']|["']$/g, '');
+          const municipio_nome = (values[municipioIdx] || '').trim().replace(/^["']|["']$/g, '');
+          const uf = (values[ufIdx] || '').trim().replace(/^["']|["']$/g, '');
+          const cnpj = (values[cnpjIdx] || '').trim().replace(/^["']|["']$/g, '');
+
+          console.log(`Linha ${i + 1}:`, { nome_empresa, municipio_nome, uf });
 
           if (!nome_empresa || !municipio_nome) {
-            erros.push(`Linha ${i + 1}: Nome da empresa ou município não informado`);
+            const mensagemErro = `Linha ${i + 1}: ${!nome_empresa ? 'Nome da empresa' : ''} ${!nome_empresa && !municipio_nome ? 'e' : ''} ${!municipio_nome ? 'Município' : ''} não informado`;
+            erros.push(mensagemErro);
             detalhes.push({
               linha: i + 1,
               empresa: nome_empresa || 'N/A',
               status: 'erro',
-              mensagem: 'Dados incompletos'
+              mensagem: 'Dados incompletos - verifique nome da empresa e município'
             });
             continue;
           }
@@ -200,14 +226,14 @@ const ImportarClientes = () => {
             nome_empresa,
             municipio_id: municipio?.id,
             vendedor_id: municipio?.vendedor_id,
-            cnpj: values[cnpjIdx] || null,
-            email: values[emailIdx] || null,
-            telefone: values[telefoneIdx] || null,
-            contato_principal: values[contatoIdx] || null,
-            endereco: values[enderecoIdx] || null,
-            porte_empresa: values[porteIdx] || null,
-            categoria: values[categoriaIdx] || null,
-            observacoes: values[observacoesIdx] || null,
+            cnpj: cnpj || null,
+            email: (values[emailIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            telefone: (values[telefoneIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            contato_principal: (values[contatoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            endereco: (values[enderecoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            porte_empresa: (values[porteIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            categoria: (values[categoriaIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            observacoes: (values[observacoesIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             importado_planilha: true,
             status: 'novo',
             uf: uf || null
