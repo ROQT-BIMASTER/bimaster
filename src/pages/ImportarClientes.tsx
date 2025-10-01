@@ -214,14 +214,32 @@ const ImportarClientes = () => {
             continue;
           }
 
-          // Validar CNPJ se fornecido
-          if (cnpj && !validateCNPJ(cnpj)) {
-            erros.push(`Linha ${i + 1}: CNPJ inválido (${cnpj})`);
+          // Validar CNPJ se fornecido (apenas se tiver mais de 3 caracteres)
+          if (cnpj && cnpj.length > 3 && !validateCNPJ(cnpj)) {
+            console.warn(`CNPJ inválido na linha ${i + 1}: ${cnpj}`);
+            erros.push(`Linha ${i + 1}: CNPJ inválido (${cnpj}) - registro será importado sem CNPJ`);
             detalhes.push({
               linha: i + 1,
               empresa: nome_empresa,
               status: 'erro',
-              mensagem: 'CNPJ inválido'
+              mensagem: 'CNPJ inválido - importado sem CNPJ'
+            });
+            // Não interrompe, apenas limpa o CNPJ
+            prospects.push({
+              nome_empresa,
+              municipio_id: null,
+              vendedor_id: null,
+              cnpj: null,
+              email: (values[emailIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+              telefone: (values[telefoneIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+              contato_principal: (values[contatoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+              endereco: (values[enderecoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+              porte_empresa: (values[porteIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+              categoria: (values[categoriaIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+              observacoes: (values[observacoesIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+              importado_planilha: true,
+              status: 'novo',
+              uf: uf || null
             });
             continue;
           }
@@ -324,8 +342,8 @@ const ImportarClientes = () => {
 
   const downloadTemplate = () => {
     const template = "nome_empresa,cnpj,municipio,uf,endereco,contato_principal,email,telefone,porte_empresa,categoria,observacoes\n" +
-                    "Empresa Exemplo,12.345.678/0001-90,São Paulo,SP,Rua Exemplo 123,João Silva,joao@exemplo.com,(11) 99999-9999,Médio,A,Cliente em potencial";
-    const blob = new Blob([template], { type: 'text/csv' });
+                    "Empresa Exemplo,11.222.333/0001-81,São Paulo,SP,Rua Exemplo 123,João Silva,joao@exemplo.com,(11) 99999-9999,Médio,A,Cliente em potencial";
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
