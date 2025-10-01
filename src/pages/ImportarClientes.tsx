@@ -214,46 +214,25 @@ const ImportarClientes = () => {
             continue;
           }
 
-          // Validar CNPJ se fornecido (apenas se tiver mais de 3 caracteres)
+          // Validar e limpar CNPJ se fornecido
+          let cnpjValidado = cnpj;
+          let avisosCNPJ: string[] = [];
           if (cnpj && cnpj.length > 3 && !validateCNPJ(cnpj)) {
-            console.warn(`CNPJ inválido na linha ${i + 1}: ${cnpj}`);
-            erros.push(`Linha ${i + 1}: CNPJ inválido (${cnpj}) - registro será importado sem CNPJ`);
-            detalhes.push({
-              linha: i + 1,
-              empresa: nome_empresa,
-              status: 'erro',
-              mensagem: 'CNPJ inválido - importado sem CNPJ'
-            });
-            // Não interrompe, apenas limpa o CNPJ
-            prospects.push({
-              nome_empresa,
-              municipio_id: null,
-              vendedor_id: null,
-              cnpj: null,
-              email: (values[emailIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-              telefone: (values[telefoneIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-              contato_principal: (values[contatoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-              endereco: (values[enderecoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-              porte_empresa: (values[porteIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-              categoria: (values[categoriaIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-              observacoes: (values[observacoesIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-              importado_planilha: true,
-              status: 'novo',
-              uf: uf || null
-            });
-            continue;
+            console.warn(`CNPJ inválido na linha ${i + 1}: ${cnpj} - será importado sem CNPJ`);
+            avisosCNPJ.push(`CNPJ inválido (${cnpj}) - importado sem CNPJ`);
+            cnpjValidado = ''; // Limpa o CNPJ inválido
           }
 
-          // Verificar duplicata por CNPJ
-          if (cnpj) {
+          // Verificar duplicata por CNPJ (apenas se CNPJ for válido)
+          if (cnpjValidado) {
             const { data: existente } = await supabase
               .from("prospects")
               .select("id")
-              .eq("cnpj", cnpj)
+              .eq("cnpj", cnpjValidado)
               .maybeSingle();
 
             if (existente) {
-              erros.push(`Linha ${i + 1}: CNPJ ${cnpj} já cadastrado`);
+              erros.push(`Linha ${i + 1}: CNPJ ${cnpjValidado} já cadastrado`);
               detalhes.push({
                 linha: i + 1,
                 empresa: nome_empresa,
@@ -273,9 +252,9 @@ const ImportarClientes = () => {
 
           prospects.push({
             nome_empresa,
-            municipio_id: municipio?.id,
-            vendedor_id: municipio?.vendedor_id,
-            cnpj: cnpj || null,
+            municipio_id: municipio?.id || null,
+            vendedor_id: municipio?.vendedor_id || null,
+            cnpj: cnpjValidado || null,
             email: (values[emailIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             telefone: (values[telefoneIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             contato_principal: (values[contatoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
@@ -292,19 +271,36 @@ const ImportarClientes = () => {
             linha: i + 1,
             empresa: nome_empresa,
             status: municipio?.vendedor_id ? 'sucesso' : 'sem_vendedor',
-            mensagem: municipio?.vendedor_id 
-              ? 'Distribuído automaticamente' 
-              : `Município ${municipio_nome} sem vendedor atribuído`
+            mensagem: avisosCNPJ.length > 0 
+              ? avisosCNPJ[0] 
+              : (municipio?.vendedor_id 
+                ? 'Distribuído automaticamente' 
+                : `Município ${municipio_nome} sem vendedor atribuído`)
           });
         }
 
+        console.log("=== RESULTADOS DO PROCESSAMENTO ===");
+        console.log("Total de prospects processados:", prospects.length);
+        console.log("Total de erros:", erros.length);
+
+        // Verificar se há prospects para inserir
+        if (prospects.length === 0) {
+          throw new Error("Nenhum registro válido encontrado para importar. Verifique os erros acima.");
+        }
+
         // Inserir prospects
+        console.log("Iniciando inserção no banco...");
         const { data: inserted, error: insertError } = await supabase
           .from("prospects")
           .insert(prospects)
           .select();
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Erro ao inserir:", insertError);
+          throw insertError;
+        }
+
+        console.log("Inserção concluída:", inserted?.length, "registros");
 
         const distribuidos = prospects.filter(p => p.vendedor_id).length;
         const nao_distribuidos = prospects.length - distribuidos;
