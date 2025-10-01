@@ -171,29 +171,36 @@ const ImportarClientes = () => {
         const erros: string[] = [];
         const detalhes: ImportResult['detalhes'] = [];
 
+        console.log("=== DEBUG IMPORTAÇÃO ===");
         console.log("Cabeçalhos encontrados:", headers);
+        console.log("Total de linhas:", rows.length);
 
         for (let i = 0; i < rows.length; i++) {
           const values = rows[i].map((v: any) => String(v || '').trim());
           
-          const nomeIdx = headers.findIndex(h => h.includes('empresa') || h.includes('nome'));
-          const municipioIdx = headers.findIndex(h => h.includes('municipio') || h.includes('cidade'));
+          console.log(`\n--- Processando linha ${i + 1} ---`);
+          console.log("Valores brutos:", values);
+          
+          const nomeIdx = headers.findIndex(h => h.includes('empresa') || h.includes('nome') || h.includes('razao') || h.includes('razão'));
+          const municipioIdx = headers.findIndex(h => h.includes('municipio') || h.includes('município') || h.includes('cidade'));
           const ufIdx = headers.findIndex(h => h.includes('uf') || h.includes('estado'));
           const cnpjIdx = headers.findIndex(h => h.includes('cnpj'));
-          const emailIdx = headers.findIndex(h => h.includes('email'));
-          const telefoneIdx = headers.findIndex(h => h.includes('telefone') || h.includes('fone'));
-          const contatoIdx = headers.findIndex(h => h.includes('contato'));
-          const enderecoIdx = headers.findIndex(h => h.includes('endereco') || h.includes('endereço'));
+          const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('e-mail'));
+          const telefoneIdx = headers.findIndex(h => h.includes('telefone') || h.includes('fone') || h.includes('celular'));
+          const contatoIdx = headers.findIndex(h => h.includes('contato') && !h.includes('telefone'));
+          const enderecoIdx = headers.findIndex(h => h.includes('endereco') || h.includes('endereço') || h.includes('rua') || h.includes('logradouro'));
           const porteIdx = headers.findIndex(h => h.includes('porte'));
           const categoriaIdx = headers.findIndex(h => h.includes('categoria'));
           const observacoesIdx = headers.findIndex(h => h.includes('observa') || h.includes('obs'));
+
+          console.log("Índices:", { nomeIdx, municipioIdx, ufIdx });
 
           const nome_empresa = (values[nomeIdx] || '').trim().replace(/^["']|["']$/g, '');
           const municipio_nome = (values[municipioIdx] || '').trim().replace(/^["']|["']$/g, '');
           const uf = (values[ufIdx] || '').trim().replace(/^["']|["']$/g, '');
           const cnpj = (values[cnpjIdx] || '').trim().replace(/^["']|["']$/g, '');
 
-          console.log(`Linha ${i + 1}:`, { nome_empresa, municipio_nome, uf });
+          console.log("Valores extraídos:", { nome_empresa, municipio_nome, uf, cnpj });
 
           if (!nome_empresa || !municipio_nome) {
             const mensagemErro = `Linha ${i + 1}: ${!nome_empresa ? 'Nome da empresa' : ''} ${!nome_empresa && !municipio_nome ? 'e' : ''} ${!municipio_nome ? 'Município' : ''} não informado`;
