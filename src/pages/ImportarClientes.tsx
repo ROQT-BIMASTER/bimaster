@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Upload, Download, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import * as XLSX from 'xlsx';
 
 interface ImportResult {
   total: number;
@@ -107,50 +108,73 @@ const ImportarClientes = () => {
     return resultado === parseInt(digitos.charAt(1));
   };
 
-  const parseCSVLine = (line: string): string[] => {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if ((char === ',' || char === ';') && !inQuotes) {
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    result.push(current.trim());
-    return result;
-  };
-
   const handleImport = async () => {
     if (!file) return;
 
     setLoading(true);
     try {
+      const extension = file.name.split('.').pop()?.toLowerCase();
       const reader = new FileReader();
+      
       reader.onload = async (e) => {
-        const text = e.target?.result as string;
-        const lines = text.split('\n').filter(line => line.trim());
-        
-        if (lines.length < 2) {
-          throw new Error("Arquivo vazio ou sem dados");
+        const data = e.target?.result;
+        let rows: any[] = [];
+        let headers: string[] = [];
+
+        // Processar Excel
+        if (extension === 'xlsx' || extension === 'xls') {
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
+          
+          if (jsonData.length < 2) {
+            throw new Error("Arquivo vazio ou sem dados");
+          }
+          
+          headers = jsonData[0].map((h: any) => String(h || '').trim().toLowerCase());
+          rows = jsonData.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== ''));
+        } 
+        // Processar CSV
+        else {
+          const text = new TextDecoder('utf-8').decode(data as ArrayBuffer);
+          const lines = text.split('\n').filter(line => line.trim());
+          
+          if (lines.length < 2) {
+            throw new Error("Arquivo vazio ou sem dados");
+          }
+
+          const parseCSVLine = (line: string): string[] => {
+            const result: string[] = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+              const char = line[i];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if ((char === ',' || char === ';') && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            result.push(current.trim());
+            return result;
+          };
+
+          headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+          rows = lines.slice(1).map(line => parseCSVLine(line));
         }
 
-        const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
         const prospects = [];
         const erros: string[] = [];
         const detalhes: ImportResult['detalhes'] = [];
 
         console.log("Cabeçalhos encontrados:", headers);
 
-        for (let i = 1; i < lines.length; i++) {
-          const values = parseCSVLine(lines[i]);
+        for (let i = 0; i < rows.length; i++) {
+          const values = rows[i].map((v: any) => String(v || '').trim());
           
           const nomeIdx = headers.findIndex(h => h.includes('empresa') || h.includes('nome'));
           const municipioIdx = headers.findIndex(h => h.includes('municipio') || h.includes('cidade'));
@@ -274,7 +298,11 @@ const ImportarClientes = () => {
         });
       };
 
-      reader.readAsText(file);
+      if (extension === 'xlsx' || extension === 'xls') {
+        reader.readAsArrayBuffer(file);
+      } else {
+        reader.readAsArrayBuffer(file);
+      }
     } catch (error: any) {
       console.error("Erro na importação:", error);
       toast({
