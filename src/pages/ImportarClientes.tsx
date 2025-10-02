@@ -102,6 +102,20 @@ const ImportarClientes = () => {
     return resultado === parseInt(digitos.charAt(1));
   };
 
+  const padronizarMunicipio = async (municipio: string, uf?: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('padronizar-municipio', {
+        body: { municipio, uf }
+      });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Erro ao padronizar município:", error);
+      return { municipio_padrao: municipio, uf_padrao: uf, regiao: null, confianca: 'baixa' };
+    }
+  };
+
   const handleImport = async () => {
     if (!file) return;
 
@@ -195,6 +209,12 @@ const ImportarClientes = () => {
             continue;
           }
 
+          // Padronizar município com IA
+          const municipioPadronizado = await padronizarMunicipio(municipio_nome, uf);
+          const municipioFinal = municipioPadronizado.municipio_padrao || municipio_nome;
+          const ufFinal = municipioPadronizado.uf_padrao || uf;
+          const regiaoFinal = municipioPadronizado.regiao;
+
           // Validar CNPJ se fornecido
           let cnpjValidado = cnpj;
           let avisosCNPJ: string[] = [];
@@ -223,12 +243,32 @@ const ImportarClientes = () => {
             }
           }
 
-          // Buscar município e vendedor
-          const { data: municipio } = await supabase
+          // Buscar ou criar município
+          let { data: municipio } = await supabase
             .from("municipios")
             .select("id, vendedor_id")
-            .ilike("nome", municipio_nome)
+            .ilike("nome", municipioFinal)
             .maybeSingle();
+
+          // Se município não existe, criar
+          if (!municipio) {
+            const { data: novoMunicipio, error: municipioError } = await supabase
+              .from("municipios")
+              .insert({
+                nome: municipioFinal,
+                uf: ufFinal || 'N/A',
+                regiao: regiaoFinal || 'Sudeste'
+              })
+              .select("id, vendedor_id")
+              .single();
+
+            if (municipioError) {
+              console.error("Erro ao criar município:", municipioError);
+            } else {
+              municipio = novoMunicipio;
+              console.log(`Município criado: ${municipioFinal}/${ufFinal}`);
+            }
+          }
 
           prospects.push({
             nome_empresa,
@@ -240,9 +280,10 @@ const ImportarClientes = () => {
             contato_principal: (values[contatoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             endereco: (values[enderecoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             observacoes: (values[observacoesIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            municipio: municipioFinal,
             importado_planilha: true,
             status: 'novo',
-            uf: uf || null
+            uf: ufFinal || null
           });
 
           detalhes.push({
