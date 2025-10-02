@@ -337,14 +337,19 @@ const ImportarClientes = () => {
   };
 
   const downloadTemplate = () => {
-    const template = "nome_empresa,cnpj,municipio,uf,endereco,contato_principal,email,telefone,porte_empresa,categoria,observacoes\n" +
-                    "Empresa Exemplo,11.222.333/0001-81,São Paulo,SP,Rua Exemplo 123,João Silva,joao@exemplo.com,(11) 99999-9999,Médio,A,Cliente em potencial";
-    const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'template_importacao.csv';
-    a.click();
+    // Criar um workbook Excel em vez de CSV para melhor compatibilidade
+    const ws_data = [
+      ["nome_empresa", "cnpj", "municipio", "uf", "endereco", "contato_principal", "email", "telefone", "porte_empresa", "categoria", "observacoes"],
+      ["Empresa Exemplo", "11.222.333/0001-81", "São Paulo", "SP", "Rua Exemplo 123", "João Silva", "joao@exemplo.com", "(11) 99999-9999", "Médio", "A", "Cliente em potencial"],
+      ["Empresa Teste", "", "Rio de Janeiro", "RJ", "Av Brasil 456", "Maria Santos", "maria@teste.com", "(21) 88888-8888", "Grande", "B", "Possível cliente"]
+    ];
+    
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Clientes");
+    
+    // Gerar arquivo Excel
+    XLSX.writeFile(wb, 'template_importacao.xlsx');
   };
 
   if (!isAdmin) {
@@ -409,7 +414,7 @@ const ImportarClientes = () => {
             <CardHeader>
               <CardTitle>Modelo de Importação</CardTitle>
               <CardDescription>
-                Baixe o modelo CSV com os campos necessários
+                Baixe o modelo Excel com os campos necessários e exemplos
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -434,7 +439,7 @@ const ImportarClientes = () => {
               </div>
               <Button onClick={downloadTemplate} variant="outline" className="w-full">
                 <Download className="h-4 w-4 mr-2" />
-                Baixar Modelo CSV
+                Baixar Modelo Excel
               </Button>
             </CardContent>
           </Card>
