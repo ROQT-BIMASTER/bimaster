@@ -70,16 +70,10 @@ const ImportarClientes = () => {
   };
 
   const validateCNPJ = (cnpj: string): boolean => {
-    // Remove caracteres não numéricos
     const cleanCNPJ = cnpj.replace(/[^\d]/g, '');
-    
-    // Verifica se tem 14 dígitos
     if (cleanCNPJ.length !== 14) return false;
-    
-    // Verifica se todos os dígitos são iguais
     if (/^(\d)\1+$/.test(cleanCNPJ)) return false;
     
-    // Validação dos dígitos verificadores
     let tamanho = cleanCNPJ.length - 2;
     let numeros = cleanCNPJ.substring(0, tamanho);
     const digitos = cleanCNPJ.substring(tamanho);
@@ -171,15 +165,8 @@ const ImportarClientes = () => {
         const erros: string[] = [];
         const detalhes: ImportResult['detalhes'] = [];
 
-        console.log("=== DEBUG IMPORTAÇÃO ===");
-        console.log("Cabeçalhos encontrados:", headers);
-        console.log("Total de linhas:", rows.length);
-
         for (let i = 0; i < rows.length; i++) {
           const values = rows[i].map((v: any) => String(v || '').trim());
-          
-          console.log(`\n--- Processando linha ${i + 1} ---`);
-          console.log("Valores brutos:", values);
           
           const nomeIdx = headers.findIndex(h => h.includes('empresa') || h.includes('nome') || h.includes('razao') || h.includes('razão'));
           const municipioIdx = headers.findIndex(h => h.includes('municipio') || h.includes('município') || h.includes('cidade'));
@@ -189,18 +176,12 @@ const ImportarClientes = () => {
           const telefoneIdx = headers.findIndex(h => h.includes('telefone') || h.includes('fone') || h.includes('celular'));
           const contatoIdx = headers.findIndex(h => h.includes('contato') && !h.includes('telefone'));
           const enderecoIdx = headers.findIndex(h => h.includes('endereco') || h.includes('endereço') || h.includes('rua') || h.includes('logradouro'));
-          const porteIdx = headers.findIndex(h => h.includes('porte'));
-          const categoriaIdx = headers.findIndex(h => h.includes('categoria'));
           const observacoesIdx = headers.findIndex(h => h.includes('observa') || h.includes('obs'));
-
-          console.log("Índices:", { nomeIdx, municipioIdx, ufIdx });
 
           const nome_empresa = (values[nomeIdx] || '').trim().replace(/^["']|["']$/g, '');
           const municipio_nome = (values[municipioIdx] || '').trim().replace(/^["']|["']$/g, '');
           const uf = (values[ufIdx] || '').trim().replace(/^["']|["']$/g, '');
           const cnpj = (values[cnpjIdx] || '').trim().replace(/^["']|["']$/g, '');
-
-          console.log("Valores extraídos:", { nome_empresa, municipio_nome, uf, cnpj });
 
           if (!nome_empresa || !municipio_nome) {
             const mensagemErro = `Linha ${i + 1}: ${!nome_empresa ? 'Nome da empresa' : ''} ${!nome_empresa && !municipio_nome ? 'e' : ''} ${!municipio_nome ? 'Município' : ''} não informado`;
@@ -214,16 +195,15 @@ const ImportarClientes = () => {
             continue;
           }
 
-          // Validar e limpar CNPJ se fornecido
+          // Validar CNPJ se fornecido
           let cnpjValidado = cnpj;
           let avisosCNPJ: string[] = [];
           if (cnpj && cnpj.length > 3 && !validateCNPJ(cnpj)) {
-            console.warn(`CNPJ inválido na linha ${i + 1}: ${cnpj} - será importado sem CNPJ`);
             avisosCNPJ.push(`CNPJ inválido (${cnpj}) - importado sem CNPJ`);
-            cnpjValidado = ''; // Limpa o CNPJ inválido
+            cnpjValidado = '';
           }
 
-          // Verificar duplicata por CNPJ (apenas se CNPJ for válido)
+          // Verificar duplicata por CNPJ
           if (cnpjValidado) {
             const { data: existente } = await supabase
               .from("prospects")
@@ -259,8 +239,6 @@ const ImportarClientes = () => {
             telefone: (values[telefoneIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             contato_principal: (values[contatoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             endereco: (values[enderecoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-            porte_empresa: (values[porteIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-            categoria: (values[categoriaIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             observacoes: (values[observacoesIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             importado_planilha: true,
             status: 'novo',
@@ -279,28 +257,18 @@ const ImportarClientes = () => {
           });
         }
 
-        console.log("=== RESULTADOS DO PROCESSAMENTO ===");
-        console.log("Total de prospects processados:", prospects.length);
-        console.log("Total de erros:", erros.length);
-
-        // Verificar se há prospects para inserir
         if (prospects.length === 0) {
-          throw new Error("Nenhum registro válido encontrado para importar. Verifique os erros acima.");
+          throw new Error("Nenhum registro válido encontrado para importar.");
         }
 
-        // Inserir prospects
-        console.log("Iniciando inserção no banco...");
         const { data: inserted, error: insertError } = await supabase
           .from("prospects")
           .insert(prospects)
           .select();
 
         if (insertError) {
-          console.error("Erro ao inserir:", insertError);
           throw insertError;
         }
-
-        console.log("Inserção concluída:", inserted?.length, "registros");
 
         const distribuidos = prospects.filter(p => p.vendedor_id).length;
         const nao_distribuidos = prospects.length - distribuidos;
@@ -337,18 +305,15 @@ const ImportarClientes = () => {
   };
 
   const downloadTemplate = () => {
-    // Criar um workbook Excel em vez de CSV para melhor compatibilidade
     const ws_data = [
-      ["nome_empresa", "cnpj", "municipio", "uf", "endereco", "contato_principal", "email", "telefone", "porte_empresa", "categoria", "observacoes"],
-      ["Empresa Exemplo", "11.222.333/0001-81", "São Paulo", "SP", "Rua Exemplo 123", "João Silva", "joao@exemplo.com", "(11) 99999-9999", "Médio", "A", "Cliente em potencial"],
-      ["Empresa Teste", "", "Rio de Janeiro", "RJ", "Av Brasil 456", "Maria Santos", "maria@teste.com", "(21) 88888-8888", "Grande", "B", "Possível cliente"]
+      ["nome_empresa", "cnpj", "municipio", "uf", "endereco", "contato_principal", "email", "telefone", "observacoes"],
+      ["Empresa Exemplo", "11.222.333/0001-81", "São Paulo", "SP", "Rua Exemplo 123", "João Silva", "joao@exemplo.com", "(11) 99999-9999", "Cliente em potencial"],
+      ["Empresa Teste", "", "Rio de Janeiro", "RJ", "Av Brasil 456", "Maria Santos", "maria@teste.com", "(21) 88888-8888", "Possível cliente"]
     ];
     
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Clientes");
-    
-    // Gerar arquivo Excel
     XLSX.writeFile(wb, 'template_importacao.xlsx');
   };
 
@@ -397,16 +362,14 @@ const ImportarClientes = () => {
                   </p>
                 )}
               </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleImport}
-                  disabled={!file || loading}
-                  className="flex-1"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {loading ? "Importando..." : "Importar"}
-                </Button>
-              </div>
+              <Button
+                onClick={handleImport}
+                disabled={!file || loading}
+                className="w-full"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {loading ? "Importando..." : "Importar"}
+              </Button>
             </CardContent>
           </Card>
 
@@ -414,7 +377,7 @@ const ImportarClientes = () => {
             <CardHeader>
               <CardTitle>Modelo de Importação</CardTitle>
               <CardDescription>
-                Baixe o modelo Excel com os campos necessários e exemplos
+                Baixe o modelo Excel com os campos necessários
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -432,8 +395,6 @@ const ImportarClientes = () => {
                   <li>contato_principal</li>
                   <li>email</li>
                   <li>telefone</li>
-                  <li>porte_empresa (Pequeno, Médio, Grande)</li>
-                  <li>categoria (A, B, C, D)</li>
                   <li>observacoes</li>
                 </ul>
               </div>
