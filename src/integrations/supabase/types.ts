@@ -427,6 +427,7 @@ export type Database = {
           proxima_acao: string | null
           status: Database["public"]["Enums"]["prospect_status"]
           telefone: string | null
+          uf: string | null
           ultimo_contato: string | null
           updated_at: string | null
           vendedor_id: string | null
@@ -448,6 +449,7 @@ export type Database = {
           proxima_acao?: string | null
           status?: Database["public"]["Enums"]["prospect_status"]
           telefone?: string | null
+          uf?: string | null
           ultimo_contato?: string | null
           updated_at?: string | null
           vendedor_id?: string | null
@@ -469,6 +471,7 @@ export type Database = {
           proxima_acao?: string | null
           status?: Database["public"]["Enums"]["prospect_status"]
           telefone?: string | null
+          uf?: string | null
           ultimo_contato?: string | null
           updated_at?: string | null
           vendedor_id?: string | null
