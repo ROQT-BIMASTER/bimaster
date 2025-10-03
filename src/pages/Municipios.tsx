@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { NovoMunicipioDialog } from "@/components/admin/NovoMunicipioDialog";
+import { AtribuirProspectsDialog } from "@/components/admin/AtribuirProspectsDialog";
 
 interface Municipio {
   id: string;
@@ -79,9 +81,15 @@ const Municipios = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Municípios</h2>
-          <p className="text-muted-foreground">Municípios atribuídos aos vendedores</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Municípios</h2>
+            <p className="text-muted-foreground">Municípios atribuídos aos vendedores</p>
+          </div>
+          <div className="flex gap-2">
+            <AtribuirProspectsDialog />
+            <NovoMunicipioDialog onSuccess={fetchMunicipios} />
+          </div>
         </div>
 
         <Card>
