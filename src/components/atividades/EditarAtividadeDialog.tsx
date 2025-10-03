@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { atividadeSchema } from "@/lib/validations/atividade";
 import { Loader2, Trash2 } from "lucide-react";
@@ -38,6 +39,7 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { isAdminOrSupervisor } = useUserRole();
   const [formData, setFormData] = useState({
     prospect_id: "",
     tipo: "ligacao",
@@ -296,16 +298,18 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
           </div>
 
           <DialogFooter className="flex justify-between">
-            <Button 
-              type="button"
-              variant="destructive" 
-              onClick={() => setDeleteDialogOpen(true)}
-              disabled={loading}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Excluir
-            </Button>
-            <div className="flex gap-2">
+            {isAdminOrSupervisor && (
+              <Button 
+                type="button"
+                variant="destructive" 
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={loading}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>

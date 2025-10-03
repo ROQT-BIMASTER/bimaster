@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2, Trash2 } from "lucide-react";
 
 interface Prospect {
@@ -40,6 +41,7 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
   const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { isAdmin } = useUserRole();
 
   useEffect(() => {
     if (prospect) {
@@ -297,15 +299,17 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
         </div>
 
         <DialogFooter className="flex justify-between">
-          <Button 
-            variant="destructive" 
-            onClick={() => setDeleteDialogOpen(true)}
-            disabled={loading}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Excluir
-          </Button>
-          <div className="flex gap-2">
+          {isAdmin && (
+            <Button 
+              variant="destructive" 
+              onClick={() => setDeleteDialogOpen(true)}
+              disabled={loading}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir
+            </Button>
+          )}
+          <div className="flex gap-2 ml-auto">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
