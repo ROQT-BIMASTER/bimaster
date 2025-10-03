@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { atividadeSchema } from "@/lib/validations/atividade";
+import { Loader2, Trash2 } from "lucide-react";
 
 interface Prospect {
   id: string;
@@ -35,6 +37,7 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
   const [loading, setLoading] = useState(false);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     prospect_id: "",
     tipo: "ligacao",
@@ -141,6 +144,37 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
           variant: "destructive",
         });
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!atividade) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("atividades")
+        .delete()
+        .eq("id", atividade.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Atividade excluída com sucesso",
+      });
+
+      onOpenChange(false);
+      setDeleteDialogOpen(false);
+      onSuccess();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível excluir a atividade",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -261,16 +295,47 @@ export const EditarAtividadeDialog = ({ atividade, open, onOpenChange, onSuccess
             </div>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
+          <DialogFooter className="flex justify-between">
+            <Button 
+              type="button"
+              variant="destructive" 
+              onClick={() => setDeleteDialogOpen(true)}
+              disabled={loading}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Salvando..." : "Salvar Alterações"}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loading ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta atividade? 
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={loading} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

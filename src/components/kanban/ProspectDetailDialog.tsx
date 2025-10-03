@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 
 interface Prospect {
   id: string;
@@ -37,6 +38,7 @@ interface ProspectDetailDialogProps {
 export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }: ProspectDetailDialogProps) => {
   const [formData, setFormData] = useState<Prospect | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -83,6 +85,38 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o prospect",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!formData) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("prospects")
+        .delete()
+        .eq("id", formData.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Prospect excluído com sucesso",
+      });
+      
+      onUpdate();
+      onOpenChange(false);
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      console.error("Erro ao excluir prospect:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o prospect",
         variant: "destructive",
       });
     } finally {
@@ -262,16 +296,45 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+        <DialogFooter className="flex justify-between">
+          <Button 
+            variant="destructive" 
+            onClick={() => setDeleteDialogOpen(true)}
+            disabled={loading}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Excluir
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave} disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o prospect "{formData?.nome_empresa}"? 
+              Esta ação não pode ser desfeita e todas as atividades relacionadas serão perdidas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={loading} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };
