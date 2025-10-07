@@ -22,6 +22,8 @@ interface Store {
   category: string | null;
   priority: string | null;
   status: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 const TradeStores = () => {
@@ -178,13 +180,36 @@ const TradeStores = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            toast.info(`Visualizando ${store.name}`);
+                            // Navegar para detalhes da loja se houver
+                          }}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            toast.info("Funcionalidade de edição será implementada em breve");
+                          }}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            if (store.latitude && store.longitude) {
+                              window.open(`https://www.google.com/maps?q=${store.latitude},${store.longitude}`, '_blank');
+                            } else {
+                              toast.error("Localização não disponível para esta loja");
+                            }
+                          }}
+                        >
                           <MapPin className="h-4 w-4" />
                         </Button>
                       </div>

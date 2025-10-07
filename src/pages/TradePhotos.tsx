@@ -136,7 +136,7 @@ const TradePhotos = () => {
               Gestão e análise de fotos de campo
             </p>
           </div>
-          <Button>
+          <Button onClick={() => toast.info("Funcionalidade de upload em desenvolvimento. Use o cadastro rápido em Trade Marketing.")}>
             <Upload className="mr-2 h-4 w-4" />
             Upload de Fotos
           </Button>
@@ -158,7 +158,7 @@ const TradePhotos = () => {
               <p className="text-muted-foreground mb-4">
                 Faça upload de fotos para começar a análise
               </p>
-              <Button>
+              <Button onClick={() => toast.info("Funcionalidade de upload em desenvolvimento. Use o cadastro rápido em Trade Marketing.")}>
                 <Upload className="mr-2 h-4 w-4" />
                 Upload de Fotos
               </Button>

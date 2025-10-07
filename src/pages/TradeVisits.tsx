@@ -253,11 +253,40 @@ const TradeVisits = () => {
                           Vincular Loja
                         </Button>
                       )}
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          toast.info(`Visualizando detalhes da visita ${visit.visit_code}`);
+                        }}
+                      >
                         Ver Detalhes
                       </Button>
                       {visit.status === "scheduled" && (
-                        <Button size="sm">Iniciar</Button>
+                        <Button 
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const { error } = await supabase
+                                .from("visits")
+                                .update({ 
+                                  status: "in_progress",
+                                  check_in_time: new Date().toISOString()
+                                })
+                                .eq("id", visit.id);
+
+                              if (error) throw error;
+                              
+                              toast.success("Visita iniciada!");
+                              fetchVisits();
+                            } catch (error: any) {
+                              console.error("Erro ao iniciar visita:", error);
+                              toast.error("Erro ao iniciar visita");
+                            }
+                          }}
+                        >
+                          Iniciar
+                        </Button>
                       )}
                     </div>
                   </div>

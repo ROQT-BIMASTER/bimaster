@@ -146,7 +146,7 @@ const TradePromotions = () => {
               Campanhas promocionais e execução em PDV
             </p>
           </div>
-          <Button>
+          <Button onClick={() => toast.info("Funcionalidade de cadastro de promoções em desenvolvimento")}>
             <Plus className="mr-2 h-4 w-4" />
             Nova Promoção
           </Button>
@@ -207,7 +207,7 @@ const TradePromotions = () => {
                 <p className="text-muted-foreground mb-4">
                   Crie sua primeira campanha promocional
                 </p>
-                <Button>
+                <Button onClick={() => toast.info("Funcionalidade de cadastro de promoções em desenvolvimento")}>
                   <Plus className="mr-2 h-4 w-4" />
                   Nova Promoção
                 </Button>
@@ -262,7 +262,13 @@ const TradePromotions = () => {
                           )}
                         </div>
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          toast.info(`Visualizando detalhes da promoção ${promotion.code}`);
+                        }}
+                      >
                         Ver Detalhes
                       </Button>
                     </div>

@@ -100,7 +100,7 @@ const TradeCompetitors = () => {
               Análise competitiva e inteligência de mercado
             </p>
           </div>
-          <Button>
+          <Button onClick={() => toast.info("Funcionalidade de cadastro de concorrentes em desenvolvimento")}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Concorrente
           </Button>
@@ -194,7 +194,13 @@ const TradeCompetitors = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          toast.info(`Visualizando detalhes do concorrente ${competitor.name}`);
+                        }}
+                      >
                         Ver Detalhes
                       </Button>
                     </TableCell>
