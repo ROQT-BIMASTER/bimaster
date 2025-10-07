@@ -10,10 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditarPerfil } from "@/components/configuracoes/EditarPerfil";
 import { GerenciamentoUsuarios } from "@/components/configuracoes/GerenciamentoUsuarios";
 import { ConfiguracoesNotificacoes } from "@/components/configuracoes/ConfiguracoesNotificacoes";
-import { ConfiguracaoMapbox } from "@/components/configuracoes/ConfiguracaoMapbox";
 import { PermissoesDeAcesso } from "@/components/configuracoes/PermissoesDeAcesso";
 import { GerenciamentoPermissoesTelas } from "@/components/configuracoes/GerenciamentoPermissoesTelas";
 import { VinculacaoUsuarioProspects } from "@/components/configuracoes/VinculacaoUsuarioProspects";
+import { GerenciamentoIntegracoes } from "@/components/configuracoes/GerenciamentoIntegracoes";
 import { Shield, UserCog, User, CheckCircle } from "lucide-react";
 
 interface Profile {
@@ -280,7 +280,7 @@ const Configuracoes = () => {
 
             {isAdmin && (
               <TabsContent value="integracoes">
-                <ConfiguracaoMapbox />
+                <GerenciamentoIntegracoes />
               </TabsContent>
             )}
           </Tabs>
