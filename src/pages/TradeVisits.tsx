@@ -12,6 +12,7 @@ import { Navigate } from "react-router-dom";
 import { VincularStoreDialog } from "@/components/trade/VincularStoreDialog";
 import { NovaVisitaDialog } from "@/components/trade/NovaVisitaDialog";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { TradeFilters } from "@/components/trade/TradeFilters";
 
 interface Visit {
   id: string;
@@ -29,10 +30,13 @@ interface Visit {
 const TradeVisits = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [allVisits, setAllVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
   const [showVincularDialog, setShowVincularDialog] = useState(false);
   const [showNovaVisita, setShowNovaVisita] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [aiCriteria, setAiCriteria] = useState<any>(null);
 
   if (!permissionsLoading && !hasPermission("trade_visits")) {
     return <Navigate to="/dashboard" replace />;
@@ -53,6 +57,7 @@ const TradeVisits = () => {
         .order("scheduled_date", { ascending: true });
 
       if (error) throw error;
+      setAllVisits(data || []);
       setVisits(data || []);
     } catch (error) {
       console.error("Erro ao buscar visitas:", error);
@@ -97,6 +102,35 @@ const TradeVisits = () => {
     toast.success("Loja vinculada com sucesso!");
   };
 
+  const applyFilters = () => {
+    let filtered = [...allVisits];
+
+    if (selectedStore) {
+      filtered = filtered.filter(v => v.stores && (v.stores as any).id === selectedStore);
+    }
+
+    if (aiCriteria) {
+      if (aiCriteria.status) {
+        filtered = filtered.filter(v => aiCriteria.status.includes(v.status));
+      }
+      if (aiCriteria.timeframe === "hoje") {
+        const today = format(new Date(), "yyyy-MM-dd");
+        filtered = filtered.filter(v => v.scheduled_date === today);
+      }
+      if (aiCriteria.timeframe === "semana") {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        filtered = filtered.filter(v => new Date(v.scheduled_date) >= weekAgo);
+      }
+    }
+
+    setVisits(filtered);
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [selectedStore, aiCriteria, allVisits]);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -112,6 +146,12 @@ const TradeVisits = () => {
             Nova Visita
           </Button>
         </div>
+
+        <TradeFilters
+          selectedStore={selectedStore}
+          onStoreChange={setSelectedStore}
+          onAIFilter={setAiCriteria}
+        />
 
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-4">

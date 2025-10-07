@@ -37,6 +37,7 @@ import { Plus, DollarSign, TrendingUp, AlertCircle, Calendar, Pencil, Trash2 } f
 import { format } from "date-fns";
 import { EditarInvestimentoDialog } from "@/components/trade/EditarInvestimentoDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { TradeFilters } from "@/components/trade/TradeFilters";
 
 export default function TradeFinanceiro() {
   const { hasPermission } = useScreenPermissions();
@@ -51,6 +52,9 @@ export default function TradeFinanceiro() {
   const [newInvestmentOpen, setNewInvestmentOpen] = useState(false);
   const [editingInvestmentId, setEditingInvestmentId] = useState<string | null>(null);
   const [deletingInvestmentId, setDeletingInvestmentId] = useState<string | null>(null);
+  const [allInvestments, setAllInvestments] = useState<any[]>([]);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [aiCriteria, setAiCriteria] = useState<any>(null);
 
   useEffect(() => {
     if (!hasPermission("trade_marketing")) {
@@ -76,7 +80,10 @@ export default function TradeFinanceiro() {
 
       if (budgetsRes.data) setBudgets(budgetsRes.data);
       if (accountsRes.data) setAccounts(accountsRes.data);
-      if (investmentsRes.data) setInvestments(investmentsRes.data);
+      if (investmentsRes.data) {
+        setAllInvestments(investmentsRes.data);
+        setInvestments(investmentsRes.data);
+      }
       if (storesRes.data) setStores(storesRes.data);
     } catch (error) {
       console.error("Erro ao buscar dados:", error);
@@ -85,6 +92,38 @@ export default function TradeFinanceiro() {
       setLoading(false);
     }
   };
+
+  const applyFilters = () => {
+    let filtered = [...allInvestments];
+
+    if (selectedStore) {
+      filtered = filtered.filter(inv => inv.store_id === selectedStore);
+    }
+
+    if (aiCriteria) {
+      if (aiCriteria.status) {
+        filtered = filtered.filter(inv => aiCriteria.status.includes(inv.status));
+      }
+      if (aiCriteria.category) {
+        filtered = filtered.filter(inv => inv.category === aiCriteria.category);
+      }
+      if (aiCriteria.timeframe === "hoje") {
+        const today = new Date().toISOString().split('T')[0];
+        filtered = filtered.filter(inv => inv.investment_date === today);
+      }
+      if (aiCriteria.timeframe === "semana") {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        filtered = filtered.filter(inv => new Date(inv.investment_date) >= weekAgo);
+      }
+    }
+
+    setInvestments(filtered);
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [selectedStore, aiCriteria, allInvestments]);
 
   const handleCreateBudget = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -176,6 +215,12 @@ export default function TradeFinanceiro() {
             Gestão de verbas, investimentos e plano de contas
           </p>
         </div>
+
+        <TradeFilters
+          selectedStore={selectedStore}
+          onStoreChange={setSelectedStore}
+          onAIFilter={setAiCriteria}
+        />
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card>

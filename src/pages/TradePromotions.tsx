@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { TradeFilters } from "@/components/trade/TradeFilters";
 
 interface Promotion {
   id: string;
@@ -23,12 +24,16 @@ interface Promotion {
   status: string;
   budget: number | null;
   target_value: number | null;
+  store_ids: string[] | null;
 }
 
 const TradePromotions = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [allPromotions, setAllPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [aiCriteria, setAiCriteria] = useState<any>(null);
 
   if (!permissionsLoading && !hasPermission("trade_promotions")) {
     return <Navigate to="/dashboard" replace />;
@@ -46,6 +51,7 @@ const TradePromotions = () => {
         .order("start_date", { ascending: false });
 
       if (error) throw error;
+      setAllPromotions(data || []);
       setPromotions(data || []);
     } catch (error) {
       console.error("Erro ao buscar promoções:", error);
@@ -94,6 +100,36 @@ const TradePromotions = () => {
     return Math.round((elapsed / total) * 100);
   };
 
+  const applyFilters = () => {
+    let filtered = [...allPromotions];
+
+    // Note: Promotions don't have store_id, but can be filtered by store_ids array
+    if (selectedStore) {
+      filtered = filtered.filter(p => 
+        Array.isArray(p.store_ids) && p.store_ids.includes(selectedStore)
+      );
+    }
+
+    if (aiCriteria) {
+      if (aiCriteria.status) {
+        filtered = filtered.filter(p => aiCriteria.status.includes(p.status));
+      }
+      if (aiCriteria.type) {
+        filtered = filtered.filter(p => p.promotion_type === aiCriteria.type);
+      }
+      if (aiCriteria.timeframe === "hoje") {
+        const today = new Date().toISOString().split('T')[0];
+        filtered = filtered.filter(p => p.start_date <= today && p.end_date >= today);
+      }
+    }
+
+    setPromotions(filtered);
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [selectedStore, aiCriteria, allPromotions]);
+
   const stats = {
     active: promotions.filter(p => p.status === "active").length,
     planned: promotions.filter(p => p.status === "planned").length,
@@ -115,6 +151,12 @@ const TradePromotions = () => {
             Nova Promoção
           </Button>
         </div>
+
+        <TradeFilters
+          selectedStore={selectedStore}
+          onStoreChange={setSelectedStore}
+          onAIFilter={setAiCriteria}
+        />
 
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-3">

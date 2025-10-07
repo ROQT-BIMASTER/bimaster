@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.analyze-shelf-photos]
 verify_jwt = true
+
+[functions.ai-filter]
+verify_jwt = true

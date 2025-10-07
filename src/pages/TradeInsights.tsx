@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { TradeFilters } from "@/components/trade/TradeFilters";
 
 interface Insight {
   id: string;
@@ -25,8 +26,11 @@ interface Insight {
 const TradeInsights = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [insights, setInsights] = useState<Insight[]>([]);
+  const [allInsights, setAllInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [aiCriteria, setAiCriteria] = useState<any>(null);
 
   if (!permissionsLoading && !hasPermission("trade_insights")) {
     return <Navigate to="/dashboard" replace />;
@@ -44,6 +48,7 @@ const TradeInsights = () => {
         .order("generated_at", { ascending: false });
 
       if (error) throw error;
+      setAllInsights(data || []);
       setInsights(data || []);
     } catch (error) {
       console.error("Erro ao buscar insights:", error);
@@ -93,6 +98,44 @@ const TradeInsights = () => {
         return "outline";
     }
   };
+
+  const applyFilters = () => {
+    let filtered = [...allInsights];
+
+    // Insights não têm store_id diretamente, mas têm entity_id e entity_type
+    // Por enquanto, filtro apenas por critérios de IA
+    if (aiCriteria) {
+      if (aiCriteria.status) {
+        filtered = filtered.filter(i => aiCriteria.status.includes(i.status));
+      }
+      if (aiCriteria.priority) {
+        filtered = filtered.filter(i => i.priority === aiCriteria.priority);
+      }
+      if (aiCriteria.type) {
+        filtered = filtered.filter(i => i.insight_type === aiCriteria.type);
+      }
+      if (aiCriteria.timeframe === "hoje") {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        filtered = filtered.filter(i => {
+          const genDate = new Date(i.generated_at);
+          genDate.setHours(0, 0, 0, 0);
+          return genDate.getTime() === today.getTime();
+        });
+      }
+      if (aiCriteria.timeframe === "semana") {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        filtered = filtered.filter(i => new Date(i.generated_at) >= weekAgo);
+      }
+    }
+
+    setInsights(filtered);
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [selectedStore, aiCriteria, allInsights]);
 
   const stats = {
     opportunities: insights.filter(i => i.insight_type === "opportunity" && i.status === "new").length,
@@ -249,6 +292,12 @@ const TradeInsights = () => {
             </Button>
           )}
         </div>
+
+        <TradeFilters
+          selectedStore={selectedStore}
+          onStoreChange={setSelectedStore}
+          onAIFilter={setAiCriteria}
+        />
 
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-4">

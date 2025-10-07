@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { TradeFilters } from "@/components/trade/TradeFilters";
 
 interface Competitor {
   id: string;
@@ -24,7 +25,10 @@ interface Competitor {
 const TradeCompetitors = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
+  const [allCompetitors, setAllCompetitors] = useState<Competitor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [aiCriteria, setAiCriteria] = useState<any>(null);
 
   if (!permissionsLoading && !hasPermission("trade_competitors")) {
     return <Navigate to="/dashboard" replace />;
@@ -43,6 +47,7 @@ const TradeCompetitors = () => {
         .order("name");
 
       if (error) throw error;
+      setAllCompetitors(data || []);
       setCompetitors(data || []);
     } catch (error) {
       console.error("Erro ao buscar concorrentes:", error);
@@ -65,6 +70,26 @@ const TradeCompetitors = () => {
     }
   };
 
+  const applyFilters = () => {
+    let filtered = [...allCompetitors];
+
+    // Competitors table doesn't have store_id, AI filter only
+    if (aiCriteria) {
+      if (aiCriteria.priority === "alta") {
+        filtered = filtered.filter(c => c.threat_level === "alto");
+      }
+      if (aiCriteria.category) {
+        filtered = filtered.filter(c => c.category === aiCriteria.category);
+      }
+    }
+
+    setCompetitors(filtered);
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [aiCriteria, allCompetitors]);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -80,6 +105,12 @@ const TradeCompetitors = () => {
             Novo Concorrente
           </Button>
         </div>
+
+        <TradeFilters
+          selectedStore={selectedStore}
+          onStoreChange={setSelectedStore}
+          onAIFilter={setAiCriteria}
+        />
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card>

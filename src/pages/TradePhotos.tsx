@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { TradeFilters } from "@/components/trade/TradeFilters";
 
 interface Photo {
   id: string;
@@ -24,8 +25,11 @@ interface Photo {
 const TradePhotos = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [aiCriteria, setAiCriteria] = useState<any>(null);
 
   if (!permissionsLoading && !hasPermission("trade_photos")) {
     return <Navigate to="/dashboard" replace />;
@@ -47,6 +51,7 @@ const TradePhotos = () => {
         .limit(50);
 
       if (error) throw error;
+      setAllPhotos(data || []);
       setPhotos(data || []);
     } catch (error) {
       console.error("Erro ao buscar fotos:", error);
@@ -89,6 +94,38 @@ const TradePhotos = () => {
     }
   };
 
+  const applyFilters = () => {
+    let filtered = [...allPhotos];
+
+    if (selectedStore) {
+      filtered = filtered.filter(p => p.stores && (p.stores as any).id === selectedStore);
+    }
+
+    if (aiCriteria) {
+      if (aiCriteria.aiProcessed !== undefined) {
+        filtered = filtered.filter(p => p.ai_processed === aiCriteria.aiProcessed);
+      }
+      if (aiCriteria.type) {
+        filtered = filtered.filter(p => p.photo_type === aiCriteria.type);
+      }
+      if (aiCriteria.timeframe === "hoje") {
+        const today = new Date().toISOString().split('T')[0];
+        filtered = filtered.filter(p => p.upload_date.startsWith(today));
+      }
+      if (aiCriteria.timeframe === "semana") {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        filtered = filtered.filter(p => new Date(p.upload_date) >= weekAgo);
+      }
+    }
+
+    setPhotos(filtered);
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [selectedStore, aiCriteria, allPhotos]);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -104,6 +141,12 @@ const TradePhotos = () => {
             Upload de Fotos
           </Button>
         </div>
+
+        <TradeFilters
+          selectedStore={selectedStore}
+          onStoreChange={setSelectedStore}
+          onAIFilter={setAiCriteria}
+        />
 
         {loading ? (
           <div className="text-center py-12">Carregando fotos...</div>

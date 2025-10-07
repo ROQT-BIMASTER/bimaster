@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { NovaLojaDialog } from "@/components/trade/NovaLojaDialog";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { TradeFilters } from "@/components/trade/TradeFilters";
 
 interface Store {
   id: string;
@@ -27,9 +28,11 @@ const TradeStores = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const navigate = useNavigate();
   const [stores, setStores] = useState<Store[]>([]);
+  const [allStores, setAllStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
   const [showNovaLoja, setShowNovaLoja] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [aiCriteria, setAiCriteria] = useState<any>(null);
 
   if (!permissionsLoading && !hasPermission("trade_stores")) {
     return <Navigate to="/dashboard" replace />;
@@ -47,6 +50,7 @@ const TradeStores = () => {
         .order("name");
 
       if (error) throw error;
+      setAllStores(data || []);
       setStores(data || []);
     } catch (error) {
       console.error("Erro ao buscar PDVs:", error);
@@ -56,13 +60,31 @@ const TradeStores = () => {
     }
   };
 
-  const filteredStores = stores.filter(
-    (store) =>
-      store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      store.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      store.chain?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      store.city?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const applyFilters = () => {
+    let filtered = [...allStores];
+
+    if (selectedStore) {
+      filtered = filtered.filter(s => s.id === selectedStore);
+    }
+
+    if (aiCriteria) {
+      if (aiCriteria.status) {
+        filtered = filtered.filter(s => aiCriteria.status.includes(s.status));
+      }
+      if (aiCriteria.priority) {
+        filtered = filtered.filter(s => s.priority === aiCriteria.priority);
+      }
+      if (aiCriteria.category) {
+        filtered = filtered.filter(s => s.category === aiCriteria.category);
+      }
+    }
+
+    setStores(filtered);
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [selectedStore, aiCriteria, allStores]);
 
   const getPriorityColor = (priority: string | null) => {
     switch (priority) {
@@ -99,17 +121,11 @@ const TradeStores = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, código, rede ou cidade..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
+        <TradeFilters
+          selectedStore={selectedStore}
+          onStoreChange={setSelectedStore}
+          onAIFilter={setAiCriteria}
+        />
 
         <div className="rounded-md border">
           <Table>
@@ -132,14 +148,14 @@ const TradeStores = () => {
                     Carregando...
                   </TableCell>
                 </TableRow>
-              ) : filteredStores.length === 0 ? (
+              ) : stores.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center">
                     Nenhuma loja encontrada
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredStores.map((store) => (
+                stores.map((store) => (
                   <TableRow key={store.id}>
                     <TableCell className="font-medium">{store.code}</TableCell>
                     <TableCell>{store.name}</TableCell>

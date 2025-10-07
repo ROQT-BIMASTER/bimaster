@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon, MapPin, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { TradeFilters } from "@/components/trade/TradeFilters";
 
 interface Visit {
   id: string;
@@ -30,8 +31,11 @@ export default function TradeCalendar() {
   const navigate = useNavigate();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [allVisits, setAllVisits] = useState<Visit[]>([]);
   const [selectedDateVisits, setSelectedDateVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [aiCriteria, setAiCriteria] = useState<any>(null);
 
   useEffect(() => {
     if (!hasPermission("trade_marketing")) {
@@ -65,6 +69,7 @@ export default function TradeCalendar() {
         .order("scheduled_date", { ascending: true });
 
       if (error) throw error;
+      setAllVisits(data || []);
       setVisits(data || []);
     } catch (error) {
       console.error("Erro ao buscar visitas:", error);
@@ -73,6 +78,35 @@ export default function TradeCalendar() {
       setLoading(false);
     }
   };
+
+  const applyFilters = () => {
+    let filtered = [...allVisits];
+
+    if (selectedStore) {
+      filtered = filtered.filter(v => v.store && (v.store as any).id === selectedStore);
+    }
+
+    if (aiCriteria) {
+      if (aiCriteria.status) {
+        filtered = filtered.filter(v => aiCriteria.status.includes(v.status));
+      }
+      if (aiCriteria.timeframe === "hoje") {
+        const today = format(new Date(), "yyyy-MM-dd");
+        filtered = filtered.filter(v => v.scheduled_date === today);
+      }
+      if (aiCriteria.timeframe === "semana") {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        filtered = filtered.filter(v => new Date(v.scheduled_date) >= weekAgo);
+      }
+    }
+
+    setVisits(filtered);
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [selectedStore, aiCriteria, allVisits]);
 
   const filterVisitsByDate = (selectedDate: Date) => {
     const formattedDate = format(selectedDate, "yyyy-MM-dd");
@@ -117,6 +151,12 @@ export default function TradeCalendar() {
             Ver Todas as Visitas
           </Button>
         </div>
+
+        <TradeFilters
+          selectedStore={selectedStore}
+          onStoreChange={setSelectedStore}
+          onAIFilter={setAiCriteria}
+        />
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
