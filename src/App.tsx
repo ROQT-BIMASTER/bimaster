@@ -27,6 +27,8 @@ import TradeInsights from "./pages/TradeInsights";
 import TradeCompetitors from "./pages/TradeCompetitors";
 import TradePromotions from "./pages/TradePromotions";
 import TradeImportStores from "./pages/TradeImportStores";
+import TradeCalendar from "./pages/TradeCalendar";
+import TradeFinanceiro from "./pages/TradeFinanceiro";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +70,8 @@ const App = () => {
           <Route path="/dashboard/trade/promotions" element={<TradePromotions />} />
           <Route path="/dashboard/trade/insights" element={<TradeInsights />} />
           <Route path="/dashboard/trade/import-stores" element={<TradeImportStores />} />
+          <Route path="/dashboard/trade/calendar" element={<TradeCalendar />} />
+          <Route path="/dashboard/trade/financeiro" element={<TradeFinanceiro />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
