@@ -35,6 +35,9 @@ interface Prospect {
   proxima_acao: string | null;
   observacoes: string | null;
   municipio_id: string | null;
+  vendedor?: {
+    nome: string;
+  } | null;
 }
 
 const STAGES = [
@@ -82,7 +85,10 @@ export const KanbanBoard = () => {
 
       let query = supabase
         .from("prospects")
-        .select("*")
+        .select(`
+          *,
+          vendedor:profiles!prospects_vendedor_id_fkey(nome)
+        `)
         .order("created_at", { ascending: false });
 
       // Se não for admin ou supervisor, filtrar por municípios vinculados ao vendedor

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Mail, Phone, Calendar, CheckCircle2 } from "lucide-react";
+import { Building2, Mail, Phone, Calendar, CheckCircle2, UserCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useSortable } from "@dnd-kit/sortable";
@@ -16,6 +16,9 @@ interface Prospect {
   categoria: string | null;
   ultimo_contato: string | null;
   proxima_acao: string | null;
+  vendedor?: {
+    nome: string;
+  } | null;
 }
 
 interface ProspectCardProps {
@@ -95,6 +98,13 @@ export const ProspectCard = ({ prospect, onClick }: ProspectCardProps) => {
             <CheckCircle2 className="h-3 w-3 text-primary" />
             <span className="font-medium text-primary">{getStatusLabel(prospect.status)}</span>
           </div>
+
+          {prospect.vendedor && (
+            <div className="flex items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1">
+              <UserCircle className="h-3 w-3 text-primary" />
+              <span className="font-medium text-primary truncate">{prospect.vendedor.nome}</span>
+            </div>
+          )}
           
           {prospect.contato_principal && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">

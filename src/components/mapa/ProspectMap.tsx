@@ -12,6 +12,9 @@ interface Prospect {
   endereco: string | null;
   municipio: string | null;
   status: string;
+  vendedor?: {
+    nome: string;
+  } | null;
 }
 
 interface GeocodedProspect extends Prospect {
@@ -67,7 +70,13 @@ export const ProspectMap = () => {
         // Buscar prospects
         const { data: prospects, error } = await supabase
           .from("prospects")
-          .select("id, nome_empresa, endereco, status")
+          .select(`
+            id, 
+            nome_empresa, 
+            endereco, 
+            status,
+            vendedor:profiles!prospects_vendedor_id_fkey(nome)
+          `)
           .not("endereco", "is", null);
 
         if (error) throw error;
@@ -159,6 +168,10 @@ export const ProspectMap = () => {
           el.style.cursor = "pointer";
           el.style.boxShadow = "0 2px 4px rgba(0,0,0,0.3)";
 
+          const vendedorHTML = prospect.vendedor 
+            ? `<p style="font-size: 11px; color: #888; margin-top: 4px;">📋 Responsável: <strong>${prospect.vendedor.nome}</strong></p>` 
+            : '';
+
           const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
             <div style="padding: 8px;">
               <h3 style="font-weight: bold; margin-bottom: 4px;">${prospect.nome_empresa}</h3>
@@ -166,6 +179,7 @@ export const ProspectMap = () => {
               <span style="display: inline-block; padding: 2px 8px; background: ${statusColors[prospect.status]}; color: white; border-radius: 4px; font-size: 11px;">
                 ${statusLabels[prospect.status]}
               </span>
+              ${vendedorHTML}
             </div>
           `);
 

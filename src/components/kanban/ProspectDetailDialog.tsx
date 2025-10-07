@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, UserCircle } from "lucide-react";
 
 interface Prospect {
   id: string;
@@ -27,6 +28,9 @@ interface Prospect {
   proxima_acao: string | null;
   observacoes: string | null;
   municipio_id: string | null;
+  vendedor?: {
+    nome: string;
+  } | null;
 }
 
 interface ProspectDetailDialogProps {
@@ -133,6 +137,13 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Prospect</DialogTitle>
+          {formData.vendedor && (
+            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+              <UserCircle className="h-4 w-4" />
+              <span>Responsável:</span>
+              <Badge variant="secondary">{formData.vendedor.nome}</Badge>
+            </div>
+          )}
         </DialogHeader>
 
         <div className="grid gap-4 py-4">

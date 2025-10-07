@@ -35,6 +35,9 @@ interface Prospect {
   proxima_acao: string | null;
   observacoes: string | null;
   municipio_id: string | null;
+  vendedor?: {
+    nome: string;
+  } | null;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -99,7 +102,10 @@ const Prospects = () => {
 
       let query = supabase
         .from("prospects")
-        .select("*")
+        .select(`
+          *,
+          vendedor:profiles!prospects_vendedor_id_fkey(nome)
+        `)
         .order("created_at", { ascending: false });
 
       // Se não for admin ou supervisor, filtrar por municípios vinculados ao vendedor
@@ -198,6 +204,7 @@ const Prospects = () => {
                       <TableHead className="font-semibold">Contato</TableHead>
                       <TableHead className="font-semibold">Informações</TableHead>
                       <TableHead className="font-semibold">Localização</TableHead>
+                      <TableHead className="font-semibold">Responsável</TableHead>
                       <TableHead className="font-semibold">Status</TableHead>
                       <TableHead className="font-semibold">Categoria</TableHead>
                       <TableHead className="font-semibold">Último Contato</TableHead>
@@ -259,6 +266,17 @@ const Prospects = () => {
                               </div>
                             )}
                             {!prospect.municipio && (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {prospect.vendedor ? (
+                              <div className="flex items-center gap-1">
+                                <Badge variant="secondary" className="font-normal">
+                                  {prospect.vendedor.nome}
+                                </Badge>
+                              </div>
+                            ) : (
                               <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
