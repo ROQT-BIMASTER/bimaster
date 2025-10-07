@@ -14,6 +14,23 @@ export const prospectSchema = z.object({
     })
     .optional()
     .or(z.literal("")),
+  cnpj_raiz: z.string().optional().or(z.literal("")),
+  dominio: z.string().optional().or(z.literal("")),
+  nome_fantasia: z.string().optional().or(z.literal("")),
+  perfil_linkedin: z.string().optional().or(z.literal("")),
+  segmento: z.string().optional().or(z.literal("")),
+  cnae_codigo: z.string().optional().or(z.literal("")),
+  cnae_principal: z.string().optional().or(z.literal("")),
+  tipo_estabelecimento: z.string().optional().or(z.literal("")),
+  total_funcionarios: z.number().optional(),
+  faixa_funcionarios: z.string().optional().or(z.literal("")),
+  faixa_faturamento: z.string().optional().or(z.literal("")),
+  total_filiais: z.number().optional(),
+  tipo_entidade: z.string().optional().or(z.literal("")),
+  natureza_juridica: z.string().optional().or(z.literal("")),
+  data_abertura: z.string().optional().or(z.literal("")),
+  nivel_atividade: z.string().optional().or(z.literal("")),
+  tendencia_crescimento: z.string().optional().or(z.literal("")),
   contato_principal: z
     .string()
     .trim()
@@ -30,6 +47,7 @@ export const prospectSchema = z.object({
     .toLowerCase()
     .optional()
     .or(z.literal("")),
+  demais_emails: z.string().optional().or(z.literal("")),
   telefone: z
     .string()
     .trim()
@@ -38,6 +56,23 @@ export const prospectSchema = z.object({
     })
     .optional()
     .or(z.literal("")),
+  demais_telefones: z.string().optional().or(z.literal("")),
+  tipo_logradouro: z.string().optional().or(z.literal("")),
+  logradouro: z.string().optional().or(z.literal("")),
+  numero: z.string().optional().or(z.literal("")),
+  cep: z.string().optional().or(z.literal("")),
+  bairro: z.string().optional().or(z.literal("")),
+  perfil_facebook: z.string().optional().or(z.literal("")),
+  perfil_instagram: z.string().optional().or(z.literal("")),
+  perfil_twitter: z.string().optional().or(z.literal("")),
+  url_company_page: z.string().optional().or(z.literal("")),
+  situacao: z.string().optional().or(z.literal("")),
+  territorio: z.string().optional().or(z.literal("")),
+  trm: z.string().optional().or(z.literal("")),
+  faixa_score_propensao: z.string().optional().or(z.literal("")),
+  score_propensao: z.number().optional(),
+  faixa_score_contactability: z.string().optional().or(z.literal("")),
+  variacao_score_propensao: z.number().optional(),
   status: z.enum(["novo", "em_contato", "proposta_enviada", "negociacao", "ganho", "perdido"], {
     errorMap: () => ({ message: "Status inválido" })
   }),

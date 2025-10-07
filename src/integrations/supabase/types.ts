@@ -398,69 +398,174 @@ export type Database = {
       }
       prospects: {
         Row: {
+          bairro: string | null
           categoria: Database["public"]["Enums"]["client_category"] | null
+          cep: string | null
+          cnae_codigo: string | null
+          cnae_principal: string | null
           cnpj: string | null
+          cnpj_raiz: string | null
           contato_principal: string | null
           created_at: string | null
+          data_abertura: string | null
+          demais_emails: string | null
+          demais_telefones: string | null
+          dominio: string | null
           email: string | null
           endereco: string | null
+          faixa_faturamento: string | null
+          faixa_funcionarios: string | null
+          faixa_score_contactability: string | null
+          faixa_score_propensao: string | null
           id: string
           importado_planilha: boolean | null
+          logradouro: string | null
           municipio: string | null
           municipio_id: string | null
+          natureza_juridica: string | null
+          nivel_atividade: string | null
           nome_empresa: string
+          nome_fantasia: string | null
+          numero: string | null
           observacoes: string | null
+          perfil_facebook: string | null
+          perfil_instagram: string | null
+          perfil_linkedin: string | null
+          perfil_twitter: string | null
           porte_empresa: string | null
           proxima_acao: string | null
+          score_propensao: number | null
+          segmento: string | null
+          situacao: string | null
           status: Database["public"]["Enums"]["prospect_status"]
           telefone: string | null
+          tendencia_crescimento: string | null
+          territorio: string | null
+          tipo_entidade: string | null
+          tipo_estabelecimento: string | null
+          tipo_logradouro: string | null
+          total_filiais: number | null
+          total_funcionarios: number | null
+          trm: string | null
           uf: string | null
           ultimo_contato: string | null
           updated_at: string | null
+          url_company_page: string | null
+          variacao_score_propensao: number | null
           vendedor_id: string | null
         }
         Insert: {
+          bairro?: string | null
           categoria?: Database["public"]["Enums"]["client_category"] | null
+          cep?: string | null
+          cnae_codigo?: string | null
+          cnae_principal?: string | null
           cnpj?: string | null
+          cnpj_raiz?: string | null
           contato_principal?: string | null
           created_at?: string | null
+          data_abertura?: string | null
+          demais_emails?: string | null
+          demais_telefones?: string | null
+          dominio?: string | null
           email?: string | null
           endereco?: string | null
+          faixa_faturamento?: string | null
+          faixa_funcionarios?: string | null
+          faixa_score_contactability?: string | null
+          faixa_score_propensao?: string | null
           id?: string
           importado_planilha?: boolean | null
+          logradouro?: string | null
           municipio?: string | null
           municipio_id?: string | null
+          natureza_juridica?: string | null
+          nivel_atividade?: string | null
           nome_empresa: string
+          nome_fantasia?: string | null
+          numero?: string | null
           observacoes?: string | null
+          perfil_facebook?: string | null
+          perfil_instagram?: string | null
+          perfil_linkedin?: string | null
+          perfil_twitter?: string | null
           porte_empresa?: string | null
           proxima_acao?: string | null
+          score_propensao?: number | null
+          segmento?: string | null
+          situacao?: string | null
           status?: Database["public"]["Enums"]["prospect_status"]
           telefone?: string | null
+          tendencia_crescimento?: string | null
+          territorio?: string | null
+          tipo_entidade?: string | null
+          tipo_estabelecimento?: string | null
+          tipo_logradouro?: string | null
+          total_filiais?: number | null
+          total_funcionarios?: number | null
+          trm?: string | null
           uf?: string | null
           ultimo_contato?: string | null
           updated_at?: string | null
+          url_company_page?: string | null
+          variacao_score_propensao?: number | null
           vendedor_id?: string | null
         }
         Update: {
+          bairro?: string | null
           categoria?: Database["public"]["Enums"]["client_category"] | null
+          cep?: string | null
+          cnae_codigo?: string | null
+          cnae_principal?: string | null
           cnpj?: string | null
+          cnpj_raiz?: string | null
           contato_principal?: string | null
           created_at?: string | null
+          data_abertura?: string | null
+          demais_emails?: string | null
+          demais_telefones?: string | null
+          dominio?: string | null
           email?: string | null
           endereco?: string | null
+          faixa_faturamento?: string | null
+          faixa_funcionarios?: string | null
+          faixa_score_contactability?: string | null
+          faixa_score_propensao?: string | null
           id?: string
           importado_planilha?: boolean | null
+          logradouro?: string | null
           municipio?: string | null
           municipio_id?: string | null
+          natureza_juridica?: string | null
+          nivel_atividade?: string | null
           nome_empresa?: string
+          nome_fantasia?: string | null
+          numero?: string | null
           observacoes?: string | null
+          perfil_facebook?: string | null
+          perfil_instagram?: string | null
+          perfil_linkedin?: string | null
+          perfil_twitter?: string | null
           porte_empresa?: string | null
           proxima_acao?: string | null
+          score_propensao?: number | null
+          segmento?: string | null
+          situacao?: string | null
           status?: Database["public"]["Enums"]["prospect_status"]
           telefone?: string | null
+          tendencia_crescimento?: string | null
+          territorio?: string | null
+          tipo_entidade?: string | null
+          tipo_estabelecimento?: string | null
+          tipo_logradouro?: string | null
+          total_filiais?: number | null
+          total_funcionarios?: number | null
+          trm?: string | null
           uf?: string | null
           ultimo_contato?: string | null
           updated_at?: string | null
+          url_company_page?: string | null
+          variacao_score_propensao?: number | null
           vendedor_id?: string | null
         }
         Relationships: [

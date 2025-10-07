@@ -181,14 +181,50 @@ const ImportarClientes = () => {
         for (let i = 0; i < rows.length; i++) {
           const values = rows[i].map((v: any) => String(v || '').trim());
           
-          const nomeIdx = headers.findIndex(h => h.includes('empresa') || h.includes('nome') || h.includes('razao') || h.includes('razão'));
-          const municipioIdx = headers.findIndex(h => h.includes('municipio') || h.includes('município') || h.includes('cidade'));
-          const ufIdx = headers.findIndex(h => h.includes('uf') || h.includes('estado'));
-          const cnpjIdx = headers.findIndex(h => h.includes('cnpj'));
-          const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('e-mail'));
-          const telefoneIdx = headers.findIndex(h => h.includes('telefone') || h.includes('fone') || h.includes('celular'));
+          const nomeIdx = headers.findIndex(h => h.includes('nome') && h.includes('empresa'));
+          const cnpjIdx = headers.findIndex(h => h === 'cnpj' || h.includes('cnpj') && !h.includes('raiz'));
+          const cnpjRaizIdx = headers.findIndex(h => h.includes('cnpj') && h.includes('raiz'));
+          const dominioIdx = headers.findIndex(h => h.includes('dominio') || h === 'domínio');
+          const nomeFantasiaIdx = headers.findIndex(h => h.includes('fantasia'));
+          const perfilLinkedinIdx = headers.findIndex(h => h.includes('linkedin'));
+          const segmentoIdx = headers.findIndex(h => h === 'segmento');
+          const cnaeCodigoIdx = headers.findIndex(h => h.includes('cnae') && h.includes('código'));
+          const cnaePrincipalIdx = headers.findIndex(h => h.includes('cnae') && h.includes('principal') && !h.includes('código'));
+          const tipoEstabelecimentoIdx = headers.findIndex(h => h.includes('estabelecimento'));
+          const porteIdx = headers.findIndex(h => h.includes('porte'));
+          const totalFuncionariosIdx = headers.findIndex(h => h.includes('total') && h.includes('funcionários'));
+          const faixaFuncionariosIdx = headers.findIndex(h => h.includes('faixa') && h.includes('funcionários'));
+          const faixaFaturamentoIdx = headers.findIndex(h => h.includes('faturamento'));
+          const totalFiliaisIdx = headers.findIndex(h => h.includes('filiais'));
+          const tipoEntidadeIdx = headers.findIndex(h => h.includes('entidade'));
+          const naturezaJuridicaIdx = headers.findIndex(h => h.includes('natureza'));
+          const dataAberturaIdx = headers.findIndex(h => h.includes('abertura'));
+          const nivelAtividadeIdx = headers.findIndex(h => h.includes('nível') || h.includes('nivel'));
+          const tendenciaCrescimentoIdx = headers.findIndex(h => h.includes('tendência') || h.includes('tendencia'));
+          const telefoneIdx = headers.findIndex(h => h.includes('telefone') && h.includes('principal'));
+          const demaisTelefonesIdx = headers.findIndex(h => h.includes('demais') && h.includes('telefone'));
+          const enderecoCompletoIdx = headers.findIndex(h => h.includes('endereço') && h.includes('completo') || h.includes('endereco') && h.includes('completo'));
+          const tipoLogradouroIdx = headers.findIndex(h => h.includes('tipo') && h.includes('logradouro'));
+          const logradouroIdx = headers.findIndex(h => h === 'logradouro');
+          const numeroIdx = headers.findIndex(h => h === 'número' || h === 'numero');
+          const cepIdx = headers.findIndex(h => h === 'cep');
+          const bairroIdx = headers.findIndex(h => h === 'bairro');
+          const municipioIdx = headers.findIndex(h => h === 'município' || h === 'municipio');
+          const ufIdx = headers.findIndex(h => h === 'uf');
+          const emailIdx = headers.findIndex(h => h.includes('email') && h.includes('principal'));
+          const demaisEmailsIdx = headers.findIndex(h => h.includes('demais') && h.includes('email'));
+          const perfilFacebookIdx = headers.findIndex(h => h.includes('facebook'));
+          const perfilInstagramIdx = headers.findIndex(h => h.includes('instagram'));
+          const perfilTwitterIdx = headers.findIndex(h => h.includes('twitter'));
+          const urlCompanyPageIdx = headers.findIndex(h => h.includes('url') && h.includes('company'));
+          const situacaoIdx = headers.findIndex(h => h === 'situação' || h === 'situacao');
+          const territorioIdx = headers.findIndex(h => h === 'território' || h === 'territorio');
+          const trmIdx = headers.findIndex(h => h === 'trm');
+          const faixaScorePropensaoIdx = headers.findIndex(h => h.includes('faixa') && h.includes('score') && h.includes('propensão'));
+          const scorePropensaoIdx = headers.findIndex(h => h.includes('score') && h.includes('propensão') && !h.includes('faixa'));
+          const faixaScoreContactabilityIdx = headers.findIndex(h => h.includes('contactability'));
+          const variacaoScoreIdx = headers.findIndex(h => h.includes('variação') && h.includes('score'));
           const contatoIdx = headers.findIndex(h => h.includes('contato') && !h.includes('telefone'));
-          const enderecoIdx = headers.findIndex(h => h.includes('endereco') || h.includes('endereço') || h.includes('rua') || h.includes('logradouro'));
           const observacoesIdx = headers.findIndex(h => h.includes('observa') || h.includes('obs'));
 
           const nome_empresa = (values[nomeIdx] || '').trim().replace(/^["']|["']$/g, '');
@@ -269,20 +305,61 @@ const ImportarClientes = () => {
             }
           }
 
+          const parseNumber = (val: string) => {
+            const num = parseFloat(val.replace(/[^\d.-]/g, ''));
+            return isNaN(num) ? null : num;
+          };
+
           prospects.push({
             nome_empresa,
             municipio_id: municipio?.id || null,
             vendedor_id: municipio?.vendedor_id || null,
             cnpj: cnpjValidado || null,
-            email: (values[emailIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            cnpj_raiz: (values[cnpjRaizIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            dominio: (values[dominioIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            nome_fantasia: (values[nomeFantasiaIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            perfil_linkedin: (values[perfilLinkedinIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            segmento: (values[segmentoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            cnae_codigo: (values[cnaeCodigoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            cnae_principal: (values[cnaePrincipalIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            tipo_estabelecimento: (values[tipoEstabelecimentoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            porte_empresa: (values[porteIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            total_funcionarios: parseNumber(values[totalFuncionariosIdx] || ''),
+            faixa_funcionarios: (values[faixaFuncionariosIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            faixa_faturamento: (values[faixaFaturamentoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            total_filiais: parseNumber(values[totalFiliaisIdx] || ''),
+            tipo_entidade: (values[tipoEntidadeIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            natureza_juridica: (values[naturezaJuridicaIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            data_abertura: (values[dataAberturaIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            nivel_atividade: (values[nivelAtividadeIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            tendencia_crescimento: (values[tendenciaCrescimentoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             telefone: (values[telefoneIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-            contato_principal: (values[contatoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-            endereco: (values[enderecoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-            observacoes: (values[observacoesIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            demais_telefones: (values[demaisTelefonesIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            endereco: (values[enderecoCompletoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            tipo_logradouro: (values[tipoLogradouroIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            logradouro: (values[logradouroIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            numero: (values[numeroIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            cep: (values[cepIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            bairro: (values[bairroIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             municipio: municipioFinal,
+            uf: ufFinal || null,
+            email: (values[emailIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            demais_emails: (values[demaisEmailsIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            perfil_facebook: (values[perfilFacebookIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            perfil_instagram: (values[perfilInstagramIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            perfil_twitter: (values[perfilTwitterIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            url_company_page: (values[urlCompanyPageIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            situacao: (values[situacaoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            territorio: (values[territorioIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            trm: (values[trmIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            faixa_score_propensao: (values[faixaScorePropensaoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            score_propensao: parseNumber(values[scorePropensaoIdx] || ''),
+            faixa_score_contactability: (values[faixaScoreContactabilityIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            variacao_score_propensao: parseNumber(values[variacaoScoreIdx] || ''),
+            contato_principal: (values[contatoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            observacoes: (values[observacoesIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             importado_planilha: true,
-            status: 'novo',
-            uf: ufFinal || null
+            status: 'novo'
           });
 
           detalhes.push({
@@ -346,15 +423,34 @@ const ImportarClientes = () => {
 
   const downloadTemplate = () => {
     const ws_data = [
-      ["nome_empresa", "cnpj", "municipio", "uf", "endereco", "contato_principal", "email", "telefone", "observacoes"],
-      ["Empresa Exemplo", "11.222.333/0001-81", "São Paulo", "SP", "Rua Exemplo 123", "João Silva", "joao@exemplo.com", "(11) 99999-9999", "Cliente em potencial"],
-      ["Empresa Teste", "", "Rio de Janeiro", "RJ", "Av Brasil 456", "Maria Santos", "maria@teste.com", "(21) 88888-8888", "Possível cliente"]
+      [
+        "Nome da empresa", "CNPJ", "CNPJ Raiz", "Domínio", "Nome Fantasia", "Perfil do LinkedIn", 
+        "Segmento", "CNAE principal (Código)", "CNAE principal", "Tipo de Estabelecimento", 
+        "Porte da empresa", "Total de funcionários", "Faixa de funcionários", "Faixa de faturamento", 
+        "Total de filiais", "Tipo de entidade", "Natureza jurídica", "Data de abertura", 
+        "Nível de atividade", "Tendência de crescimento", "Telefone principal", "Demais telefones", 
+        "Endereço completo", "Tipo de logradouro", "Logradouro", "Número", "CEP", "Bairro", 
+        "Município", "UF", "Email principal", "Demais emails", "Perfil do facebook", 
+        "Perfil do instagram", "Perfil do twitter", "URL company page", "Situação", "Território", 
+        "TRM", "Faixa Score Propensão", "Score Propensão", "Faixa Score Contactability", 
+        "Variação Score Propensão"
+      ],
+      [
+        "Empresa Exemplo Ltda", "11.222.333/0001-81", "11222333", "exemplo.com.br", "Exemplo", 
+        "linkedin.com/company/exemplo", "Tecnologia", "6201-5/00", "Desenvolvimento de programas", 
+        "Matriz", "Pequeno", "50", "11-50", "R$ 1M-10M", "3", "Empresa Privada", "LTDA", 
+        "01/01/2020", "Ativo", "Crescimento", "(11) 99999-9999", "(11) 88888-8888", 
+        "Rua Exemplo, 123, Sala 10", "Rua", "Exemplo", "123", "01234-567", "Centro", 
+        "São Paulo", "SP", "contato@exemplo.com", "vendas@exemplo.com", 
+        "facebook.com/exemplo", "instagram.com/exemplo", "twitter.com/exemplo", 
+        "exemplo.com.br", "Ativa", "Sul", "Regional Sul", "Alto", "85", "Médio", "5"
+      ]
     ];
     
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Clientes");
-    XLSX.writeFile(wb, 'template_importacao.xlsx');
+    XLSX.writeFile(wb, 'template_importacao_completo.xlsx');
   };
 
   if (!isAdmin) {
@@ -424,19 +520,14 @@ const ImportarClientes = () => {
               <div className="text-sm space-y-2">
                 <p className="font-medium">Campos obrigatórios:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>nome_empresa</li>
-                  <li>municipio</li>
+                  <li>Nome da empresa</li>
+                  <li>Município</li>
                 </ul>
-                <p className="font-medium mt-4">Campos opcionais:</p>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>cnpj</li>
-                  <li>uf (estado)</li>
-                  <li>endereco</li>
-                  <li>contato_principal</li>
-                  <li>email</li>
-                  <li>telefone</li>
-                  <li>observacoes</li>
-                </ul>
+                <p className="font-medium mt-4">Campos disponíveis (43 campos):</p>
+                <p className="text-xs text-muted-foreground">
+                  O modelo inclui todos os campos: dados cadastrais, CNPJ, endereço completo, 
+                  contatos, redes sociais, dados financeiros, scores de propensão e muito mais.
+                </p>
               </div>
               <Button onClick={downloadTemplate} variant="outline" className="w-full">
                 <Download className="h-4 w-4 mr-2" />
