@@ -13,10 +13,16 @@ import {
   MessageSquare,
   FileText,
   Upload,
-  ShieldCheck
+  ShieldCheck,
+  Store,
+  Camera,
+  Tag,
+  Brain,
+  TrendingUp
 } from "lucide-react";
 
 interface RoutePermission {
+  id: string;
   route: string;
   name: string;
   icon: any;
@@ -25,36 +31,88 @@ interface RoutePermission {
   vendedor: boolean;
 }
 
-const defaultRoutes: RoutePermission[] = [
-  { route: '/dashboard', name: 'Dashboard', icon: LayoutDashboard, admin: true, supervisor: true, vendedor: true },
-  { route: '/prospects', name: 'Prospects', icon: Users, admin: true, supervisor: true, vendedor: true },
-  { route: '/kanban', name: 'Kanban', icon: CheckSquare, admin: true, supervisor: true, vendedor: true },
-  { route: '/mapa', name: 'Mapa', icon: MapPin, admin: true, supervisor: true, vendedor: true },
-  { route: '/atividades', name: 'Atividades', icon: Calendar, admin: true, supervisor: true, vendedor: true },
-  { route: '/tarefas', name: 'Tarefas', icon: CheckSquare, admin: true, supervisor: true, vendedor: true },
-  { route: '/chat', name: 'Chat', icon: MessageSquare, admin: true, supervisor: true, vendedor: true },
-  { route: '/municipios', name: 'Municípios', icon: MapPin, admin: true, supervisor: true, vendedor: false },
-  { route: '/auditoria', name: 'Auditoria', icon: ShieldCheck, admin: true, supervisor: true, vendedor: false },
-  { route: '/importar-clientes', name: 'Importar Clientes', icon: Upload, admin: true, supervisor: false, vendedor: false },
-];
+// Mapeamento de ícones por nome
+const iconMap: Record<string, any> = {
+  LayoutDashboard,
+  Users,
+  MapPin,
+  Calendar,
+  CheckSquare,
+  MessageSquare,
+  FileText,
+  Upload,
+  ShieldCheck,
+  Store,
+  Camera,
+  Tag,
+  Brain,
+  TrendingUp,
+};
 
 export function PermissoesDeAcesso() {
-  const [permissions, setPermissions] = useState<RoutePermission[]>(defaultRoutes);
+  const [permissions, setPermissions] = useState<RoutePermission[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     loadPermissions();
   }, []);
 
-  const loadPermissions = () => {
-    const saved = localStorage.getItem('route-permissions');
-    if (saved) {
-      try {
-        setPermissions(JSON.parse(saved));
-      } catch (error) {
-        console.error('Erro ao carregar permissões:', error);
+  const loadPermissions = async () => {
+    setLoadingData(true);
+    try {
+      // Buscar todas as telas do sistema
+      const { data: telas, error } = await supabase
+        .from("telas_sistema")
+        .select("*")
+        .eq("ativo", true)
+        .order("ordem");
+
+      if (error) throw error;
+
+      // Carregar permissões salvas do localStorage
+      const saved = localStorage.getItem('route-permissions');
+      let savedPermissions: Record<string, any> = {};
+      
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          // Converter array para objeto por ID
+          parsed.forEach((p: any) => {
+            if (p.id) {
+              savedPermissions[p.id] = p;
+            }
+          });
+        } catch (error) {
+          console.error('Erro ao carregar permissões salvas:', error);
+        }
       }
+
+      // Criar array de permissões com dados do banco + localStorage
+      const mappedPermissions: RoutePermission[] = (telas || []).map((tela) => {
+        const saved = savedPermissions[tela.id];
+        return {
+          id: tela.id,
+          route: tela.rota,
+          name: tela.nome,
+          icon: iconMap[tela.icone] || FileText,
+          admin: saved?.admin ?? true,
+          supervisor: saved?.supervisor ?? true,
+          vendedor: saved?.vendedor ?? true,
+        };
+      });
+
+      setPermissions(mappedPermissions);
+    } catch (error) {
+      console.error('Erro ao carregar telas:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar as telas do sistema",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingData(false);
     }
   };
 
@@ -86,8 +144,8 @@ export function PermissoesDeAcesso() {
   };
 
   const handleReset = () => {
-    setPermissions(defaultRoutes);
     localStorage.removeItem('route-permissions');
+    loadPermissions(); // Recarregar do banco com valores padrão
     toast({
       title: "Permissões restauradas",
       description: "As permissões foram restauradas para o padrão",
@@ -103,21 +161,27 @@ export function PermissoesDeAcesso() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-3 px-4 font-semibold">Tela</th>
-                <th className="text-center py-3 px-4 font-semibold">Admin</th>
-                <th className="text-center py-3 px-4 font-semibold">Supervisor</th>
-                <th className="text-center py-3 px-4 font-semibold">Vendedor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {permissions.map((permission, index) => {
-                const Icon = permission.icon;
-                return (
-                  <tr key={permission.route} className="border-b hover:bg-muted/50">
+        {loadingData ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Carregando telas do sistema...
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4 font-semibold">Tela</th>
+                    <th className="text-center py-3 px-4 font-semibold">Admin</th>
+                    <th className="text-center py-3 px-4 font-semibold">Supervisor</th>
+                    <th className="text-center py-3 px-4 font-semibold">Vendedor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {permissions.map((permission, index) => {
+                    const Icon = permission.icon;
+                    return (
+                      <tr key={permission.id} className="border-b hover:bg-muted/50">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <Icon className="w-4 h-4 text-muted-foreground" />
@@ -150,19 +214,21 @@ export function PermissoesDeAcesso() {
                     </td>
                   </tr>
                 );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-        <div className="flex gap-3">
-          <Button onClick={handleSave} disabled={loading}>
-            {loading ? "Salvando..." : "Salvar Permissões"}
-          </Button>
-          <Button onClick={handleReset} variant="outline" disabled={loading}>
-            Restaurar Padrão
-          </Button>
-        </div>
+            <div className="flex gap-3">
+              <Button onClick={handleSave} disabled={loading || loadingData}>
+                {loading ? "Salvando..." : "Salvar Permissões"}
+              </Button>
+              <Button onClick={handleReset} variant="outline" disabled={loading || loadingData}>
+                Restaurar Padrão
+              </Button>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
