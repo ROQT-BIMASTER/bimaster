@@ -43,7 +43,7 @@ const ImportarClientes = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       setIsAdmin(roleData?.role === 'admin');
     } catch (error) {
@@ -178,64 +178,65 @@ const ImportarClientes = () => {
         const erros: string[] = [];
         const detalhes: ImportResult['detalhes'] = [];
 
+        // Normalizar texto para busca (remove acentos e converte para lowercase)
+        const normalizar = (texto: string) => {
+          return texto
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+        };
+
+        const headersNormalizados = headers.map(h => normalizar(h));
+
+        // Mapear índices das colunas (fora do loop para melhor performance)
+        const nomeIdx = headersNormalizados.findIndex(h => h.includes('nome') && h.includes('empresa'));
+        const cnpjIdx = headersNormalizados.findIndex(h => (h === 'cnpj' || h.startsWith('cnpj')) && !h.includes('raiz'));
+        const cnpjRaizIdx = headersNormalizados.findIndex(h => h.includes('cnpj') && h.includes('raiz'));
+        const dominioIdx = headersNormalizados.findIndex(h => h.includes('dominio'));
+        const nomeFantasiaIdx = headersNormalizados.findIndex(h => h.includes('fantasia'));
+        const perfilLinkedinIdx = headersNormalizados.findIndex(h => h.includes('linkedin'));
+        const segmentoIdx = headersNormalizados.findIndex(h => h === 'segmento');
+        const cnaeCodigoIdx = headersNormalizados.findIndex(h => h.includes('cnae') && (h.includes('codigo') || h.includes('(codigo)')));
+        const cnaePrincipalIdx = headersNormalizados.findIndex(h => h.includes('cnae') && h.includes('principal') && !h.includes('codigo'));
+        const tipoEstabelecimentoIdx = headersNormalizados.findIndex(h => h.includes('estabelecimento'));
+        const porteIdx = headersNormalizados.findIndex(h => h.includes('porte'));
+        const totalFuncionariosIdx = headersNormalizados.findIndex(h => h.includes('total') && h.includes('funcionario'));
+        const faixaFuncionariosIdx = headersNormalizados.findIndex(h => h.includes('faixa') && h.includes('funcionario'));
+        const faixaFaturamentoIdx = headersNormalizados.findIndex(h => h.includes('faturamento'));
+        const totalFiliaisIdx = headersNormalizados.findIndex(h => h.includes('filiais'));
+        const tipoEntidadeIdx = headersNormalizados.findIndex(h => h.includes('entidade'));
+        const naturezaJuridicaIdx = headersNormalizados.findIndex(h => h.includes('natureza'));
+        const dataAberturaIdx = headersNormalizados.findIndex(h => h.includes('abertura'));
+        const nivelAtividadeIdx = headersNormalizados.findIndex(h => h.includes('nivel') && h.includes('atividade'));
+        const tendenciaCrescimentoIdx = headersNormalizados.findIndex(h => h.includes('tendencia') && h.includes('crescimento'));
+        const telefoneIdx = headersNormalizados.findIndex(h => h.includes('telefone') && h.includes('principal'));
+        const demaisTelefonesIdx = headersNormalizados.findIndex(h => h.includes('demais') && h.includes('telefone'));
+        const enderecoCompletoIdx = headersNormalizados.findIndex(h => h.includes('endereco') && h.includes('completo'));
+        const tipoLogradouroIdx = headersNormalizados.findIndex(h => h.includes('tipo') && h.includes('logradouro'));
+        const logradouroIdx = headersNormalizados.findIndex(h => h === 'logradouro');
+        const numeroIdx = headersNormalizados.findIndex(h => h === 'numero');
+        const cepIdx = headersNormalizados.findIndex(h => h === 'cep');
+        const bairroIdx = headersNormalizados.findIndex(h => h === 'bairro');
+        const municipioIdx = headersNormalizados.findIndex(h => h === 'municipio');
+        const ufIdx = headersNormalizados.findIndex(h => h === 'uf');
+        const emailIdx = headersNormalizados.findIndex(h => h.includes('email') && h.includes('principal'));
+        const demaisEmailsIdx = headersNormalizados.findIndex(h => h.includes('demais') && h.includes('email'));
+        const perfilFacebookIdx = headersNormalizados.findIndex(h => h.includes('facebook'));
+        const perfilInstagramIdx = headersNormalizados.findIndex(h => h.includes('instagram'));
+        const perfilTwitterIdx = headersNormalizados.findIndex(h => h.includes('twitter'));
+        const urlCompanyPageIdx = headersNormalizados.findIndex(h => h.includes('url') && h.includes('company'));
+        const situacaoIdx = headersNormalizados.findIndex(h => h === 'situacao');
+        const territorioIdx = headersNormalizados.findIndex(h => h === 'territorio');
+        const trmIdx = headersNormalizados.findIndex(h => h === 'trm');
+        const faixaScorePropensaoIdx = headersNormalizados.findIndex(h => h.includes('faixa') && h.includes('score') && h.includes('propensao'));
+        const scorePropensaoIdx = headersNormalizados.findIndex(h => h.includes('score') && h.includes('propensao') && !h.includes('faixa') && !h.includes('contactability'));
+        const faixaScoreContactabilityIdx = headersNormalizados.findIndex(h => h.includes('contactability'));
+        const variacaoScoreIdx = headersNormalizados.findIndex(h => h.includes('variacao') && h.includes('score'));
+        const contatoIdx = headersNormalizados.findIndex(h => h.includes('contato') && !h.includes('telefone'));
+        const observacoesIdx = headersNormalizados.findIndex(h => h.includes('observa') || h.includes('obs'));
+
         for (let i = 0; i < rows.length; i++) {
           const values = rows[i].map((v: any) => String(v || '').trim());
-          
-          // Normalizar texto para busca (remove acentos e converte para lowercase)
-          const normalizar = (texto: string) => {
-            return texto
-              .toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '');
-          };
-
-          const headersNormalizados = headers.map(h => normalizar(h));
-
-          const nomeIdx = headersNormalizados.findIndex(h => h.includes('nome') && h.includes('empresa'));
-          const cnpjIdx = headersNormalizados.findIndex(h => (h === 'cnpj' || h.startsWith('cnpj')) && !h.includes('raiz'));
-          const cnpjRaizIdx = headersNormalizados.findIndex(h => h.includes('cnpj') && h.includes('raiz'));
-          const dominioIdx = headersNormalizados.findIndex(h => h.includes('dominio'));
-          const nomeFantasiaIdx = headersNormalizados.findIndex(h => h.includes('fantasia'));
-          const perfilLinkedinIdx = headersNormalizados.findIndex(h => h.includes('linkedin'));
-          const segmentoIdx = headersNormalizados.findIndex(h => h === 'segmento');
-          const cnaeCodigoIdx = headersNormalizados.findIndex(h => h.includes('cnae') && (h.includes('codigo') || h.includes('(codigo)')));
-          const cnaePrincipalIdx = headersNormalizados.findIndex(h => h.includes('cnae') && h.includes('principal') && !h.includes('codigo'));
-          const tipoEstabelecimentoIdx = headersNormalizados.findIndex(h => h.includes('estabelecimento'));
-          const porteIdx = headersNormalizados.findIndex(h => h.includes('porte'));
-          const totalFuncionariosIdx = headersNormalizados.findIndex(h => h.includes('total') && h.includes('funcionario'));
-          const faixaFuncionariosIdx = headersNormalizados.findIndex(h => h.includes('faixa') && h.includes('funcionario'));
-          const faixaFaturamentoIdx = headersNormalizados.findIndex(h => h.includes('faturamento'));
-          const totalFiliaisIdx = headersNormalizados.findIndex(h => h.includes('filiais'));
-          const tipoEntidadeIdx = headersNormalizados.findIndex(h => h.includes('entidade'));
-          const naturezaJuridicaIdx = headersNormalizados.findIndex(h => h.includes('natureza'));
-          const dataAberturaIdx = headersNormalizados.findIndex(h => h.includes('abertura'));
-          const nivelAtividadeIdx = headersNormalizados.findIndex(h => h.includes('nivel') && h.includes('atividade'));
-          const tendenciaCrescimentoIdx = headersNormalizados.findIndex(h => h.includes('tendencia') && h.includes('crescimento'));
-          const telefoneIdx = headersNormalizados.findIndex(h => h.includes('telefone') && h.includes('principal'));
-          const demaisTelefonesIdx = headersNormalizados.findIndex(h => h.includes('demais') && h.includes('telefone'));
-          const enderecoCompletoIdx = headersNormalizados.findIndex(h => h.includes('endereco') && h.includes('completo'));
-          const tipoLogradouroIdx = headersNormalizados.findIndex(h => h.includes('tipo') && h.includes('logradouro'));
-          const logradouroIdx = headersNormalizados.findIndex(h => h === 'logradouro');
-          const numeroIdx = headersNormalizados.findIndex(h => h === 'numero');
-          const cepIdx = headersNormalizados.findIndex(h => h === 'cep');
-          const bairroIdx = headersNormalizados.findIndex(h => h === 'bairro');
-          const municipioIdx = headersNormalizados.findIndex(h => h === 'municipio');
-          const ufIdx = headersNormalizados.findIndex(h => h === 'uf');
-          const emailIdx = headersNormalizados.findIndex(h => h.includes('email') && h.includes('principal'));
-          const demaisEmailsIdx = headersNormalizados.findIndex(h => h.includes('demais') && h.includes('email'));
-          const perfilFacebookIdx = headersNormalizados.findIndex(h => h.includes('facebook'));
-          const perfilInstagramIdx = headersNormalizados.findIndex(h => h.includes('instagram'));
-          const perfilTwitterIdx = headersNormalizados.findIndex(h => h.includes('twitter'));
-          const urlCompanyPageIdx = headersNormalizados.findIndex(h => h.includes('url') && h.includes('company'));
-          const situacaoIdx = headersNormalizados.findIndex(h => h === 'situacao');
-          const territorioIdx = headersNormalizados.findIndex(h => h === 'territorio');
-          const trmIdx = headersNormalizados.findIndex(h => h === 'trm');
-          const faixaScorePropensaoIdx = headersNormalizados.findIndex(h => h.includes('faixa') && h.includes('score') && h.includes('propensao'));
-          const scorePropensaoIdx = headersNormalizados.findIndex(h => h.includes('score') && h.includes('propensao') && !h.includes('faixa') && !h.includes('contactability'));
-          const faixaScoreContactabilityIdx = headersNormalizados.findIndex(h => h.includes('contactability'));
-          const variacaoScoreIdx = headersNormalizados.findIndex(h => h.includes('variacao') && h.includes('score'));
-          const contatoIdx = headersNormalizados.findIndex(h => h.includes('contato') && !h.includes('telefone'));
-          const observacoesIdx = headersNormalizados.findIndex(h => h.includes('observa') || h.includes('obs'));
 
           const nome_empresa = (values[nomeIdx] || '').trim().replace(/^["']|["']$/g, '');
           const municipio_nome = (values[municipioIdx] || '').trim().replace(/^["']|["']$/g, '');

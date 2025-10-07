@@ -42,7 +42,7 @@ const App = () => {
           <Route path="/dashboard/chat" element={<Chat />} />
           
           <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
-          <Route path="/dashboard/importar" element={<ImportarClientes />} />
+          <Route path="/dashboard/importar-clientes" element={<ImportarClientes />} />
           <Route path="/dashboard/auditoria" element={<Auditoria />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
