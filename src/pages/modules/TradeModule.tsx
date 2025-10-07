@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Store, Calendar, TrendingUp, Target } from "lucide-react";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Store, Calendar, TrendingUp, Target, Camera, Tag, Brain } from "lucide-react";
+import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Link, Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { Button } from "@/components/ui/button";
 
-const TradeMarketing = () => {
+const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [stats, setStats] = useState({
     totalStores: 0,
@@ -27,13 +28,11 @@ const TradeMarketing = () => {
 
   const fetchStats = async () => {
     try {
-      // Fetch total stores
       const { count: storesCount } = await supabase
         .from("stores")
         .select("*", { count: "exact", head: true })
         .eq("status", "active");
 
-      // Fetch total visits this month
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       const { count: visitsCount } = await supabase
@@ -41,7 +40,6 @@ const TradeMarketing = () => {
         .select("*", { count: "exact", head: true })
         .gte("scheduled_date", startOfMonth.toISOString().split("T")[0]);
 
-      // Fetch average compliance
       const { data: visitsData } = await supabase
         .from("visits")
         .select("compliance_score")
@@ -56,7 +54,7 @@ const TradeMarketing = () => {
         totalStores: storesCount || 0,
         totalVisits: visitsCount || 0,
         avgCompliance: Number(avgCompliance.toFixed(1)),
-        avgShare: 34.2, // Mock data
+        avgShare: 34.2,
       });
     } catch (error) {
       console.error("Erro ao buscar estatísticas:", error);
@@ -65,7 +63,6 @@ const TradeMarketing = () => {
     }
   };
 
-  // Mock data for charts
   const visitsTrend = [
     { name: "Sem 1", visits: 850 },
     { name: "Sem 2", visits: 920 },
@@ -74,19 +71,17 @@ const TradeMarketing = () => {
   ];
 
   const categoryDistribution = [
-    { name: "Supermercados", value: 45, color: "#3b82f6" },
-    { name: "Farmácias", value: 25, color: "#10b981" },
-    { name: "Atacados", value: 20, color: "#f59e0b" },
-    { name: "Conveniências", value: 10, color: "#ef4444" },
+    { name: "Supermercados", value: 45, color: "hsl(var(--chart-1))" },
+    { name: "Farmácias", value: 25, color: "hsl(var(--chart-2))" },
+    { name: "Atacados", value: 20, color: "hsl(var(--chart-3))" },
+    { name: "Conveniências", value: 10, color: "hsl(var(--chart-4))" },
   ];
-
-  const COLORS = categoryDistribution.map(c => c.color);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Trade Marketing</h1>
+          <h1 className="text-3xl font-bold">Módulo de Trade Marketing</h1>
           <p className="text-muted-foreground">
             Monitoramento de PDVs e Performance de Campo
           </p>
@@ -101,9 +96,7 @@ const TradeMarketing = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalStores}</div>
-              <p className="text-xs text-muted-foreground">
-                +23 vs mês anterior
-              </p>
+              <p className="text-xs text-muted-foreground">+23 vs mês anterior</p>
             </CardContent>
           </Card>
 
@@ -114,9 +107,7 @@ const TradeMarketing = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalVisits}</div>
-              <p className="text-xs text-muted-foreground">
-                87% da meta
-              </p>
+              <p className="text-xs text-muted-foreground">87% da meta</p>
             </CardContent>
           </Card>
 
@@ -127,9 +118,7 @@ const TradeMarketing = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.avgCompliance}%</div>
-              <p className="text-xs text-muted-foreground">
-                +2.3pp vs mês anterior
-              </p>
+              <p className="text-xs text-muted-foreground">+2.3pp vs mês anterior</p>
             </CardContent>
           </Card>
 
@@ -140,14 +129,12 @@ const TradeMarketing = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.avgShare}%</div>
-              <p className="text-xs text-muted-foreground">
-                -1.1pp vs mês anterior
-              </p>
+              <p className="text-xs text-muted-foreground">-1.1pp vs mês anterior</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Charts Row */}
+        {/* Charts */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
@@ -160,7 +147,7 @@ const TradeMarketing = () => {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="visits" stroke="#3b82f6" strokeWidth={2} />
+                  <Line type="monotone" dataKey="visits" stroke="hsl(var(--primary))" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -184,7 +171,7 @@ const TradeMarketing = () => {
                     dataKey="value"
                   >
                     {categoryDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -199,18 +186,42 @@ const TradeMarketing = () => {
           <CardHeader>
             <CardTitle>Ações Rápidas</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-2 md:grid-cols-3">
-            <Link to="/dashboard/trade-marketing/stores" className="flex items-center gap-2 p-4 border rounded-lg hover:bg-accent transition-colors">
-              <Store className="h-5 w-5" />
-              <span>Gerenciar PDVs</span>
+          <CardContent className="grid gap-2 md:grid-cols-3 lg:grid-cols-6">
+            <Link to="/dashboard/trade/stores">
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <Store className="h-4 w-4" />
+                PDVs
+              </Button>
             </Link>
-            <Link to="/dashboard/trade-marketing/visits" className="flex items-center gap-2 p-4 border rounded-lg hover:bg-accent transition-colors">
-              <Calendar className="h-5 w-5" />
-              <span>Agendar Visita</span>
+            <Link to="/dashboard/trade/visits">
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <Calendar className="h-4 w-4" />
+                Visitas
+              </Button>
             </Link>
-            <Link to="/dashboard/trade-marketing/insights" className="flex items-center gap-2 p-4 border rounded-lg hover:bg-accent transition-colors">
-              <Target className="h-5 w-5" />
-              <span>Ver Insights IA</span>
+            <Link to="/dashboard/trade/photos">
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <Camera className="h-4 w-4" />
+                Fotos
+              </Button>
+            </Link>
+            <Link to="/dashboard/trade/promotions">
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <Tag className="h-4 w-4" />
+                Promoções
+              </Button>
+            </Link>
+            <Link to="/dashboard/trade/competitors">
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <Target className="h-4 w-4" />
+                Concorrentes
+              </Button>
+            </Link>
+            <Link to="/dashboard/trade/insights">
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <Brain className="h-4 w-4" />
+                Insights IA
+              </Button>
             </Link>
           </CardContent>
         </Card>
@@ -219,4 +230,4 @@ const TradeMarketing = () => {
   );
 };
 
-export default TradeMarketing;
+export default TradeModule;

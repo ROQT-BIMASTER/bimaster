@@ -234,6 +234,39 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Módulos Rápidos */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Módulo de Prospects
+              </CardTitle>
+              <CardDescription>Gestão completa de prospects e pipeline</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild className="w-full">
+                <a href="/dashboard/prospects">Acessar Módulo</a>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Módulo de Trade Marketing
+              </CardTitle>
+              <CardDescription>Monitoramento de PDVs e performance</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild className="w-full">
+                <a href="/dashboard/trade">Acessar Módulo</a>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <AIInsightsChat 
