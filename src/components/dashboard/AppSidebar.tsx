@@ -1,8 +1,12 @@
-import { Home, Users, Building2, FileText, LogOut, Settings, Upload, Shield, LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { 
+  Home, Users, Building2, LogOut, Settings, Upload, Shield, 
+  LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight
+} from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useState } from "react";
 import logoUnion from "@/assets/logo-union.png";
 import {
   Sidebar,
@@ -14,7 +18,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { Loader2 } from "lucide-react";
@@ -32,12 +44,22 @@ const iconMap: Record<string, any> = {
   Shield: Shield,
   Clock: Clock,
   Settings: Settings,
+  Store: Store,
+  Calendar: Calendar,
+  Camera: Camera,
+  Tag: Tag,
+  TrendingUp: TrendingUp,
+  Brain: Brain,
 };
 
 export function AppSidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
-  const { permissions, loading, isAdmin } = useScreenPermissions();
+  const { permissions, loading, hasPermission } = useScreenPermissions();
+  
+  const [prospectsOpen, setProspectsOpen] = useState(true);
+  const [tradeOpen, setTradeOpen] = useState(true);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -60,40 +82,198 @@ export function AppSidebar() {
     );
   }
 
+  const prospectsSubMenus = [
+    { title: "Lista de Prospects", url: "/dashboard/prospects/list", icon: Users },
+    { title: "Kanban", url: "/dashboard/prospects/kanban", icon: LayoutGrid },
+    { title: "Atividades", url: "/dashboard/prospects/atividades", icon: Activity },
+    { title: "Mapa", url: "/dashboard/prospects/mapa", icon: MapPin },
+  ];
+
+  const tradeSubMenus = [
+    { title: "PDVs", url: "/dashboard/trade/stores", icon: Store },
+    { title: "Visitas", url: "/dashboard/trade/visits", icon: Calendar },
+    { title: "Fotos", url: "/dashboard/trade/photos", icon: Camera },
+    { title: "Promoções", url: "/dashboard/trade/promotions", icon: Tag },
+    { title: "Concorrentes", url: "/dashboard/trade/competitors", icon: TrendingUp },
+    { title: "Insights IA", url: "/dashboard/trade/insights", icon: Brain },
+  ];
+
+  const otherMenus = permissions.filter(screen => 
+    !['prospects', 'kanban', 'atividades', 'mapa', 'trade_marketing', 'trade_stores', 
+      'trade_visits', 'trade_photos', 'trade_promotions', 'trade_competitors', 'trade_insights'].includes(screen.codigo)
+  );
+
   return (
     <Sidebar>
       <SidebarContent>
         <div className="p-4 border-b">
           <img src={logoUnion} alt="Union Logo" className="w-32 mx-auto" />
         </div>
+
+        {/* Dashboard Principal */}
         <SidebarGroup>
-          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {permissions.map((screen) => {
-                const Icon = iconMap[screen.icone] || Home;
-                return (
-                  <SidebarMenuItem key={screen.codigo}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={screen.rota}
-                        className={({ isActive }) =>
-                          isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "hover:bg-sidebar-accent/50"
-                        }
-                      >
-                        <Icon className="h-4 w-4" />
-                        <span>{screen.nome}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/dashboard"
+                    end
+                    className={({ isActive }) =>
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "hover:bg-sidebar-accent/50"
+                    }
+                  >
+                    <Home className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Módulo de Prospects */}
+        {hasPermission("prospects") && (
+          <SidebarGroup>
+            <Collapsible open={prospectsOpen} onOpenChange={setProspectsOpen}>
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                  {prospectsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <Users className="h-4 w-4" />
+                  Módulo de Prospects
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to="/dashboard/prospects"
+                          end
+                          className={({ isActive }) =>
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "hover:bg-sidebar-accent/50"
+                          }
+                        >
+                          <Home className="h-4 w-4" />
+                          <span>Visão Geral</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    {prospectsSubMenus.map((item) => (
+                      <SidebarMenuItem key={item.url}>
+                        <SidebarMenuButton asChild>
+                          <NavLink
+                            to={item.url}
+                            className={({ isActive }) =>
+                              isActive
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                : "hover:bg-sidebar-accent/50"
+                            }
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+        {/* Módulo de Trade Marketing */}
+        {hasPermission("trade_marketing") && (
+          <SidebarGroup>
+            <Collapsible open={tradeOpen} onOpenChange={setTradeOpen}>
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                  {tradeOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <Store className="h-4 w-4" />
+                  Trade Marketing
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to="/dashboard/trade"
+                          end
+                          className={({ isActive }) =>
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "hover:bg-sidebar-accent/50"
+                          }
+                        >
+                          <Home className="h-4 w-4" />
+                          <span>Visão Geral</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    {tradeSubMenus.map((item) => (
+                      <SidebarMenuItem key={item.url}>
+                        <SidebarMenuButton asChild>
+                          <NavLink
+                            to={item.url}
+                            className={({ isActive }) =>
+                              isActive
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                : "hover:bg-sidebar-accent/50"
+                            }
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+        {/* Outras Opções */}
+        {otherMenus.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Outras Opções</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {otherMenus.map((screen) => {
+                  const Icon = iconMap[screen.icone] || Home;
+                  return (
+                    <SidebarMenuItem key={screen.codigo}>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to={screen.rota}
+                          className={({ isActive }) =>
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "hover:bg-sidebar-accent/50"
+                          }
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{screen.nome}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
+      
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
