@@ -118,12 +118,25 @@ const ImportarClientes = () => {
   const handleImport = async () => {
     if (!file) return;
 
+    console.log("🚀 Iniciando importação do arquivo:", file.name);
     setLoading(true);
-    try {
-      const extension = file.name.split('.').pop()?.toLowerCase();
-      const reader = new FileReader();
-      
-      reader.onload = async (e) => {
+    
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const reader = new FileReader();
+    
+    reader.onerror = () => {
+      console.error("❌ Erro ao ler arquivo");
+      toast({
+        title: "Erro ao ler arquivo",
+        description: "Não foi possível ler o arquivo selecionado",
+        variant: "destructive",
+      });
+      setLoading(false);
+    };
+    
+    reader.onload = async (e) => {
+      console.log("📖 Arquivo lido com sucesso, processando...");
+      try {
         const data = e.target?.result;
         let rows: any[] = [];
         let headers: string[] = [];
@@ -439,27 +452,30 @@ const ImportarClientes = () => {
           detalhes
         });
 
+        console.log("✅ Importação concluída:", {
+          total: prospects.length,
+          distribuidos,
+          nao_distribuidos
+        });
+        
         toast({
           title: "Importação concluída",
           description: `${distribuidos} clientes distribuídos, ${nao_distribuidos} pendentes`,
         });
-      };
-
-      if (extension === 'xlsx' || extension === 'xls') {
-        reader.readAsArrayBuffer(file);
-      } else {
-        reader.readAsArrayBuffer(file);
+      } catch (error: any) {
+        console.error("❌ Erro durante o processamento:", error);
+        toast({
+          title: "Erro na importação",
+          description: error.message || "Erro ao processar arquivo",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
-    } catch (error: any) {
-      console.error("Erro na importação:", error);
-      toast({
-        title: "Erro na importação",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    console.log("📂 Iniciando leitura do arquivo...");
+    reader.readAsArrayBuffer(file);
   };
 
   const downloadTemplate = () => {
