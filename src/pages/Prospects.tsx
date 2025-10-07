@@ -5,11 +5,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Edit, Sparkles } from "lucide-react";
+import { Search, Edit, Sparkles, Mail, Phone, MapPin, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NovoProspectDialog } from "@/components/prospects/NovoProspectDialog";
 import { ProspectDetailDialog } from "@/components/kanban/ProspectDetailDialog";
 import { AIInsightsChat } from "@/components/chat/AIInsightsChat";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Prospect {
   id: string;
@@ -29,22 +37,37 @@ interface Prospect {
   municipio_id: string | null;
 }
 
-const statusColors: Record<string, string> = {
-  novo: "bg-blue-500",
-  em_contato: "bg-yellow-500",
-  proposta_enviada: "bg-orange-500",
-  negociacao: "bg-purple-500",
-  ganho: "bg-green-500",
-  perdido: "bg-red-500",
-};
-
-const statusLabels: Record<string, string> = {
-  novo: "Novo",
-  em_contato: "Contato",
-  proposta_enviada: "Proposta",
-  negociacao: "Negociação",
-  ganho: "Ganho",
-  perdido: "Perdido",
+const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+  novo: { 
+    label: "Novo", 
+    color: "text-blue-700 dark:text-blue-300",
+    bgColor: "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700"
+  },
+  em_contato: { 
+    label: "Em Contato", 
+    color: "text-yellow-700 dark:text-yellow-300",
+    bgColor: "bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700"
+  },
+  proposta_enviada: { 
+    label: "Proposta", 
+    color: "text-orange-700 dark:text-orange-300",
+    bgColor: "bg-orange-100 dark:bg-orange-900/30 border-orange-300 dark:border-orange-700"
+  },
+  negociacao: { 
+    label: "Negociação", 
+    color: "text-purple-700 dark:text-purple-300",
+    bgColor: "bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700"
+  },
+  ganho: { 
+    label: "Ganho", 
+    color: "text-green-700 dark:text-green-300",
+    bgColor: "bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700"
+  },
+  perdido: { 
+    label: "Perdido", 
+    color: "text-red-700 dark:text-red-300",
+    bgColor: "bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700"
+  },
 };
 
 const Prospects = () => {
@@ -70,7 +93,7 @@ const Prospects = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       const profile = { tipo_usuario: roleData?.role || 'vendedor' };
 
@@ -159,7 +182,7 @@ const Prospects = () => {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {loading ? (
               <div className="text-center py-8">Carregando prospects...</div>
             ) : filteredProspects.length === 0 ? (
@@ -167,64 +190,131 @@ const Prospects = () => {
                 Nenhum prospect encontrado
               </div>
             ) : (
-              <div className="space-y-4">
-                {filteredProspects.map((prospect) => (
-                  <Card 
-                    key={prospect.id} 
-                    className="hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => handleEditProspect(prospect)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-lg">{prospect.nome_empresa}</h3>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6"
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-semibold">Empresa</TableHead>
+                      <TableHead className="font-semibold">Contato</TableHead>
+                      <TableHead className="font-semibold">Informações</TableHead>
+                      <TableHead className="font-semibold">Localização</TableHead>
+                      <TableHead className="font-semibold">Status</TableHead>
+                      <TableHead className="font-semibold">Categoria</TableHead>
+                      <TableHead className="font-semibold">Último Contato</TableHead>
+                      <TableHead className="font-semibold">Próxima Ação</TableHead>
+                      <TableHead className="font-semibold text-center">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProspects.map((prospect) => {
+                      const statusInfo = statusConfig[prospect.status] || statusConfig.novo;
+                      return (
+                        <TableRow 
+                          key={prospect.id}
+                          className="hover:bg-muted/50 cursor-pointer transition-colors"
+                          onClick={() => handleEditProspect(prospect)}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-semibold">{prospect.nome_empresa}</span>
+                            </div>
+                            {prospect.porte_empresa && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {prospect.porte_empresa}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="font-medium text-sm">
+                                {prospect.contato_principal || "-"}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1 text-sm">
+                              {prospect.email && (
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                  <Mail className="h-3 w-3" />
+                                  <span className="truncate max-w-[200px]">{prospect.email}</span>
+                                </div>
+                              )}
+                              {prospect.telefone && (
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                  <Phone className="h-3 w-3" />
+                                  <span>{prospect.telefone}</span>
+                                </div>
+                              )}
+                              {!prospect.email && !prospect.telefone && (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {prospect.municipio && (
+                              <div className="flex items-center gap-1 text-sm">
+                                <MapPin className="h-3 w-3 text-muted-foreground" />
+                                <span>{prospect.municipio}</span>
+                              </div>
+                            )}
+                            {!prospect.municipio && (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline" 
+                              className={`${statusInfo.bgColor} ${statusInfo.color} border font-medium`}
+                            >
+                              {statusInfo.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {prospect.categoria ? (
+                              <Badge variant="secondary" className="font-normal">
+                                {prospect.categoria}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {prospect.ultimo_contato ? (
+                              <span className="text-muted-foreground">
+                                {new Date(prospect.ultimo_contato).toLocaleDateString('pt-BR')}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {prospect.proxima_acao ? (
+                              <span className="font-medium">
+                                {new Date(prospect.proxima_acao).toLocaleDateString('pt-BR')}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEditProspect(prospect);
                               }}
                             >
-                              <Edit className="h-3 w-3" />
+                              <Edit className="h-4 w-4" />
                             </Button>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {prospect.contato_principal || "Sem contato principal"}
-                          </p>
-                          <div className="flex gap-4 mt-2 text-sm">
-                            {prospect.email && (
-                              <span className="text-muted-foreground">📧 {prospect.email}</span>
-                            )}
-                            {prospect.telefone && (
-                              <span className="text-muted-foreground">📱 {prospect.telefone}</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <Badge className={statusColors[prospect.status]}>
-                            {statusLabels[prospect.status] || prospect.status}
-                          </Badge>
-                          {prospect.categoria && (
-                            <Badge variant="outline">{prospect.categoria}</Badge>
-                          )}
-                        </div>
-                      </div>
-                      {(prospect.ultimo_contato || prospect.proxima_acao) && (
-                        <div className="mt-3 pt-3 border-t flex gap-6 text-sm text-muted-foreground">
-                          {prospect.ultimo_contato && (
-                            <span>Último contato: {new Date(prospect.ultimo_contato).toLocaleDateString()}</span>
-                          )}
-                          {prospect.proxima_acao && (
-                            <span>Próxima ação: {new Date(prospect.proxima_acao).toLocaleDateString()}</span>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>
