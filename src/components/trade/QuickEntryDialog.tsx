@@ -388,12 +388,26 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                     <Label>Fotos Adicionadas ({formData.photos.length})</Label>
                     <div className="grid grid-cols-3 gap-2">
                       {formData.photos.map((photo, index) => (
-                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
+                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden border group">
                           <img
                             src={URL.createObjectURL(photo)}
                             alt={`Foto ${index + 1}`}
                             className="w-full h-full object-cover"
                           />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                photos: prev.photos.filter((_, i) => i !== index)
+                              }));
+                              toast.success("Foto removida");
+                            }}
+                          >
+                            ×
+                          </Button>
                         </div>
                       ))}
                     </div>

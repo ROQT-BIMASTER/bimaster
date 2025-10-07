@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { Image as ImageIcon, Upload } from "lucide-react";
+import { Image as ImageIcon, Upload, Trash2, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Photo {
   id: string;
@@ -24,6 +25,7 @@ const TradePhotos = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
 
   if (!permissionsLoading && !hasPermission("trade_photos")) {
     return <Navigate to="/dashboard" replace />;
@@ -67,6 +69,26 @@ const TradePhotos = () => {
     return labels[type] || type;
   };
 
+  const handleDeletePhoto = async () => {
+    if (!deletingPhotoId) return;
+
+    try {
+      const { error } = await supabase
+        .from("photos")
+        .delete()
+        .eq("id", deletingPhotoId);
+
+      if (error) throw error;
+
+      toast.success("Foto excluída com sucesso!");
+      fetchPhotos();
+      setDeletingPhotoId(null);
+    } catch (error: any) {
+      console.error("Erro ao excluir foto:", error);
+      toast.error("Erro ao excluir foto: " + error.message);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -102,11 +124,38 @@ const TradePhotos = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {photos.map((photo) => (
-              <Card key={photo.id} className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow">
+              <Card key={photo.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
                 <div className="aspect-square bg-muted relative">
-                  {/* Placeholder for photo - in real app would load from storage */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                  {photo.photo_url ? (
+                    <img 
+                      src={photo.photo_url} 
+                      alt={getTypeLabel(photo.photo_type)}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                    {photo.photo_url && (
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => window.open(photo.photo_url, '_blank')}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setDeletingPhotoId(photo.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
                 <CardContent className="p-4">
@@ -127,6 +176,23 @@ const TradePhotos = () => {
             ))}
           </div>
         )}
+
+        <AlertDialog open={!!deletingPhotoId} onOpenChange={(open) => !open && setDeletingPhotoId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir esta foto? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeletePhoto} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

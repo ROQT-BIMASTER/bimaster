@@ -33,8 +33,10 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, DollarSign, TrendingUp, AlertCircle, Calendar } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, AlertCircle, Calendar, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { EditarInvestimentoDialog } from "@/components/trade/EditarInvestimentoDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function TradeFinanceiro() {
   const { hasPermission } = useScreenPermissions();
@@ -47,6 +49,8 @@ export default function TradeFinanceiro() {
   const [selectedBudget, setSelectedBudget] = useState<string>("");
   const [newBudgetOpen, setNewBudgetOpen] = useState(false);
   const [newInvestmentOpen, setNewInvestmentOpen] = useState(false);
+  const [editingInvestmentId, setEditingInvestmentId] = useState<string | null>(null);
+  const [deletingInvestmentId, setDeletingInvestmentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!hasPermission("trade_marketing")) {
@@ -142,6 +146,26 @@ export default function TradeFinanceiro() {
   const totalBudget = budgets.reduce((sum, b) => sum + parseFloat(b.total_amount || 0), 0);
   const totalSpent = budgets.reduce((sum, b) => sum + parseFloat(b.spent_amount || 0), 0);
   const totalAvailable = totalBudget - totalSpent;
+
+  const handleDeleteInvestment = async () => {
+    if (!deletingInvestmentId) return;
+
+    try {
+      const { error } = await supabase
+        .from("trade_investments")
+        .delete()
+        .eq("id", deletingInvestmentId);
+
+      if (error) throw error;
+
+      toast.success("Investimento excluído com sucesso!");
+      fetchData();
+      setDeletingInvestmentId(null);
+    } catch (error: any) {
+      console.error("Erro ao excluir investimento:", error);
+      toast.error("Erro ao excluir investimento: " + error.message);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -402,6 +426,7 @@ export default function TradeFinanceiro() {
                     <TableHead>Valor</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Descrição</TableHead>
+                    <TableHead className="w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -426,6 +451,24 @@ export default function TradeFinanceiro() {
                         </Badge>
                       </TableCell>
                       <TableCell className="max-w-xs truncate">{investment.description}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEditingInvestmentId(investment.id)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeletingInvestmentId(investment.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -466,6 +509,35 @@ export default function TradeFinanceiro() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {editingInvestmentId && (
+          <EditarInvestimentoDialog
+            open={!!editingInvestmentId}
+            onOpenChange={(open) => !open && setEditingInvestmentId(null)}
+            investmentId={editingInvestmentId}
+            onSuccess={() => {
+              fetchData();
+              setEditingInvestmentId(null);
+            }}
+          />
+        )}
+
+        <AlertDialog open={!!deletingInvestmentId} onOpenChange={(open) => !open && setDeletingInvestmentId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir este investimento? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteInvestment} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
