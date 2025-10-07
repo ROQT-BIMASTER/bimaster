@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { VincularStoreDialog } from "@/components/trade/VincularStoreDialog";
+import { NovaVisitaDialog } from "@/components/trade/NovaVisitaDialog";
 
 interface Visit {
   id: string;
@@ -28,6 +29,7 @@ const TradeVisits = () => {
   const [loading, setLoading] = useState(true);
   const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
   const [showVincularDialog, setShowVincularDialog] = useState(false);
+  const [showNovaVisita, setShowNovaVisita] = useState(false);
 
   useEffect(() => {
     fetchVisits();
@@ -98,7 +100,7 @@ const TradeVisits = () => {
               Agende e acompanhe visitas aos PDVs
             </p>
           </div>
-          <Button>
+          <Button onClick={() => setShowNovaVisita(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nova Visita
           </Button>
@@ -223,6 +225,12 @@ const TradeVisits = () => {
           onOpenChange={setShowVincularDialog}
           visitId={selectedVisitId || undefined}
           onStoreLinked={handleStoreLinked}
+        />
+
+        <NovaVisitaDialog
+          open={showNovaVisita}
+          onOpenChange={setShowNovaVisita}
+          onSuccess={fetchVisits}
         />
       </div>
     </DashboardLayout>

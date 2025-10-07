@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Store, Calendar, TrendingUp, Target } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Link } from "react-router-dom";
 
 const TradeMarketing = () => {
   const [stats, setStats] = useState({
@@ -193,18 +194,18 @@ const TradeMarketing = () => {
             <CardTitle>Ações Rápidas</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2 md:grid-cols-3">
-            <a href="/dashboard/trade-marketing/stores" className="flex items-center gap-2 p-4 border rounded-lg hover:bg-accent transition-colors">
+            <Link to="/dashboard/trade-marketing/stores" className="flex items-center gap-2 p-4 border rounded-lg hover:bg-accent transition-colors">
               <Store className="h-5 w-5" />
               <span>Gerenciar PDVs</span>
-            </a>
-            <a href="/dashboard/trade-marketing/visits" className="flex items-center gap-2 p-4 border rounded-lg hover:bg-accent transition-colors">
+            </Link>
+            <Link to="/dashboard/trade-marketing/visits" className="flex items-center gap-2 p-4 border rounded-lg hover:bg-accent transition-colors">
               <Calendar className="h-5 w-5" />
               <span>Agendar Visita</span>
-            </a>
-            <a href="/dashboard/trade-marketing/insights" className="flex items-center gap-2 p-4 border rounded-lg hover:bg-accent transition-colors">
+            </Link>
+            <Link to="/dashboard/trade-marketing/insights" className="flex items-center gap-2 p-4 border rounded-lg hover:bg-accent transition-colors">
               <Target className="h-5 w-5" />
               <span>Ver Insights IA</span>
-            </a>
+            </Link>
           </CardContent>
         </Card>
       </div>

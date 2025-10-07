@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Upload, Search, MapPin, Edit, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { NovaLojaDialog } from "@/components/trade/NovaLojaDialog";
 
 interface Store {
   id: string;
@@ -21,9 +23,11 @@ interface Store {
 }
 
 const TradeStores = () => {
+  const navigate = useNavigate();
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showNovaLoja, setShowNovaLoja] = useState(false);
 
   useEffect(() => {
     fetchStores();
@@ -78,11 +82,11 @@ const TradeStores = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => window.location.href = '/dashboard/trade-marketing/import-stores'}>
+            <Button onClick={() => navigate('/dashboard/trade-marketing/import-stores')}>
               <Upload className="mr-2 h-4 w-4" />
               Importar Lojas
             </Button>
-            <Button>
+            <Button onClick={() => setShowNovaLoja(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Nova Loja
             </Button>
@@ -169,6 +173,12 @@ const TradeStores = () => {
             </TableBody>
           </Table>
         </div>
+
+        <NovaLojaDialog
+          open={showNovaLoja}
+          onOpenChange={setShowNovaLoja}
+          onSuccess={fetchStores}
+        />
       </div>
     </DashboardLayout>
   );

@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface Store {
   id: string;
@@ -42,6 +43,7 @@ export const VincularStoreDialog = ({
   visitId,
   onStoreLinked,
 }: VincularStoreDialogProps) => {
+  const navigate = useNavigate();
   const [stores, setStores] = useState<Store[]>([]);
   const [filteredStores, setFilteredStores] = useState<Store[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -180,7 +182,7 @@ export const VincularStoreDialog = ({
                 size="sm"
                 onClick={() => {
                   onOpenChange(false);
-                  window.location.href = "/dashboard/trade-marketing/import-stores";
+                  navigate("/dashboard/trade-marketing/import-stores");
                 }}
               >
                 Ir para Importação
