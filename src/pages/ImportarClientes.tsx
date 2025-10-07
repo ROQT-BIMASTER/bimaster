@@ -403,6 +403,8 @@ const ImportarClientes = () => {
 
           const porteEmpresaRaw = (values[porteIdx] || '').trim().replace(/^["']|["']$/g, '');
           const porteEmpresaMapeado = mapearPorteEmpresa(porteEmpresaRaw);
+          
+          console.log(`Linha ${i + 1}: Porte original="${porteEmpresaRaw}" → Mapeado="${porteEmpresaMapeado}"`);
 
           prospects.push({
             nome_empresa,
@@ -471,6 +473,19 @@ const ImportarClientes = () => {
         if (prospects.length === 0) {
           throw new Error("Nenhum registro válido encontrado para importar.");
         }
+
+        console.log(`📊 Total de prospects processados: ${prospects.length}`);
+        console.log(`📋 Validando dados antes da inserção...`);
+        
+        // Validar que todos os porte_empresa são válidos
+        prospects.forEach((p, idx) => {
+          if (p.porte_empresa && !['MEI', 'ME', 'EPP', 'Grande'].includes(p.porte_empresa)) {
+            console.error(`❌ Porte inválido encontrado na linha ${idx + 1}: "${p.porte_empresa}"`);
+            throw new Error(`Porte de empresa inválido: "${p.porte_empresa}". Valores aceitos: MEI, ME, EPP, Grande`);
+          }
+        });
+
+        console.log(`✅ Todos os dados validados. Inserindo no banco...`);
 
         const { data: inserted, error: insertError } = await supabase
           .from("prospects")
