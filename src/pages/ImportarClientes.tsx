@@ -364,6 +364,46 @@ const ImportarClientes = () => {
             return isNaN(num) ? null : num;
           };
 
+          // Mapear porte da empresa para valores válidos (MEI, ME, EPP, Grande)
+          const mapearPorteEmpresa = (porte: string): string | null => {
+            if (!porte || porte.trim() === '') return null;
+            const porteNormalizado = porte.toLowerCase().trim();
+            
+            // Mapeamento de variações comuns
+            const mapeamento: Record<string, string> = {
+              'mei': 'MEI',
+              'microempreendedor': 'MEI',
+              'microempreendedor individual': 'MEI',
+              'me': 'ME',
+              'micro': 'ME',
+              'microempresa': 'ME',
+              'micro empresa': 'ME',
+              'epp': 'EPP',
+              'pequena': 'EPP',
+              'pequeno': 'EPP',
+              'pequeno porte': 'EPP',
+              'empresa de pequeno porte': 'EPP',
+              'grande': 'Grande',
+              'medio': 'Grande',
+              'média': 'Grande',
+              'grande porte': 'Grande'
+            };
+
+            // Tentar encontrar um mapeamento
+            for (const [key, value] of Object.entries(mapeamento)) {
+              if (porteNormalizado.includes(key)) {
+                return value;
+              }
+            }
+
+            // Se não encontrar, retornar null
+            console.warn(`⚠️ Porte empresa não reconhecido: "${porte}" - usando null`);
+            return null;
+          };
+
+          const porteEmpresaRaw = (values[porteIdx] || '').trim().replace(/^["']|["']$/g, '');
+          const porteEmpresaMapeado = mapearPorteEmpresa(porteEmpresaRaw);
+
           prospects.push({
             nome_empresa,
             municipio_id: municipio?.id || null,
@@ -377,7 +417,7 @@ const ImportarClientes = () => {
             cnae_codigo: (values[cnaeCodigoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             cnae_principal: (values[cnaePrincipalIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             tipo_estabelecimento: (values[tipoEstabelecimentoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-            porte_empresa: (values[porteIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            porte_empresa: porteEmpresaMapeado,
             total_funcionarios: parseNumber(values[totalFuncionariosIdx] || ''),
             faixa_funcionarios: (values[faixaFuncionariosIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             faixa_faturamento: (values[faixaFaturamentoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
