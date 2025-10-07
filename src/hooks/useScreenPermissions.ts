@@ -38,39 +38,15 @@ export const useScreenPermissions = () => {
       const userIsAdmin = !!roleData;
       setIsAdmin(userIsAdmin);
 
-      if (userIsAdmin) {
-        // Admins have access to all screens
-        const { data: allScreens } = await supabase
-          .from("telas_sistema")
-          .select("id, codigo, nome, rota, icone, ordem")
-          .eq("ativo", true)
-          .order("ordem");
+      // Todos os usuários têm acesso a todas as telas por padrão
+      // O admin pode depois configurar restrições específicas
+      const { data: allScreens } = await supabase
+        .from("telas_sistema")
+        .select("id, codigo, nome, rota, icone, ordem")
+        .eq("ativo", true)
+        .order("ordem");
 
-        setPermissions(allScreens || []);
-      } else {
-        // Get user's screen permissions
-        const { data: userPermissions } = await supabase
-          .from("usuario_permissoes_telas")
-          .select(`
-            tela_id,
-            telas_sistema (
-              id,
-              codigo,
-              nome,
-              rota,
-              icone,
-              ordem
-            )
-          `)
-          .eq("usuario_id", user.id);
-
-        const screens = userPermissions
-          ?.map((p: any) => p.telas_sistema)
-          .filter(Boolean)
-          .sort((a: any, b: any) => a.ordem - b.ordem) || [];
-
-        setPermissions(screens);
-      }
+      setPermissions(allScreens || []);
     } catch (error) {
       console.error("Error fetching permissions:", error);
     } finally {
@@ -79,8 +55,8 @@ export const useScreenPermissions = () => {
   };
 
   const hasPermission = (screenCode: string) => {
-    if (isAdmin) return true;
-    return permissions.some(p => p.codigo === screenCode);
+    // Todos têm acesso a tudo por padrão
+    return true;
   };
 
   return { permissions, loading, hasPermission, isAdmin };
