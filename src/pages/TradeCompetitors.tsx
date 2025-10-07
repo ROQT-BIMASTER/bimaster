@@ -22,6 +22,14 @@ interface Competitor {
   active: boolean;
 }
 
+interface CompetitorPhoto {
+  id: string;
+  competitor_id: string;
+  photo_url: string;
+  photo_type: 'competitor' | 'our_product';
+  created_at: string;
+}
+
 const TradeCompetitors = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -29,6 +37,8 @@ const TradeCompetitors = () => {
   const [loading, setLoading] = useState(true);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
+  const [selectedCompetitor, setSelectedCompetitor] = useState<string | null>(null);
+  const [competitorPhotos, setCompetitorPhotos] = useState<CompetitorPhoto[]>([]);
 
   if (!permissionsLoading && !hasPermission("trade_competitors")) {
     return <Navigate to="/dashboard" replace />;
@@ -198,7 +208,8 @@ const TradeCompetitors = () => {
                         variant="ghost" 
                         size="sm"
                         onClick={() => {
-                          toast.info(`Visualizando detalhes do concorrente ${competitor.name}`);
+                          setSelectedCompetitor(competitor.id);
+                          toast.info("Use a seção abaixo para adicionar e comparar fotos");
                         }}
                       >
                         Ver Detalhes
@@ -210,6 +221,78 @@ const TradeCompetitors = () => {
             </TableBody>
           </Table>
         </div>
+
+        {/* Seção de Comparação de Fotos */}
+        {selectedCompetitor && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Comparação Visual de Produtos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-destructive" />
+                    Fotos do Concorrente
+                  </h3>
+                  <div className="space-y-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => document.getElementById('upload-competitor')?.click()}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Foto Concorrente
+                    </Button>
+                    <input
+                      id="upload-competitor"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => toast.info("Funcionalidade de upload em desenvolvimento")}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" />
+                    Fotos dos Nossos Produtos
+                  </h3>
+                  <div className="space-y-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => document.getElementById('upload-our-product')?.click()}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Nosso Produto
+                    </Button>
+                    <input
+                      id="upload-our-product"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => toast.info("Funcionalidade de upload em desenvolvimento")}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Button className="w-full" variant="default">
+                  <Target className="mr-2 h-4 w-4" />
+                  Gerar Análise Comparativa com IA
+                </Button>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  A IA irá comparar preços, posicionamento, share de gôndola e outras métricas
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );

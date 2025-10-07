@@ -17,6 +17,7 @@ interface Photo {
   photo_type: string;
   ai_processed: boolean;
   upload_date: string;
+  ai_analysis: any;
   stores: {
     name: string;
   } | null;
@@ -214,6 +215,36 @@ const TradePhotos = () => {
                   <p className="text-xs text-muted-foreground">
                     {new Date(photo.upload_date).toLocaleDateString("pt-BR")}
                   </p>
+                  
+                  {/* Insights por foto */}
+                  {photo.ai_processed && photo.ai_analysis && (
+                    <div className="mt-3 pt-3 border-t space-y-2">
+                      <p className="text-xs font-semibold text-primary">Insights da IA:</p>
+                      {photo.ai_analysis.insights && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {photo.ai_analysis.insights}
+                        </p>
+                      )}
+                      {photo.ai_analysis.compliance_score && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">Conformidade:</span>
+                          <Badge variant={photo.ai_analysis.compliance_score >= 80 ? "default" : "destructive"}>
+                            {photo.ai_analysis.compliance_score}%
+                          </Badge>
+                        </div>
+                      )}
+                      {photo.ai_analysis.issues && photo.ai_analysis.issues.length > 0 && (
+                        <div>
+                          <p className="text-xs text-destructive font-medium">Problemas:</p>
+                          <ul className="text-xs text-muted-foreground list-disc list-inside">
+                            {photo.ai_analysis.issues.slice(0, 2).map((issue: string, idx: number) => (
+                              <li key={idx} className="truncate">{issue}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

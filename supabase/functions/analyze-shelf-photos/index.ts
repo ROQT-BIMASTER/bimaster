@@ -29,20 +29,34 @@ serve(async (req) => {
     const messages = [
       {
         role: 'system',
-        content: `Você é um especialista em análise de PDVs e trade marketing. Analise as fotos de gôndolas e extraia:
-1. Produtos identificados (seus SKUs se reconhecíveis)
-2. Número de faces de produtos próprios vs concorrentes
-3. Problemas detectados (rupturas, precificação incorreta, má posição, falta de material promocional)
-4. Insights gerais sobre exposição e share de gôndola
+        content: `Você é um especialista em análise de PDVs e trade marketing. Analise as fotos de gôndolas em DETALHE e extraia:
 
-Retorne a resposta em formato JSON estruturado.`
+1. **Produtos Identificados**: Liste todos os produtos visíveis com suas marcas e tipos
+2. **Share de Gôndola**: Conte quantas faces (unidades visíveis) há de produtos próprios vs concorrentes
+3. **Posicionamento**: Avalie a altura (olhos, mãos, chão), localidade na gôndola
+4. **Preços**: Identifique etiquetas de preço visíveis e compare se possível
+5. **Problemas Críticos**: 
+   - Rupturas (espaços vazios)
+   - Produtos mal posicionados
+   - Falta de material promocional
+   - Preços incorretos ou ausentes
+   - Produtos concorrentes com melhor exposição
+6. **Oportunidades**: Sugestões para melhorar o share e visibilidade
+7. **Análise de Concorrentes**: Se houver produtos concorrentes na mesma gôndola, compare:
+   - Preços (se visíveis)
+   - Número de faces
+   - Posicionamento relativo
+   - Materiais promocionais
+
+Seja ESPECÍFICO e DETALHADO. Use dados numéricos sempre que possível.
+Retorne a resposta em formato JSON estruturado com todas as informações.`
       },
       {
         role: 'user',
         content: [
           {
             type: 'text',
-            text: 'Analise estas fotos de gôndola e forneça insights detalhados sobre share, produtos, e problemas.'
+            text: 'Analise estas fotos de gôndola em DETALHE. Identifique produtos, marcas, preços visíveis, problemas, e forneça uma análise completa de share e competitividade. Se houver produtos concorrentes na mesma foto que produtos nossos, faça uma comparação direta.'
           },
           ...photos.slice(0, 3).map((photo: string) => ({
             type: 'image_url',
@@ -67,38 +81,75 @@ Retorne a resposta em formato JSON estruturado.`
           type: 'function',
           function: {
             name: 'extract_shelf_data',
-            description: 'Extrai dados estruturados da análise de gôndola',
+            description: 'Extrai dados estruturados e detalhados da análise de gôndola',
             parameters: {
               type: 'object',
               properties: {
                 insights: {
                   type: 'string',
-                  description: 'Resumo geral dos insights'
+                  description: 'Resumo detalhado dos insights e recomendações'
                 },
                 products_detected: {
                   type: 'array',
-                  items: { type: 'string' },
-                  description: 'Lista de produtos/SKUs detectados'
+                  items: { 
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      brand: { type: 'string' },
+                      is_our_product: { type: 'boolean' },
+                      visible_price: { type: 'number' },
+                      facings: { type: 'number' },
+                      position: { type: 'string' }
+                    }
+                  },
+                  description: 'Lista detalhada de produtos detectados com informações'
                 },
                 our_facings: {
                   type: 'number',
-                  description: 'Número estimado de faces de produtos próprios'
+                  description: 'Número total de faces de produtos próprios'
                 },
                 competitor_facings: {
                   type: 'number',
-                  description: 'Número estimado de faces de concorrentes'
+                  description: 'Número total de faces de concorrentes'
+                },
+                competitor_comparison: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      competitor_product: { type: 'string' },
+                      our_product: { type: 'string' },
+                      price_difference: { type: 'string' },
+                      positioning_advantage: { type: 'string' },
+                      recommendation: { type: 'string' }
+                    }
+                  },
+                  description: 'Comparações diretas entre produtos nossos e concorrentes'
                 },
                 issues: {
                   type: 'array',
                   items: { type: 'string' },
-                  description: 'Problemas identificados'
+                  description: 'Problemas identificados com severidade'
+                },
+                opportunities: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Oportunidades de melhoria identificadas'
                 },
                 compliance_score: {
                   type: 'number',
-                  description: 'Score de 0-100 de conformidade'
+                  description: 'Score de 0-100 de conformidade e qualidade de execução'
+                },
+                positioning_analysis: {
+                  type: 'string',
+                  description: 'Análise detalhada do posicionamento dos produtos'
+                },
+                price_competitiveness: {
+                  type: 'string',
+                  description: 'Análise de competitividade de preços quando visíveis'
                 }
               },
-              required: ['insights', 'products_detected', 'our_facings', 'competitor_facings', 'issues']
+              required: ['insights', 'products_detected', 'our_facings', 'competitor_facings', 'issues', 'compliance_score']
             }
           }
         }],

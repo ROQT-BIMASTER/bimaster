@@ -21,6 +21,9 @@ interface Insight {
   priority: string | null;
   status: string;
   generated_at: string;
+  entity_id: string | null;
+  entity_type: string | null;
+  data_points: any;
 }
 
 const TradeInsights = () => {
@@ -408,14 +411,70 @@ const TradeInsights = () => {
                         <p className="text-muted-foreground mb-4">{insight.description}</p>
                       )}
                       <div className="flex gap-2">
-                        <Button size="sm">Revisar</Button>
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const { error } = await supabase
+                                .from("ai_insights")
+                                .update({ status: "reviewed", reviewed_at: new Date().toISOString(), reviewed_by: (await supabase.auth.getUser()).data.user?.id })
+                                .eq("id", insight.id);
+                              if (error) throw error;
+                              toast.success("Insight revisado!");
+                              fetchInsights();
+                            } catch (error: any) {
+                              toast.error("Erro ao revisar: " + error.message);
+                            }
+                          }}
+                        >
+                          Revisar
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            toast.info("Funcionalidade de atribuição em desenvolvimento");
+                          }}
+                        >
                           Atribuir
                         </Button>
-                        <Button size="sm" variant="ghost">
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={async () => {
+                            try {
+                              const { error } = await supabase
+                                .from("ai_insights")
+                                .update({ status: "dismissed" })
+                                .eq("id", insight.id);
+                              if (error) throw error;
+                              toast.success("Insight descartado!");
+                              fetchInsights();
+                            } catch (error: any) {
+                              toast.error("Erro ao descartar: " + error.message);
+                            }
+                          }}
+                        >
                           Descartar
                         </Button>
                       </div>
+                      {/* Mostrar imagens relacionadas */}
+                      {insight.data_points?.photo_urls && (
+                        <div className="mt-4">
+                          <p className="text-sm font-medium mb-2">Evidências Fotográficas:</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {insight.data_points.photo_urls.map((url: string, idx: number) => (
+                              <img 
+                                key={idx}
+                                src={url} 
+                                alt={`Evidência ${idx + 1}`}
+                                className="rounded-lg w-full h-32 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => window.open(url, '_blank')}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
