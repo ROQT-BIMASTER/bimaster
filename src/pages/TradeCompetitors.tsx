@@ -22,14 +22,6 @@ interface Competitor {
   active: boolean;
 }
 
-interface CompetitorPhoto {
-  id: string;
-  competitor_id: string;
-  photo_url: string;
-  photo_type: 'competitor' | 'our_product';
-  created_at: string;
-}
-
 const TradeCompetitors = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -38,7 +30,6 @@ const TradeCompetitors = () => {
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
   const [selectedCompetitor, setSelectedCompetitor] = useState<string | null>(null);
-  const [competitorPhotos, setCompetitorPhotos] = useState<CompetitorPhoto[]>([]);
 
   if (!permissionsLoading && !hasPermission("trade_competitors")) {
     return <Navigate to="/dashboard" replace />;
