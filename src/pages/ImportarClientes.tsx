@@ -123,37 +123,36 @@ const ImportarClientes = () => {
     totalFuncionarios?: number | null,
     faixaFuncionarios?: string | null,
     faixaFaturamento?: string | null
-  ): string => {
+  ): string | null => {
+    // Valores aceitos pelo banco: MEI, ME, EPP, Grande
+    
     // Prioriza total de funcionários se disponível
     if (totalFuncionarios !== null && totalFuncionarios !== undefined) {
       if (totalFuncionarios === 0 || totalFuncionarios === 1) return "MEI";
-      if (totalFuncionarios <= 9) return "Microempresa";
-      if (totalFuncionarios <= 49) return "Pequena";
-      if (totalFuncionarios <= 99) return "Média";
-      return "Grande";
+      if (totalFuncionarios <= 9) return "ME"; // Microempresa
+      if (totalFuncionarios <= 49) return "EPP"; // Pequena
+      return "Grande"; // 50+ funcionários
     }
 
     // Usa faixa de funcionários
     if (faixaFuncionarios) {
       const faixa = faixaFuncionarios.toLowerCase();
       if (faixa.includes("0") || faixa.includes("mei")) return "MEI";
-      if (faixa.includes("1 a 9") || faixa.includes("micro")) return "Microempresa";
-      if (faixa.includes("10 a 49") || faixa.includes("pequena")) return "Pequena";
-      if (faixa.includes("50 a 99") || faixa.includes("média")) return "Média";
-      if (faixa.includes("100") || faixa.includes("grande")) return "Grande";
+      if (faixa.includes("1 a 9") || faixa.includes("micro")) return "ME";
+      if (faixa.includes("10 a 49") || faixa.includes("pequena")) return "EPP";
+      if (faixa.includes("50") || faixa.includes("média") || faixa.includes("grande")) return "Grande";
     }
 
     // Usa faixa de faturamento como fallback
     if (faixaFaturamento) {
       const faixa = faixaFaturamento.toLowerCase();
       if (faixa.includes("mei") || faixa.includes("81.000")) return "MEI";
-      if (faixa.includes("360.000") || faixa.includes("micro")) return "Microempresa";
-      if (faixa.includes("4.8") || faixa.includes("pequena")) return "Pequena";
-      if (faixa.includes("300") || faixa.includes("média")) return "Média";
+      if (faixa.includes("360.000") || faixa.includes("micro")) return "ME";
+      if (faixa.includes("4.8") || faixa.includes("pequena")) return "EPP";
       return "Grande";
     }
 
-    return "Não classificado";
+    return null; // Retorna null se não conseguir classificar
   };
 
   const handleImport = async () => {
@@ -593,6 +592,26 @@ const ImportarClientes = () => {
           continue;
         }
 
+        // Mapear porte_empresa para valores aceitos: MEI, ME, EPP, Grande
+        const mapearPorte = (porte: string | null): string | null => {
+          if (!porte) return null;
+          
+          const porteNormalizado = porte.toLowerCase().trim();
+          
+          // Mapeamento de variações para valores aceitos
+          if (porteNormalizado === 'mei' || porteNormalizado.includes('mei')) return 'MEI';
+          if (porteNormalizado === 'me' || porteNormalizado.includes('micro')) return 'ME';
+          if (porteNormalizado === 'epp' || porteNormalizado.includes('pequena')) return 'EPP';
+          if (porteNormalizado === 'grande' || porteNormalizado.includes('média') || porteNormalizado.includes('media')) return 'Grande';
+          
+          // Se já está no formato correto
+          if (['MEI', 'ME', 'EPP', 'Grande'].includes(porte)) return porte;
+          
+          return null;
+        };
+
+        const porteEmpresaMapeado = mapearPorte(p.porte_empresa);
+
         // Buscar ou criar município
         let municipio = null;
         const { data: municipioData } = await supabase
@@ -630,7 +649,7 @@ const ImportarClientes = () => {
           telefone: p.telefone || null,
           email: p.email || null,
           contato_principal: p.contato_principal || null,
-          porte_empresa: p.porte_empresa || null,
+          porte_empresa: porteEmpresaMapeado,
           segmento: p.segmento || null,
           observacoes: p.observacoes || null,
           importado_planilha: true,

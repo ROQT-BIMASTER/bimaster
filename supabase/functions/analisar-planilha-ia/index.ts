@@ -65,16 +65,15 @@ REGRAS IMPORTANTES:
 3. Se um campo não estiver disponível, use null
 4. Normalize os dados (remova acentos desnecessários, padronize formatos)
 5. Para município e UF, sempre tente identificar mesmo se não estiver explícito
-6. CLASSIFICAÇÃO DE PORTE (OBRIGATÓRIO - analise e classifique automaticamente):
+6. CLASSIFICAÇÃO DE PORTE (OBRIGATÓRIO - use EXATAMENTE estes valores):
    - Se tiver informação de funcionários:
      * 0-1 funcionários = "MEI"
-     * 2-9 funcionários = "Microempresa"
-     * 10-49 funcionários = "Pequena"
-     * 50-99 funcionários = "Média"
-     * 100+ funcionários = "Grande"
-   - Se não tiver funcionários, use indicadores como faturamento, porte mencionado, etc.
-   - Palavras-chave: "mei", "individual" = MEI; "micro" = Microempresa; "pequena" = Pequena; "média" = Média; "grande" = Grande
-   - Se não houver informação suficiente = "Não classificado"
+     * 2-9 funcionários = "ME"
+     * 10-49 funcionários = "EPP"
+     * 50+ funcionários = "Grande"
+   - Valores ACEITOS: "MEI", "ME", "EPP", "Grande"
+   - NUNCA use: "Microempresa", "Pequena", "Média" - use apenas os valores acima
+   - Se não houver informação suficiente = null
 
 Retorne um JSON com a seguinte estrutura:
 {
@@ -87,7 +86,7 @@ Retorne um JSON com a seguinte estrutura:
        "telefone": "string ou null",
        "email": "string ou null",
        "contato_principal": "string ou null",
-       "porte_empresa": "MEI | Microempresa | Pequena | Média | Grande | Não classificado (OBRIGATÓRIO - sempre classifique com base nas informações disponíveis)",
+       "porte_empresa": "MEI | ME | EPP | Grande | null (use APENAS estes valores exatos)",
        "segmento": "string ou null",
        "observacoes": "string ou null"
     }
