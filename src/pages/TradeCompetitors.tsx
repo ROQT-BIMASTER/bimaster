@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import { Navigate } from "react-router-dom";
+import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 
 interface Competitor {
   id: string;
@@ -20,8 +22,13 @@ interface Competitor {
 }
 
 const TradeCompetitors = () => {
+  const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [loading, setLoading] = useState(true);
+
+  if (!permissionsLoading && !hasPermission("trade_competitors")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   useEffect(() => {
     fetchCompetitors();

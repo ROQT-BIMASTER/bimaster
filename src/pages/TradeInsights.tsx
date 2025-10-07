@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Navigate } from "react-router-dom";
+import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 
 interface Insight {
   id: string;
@@ -21,8 +23,13 @@ interface Insight {
 }
 
 const TradeInsights = () => {
+  const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
+
+  if (!permissionsLoading && !hasPermission("trade_insights")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   useEffect(() => {
     fetchInsights();

@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Navigate } from "react-router-dom";
+import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 
 interface Photo {
   id: string;
@@ -19,8 +21,13 @@ interface Photo {
 }
 
 const TradePhotos = () => {
+  const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
+
+  if (!permissionsLoading && !hasPermission("trade_photos")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   useEffect(() => {
     fetchPhotos();

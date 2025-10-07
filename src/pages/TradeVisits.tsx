@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Navigate } from "react-router-dom";
 import { VincularStoreDialog } from "@/components/trade/VincularStoreDialog";
 import { NovaVisitaDialog } from "@/components/trade/NovaVisitaDialog";
+import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 
 interface Visit {
   id: string;
@@ -25,11 +27,16 @@ interface Visit {
 }
 
 const TradeVisits = () => {
+  const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
   const [showVincularDialog, setShowVincularDialog] = useState(false);
   const [showNovaVisita, setShowNovaVisita] = useState(false);
+
+  if (!permissionsLoading && !hasPermission("trade_visits")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   useEffect(() => {
     fetchVisits();

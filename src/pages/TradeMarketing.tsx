@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Store, Calendar, TrendingUp, Target } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 
 const TradeMarketing = () => {
+  const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [stats, setStats] = useState({
     totalStores: 0,
     totalVisits: 0,
@@ -14,6 +16,10 @@ const TradeMarketing = () => {
     avgShare: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  if (!permissionsLoading && !hasPermission("trade_marketing")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   useEffect(() => {
     fetchStats();

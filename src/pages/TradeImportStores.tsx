@@ -9,13 +9,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, FileSpreadsheet, Sparkles } from "lucide-react";
+import { Navigate } from "react-router-dom";
+import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import * as XLSX from "xlsx";
 
 const TradeImportStores = () => {
+  const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [textoIA, setTextoIA] = useState("");
   const [loadingIA, setLoadingIA] = useState(false);
+
+  if (!permissionsLoading && !hasPermission("trade_import_stores")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];

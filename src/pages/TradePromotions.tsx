@@ -9,6 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Navigate } from "react-router-dom";
+import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 
 interface Promotion {
   id: string;
@@ -24,8 +26,13 @@ interface Promotion {
 }
 
 const TradePromotions = () => {
+  const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
+
+  if (!permissionsLoading && !hasPermission("trade_promotions")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   useEffect(() => {
     fetchPromotions();

@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Upload, Search, MapPin, Edit, Eye } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { NovaLojaDialog } from "@/components/trade/NovaLojaDialog";
+import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 
 interface Store {
   id: string;
@@ -23,11 +24,16 @@ interface Store {
 }
 
 const TradeStores = () => {
+  const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const navigate = useNavigate();
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showNovaLoja, setShowNovaLoja] = useState(false);
+
+  if (!permissionsLoading && !hasPermission("trade_stores")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   useEffect(() => {
     fetchStores();
