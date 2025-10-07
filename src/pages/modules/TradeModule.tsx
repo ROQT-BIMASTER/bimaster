@@ -2,14 +2,16 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Store, Calendar, TrendingUp, Target, Camera, Tag, Brain } from "lucide-react";
+import { Store, Calendar, TrendingUp, Target, Camera, Tag, Brain, Zap } from "lucide-react";
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Link, Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { Button } from "@/components/ui/button";
+import { QuickEntryDialog } from "@/components/trade/QuickEntryDialog";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
+  const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [stats, setStats] = useState({
     totalStores: 0,
     totalVisits: 0,
@@ -80,11 +82,21 @@ const TradeModule = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Módulo de Trade Marketing</h1>
-          <p className="text-muted-foreground">
-            Monitoramento de PDVs e Performance de Campo
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Módulo de Trade Marketing</h1>
+            <p className="text-muted-foreground">
+              Monitoramento de PDVs e Performance de Campo
+            </p>
+          </div>
+          <Button 
+            size="lg" 
+            className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+            onClick={() => setQuickEntryOpen(true)}
+          >
+            <Zap className="h-5 w-5" />
+            Lançamento Rápido
+          </Button>
         </div>
 
         {/* KPI Cards */}
@@ -225,6 +237,12 @@ const TradeModule = () => {
             </Link>
           </CardContent>
         </Card>
+
+        <QuickEntryDialog 
+          open={quickEntryOpen}
+          onOpenChange={setQuickEntryOpen}
+          onSuccess={fetchStats}
+        />
       </div>
     </DashboardLayout>
   );
