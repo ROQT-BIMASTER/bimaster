@@ -38,8 +38,7 @@ export const useScreenPermissions = () => {
       const userIsAdmin = !!roleData;
       setIsAdmin(userIsAdmin);
 
-      // Todos os usuários têm acesso a todas as telas por padrão
-      // O admin pode depois configurar restrições específicas
+      // TODOS os usuários têm acesso a todas as telas por padrão
       const { data: allScreens } = await supabase
         .from("telas_sistema")
         .select("id, codigo, nome, rota, icone, ordem")
