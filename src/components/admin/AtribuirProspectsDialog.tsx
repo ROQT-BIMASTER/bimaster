@@ -50,14 +50,28 @@ export const AtribuirProspectsDialog = () => {
       setProspects(prospectsData || []);
 
       // Buscar vendedores
-      const { data: vendedoresData, error: vendedoresError } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("id, nome, email")
-        .in("tipo_usuario", ["vendedor", "supervisor"])
         .order("nome");
 
-      if (vendedoresError) throw vendedoresError;
-      setVendedores(vendedoresData || []);
+      if (profilesError) throw profilesError;
+
+      // Buscar roles dos vendedores
+      const userIds = profilesData?.map(p => p.id) || [];
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", userIds)
+        .in("role", ["vendedor", "supervisor"]);
+
+      if (rolesError) throw rolesError;
+
+      // Filtrar apenas vendedores e supervisores
+      const vendedorIds = new Set(rolesData?.map(r => r.user_id) || []);
+      const vendedoresData = profilesData?.filter(p => vendedorIds.has(p.id)) || [];
+      
+      setVendedores(vendedoresData);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
       toast({

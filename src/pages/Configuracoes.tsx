@@ -18,7 +18,6 @@ interface Profile {
   id: string;
   nome: string;
   email: string;
-  tipo_usuario: string;
   status: string;
   telefone?: string;
   cargo?: string;
@@ -27,6 +26,7 @@ interface Profile {
 
 const Configuracoes = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -47,6 +47,15 @@ const Configuracoes = () => {
 
       if (error) throw error;
       setProfile(data);
+
+      // Buscar role do usuário
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      setUserRole(roleData?.role || null);
     } catch (error) {
       console.error("Erro ao carregar perfil:", error);
       toast({
@@ -95,12 +104,12 @@ const Configuracoes = () => {
     setProfile(updatedProfile);
   };
 
-  const isAdmin = profile?.tipo_usuario === 'admin';
-  const isSupervisor = profile?.tipo_usuario === 'supervisor';
-  const isVendedor = profile?.tipo_usuario === 'vendedor';
+  const isAdmin = userRole === 'admin';
+  const isSupervisor = userRole === 'supervisor';
+  const isVendedor = userRole === 'vendedor';
 
   const getTipoUsuarioLabel = () => {
-    switch (profile?.tipo_usuario) {
+    switch (userRole) {
       case 'admin':
         return 'Administrador';
       case 'supervisor':
@@ -113,7 +122,7 @@ const Configuracoes = () => {
   };
 
   const getTipoUsuarioIcon = () => {
-    switch (profile?.tipo_usuario) {
+    switch (userRole) {
       case 'admin':
         return <Shield className="w-4 h-4" />;
       case 'supervisor':
@@ -126,7 +135,7 @@ const Configuracoes = () => {
   };
 
   const getTipoUsuarioVariant = () => {
-    switch (profile?.tipo_usuario) {
+    switch (userRole) {
       case 'admin':
         return 'default';
       case 'supervisor':

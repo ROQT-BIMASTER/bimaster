@@ -43,13 +43,13 @@ const Auditoria = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tipo_usuario")
-        .eq("id", user.id)
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
         .single();
 
-      const admin = profile?.tipo_usuario === 'admin' || profile?.tipo_usuario === 'supervisor';
+      const admin = roleData?.role === 'admin' || roleData?.role === 'supervisor';
       setIsAdmin(admin);
 
       if (admin) {

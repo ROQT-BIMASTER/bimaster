@@ -16,13 +16,13 @@ export const useUserRole = () => {
           return;
         }
 
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("tipo_usuario")
-          .eq("id", user.id)
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
           .single();
 
-        setUserType(profile?.tipo_usuario || null);
+        setUserType(roles?.role || null);
       } catch (error) {
         console.error("Erro ao buscar tipo de usuário:", error);
         setUserType(null);

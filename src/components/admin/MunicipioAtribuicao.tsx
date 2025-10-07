@@ -40,13 +40,27 @@ export const MunicipioAtribuicao = () => {
     setLoading(true);
     try {
       // Buscar vendedores
-      const { data: vendData, error: vendError } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, nome, email")
-        .in("tipo_usuario", ["vendedor", "supervisor"]);
+        .select("id, nome, email");
 
-      if (vendError) throw vendError;
-      setVendedores(vendData || []);
+      if (profilesError) throw profilesError;
+
+      // Buscar roles dos vendedores
+      const userIds = profilesData?.map(p => p.id) || [];
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", userIds)
+        .in("role", ["vendedor", "supervisor"]);
+
+      if (rolesError) throw rolesError;
+
+      // Filtrar apenas vendedores e supervisores
+      const vendedorIds = new Set(rolesData?.map(r => r.user_id) || []);
+      const vendData = profilesData?.filter(p => vendedorIds.has(p.id)) || [];
+      
+      setVendedores(vendData);
 
       // Buscar municípios com vendedores
       const { data: munData, error: munError } = await supabase

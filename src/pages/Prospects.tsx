@@ -66,11 +66,13 @@ const Prospects = () => {
       if (!user) return;
 
       // Verificar tipo de usuário
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tipo_usuario")
-        .eq("id", user.id)
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
         .single();
+
+      const profile = { tipo_usuario: roleData?.role || 'vendedor' };
 
       let query = supabase
         .from("prospects")

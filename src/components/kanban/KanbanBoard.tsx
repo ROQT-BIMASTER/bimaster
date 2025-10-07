@@ -71,12 +71,14 @@ export const KanbanBoard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Verificar tipo de usuário
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tipo_usuario")
-        .eq("id", user.id)
+      // Verificar role do usuário
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
         .single();
+
+      const userRole = roleData?.role || 'vendedor';
 
       let query = supabase
         .from("prospects")
@@ -84,7 +86,7 @@ export const KanbanBoard = () => {
         .order("created_at", { ascending: false });
 
       // Se não for admin ou supervisor, filtrar por municípios vinculados ao vendedor
-      if (profile?.tipo_usuario === "vendedor") {
+      if (userRole === "vendedor") {
         // Buscar municípios vinculados ao vendedor
         const { data: vinculos } = await supabase
           .from("municipios_usuarios")

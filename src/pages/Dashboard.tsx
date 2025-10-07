@@ -50,13 +50,13 @@ const Dashboard = () => {
         if (!user) return;
 
         // Verificar se é admin
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("tipo_usuario")
-          .eq("id", user.id)
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
           .single();
 
-        setIsAdmin(profile?.tipo_usuario === 'admin');
+        setIsAdmin(roleData?.role === 'admin');
 
         const [prospectsResult, municipiosResult, negociacaoResult, atividadesResult] = await Promise.all([
           supabase.from("prospects").select("*", { count: "exact", head: true }),

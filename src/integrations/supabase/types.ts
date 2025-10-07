@@ -362,10 +362,8 @@ export type Database = {
           email: string
           id: string
           nome: string
-          plano_id: string | null
           status: string
           supervisor_id: string | null
-          tipo_usuario: Database["public"]["Enums"]["user_type"]
           updated_at: string | null
         }
         Insert: {
@@ -374,10 +372,8 @@ export type Database = {
           email: string
           id: string
           nome: string
-          plano_id?: string | null
           status?: string
           supervisor_id?: string | null
-          tipo_usuario?: Database["public"]["Enums"]["user_type"]
           updated_at?: string | null
         }
         Update: {
@@ -386,20 +382,11 @@ export type Database = {
           email?: string
           id?: string
           nome?: string
-          plano_id?: string | null
           status?: string
           supervisor_id?: string | null
-          tipo_usuario?: Database["public"]["Enums"]["user_type"]
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "profiles_plano_id_fkey"
-            columns: ["plano_id"]
-            isOneToOne: false
-            referencedRelation: "planos"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "profiles_supervisor_id_fkey"
             columns: ["supervisor_id"]
@@ -493,13 +480,41 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_admin_or_supervisor: {
-        Args: { user_id: string }
+        Args: { _user_id: string }
         Returns: boolean
       }
       is_participant_of_conversa: {
@@ -510,6 +525,7 @@ export type Database = {
     Enums: {
       activity_result: "positivo" | "neutro" | "negativo"
       activity_type: "ligacao" | "email" | "reuniao" | "visita" | "proposta"
+      app_role: "admin" | "supervisor" | "vendedor"
       client_category: "A" | "B" | "C" | "D"
       prospect_status:
         | "novo"
@@ -649,6 +665,7 @@ export const Constants = {
     Enums: {
       activity_result: ["positivo", "neutro", "negativo"],
       activity_type: ["ligacao", "email", "reuniao", "visita", "proposta"],
+      app_role: ["admin", "supervisor", "vendedor"],
       client_category: ["A", "B", "C", "D"],
       prospect_status: [
         "novo",

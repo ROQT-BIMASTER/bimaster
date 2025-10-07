@@ -80,20 +80,32 @@ export const GerenciamentoUsuarios = () => {
 
   const fetchUsuarios = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
         .order("aprovado", { ascending: true })
         .order("nome");
       
-      if (error) throw error;
+      if (profilesError) throw profilesError;
+      
+      // Buscar roles de todos os usuários
+      const userIds = profiles?.map(p => p.id) || [];
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", userIds);
+      
+      if (rolesError) throw rolesError;
+      
+      // Mapear roles por user_id
+      const rolesMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
       
       // Converter dados do banco para o formato esperado
-      const usuariosFormatados = (data || []).map(profile => ({
+      const usuariosFormatados = (profiles || []).map(profile => ({
         id: profile.id,
         nome: profile.nome,
         email: profile.email,
-        tipo_usuario: profile.tipo_usuario as "admin" | "supervisor" | "vendedor",
+        tipo_usuario: (rolesMap.get(profile.id) || 'vendedor') as "admin" | "supervisor" | "vendedor",
         status: (profile.status === "ativo" ? "ativo" : "inativo") as "ativo" | "inativo",
         aprovado: profile.aprovado || false
       }));
@@ -249,16 +261,32 @@ export const GerenciamentoUsuarios = () => {
     
     setLoading(true);
     try {
-      // Atualizar perfil
+      // Atualizar perfil (apenas nome)
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
-          nome: novoUsuario.nome,
-          tipo_usuario: novoUsuario.tipo_usuario
+          nome: novoUsuario.nome
         })
         .eq("id", editingUser.id);
 
       if (profileError) throw profileError;
+
+      // Atualizar role do usuário
+      const { error: deleteRoleError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", editingUser.id);
+
+      if (deleteRoleError) throw deleteRoleError;
+
+      const { error: insertRoleError } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: editingUser.id,
+          role: novoUsuario.tipo_usuario
+        });
+
+      if (insertRoleError) throw insertRoleError;
 
       // Atualizar municípios se for vendedor
       if (novoUsuario.tipo_usuario === "vendedor") {

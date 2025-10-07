@@ -1,4 +1,4 @@
-import { Home, Users, Building2, FileText, LogOut, Settings, Upload, Shield, LayoutGrid, CheckSquare, MapPin, MessageSquare, CreditCard } from "lucide-react";
+import { Home, Users, Building2, FileText, LogOut, Settings, Upload, Shield, LayoutGrid, CheckSquare, MapPin, MessageSquare } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -43,12 +43,12 @@ export function AppSidebar() {
       if (!user) return;
 
       const { data } = await supabase
-        .from("profiles")
-        .select("tipo_usuario")
-        .eq("id", user.id)
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
         .single();
 
-      setIsAdmin(data?.tipo_usuario === 'admin');
+      setIsAdmin(data?.role === 'admin');
     } catch (error) {
       console.error("Erro ao verificar admin:", error);
     }
@@ -130,21 +130,6 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink 
-                to="/dashboard/planos"
-                className={({ isActive }) =>
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "hover:bg-sidebar-accent/50"
-                }
-              >
-                <CreditCard className="h-4 w-4" />
-                <span>Planos</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <NavLink to="/dashboard/configuracoes">
