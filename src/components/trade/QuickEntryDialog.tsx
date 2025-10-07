@@ -205,6 +205,78 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         });
       }
 
+      // 5. Create AI insights from analysis
+      if (formData.ai_insights) {
+        const insightsToCreate = [];
+
+        // Create general insight from AI analysis
+        insightsToCreate.push({
+          title: "Análise de Gôndola - " + new Date().toLocaleDateString("pt-BR"),
+          description: formData.ai_insights,
+          insight_type: "recommendation",
+          category: "shelf_analysis",
+          entity_type: "visit",
+          entity_id: visit.id,
+          priority: formData.issues_found.length > 0 ? "alta" : "media",
+          impact_level: formData.issues_found.length > 0 ? "high" : "medium",
+          status: "new",
+        });
+
+        // Create specific insights for issues found
+        if (formData.issues_found.length > 0) {
+          formData.issues_found.forEach((issue: string) => {
+            insightsToCreate.push({
+              title: "Problema Detectado: " + issue.substring(0, 50),
+              description: issue,
+              insight_type: "risk",
+              category: "quality_issue",
+              entity_type: "visit",
+              entity_id: visit.id,
+              priority: "alta",
+              impact_level: "high",
+              status: "new",
+            });
+          });
+        }
+
+        // Create opportunity insight if good facings ratio
+        const totalFacings = formData.our_facings + formData.competitor_facings;
+        if (totalFacings > 0) {
+          const ourShare = (formData.our_facings / totalFacings) * 100;
+          if (ourShare < 50) {
+            insightsToCreate.push({
+              title: "Oportunidade de Crescimento de Share",
+              description: `Nosso share de gôndola é ${ourShare.toFixed(1)}%. Há oportunidade para aumentar presença.`,
+              insight_type: "opportunity",
+              category: "shelf_share",
+              entity_type: "visit",
+              entity_id: visit.id,
+              priority: "media",
+              impact_level: "medium",
+              status: "new",
+              confidence_score: 85,
+            });
+          } else if (ourShare >= 70) {
+            insightsToCreate.push({
+              title: "Excelente Presença de Marca",
+              description: `Nosso share de gôndola é ${ourShare.toFixed(1)}%. Ótima performance!`,
+              insight_type: "trend",
+              category: "shelf_share",
+              entity_type: "visit",
+              entity_id: visit.id,
+              priority: "baixa",
+              impact_level: "low",
+              status: "new",
+              confidence_score: 95,
+            });
+          }
+        }
+
+        if (insightsToCreate.length > 0) {
+          await supabase.from("ai_insights").insert(insightsToCreate);
+        }
+      }
+
       toast.success("✅ Lançamento concluído com sucesso!");
       onSuccess?.();
       onOpenChange(false);
