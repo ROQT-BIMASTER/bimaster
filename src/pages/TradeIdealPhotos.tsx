@@ -53,6 +53,12 @@ const TradeIdealPhotos = () => {
 
     setUploading(true);
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        toast.error("Você precisa estar logado para fazer upload");
+        return;
+      }
+
       const fileExt = file.name.split(".").pop();
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `ideal-pdv/${category}/${fileName}`;
@@ -73,6 +79,7 @@ const TradeIdealPhotos = () => {
           category,
           photo_url: publicUrl,
           description: `Foto ideal de ${category}`,
+          created_by: userData.user.id,
         });
 
       if (insertError) throw insertError;

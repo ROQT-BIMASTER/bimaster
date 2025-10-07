@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Target, Upload } from "lucide-react";
+import { Upload, Trash2, Image as ImageIcon, Plus, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
+import { CompetitorComparisonUpload } from "@/components/trade/CompetitorComparisonUpload";
 
 interface Competitor {
   id: string;
@@ -215,74 +216,10 @@ const TradeCompetitors = () => {
 
         {/* Seção de Comparação de Fotos */}
         {selectedCompetitor && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Comparação Visual de Produtos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Target className="h-4 w-4 text-destructive" />
-                    Fotos do Concorrente
-                  </h3>
-                  <div className="space-y-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => document.getElementById('upload-competitor')?.click()}
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Foto Concorrente
-                    </Button>
-                    <input
-                      id="upload-competitor"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => toast.info("Funcionalidade de upload em desenvolvimento")}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Target className="h-4 w-4 text-primary" />
-                    Fotos dos Nossos Produtos
-                  </h3>
-                  <div className="space-y-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => document.getElementById('upload-our-product')?.click()}
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Nosso Produto
-                    </Button>
-                    <input
-                      id="upload-our-product"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => toast.info("Funcionalidade de upload em desenvolvimento")}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <Button className="w-full" variant="default">
-                  <Target className="mr-2 h-4 w-4" />
-                  Gerar Análise Comparativa com IA
-                </Button>
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  A IA irá comparar preços, posicionamento, share de gôndola e outras métricas
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <CompetitorComparisonUpload 
+            competitorId={selectedCompetitor}
+            onPhotosUploaded={() => toast.success("Fotos atualizadas!")}
+          />
         )}
       </div>
     </DashboardLayout>

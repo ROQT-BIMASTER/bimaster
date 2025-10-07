@@ -159,6 +159,7 @@ const TradeInsights = () => {
           id,
           visit_id,
           store_id,
+          photo_url,
           ai_analysis,
           our_facings,
           competitor_facings,
@@ -191,6 +192,10 @@ const TradeInsights = () => {
             priority: aiAnalysis.issues?.length > 0 ? "alta" : "media",
             impact_level: aiAnalysis.issues?.length > 0 ? "high" : "medium",
             status: "new",
+            data_points: {
+              photo_urls: [photo.photo_url],
+              ai_analysis: aiAnalysis,
+            }
           });
         }
 
@@ -207,6 +212,9 @@ const TradeInsights = () => {
               priority: "alta",
               impact_level: "high",
               status: "new",
+              data_points: {
+                photo_urls: [photo.photo_url],
+              }
             });
           });
         }
@@ -231,6 +239,11 @@ const TradeInsights = () => {
               impact_level: "medium",
               status: "new",
               confidence_score: 85,
+              data_points: {
+                photo_urls: [photo.photo_url],
+                our_facings: ourFacings,
+                competitor_facings: competitorFacings,
+              }
             });
           } else if (ourShare >= 70) {
             insightsToCreate.push({
@@ -244,6 +257,10 @@ const TradeInsights = () => {
               impact_level: "low",
               status: "new",
               confidence_score: 95,
+              data_points: {
+                photo_urls: [photo.photo_url],
+                our_share: ourShare,
+              }
             });
           }
         }

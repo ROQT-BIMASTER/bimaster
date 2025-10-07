@@ -16,7 +16,6 @@ import Kanban from "./pages/Kanban";
 import Tarefas from "./pages/Tarefas";
 import Mapa from "./pages/Mapa";
 import Chat from "./pages/Chat";
-
 import AguardandoAprovacao from "./pages/AguardandoAprovacao";
 import NotFound from "./pages/NotFound";
 import TradeModule from "./pages/modules/TradeModule";
@@ -29,6 +28,7 @@ import TradePromotions from "./pages/TradePromotions";
 import TradeImportStores from "./pages/TradeImportStores";
 import TradeCalendar from "./pages/TradeCalendar";
 import TradeFinanceiro from "./pages/TradeFinanceiro";
+import TradeIdealPhotos from "./pages/TradeIdealPhotos";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +72,7 @@ const App = () => {
           <Route path="/dashboard/trade/import-stores" element={<TradeImportStores />} />
           <Route path="/dashboard/trade/calendar" element={<TradeCalendar />} />
           <Route path="/dashboard/trade/financeiro" element={<TradeFinanceiro />} />
+          <Route path="/dashboard/trade/ideal-photos" element={<TradeIdealPhotos />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
