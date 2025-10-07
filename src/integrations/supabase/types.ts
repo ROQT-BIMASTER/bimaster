@@ -223,6 +223,51 @@ export type Database = {
         }
         Relationships: []
       }
+      competitor_comparison_photos: {
+        Row: {
+          competitor_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          photo_type: string
+          photo_url: string
+          store_id: string | null
+        }
+        Insert: {
+          competitor_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          photo_type: string
+          photo_url: string
+          store_id?: string | null
+        }
+        Update: {
+          competitor_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          photo_type?: string
+          photo_url?: string
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_comparison_photos_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_comparison_photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competitor_intelligence: {
         Row: {
           competitor_id: string | null
@@ -433,6 +478,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ideal_pdv_photos: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          photo_url: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          photo_url: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          photo_url?: string
+        }
+        Relationships: []
       }
       kpis_tracking: {
         Row: {
