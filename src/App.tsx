@@ -18,6 +18,13 @@ import Chat from "./pages/Chat";
 
 import AguardandoAprovacao from "./pages/AguardandoAprovacao";
 import NotFound from "./pages/NotFound";
+import TradeMarketing from "./pages/TradeMarketing";
+import TradeStores from "./pages/TradeStores";
+import TradeVisits from "./pages/TradeVisits";
+import TradePhotos from "./pages/TradePhotos";
+import TradeInsights from "./pages/TradeInsights";
+import TradeCompetitors from "./pages/TradeCompetitors";
+import TradePromotions from "./pages/TradePromotions";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +51,13 @@ const App = () => {
           <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
           <Route path="/dashboard/importar-clientes" element={<ImportarClientes />} />
           <Route path="/dashboard/auditoria" element={<Auditoria />} />
+          <Route path="/dashboard/trade-marketing" element={<TradeMarketing />} />
+          <Route path="/dashboard/trade-marketing/stores" element={<TradeStores />} />
+          <Route path="/dashboard/trade-marketing/visits" element={<TradeVisits />} />
+          <Route path="/dashboard/trade-marketing/photos" element={<TradePhotos />} />
+          <Route path="/dashboard/trade-marketing/competitors" element={<TradeCompetitors />} />
+          <Route path="/dashboard/trade-marketing/promotions" element={<TradePromotions />} />
+          <Route path="/dashboard/trade-marketing/insights" element={<TradeInsights />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

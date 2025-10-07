@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_insights: {
+        Row: {
+          action_items: Json | null
+          actioned_at: string | null
+          actioned_by: string | null
+          category: string | null
+          confidence_score: number | null
+          data_points: Json | null
+          description: string | null
+          dismissal_reason: string | null
+          entity_id: string | null
+          entity_type: string | null
+          estimated_revenue_impact: number | null
+          expires_at: string | null
+          generated_at: string | null
+          id: string
+          impact_level: string | null
+          insight_type: string | null
+          priority: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          title: string
+        }
+        Insert: {
+          action_items?: Json | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          category?: string | null
+          confidence_score?: number | null
+          data_points?: Json | null
+          description?: string | null
+          dismissal_reason?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          estimated_revenue_impact?: number | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          impact_level?: string | null
+          insight_type?: string | null
+          priority?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          title: string
+        }
+        Update: {
+          action_items?: Json | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          category?: string | null
+          confidence_score?: number | null
+          data_points?: Json | null
+          description?: string | null
+          dismissal_reason?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          estimated_revenue_impact?: number | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          impact_level?: string | null
+          insight_type?: string | null
+          priority?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       assinaturas: {
         Row: {
           cancelado_em: string | null
@@ -151,6 +223,161 @@ export type Database = {
         }
         Relationships: []
       }
+      competitor_intelligence: {
+        Row: {
+          competitor_id: string | null
+          display_type: string | null
+          facings_count: number | null
+          has_special_display: boolean | null
+          id: string
+          observations: string | null
+          our_price: number | null
+          photo_id: string | null
+          positioning_height: string | null
+          positioning_quality: string | null
+          price: number | null
+          price_difference_percentage: number | null
+          product_name: string | null
+          product_sku: string | null
+          promotion_active: boolean | null
+          promotion_description: string | null
+          promotion_discount: number | null
+          promotion_type: string | null
+          recorded_at: string | null
+          shelf_share_percentage: number | null
+          shelf_space_cm: number | null
+          store_id: string | null
+          visibility_score: number | null
+          visit_id: string | null
+        }
+        Insert: {
+          competitor_id?: string | null
+          display_type?: string | null
+          facings_count?: number | null
+          has_special_display?: boolean | null
+          id?: string
+          observations?: string | null
+          our_price?: number | null
+          photo_id?: string | null
+          positioning_height?: string | null
+          positioning_quality?: string | null
+          price?: number | null
+          price_difference_percentage?: number | null
+          product_name?: string | null
+          product_sku?: string | null
+          promotion_active?: boolean | null
+          promotion_description?: string | null
+          promotion_discount?: number | null
+          promotion_type?: string | null
+          recorded_at?: string | null
+          shelf_share_percentage?: number | null
+          shelf_space_cm?: number | null
+          store_id?: string | null
+          visibility_score?: number | null
+          visit_id?: string | null
+        }
+        Update: {
+          competitor_id?: string | null
+          display_type?: string | null
+          facings_count?: number | null
+          has_special_display?: boolean | null
+          id?: string
+          observations?: string | null
+          our_price?: number | null
+          photo_id?: string | null
+          positioning_height?: string | null
+          positioning_quality?: string | null
+          price?: number | null
+          price_difference_percentage?: number | null
+          product_name?: string | null
+          product_sku?: string | null
+          promotion_active?: boolean | null
+          promotion_description?: string | null
+          promotion_discount?: number | null
+          promotion_type?: string | null
+          recorded_at?: string | null
+          shelf_share_percentage?: number | null
+          shelf_space_cm?: number | null
+          store_id?: string | null
+          visibility_score?: number | null
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_intelligence_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_intelligence_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_intelligence_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_intelligence_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitors: {
+        Row: {
+          active: boolean | null
+          brand: string | null
+          category: string | null
+          created_at: string | null
+          id: string
+          is_direct_competitor: boolean | null
+          logo_url: string | null
+          manufacturer: string | null
+          market_share: number | null
+          name: string
+          notes: string | null
+          threat_level: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          brand?: string | null
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_direct_competitor?: boolean | null
+          logo_url?: string | null
+          manufacturer?: string | null
+          market_share?: number | null
+          name: string
+          notes?: string | null
+          threat_level?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          brand?: string | null
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_direct_competitor?: boolean | null
+          logo_url?: string | null
+          manufacturer?: string | null
+          market_share?: number | null
+          name?: string
+          notes?: string | null
+          threat_level?: string | null
+        }
+        Relationships: []
+      }
       conversas: {
         Row: {
           created_at: string
@@ -203,6 +430,83 @@ export type Database = {
             columns: ["conversa_id"]
             isOneToOne: false
             referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kpis_tracking: {
+        Row: {
+          average_price: number | null
+          avg_facings: number | null
+          category: string | null
+          compliance_score: number | null
+          created_at: string | null
+          date: string
+          id: string
+          numeric_distribution: number | null
+          out_of_stock_rate: number | null
+          price_index: number | null
+          promotion_intensity: number | null
+          region: string | null
+          sales_value: number | null
+          sales_volume: number | null
+          shelf_share: number | null
+          store_id: string | null
+          value_share: number | null
+          visit_completion_rate: number | null
+          volume_share: number | null
+          weighted_distribution: number | null
+        }
+        Insert: {
+          average_price?: number | null
+          avg_facings?: number | null
+          category?: string | null
+          compliance_score?: number | null
+          created_at?: string | null
+          date: string
+          id?: string
+          numeric_distribution?: number | null
+          out_of_stock_rate?: number | null
+          price_index?: number | null
+          promotion_intensity?: number | null
+          region?: string | null
+          sales_value?: number | null
+          sales_volume?: number | null
+          shelf_share?: number | null
+          store_id?: string | null
+          value_share?: number | null
+          visit_completion_rate?: number | null
+          volume_share?: number | null
+          weighted_distribution?: number | null
+        }
+        Update: {
+          average_price?: number | null
+          avg_facings?: number | null
+          category?: string | null
+          compliance_score?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          numeric_distribution?: number | null
+          out_of_stock_rate?: number | null
+          price_index?: number | null
+          promotion_intensity?: number | null
+          region?: string | null
+          sales_value?: number | null
+          sales_volume?: number | null
+          shelf_share?: number | null
+          store_id?: string | null
+          value_share?: number | null
+          visit_completion_rate?: number | null
+          volume_share?: number | null
+          weighted_distribution?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpis_tracking_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -319,6 +623,114 @@ export type Database = {
           },
         ]
       }
+      photos: {
+        Row: {
+          action_items: string[] | null
+          ai_analysis: Json | null
+          ai_processed: boolean | null
+          approved: boolean | null
+          approved_at: string | null
+          approved_by: string | null
+          category: string | null
+          competitor_facings: number | null
+          compliance_score: number | null
+          detected_brands: Json | null
+          detected_prices: Json | null
+          detected_products: Json | null
+          has_promotion: boolean | null
+          has_rupture: boolean | null
+          id: string
+          observations: string | null
+          our_facings: number | null
+          photo_type: string
+          photo_url: string
+          processed_at: string | null
+          quality_score: number | null
+          requires_action: boolean | null
+          section: string | null
+          store_id: string | null
+          thumbnail_url: string | null
+          total_facings: number | null
+          upload_date: string | null
+          visit_id: string | null
+        }
+        Insert: {
+          action_items?: string[] | null
+          ai_analysis?: Json | null
+          ai_processed?: boolean | null
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string | null
+          competitor_facings?: number | null
+          compliance_score?: number | null
+          detected_brands?: Json | null
+          detected_prices?: Json | null
+          detected_products?: Json | null
+          has_promotion?: boolean | null
+          has_rupture?: boolean | null
+          id?: string
+          observations?: string | null
+          our_facings?: number | null
+          photo_type: string
+          photo_url: string
+          processed_at?: string | null
+          quality_score?: number | null
+          requires_action?: boolean | null
+          section?: string | null
+          store_id?: string | null
+          thumbnail_url?: string | null
+          total_facings?: number | null
+          upload_date?: string | null
+          visit_id?: string | null
+        }
+        Update: {
+          action_items?: string[] | null
+          ai_analysis?: Json | null
+          ai_processed?: boolean | null
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string | null
+          competitor_facings?: number | null
+          compliance_score?: number | null
+          detected_brands?: Json | null
+          detected_prices?: Json | null
+          detected_products?: Json | null
+          has_promotion?: boolean | null
+          has_rupture?: boolean | null
+          id?: string
+          observations?: string | null
+          our_facings?: number | null
+          photo_type?: string
+          photo_url?: string
+          processed_at?: string | null
+          quality_score?: number | null
+          requires_action?: boolean | null
+          section?: string | null
+          store_id?: string | null
+          thumbnail_url?: string | null
+          total_facings?: number | null
+          upload_date?: string | null
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photos_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planos: {
         Row: {
           ativo: boolean
@@ -355,6 +767,87 @@ export type Database = {
           stripe_price_id?: string | null
           stripe_product_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          active: boolean | null
+          barcode: string | null
+          brand: string | null
+          category: string | null
+          cost: number | null
+          created_at: string | null
+          ean13: string | null
+          id: string
+          ideal_position: string | null
+          image_url: string | null
+          is_focus: boolean | null
+          is_our_product: boolean | null
+          launch_date: string | null
+          line: string | null
+          manufacturer: string | null
+          margin_percentage: number | null
+          minimum_facings: number | null
+          name: string
+          price_reference: number | null
+          size: string | null
+          sku: string
+          subcategory: string | null
+          unit: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          barcode?: string | null
+          brand?: string | null
+          category?: string | null
+          cost?: number | null
+          created_at?: string | null
+          ean13?: string | null
+          id?: string
+          ideal_position?: string | null
+          image_url?: string | null
+          is_focus?: boolean | null
+          is_our_product?: boolean | null
+          launch_date?: string | null
+          line?: string | null
+          manufacturer?: string | null
+          margin_percentage?: number | null
+          minimum_facings?: number | null
+          name: string
+          price_reference?: number | null
+          size?: string | null
+          sku: string
+          subcategory?: string | null
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          barcode?: string | null
+          brand?: string | null
+          category?: string | null
+          cost?: number | null
+          created_at?: string | null
+          ean13?: string | null
+          id?: string
+          ideal_position?: string | null
+          image_url?: string | null
+          is_focus?: boolean | null
+          is_our_product?: boolean | null
+          launch_date?: string | null
+          line?: string | null
+          manufacturer?: string | null
+          margin_percentage?: number | null
+          minimum_facings?: number | null
+          name?: string
+          price_reference?: number | null
+          size?: string | null
+          sku?: string
+          subcategory?: string | null
+          unit?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -398,6 +891,169 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      promotion_execution: {
+        Row: {
+          checked_at: string | null
+          checked_by: string | null
+          compliance_score: number | null
+          corrective_actions: string[] | null
+          estimated_sales: number | null
+          id: string
+          is_active: boolean | null
+          is_compliant: boolean | null
+          issues_found: string[] | null
+          materials_missing: string[] | null
+          materials_present: Json | null
+          observations: string | null
+          photo_evidence: string[] | null
+          positioning_correct: boolean | null
+          price_correct: boolean | null
+          promotion_id: string | null
+          stock_sufficient: boolean | null
+          store_id: string | null
+          visibility_adequate: boolean | null
+          visit_id: string | null
+        }
+        Insert: {
+          checked_at?: string | null
+          checked_by?: string | null
+          compliance_score?: number | null
+          corrective_actions?: string[] | null
+          estimated_sales?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_compliant?: boolean | null
+          issues_found?: string[] | null
+          materials_missing?: string[] | null
+          materials_present?: Json | null
+          observations?: string | null
+          photo_evidence?: string[] | null
+          positioning_correct?: boolean | null
+          price_correct?: boolean | null
+          promotion_id?: string | null
+          stock_sufficient?: boolean | null
+          store_id?: string | null
+          visibility_adequate?: boolean | null
+          visit_id?: string | null
+        }
+        Update: {
+          checked_at?: string | null
+          checked_by?: string | null
+          compliance_score?: number | null
+          corrective_actions?: string[] | null
+          estimated_sales?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_compliant?: boolean | null
+          issues_found?: string[] | null
+          materials_missing?: string[] | null
+          materials_present?: Json | null
+          observations?: string | null
+          photo_evidence?: string[] | null
+          positioning_correct?: boolean | null
+          price_correct?: boolean | null
+          promotion_id?: string | null
+          stock_sufficient?: boolean | null
+          store_id?: string | null
+          visibility_adequate?: boolean | null
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_execution_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_execution_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_execution_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotions: {
+        Row: {
+          budget: number | null
+          checklist: Json | null
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          discount_percentage: number | null
+          discount_value: number | null
+          end_date: string
+          id: string
+          materials_needed: string[] | null
+          mechanics: string | null
+          name: string
+          performance_summary: Json | null
+          product_ids: string[] | null
+          promotion_type: string | null
+          start_date: string
+          status: string | null
+          store_ids: string[] | null
+          target_value: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          budget?: number | null
+          checklist?: Json | null
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          discount_value?: number | null
+          end_date: string
+          id?: string
+          materials_needed?: string[] | null
+          mechanics?: string | null
+          name: string
+          performance_summary?: Json | null
+          product_ids?: string[] | null
+          promotion_type?: string | null
+          start_date: string
+          status?: string | null
+          store_ids?: string[] | null
+          target_value?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          budget?: number | null
+          checklist?: Json | null
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          discount_value?: number | null
+          end_date?: string
+          id?: string
+          materials_needed?: string[] | null
+          mechanics?: string | null
+          name?: string
+          performance_summary?: Json | null
+          product_ids?: string[] | null
+          promotion_type?: string | null
+          start_date?: string
+          status?: string | null
+          store_ids?: string[] | null
+          target_value?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       prospects: {
         Row: {
@@ -594,6 +1250,251 @@ export type Database = {
           },
         ]
       }
+      routes: {
+        Row: {
+          actual_distance_km: number | null
+          actual_duration_minutes: number | null
+          created_at: string | null
+          date: string
+          end_location: Json | null
+          estimated_distance_km: number | null
+          estimated_duration_minutes: number | null
+          id: string
+          name: string
+          start_location: Json | null
+          status: string | null
+          store_ids: string[] | null
+          stores_completed: number | null
+          user_id: string | null
+        }
+        Insert: {
+          actual_distance_km?: number | null
+          actual_duration_minutes?: number | null
+          created_at?: string | null
+          date: string
+          end_location?: Json | null
+          estimated_distance_km?: number | null
+          estimated_duration_minutes?: number | null
+          id?: string
+          name: string
+          start_location?: Json | null
+          status?: string | null
+          store_ids?: string[] | null
+          stores_completed?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          actual_distance_km?: number | null
+          actual_duration_minutes?: number | null
+          created_at?: string | null
+          date?: string
+          end_location?: Json | null
+          estimated_distance_km?: number | null
+          estimated_duration_minutes?: number | null
+          id?: string
+          name?: string
+          start_location?: Json | null
+          status?: string | null
+          store_ids?: string[] | null
+          stores_completed?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      shelf_share: {
+        Row: {
+          competitor_nearby: boolean | null
+          compliance_items: Json | null
+          expiry_check: boolean | null
+          has_price_tag: boolean | null
+          id: string
+          in_stock: boolean | null
+          near_expiry: boolean | null
+          photo_id: string | null
+          position_quality: number | null
+          price_found: number | null
+          price_tag_correct: boolean | null
+          price_vs_reference: number | null
+          product_condition: string | null
+          product_id: string | null
+          promotion_active: boolean | null
+          promotion_mechanics: string | null
+          promotion_type: string | null
+          quantity_facings: number | null
+          recorded_at: string | null
+          shelf_position: string | null
+          stock_level: string | null
+          store_id: string | null
+          visibility_score: number | null
+          visit_id: string | null
+        }
+        Insert: {
+          competitor_nearby?: boolean | null
+          compliance_items?: Json | null
+          expiry_check?: boolean | null
+          has_price_tag?: boolean | null
+          id?: string
+          in_stock?: boolean | null
+          near_expiry?: boolean | null
+          photo_id?: string | null
+          position_quality?: number | null
+          price_found?: number | null
+          price_tag_correct?: boolean | null
+          price_vs_reference?: number | null
+          product_condition?: string | null
+          product_id?: string | null
+          promotion_active?: boolean | null
+          promotion_mechanics?: string | null
+          promotion_type?: string | null
+          quantity_facings?: number | null
+          recorded_at?: string | null
+          shelf_position?: string | null
+          stock_level?: string | null
+          store_id?: string | null
+          visibility_score?: number | null
+          visit_id?: string | null
+        }
+        Update: {
+          competitor_nearby?: boolean | null
+          compliance_items?: Json | null
+          expiry_check?: boolean | null
+          has_price_tag?: boolean | null
+          id?: string
+          in_stock?: boolean | null
+          near_expiry?: boolean | null
+          photo_id?: string | null
+          position_quality?: number | null
+          price_found?: number | null
+          price_tag_correct?: boolean | null
+          price_vs_reference?: number | null
+          product_condition?: string | null
+          product_id?: string | null
+          promotion_active?: boolean | null
+          promotion_mechanics?: string | null
+          promotion_type?: string | null
+          quantity_facings?: number | null
+          recorded_at?: string | null
+          shelf_position?: string | null
+          stock_level?: string | null
+          store_id?: string | null
+          visibility_score?: number | null
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelf_share_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_share_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_share_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_share_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stores: {
+        Row: {
+          address: string | null
+          category: string | null
+          chain: string | null
+          city: string | null
+          cnpj: string | null
+          code: string
+          created_at: string | null
+          created_by: string | null
+          email: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          manager_name: string | null
+          manager_phone: string | null
+          monthly_revenue: number | null
+          name: string
+          notes: string | null
+          phone: string | null
+          priority: string | null
+          size: string | null
+          state: string | null
+          status: string | null
+          updated_at: string | null
+          visit_frequency: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          category?: string | null
+          chain?: string | null
+          city?: string | null
+          cnpj?: string | null
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          manager_name?: string | null
+          manager_phone?: string | null
+          monthly_revenue?: number | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          priority?: string | null
+          size?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          visit_frequency?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          category?: string | null
+          chain?: string | null
+          city?: string | null
+          cnpj?: string | null
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          manager_name?: string | null
+          manager_phone?: string | null
+          monthly_revenue?: number | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          priority?: string | null
+          size?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          visit_frequency?: string | null
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
       telas_sistema: {
         Row: {
           ativo: boolean | null
@@ -705,6 +1606,98 @@ export type Database = {
             columns: ["prospect_id"]
             isOneToOne: false
             referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visits: {
+        Row: {
+          check_in_latitude: number | null
+          check_in_longitude: number | null
+          check_in_time: string | null
+          check_out_latitude: number | null
+          check_out_longitude: number | null
+          check_out_time: string | null
+          checklist_completed: boolean | null
+          compliance_score: number | null
+          created_at: string | null
+          duration_minutes: number | null
+          id: string
+          issues_found: number | null
+          notes: string | null
+          objectives: string[] | null
+          photos_count: number | null
+          scheduled_date: string
+          scheduled_time: string | null
+          signature_url: string | null
+          status: string | null
+          store_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          visit_code: string
+          visit_type: string | null
+          weather: string | null
+        }
+        Insert: {
+          check_in_latitude?: number | null
+          check_in_longitude?: number | null
+          check_in_time?: string | null
+          check_out_latitude?: number | null
+          check_out_longitude?: number | null
+          check_out_time?: string | null
+          checklist_completed?: boolean | null
+          compliance_score?: number | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          issues_found?: number | null
+          notes?: string | null
+          objectives?: string[] | null
+          photos_count?: number | null
+          scheduled_date: string
+          scheduled_time?: string | null
+          signature_url?: string | null
+          status?: string | null
+          store_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          visit_code: string
+          visit_type?: string | null
+          weather?: string | null
+        }
+        Update: {
+          check_in_latitude?: number | null
+          check_in_longitude?: number | null
+          check_in_time?: string | null
+          check_out_latitude?: number | null
+          check_out_longitude?: number | null
+          check_out_time?: string | null
+          checklist_completed?: boolean | null
+          compliance_score?: number | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          issues_found?: number | null
+          notes?: string | null
+          objectives?: string[] | null
+          photos_count?: number | null
+          scheduled_date?: string
+          scheduled_time?: string | null
+          signature_url?: string | null
+          status?: string | null
+          store_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          visit_code?: string
+          visit_type?: string | null
+          weather?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]

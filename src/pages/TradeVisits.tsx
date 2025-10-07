@@ -1,0 +1,202 @@
+import { useEffect, useState } from "react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { Plus, Calendar as CalendarIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+interface Visit {
+  id: string;
+  visit_code: string;
+  scheduled_date: string;
+  scheduled_time: string | null;
+  status: string;
+  visit_type: string | null;
+  stores: {
+    name: string;
+    city: string | null;
+  } | null;
+}
+
+const TradeVisits = () => {
+  const [visits, setVisits] = useState<Visit[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchVisits();
+  }, []);
+
+  const fetchVisits = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("visits")
+        .select(`
+          *,
+          stores:store_id (name, city)
+        `)
+        .order("scheduled_date", { ascending: true });
+
+      if (error) throw error;
+      setVisits(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar visitas:", error);
+      toast.error("Erro ao carregar visitas");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "scheduled":
+        return "default";
+      case "in_progress":
+        return "secondary";
+      case "completed":
+        return "outline";
+      case "cancelled":
+        return "destructive";
+      default:
+        return "outline";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      scheduled: "Agendada",
+      in_progress: "Em Andamento",
+      completed: "Concluída",
+      cancelled: "Cancelada",
+    };
+    return labels[status] || status;
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Visitas de Campo</h1>
+            <p className="text-muted-foreground">
+              Agende e acompanhe visitas aos PDVs
+            </p>
+          </div>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Visita
+          </Button>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Hoje</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {visits.filter(v => v.scheduled_date === format(new Date(), "yyyy-MM-dd")).length}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Esta Semana</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {visits.filter(v => v.status === "scheduled").length}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {visits.filter(v => v.status === "in_progress").length}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {visits.filter(v => v.status === "completed").length}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Visits List */}
+        <div className="space-y-4">
+          {loading ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                Carregando visitas...
+              </CardContent>
+            </Card>
+          ) : visits.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                Nenhuma visita agendada
+              </CardContent>
+            </Card>
+          ) : (
+            visits.map((visit) => (
+              <Card key={visit.id}>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold text-lg">
+                          {visit.stores?.name || "Loja não especificada"}
+                        </h3>
+                        <Badge variant={getStatusColor(visit.status)}>
+                          {getStatusLabel(visit.status)}
+                        </Badge>
+                        {visit.visit_type && (
+                          <Badge variant="outline">{visit.visit_type}</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <CalendarIcon className="h-4 w-4" />
+                          {format(new Date(visit.scheduled_date), "dd/MM/yyyy", {
+                            locale: ptBR,
+                          })}
+                          {visit.scheduled_time && ` às ${visit.scheduled_time}`}
+                        </div>
+                        {visit.stores?.city && (
+                          <span>• {visit.stores.city}</span>
+                        )}
+                        <span>• Código: {visit.visit_code}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm">
+                        Ver Detalhes
+                      </Button>
+                      {visit.status === "scheduled" && (
+                        <Button size="sm">Iniciar</Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default TradeVisits;

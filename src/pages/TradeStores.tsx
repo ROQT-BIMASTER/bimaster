@@ -1,0 +1,171 @@
+import { useEffect, useState } from "react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { Plus, Search, MapPin, Edit, Eye } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+
+interface Store {
+  id: string;
+  code: string;
+  name: string;
+  chain: string | null;
+  city: string | null;
+  state: string | null;
+  category: string | null;
+  priority: string | null;
+  status: string;
+}
+
+const TradeStores = () => {
+  const [stores, setStores] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    fetchStores();
+  }, []);
+
+  const fetchStores = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("stores")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      setStores(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar PDVs:", error);
+      toast.error("Erro ao carregar PDVs");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredStores = stores.filter(
+    (store) =>
+      store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      store.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      store.chain?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      store.city?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getPriorityColor = (priority: string | null) => {
+    switch (priority) {
+      case "alta":
+        return "destructive";
+      case "media":
+        return "default";
+      case "baixa":
+        return "secondary";
+      default:
+        return "outline";
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Pontos de Venda</h1>
+            <p className="text-muted-foreground">
+              Gestão de lojas e PDVs
+            </p>
+          </div>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Loja
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, código, rede ou cidade..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Código</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Rede</TableHead>
+                <TableHead>Cidade/UF</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Prioridade</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">
+                    Carregando...
+                  </TableCell>
+                </TableRow>
+              ) : filteredStores.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">
+                    Nenhuma loja encontrada
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredStores.map((store) => (
+                  <TableRow key={store.id}>
+                    <TableCell className="font-medium">{store.code}</TableCell>
+                    <TableCell>{store.name}</TableCell>
+                    <TableCell>{store.chain || "-"}</TableCell>
+                    <TableCell>
+                      {store.city && store.state
+                        ? `${store.city}/${store.state}`
+                        : "-"}
+                    </TableCell>
+                    <TableCell>{store.category || "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant={getPriorityColor(store.priority)}>
+                        {store.priority || "N/A"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={store.status === "active" ? "default" : "secondary"}>
+                        {store.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <MapPin className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default TradeStores;
