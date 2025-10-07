@@ -298,21 +298,51 @@ const ImportarClientes = () => {
 
           // Se município não existe, criar
           if (!municipio) {
-            const { data: novoMunicipio, error: municipioError } = await supabase
-              .from("municipios")
-              .insert({
-                nome: municipioFinal,
-                uf: ufFinal || 'N/A',
-                regiao: regiaoFinal || 'Sudeste'
-              })
-              .select("id, vendedor_id")
-              .single();
+            try {
+              // Mapear região brasileira para zona da cidade (enum region_type)
+              const mapearRegiaoParaZona = (regiao: string | null): 'Norte' | 'Sul' | 'Leste' | 'Oeste' | 'Centro' => {
+                if (!regiao) return 'Centro';
+                
+                const regiaoLower = regiao.toLowerCase();
+                // Mapeamento simples: usar Centro como padrão para qualquer região do Brasil
+                // pois o enum representa zonas da cidade, não regiões do país
+                return 'Centro';
+              };
 
-            if (municipioError) {
-              console.error("Erro ao criar município:", municipioError);
-            } else {
-              municipio = novoMunicipio;
-              console.log(`Município criado: ${municipioFinal}/${ufFinal}`);
+              const { data: novoMunicipio, error: municipioError } = await supabase
+                .from("municipios")
+                .insert({
+                  nome: municipioFinal,
+                  uf: ufFinal || 'N/A',
+                  regiao: mapearRegiaoParaZona(regiaoFinal)
+                })
+                .select("id, vendedor_id")
+                .single();
+
+              if (municipioError) {
+                console.error("Erro ao criar município:", municipioError);
+                erros.push(`Linha ${i + 1}: Erro ao criar município ${municipioFinal} - ${municipioError.message}`);
+                detalhes.push({
+                  linha: i + 1,
+                  empresa: nome_empresa,
+                  status: 'erro',
+                  mensagem: `Erro ao criar município: ${municipioError.message}`
+                });
+                continue;
+              } else {
+                municipio = novoMunicipio;
+                console.log(`Município criado: ${municipioFinal}/${ufFinal}`);
+              }
+            } catch (municipioException: any) {
+              console.error("Exceção ao criar município:", municipioException);
+              erros.push(`Linha ${i + 1}: Falha ao processar município ${municipioFinal}`);
+              detalhes.push({
+                linha: i + 1,
+                empresa: nome_empresa,
+                status: 'erro',
+                mensagem: 'Falha ao processar município'
+              });
+              continue;
             }
           }
 
