@@ -20,3 +20,6 @@ verify_jwt = true
 
 [functions.padronizar-municipio]
 verify_jwt = true
+
+[functions.analisar-planilha-ia]
+verify_jwt = false

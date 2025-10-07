@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, Download, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Upload, Download, CheckCircle, XCircle, AlertCircle, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import * as XLSX from 'xlsx';
 
 interface ImportResult {
@@ -28,6 +30,8 @@ const ImportarClientes = () => {
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [textoIA, setTextoIA] = useState("");
+  const [loadingIA, setLoadingIA] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -533,6 +537,155 @@ const ImportarClientes = () => {
     reader.readAsArrayBuffer(file);
   };
 
+  const handleImportIA = async () => {
+    if (!textoIA.trim()) {
+      toast({
+        title: "Dados vazios",
+        description: "Por favor, cole os dados da planilha ou insira informações para análise",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoadingIA(true);
+    console.log("🚀 Iniciando importação com IA...");
+
+    try {
+      // Chamar edge function para análise
+      const { data: analiseData, error: analiseError } = await supabase.functions.invoke(
+        'analisar-planilha-ia',
+        {
+          body: { planilhaTexto: textoIA }
+        }
+      );
+
+      if (analiseError) {
+        console.error("Erro na análise:", analiseError);
+        throw new Error(analiseError.message || "Erro ao analisar dados com IA");
+      }
+
+      console.log("📊 Resultado da análise:", analiseData);
+
+      if (!analiseData?.prospects || analiseData.prospects.length === 0) {
+        toast({
+          title: "Nenhum prospect encontrado",
+          description: "A IA não conseguiu identificar empresas nos dados fornecidos",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Processar e inserir prospects
+      const prospects = [];
+      const erros: string[] = [];
+      const detalhes: ImportResult['detalhes'] = [];
+
+      for (let i = 0; i < analiseData.prospects.length; i++) {
+        const p = analiseData.prospects[i];
+        
+        if (!p.nome_empresa || !p.municipio) {
+          erros.push(`Prospect ${i + 1}: Nome da empresa ou município ausente`);
+          continue;
+        }
+
+        // Buscar ou criar município
+        let municipio = null;
+        const { data: municipioData } = await supabase
+          .from("municipios")
+          .select("id, vendedor_id")
+          .ilike("nome", p.municipio)
+          .maybeSingle();
+
+        if (municipioData) {
+          municipio = municipioData;
+        } else if (p.uf) {
+          // Criar município se não existir
+          const { data: novoMunicipio } = await supabase
+            .from("municipios")
+            .insert({
+              nome: p.municipio,
+              uf: p.uf,
+              regiao: 'Centro' // padrão
+            })
+            .select("id, vendedor_id")
+            .single();
+          
+          if (novoMunicipio) {
+            municipio = novoMunicipio;
+          }
+        }
+
+        prospects.push({
+          nome_empresa: p.nome_empresa,
+          municipio_id: municipio?.id || null,
+          vendedor_id: municipio?.vendedor_id || null,
+          cnpj: p.cnpj || null,
+          municipio: p.municipio,
+          uf: p.uf || null,
+          telefone: p.telefone || null,
+          email: p.email || null,
+          contato_principal: p.contato_principal || null,
+          porte_empresa: p.porte_empresa || null,
+          segmento: p.segmento || null,
+          observacoes: p.observacoes || null,
+          importado_planilha: true,
+          status: 'novo'
+        });
+
+        detalhes.push({
+          linha: i + 1,
+          empresa: p.nome_empresa,
+          status: municipio?.vendedor_id ? 'sucesso' : 'sem_vendedor',
+          mensagem: municipio?.vendedor_id 
+            ? 'Distribuído automaticamente' 
+            : 'Município sem vendedor atribuído'
+        });
+      }
+
+      if (prospects.length === 0) {
+        throw new Error("Nenhum prospect válido para importar");
+      }
+
+      // Inserir no banco
+      const { error: insertError } = await supabase
+        .from("prospects")
+        .insert(prospects);
+
+      if (insertError) {
+        console.error("Erro ao inserir:", insertError);
+        throw insertError;
+      }
+
+      const distribuidos = prospects.filter(p => p.vendedor_id).length;
+      const nao_distribuidos = prospects.length - distribuidos;
+
+      setResult({
+        total: prospects.length,
+        distribuidos,
+        nao_distribuidos,
+        erros,
+        detalhes
+      });
+
+      toast({
+        title: "✨ Importação com IA concluída",
+        description: `${distribuidos} prospects distribuídos, ${nao_distribuidos} pendentes`,
+      });
+
+      setTextoIA(""); // Limpar campo
+
+    } catch (error: any) {
+      console.error("❌ Erro na importação com IA:", error);
+      toast({
+        title: "Erro na importação",
+        description: error.message || "Erro ao processar dados com IA",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingIA(false);
+    }
+  };
+
   const downloadTemplate = () => {
     const ws_data = [
       [
@@ -588,7 +741,17 @@ const ImportarClientes = () => {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <Tabs defaultValue="tradicional" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="tradicional">Importação Tradicional</TabsTrigger>
+            <TabsTrigger value="ia">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Importação com IA
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tradicional" className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Upload de Arquivo</CardTitle>
@@ -647,7 +810,66 @@ const ImportarClientes = () => {
               </Button>
             </CardContent>
           </Card>
-        </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="ia" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5" />
+                  Importação Inteligente com IA
+                </CardTitle>
+                <CardDescription>
+                  Cole os dados da sua planilha ou insira informações não estruturadas. 
+                  A IA vai analisar e cadastrar automaticamente os prospects.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="Cole aqui os dados da sua planilha (pode ser do Excel, Google Sheets, ou até mesmo uma lista não estruturada de empresas)...
+
+Exemplo:
+- Empresa ABC, São Paulo/SP, contato@empresa.com
+- Empresa XYZ Ltda - Rio de Janeiro - (21) 99999-9999
+- Nome: Empresa DEF | Cidade: Belo Horizonte | Porte: Pequeno"
+                    value={textoIA}
+                    onChange={(e) => setTextoIA(e.target.value)}
+                    disabled={loadingIA}
+                    className="min-h-[300px] font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    💡 Dica: A IA consegue interpretar diferentes formatos. Quanto mais informações, melhor!
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleImportIA}
+                  disabled={!textoIA.trim() || loadingIA}
+                  className="w-full"
+                  size="lg"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {loadingIA ? "Analisando com IA..." : "Analisar e Importar com IA"}
+                </Button>
+
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <p className="font-semibold mb-1">Como funciona:</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      <li>A IA analisa os dados e identifica todas as empresas mencionadas</li>
+                      <li>Extrai informações como nome, município, contato, CNPJ, etc.</li>
+                      <li>Normaliza e padroniza os dados automaticamente</li>
+                      <li>Cadastra os prospects no sistema</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {result && (
           <Card>
