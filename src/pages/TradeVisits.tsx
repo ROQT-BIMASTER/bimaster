@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Link as LinkIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { VincularStoreDialog } from "@/components/trade/VincularStoreDialog";
 
 interface Visit {
   id: string;
@@ -25,6 +26,8 @@ interface Visit {
 const TradeVisits = () => {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
+  const [showVincularDialog, setShowVincularDialog] = useState(false);
 
   useEffect(() => {
     fetchVisits();
@@ -73,6 +76,16 @@ const TradeVisits = () => {
       cancelled: "Cancelada",
     };
     return labels[status] || status;
+  };
+
+  const handleVincularLoja = (visitId: string) => {
+    setSelectedVisitId(visitId);
+    setShowVincularDialog(true);
+  };
+
+  const handleStoreLinked = async () => {
+    await fetchVisits();
+    toast.success("Loja vinculada com sucesso!");
   };
 
   return (
@@ -181,6 +194,16 @@ const TradeVisits = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      {!visit.stores && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleVincularLoja(visit.id)}
+                        >
+                          <LinkIcon className="mr-2 h-4 w-4" />
+                          Vincular Loja
+                        </Button>
+                      )}
                       <Button variant="outline" size="sm">
                         Ver Detalhes
                       </Button>
@@ -194,6 +217,13 @@ const TradeVisits = () => {
             ))
           )}
         </div>
+
+        <VincularStoreDialog
+          open={showVincularDialog}
+          onOpenChange={setShowVincularDialog}
+          visitId={selectedVisitId || undefined}
+          onStoreLinked={handleStoreLinked}
+        />
       </div>
     </DashboardLayout>
   );

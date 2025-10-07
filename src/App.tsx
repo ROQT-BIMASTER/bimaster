@@ -25,6 +25,7 @@ import TradePhotos from "./pages/TradePhotos";
 import TradeInsights from "./pages/TradeInsights";
 import TradeCompetitors from "./pages/TradeCompetitors";
 import TradePromotions from "./pages/TradePromotions";
+import TradeImportStores from "./pages/TradeImportStores";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => {
           <Route path="/dashboard/trade-marketing/competitors" element={<TradeCompetitors />} />
           <Route path="/dashboard/trade-marketing/promotions" element={<TradePromotions />} />
           <Route path="/dashboard/trade-marketing/insights" element={<TradeInsights />} />
+          <Route path="/dashboard/trade-marketing/import-stores" element={<TradeImportStores />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
