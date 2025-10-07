@@ -1,8 +1,8 @@
-import { Home, Users, Building2, FileText, LogOut, Settings, Upload, Shield, LayoutGrid, CheckSquare, MapPin, MessageSquare } from "lucide-react";
+import { Home, Users, Building2, FileText, LogOut, Settings, Upload, Shield, LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import logoUnion from "@/assets/logo-union.png";
 import {
   Sidebar,
@@ -16,43 +16,28 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { useToast } from "@/hooks/use-toast";
+import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { Loader2 } from "lucide-react";
 
-const menuItems = [
-  { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Prospects", url: "/dashboard/prospects", icon: Users },
-  { title: "Kanban", url: "/dashboard/kanban", icon: LayoutGrid },
-  { title: "Tarefas", url: "/dashboard/tarefas", icon: CheckSquare },
-  { title: "Mapa", url: "/dashboard/mapa", icon: MapPin },
-  { title: "Chat", url: "/dashboard/chat", icon: MessageSquare },
-  { title: "Municípios", url: "/dashboard/municipios", icon: Building2 },
-  { title: "Atividades", url: "/dashboard/atividades", icon: FileText },
-];
+const iconMap: Record<string, any> = {
+  LayoutDashboard: Home,
+  Users: Users,
+  KanbanSquare: LayoutGrid,
+  CheckSquare: CheckSquare,
+  Map: MapPin,
+  MessageSquare: MessageSquare,
+  MapPin: Building2,
+  Activity: Activity,
+  Upload: Upload,
+  Shield: Shield,
+  Clock: Clock,
+  Settings: Settings,
+};
 
 export function AppSidebar() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    checkAdmin();
-  }, []);
-
-  const checkAdmin = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .single();
-
-      setIsAdmin(data?.role === 'admin');
-    } catch (error) {
-      console.error("Erro ao verificar admin:", error);
-    }
-  };
+  const { permissions, loading, isAdmin } = useScreenPermissions();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -62,6 +47,18 @@ export function AppSidebar() {
     });
     navigate("/auth/login");
   };
+
+  if (loading) {
+    return (
+      <Sidebar>
+        <SidebarContent>
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </SidebarContent>
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar>
@@ -73,57 +70,26 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className={({ isActive }) =>
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "hover:bg-sidebar-accent/50"
-                      }
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-              {isAdmin && (
-                <>
-                  <SidebarMenuItem>
+              {permissions.map((screen) => {
+                const Icon = iconMap[screen.icone] || Home;
+                return (
+                  <SidebarMenuItem key={screen.codigo}>
                     <SidebarMenuButton asChild>
                       <NavLink
-                        to="/dashboard/importar"
+                        to={screen.rota}
                         className={({ isActive }) =>
                           isActive
                             ? "bg-sidebar-accent text-sidebar-accent-foreground"
                             : "hover:bg-sidebar-accent/50"
                         }
                       >
-                        <Upload className="h-4 w-4" />
-                        <span>Importar Clientes</span>
+                        <Icon className="h-4 w-4" />
+                        <span>{screen.nome}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/dashboard/auditoria"
-                        className={({ isActive }) =>
-                          isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "hover:bg-sidebar-accent/50"
-                        }
-                      >
-                        <Shield className="h-4 w-4" />
-                        <span>Auditoria</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </>
-              )}
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

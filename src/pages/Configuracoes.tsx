@@ -12,6 +12,8 @@ import { GerenciamentoUsuarios } from "@/components/configuracoes/GerenciamentoU
 import { ConfiguracoesNotificacoes } from "@/components/configuracoes/ConfiguracoesNotificacoes";
 import { ConfiguracaoMapbox } from "@/components/configuracoes/ConfiguracaoMapbox";
 import { PermissoesDeAcesso } from "@/components/configuracoes/PermissoesDeAcesso";
+import { GerenciamentoPermissoesTelas } from "@/components/configuracoes/GerenciamentoPermissoesTelas";
+import { VinculacaoUsuarioProspects } from "@/components/configuracoes/VinculacaoUsuarioProspects";
 import { Shield, UserCog, User, CheckCircle } from "lucide-react";
 
 interface Profile {
@@ -263,8 +265,10 @@ const Configuracoes = () => {
             </TabsContent>
 
             {isAdmin && (
-              <TabsContent value="permissoes">
+              <TabsContent value="permissoes" className="space-y-6">
                 <PermissoesDeAcesso />
+                <GerenciamentoPermissoesTelas />
+                <VinculacaoUsuarioProspects />
               </TabsContent>
             )}
 

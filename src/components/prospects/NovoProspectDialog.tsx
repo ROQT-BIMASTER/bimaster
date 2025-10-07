@@ -27,6 +27,8 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
     endereco: "",
     municipio: "",
     porte_empresa: "",
+    zona: "",
+    subdistrito: "",
     status: "novo",
     categoria: "",
     observacoes: "",
@@ -56,6 +58,8 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
           endereco: formData.endereco || null,
           municipio: formData.municipio || null,
           porte_empresa: formData.porte_empresa || null,
+          zona: (formData.zona as any) || null,
+          subdistrito: formData.subdistrito || null,
           categoria: (validatedData.categoria || null) as "A" | "B" | "C" | "D" | null,
           observacoes: validatedData.observacoes || null,
         },
@@ -77,6 +81,8 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
         endereco: "",
         municipio: "",
         porte_empresa: "",
+        zona: "",
+        subdistrito: "",
         status: "novo",
         categoria: "",
         observacoes: "",
@@ -216,13 +222,45 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
             />
           </div>
 
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="municipio">Município</Label>
+              <Input
+                id="municipio"
+                value={formData.municipio}
+                onChange={(e) => setFormData({ ...formData, municipio: e.target.value })}
+                placeholder="Digite o município"
+                maxLength={100}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="zona">Zona Geográfica</Label>
+              <Select value={formData.zona} onValueChange={(value) => setFormData({ ...formData, zona: value })}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Selecione a zona" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="norte">Norte</SelectItem>
+                  <SelectItem value="sul">Sul</SelectItem>
+                  <SelectItem value="leste">Leste</SelectItem>
+                  <SelectItem value="oeste">Oeste</SelectItem>
+                  <SelectItem value="centro">Centro</SelectItem>
+                  <SelectItem value="nordeste">Nordeste</SelectItem>
+                  <SelectItem value="noroeste">Noroeste</SelectItem>
+                  <SelectItem value="sudeste">Sudeste</SelectItem>
+                  <SelectItem value="sudoeste">Sudoeste</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="municipio">Município</Label>
+            <Label htmlFor="subdistrito">Subdistrito / Bairro</Label>
             <Input
-              id="municipio"
-              value={formData.municipio}
-              onChange={(e) => setFormData({ ...formData, municipio: e.target.value })}
-              placeholder="Digite o município"
+              id="subdistrito"
+              value={formData.subdistrito}
+              onChange={(e) => setFormData({ ...formData, subdistrito: e.target.value })}
+              placeholder="Ex: Bairro Centro, Zona Industrial"
               maxLength={100}
             />
           </div>

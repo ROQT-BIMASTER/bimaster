@@ -251,6 +251,7 @@ export type Database = {
           uf: string
           updated_at: string | null
           vendedor_id: string | null
+          zona_padrao: Database["public"]["Enums"]["zona_geografica"] | null
         }
         Insert: {
           created_at?: string | null
@@ -260,6 +261,7 @@ export type Database = {
           uf: string
           updated_at?: string | null
           vendedor_id?: string | null
+          zona_padrao?: Database["public"]["Enums"]["zona_geografica"] | null
         }
         Update: {
           created_at?: string | null
@@ -269,6 +271,7 @@ export type Database = {
           uf?: string
           updated_at?: string | null
           vendedor_id?: string | null
+          zona_padrao?: Database["public"]["Enums"]["zona_geografica"] | null
         }
         Relationships: [
           {
@@ -438,6 +441,7 @@ export type Database = {
           segmento: string | null
           situacao: string | null
           status: Database["public"]["Enums"]["prospect_status"]
+          subdistrito: string | null
           telefone: string | null
           tendencia_crescimento: string | null
           territorio: string | null
@@ -453,6 +457,7 @@ export type Database = {
           url_company_page: string | null
           variacao_score_propensao: number | null
           vendedor_id: string | null
+          zona: Database["public"]["Enums"]["zona_geografica"] | null
         }
         Insert: {
           bairro?: string | null
@@ -495,6 +500,7 @@ export type Database = {
           segmento?: string | null
           situacao?: string | null
           status?: Database["public"]["Enums"]["prospect_status"]
+          subdistrito?: string | null
           telefone?: string | null
           tendencia_crescimento?: string | null
           territorio?: string | null
@@ -510,6 +516,7 @@ export type Database = {
           url_company_page?: string | null
           variacao_score_propensao?: number | null
           vendedor_id?: string | null
+          zona?: Database["public"]["Enums"]["zona_geografica"] | null
         }
         Update: {
           bairro?: string | null
@@ -552,6 +559,7 @@ export type Database = {
           segmento?: string | null
           situacao?: string | null
           status?: Database["public"]["Enums"]["prospect_status"]
+          subdistrito?: string | null
           telefone?: string | null
           tendencia_crescimento?: string | null
           territorio?: string | null
@@ -567,6 +575,7 @@ export type Database = {
           url_company_page?: string | null
           variacao_score_propensao?: number | null
           vendedor_id?: string | null
+          zona?: Database["public"]["Enums"]["zona_geografica"] | null
         }
         Relationships: [
           {
@@ -584,6 +593,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      telas_sistema: {
+        Row: {
+          ativo: boolean | null
+          codigo: string
+          created_at: string | null
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          rota: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo: string
+          created_at?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          rota: string
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo?: string
+          created_at?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          rota?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -606,6 +651,64 @@ export type Database = {
         }
         Relationships: []
       }
+      usuario_permissoes_telas: {
+        Row: {
+          created_at: string | null
+          id: string
+          tela_id: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          tela_id: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          tela_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuario_permissoes_telas_tela_id_fkey"
+            columns: ["tela_id"]
+            isOneToOne: false
+            referencedRelation: "telas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usuario_prospects: {
+        Row: {
+          created_at: string | null
+          id: string
+          prospect_id: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          prospect_id: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          prospect_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuario_prospects_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -626,6 +729,14 @@ export type Database = {
         Args: { conversa_id_param: string; user_id_param: string }
         Returns: boolean
       }
+      usuario_tem_acesso_prospect: {
+        Args: { _prospect_id: string; _user_id: string }
+        Returns: boolean
+      }
+      usuario_tem_permissao_tela: {
+        Args: { _tela_codigo: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       activity_result: "positivo" | "neutro" | "negativo"
@@ -641,6 +752,16 @@ export type Database = {
         | "perdido"
       region_type: "Norte" | "Sul" | "Leste" | "Oeste" | "Centro"
       user_type: "vendedor" | "supervisor" | "admin"
+      zona_geografica:
+        | "norte"
+        | "sul"
+        | "leste"
+        | "oeste"
+        | "centro"
+        | "nordeste"
+        | "noroeste"
+        | "sudeste"
+        | "sudoeste"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -782,6 +903,17 @@ export const Constants = {
       ],
       region_type: ["Norte", "Sul", "Leste", "Oeste", "Centro"],
       user_type: ["vendedor", "supervisor", "admin"],
+      zona_geografica: [
+        "norte",
+        "sul",
+        "leste",
+        "oeste",
+        "centro",
+        "nordeste",
+        "noroeste",
+        "sudeste",
+        "sudoeste",
+      ],
     },
   },
 } as const
