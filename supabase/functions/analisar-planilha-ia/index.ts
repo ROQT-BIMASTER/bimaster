@@ -11,15 +11,51 @@ serve(async (req) => {
   }
 
   try {
-    const { planilhaTexto } = await req.json();
-    console.log("📊 Iniciando análise de planilha com IA...");
+    const { planilhaTexto, texto, tipo } = await req.json();
+    const textoAnalise = texto || planilhaTexto;
+    console.log(`📊 Iniciando análise ${tipo === 'stores' ? 'de lojas' : 'de prospects'} com IA...`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY não configurada");
     }
 
-    const systemPrompt = `Você é um assistente especializado em análise de dados de empresas para um CRM de prospecção.
+    let systemPrompt = "";
+    
+    if (tipo === "stores") {
+      systemPrompt = `Você é um assistente especializado em analisar dados de lojas/PDVs.
+Analise o texto fornecido e extraia TODAS as lojas possíveis.
+Retorne um JSON válido com o array 'stores' contendo os dados estruturados.
+
+Formato esperado:
+{
+  "stores": [
+    {
+      "name": "string (obrigatório)",
+      "code": "string ou null",
+      "chain": "string ou null (rede)",
+      "cnpj": "string ou null",
+      "address": "string ou null",
+      "city": "string ou null",
+      "state": "string (UF) ou null",
+      "phone": "string ou null",
+      "email": "string ou null",
+      "category": "string ou null (supermercado, farmacia, atacado, conveniencia)",
+      "priority": "string ou null (alta, media, baixa)"
+    }
+  ],
+  "total_encontrados": number,
+  "confianca": "alta | media | baixa"
+}
+
+IMPORTANTE:
+- name é obrigatório
+- Normalize category para: supermercado, farmacia, atacado ou conveniencia
+- Normalize priority para: alta, media ou baixa
+- Se não conseguir identificar um campo, use null
+- Retorne APENAS o JSON, sem texto adicional`;
+    } else {
+      systemPrompt = `Você é um assistente especializado em análise de dados de empresas para um CRM de prospecção.
 
 Sua tarefa é analisar os dados fornecidos (que podem estar em formato de planilha, texto não estruturado, lista, etc.) e extrair TODAS as empresas/prospects mencionados.
 
@@ -50,8 +86,9 @@ Retorne um JSON com a seguinte estrutura:
   "total_encontrados": number,
   "confianca": "alta | media | baixa"
 }`;
+    }
 
-    const userPrompt = `Analise os seguintes dados e extraia todas as empresas/prospects que encontrar:\n\n${planilhaTexto}`;
+    const userPrompt = `Analise os seguintes dados e extraia ${tipo === 'stores' ? 'todas as lojas/PDVs' : 'todas as empresas/prospects'} que encontrar:\n\n${textoAnalise}`;
 
     console.log("🤖 Chamando IA para análise...");
     
@@ -111,7 +148,7 @@ Retorne um JSON com a seguinte estrutura:
       throw new Error("Não foi possível processar a resposta da IA. Tente novamente.");
     }
 
-    console.log(`✅ Análise concluída: ${resultado.total_encontrados} prospects encontrados`);
+    console.log(`✅ Análise concluída: ${resultado.total_encontrados} ${tipo === 'stores' ? 'lojas' : 'prospects'} encontrados`);
 
     return new Response(
       JSON.stringify(resultado),
@@ -122,7 +159,7 @@ Retorne um JSON com a seguinte estrutura:
     console.error("❌ Erro na função:", error);
     return new Response(
       JSON.stringify({ 
-        error: error?.message || "Erro ao processar planilha",
+        error: error?.message || "Erro ao processar dados",
         details: error?.toString()
       }),
       { 

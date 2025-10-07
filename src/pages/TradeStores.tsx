@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Search, MapPin, Edit, Eye } from "lucide-react";
+import { Plus, Upload, Search, MapPin, Edit, Eye } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -77,10 +77,16 @@ const TradeStores = () => {
               Gestão de lojas e PDVs
             </p>
           </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Loja
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => window.location.href = '/dashboard/trade-marketing/import-stores'}>
+              <Upload className="mr-2 h-4 w-4" />
+              Importar Lojas
+            </Button>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Loja
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
