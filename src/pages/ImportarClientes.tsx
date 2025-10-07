@@ -119,6 +119,43 @@ const ImportarClientes = () => {
     }
   };
 
+  const classificarPorteEmpresa = (
+    totalFuncionarios?: number | null,
+    faixaFuncionarios?: string | null,
+    faixaFaturamento?: string | null
+  ): string => {
+    // Prioriza total de funcionários se disponível
+    if (totalFuncionarios !== null && totalFuncionarios !== undefined) {
+      if (totalFuncionarios === 0 || totalFuncionarios === 1) return "MEI";
+      if (totalFuncionarios <= 9) return "Microempresa";
+      if (totalFuncionarios <= 49) return "Pequena";
+      if (totalFuncionarios <= 99) return "Média";
+      return "Grande";
+    }
+
+    // Usa faixa de funcionários
+    if (faixaFuncionarios) {
+      const faixa = faixaFuncionarios.toLowerCase();
+      if (faixa.includes("0") || faixa.includes("mei")) return "MEI";
+      if (faixa.includes("1 a 9") || faixa.includes("micro")) return "Microempresa";
+      if (faixa.includes("10 a 49") || faixa.includes("pequena")) return "Pequena";
+      if (faixa.includes("50 a 99") || faixa.includes("média")) return "Média";
+      if (faixa.includes("100") || faixa.includes("grande")) return "Grande";
+    }
+
+    // Usa faixa de faturamento como fallback
+    if (faixaFaturamento) {
+      const faixa = faixaFaturamento.toLowerCase();
+      if (faixa.includes("mei") || faixa.includes("81.000")) return "MEI";
+      if (faixa.includes("360.000") || faixa.includes("micro")) return "Microempresa";
+      if (faixa.includes("4.8") || faixa.includes("pequena")) return "Pequena";
+      if (faixa.includes("300") || faixa.includes("média")) return "Média";
+      return "Grande";
+    }
+
+    return "Não classificado";
+  };
+
   const handleImport = async () => {
     if (!file) return;
 
@@ -368,47 +405,15 @@ const ImportarClientes = () => {
             return isNaN(num) ? null : num;
           };
 
-          // Mapear porte da empresa para valores válidos (MEI, ME, EPP, Grande)
-          const mapearPorteEmpresa = (porte: string): string | null => {
-            if (!porte || porte.trim() === '') return null;
-            const porteNormalizado = porte.toLowerCase().trim();
-            
-            // Mapeamento de variações comuns
-            const mapeamento: Record<string, string> = {
-              'mei': 'MEI',
-              'microempreendedor': 'MEI',
-              'microempreendedor individual': 'MEI',
-              'me': 'ME',
-              'micro': 'ME',
-              'microempresa': 'ME',
-              'micro empresa': 'ME',
-              'epp': 'EPP',
-              'pequena': 'EPP',
-              'pequeno': 'EPP',
-              'pequeno porte': 'EPP',
-              'empresa de pequeno porte': 'EPP',
-              'grande': 'Grande',
-              'medio': 'Grande',
-              'média': 'Grande',
-              'grande porte': 'Grande'
-            };
-
-            // Tentar encontrar um mapeamento
-            for (const [key, value] of Object.entries(mapeamento)) {
-              if (porteNormalizado.includes(key)) {
-                return value;
-              }
-            }
-
-            // Se não encontrar, retornar null
-            console.warn(`⚠️ Porte empresa não reconhecido: "${porte}" - usando null`);
-            return null;
-          };
-
-          const porteEmpresaRaw = (values[porteIdx] || '').trim().replace(/^["']|["']$/g, '');
-          const porteEmpresaMapeado = mapearPorteEmpresa(porteEmpresaRaw);
+          // Extrair dados para classificar porte
+          const totalFuncionarios = parseNumber(values[totalFuncionariosIdx] || '');
+          const faixaFuncionarios = (values[faixaFuncionariosIdx] || '').trim().replace(/^["']|["']$/g, '') || null;
+          const faixaFaturamento = (values[faixaFaturamentoIdx] || '').trim().replace(/^["']|["']$/g, '') || null;
           
-          console.log(`Linha ${i + 1}: Porte original="${porteEmpresaRaw}" → Mapeado="${porteEmpresaMapeado}"`);
+          // Classificar porte automaticamente
+          const porteEmpresaClassificado = classificarPorteEmpresa(totalFuncionarios, faixaFuncionarios, faixaFaturamento);
+          
+          console.log(`Linha ${i + 1}: Funcionários=${totalFuncionarios}, Faixa Func="${faixaFuncionarios}", Faixa Fat="${faixaFaturamento}" → Porte="${porteEmpresaClassificado}"`);
 
           prospects.push({
             nome_empresa,
@@ -423,10 +428,10 @@ const ImportarClientes = () => {
             cnae_codigo: (values[cnaeCodigoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             cnae_principal: (values[cnaePrincipalIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             tipo_estabelecimento: (values[tipoEstabelecimentoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-            porte_empresa: porteEmpresaMapeado,
-            total_funcionarios: parseNumber(values[totalFuncionariosIdx] || ''),
-            faixa_funcionarios: (values[faixaFuncionariosIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
-            faixa_faturamento: (values[faixaFaturamentoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
+            porte_empresa: porteEmpresaClassificado,
+            total_funcionarios: totalFuncionarios,
+            faixa_funcionarios: faixaFuncionarios,
+            faixa_faturamento: faixaFaturamento,
             total_filiais: parseNumber(values[totalFiliaisIdx] || ''),
             tipo_entidade: (values[tipoEntidadeIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             natureza_juridica: (values[naturezaJuridicaIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
