@@ -74,6 +74,14 @@ REGRAS IMPORTANTES:
    - Valores ACEITOS: "MEI", "ME", "EPP", "Grande"
    - NUNCA use: "Microempresa", "Pequena", "Média" - use apenas os valores acima
    - Se não houver informação suficiente = null
+7. ENDEREÇO - Extraia TODOS os componentes possíveis:
+   - Tipo de logradouro (Rua, Avenida, Alameda, etc.)
+   - Nome da rua/avenida (logradouro)
+   - Número
+   - CEP
+   - Bairro
+   - Município
+   - UF
 
 Retorne um JSON com a seguinte estrutura:
 {
@@ -83,12 +91,32 @@ Retorne um JSON com a seguinte estrutura:
       "cnpj": "string ou null",
       "municipio": "string (obrigatório)",
       "uf": "string de 2 letras ou null",
-       "telefone": "string ou null",
-       "email": "string ou null",
-       "contato_principal": "string ou null",
-       "porte_empresa": "MEI | ME | EPP | Grande | null (use APENAS estes valores exatos)",
-       "segmento": "string ou null",
-       "observacoes": "string ou null"
+      "telefone": "string ou null",
+      "email": "string ou null",
+      "contato_principal": "string ou null",
+      "porte_empresa": "MEI | ME | EPP | Grande | null (use APENAS estes valores exatos)",
+      "segmento": "string ou null",
+      "tipo_logradouro": "string ou null (Ex: Rua, Avenida, Alameda)",
+      "logradouro": "string ou null (nome da rua/avenida)",
+      "numero": "string ou null",
+      "cep": "string ou null",
+      "bairro": "string ou null",
+      "nome_fantasia": "string ou null",
+      "cnpj_raiz": "string ou null",
+      "dominio": "string ou null",
+      "perfil_linkedin": "string ou null",
+      "cnae_codigo": "string ou null",
+      "cnae_principal": "string ou null",
+      "tipo_estabelecimento": "string ou null",
+      "total_funcionarios": "number ou null",
+      "faixa_funcionarios": "string ou null",
+      "faixa_faturamento": "string ou null",
+      "demais_emails": "string ou null",
+      "demais_telefones": "string ou null",
+      "perfil_facebook": "string ou null",
+      "perfil_instagram": "string ou null",
+      "perfil_twitter": "string ou null",
+      "observacoes": "string ou null"
     }
   ],
   "total_encontrados": number,
