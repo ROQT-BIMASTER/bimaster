@@ -16,11 +16,13 @@ interface ImportResult {
   total: number;
   distribuidos: number;
   nao_distribuidos: number;
+  atualizados: number;
+  inseridos: number;
   erros: string[];
   detalhes: Array<{
     linha: number;
     empresa: string;
-    status: 'sucesso' | 'erro' | 'sem_vendedor';
+    status: 'sucesso' | 'erro' | 'sem_vendedor' | 'atualizado';
     mensagem: string;
   }>;
 }
@@ -322,7 +324,8 @@ const ImportarClientes = () => {
             cnpjValidado = '';
           }
 
-          // Verificar duplicata por CNPJ
+          // Verificar duplicata por CNPJ e atualizar se existir
+          let prospectExistenteId: string | null = null;
           if (cnpjValidado) {
             const { data: existente } = await supabase
               .from("prospects")
@@ -331,14 +334,8 @@ const ImportarClientes = () => {
               .maybeSingle();
 
             if (existente) {
-              erros.push(`Linha ${i + 1}: CNPJ ${cnpjValidado} já cadastrado`);
-              detalhes.push({
-                linha: i + 1,
-                empresa: nome_empresa,
-                status: 'erro',
-                mensagem: 'CNPJ duplicado'
-              });
-              continue;
+              prospectExistenteId = existente.id;
+              console.log(`Prospect com CNPJ ${cnpjValidado} já existe, será atualizado`);
             }
           }
 
@@ -414,7 +411,7 @@ const ImportarClientes = () => {
           
           console.log(`Linha ${i + 1}: Funcionários=${totalFuncionarios}, Faixa Func="${faixaFuncionarios}", Faixa Fat="${faixaFaturamento}" → Porte="${porteEmpresaClassificado}"`);
 
-          prospects.push({
+          const prospectData = {
             nome_empresa,
             municipio_id: municipio?.id || null,
             vendedor_id: municipio?.vendedor_id || null,
@@ -463,19 +460,47 @@ const ImportarClientes = () => {
             contato_principal: (values[contatoIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             observacoes: (values[observacoesIdx] || '').trim().replace(/^["']|["']$/g, '') || null,
             importado_planilha: true,
-            status: 'novo'
-          });
+            status: 'novo' as const
+          };
 
-          detalhes.push({
-            linha: i + 1,
-            empresa: nome_empresa,
-            status: municipio?.vendedor_id ? 'sucesso' : 'sem_vendedor',
-            mensagem: avisosCNPJ.length > 0 
-              ? avisosCNPJ[0] 
-              : (municipio?.vendedor_id 
-                ? 'Distribuído automaticamente' 
-                : `Município ${municipio_nome} sem vendedor atribuído`)
-          });
+          // Se prospect já existe, atualizar; senão, adicionar para inserção
+          if (prospectExistenteId) {
+            const { error: updateError } = await supabase
+              .from("prospects")
+              .update(prospectData)
+              .eq("id", prospectExistenteId);
+
+            if (updateError) {
+              erros.push(`Linha ${i + 1}: Erro ao atualizar ${nome_empresa} - ${updateError.message}`);
+              detalhes.push({
+                linha: i + 1,
+                empresa: nome_empresa,
+                status: 'erro',
+                mensagem: `Erro ao atualizar: ${updateError.message}`
+              });
+            } else {
+              detalhes.push({
+                linha: i + 1,
+                empresa: nome_empresa,
+                status: 'atualizado',
+                mensagem: avisosCNPJ.length > 0 
+                  ? `Atualizado - ${avisosCNPJ[0]}` 
+                  : 'Cliente atualizado com sucesso'
+              });
+            }
+          } else {
+            prospects.push(prospectData);
+            detalhes.push({
+              linha: i + 1,
+              empresa: nome_empresa,
+              status: municipio?.vendedor_id ? 'sucesso' : 'sem_vendedor',
+              mensagem: avisosCNPJ.length > 0 
+                ? avisosCNPJ[0] 
+                : (municipio?.vendedor_id 
+                  ? 'Distribuído automaticamente' 
+                  : `Município ${municipio_nome} sem vendedor atribuído`)
+            });
+          }
         }
 
         if (prospects.length === 0) {
@@ -506,11 +531,15 @@ const ImportarClientes = () => {
 
         const distribuidos = prospects.filter(p => p.vendedor_id).length;
         const nao_distribuidos = prospects.length - distribuidos;
+        const atualizados = detalhes.filter(d => d.status === 'atualizado').length;
+        const inseridos = prospects.length;
 
         setResult({
-          total: prospects.length,
+          total: rows.length,
           distribuidos,
           nao_distribuidos,
+          atualizados,
+          inseridos,
           erros,
           detalhes
         });
@@ -523,7 +552,7 @@ const ImportarClientes = () => {
         
         toast({
           title: "Importação concluída",
-          description: `${distribuidos} clientes distribuídos, ${nao_distribuidos} pendentes`,
+          description: `${inseridos} inseridos, ${atualizados} atualizados`,
         });
       } catch (error: any) {
         console.error("❌ Erro durante o processamento:", error);
@@ -612,6 +641,21 @@ const ImportarClientes = () => {
 
         const porteEmpresaMapeado = mapearPorte(p.porte_empresa);
 
+        // Verificar se prospect já existe (por CNPJ)
+        let prospectExistenteId: string | null = null;
+        if (p.cnpj) {
+          const { data: existente } = await supabase
+            .from("prospects")
+            .select("id")
+            .eq("cnpj", p.cnpj)
+            .maybeSingle();
+
+          if (existente) {
+            prospectExistenteId = existente.id;
+            console.log(`Prospect com CNPJ ${p.cnpj} já existe, será atualizado`);
+          }
+        }
+
         // Buscar ou criar município
         let municipio = null;
         const { data: municipioData } = await supabase
@@ -639,7 +683,7 @@ const ImportarClientes = () => {
           }
         }
 
-        prospects.push({
+        const prospectData = {
           nome_empresa: p.nome_empresa,
           municipio_id: municipio?.id || null,
           vendedor_id: municipio?.vendedor_id || null,
@@ -673,17 +717,43 @@ const ImportarClientes = () => {
           perfil_twitter: p.perfil_twitter || null,
           observacoes: p.observacoes || null,
           importado_planilha: true,
-          status: 'novo'
-        });
+          status: 'novo' as const
+        };
 
-        detalhes.push({
-          linha: i + 1,
-          empresa: p.nome_empresa,
-          status: municipio?.vendedor_id ? 'sucesso' : 'sem_vendedor',
-          mensagem: municipio?.vendedor_id 
-            ? 'Distribuído automaticamente' 
-            : 'Município sem vendedor atribuído'
-        });
+        // Se prospect já existe, atualizar; senão, adicionar para inserção
+        if (prospectExistenteId) {
+          const { error: updateError } = await supabase
+            .from("prospects")
+            .update(prospectData)
+            .eq("id", prospectExistenteId);
+
+          if (updateError) {
+            erros.push(`Prospect ${i + 1}: Erro ao atualizar ${p.nome_empresa} - ${updateError.message}`);
+            detalhes.push({
+              linha: i + 1,
+              empresa: p.nome_empresa,
+              status: 'erro',
+              mensagem: `Erro ao atualizar: ${updateError.message}`
+            });
+          } else {
+            detalhes.push({
+              linha: i + 1,
+              empresa: p.nome_empresa,
+              status: 'atualizado',
+              mensagem: 'Cliente atualizado com sucesso'
+            });
+          }
+        } else {
+          prospects.push(prospectData);
+          detalhes.push({
+            linha: i + 1,
+            empresa: p.nome_empresa,
+            status: municipio?.vendedor_id ? 'sucesso' : 'sem_vendedor',
+            mensagem: municipio?.vendedor_id 
+              ? 'Distribuído automaticamente' 
+              : 'Município sem vendedor atribuído'
+          });
+        }
       }
 
       if (prospects.length === 0) {
@@ -702,18 +772,22 @@ const ImportarClientes = () => {
 
       const distribuidos = prospects.filter(p => p.vendedor_id).length;
       const nao_distribuidos = prospects.length - distribuidos;
+      const atualizados = detalhes.filter(d => d.status === 'atualizado').length;
+      const inseridos = prospects.length;
 
       setResult({
-        total: prospects.length,
+        total: analiseData.prospects.length,
         distribuidos,
         nao_distribuidos,
+        atualizados,
+        inseridos,
         erros,
         detalhes
       });
 
       toast({
         title: "✨ Importação com IA concluída",
-        description: `${distribuidos} prospects distribuídos, ${nao_distribuidos} pendentes`,
+        description: `${inseridos} inseridos, ${atualizados} atualizados`,
       });
 
       setTextoIA(""); // Limpar campo
@@ -921,10 +995,18 @@ Exemplo:
               <CardTitle>Resultado da Importação</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="text-center p-4 bg-muted rounded-lg">
                   <div className="text-2xl font-bold">{result.total}</div>
-                  <div className="text-sm text-muted-foreground">Total</div>
+                  <div className="text-sm text-muted-foreground">Total Processados</div>
+                </div>
+                <div className="text-center p-4 bg-blue-500/10 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{result.inseridos}</div>
+                  <div className="text-sm text-muted-foreground">Inseridos</div>
+                </div>
+                <div className="text-center p-4 bg-purple-500/10 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{result.atualizados}</div>
+                  <div className="text-sm text-muted-foreground">Atualizados</div>
                 </div>
                 <div className="text-center p-4 bg-success/10 rounded-lg">
                   <div className="text-2xl font-bold text-success">{result.distribuidos}</div>
@@ -945,6 +1027,8 @@ Exemplo:
                         <div className="flex items-center gap-2">
                           {detalhe.status === 'sucesso' ? (
                             <CheckCircle className="h-4 w-4 text-success" />
+                          ) : detalhe.status === 'atualizado' ? (
+                            <CheckCircle className="h-4 w-4 text-purple-600" />
                           ) : detalhe.status === 'sem_vendedor' ? (
                             <AlertCircle className="h-4 w-4 text-warning" />
                           ) : (
@@ -954,6 +1038,7 @@ Exemplo:
                         </div>
                         <Badge variant={
                           detalhe.status === 'sucesso' ? 'default' : 
+                          detalhe.status === 'atualizado' ? 'secondary' :
                           detalhe.status === 'sem_vendedor' ? 'secondary' : 
                           'destructive'
                         }>
