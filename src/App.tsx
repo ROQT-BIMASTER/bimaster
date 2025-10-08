@@ -1,4 +1,3 @@
-import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -32,55 +31,53 @@ import TradeFinanceiro from "./pages/TradeFinanceiro";
 import TradeIdealPhotos from "./pages/TradeIdealPhotos";
 import TradeAuditorias from "./pages/TradeAuditorias";
 
-const App = () => {
-  const [queryClient] = React.useState(() => new QueryClient());
+const queryClient = new QueryClient();
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth/login" element={<Auth />} />
-          <Route path="/auth/signup" element={<Auth />} />
-          <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
-          <Route path="/dashboard/aguardando-aprovacao" element={<AguardandoAprovacao />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          
-          {/* Módulo de Prospects */}
-          <Route path="/dashboard/prospects" element={<ProspectsModule />} />
-          <Route path="/dashboard/prospects/list" element={<Prospects />} />
-          <Route path="/dashboard/prospects/kanban" element={<Kanban />} />
-          <Route path="/dashboard/prospects/atividades" element={<Atividades />} />
-          <Route path="/dashboard/prospects/mapa" element={<Mapa />} />
-          
-          {/* Outras funcionalidades */}
-          <Route path="/dashboard/municipios" element={<Municipios />} />
-          <Route path="/dashboard/tarefas" element={<Tarefas />} />
-          <Route path="/dashboard/chat" element={<Chat />} />
-          <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
-          <Route path="/dashboard/importar-clientes" element={<ImportarClientes />} />
-          <Route path="/dashboard/auditoria" element={<Auditoria />} />
-          
-          {/* Módulo de Trade Marketing */}
-          <Route path="/dashboard/trade" element={<TradeModule />} />
-          <Route path="/dashboard/trade/stores" element={<TradeStores />} />
-          <Route path="/dashboard/trade/visits" element={<TradeVisits />} />
-          <Route path="/dashboard/trade/photos" element={<TradePhotos />} />
-          <Route path="/dashboard/trade/competitors" element={<TradeCompetitors />} />
-          <Route path="/dashboard/trade/promotions" element={<TradePromotions />} />
-          <Route path="/dashboard/trade/insights" element={<TradeInsights />} />
-          <Route path="/dashboard/trade/import-stores" element={<TradeImportStores />} />
-          <Route path="/dashboard/trade/calendar" element={<TradeCalendar />} />
-          <Route path="/dashboard/trade/financeiro" element={<TradeFinanceiro />} />
-          <Route path="/dashboard/trade/ideal-photos" element={<TradeIdealPhotos />} />
-          <Route path="/dashboard/trade/auditorias" element={<TradeAuditorias />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
-  );
-};
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <Toaster />
+    <Sonner />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/auth/login" element={<Auth />} />
+        <Route path="/auth/signup" element={<Auth />} />
+        <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
+        <Route path="/dashboard/aguardando-aprovacao" element={<AguardandoAprovacao />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        
+        {/* Módulo de Prospects */}
+        <Route path="/dashboard/prospects" element={<ProspectsModule />} />
+        <Route path="/dashboard/prospects/list" element={<Prospects />} />
+        <Route path="/dashboard/prospects/kanban" element={<Kanban />} />
+        <Route path="/dashboard/prospects/atividades" element={<Atividades />} />
+        <Route path="/dashboard/prospects/mapa" element={<Mapa />} />
+        
+        {/* Outras funcionalidades */}
+        <Route path="/dashboard/municipios" element={<Municipios />} />
+        <Route path="/dashboard/tarefas" element={<Tarefas />} />
+        <Route path="/dashboard/chat" element={<Chat />} />
+        <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
+        <Route path="/dashboard/importar-clientes" element={<ImportarClientes />} />
+        <Route path="/dashboard/auditoria" element={<Auditoria />} />
+        
+        {/* Módulo de Trade Marketing */}
+        <Route path="/dashboard/trade" element={<TradeModule />} />
+        <Route path="/dashboard/trade/stores" element={<TradeStores />} />
+        <Route path="/dashboard/trade/visits" element={<TradeVisits />} />
+        <Route path="/dashboard/trade/photos" element={<TradePhotos />} />
+        <Route path="/dashboard/trade/competitors" element={<TradeCompetitors />} />
+        <Route path="/dashboard/trade/promotions" element={<TradePromotions />} />
+        <Route path="/dashboard/trade/insights" element={<TradeInsights />} />
+        <Route path="/dashboard/trade/import-stores" element={<TradeImportStores />} />
+        <Route path="/dashboard/trade/calendar" element={<TradeCalendar />} />
+        <Route path="/dashboard/trade/financeiro" element={<TradeFinanceiro />} />
+        <Route path="/dashboard/trade/ideal-photos" element={<TradeIdealPhotos />} />
+        <Route path="/dashboard/trade/auditorias" element={<TradeAuditorias />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  </QueryClientProvider>
+);
 
 export default App;
