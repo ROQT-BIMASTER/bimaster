@@ -32,9 +32,9 @@ import TradeFinanceiro from "./pages/TradeFinanceiro";
 import TradeIdealPhotos from "./pages/TradeIdealPhotos";
 import TradeAuditorias from "./pages/TradeAuditorias";
 
-const queryClient = new QueryClient();
-
 const App = () => {
+  const [queryClient] = React.useState(() => new QueryClient());
+
   return (
     <QueryClientProvider client={queryClient}>
       <Toaster />
