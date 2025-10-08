@@ -479,6 +479,79 @@ export type Database = {
           },
         ]
       }
+      gondola_audits: {
+        Row: {
+          concorrentes_detalhes: Json | null
+          concorrentes_presentes: boolean | null
+          conforme_planograma: boolean | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          observacoes: string | null
+          photo_ids: string[] | null
+          preco_praticado: number | null
+          product_id: string
+          produto_presente: boolean
+          quantidade_frentes: number | null
+          store_id: string
+          visit_id: string | null
+        }
+        Insert: {
+          concorrentes_detalhes?: Json | null
+          concorrentes_presentes?: boolean | null
+          conforme_planograma?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          photo_ids?: string[] | null
+          preco_praticado?: number | null
+          product_id: string
+          produto_presente?: boolean
+          quantidade_frentes?: number | null
+          store_id: string
+          visit_id?: string | null
+        }
+        Update: {
+          concorrentes_detalhes?: Json | null
+          concorrentes_presentes?: boolean | null
+          conforme_planograma?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          photo_ids?: string[] | null
+          preco_praticado?: number | null
+          product_id?: string
+          produto_presente?: boolean
+          quantidade_frentes?: number | null
+          store_id?: string
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gondola_audits_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gondola_audits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gondola_audits_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ideal_pdv_photos: {
         Row: {
           category: string

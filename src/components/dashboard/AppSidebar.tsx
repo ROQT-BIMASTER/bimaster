@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,6 +94,7 @@ export function AppSidebar() {
     { title: "Visitas", url: "/dashboard/trade/visits", icon: Calendar },
     { title: "Fotos", url: "/dashboard/trade/photos", icon: Camera },
     { title: "Fotos Ideais", url: "/dashboard/trade/ideal-photos", icon: Image },
+    { title: "Auditoria Gôndola", url: "/dashboard/trade/auditorias", icon: ClipboardCheck },
     { title: "Promoções", url: "/dashboard/trade/promotions", icon: Tag },
     { title: "Concorrentes", url: "/dashboard/trade/competitors", icon: TrendingUp },
     { title: "Insights IA", url: "/dashboard/trade/insights", icon: Brain },
