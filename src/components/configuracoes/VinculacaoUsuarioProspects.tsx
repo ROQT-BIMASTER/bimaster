@@ -135,6 +135,9 @@ export const VinculacaoUsuarioProspects = () => {
         title: "Vinculações atualizadas",
         description: "Os clientes foram vinculados ao usuário com sucesso",
       });
+
+      // Recarregar as vinculações para garantir que a UI está atualizada
+      await fetchLinkedProspects(selectedUsuario);
     } catch (error) {
       console.error("Error saving links:", error);
       toast({
