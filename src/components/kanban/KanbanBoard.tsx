@@ -67,6 +67,26 @@ export const KanbanBoard = () => {
 
   useEffect(() => {
     fetchProspects();
+
+    // Configurar realtime para atualizar quando prospects mudarem
+    const channel = supabase
+      .channel('prospects-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'prospects'
+        },
+        () => {
+          fetchProspects();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchProspects = async () => {
@@ -163,20 +183,22 @@ export const KanbanBoard = () => {
       prev.map((p) => (p.id === prospectId ? { ...p, status: newStatus } : p))
     );
 
-    // Atualizar no banco com o tipo correto
+    // Atualizar no banco com o tipo correto e atualizar timestamp
     try {
       const { error } = await supabase
         .from("prospects")
         .update({ 
-          status: newStatus as "novo" | "em_contato" | "proposta_enviada" | "negociacao" | "ganho" | "perdido"
+          status: newStatus as "novo" | "em_contato" | "proposta_enviada" | "negociacao" | "ganho" | "perdido",
+          updated_at: new Date().toISOString()
         })
         .eq("id", prospectId);
 
       if (error) throw error;
 
+      const statusLabel = STAGES.find(s => s.id === newStatus)?.label || newStatus;
       toast({
         title: "Status atualizado",
-        description: "O prospect foi movido com sucesso",
+        description: `Prospect movido para "${statusLabel}" em todos os módulos`,
       });
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
