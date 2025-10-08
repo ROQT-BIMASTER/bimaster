@@ -8,12 +8,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, UserPlus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 interface Prospect {
   id: string;
   nome_empresa: string;
   municipio?: string;
   vendedor_id: string | null;
+  status?: string;
+  vendedor?: {
+    nome: string;
+  } | null;
 }
 
 interface Vendedor {
@@ -22,7 +27,11 @@ interface Vendedor {
   email: string;
 }
 
-export const AtribuirProspectsDialog = () => {
+interface AtribuirProspectsDialogProps {
+  onSuccess?: () => void;
+}
+
+export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [prospects, setProspects] = useState<Prospect[]>([]);
@@ -39,11 +48,17 @@ export const AtribuirProspectsDialog = () => {
 
   const fetchData = async () => {
     try {
-      // Buscar prospects sem vendedor
+      // Buscar TODOS os prospects (com ou sem vendedor)
       const { data: prospectsData, error: prospectsError } = await supabase
         .from("prospects")
-        .select("id, nome_empresa, municipio, vendedor_id")
-        .is("vendedor_id", null)
+        .select(`
+          id, 
+          nome_empresa, 
+          municipio, 
+          vendedor_id,
+          status,
+          vendedor:profiles!prospects_vendedor_id_fkey(nome)
+        `)
         .order("nome_empresa");
 
       if (prospectsError) throw prospectsError;
@@ -138,6 +153,7 @@ export const AtribuirProspectsDialog = () => {
       setSelectedProspects(new Set());
       setSelectedVendedor("");
       setOpen(false);
+      onSuccess?.();
     } catch (error: any) {
       console.error("Erro ao atribuir prospects:", error);
       toast({
@@ -162,7 +178,8 @@ export const AtribuirProspectsDialog = () => {
         <DialogHeader>
           <DialogTitle>Atribuir Prospects em Massa</DialogTitle>
           <DialogDescription>
-            Selecione os prospects e o vendedor para atribuição
+            Selecione múltiplos prospects e atribua a um vendedor de uma só vez. 
+            Você pode atribuir ou reatribuir prospects existentes.
           </DialogDescription>
         </DialogHeader>
 
@@ -170,10 +187,10 @@ export const AtribuirProspectsDialog = () => {
           <div className="space-y-2">
             <Label htmlFor="vendedor">Vendedor *</Label>
             <Select value={selectedVendedor} onValueChange={setSelectedVendedor}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background">
                 <SelectValue placeholder="Selecione um vendedor" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-popover z-[100]">
                 {vendedores.map((v) => (
                   <SelectItem key={v.id} value={v.id}>
                     {v.nome} ({v.email})
@@ -185,7 +202,7 @@ export const AtribuirProspectsDialog = () => {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Prospects sem Vendedor ({prospects.length})</Label>
+              <Label>Prospects Disponíveis ({prospects.length})</Label>
               <Button
                 type="button"
                 variant="ghost"
@@ -201,26 +218,40 @@ export const AtribuirProspectsDialog = () => {
             <ScrollArea className="h-[300px] border rounded-md p-4">
               {prospects.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  Nenhum prospect sem vendedor
+                  Nenhum prospect disponível
                 </p>
               ) : (
                 <div className="space-y-2">
                   {prospects.map((prospect) => (
                     <div
                       key={prospect.id}
-                      className="flex items-center space-x-2 p-2 border rounded hover:bg-accent"
+                      className="flex items-center space-x-2 p-3 border rounded hover:bg-accent transition-colors"
                     >
                       <Checkbox
                         checked={selectedProspects.has(prospect.id)}
                         onCheckedChange={() => handleToggleProspect(prospect.id)}
                       />
-                      <div className="flex-1">
-                        <p className="font-medium">{prospect.nome_empresa}</p>
-                        {prospect.municipio && (
-                          <p className="text-sm text-muted-foreground">
-                            {prospect.municipio}
-                          </p>
-                        )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{prospect.nome_empresa}</p>
+                          {prospect.status && (
+                            <Badge variant="outline" className="text-xs shrink-0">
+                              {prospect.status}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          {prospect.municipio && (
+                            <p className="text-sm text-muted-foreground truncate">
+                              {prospect.municipio}
+                            </p>
+                          )}
+                          {prospect.vendedor && (
+                            <Badge variant="secondary" className="text-xs shrink-0">
+                              {prospect.vendedor.nome}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}

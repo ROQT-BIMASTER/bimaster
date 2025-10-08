@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { NovoProspectDialog } from "@/components/prospects/NovoProspectDialog";
 import { ProspectDetailDialog } from "@/components/kanban/ProspectDetailDialog";
 import { AIInsightsChat } from "@/components/chat/AIInsightsChat";
+import { AtribuirProspectsDialog } from "@/components/admin/AtribuirProspectsDialog";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   Table,
   TableBody,
@@ -81,6 +83,7 @@ const Prospects = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const { toast } = useToast();
+  const { isAdmin, isSupervisor } = useUserRole();
 
   useEffect(() => {
     fetchProspects();
@@ -170,6 +173,9 @@ const Prospects = () => {
               <Sparkles className="h-4 w-4" />
               Insights de IA
             </Button>
+            {(isAdmin || isSupervisor) && (
+              <AtribuirProspectsDialog onSuccess={fetchProspects} />
+            )}
             <NovoProspectDialog onSuccess={fetchProspects} />
           </div>
         </div>
