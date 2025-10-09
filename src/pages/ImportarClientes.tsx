@@ -663,31 +663,45 @@ const ImportarClientes = () => {
           }
         }
 
-        // Buscar ou criar município
+        // Buscar ou criar município (considerando município + UF)
         let municipio = null;
-        const { data: municipioData } = await supabase
-          .from("municipios")
-          .select("id, vendedor_id")
-          .ilike("nome", p.municipio)
-          .maybeSingle();
-
-        if (municipioData) {
-          municipio = municipioData;
-        } else if (p.uf) {
-          // Criar município se não existir
-          const { data: novoMunicipio } = await supabase
+        
+        // Se tiver UF, buscar considerando município E UF para evitar duplicatas
+        if (p.uf) {
+          const { data: municipioData } = await supabase
             .from("municipios")
-            .insert({
-              nome: p.municipio,
-              uf: p.uf,
-              regiao: 'Centro' // padrão
-            })
             .select("id, vendedor_id")
-            .single();
-          
-          if (novoMunicipio) {
-            municipio = novoMunicipio;
+            .ilike("nome", p.municipio)
+            .ilike("uf", p.uf)
+            .maybeSingle();
+
+          if (municipioData) {
+            municipio = municipioData;
+          } else {
+            // Criar município se não existir
+            const { data: novoMunicipio } = await supabase
+              .from("municipios")
+              .insert({
+                nome: p.municipio,
+                uf: p.uf,
+                regiao: 'Centro' // padrão
+              })
+              .select("id, vendedor_id")
+              .single();
+            
+            if (novoMunicipio) {
+              municipio = novoMunicipio;
+            }
           }
+        } else {
+          // Se não tiver UF, buscar apenas por nome
+          const { data: municipioData } = await supabase
+            .from("municipios")
+            .select("id, vendedor_id")
+            .ilike("nome", p.municipio)
+            .maybeSingle();
+
+          municipio = municipioData;
         }
 
         const prospectData = {
