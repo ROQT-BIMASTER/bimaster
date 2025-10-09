@@ -479,13 +479,17 @@ const ImportarClientes = () => {
                 mensagem: `Erro ao atualizar: ${updateError.message}`
               });
             } else {
+              const mensagemSucesso = avisosCNPJ.length > 0 
+                ? `Atualizado - ${avisosCNPJ[0]}` 
+                : (municipio?.vendedor_id 
+                  ? 'Atualizado e distribuído automaticamente' 
+                  : 'Cliente atualizado com sucesso');
+              
               detalhes.push({
                 linha: i + 1,
                 empresa: nome_empresa,
                 status: 'atualizado',
-                mensagem: avisosCNPJ.length > 0 
-                  ? `Atualizado - ${avisosCNPJ[0]}` 
-                  : 'Cliente atualizado com sucesso'
+                mensagem: mensagemSucesso
               });
             }
           } else {
@@ -503,36 +507,38 @@ const ImportarClientes = () => {
           }
         }
 
-        if (prospects.length === 0) {
-          throw new Error("Nenhum registro válido encontrado para importar.");
-        }
-
-        console.log(`📊 Total de prospects processados: ${prospects.length}`);
-        console.log(`📋 Validando dados antes da inserção...`);
+        console.log(`📊 Total de prospects processados: ${prospects.length} novos, ${detalhes.filter(d => d.status === 'atualizado').length} atualizados`);
         
-        // Validar que todos os porte_empresa são válidos
-        prospects.forEach((p, idx) => {
-          if (p.porte_empresa && !['MEI', 'ME', 'EPP', 'Grande'].includes(p.porte_empresa)) {
-            console.error(`❌ Porte inválido encontrado na linha ${idx + 1}: "${p.porte_empresa}"`);
-            throw new Error(`Porte de empresa inválido: "${p.porte_empresa}". Valores aceitos: MEI, ME, EPP, Grande`);
+        // Só inserir se houver prospects novos
+        if (prospects.length > 0) {
+          console.log(`📋 Validando dados antes da inserção...`);
+          
+          // Validar que todos os porte_empresa são válidos
+          prospects.forEach((p, idx) => {
+            if (p.porte_empresa && !['MEI', 'ME', 'EPP', 'Grande'].includes(p.porte_empresa)) {
+              console.error(`❌ Porte inválido encontrado na linha ${idx + 1}: "${p.porte_empresa}"`);
+              throw new Error(`Porte de empresa inválido: "${p.porte_empresa}". Valores aceitos: MEI, ME, EPP, Grande`);
+            }
+          });
+
+          console.log(`✅ Todos os dados validados. Inserindo no banco...`);
+
+          const { data: inserted, error: insertError } = await supabase
+            .from("prospects")
+            .insert(prospects)
+            .select();
+
+          if (insertError) {
+            throw insertError;
           }
-        });
-
-        console.log(`✅ Todos os dados validados. Inserindo no banco...`);
-
-        const { data: inserted, error: insertError } = await supabase
-          .from("prospects")
-          .insert(prospects)
-          .select();
-
-        if (insertError) {
-          throw insertError;
         }
 
-        const distribuidos = prospects.filter(p => p.vendedor_id).length;
-        const nao_distribuidos = prospects.length - distribuidos;
+        // Contar distribuídos e não distribuídos incluindo atualizados
         const atualizados = detalhes.filter(d => d.status === 'atualizado').length;
         const inseridos = prospects.length;
+        const totalProcessadosSucesso = detalhes.filter(d => d.status === 'sucesso' || d.status === 'sem_vendedor' || d.status === 'atualizado').length;
+        const distribuidos = detalhes.filter(d => (d.status === 'sucesso' || d.status === 'atualizado') && d.mensagem.includes('Distribuído')).length;
+        const nao_distribuidos = totalProcessadosSucesso - distribuidos;
 
         setResult({
           total: rows.length,
@@ -545,14 +551,15 @@ const ImportarClientes = () => {
         });
 
         console.log("✅ Importação concluída:", {
-          total: prospects.length,
+          inseridos,
+          atualizados,
           distribuidos,
           nao_distribuidos
         });
         
         toast({
           title: "Importação concluída",
-          description: `${inseridos} inseridos, ${atualizados} atualizados`,
+          description: `${inseridos} ${inseridos === 1 ? 'inserido' : 'inseridos'}, ${atualizados} ${atualizados === 1 ? 'atualizado' : 'atualizados'}`,
         });
       } catch (error: any) {
         console.error("❌ Erro durante o processamento:", error);
@@ -736,11 +743,15 @@ const ImportarClientes = () => {
               mensagem: `Erro ao atualizar: ${updateError.message}`
             });
           } else {
+            const mensagemSucesso = municipio?.vendedor_id 
+              ? 'Atualizado e distribuído automaticamente' 
+              : 'Cliente atualizado com sucesso';
+            
             detalhes.push({
               linha: i + 1,
               empresa: p.nome_empresa,
               status: 'atualizado',
-              mensagem: 'Cliente atualizado com sucesso'
+              mensagem: mensagemSucesso
             });
           }
         } else {
@@ -756,24 +767,24 @@ const ImportarClientes = () => {
         }
       }
 
-      if (prospects.length === 0) {
-        throw new Error("Nenhum prospect válido para importar");
+      // Só inserir se houver prospects novos
+      if (prospects.length > 0) {
+        const { error: insertError } = await supabase
+          .from("prospects")
+          .insert(prospects);
+
+        if (insertError) {
+          console.error("Erro ao inserir:", insertError);
+          throw insertError;
+        }
       }
 
-      // Inserir no banco
-      const { error: insertError } = await supabase
-        .from("prospects")
-        .insert(prospects);
-
-      if (insertError) {
-        console.error("Erro ao inserir:", insertError);
-        throw insertError;
-      }
-
-      const distribuidos = prospects.filter(p => p.vendedor_id).length;
-      const nao_distribuidos = prospects.length - distribuidos;
+      // Contar distribuídos e não distribuídos incluindo atualizados
       const atualizados = detalhes.filter(d => d.status === 'atualizado').length;
       const inseridos = prospects.length;
+      const totalProcessadosSucesso = detalhes.filter(d => d.status === 'sucesso' || d.status === 'sem_vendedor' || d.status === 'atualizado').length;
+      const distribuidos = detalhes.filter(d => (d.status === 'sucesso' || d.status === 'atualizado') && d.mensagem.includes('Distribuído')).length;
+      const nao_distribuidos = totalProcessadosSucesso - distribuidos;
 
       setResult({
         total: analiseData.prospects.length,
@@ -787,7 +798,7 @@ const ImportarClientes = () => {
 
       toast({
         title: "✨ Importação com IA concluída",
-        description: `${inseridos} inseridos, ${atualizados} atualizados`,
+        description: `${inseridos} ${inseridos === 1 ? 'inserido' : 'inseridos'}, ${atualizados} ${atualizados === 1 ? 'atualizado' : 'atualizados'}`,
       });
 
       setTextoIA(""); // Limpar campo
