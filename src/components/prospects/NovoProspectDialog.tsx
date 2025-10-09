@@ -26,6 +26,12 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
     telefone: "",
     endereco: "",
     municipio: "",
+    uf: "",
+    tipo_logradouro: "",
+    logradouro: "",
+    numero: "",
+    cep: "",
+    bairro: "",
     porte_empresa: "",
     zona: "",
     subdistrito: "",
@@ -57,6 +63,12 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
           telefone: validatedData.telefone || null,
           endereco: formData.endereco || null,
           municipio: formData.municipio || null,
+          uf: formData.uf || null,
+          tipo_logradouro: formData.tipo_logradouro || null,
+          logradouro: formData.logradouro || null,
+          numero: formData.numero || null,
+          cep: formData.cep || null,
+          bairro: formData.bairro || null,
           porte_empresa: formData.porte_empresa || null,
           zona: (formData.zona as any) || null,
           subdistrito: formData.subdistrito || null,
@@ -80,6 +92,12 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
         telefone: "",
         endereco: "",
         municipio: "",
+        uf: "",
+        tipo_logradouro: "",
+        logradouro: "",
+        numero: "",
+        cep: "",
+        bairro: "",
         porte_empresa: "",
         zona: "",
         subdistrito: "",
@@ -211,17 +229,6 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="endereco">Endereço Completo</Label>
-            <Input
-              id="endereco"
-              value={formData.endereco}
-              onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
-              placeholder="Rua, número, bairro, cidade - UF"
-              maxLength={300}
-            />
-          </div>
-
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="municipio">Município</Label>
@@ -233,6 +240,87 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
                 maxLength={100}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="uf">UF</Label>
+              <Input
+                id="uf"
+                value={formData.uf}
+                onChange={(e) => setFormData({ ...formData, uf: e.target.value.toUpperCase() })}
+                placeholder="Ex: PE"
+                maxLength={2}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="tipo_logradouro">Tipo de Logradouro</Label>
+              <Input
+                id="tipo_logradouro"
+                value={formData.tipo_logradouro}
+                onChange={(e) => setFormData({ ...formData, tipo_logradouro: e.target.value })}
+                placeholder="Ex: Rua, Av"
+                maxLength={50}
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="logradouro">Logradouro</Label>
+              <Input
+                id="logradouro"
+                value={formData.logradouro}
+                onChange={(e) => setFormData({ ...formData, logradouro: e.target.value })}
+                placeholder="Nome da rua"
+                maxLength={200}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="numero">Número</Label>
+              <Input
+                id="numero"
+                value={formData.numero}
+                onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
+                placeholder="Nº"
+                maxLength={20}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cep">CEP</Label>
+              <Input
+                id="cep"
+                value={formData.cep}
+                onChange={(e) => setFormData({ ...formData, cep: e.target.value })}
+                placeholder="00000-000"
+                maxLength={10}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bairro">Bairro</Label>
+              <Input
+                id="bairro"
+                value={formData.bairro}
+                onChange={(e) => setFormData({ ...formData, bairro: e.target.value })}
+                placeholder="Nome do bairro"
+                maxLength={100}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="endereco">Endereço Completo (legado)</Label>
+            <Input
+              id="endereco"
+              value={formData.endereco}
+              onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+              placeholder="Rua, número, bairro, cidade - UF"
+              maxLength={300}
+              className="text-muted-foreground"
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="zona">Zona Geográfica</Label>
               <Select value={formData.zona} onValueChange={(value) => setFormData({ ...formData, zona: value })}>
@@ -252,17 +340,16 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="subdistrito">Subdistrito / Bairro</Label>
-            <Input
-              id="subdistrito"
-              value={formData.subdistrito}
-              onChange={(e) => setFormData({ ...formData, subdistrito: e.target.value })}
-              placeholder="Ex: Bairro Centro, Zona Industrial"
-              maxLength={100}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="subdistrito">Subdistrito</Label>
+              <Input
+                id="subdistrito"
+                value={formData.subdistrito}
+                onChange={(e) => setFormData({ ...formData, subdistrito: e.target.value })}
+                placeholder="Ex: Bairro Centro"
+                maxLength={100}
+              />
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

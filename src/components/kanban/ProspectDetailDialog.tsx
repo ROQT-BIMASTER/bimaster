@@ -21,6 +21,12 @@ interface Prospect {
   cnpj: string | null;
   endereco: string | null;
   municipio?: string | null;
+  uf?: string | null;
+  tipo_logradouro?: string | null;
+  logradouro?: string | null;
+  numero?: string | null;
+  cep?: string | null;
+  bairro?: string | null;
   porte_empresa: string | null;
   status: string;
   categoria: string | null;
@@ -68,6 +74,12 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
           cnpj: formData.cnpj,
           endereco: formData.endereco,
           municipio: formData.municipio,
+          uf: formData.uf,
+          tipo_logradouro: formData.tipo_logradouro,
+          logradouro: formData.logradouro,
+          numero: formData.numero,
+          cep: formData.cep,
+          bairro: formData.bairro,
           porte_empresa: formData.porte_empresa,
           status: formData.status as "novo" | "em_contato" | "proposta_enviada" | "negociacao" | "ganho" | "perdido",
           categoria: formData.categoria as "A" | "B" | "C" | "D" | null,
@@ -237,23 +249,91 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="municipio">Município</Label>
-            <Input
-              id="municipio"
-              value={formData.municipio || ""}
-              onChange={(e) => setFormData({ ...formData, municipio: e.target.value })}
-              placeholder="Digite o município"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="municipio">Município</Label>
+              <Input
+                id="municipio"
+                value={formData.municipio || ""}
+                onChange={(e) => setFormData({ ...formData, municipio: e.target.value })}
+                placeholder="Digite o município"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="uf">UF</Label>
+              <Input
+                id="uf"
+                value={formData.uf || ""}
+                onChange={(e) => setFormData({ ...formData, uf: e.target.value })}
+                placeholder="Ex: PE"
+                maxLength={2}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="tipo_logradouro">Tipo de Logradouro</Label>
+              <Input
+                id="tipo_logradouro"
+                value={formData.tipo_logradouro || ""}
+                onChange={(e) => setFormData({ ...formData, tipo_logradouro: e.target.value })}
+                placeholder="Ex: Rua, Av"
+              />
+            </div>
+
+            <div className="grid gap-2 col-span-2">
+              <Label htmlFor="logradouro">Logradouro</Label>
+              <Input
+                id="logradouro"
+                value={formData.logradouro || ""}
+                onChange={(e) => setFormData({ ...formData, logradouro: e.target.value })}
+                placeholder="Nome da rua"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="numero">Número</Label>
+              <Input
+                id="numero"
+                value={formData.numero || ""}
+                onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
+                placeholder="Nº"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="cep">CEP</Label>
+              <Input
+                id="cep"
+                value={formData.cep || ""}
+                onChange={(e) => setFormData({ ...formData, cep: e.target.value })}
+                placeholder="00000-000"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="bairro">Bairro</Label>
+              <Input
+                id="bairro"
+                value={formData.bairro || ""}
+                onChange={(e) => setFormData({ ...formData, bairro: e.target.value })}
+                placeholder="Nome do bairro"
+              />
+            </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="endereco">Endereço Completo</Label>
+            <Label htmlFor="endereco">Endereço Completo (legado)</Label>
             <Input
               id="endereco"
               value={formData.endereco || ""}
               onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
               placeholder="Rua, número, bairro"
+              className="text-muted-foreground"
             />
           </div>
 
