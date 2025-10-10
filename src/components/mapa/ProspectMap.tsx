@@ -73,7 +73,8 @@ export const ProspectMap = () => {
           .select(`
             id, 
             nome_empresa, 
-            endereco, 
+            endereco,
+            municipio,
             status,
             vendedor:profiles!prospects_vendedor_id_fkey(nome)
           `)
@@ -106,7 +107,6 @@ export const ProspectMap = () => {
           if (coords) {
             geocodedProspects.push({
               ...prospect,
-              municipio: null,
               latitude: coords.latitude,
               longitude: coords.longitude,
             });
