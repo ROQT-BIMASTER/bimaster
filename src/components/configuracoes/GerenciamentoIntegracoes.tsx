@@ -36,6 +36,7 @@ interface IntegrationConfig {
 export const GerenciamentoIntegracoes = () => {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [testingConnection, setTestingConnection] = useState<string | null>(null);
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
 
   const integrations: IntegrationConfig[] = [
     {
@@ -59,7 +60,7 @@ export const GerenciamentoIntegracoes = () => {
       name: "Mapbox",
       description: "Mapas interativos e geolocalização",
       icon: MapPin,
-      status: "pending",
+      status: "active",
       secretName: "MAPBOX_ACCESS_TOKEN",
       instructions: {
         title: "Como obter seu token do Mapbox",
@@ -162,6 +163,27 @@ export const GerenciamentoIntegracoes = () => {
     setShowSecrets(prev => ({
       ...prev,
       [integrationId]: !prev[integrationId]
+    }));
+  };
+
+  const handleSaveApiKey = async (integration: IntegrationConfig) => {
+    const apiKey = apiKeys[integration.id];
+    
+    if (!apiKey || apiKey.trim() === "") {
+      toast.error("Por favor, insira uma chave de API válida");
+      return;
+    }
+
+    toast.info(
+      "Para configurar secrets de API, use o sistema de gerenciamento de secrets do backend. O administrador do sistema pode atualizar os secrets através das ferramentas de configuração.",
+      { duration: 5000 }
+    );
+  };
+
+  const handleApiKeyChange = (integrationId: string, value: string) => {
+    setApiKeys(prev => ({
+      ...prev,
+      [integrationId]: value
     }));
   };
 
@@ -294,6 +316,8 @@ export const GerenciamentoIntegracoes = () => {
                             type={showSecrets[integration.id] ? "text" : "password"}
                             placeholder="Cole sua chave de API aqui"
                             className="pr-10"
+                            value={apiKeys[integration.id] || ""}
+                            onChange={(e) => handleApiKeyChange(integration.id, e.target.value)}
                           />
                           <Button
                             variant="ghost"
@@ -308,7 +332,7 @@ export const GerenciamentoIntegracoes = () => {
                             )}
                           </Button>
                         </div>
-                        <Button>Salvar</Button>
+                        <Button onClick={() => handleSaveApiKey(integration)}>Salvar</Button>
                       </div>
                     </div>
 
