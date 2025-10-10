@@ -30,6 +30,7 @@ import TradeCalendar from "./pages/TradeCalendar";
 import TradeFinanceiro from "./pages/TradeFinanceiro";
 import TradeIdealPhotos from "./pages/TradeIdealPhotos";
 import TradeAuditorias from "./pages/TradeAuditorias";
+import Ranking from "./pages/Ranking";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,7 @@ const App = () => (
         
         {/* Outras funcionalidades */}
         <Route path="/dashboard/municipios" element={<Municipios />} />
+        <Route path="/dashboard/ranking" element={<Ranking />} />
         <Route path="/dashboard/tarefas" element={<Tarefas />} />
         <Route path="/dashboard/chat" element={<Chat />} />
         <Route path="/dashboard/configuracoes" element={<Configuracoes />} />

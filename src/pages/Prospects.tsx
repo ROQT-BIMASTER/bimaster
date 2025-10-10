@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Search, Edit, Sparkles, Mail, Phone, MapPin, Building2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { NovoProspectDialog } from "@/components/prospects/NovoProspectDialog";
 import { ProspectDetailDialog } from "@/components/kanban/ProspectDetailDialog";
@@ -82,12 +83,29 @@ const Prospects = () => {
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [municipios, setMunicipios] = useState<Array<{ id: string; nome: string; uf: string }>>([]);
+  const [selectedMunicipio, setSelectedMunicipio] = useState<string>("todos");
   const { toast } = useToast();
   const { isAdmin, isSupervisor } = useUserRole();
 
   useEffect(() => {
     fetchProspects();
+    fetchMunicipios();
   }, []);
+
+  const fetchMunicipios = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("municipios")
+        .select("id, nome, uf")
+        .order("nome");
+      
+      if (error) throw error;
+      setMunicipios(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar municípios:", error);
+    }
+  };
 
   const fetchProspects = async () => {
     try {
@@ -145,11 +163,15 @@ const Prospects = () => {
     }
   };
 
-  const filteredProspects = prospects.filter((prospect) =>
-    prospect.nome_empresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prospect.contato_principal?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prospect.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProspects = prospects.filter((prospect) => {
+    const matchesSearch = prospect.nome_empresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      prospect.contato_principal?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      prospect.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesMunicipio = selectedMunicipio === "todos" || prospect.municipio_id === selectedMunicipio;
+    
+    return matchesSearch && matchesMunicipio;
+  });
 
   const handleEditProspect = (prospect: Prospect) => {
     setSelectedProspect(prospect);
@@ -182,8 +204,8 @@ const Prospects = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
+            <div className="flex flex-col md:flex-row items-center gap-4">
+              <div className="relative flex-1 w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por empresa, contato ou email..."
@@ -191,6 +213,21 @@ const Prospects = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
+              </div>
+              <div className="w-full md:w-64">
+                <Select value={selectedMunicipio} onValueChange={setSelectedMunicipio}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por município" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os municípios</SelectItem>
+                    {municipios.map((municipio) => (
+                      <SelectItem key={municipio.id} value={municipio.id}>
+                        {municipio.nome} - {municipio.uf}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardHeader>
