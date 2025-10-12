@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Search, Edit, Sparkles, Mail, Phone, MapPin, Building2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -85,6 +86,8 @@ const Prospects = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [municipios, setMunicipios] = useState<Array<{ id: string; nome: string; uf: string }>>([]);
   const [selectedMunicipio, setSelectedMunicipio] = useState<string>("todos");
+  const [selectAll, setSelectAll] = useState(false);
+  const [selectedProspects, setSelectedProspects] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { isAdmin, isSupervisor } = useUserRole();
 
@@ -173,6 +176,26 @@ const Prospects = () => {
     return matchesSearch && matchesMunicipio;
   });
 
+  const handleToggleProspect = (prospectId: string) => {
+    setSelectedProspects((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(prospectId)) {
+        newSet.delete(prospectId);
+      } else {
+        newSet.add(prospectId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleToggleAll = () => {
+    if (selectedProspects.size === filteredProspects.length) {
+      setSelectedProspects(new Set());
+    } else {
+      setSelectedProspects(new Set(filteredProspects.map((p) => p.id)));
+    }
+  };
+
   const handleEditProspect = (prospect: Prospect) => {
     setSelectedProspect(prospect);
     setDialogOpen(true);
@@ -229,6 +252,20 @@ const Prospects = () => {
                   </SelectContent>
                 </Select>
               </div>
+              {selectedProspects.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">
+                    {selectedProspects.size} selecionado(s)
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedProspects(new Set())}
+                  >
+                    Limpar seleção
+                  </Button>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -243,6 +280,12 @@ const Prospects = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedProspects.size === filteredProspects.length && filteredProspects.length > 0}
+                          onCheckedChange={handleToggleAll}
+                        />
+                      </TableHead>
                       <TableHead className="font-semibold">Empresa</TableHead>
                       <TableHead className="font-semibold">Contato</TableHead>
                       <TableHead className="font-semibold">Informações</TableHead>
@@ -261,10 +304,18 @@ const Prospects = () => {
                       return (
                         <TableRow 
                           key={prospect.id}
-                          className="hover:bg-muted/50 cursor-pointer transition-colors"
-                          onClick={() => handleEditProspect(prospect)}
+                          className="hover:bg-muted/50 transition-colors"
                         >
-                          <TableCell className="font-medium">
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedProspects.has(prospect.id)}
+                              onCheckedChange={() => handleToggleProspect(prospect.id)}
+                            />
+                          </TableCell>
+                          <TableCell 
+                            className="font-medium cursor-pointer"
+                            onClick={() => handleEditProspect(prospect)}
+                          >
                             <div className="flex items-center gap-2">
                               <Building2 className="h-4 w-4 text-muted-foreground" />
                               <span className="font-semibold">{prospect.nome_empresa}</span>
@@ -275,14 +326,20 @@ const Prospects = () => {
                               </div>
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell 
+                            className="cursor-pointer"
+                            onClick={() => handleEditProspect(prospect)}
+                          >
                             <div className="space-y-1">
                               <div className="font-medium text-sm">
                                 {prospect.contato_principal || "-"}
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell 
+                            className="cursor-pointer"
+                            onClick={() => handleEditProspect(prospect)}
+                          >
                             <div className="space-y-1 text-sm">
                               {prospect.email && (
                                 <div className="flex items-center gap-1 text-muted-foreground">
@@ -301,7 +358,10 @@ const Prospects = () => {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell 
+                            className="cursor-pointer"
+                            onClick={() => handleEditProspect(prospect)}
+                          >
                             {prospect.municipio && (
                               <div className="flex items-center gap-1 text-sm">
                                 <MapPin className="h-3 w-3 text-muted-foreground" />
@@ -312,7 +372,10 @@ const Prospects = () => {
                               <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell 
+                            className="cursor-pointer"
+                            onClick={() => handleEditProspect(prospect)}
+                          >
                             {prospect.vendedor ? (
                               <div className="flex items-center gap-1">
                                 <Badge variant="secondary" className="font-normal">
@@ -323,7 +386,10 @@ const Prospects = () => {
                               <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell 
+                            className="cursor-pointer"
+                            onClick={() => handleEditProspect(prospect)}
+                          >
                             <Badge 
                               variant="outline" 
                               className={`${statusInfo.bgColor} ${statusInfo.color} border font-medium`}
@@ -331,7 +397,10 @@ const Prospects = () => {
                               {statusInfo.label}
                             </Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell 
+                            className="cursor-pointer"
+                            onClick={() => handleEditProspect(prospect)}
+                          >
                             {prospect.categoria ? (
                               <Badge variant="secondary" className="font-normal">
                                 {prospect.categoria}
@@ -340,7 +409,10 @@ const Prospects = () => {
                               <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell 
+                            className="text-sm cursor-pointer"
+                            onClick={() => handleEditProspect(prospect)}
+                          >
                             {prospect.ultimo_contato ? (
                               <span className="text-muted-foreground">
                                 {new Date(prospect.ultimo_contato).toLocaleDateString('pt-BR')}
@@ -349,7 +421,10 @@ const Prospects = () => {
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell 
+                            className="text-sm cursor-pointer"
+                            onClick={() => handleEditProspect(prospect)}
+                          >
                             {prospect.proxima_acao ? (
                               <span className="font-medium">
                                 {new Date(prospect.proxima_acao).toLocaleDateString('pt-BR')}

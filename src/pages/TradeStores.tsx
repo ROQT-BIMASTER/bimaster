@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { NovaLojaDialog } from "@/components/trade/NovaLojaDialog";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
+import { StoreDetailDialog } from "@/components/trade/StoreDetailDialog";
 
 interface Store {
   id: string;
@@ -35,6 +36,8 @@ const TradeStores = () => {
   const [showNovaLoja, setShowNovaLoja] = useState(false);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [detailStoreId, setDetailStoreId] = useState<string | null>(null);
 
   if (!permissionsLoading && !hasPermission("trade_stores")) {
     return <Navigate to="/dashboard" replace />;
@@ -184,8 +187,8 @@ const TradeStores = () => {
                           variant="ghost" 
                           size="sm"
                           onClick={() => {
-                            toast.info(`Visualizando ${store.name}`);
-                            // Navegar para detalhes da loja se houver
+                            setDetailStoreId(store.id);
+                            setShowDetailDialog(true);
                           }}
                         >
                           <Eye className="h-4 w-4" />
@@ -225,6 +228,12 @@ const TradeStores = () => {
           open={showNovaLoja}
           onOpenChange={setShowNovaLoja}
           onSuccess={fetchStores}
+        />
+        
+        <StoreDetailDialog
+          open={showDetailDialog}
+          onOpenChange={setShowDetailDialog}
+          storeId={detailStoreId}
         />
       </div>
     </DashboardLayout>
