@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -44,38 +45,40 @@ const App = () => (
         <Route path="/auth/login" element={<Auth />} />
         <Route path="/auth/signup" element={<Auth />} />
         <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
-        <Route path="/dashboard/aguardando-aprovacao" element={<AguardandoAprovacao />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        
+        {/* Protected Routes */}
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         
         {/* Módulo de Prospects */}
-        <Route path="/dashboard/prospects" element={<ProspectsModule />} />
-        <Route path="/dashboard/prospects/list" element={<Prospects />} />
-        <Route path="/dashboard/prospects/kanban" element={<Kanban />} />
-        <Route path="/dashboard/prospects/atividades" element={<Atividades />} />
-        <Route path="/dashboard/prospects/mapa" element={<Mapa />} />
+        <Route path="/dashboard/prospects" element={<ProtectedRoute><ProspectsModule /></ProtectedRoute>} />
+        <Route path="/dashboard/prospects/list" element={<ProtectedRoute><Prospects /></ProtectedRoute>} />
+        <Route path="/dashboard/prospects/kanban" element={<ProtectedRoute><Kanban /></ProtectedRoute>} />
+        <Route path="/dashboard/prospects/atividades" element={<ProtectedRoute><Atividades /></ProtectedRoute>} />
+        <Route path="/dashboard/prospects/mapa" element={<ProtectedRoute><Mapa /></ProtectedRoute>} />
         
         {/* Outras funcionalidades */}
-        <Route path="/dashboard/municipios" element={<Municipios />} />
-        <Route path="/dashboard/ranking" element={<Ranking />} />
-        <Route path="/dashboard/tarefas" element={<Tarefas />} />
-        <Route path="/dashboard/chat" element={<Chat />} />
-        <Route path="/dashboard/configuracoes" element={<Configuracoes />} />
-        <Route path="/dashboard/importar-clientes" element={<ImportarClientes />} />
-        <Route path="/dashboard/auditoria" element={<Auditoria />} />
+        <Route path="/dashboard/municipios" element={<ProtectedRoute><Municipios /></ProtectedRoute>} />
+        <Route path="/dashboard/ranking" element={<ProtectedRoute><Ranking /></ProtectedRoute>} />
+        <Route path="/dashboard/tarefas" element={<ProtectedRoute><Tarefas /></ProtectedRoute>} />
+        <Route path="/dashboard/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+        <Route path="/dashboard/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+        <Route path="/dashboard/importar-clientes" element={<ProtectedRoute><ImportarClientes /></ProtectedRoute>} />
+        <Route path="/dashboard/auditoria" element={<ProtectedRoute><Auditoria /></ProtectedRoute>} />
         
         {/* Módulo de Trade Marketing */}
-        <Route path="/dashboard/trade" element={<TradeModule />} />
-        <Route path="/dashboard/trade/stores" element={<TradeStores />} />
-        <Route path="/dashboard/trade/visits" element={<TradeVisits />} />
-        <Route path="/dashboard/trade/photos" element={<TradePhotos />} />
-        <Route path="/dashboard/trade/competitors" element={<TradeCompetitors />} />
-        <Route path="/dashboard/trade/promotions" element={<TradePromotions />} />
-        <Route path="/dashboard/trade/insights" element={<TradeInsights />} />
-        <Route path="/dashboard/trade/import-stores" element={<TradeImportStores />} />
-        <Route path="/dashboard/trade/calendar" element={<TradeCalendar />} />
-        <Route path="/dashboard/trade/financeiro" element={<TradeFinanceiro />} />
-        <Route path="/dashboard/trade/ideal-photos" element={<TradeIdealPhotos />} />
-        <Route path="/dashboard/trade/auditorias" element={<TradeAuditorias />} />
+        <Route path="/dashboard/trade" element={<ProtectedRoute><TradeModule /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/stores" element={<ProtectedRoute><TradeStores /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/visits" element={<ProtectedRoute><TradeVisits /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/photos" element={<ProtectedRoute><TradePhotos /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/competitors" element={<ProtectedRoute><TradeCompetitors /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/promotions" element={<ProtectedRoute><TradePromotions /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/insights" element={<ProtectedRoute><TradeInsights /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/import-stores" element={<ProtectedRoute><TradeImportStores /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/calendar" element={<ProtectedRoute><TradeCalendar /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/financeiro" element={<ProtectedRoute><TradeFinanceiro /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/ideal-photos" element={<ProtectedRoute><TradeIdealPhotos /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/auditorias" element={<ProtectedRoute><TradeAuditorias /></ProtectedRoute>} />
+        
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

@@ -69,28 +69,43 @@ export const GerenciamentoPermissoesTelas = () => {
   const fetchUsuarios = async () => {
     setLoading(true);
     try {
-      const { data: profilesData, error } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select(`
-          id,
-          nome,
-          email,
-          user_roles (role)
-        `)
+        .select("id, nome, email")
         .eq("aprovado", true);
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
 
-      const usuarios = profilesData?.map((profile: any) => ({
+      if (!profilesData || profilesData.length === 0) {
+        setUsuarios([]);
+        setLoading(false);
+        return;
+      }
+
+      // Buscar roles em query separada
+      const userIds = profilesData.map(p => p.id);
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", userIds);
+
+      if (rolesError) {
+        console.error("Error fetching roles:", rolesError);
+      }
+
+      const rolesMap = new Map(rolesData?.map(r => [r.user_id, r.role]) || []);
+
+      const usuarios = profilesData.map((profile) => ({
         id: profile.id,
         nome: profile.nome,
         email: profile.email,
-        role: profile.user_roles?.[0]?.role
-      })) || [];
+        role: rolesMap.get(profile.id) || 'vendedor'
+      }));
 
       setUsuarios(usuarios);
     } catch (error) {
       console.error("Error fetching users:", error);
+      setUsuarios([]);
     } finally {
       setLoading(false);
     }

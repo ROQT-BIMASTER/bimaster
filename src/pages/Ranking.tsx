@@ -47,23 +47,50 @@ const Ranking = () => {
 
   const fetchRankings = async () => {
     try {
-      // Ranking de Vendedores
-      const { data: vendedoresData } = await supabase
+      // Buscar todos os profiles
+      const { data: profilesData } = await supabase
         .from("profiles")
-        .select(`
-          id,
-          nome,
-          user_roles!inner(role),
-          prospects:prospects!prospects_vendedor_id_fkey(id, status)
-        `);
+        .select("id, nome");
 
-      const vendedores = vendedoresData
-        ?.filter((v: any) => v.user_roles?.some((r: any) => r.role === 'vendedor'))
-        .map((v: any) => {
-          const prospects = v.prospects || [];
+      if (!profilesData) {
+        setRankingVendedores([]);
+        setRankingSupervisores([]);
+        setLoading(false);
+        return;
+      }
+
+      // Buscar roles separadamente
+      const profileIds = profilesData.map(p => p.id);
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", profileIds);
+
+      const rolesMap = new Map(rolesData?.map(r => [r.user_id, r.role]) || []);
+
+      // Buscar prospects para cada vendedor
+      const { data: prospectsData } = await supabase
+        .from("prospects")
+        .select("id, status, vendedor_id")
+        .not("vendedor_id", "is", null);
+
+      // Agrupar prospects por vendedor
+      const prospectsMap = new Map<string, any[]>();
+      prospectsData?.forEach(p => {
+        if (!prospectsMap.has(p.vendedor_id!)) {
+          prospectsMap.set(p.vendedor_id!, []);
+        }
+        prospectsMap.get(p.vendedor_id!)!.push(p);
+      });
+
+      // Criar ranking de vendedores
+      const vendedores = profilesData
+        .filter(v => rolesMap.get(v.id) === 'vendedor')
+        .map(v => {
+          const prospects = prospectsMap.get(v.id) || [];
           const total = prospects.length;
-          const ganhos = prospects.filter((p: any) => p.status === 'ganho').length;
-          const negociacao = prospects.filter((p: any) => p.status === 'negociacao').length;
+          const ganhos = prospects.filter(p => p.status === 'ganho').length;
+          const negociacao = prospects.filter(p => p.status === 'negociacao').length;
           return {
             id: v.id,
             nome: v.nome,
@@ -73,31 +100,39 @@ const Ranking = () => {
             taxa_conversao: total > 0 ? (ganhos / total) * 100 : 0
           };
         })
-        .sort((a: any, b: any) => b.prospects_ganhos - a.prospects_ganhos) || [];
+        .sort((a, b) => b.prospects_ganhos - a.prospects_ganhos);
 
       setRankingVendedores(vendedores);
 
       // Ranking de Municípios
       const { data: municipiosData } = await supabase
         .from("municipios")
-        .select(`
-          id,
-          nome,
-          uf,
-          vendedor:profiles!municipios_vendedor_id_fkey(nome),
-          prospects:prospects!prospects_municipio_id_fkey(id, status)
-        `);
+        .select("id, nome, uf, vendedor_id");
+
+      const { data: allProspects } = await supabase
+        .from("prospects")
+        .select("id, status, municipio_id")
+        .not("municipio_id", "is", null);
+
+      const prospectsByMunicipio = new Map<string, any[]>();
+      allProspects?.forEach(p => {
+        if (!prospectsByMunicipio.has(p.municipio_id!)) {
+          prospectsByMunicipio.set(p.municipio_id!, []);
+        }
+        prospectsByMunicipio.get(p.municipio_id!)!.push(p);
+      });
 
       const municipios = municipiosData
-        ?.map((m: any) => {
-          const prospects = m.prospects || [];
+        ?.map(m => {
+          const vendedor = profilesData.find(p => p.id === m.vendedor_id);
+          const prospects = prospectsByMunicipio.get(m.id) || [];
           const total = prospects.length;
-          const ganhos = prospects.filter((p: any) => p.status === 'ganho').length;
+          const ganhos = prospects.filter(p => p.status === 'ganho').length;
           return {
             id: m.id,
             nome: m.nome,
             uf: m.uf,
-            vendedor_nome: m.vendedor?.nome,
+            vendedor_nome: vendedor?.nome,
             total_prospects: total,
             prospects_ganhos: ganhos
           };
@@ -107,43 +142,36 @@ const Ranking = () => {
       setRankingMunicipios(municipios);
 
       // Ranking de Supervisores
-      const { data: supervisoresData } = await supabase
-        .from("profiles")
-        .select(`
-          id,
-          nome,
-          user_roles!inner(role)
-        `);
-
-      const supervisores = await Promise.all(
-        (supervisoresData?.filter((s: any) => 
-          s.user_roles?.some((r: any) => r.role === 'supervisor')
-        ) || []).map(async (s: any) => {
+      const supervisores = profilesData
+        .filter(s => rolesMap.get(s.id) === 'supervisor')
+        .map(s => {
           // Buscar vendedores supervisionados
-          const { data: vendedoresSupervisionados } = await supabase
-            .from("profiles")
-            .select(`
-              id,
-              prospects:prospects!prospects_vendedor_id_fkey(id, status)
-            `)
-            .eq("supervisor_id", s.id);
+          const vendedoresSupervisionados = profilesData.filter(v => 
+            rolesMap.get(v.id) === 'vendedor' && 
+            prospectsData?.some(p => p.vendedor_id === v.id)
+          );
 
-          const todosProspects = vendedoresSupervisionados?.flatMap((v: any) => v.prospects || []) || [];
+          // Buscar prospects dos vendedores supervisionados  
+          const vendedorIds = vendedoresSupervisionados.map(v => v.id);
+          const todosProspects = prospectsData?.filter(p => 
+            p.vendedor_id && vendedorIds.includes(p.vendedor_id)
+          ) || [];
+          
           const total = todosProspects.length;
-          const ganhos = todosProspects.filter((p: any) => p.status === 'ganho').length;
+          const ganhos = todosProspects.filter(p => p.status === 'ganho').length;
 
           return {
             id: s.id,
             nome: s.nome,
-            total_vendedores: vendedoresSupervisionados?.length || 0,
+            total_vendedores: vendedoresSupervisionados.length,
             total_prospects: total,
             prospects_ganhos: ganhos,
             taxa_conversao: total > 0 ? (ganhos / total) * 100 : 0
           };
         })
-      );
+        .sort((a, b) => b.prospects_ganhos - a.prospects_ganhos);
 
-      setRankingSupervisores(supervisores.sort((a, b) => b.prospects_ganhos - a.prospects_ganhos));
+      setRankingSupervisores(supervisores);
     } catch (error) {
       console.error("Erro ao carregar rankings:", error);
     } finally {

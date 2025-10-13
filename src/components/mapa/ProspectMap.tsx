@@ -18,6 +18,7 @@ interface Prospect {
   municipio: string | null;
   uf?: string | null;
   status: string;
+  vendedor_id?: string | null;
   vendedor?: {
     nome: string;
   } | null;
@@ -121,7 +122,7 @@ export const ProspectMap = () => {
             cep,
             endereco,
             status,
-            vendedor:profiles!prospects_vendedor_id_fkey(nome)
+            vendedor_id
           `);
 
         if (error) {
@@ -131,14 +132,32 @@ export const ProspectMap = () => {
 
         console.log(`📋 ${prospects?.length || 0} prospects encontrados`);
 
+        // Buscar vendedores separadamente para os prospects
+        const vendedorIds = prospects
+          ?.map(p => p.vendedor_id)
+          .filter((id): id is string => id !== null && id !== undefined) || [];
+
+        const { data: vendedoresData } = await supabase
+          .from("profiles")
+          .select("id, nome")
+          .in("id", vendedorIds);
+
+        const vendedoresMap = new Map(vendedoresData?.map(v => [v.id, v]) || []);
+
+        // Adicionar dados do vendedor aos prospects
+        const prospectsWithVendedor = prospects?.map(p => ({
+          ...p,
+          vendedor: p.vendedor_id ? vendedoresMap.get(p.vendedor_id) : null
+        })) || [];
+
         // Filtrar prospects com endereço
-        const prospectsComEndereco = prospects?.filter(p => {
+        const prospectsComEndereco = prospectsWithVendedor.filter(p => {
           // Preferir endereço estruturado
           if (p.logradouro && p.municipio && p.uf) return true;
           // Fallback para endereço completo
           if (p.endereco && p.endereco.trim().length > 5) return true;
           return false;
-        }) || [];
+        });
 
         console.log(`📍 ${prospectsComEndereco.length} prospects com endereço válido`);
 

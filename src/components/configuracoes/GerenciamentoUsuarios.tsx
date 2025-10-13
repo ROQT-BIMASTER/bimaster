@@ -82,26 +82,33 @@ export const GerenciamentoUsuarios = () => {
     try {
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, nome, email, status, aprovado")
         .order("aprovado", { ascending: true })
         .order("nome");
       
       if (profilesError) throw profilesError;
       
-      // Buscar roles de todos os usuários
-      const userIds = profiles?.map(p => p.id) || [];
+      if (!profiles || profiles.length === 0) {
+        setUsuarios([]);
+        return;
+      }
+      
+      // Buscar roles de todos os usuários em query separada
+      const userIds = profiles.map(p => p.id);
       const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id, role")
         .in("user_id", userIds);
       
-      if (rolesError) throw rolesError;
+      if (rolesError) {
+        console.error("Erro ao carregar roles:", rolesError);
+      }
       
       // Mapear roles por user_id
       const rolesMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
       
       // Converter dados do banco para o formato esperado
-      const usuariosFormatados = (profiles || []).map(profile => ({
+      const usuariosFormatados = profiles.map(profile => ({
         id: profile.id,
         nome: profile.nome,
         email: profile.email,
@@ -113,6 +120,7 @@ export const GerenciamentoUsuarios = () => {
       setUsuarios(usuariosFormatados);
     } catch (error) {
       console.error("Erro ao carregar usuários:", error);
+      setUsuarios([]);
     }
   };
 
