@@ -14,6 +14,7 @@ import { PermissoesDeAcesso } from "@/components/configuracoes/PermissoesDeAcess
 import { GerenciamentoPermissoesTelas } from "@/components/configuracoes/GerenciamentoPermissoesTelas";
 import { VinculacaoUsuarioProspects } from "@/components/configuracoes/VinculacaoUsuarioProspects";
 import { GerenciamentoIntegracoes } from "@/components/configuracoes/GerenciamentoIntegracoes";
+import { AtribuirVendedorSupervisor } from "@/components/configuracoes/AtribuirVendedorSupervisor";
 import { Shield, UserCog, User, CheckCircle } from "lucide-react";
 
 interface Profile {
@@ -232,6 +233,7 @@ const Configuracoes = () => {
             <TabsList>
               <TabsTrigger value="perfil">Meu Perfil</TabsTrigger>
               {isAdmin && <TabsTrigger value="usuarios">Gerenciar Usuários</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="vendedores">Vendedores/Supervisores</TabsTrigger>}
               <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
               {isAdmin && <TabsTrigger value="permissoes">Permissões</TabsTrigger>}
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
@@ -257,6 +259,12 @@ const Configuracoes = () => {
             {isAdmin && (
               <TabsContent value="usuarios">
                 <GerenciamentoUsuarios />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="vendedores">
+                <AtribuirVendedorSupervisor />
               </TabsContent>
             )}
 
