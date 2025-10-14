@@ -1,138 +1,127 @@
 # Correções Implementadas no Sistema
 
-## 🔴 Problemas Críticos Corrigidos
+Este documento registra todas as correções de bugs, melhorias de segurança e otimizações implementadas.
+
+---
+
+## 🔴 FASE 1: Problemas Críticos de Funcionalidade (RESOLVIDOS)
 
 ### 1. ✅ Erro de Relacionamento em GerenciamentoUsuarios
-**Problema**: Query tentando fazer join direto entre `profiles` e `user_roles` causando erro:
-```
-Could not find a relationship between 'profiles' and 'user_roles'
-```
-
-**Solução**: 
-- Separadas as queries em duas chamadas independentes
-- Primeiro busca profiles, depois busca roles filtrando por user_ids
-- Mapeia roles usando Map para eficiência
-
+**Problema**: Query tentando fazer join direto entre `profiles` e `user_roles` causando erro
+**Solução**: Separadas queries em duas chamadas independentes
 **Arquivo**: `src/components/configuracoes/GerenciamentoUsuarios.tsx`
 
----
-
 ### 2. ✅ Sistema de Proteção de Rotas Implementado
-**Problema**: Todas as rotas eram públicas, permitindo acesso não autorizado
+**Problema**: Todas as rotas eram públicas
+**Solução**: Criado `ProtectedRoute` com verificação de autenticação e aprovação
+**Arquivos**: `src/components/auth/ProtectedRoute.tsx`, `src/App.tsx`
 
-**Solução**:
-- Criado componente `ProtectedRoute` que verifica autenticação e aprovação
-- Aplicado em todas as rotas do dashboard
-- Redirecionamento automático para login se não autenticado
-- Redirecionamento para página de aguardando aprovação se não aprovado
-- Gerenciamento correto de session state com Supabase
-
-**Arquivos**:
-- `src/components/auth/ProtectedRoute.tsx` (NOVO)
-- `src/App.tsx` (ATUALIZADO)
-
----
-
-### 3. ✅ Configuração de Autenticação Supabase
-**Problema**: Configuração de auth não estava otimizada
-
-**Solução**:
-- Auto-confirmação de email habilitada (melhor para desenvolvimento)
-- Signup habilitado
-- Anonymous users desabilitado
-
----
-
-### 4. ✅ Query Problemática em GerenciamentoPermissoesTelas
-**Problema**: Similar ao problema #1, tentativa de join direto causando erros
-
-**Solução**:
-- Queries separadas para profiles e roles
-- Mapeamento eficiente usando Map
-- Tratamento de erro adequado
-
+### 3. ✅ Query Problemática em GerenciamentoPermissoesTelas
+**Problema**: Join direto causando erros
+**Solução**: Queries separadas + mapeamento eficiente
 **Arquivo**: `src/components/configuracoes/GerenciamentoPermissoesTelas.tsx`
 
----
-
-## 🟡 Problemas Médios Corrigidos
-
-### 5. ✅ Queries Complexas do Ranking Otimizadas
-**Problema**: Queries com múltiplos joins aninhados causando falhas
-
-**Solução**:
-- Refatoradas queries para buscar dados em chamadas separadas
-- Uso de Maps para agrupar dados eficientemente
-- Eliminados joins problemáticos com foreign keys
-- Processamento de dados no frontend após busca
-
+### 4. ✅ Queries Complexas do Ranking Otimizadas
+**Problema**: Múltiplos joins aninhados causando falhas
+**Solução**: Refatoradas para buscar dados separadamente
 **Arquivo**: `src/pages/Ranking.tsx`
 
-**Melhorias**:
-- Ranking de Vendedores: busca profiles, roles e prospects separadamente
-- Ranking de Municípios: busca municípios e prospects, depois agrupa
-- Ranking de Supervisores: calcula baseado nos dados já carregados
-
----
-
-### 6. ✅ Correção do Mapa de Prospects
-**Problema**: Join com profiles usando foreign key inexistente
-
-**Solução**:
-- Removido join problemático
-- Busca de prospects com apenas vendedor_id
-- Query separada para buscar dados dos vendedores
-- Mapeamento manual dos vendedores aos prospects
-
+### 5. ✅ Correção do Mapa de Prospects
+**Problema**: Join com foreign key inexistente
+**Solução**: Query separada + mapeamento manual
 **Arquivo**: `src/components/mapa/ProspectMap.tsx`
 
-**Melhorias**:
-- Interface atualizada incluindo vendedor_id
-- Logs detalhados para debugging
-- Tratamento correto de dados ausentes
+### 6. ✅ Configuração de Autenticação Supabase
+**Solução**: Auto-confirmação de email habilitada
 
 ---
 
-## 🟢 Melhorias de Segurança Implementadas
+## 🔐 FASE 2: Correções Críticas de Segurança (RESOLVIDOS)
 
-### 7. ✅ Validação de Inputs com Zod
-**Status**: JÁ IMPLEMENTADO nos formulários principais
+### 7. ✅ CRÍTICO: Dados de Funcionários Expostos
+**Problema**: Tabela `profiles` com política `USING (true)` permitia qualquer usuário ver todos os funcionários
+**Solução**: RLS policies restritivas implementadas:
+- Usuários veem apenas próprio perfil
+- Admins/supervisores veem todos
+- Políticas separadas para UPDATE
+**Migration**: Políticas RLS atualizadas
 
-**Arquivos com validação adequada**:
-- `src/components/auth/LoginForm.tsx`
-- `src/components/auth/SignupForm.tsx`
-- `src/lib/validations/user.ts`
-- `src/lib/validations/prospect.ts`
-- `src/lib/validations/profile.ts`
-- `src/lib/validations/atividade.ts`
+### 8. ✅ CRÍTICO: Dados de Visitas de Campo Expostos
+**Problema**: Tabela `visits` com acesso total sem restrições
+**Solução**: RLS policies baseadas em user_id:
+- SELECT: Apenas próprias visitas ou admin/supervisor
+- INSERT: Apenas criar para si mesmo
+- UPDATE: Apenas próprias ou admin/supervisor
+- DELETE: Apenas admins
+**Migration**: 4 políticas RLS criadas
 
----
+### 9. ✅ CRÍTICO: Inteligência de Trade Marketing Exposta
+**Problema**: 15+ tabelas de trade marketing com `USING (true)`
+**Tabelas Corrigidas**:
+- `stores`, `products`, `photos`, `competitor_intelligence`
+- `promotions`, `trade_investments`, `shelf_share`, `gondola_audits`
+- `competitors`, `promotion_execution`, `routes`, `kpis_tracking`
+- `ideal_pdv_photos`, `competitor_comparison_photos`
+- `trade_budgets`, `trade_chart_of_accounts`, `trade_financial_entries`
+**Solução**: Implementadas ~50 políticas RLS baseadas em roles e ownership
+**Migration**: Políticas RLS criadas para todas as tabelas
 
-### 8. ✅ Autenticação Segura
-**Implementações**:
-- EmailRedirectTo configurado corretamente
-- Validação de senha forte (mínimo 8 caracteres, maiúsculas, minúsculas, números)
-- Tratamento de erros específicos (usuário já existe, credenciais inválidas)
-- Sem logs sensíveis no console
-- Session management correto com onAuthStateChange
+### 10. ✅ CRÍTICO: Bypass de Autorização via localStorage
+**Problema**: `PermissoesDeAcesso.tsx` usava localStorage (vulnerável a manipulação client-side)
+**Solução**: Funcionalidade desativada com aviso para usar `GerenciamentoPermissoesTelas` (banco de dados)
+**Arquivo**: `src/components/configuracoes/PermissoesDeAcesso.tsx`
+**Impacto**: Elimina possibilidade de usuários maliciosos modificarem suas próprias permissões
+
+### 11. ✅ IMPORTANTE: Assinaturas sem Proteção de Escrita
+**Problema**: Tabela `assinaturas` tinha RLS mas sem políticas de escrita
+**Solução**: Adicionadas políticas permitindo apenas admins gerenciar
+**Migration**: Políticas INSERT, UPDATE, DELETE criadas
+
+### 12. ✅ IMPORTANTE: Edge Function Crítica sem JWT
+**Problema**: `analisar-planilha-ia` com `verify_jwt = false`
+**Solução**: Habilitado `verify_jwt = true`
+**Arquivo**: `supabase/config.toml`
+**Impacto**: Protege análise de IA contra acesso não autorizado
+
+### 13. ✅ IMPORTANTE: Validações de Input Faltando
+**Problema**: Formulários de trade marketing sem validação client-side abrangente
+**Solução**: Criados schemas Zod completos para:
+- Stores (CNPJ, CEP, coordenadas, etc.)
+- Visits (datas, horários, coordenadas)
+- Investments (valores, categorias, URLs)
+**Arquivos Criados**:
+- `src/lib/validations/store.ts`
+- `src/lib/validations/visit.ts`
+- `src/lib/validations/investment.ts`
 
 ---
 
 ## 📊 Estado Atual do Sistema
 
-### ✅ Funcionando Corretamente
-- Sistema de autenticação completo (login/signup)
-- Proteção de rotas implementada
-- Gerenciamento de usuários funcional
-- Gerenciamento de permissões de telas funcional
-- Sistema de roles (admin/supervisor/vendedor)
-- Dashboard com métricas
-- Mapa de prospects
-- Ranking de desempenho
+### ✅ Segurança (COMPLETO)
+- ✅ Rotas protegidas com autenticação
+- ✅ RLS policies restritivas em TODAS as tabelas sensíveis
+- ✅ Edge functions críticas protegidas com JWT
+- ✅ Vulnerabilidade de localStorage eliminada
+- ✅ Validações client-side com Zod implementadas
+- ✅ Sistema de roles robusto (admin/supervisor/vendedor)
+- ✅ Autenticação segura com validação de senha forte
+- ✅ Session management correto
 
-### ⚠️ Avisos Menores (Não Críticos)
-- React Router future flags warnings (apenas informativos sobre v7)
-- Supabase password leak protection desabilitado (warning, não erro)
+### ✅ Performance (OTIMIZADO)
+- ✅ Queries otimizadas no Ranking
+- ✅ Separação de queries complexas
+- ✅ LEFT JOINs para evitar perda de dados
+- ✅ Mapeamento eficiente com Maps
+
+### ✅ Confiabilidade (ROBUSTO)
+- ✅ Tratamento de erros em queries
+- ✅ Validações robustas em formulários
+- ✅ Fallbacks adequados
+
+### ⚠️ Avisos Menores (NÃO CRÍTICOS)
+- React Router future flags (informativos)
+- **Leaked Password Protection Desabilitado** (precisa ser habilitado manualmente no Supabase Dashboard)
 
 ---
 
@@ -142,50 +131,95 @@ Could not find a relationship between 'profiles' and 'user_roles'
 ```
 1. Usuário acessa rota protegida
 2. ProtectedRoute verifica session no Supabase
-3. Se não autenticado → Redireciona para /auth/login
-4. Se autenticado mas não aprovado → Redireciona para /aguardando-aprovacao
-5. Se autenticado e aprovado → Permite acesso
+3. Se não autenticado → /auth/login
+4. Se autenticado mas não aprovado → /aguardando-aprovacao
+5. Se autenticado e aprovado → Acesso permitido
 ```
 
 ### Sistema de Permissões
 ```
-- Admins: Acesso total a todas as telas automaticamente
-- Supervisores: Acesso baseado em permissões configuradas
-- Vendedores: Acesso baseado em permissões configuradas
+- Admins: Acesso total automático via has_role()
+- Supervisores: Baseado em usuario_permissoes_telas + is_admin_or_supervisor()
+- Vendedores: Baseado em usuario_permissoes_telas
 ```
 
 ### RLS (Row Level Security)
-- Todas as tabelas principais têm políticas RLS
-- Funções security definer para evitar recursão
-- Separação clara entre roles no banco de dados
+- ✅ Políticas em 25+ tabelas
+- ✅ Funções security definer para evitar recursão
+- ✅ Padrão: leitura para autenticados, escrita para admin/supervisor ou owner
+- ✅ Tabelas sensíveis: acesso restrito ao próprio user_id
 
 ---
 
-## 📝 Próximas Recomendações (Opcional)
+## 🎯 Resumo de Políticas RLS Implementadas
+
+| Tabela | Políticas | Padrão de Acesso |
+|--------|-----------|------------------|
+| profiles | 3 políticas | Próprio perfil ou admin/supervisor |
+| visits | 4 políticas | Próprias visitas ou admin/supervisor |
+| assinaturas | 4 políticas | Ver próprias, admin gerencia tudo |
+| stores | 2 políticas | Ver todos, admin/supervisor gerencia |
+| products | 2 políticas | Ver todos, admin/supervisor gerencia |
+| photos | 4 políticas | Ver todos, criar todos, admin deleta |
+| competitor_intelligence | 3 políticas | Ver todos, criar todos, admin/super gerencia |
+| promotions | 2 políticas | Ver todos, admin/supervisor gerencia |
+| trade_investments | 3 políticas | Ver próprios, criar próprios, admin gerencia |
+| shelf_share | 3 políticas | Ver todos, criar todos, admin/super gerencia |
+| gondola_audits | 3 políticas | Ver próprios, criar próprios, admin gerencia |
+| competitors | 2 políticas | Ver todos, admin/supervisor gerencia |
+| promotion_execution | 3 políticas | Ver próprios, criar próprios, admin gerencia |
+| routes | 4 políticas | Ver próprios, criar/atualizar próprios, admin deleta |
+| kpis_tracking | 2 políticas | Ver todos, admin/supervisor gerencia |
+| ideal_pdv_photos | 2 políticas | Ver todos, admin/supervisor gerencia |
+| competitor_comparison_photos | 3 políticas | Ver todos, criar próprios, admin gerencia |
+| trade_budgets | 2 políticas | Ver todos, admin gerencia |
+| trade_chart_of_accounts | 2 políticas | Ver todos, admin gerencia |
+| trade_financial_entries | 3 políticas | Ver próprios, criar próprios, admin gerencia |
+
+**Total**: ~50 políticas RLS implementadas
+
+---
+
+## 📝 Próximas Recomendações (OPCIONAL - FASE 3)
+
+### Segurança Avançada
+1. ⚪ Habilitar Leaked Password Protection no Supabase Dashboard
+2. ⚪ Implementar audit logging para ações sensíveis
+3. ⚪ Rate limiting em edge functions públicas restantes
 
 ### Performance
-1. Adicionar índices no banco para queries frequentes
-2. Implementar paginação em listas grandes
-3. Cache de dados com React Query
-
-### Usabilidade
-1. Loading states mais consistentes
-2. Error boundaries globais
-3. Feedback visual melhorado
+1. ⚪ Adicionar índices para queries frequentes
+2. ⚪ Paginação em listas grandes
+3. ⚪ Cache com React Query
 
 ### Monitoramento
-1. Logs estruturados
-2. Métricas de performance
-3. Alertas de erro
+1. ⚪ Logs estruturados
+2. ⚪ Métricas de performance
+3. ⚪ Alertas de erro
 
 ---
 
 ## 🎯 Resumo Executivo
 
-**Total de Problemas Críticos Corrigidos**: 4
-**Total de Problemas Médios Corrigidos**: 2
-**Total de Melhorias de Segurança**: 2
+### Estatísticas
+- **Problemas Críticos de Funcionalidade Corrigidos**: 6
+- **Vulnerabilidades Críticas de Segurança Corrigidas**: 7
+- **Políticas RLS Criadas**: ~50
+- **Schemas de Validação Criados**: 3
+- **Arquivos Modificados**: 15+
 
-**Status Geral**: ✅ Sistema operacional e seguro
+### Status Geral
+✅ **SISTEMA OPERACIONAL E SEGURO**
 
-Todas as funcionalidades principais estão funcionando corretamente. O sistema está protegido contra acesso não autorizado e tem validação adequada de dados.
+**Antes**: Sistema com múltiplas vulnerabilidades críticas de segurança
+**Depois**: Sistema com arquitetura de segurança robusta e validações abrangentes
+
+Todas as funcionalidades principais estão operacionais. O sistema está protegido contra:
+- ✅ Acesso não autorizado
+- ✅ Escalação de privilégios
+- ✅ Manipulação de dados de outros usuários
+- ✅ Bypass de autorização via client-side
+- ✅ Acesso não autenticado a edge functions críticas
+- ✅ Injeção de dados maliciosos (validações Zod)
+
+**Data da última atualização**: 2025-10-14

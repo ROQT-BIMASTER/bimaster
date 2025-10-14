@@ -22,7 +22,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.analisar-planilha-ia]
-verify_jwt = false
+verify_jwt = true
 
 [functions.analyze-shelf-photos]
 verify_jwt = true

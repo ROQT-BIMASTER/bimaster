@@ -71,39 +71,27 @@ export function PermissoesDeAcesso() {
 
       if (error) throw error;
 
-      // Carregar permissões salvas do localStorage
-      const saved = localStorage.getItem('route-permissions');
-      let savedPermissions: Record<string, any> = {};
-      
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          // Converter array para objeto por ID
-          parsed.forEach((p: any) => {
-            if (p.id) {
-              savedPermissions[p.id] = p;
-            }
-          });
-        } catch (error) {
-          console.error('Erro ao carregar permissões salvas:', error);
-        }
-      }
-
-      // Criar array de permissões com dados do banco + localStorage
+      // SEGURANÇA: Não usar localStorage - sempre usar padrões
       const mappedPermissions: RoutePermission[] = (telas || []).map((tela) => {
-        const saved = savedPermissions[tela.id];
         return {
           id: tela.id,
           route: tela.rota,
           name: tela.nome,
           icon: iconMap[tela.icone] || FileText,
-          admin: saved?.admin ?? true,
-          supervisor: saved?.supervisor ?? true,
-          vendedor: saved?.vendedor ?? true,
+          admin: true,
+          supervisor: true,
+          vendedor: true,
         };
       });
 
       setPermissions(mappedPermissions);
+      
+      // Aviso sobre segurança
+      toast({
+        title: "Aviso de Segurança",
+        description: "Esta funcionalidade foi desativada. Use 'Gerenciar Permissões de Telas' para controlar acesso via banco de dados.",
+        variant: "default",
+      });
     } catch (error) {
       console.error('Erro ao carregar telas:', error);
       toast({
@@ -123,32 +111,18 @@ export function PermissoesDeAcesso() {
   };
 
   const handleSave = async () => {
-    setLoading(true);
-    try {
-      localStorage.setItem('route-permissions', JSON.stringify(permissions));
-      
-      toast({
-        title: "Permissões salvas",
-        description: "As permissões de acesso foram atualizadas com sucesso",
-      });
-    } catch (error) {
-      console.error('Erro ao salvar permissões:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível salvar as permissões",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    toast({
+      title: "Funcionalidade Desativada",
+      description: "Por segurança, use 'Gerenciar Permissões de Telas' para gerenciar permissões via banco de dados.",
+      variant: "destructive",
+    });
   };
 
   const handleReset = () => {
-    localStorage.removeItem('route-permissions');
-    loadPermissions(); // Recarregar do banco com valores padrão
     toast({
-      title: "Permissões restauradas",
-      description: "As permissões foram restauradas para o padrão",
+      title: "Funcionalidade Desativada",
+      description: "Por segurança, use 'Gerenciar Permissões de Telas' para gerenciar permissões via banco de dados.",
+      variant: "destructive",
     });
   };
 
