@@ -47,7 +47,9 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
 
         // Verificar se é admin
@@ -57,7 +59,7 @@ const Dashboard = () => {
           .eq("user_id", user.id)
           .maybeSingle();
 
-        setIsAdmin(roleData?.role === 'admin');
+        setIsAdmin(roleData?.role === "admin");
 
         const [prospectsResult, municipiosResult, negociacaoResult, atividadesResult] = await Promise.all([
           supabase.from("prospects").select("*", { count: "exact", head: true }),
@@ -77,18 +79,24 @@ const Dashboard = () => {
         });
 
         // Fetch pipeline data
-        const stages = ['novo', 'em_contato', 'proposta_enviada', 'negociacao', 'ganho'] as const;
-        const stageLabels = ['Novo', 'Contato', 'Proposta', 'Negociação', 'Ganho'];
-        const stageColors = ['hsl(217, 91%, 60%)', 'hsl(199, 89%, 48%)', 'hsl(173, 58%, 39%)', 'hsl(142, 71%, 45%)', 'hsl(120, 100%, 40%)'];
-        
+        const stages = ["novo", "em_contato", "proposta_enviada", "negociacao", "ganho"] as const;
+        const stageLabels = ["Novo", "Contato", "Proposta", "Negociação", "Ganho"];
+        const stageColors = [
+          "hsl(217, 91%, 60%)",
+          "hsl(199, 89%, 48%)",
+          "hsl(173, 58%, 39%)",
+          "hsl(142, 71%, 45%)",
+          "hsl(120, 100%, 40%)",
+        ];
+
         const pipelineCounts = await Promise.all(
-          stages.map(stage =>
-            supabase.from("prospects").select("*", { count: "exact", head: true }).eq("status", stage)
-          )
+          stages.map((stage) =>
+            supabase.from("prospects").select("*", { count: "exact", head: true }).eq("status", stage),
+          ),
         );
 
         const total = pipelineCounts.reduce((sum, result) => sum + (result.count || 0), 0);
-        
+
         const pipeline = stages.map((stage, index) => ({
           stage: stageLabels[index],
           count: pipelineCounts[index].count || 0,
@@ -101,21 +109,21 @@ const Dashboard = () => {
         // Fetch activity data for last 30 days
         const dates = Array.from({ length: 30 }, (_, i) => {
           const date = subDays(new Date(), 29 - i);
-          return format(startOfDay(date), 'yyyy-MM-dd');
+          return format(startOfDay(date), "yyyy-MM-dd");
         });
 
         const activityCounts = await Promise.all(
-          dates.map(date =>
+          dates.map((date) =>
             supabase
               .from("atividades")
               .select("*", { count: "exact", head: true })
               .gte("data_atividade", date)
-              .lt("data_atividade", format(subDays(new Date(date), -1), 'yyyy-MM-dd'))
-          )
+              .lt("data_atividade", format(subDays(new Date(date), -1), "yyyy-MM-dd")),
+          ),
         );
 
         const activities = dates.map((date, index) => ({
-          date: format(new Date(date), 'dd/MM', { locale: ptBR }),
+          date: format(new Date(date), "dd/MM", { locale: ptBR }),
           count: activityCounts[index].count || 0,
         }));
 
@@ -165,11 +173,7 @@ const Dashboard = () => {
             <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
             <p className="text-muted-foreground">Visão geral do seu CRM</p>
           </div>
-          <Button 
-            variant="outline" 
-            className="gap-2"
-            onClick={() => setChatOpen(true)}
-          >
+          <Button variant="outline" className="gap-2" onClick={() => setChatOpen(true)}>
             <Sparkles className="h-4 w-4" />
             Insights de IA
           </Button>
@@ -223,10 +227,10 @@ const Dashboard = () => {
                       return null;
                     }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="count" 
-                    stroke="hsl(var(--primary))" 
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="hsl(var(--primary))"
                     strokeWidth={2}
                     dot={{ fill: "hsl(var(--primary))" }}
                   />
@@ -270,10 +274,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <AIInsightsChat 
-        open={chatOpen}
-        onOpenChange={setChatOpen}
-      />
+      <AIInsightsChat open={chatOpen} onOpenChange={setChatOpen} />
     </DashboardLayout>
   );
 };
