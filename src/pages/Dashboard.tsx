@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,7 +55,7 @@ const Dashboard = () => {
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
 
         setIsAdmin(roleData?.role === 'admin');
 
@@ -247,7 +248,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <Button asChild className="w-full">
-                <a href="/dashboard/prospects">Acessar Módulo</a>
+                <Link to="/dashboard/prospects">Acessar Módulo</Link>
               </Button>
             </CardContent>
           </Card>
@@ -262,7 +263,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <Button asChild className="w-full">
-                <a href="/dashboard/trade">Acessar Módulo</a>
+                <Link to="/dashboard/trade">Acessar Módulo</Link>
               </Button>
             </CardContent>
           </Card>
