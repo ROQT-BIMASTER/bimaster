@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Store, Calendar, TrendingUp, Target, Camera, Tag, Brain, Zap } from "lucide-react";
+import { Store, Calendar, TrendingUp, Target, Camera, Tag, Brain, Zap, DollarSign } from "lucide-react";
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Link, Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
@@ -198,7 +198,7 @@ const TradeModule = () => {
           <CardHeader>
             <CardTitle>Ações Rápidas</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-2 md:grid-cols-3 lg:grid-cols-6">
+          <CardContent className="grid gap-2 md:grid-cols-3 lg:grid-cols-7">
             <Link to="/dashboard/trade/stores">
               <Button variant="outline" className="w-full justify-start gap-2">
                 <Store className="h-4 w-4" />
@@ -227,6 +227,12 @@ const TradeModule = () => {
               <Button variant="outline" className="w-full justify-start gap-2">
                 <Target className="h-4 w-4" />
                 Concorrentes
+              </Button>
+            </Link>
+            <Link to="/dashboard/trade/financeiro">
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <DollarSign className="h-4 w-4" />
+                Financeiro
               </Button>
             </Link>
             <Link to="/dashboard/trade/insights">
