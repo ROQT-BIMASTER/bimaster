@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { sanitizeText, getSafeErrorMessage } from "@/lib/utils/sanitize";
 
 interface EditarInvestimentoDialogProps {
   open: boolean;
@@ -72,8 +73,7 @@ export const EditarInvestimentoDialog = ({
         });
       }
     } catch (error) {
-      console.error("Erro ao carregar investimento:", error);
-      toast.error("Erro ao carregar dados do investimento");
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -82,16 +82,37 @@ export const EditarInvestimentoDialog = ({
     setLoading(true);
 
     try {
+      // Validação e sanitização
+      if (!formData.store_id || !formData.investment_date || !formData.category) {
+        throw new Error("Campos obrigatórios não preenchidos");
+      }
+
+      const amount = parseFloat(formData.amount);
+      if (isNaN(amount) || amount <= 0) {
+        throw new Error("Valor deve ser maior que zero");
+      }
+
+      if (amount > 1000000) {
+        throw new Error("Valor não pode exceder R$ 1.000.000");
+      }
+
+      const sanitizedDescription = sanitizeText(formData.description);
+      if (sanitizedDescription.length < 5) {
+        throw new Error("Descrição deve ter no mínimo 5 caracteres");
+      }
+
+      const sanitizedNotes = sanitizeText(formData.notes || "");
+      
       const { error } = await supabase
         .from("trade_investments")
         .update({
           store_id: formData.store_id,
           investment_date: formData.investment_date,
           category: formData.category,
-          amount: parseFloat(formData.amount),
-          description: formData.description,
-          payment_method: formData.payment_method,
-          notes: formData.notes,
+          amount,
+          description: sanitizedDescription,
+          payment_method: formData.payment_method || null,
+          notes: sanitizedNotes || null,
         })
         .eq("id", investmentId);
 
@@ -101,8 +122,7 @@ export const EditarInvestimentoDialog = ({
       onSuccess?.();
       onOpenChange(false);
     } catch (error: any) {
-      console.error("Erro ao atualizar investimento:", error);
-      toast.error("Erro ao atualizar investimento: " + error.message);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setLoading(false);
     }

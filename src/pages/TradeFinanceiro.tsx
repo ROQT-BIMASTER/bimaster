@@ -38,6 +38,11 @@ import { format } from "date-fns";
 import { EditarInvestimentoDialog } from "@/components/trade/EditarInvestimentoDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TradeFilters } from "@/components/trade/TradeFilters";
+import { budgetSchema, chartOfAccountsSchema } from "@/lib/validations/budget";
+import { sanitizeText, sanitizeCode, getSafeErrorMessage } from "@/lib/utils/sanitize";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import type { BudgetFormData } from "@/lib/validations/budget";
 
 export default function TradeFinanceiro() {
   const { hasPermission } = useScreenPermissions();
@@ -85,9 +90,8 @@ export default function TradeFinanceiro() {
         setInvestments(investmentsRes.data);
       }
       if (storesRes.data) setStores(storesRes.data);
-    } catch (error) {
-      console.error("Erro ao buscar dados:", error);
-      toast.error("Erro ao carregar dados financeiros");
+    } catch (error: any) {
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -130,17 +134,38 @@ export default function TradeFinanceiro() {
     const formData = new FormData(e.currentTarget);
     
     try {
+      // Sanitizar dados
+      const name = sanitizeText(formData.get("name") as string);
+      const code = sanitizeCode(formData.get("code") as string);
+      const total_amount = parseFloat(formData.get("total_amount") as string);
+      const period_start = formData.get("period_start") as string;
+      const period_end = formData.get("period_end") as string;
+      const account_id = formData.get("account_id") as string || null;
+      const description = sanitizeText(formData.get("description") as string || "");
+      
+      // Validações básicas
+      if (!name || name.length < 3) throw new Error("Nome deve ter no mínimo 3 caracteres");
+      if (!code || code.length < 2) throw new Error("Código deve ter no mínimo 2 caracteres");
+      if (!total_amount || total_amount <= 0) throw new Error("Valor deve ser maior que zero");
+      if (total_amount > 10000000) throw new Error("Valor não pode exceder R$ 10.000.000");
+      if (!period_start || !period_end) throw new Error("Período é obrigatório");
+      if (new Date(period_end) <= new Date(period_start)) {
+        throw new Error("Data de fim deve ser posterior à data de início");
+      }
+      
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
       
       const { error } = await supabase.from("trade_budgets").insert({
-        name: formData.get("name") as string,
-        code: formData.get("code") as string,
-        total_amount: parseFloat(formData.get("total_amount") as string),
-        period_start: formData.get("period_start") as string,
-        period_end: formData.get("period_end") as string,
-        account_id: formData.get("account_id") as string || null,
-        description: formData.get("description") as string,
-        created_by: user?.id,
+        name,
+        code,
+        total_amount,
+        period_start,
+        period_end,
+        account_id,
+        description,
+        status: "active",
+        created_by: user.id,
       });
 
       if (error) throw error;
@@ -148,9 +173,13 @@ export default function TradeFinanceiro() {
       toast.success("Verba criada com sucesso!");
       setNewBudgetOpen(false);
       fetchData();
-    } catch (error) {
-      console.error("Erro ao criar verba:", error);
-      toast.error("Erro ao criar verba");
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        const firstError = error.errors[0];
+        toast.error(firstError.message);
+      } else {
+        toast.error(getSafeErrorMessage(error));
+      }
     }
   };
 
@@ -160,25 +189,41 @@ export default function TradeFinanceiro() {
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
       
-      const { error } = await supabase.from("trade_investments").insert({
+      // Sanitizar dados
+      const sanitizedData = {
         store_id: formData.get("store_id") as string,
         investment_date: formData.get("investment_date") as string,
         amount: parseFloat(formData.get("amount") as string),
         category: formData.get("category") as string,
-        description: formData.get("description") as string,
+        description: sanitizeText(formData.get("description") as string),
         payment_method: formData.get("payment_method") as string,
-        created_by: user?.id,
-      });
+        created_by: user.id,
+      };
+
+      // Validação básica
+      if (!sanitizedData.store_id || !sanitizedData.investment_date || !sanitizedData.amount) {
+        throw new Error("Campos obrigatórios não preenchidos");
+      }
+
+      if (sanitizedData.amount <= 0) {
+        throw new Error("Valor deve ser maior que zero");
+      }
+
+      if (sanitizedData.amount > 1000000) {
+        throw new Error("Valor não pode exceder R$ 1.000.000");
+      }
+      
+      const { error } = await supabase.from("trade_investments").insert(sanitizedData);
 
       if (error) throw error;
 
       toast.success("Investimento registrado com sucesso!");
       setNewInvestmentOpen(false);
       fetchData();
-    } catch (error) {
-      console.error("Erro ao criar investimento:", error);
-      toast.error("Erro ao registrar investimento");
+    } catch (error: any) {
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -201,8 +246,7 @@ export default function TradeFinanceiro() {
       fetchData();
       setDeletingInvestmentId(null);
     } catch (error: any) {
-      console.error("Erro ao excluir investimento:", error);
-      toast.error("Erro ao excluir investimento: " + error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
