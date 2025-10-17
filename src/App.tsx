@@ -29,6 +29,9 @@ import TradePromotions from "./pages/TradePromotions";
 import TradeImportStores from "./pages/TradeImportStores";
 import TradeCalendar from "./pages/TradeCalendar";
 import TradeFinanceiro from "./pages/TradeFinanceiro";
+import TradeFinanceiroModule from "./pages/modules/TradeFinanceiroModule";
+import TradeFinanceiroLancamentos from "./pages/TradeFinanceiroLancamentos";
+import TradeFinanceiroVerbas from "./pages/TradeFinanceiroVerbas";
 import TradeIdealPhotos from "./pages/TradeIdealPhotos";
 import TradeAuditorias from "./pages/TradeAuditorias";
 import Ranking from "./pages/Ranking";
@@ -75,7 +78,11 @@ const App = () => (
         <Route path="/dashboard/trade/insights" element={<ProtectedRoute><TradeInsights /></ProtectedRoute>} />
         <Route path="/dashboard/trade/import-stores" element={<ProtectedRoute><TradeImportStores /></ProtectedRoute>} />
         <Route path="/dashboard/trade/calendar" element={<ProtectedRoute><TradeCalendar /></ProtectedRoute>} />
-        <Route path="/dashboard/trade/financeiro" element={<ProtectedRoute><TradeFinanceiro /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/financeiro" element={<ProtectedRoute><TradeFinanceiroModule /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/financeiro/verbas" element={<ProtectedRoute><TradeFinanceiroVerbas /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/financeiro/lancamentos" element={<ProtectedRoute><TradeFinanceiroLancamentos /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/financeiro/plano-contas" element={<ProtectedRoute><TradeFinanceiro /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/financeiro/relatorios" element={<ProtectedRoute><TradeFinanceiro /></ProtectedRoute>} />
         <Route path="/dashboard/trade/ideal-photos" element={<ProtectedRoute><TradeIdealPhotos /></ProtectedRoute>} />
         <Route path="/dashboard/trade/auditorias" element={<ProtectedRoute><TradeAuditorias /></ProtectedRoute>} />
         
