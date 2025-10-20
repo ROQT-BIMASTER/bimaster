@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useScreenPermissions } from "@/hooks/useScreenPermissions";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -45,8 +43,6 @@ import { useForm } from "react-hook-form";
 import type { BudgetFormData } from "@/lib/validations/budget";
 
 export default function TradeFinanceiro() {
-  const { hasPermission } = useScreenPermissions();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [budgets, setBudgets] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -60,12 +56,6 @@ export default function TradeFinanceiro() {
   const [allInvestments, setAllInvestments] = useState<any[]>([]);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
-
-  useEffect(() => {
-    if (!hasPermission("trade_marketing")) {
-      navigate("/dashboard");
-    }
-  }, [hasPermission, navigate]);
 
   useEffect(() => {
     fetchData();
