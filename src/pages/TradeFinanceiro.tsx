@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -248,6 +249,45 @@ export default function TradeFinanceiro() {
           <p className="text-muted-foreground mt-1">
             Gestão de verbas, investimentos e plano de contas
           </p>
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-3">
+          <Link to="/dashboard/trade/financeiro/contas">
+            <Card className="hover:border-primary cursor-pointer transition-colors">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Contas Correntes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Gestão de contas correntes por cliente
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/dashboard/trade/financeiro/verbas">
+            <Card className="hover:border-primary cursor-pointer transition-colors">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Verbas Semestrais</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Planejamento e acompanhamento semestral
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Card className="bg-muted/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Lançamentos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground">
+                Todos os lançamentos financeiros
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         <TradeFilters

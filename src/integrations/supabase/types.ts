@@ -1676,6 +1676,126 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_bank_accounts: {
+        Row: {
+          account_number: string
+          account_type: string | null
+          agency: string | null
+          bank_name: string
+          created_at: string | null
+          created_by: string | null
+          current_balance: number
+          id: string
+          initial_balance: number
+          is_active: boolean | null
+          notes: string | null
+          store_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_number: string
+          account_type?: string | null
+          agency?: string | null
+          bank_name: string
+          created_at?: string | null
+          created_by?: string | null
+          current_balance?: number
+          id?: string
+          initial_balance?: number
+          is_active?: boolean | null
+          notes?: string | null
+          store_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_number?: string
+          account_type?: string | null
+          agency?: string | null
+          bank_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          current_balance?: number
+          id?: string
+          initial_balance?: number
+          is_active?: boolean | null
+          notes?: string | null
+          store_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_bank_accounts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_bank_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          bank_account_id: string
+          created_at: string | null
+          description: string
+          financial_entry_id: string | null
+          id: string
+          investment_id: string | null
+          reference_number: string | null
+          transaction_date: string
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          bank_account_id: string
+          created_at?: string | null
+          description: string
+          financial_entry_id?: string | null
+          id?: string
+          investment_id?: string | null
+          reference_number?: string | null
+          transaction_date: string
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          bank_account_id?: string
+          created_at?: string | null
+          description?: string
+          financial_entry_id?: string | null
+          id?: string
+          investment_id?: string | null
+          reference_number?: string | null
+          transaction_date?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_bank_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "trade_bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_bank_transactions_financial_entry_id_fkey"
+            columns: ["financial_entry_id"]
+            isOneToOne: false
+            referencedRelation: "trade_financial_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_bank_transactions_investment_id_fkey"
+            columns: ["investment_id"]
+            isOneToOne: false
+            referencedRelation: "trade_investments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_budgets: {
         Row: {
           account_id: string | null
@@ -1785,6 +1905,7 @@ export type Database = {
           amount: number
           approved_at: string | null
           approved_by: string | null
+          bank_account_id: string | null
           budget_id: string | null
           created_at: string | null
           created_by: string | null
@@ -1803,6 +1924,7 @@ export type Database = {
           amount: number
           approved_at?: string | null
           approved_by?: string | null
+          bank_account_id?: string | null
           budget_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -1821,6 +1943,7 @@ export type Database = {
           amount?: number
           approved_at?: string | null
           approved_by?: string | null
+          bank_account_id?: string | null
           budget_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -1840,6 +1963,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_financial_entries_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "trade_bank_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -1870,6 +2000,7 @@ export type Database = {
           amount: number
           approved_at: string | null
           approved_by: string | null
+          bank_account_id: string | null
           category: string
           created_at: string | null
           created_by: string | null
@@ -1888,6 +2019,7 @@ export type Database = {
           amount: number
           approved_at?: string | null
           approved_by?: string | null
+          bank_account_id?: string | null
           category: string
           created_at?: string | null
           created_by?: string | null
@@ -1906,6 +2038,7 @@ export type Database = {
           amount?: number
           approved_at?: string | null
           approved_by?: string | null
+          bank_account_id?: string | null
           category?: string
           created_at?: string | null
           created_by?: string | null
@@ -1921,6 +2054,13 @@ export type Database = {
           visit_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "trade_investments_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "trade_bank_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trade_investments_store_id_fkey"
             columns: ["store_id"]
