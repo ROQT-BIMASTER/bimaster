@@ -57,27 +57,71 @@ export const ProspectMap = () => {
 
   const geocodeAddress = async (address: string): Promise<{ latitude: number; longitude: number } | null> => {
     try {
-      console.log(`🌐 Tentando geocodificar: ${address}`);
       const { data, error } = await supabase.functions.invoke('geocode-address', {
         body: { address },
       });
 
-      if (error) {
-        console.error('❌ Erro na função geocode-address:', error);
-        throw error;
-      }
+      if (error) throw error;
       
       if (data && data.latitude && data.longitude) {
-        console.log(`✅ Coordenadas obtidas: ${data.latitude}, ${data.longitude}`);
         return data;
-      } else {
-        console.warn('⚠️ Resposta sem coordenadas:', data);
-        return null;
       }
+      return null;
     } catch (error) {
-      console.error('❌ Erro ao geocodificar:', error);
+      console.error('Erro ao geocodificar:', error);
       return null;
     }
+  };
+
+  const geocodeInBatch = async (
+    prospects: Prospect[], 
+    batchSize: number = 10
+  ): Promise<GeocodedProspect[]> => {
+    const results: GeocodedProspect[] = [];
+    
+    for (let i = 0; i < prospects.length; i += batchSize) {
+      const batch = prospects.slice(i, i + batchSize);
+      
+      const batchPromises = batch.map(async (prospect) => {
+        let enderecoCompleto = '';
+        if (prospect.logradouro && prospect.municipio && prospect.uf) {
+          const parts = [
+            prospect.tipo_logradouro,
+            prospect.logradouro,
+            prospect.numero,
+            prospect.bairro,
+            prospect.municipio,
+            prospect.uf
+          ].filter(p => p && p.trim());
+          enderecoCompleto = parts.join(', ') + ', Brasil';
+        } else if (prospect.endereco) {
+          enderecoCompleto = prospect.endereco + ', Brasil';
+        }
+
+        const coords = await geocodeAddress(enderecoCompleto);
+        
+        if (coords) {
+          return {
+            ...prospect,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          };
+        }
+        return null;
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults.filter((r): r is GeocodedProspect => r !== null));
+      
+      setProgress({ current: Math.min(i + batchSize, prospects.length), total: prospects.length });
+      
+      // Pequeno delay entre batches para evitar rate limiting
+      if (i + batchSize < prospects.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+    
+    return results;
   };
 
   useEffect(() => {
@@ -204,51 +248,13 @@ export const ProspectMap = () => {
           });
         }
 
-        // Geocodificar endereços
+        // Geocodificar endereços em lote (paralelo)
         setGeocoding(true);
         setProgress({ current: 0, total: prospectsParaGeocodificar.length });
 
-        const geocodedProspects: GeocodedProspect[] = [];
-
-        for (let i = 0; i < prospectsParaGeocodificar.length; i++) {
-          const prospect = prospectsParaGeocodificar[i];
-          setProgress({ current: i + 1, total: prospectsParaGeocodificar.length });
-
-          // Construir endereço completo
-          let enderecoCompleto = '';
-          if (prospect.logradouro && prospect.municipio && prospect.uf) {
-            const parts = [
-              prospect.tipo_logradouro,
-              prospect.logradouro,
-              prospect.numero,
-              prospect.bairro,
-              prospect.municipio,
-              prospect.uf
-            ].filter(p => p && p.trim());
-            enderecoCompleto = parts.join(', ') + ', Brasil';
-          } else if (prospect.endereco) {
-            enderecoCompleto = prospect.endereco + ', Brasil';
-          }
-
-          console.log(`🌐 Geocodificando (${i + 1}/${prospectsParaGeocodificar.length}): ${enderecoCompleto}`);
-
-          const coords = await geocodeAddress(enderecoCompleto);
-
-          if (coords) {
-            console.log(`✅ Geocodificado: ${prospect.nome_empresa}`);
-            geocodedProspects.push({
-              ...prospect,
-              latitude: coords.latitude,
-              longitude: coords.longitude,
-            });
-          } else {
-            console.warn(`⚠️ Não foi possível geocodificar: ${prospect.nome_empresa}`);
-          }
-
-          // Delay reduzido para geocodificação mais rápida
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-
+        console.log(`🌐 Iniciando geocodificação de ${prospectsParaGeocodificar.length} endereços...`);
+        const geocodedProspects = await geocodeInBatch(prospectsParaGeocodificar, 10);
+        
         setGeocoding(false);
 
         console.log(`✅ ${geocodedProspects.length} endereços geocodificados com sucesso`);
