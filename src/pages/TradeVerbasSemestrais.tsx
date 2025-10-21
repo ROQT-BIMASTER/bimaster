@@ -224,12 +224,11 @@ export default function TradeVerbasSemestrais() {
 
         <div className="flex gap-4 items-center">
           <Label htmlFor="semester-filter">Filtrar por Semestre:</Label>
-          <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+          <Select value={selectedSemester || undefined} onValueChange={setSelectedSemester}>
             <SelectTrigger className="w-[250px]">
               <SelectValue placeholder="Todos os semestres" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os semestres</SelectItem>
               {semesters.map((s) => (
                 <SelectItem key={s.value} value={s.value}>
                   {s.label}
@@ -237,6 +236,15 @@ export default function TradeVerbasSemestrais() {
               ))}
             </SelectContent>
           </Select>
+          {selectedSemester && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedSemester("")}
+            >
+              Limpar filtro
+            </Button>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
