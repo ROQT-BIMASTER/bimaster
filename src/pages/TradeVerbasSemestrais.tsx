@@ -31,7 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Calendar, DollarSign, TrendingUp } from "lucide-react";
+import { Plus, Calendar, DollarSign, TrendingUp, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { sanitizeText, sanitizeCode, getSafeErrorMessage } from "@/lib/utils/sanitize";
 
@@ -47,6 +47,7 @@ export default function TradeVerbasSemestrais() {
   }, []);
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const [budgetsRes, accountsRes] = await Promise.all([
         supabase
@@ -146,13 +147,22 @@ export default function TradeVerbasSemestrais() {
               Planejamento e acompanhamento de verbas por semestre
             </p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Nova Verba
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={fetchData}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nova Verba
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Adicionar Verba Semestral</DialogTitle>
@@ -220,6 +230,7 @@ export default function TradeVerbasSemestrais() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         <div className="flex gap-4 items-center">
