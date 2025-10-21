@@ -35,36 +35,45 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [stores, setStores] = useState<any[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
   
-  const [formData, setFormData] = useState({
-    entry_date: new Date().toISOString().split("T")[0],
-    entry_type: "expense",
-    account_id: "",
-    amount: "",
-    description: "",
-    reference_number: "",
-    store_id: "",
-    budget_id: "",
-    notes: "",
-  });
+  const [entryDate, setEntryDate] = useState(new Date().toISOString().split("T")[0]);
+  const [entryType, setEntryType] = useState("expense");
+  const [accountId, setAccountId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [referenceNumber, setReferenceNumber] = useState("");
+  const [storeId, setStoreId] = useState("");
+  const [budgetId, setBudgetId] = useState("");
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     if (open) {
-      fetchData();
+      loadData();
     }
   }, [open]);
 
-  const fetchData = async () => {
+  const loadData = async () => {
     try {
-      const [accountsRes, storesRes, budgetsRes] = await Promise.all([
-        supabase.from("trade_chart_of_accounts").select("*").eq("is_active", true).order("code"),
-        supabase.from("stores").select("id, name, code").eq("active", true).order("name"),
-        supabase.from("trade_budgets").select("id, name, code").eq("status", "active").order("code"),
-      ]);
+      // @ts-ignore - Bypass TypeScript recursion issue with Supabase types
+      const acRes = await supabase
+        .from("trade_chart_of_accounts")
+        .select("id, code, name")
+        .eq("is_active", true);
+      if (acRes.data) setAccounts(acRes.data);
 
-      if (accountsRes.data) setAccounts(accountsRes.data);
-      if (storesRes.data) setStores(storesRes.data);
-      if (budgetsRes.data) setBudgets(budgetsRes.data);
-    } catch (error: any) {
+      // @ts-ignore - Bypass TypeScript recursion issue with Supabase types
+      const stRes = await supabase
+        .from("stores")
+        .select("id, name, code")
+        .eq("active", true);
+      if (stRes.data) setStores(stRes.data);
+
+      // @ts-ignore - Bypass TypeScript recursion issue with Supabase types  
+      const bgRes = await supabase
+        .from("trade_budgets")
+        .select("id, name, code")
+        .eq("status", "active");
+      if (bgRes.data) setBudgets(bgRes.data);
+    } catch (error) {
       toast.error(getSafeErrorMessage(error));
     }
   };
@@ -72,12 +81,12 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.entry_date || !formData.account_id || !formData.amount || !formData.description) {
+    if (!entryDate || !accountId || !amount || !description) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
-    if (parseFloat(formData.amount) <= 0) {
+    if (parseFloat(amount) <= 0) {
       toast.error("Valor deve ser maior que zero");
       return;
     }
@@ -88,15 +97,15 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       if (!user) throw new Error("Usuário não autenticado");
 
       const { error } = await supabase.from("trade_financial_entries").insert({
-        entry_date: formData.entry_date,
-        account_id: formData.account_id,
-        entry_type: formData.entry_type,
-        amount: parseFloat(formData.amount),
-        description: formData.description.trim(),
-        reference_number: formData.reference_number.trim() || null,
-        store_id: formData.store_id || null,
-        budget_id: formData.budget_id || null,
-        notes: formData.notes.trim() || "",
+        entry_date: entryDate,
+        account_id: accountId,
+        entry_type: entryType,
+        amount: parseFloat(amount),
+        description: description.trim(),
+        reference_number: referenceNumber.trim() || null,
+        store_id: storeId || null,
+        budget_id: budgetId || null,
+        notes: notes.trim() || "",
         status: "pending",
         approval_status: "pending",
         created_by: user.id,
@@ -105,20 +114,18 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       if (error) throw error;
 
       toast.success("Lançamento criado! Aguardando aprovação.");
-      setFormData({
-        entry_date: new Date().toISOString().split("T")[0],
-        entry_type: "expense",
-        account_id: "",
-        amount: "",
-        description: "",
-        reference_number: "",
-        store_id: "",
-        budget_id: "",
-        notes: "",
-      });
+      setEntryDate(new Date().toISOString().split("T")[0]);
+      setEntryType("expense");
+      setAccountId("");
+      setAmount("");
+      setDescription("");
+      setReferenceNumber("");
+      setStoreId("");
+      setBudgetId("");
+      setNotes("");
       setOpen(false);
       onSuccess();
-    } catch (error: any) {
+    } catch (error) {
       toast.error(getSafeErrorMessage(error));
     } finally {
       setLoading(false);
@@ -148,8 +155,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
               <Input
                 id="entry_date"
                 type="date"
-                value={formData.entry_date}
-                onChange={(e) => setFormData({ ...formData, entry_date: e.target.value })}
+                value={entryDate}
+                onChange={(e) => setEntryDate(e.target.value)}
                 max={new Date().toISOString().split("T")[0]}
                 required
               />
@@ -157,10 +164,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
 
             <div className="space-y-2">
               <Label htmlFor="entry_type">Tipo *</Label>
-              <Select
-                value={formData.entry_type}
-                onValueChange={(value) => setFormData({ ...formData, entry_type: value })}
-              >
+              <Select value={entryType} onValueChange={setEntryType}>
                 <SelectTrigger id="entry_type">
                   <SelectValue />
                 </SelectTrigger>
@@ -177,10 +181,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
 
           <div className="space-y-2">
             <Label htmlFor="account_id">Conta Contábil *</Label>
-            <Select
-              value={formData.account_id}
-              onValueChange={(value) => setFormData({ ...formData, account_id: value })}
-            >
+            <Select value={accountId} onValueChange={setAccountId}>
               <SelectTrigger id="account_id">
                 <SelectValue placeholder="Selecione a conta" />
               </SelectTrigger>
@@ -202,8 +203,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
                 type="number"
                 step="0.01"
                 placeholder="0,00"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
                 required
               />
             </div>
@@ -213,8 +214,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
               <Input
                 id="reference_number"
                 placeholder="DOC-2024-001"
-                value={formData.reference_number}
-                onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
+                value={referenceNumber}
+                onChange={(e) => setReferenceNumber(e.target.value)}
               />
             </div>
           </div>
@@ -225,8 +226,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
               id="description"
               placeholder="Descreva o lançamento..."
               className="min-h-[80px]"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               required
             />
           </div>
@@ -234,10 +235,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="store_id">Loja</Label>
-              <Select
-                value={formData.store_id}
-                onValueChange={(value) => setFormData({ ...formData, store_id: value })}
-              >
+              <Select value={storeId} onValueChange={setStoreId}>
                 <SelectTrigger id="store_id">
                   <SelectValue placeholder="Selecione (opcional)" />
                 </SelectTrigger>
@@ -253,10 +251,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
 
             <div className="space-y-2">
               <Label htmlFor="budget_id">Verba</Label>
-              <Select
-                value={formData.budget_id}
-                onValueChange={(value) => setFormData({ ...formData, budget_id: value })}
-              >
+              <Select value={budgetId} onValueChange={setBudgetId}>
                 <SelectTrigger id="budget_id">
                   <SelectValue placeholder="Selecione (opcional)" />
                 </SelectTrigger>
@@ -277,8 +272,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
               id="notes"
               placeholder="Informações adicionais..."
               className="min-h-[60px]"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
             />
           </div>
 

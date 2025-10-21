@@ -27,6 +27,7 @@ import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AprovarLancamentoDialog } from "@/components/trade/AprovarLancamentoDialog";
 import { AdicionarEvidenciaDialog } from "@/components/trade/AdicionarEvidenciaDialog";
+import { NovoLancamentoDialog } from "@/components/trade/NovoLancamentoDialog";
 
 export default function TradeLancamentos() {
   const [loading, setLoading] = useState(true);
@@ -152,18 +153,22 @@ export default function TradeLancamentos() {
             </div>
           </div>
 
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filtrar por status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="pending">Pendentes</SelectItem>
-              <SelectItem value="approved">Aprovados</SelectItem>
-              <SelectItem value="completed">Concluídos</SelectItem>
-              <SelectItem value="rejected">Rejeitados</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <NovoLancamentoDialog onSuccess={fetchData} />
+            
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar por status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="pending">Pendentes</SelectItem>
+                <SelectItem value="approved">Aprovados</SelectItem>
+                <SelectItem value="completed">Concluídos</SelectItem>
+                <SelectItem value="rejected">Rejeitados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <Card>
