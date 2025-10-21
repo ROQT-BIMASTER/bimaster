@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
+import { InsightDetailDialog } from "@/components/trade/InsightDetailDialog";
 
 interface Insight {
   id: string;
@@ -34,6 +35,8 @@ const TradeInsights = () => {
   const [generating, setGenerating] = useState(false);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
+  const [selectedInsightId, setSelectedInsightId] = useState<string | null>(null);
+  const [insightDetailOpen, setInsightDetailOpen] = useState(false);
 
   if (!permissionsLoading && !hasPermission("trade_insights")) {
     return <Navigate to="/dashboard" replace />;
@@ -395,7 +398,14 @@ const TradeInsights = () => {
             </Card>
           ) : (
             insights.map((insight) => (
-              <Card key={insight.id}>
+              <Card 
+                key={insight.id}
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => {
+                  setSelectedInsightId(insight.id);
+                  setInsightDetailOpen(true);
+                }}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
                     <div className="mt-1">{getInsightIcon(insight.insight_type)}</div>
@@ -430,7 +440,8 @@ const TradeInsights = () => {
                       <div className="flex gap-2">
                         <Button 
                           size="sm"
-                          onClick={async () => {
+                          onClick={async (e) => {
+                            e.stopPropagation();
                             try {
                               const { error } = await supabase
                                 .from("ai_insights")
@@ -449,7 +460,8 @@ const TradeInsights = () => {
                         <Button 
                           size="sm" 
                           variant="outline"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             toast.info("Funcionalidade de atribuição em desenvolvimento");
                           }}
                         >
@@ -458,7 +470,8 @@ const TradeInsights = () => {
                         <Button 
                           size="sm" 
                           variant="ghost"
-                          onClick={async () => {
+                          onClick={async (e) => {
+                            e.stopPropagation();
                             try {
                               const { error } = await supabase
                                 .from("ai_insights")
@@ -476,17 +489,23 @@ const TradeInsights = () => {
                         </Button>
                       </div>
                       {/* Mostrar imagens relacionadas */}
-                      {insight.data_points?.photo_urls && (
+                      {insight.data_points && 
+                       typeof insight.data_points === 'object' && 
+                       'photo_urls' in insight.data_points &&
+                       Array.isArray(insight.data_points.photo_urls) && (
                         <div className="mt-4">
                           <p className="text-sm font-medium mb-2">Evidências Fotográficas:</p>
                           <div className="grid grid-cols-2 gap-2">
-                            {insight.data_points.photo_urls.map((url: string, idx: number) => (
+                            {(insight.data_points.photo_urls as string[]).map((url: string, idx: number) => (
                               <img 
                                 key={idx}
                                 src={url} 
                                 alt={`Evidência ${idx + 1}`}
                                 className="rounded-lg w-full h-32 object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                                onClick={() => window.open(url, '_blank')}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(url, '_blank');
+                                }}
                               />
                             ))}
                           </div>
@@ -499,6 +518,13 @@ const TradeInsights = () => {
             ))
           )}
         </div>
+
+        <InsightDetailDialog
+          insightId={selectedInsightId}
+          open={insightDetailOpen}
+          onOpenChange={setInsightDetailOpen}
+          onUpdate={fetchInsights}
+        />
       </div>
     </DashboardLayout>
   );
