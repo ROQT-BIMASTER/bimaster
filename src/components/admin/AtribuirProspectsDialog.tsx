@@ -174,7 +174,7 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
           Atribuir Prospects
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
+      <DialogContent className="max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Atribuir Prospects em Massa</DialogTitle>
           <DialogDescription>
@@ -183,7 +183,7 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto flex-1">
           <div className="space-y-2">
             <Label htmlFor="vendedor">Vendedor *</Label>
             <Select value={selectedVendedor} onValueChange={setSelectedVendedor}>
