@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Upload, X } from "lucide-react";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 
 interface NovoLancamentoDialogProps {
@@ -44,6 +44,9 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [storeId, setStoreId] = useState("");
   const [budgetId, setBudgetId] = useState("");
   const [notes, setNotes] = useState("");
+  const [documentUrl, setDocumentUrl] = useState("");
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -78,6 +81,46 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     }
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadError, data } = await supabase.storage
+          .from("trade-photos")
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("trade-photos")
+          .getPublicUrl(fileName);
+
+        return publicUrl;
+      });
+
+      const urls = await Promise.all(uploadPromises);
+      setUploadedPhotos([...uploadedPhotos, ...urls]);
+      toast.success(`${urls.length} foto(s) enviada(s) com sucesso`);
+    } catch (error) {
+      toast.error(getSafeErrorMessage(error));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePhoto = (urlToRemove: string) => {
+    setUploadedPhotos(uploadedPhotos.filter(url => url !== urlToRemove));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -96,6 +139,13 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      // Combinar URLs de fotos com observações se houver fotos
+      let finalNotes = notes.trim();
+      if (uploadedPhotos.length > 0) {
+        const photosSection = `\n\n📷 Fotos/Evidências:\n${uploadedPhotos.map((url, i) => `${i + 1}. ${url}`).join('\n')}`;
+        finalNotes = finalNotes ? finalNotes + photosSection : photosSection.trim();
+      }
+
       const { error } = await supabase.from("trade_financial_entries").insert({
         entry_date: entryDate,
         account_id: accountId,
@@ -105,7 +155,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         reference_number: referenceNumber.trim() || null,
         store_id: storeId || null,
         budget_id: budgetId || null,
-        notes: notes.trim() || "",
+        notes: finalNotes,
+        document_url: documentUrl.trim() || null,
         status: "pending",
         approval_status: "pending",
         created_by: user.id,
@@ -123,6 +174,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       setStoreId("");
       setBudgetId("");
       setNotes("");
+      setDocumentUrl("");
+      setUploadedPhotos([]);
       setOpen(false);
       onSuccess();
     } catch (error) {
@@ -275,6 +328,67 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="document_url">URL do Comprovante/Documento</Label>
+            <Input
+              id="document_url"
+              type="url"
+              placeholder="https://..."
+              value={documentUrl}
+              onChange={(e) => setDocumentUrl(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Cole a URL do documento armazenado (Google Drive, Dropbox, etc.)
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Fotos/Evidências</Label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={uploading}
+                onClick={() => document.getElementById("photo-upload")?.click()}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {uploading ? "Enviando..." : "Adicionar Fotos"}
+              </Button>
+              <input
+                id="photo-upload"
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+              <span className="text-sm text-muted-foreground">
+                {uploadedPhotos.length} foto(s)
+              </span>
+            </div>
+            
+            {uploadedPhotos.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {uploadedPhotos.map((url, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={url}
+                      alt={`Evidência ${index + 1}`}
+                      className="w-full h-20 object-cover rounded border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(url)}
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <DialogFooter>
