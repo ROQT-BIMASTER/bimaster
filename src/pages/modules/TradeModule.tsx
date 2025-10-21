@@ -73,10 +73,10 @@ const TradeModule = () => {
   ];
 
   const categoryDistribution = [
-    { name: "Supermercados", value: 45, color: "hsl(var(--chart-1))" },
-    { name: "Farmácias", value: 25, color: "hsl(var(--chart-2))" },
-    { name: "Atacados", value: 20, color: "hsl(var(--chart-3))" },
-    { name: "Conveniências", value: 10, color: "hsl(var(--chart-4))" },
+    { name: "Supermercados", value: 45, color: "#60A5FA" }, // Azul claro
+    { name: "Farmácias", value: 25, color: "#34D399" }, // Verde menta
+    { name: "Atacados", value: 20, color: "#F472B6" }, // Rosa suave
+    { name: "Conveniências", value: 10, color: "#A78BFA" }, // Roxo claro
   ];
 
   return (
@@ -155,11 +155,32 @@ const TradeModule = () => {
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={visitsTrend}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="visits" stroke="hsl(var(--primary))" strokeWidth={2} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#6B7280"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <YAxis 
+                    stroke="#6B7280"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="visits" 
+                    stroke="#3B82F6" 
+                    strokeWidth={3}
+                    dot={{ fill: '#3B82F6', r: 5 }}
+                    activeDot={{ r: 7, fill: '#2563EB' }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -178,15 +199,29 @@ const TradeModule = () => {
                     cy="50%"
                     labelLine={false}
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    outerRadius={90}
+                    innerRadius={50}
                     fill="#8884d8"
                     dataKey="value"
+                    paddingAngle={2}
                   >
                     {categoryDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.color}
+                        stroke="#FFFFFF"
+                        strokeWidth={2}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
