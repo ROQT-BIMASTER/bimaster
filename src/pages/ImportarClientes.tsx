@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CNPJBizCreditos } from "@/components/prospects/CNPJBizCreditos";
 import { CNPJBizFilters } from "@/components/prospects/CNPJBizFilters";
 import { CNPJBizPreview } from "@/components/prospects/CNPJBizPreview";
+import { CNPJBizSearch } from "@/components/prospects/CNPJBizSearch";
 import * as XLSX from 'xlsx';
 
 interface ImportResult {
@@ -891,15 +892,18 @@ const ImportarClientes = () => {
         </div>
 
         <Tabs defaultValue="tradicional" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="tradicional">Importação Tradicional</TabsTrigger>
             <TabsTrigger value="ia">
               <Sparkles className="h-4 w-4 mr-2" />
               Importação com IA
             </TabsTrigger>
-            <TabsTrigger value="api">
+            <TabsTrigger value="cnpj">
               <Search className="h-4 w-4 mr-2" />
-              Busca por API
+              Buscar por CNPJ
+            </TabsTrigger>
+            <TabsTrigger value="api">
+              Busca Avançada
             </TabsTrigger>
           </TabsList>
 
@@ -1021,6 +1025,11 @@ Exemplo:
                 </Alert>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="cnpj" className="space-y-4">
+            <CNPJBizCreditos />
+            <CNPJBizSearch onImportComplete={() => toast({ title: "Prospect importado com sucesso!" })} />
           </TabsContent>
 
           <TabsContent value="api" className="space-y-6">
