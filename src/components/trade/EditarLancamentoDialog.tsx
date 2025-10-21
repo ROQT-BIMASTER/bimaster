@@ -203,12 +203,14 @@ export function EditarLancamentoDialog({
           budget_id: budgetId || null,
           notes: finalNotes,
           document_url: documentUrl.trim() || null,
+          approval_status: "pending",
+          rejected_reason: null,
         })
         .eq("id", entryId);
 
       if (error) throw error;
 
-      toast.success("Lançamento atualizado com sucesso!");
+      toast.success("Lançamento atualizado e resubmetido para aprovação!");
       onOpenChange(false);
       onSuccess();
     } catch (error) {

@@ -127,7 +127,7 @@ export default function TradeLancamentos() {
   const canEdit = (entry: any) => {
     return (
       entry.created_by === currentUserId &&
-      entry.approval_status === "pending"
+      (entry.approval_status === "pending" || entry.approval_status === "rejected")
     );
   };
 
@@ -238,10 +238,10 @@ export default function TradeLancamentos() {
                         {canEdit(entry) && (
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant={entry.approval_status === "rejected" ? "default" : "outline"}
                             onClick={() => handleEditClick(entry)}
                           >
-                            Editar
+                            {entry.approval_status === "rejected" ? "Editar e Resubmeter" : "Editar"}
                           </Button>
                         )}
                         {canAddEvidence(entry) && (
