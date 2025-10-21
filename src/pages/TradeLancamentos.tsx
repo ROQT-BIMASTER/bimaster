@@ -24,8 +24,6 @@ import { toast } from "sonner";
 import { ArrowLeft, FileText, CheckCircle2, FileUp } from "lucide-react";
 import { format } from "date-fns";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
-import { useUserRole } from "@/hooks/useUserRole";
-import { AprovarLancamentoDialog } from "@/components/trade/AprovarLancamentoDialog";
 import { AdicionarEvidenciaDialog } from "@/components/trade/AdicionarEvidenciaDialog";
 import { NovoLancamentoDialog } from "@/components/trade/NovoLancamentoDialog";
 
@@ -34,10 +32,8 @@ export default function TradeLancamentos() {
   const [entries, setEntries] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
-  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const { isAdminOrSupervisor } = useUserRole();
 
   useEffect(() => {
     fetchData();
@@ -113,21 +109,12 @@ export default function TradeLancamentos() {
     );
   };
 
-  const canApprove = (entry: any) => {
-    return isAdminOrSupervisor && entry.approval_status === "pending";
-  };
-
   const canAddEvidence = (entry: any) => {
     return (
       entry.created_by === currentUserId &&
       entry.approval_status === "approved" &&
       entry.status !== "completed"
     );
-  };
-
-  const handleApproveClick = (entry: any) => {
-    setSelectedEntry(entry);
-    setApprovalDialogOpen(true);
   };
 
   const handleEvidenceClick = (entry: any) => {
@@ -233,28 +220,16 @@ export default function TradeLancamentos() {
                     </TableCell>
                     <TableCell>{getStatusBadge(entry.approval_status)}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {canApprove(entry) && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleApproveClick(entry)}
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-1" />
-                            Aprovar
-                          </Button>
-                        )}
-                        {canAddEvidence(entry) && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEvidenceClick(entry)}
-                          >
-                            <FileUp className="h-4 w-4 mr-1" />
-                            Adicionar Evidência
-                          </Button>
-                        )}
-                      </div>
+                      {canAddEvidence(entry) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEvidenceClick(entry)}
+                        >
+                          <FileUp className="h-4 w-4 mr-1" />
+                          Adicionar Evidência
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -265,20 +240,12 @@ export default function TradeLancamentos() {
       </div>
 
       {selectedEntry && (
-        <>
-          <AprovarLancamentoDialog
-            open={approvalDialogOpen}
-            onOpenChange={setApprovalDialogOpen}
-            entry={selectedEntry}
-            onSuccess={fetchData}
-          />
-          <AdicionarEvidenciaDialog
-            open={evidenceDialogOpen}
-            onOpenChange={setEvidenceDialogOpen}
-            entry={selectedEntry}
-            onSuccess={fetchData}
-          />
-        </>
+        <AdicionarEvidenciaDialog
+          open={evidenceDialogOpen}
+          onOpenChange={setEvidenceDialogOpen}
+          entry={selectedEntry}
+          onSuccess={fetchData}
+        />
       )}
     </DashboardLayout>
   );

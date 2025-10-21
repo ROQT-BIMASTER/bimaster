@@ -36,6 +36,7 @@ import TradeContasCorrentes from "./pages/TradeContasCorrentes";
 import TradeExtratoBancario from "./pages/TradeExtratoBancario";
 import TradeVerbasSemestrais from "./pages/TradeVerbasSemestrais";
 import TradeLancamentos from "./pages/TradeLancamentos";
+import TradeAprovacoes from "./pages/TradeAprovacoes";
 import TradeCampaigns from "./pages/TradeCampaigns";
 
 const queryClient = new QueryClient();
@@ -87,6 +88,7 @@ const App = () => (
         <Route path="/dashboard/trade/financeiro/extrato/:accountId" element={<ProtectedRoute><TradeExtratoBancario /></ProtectedRoute>} />
         <Route path="/dashboard/trade/financeiro/verbas" element={<ProtectedRoute><TradeVerbasSemestrais /></ProtectedRoute>} />
         <Route path="/dashboard/trade/financeiro/lancamentos" element={<ProtectedRoute><TradeLancamentos /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/financeiro/aprovacoes" element={<ProtectedRoute><TradeAprovacoes /></ProtectedRoute>} />
         <Route path="/dashboard/trade/auditorias" element={<ProtectedRoute><TradeAuditorias /></ProtectedRoute>} />
         
         <Route path="*" element={<NotFound />} />

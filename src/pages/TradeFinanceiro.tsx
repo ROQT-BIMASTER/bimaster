@@ -303,6 +303,22 @@ export default function TradeFinanceiro() {
               </CardContent>
             </Card>
           </Link>
+
+          <Link to="/dashboard/trade/financeiro/aprovacoes">
+            <Card className="hover:border-orange-500 cursor-pointer transition-colors border-orange-500/50">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-orange-500" />
+                  Aprovações
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Revisar e aprovar lançamentos pendentes
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         <TradeFilters
