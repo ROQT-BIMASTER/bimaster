@@ -14,6 +14,23 @@ import { Plus, TrendingUp, DollarSign, ShoppingCart, CheckCircle, Calendar } fro
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { format } from "date-fns";
 
+interface Store {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Prospect {
+  id: string;
+  nome_empresa: string;
+}
+
+interface Campaign {
+  id: string;
+  name: string;
+  code: string;
+}
+
 interface Sale {
   id: string;
   sale_code: string;
@@ -41,9 +58,9 @@ export default function TradeVendas() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [sales, setSales] = useState<Sale[]>([]);
-  const [stores, setStores] = useState<any[]>([]);
-  const [prospects, setProspects] = useState<any[]>([]);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   // Form state
@@ -115,31 +132,37 @@ export default function TradeVendas() {
         thisMonthSales: thisMonth,
       });
 
-      // Fetch stores
-      const storesResult = await supabase
+      // Fetch stores - desestruturando e usando type assertion explícita
+      const storesQuery = await supabase
         .from("stores")
-        .select("id, name, store_code")
-        .eq("is_active", true)
+        .select("id, name, code")
+        .eq("status", "active")
         .order("name");
       
-      setStores((storesResult.data as any) || []);
+      if (storesQuery.data) {
+        setStores(storesQuery.data as Store[]);
+      }
 
       // Fetch prospects
-      const prospectsResult = await supabase
+      const prospectsQuery = await supabase
         .from("prospects")
         .select("id, nome_empresa")
         .order("nome_empresa");
       
-      setProspects((prospectsResult.data as any) || []);
+      if (prospectsQuery.data) {
+        setProspects(prospectsQuery.data as Prospect[]);
+      }
 
       // Fetch campaigns
-      const campaignsResult = await supabase
+      const campaignsQuery = await supabase
         .from("trade_campaigns")
         .select("id, name, code")
         .eq("status", "active")
         .order("name");
       
-      setCampaigns((campaignsResult.data as any) || []);
+      if (campaignsQuery.data) {
+        setCampaigns(campaignsQuery.data as Campaign[]);
+      }
 
     } catch (error: any) {
       console.error("Erro ao carregar dados:", error);
@@ -445,7 +468,7 @@ export default function TradeVendas() {
                     <SelectContent>
                     {stores.map((store) => (
                         <SelectItem key={store.id} value={store.id}>
-                          {store.name} ({store.store_code})
+                          {store.name} ({store.code})
                         </SelectItem>
                       ))}
                     </SelectContent>
