@@ -278,16 +278,18 @@ export default function TradeFinanceiro() {
             </Card>
           </Link>
           
-          <Card className="bg-muted/50">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Lançamentos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Todos os lançamentos financeiros
-              </p>
-            </CardContent>
-          </Card>
+          <Link to="/dashboard/trade/financeiro/lancamentos">
+            <Card className="hover:border-primary cursor-pointer transition-colors">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Lançamentos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Todos os lançamentos financeiros
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         <TradeFilters
