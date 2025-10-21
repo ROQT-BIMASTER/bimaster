@@ -2498,10 +2498,12 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string
+          document_url: string | null
           entry_date: string
           entry_type: string
           id: string
           investment_id: string | null
+          notes: string | null
           reference_number: string | null
           rejected_reason: string | null
           status: string | null
@@ -2520,10 +2522,12 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description: string
+          document_url?: string | null
           entry_date: string
           entry_type: string
           id?: string
           investment_id?: string | null
+          notes?: string | null
           reference_number?: string | null
           rejected_reason?: string | null
           status?: string | null
@@ -2542,10 +2546,12 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string
+          document_url?: string | null
           entry_date?: string
           entry_type?: string
           id?: string
           investment_id?: string | null
+          notes?: string | null
           reference_number?: string | null
           rejected_reason?: string | null
           status?: string | null

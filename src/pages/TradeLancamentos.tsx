@@ -12,23 +12,45 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle2, FileUp } from "lucide-react";
 import { format } from "date-fns";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
+import { useUserRole } from "@/hooks/useUserRole";
+import { AprovarLancamentoDialog } from "@/components/trade/AprovarLancamentoDialog";
+import { AdicionarEvidenciaDialog } from "@/components/trade/AdicionarEvidenciaDialog";
 
 export default function TradeLancamentos() {
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<any[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedEntry, setSelectedEntry] = useState<any>(null);
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { isAdminOrSupervisor } = useUserRole();
 
   useEffect(() => {
     fetchData();
+    getCurrentUser();
   }, []);
+
+  const getCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUserId(user?.id || null);
+  };
 
   const fetchData = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("trade_financial_entries")
         .select(`
           *,
@@ -36,8 +58,13 @@ export default function TradeLancamentos() {
           store:stores(name, code),
           budget:trade_budgets(name, code),
           investment:trade_investments(amount, category)
-        `)
-        .order("entry_date", { ascending: false });
+        `);
+
+      if (statusFilter !== "all") {
+        query = query.eq("approval_status", statusFilter);
+      }
+
+      const { data, error } = await query.order("entry_date", { ascending: false });
 
       if (error) throw error;
       setEntries(data || []);
@@ -47,6 +74,10 @@ export default function TradeLancamentos() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, [statusFilter]);
 
   const getEntryTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -81,21 +112,58 @@ export default function TradeLancamentos() {
     );
   };
 
+  const canApprove = (entry: any) => {
+    return isAdminOrSupervisor && entry.approval_status === "pending";
+  };
+
+  const canAddEvidence = (entry: any) => {
+    return (
+      entry.created_by === currentUserId &&
+      entry.approval_status === "approved" &&
+      entry.status !== "completed"
+    );
+  };
+
+  const handleApproveClick = (entry: any) => {
+    setSelectedEntry(entry);
+    setApprovalDialogOpen(true);
+  };
+
+  const handleEvidenceClick = (entry: any) => {
+    setSelectedEntry(entry);
+    setEvidenceDialogOpen(true);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Link to="/dashboard/trade/financeiro">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold">Lançamentos Financeiros</h1>
-            <p className="text-muted-foreground mt-1">
-              Histórico completo de todos os lançamentos
-            </p>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Link to="/dashboard/trade/financeiro">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold">Lançamentos Financeiros</h1>
+              <p className="text-muted-foreground mt-1">
+                Histórico completo de todos os lançamentos
+              </p>
+            </div>
           </div>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filtrar por status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="pending">Pendentes</SelectItem>
+              <SelectItem value="approved">Aprovados</SelectItem>
+              <SelectItem value="completed">Concluídos</SelectItem>
+              <SelectItem value="rejected">Rejeitados</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Card>
@@ -119,6 +187,7 @@ export default function TradeLancamentos() {
                   <TableHead>Loja</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -157,7 +226,31 @@ export default function TradeLancamentos() {
                         maximumFractionDigits: 2,
                       })}
                     </TableCell>
-                    <TableCell>{getStatusBadge(entry.status)}</TableCell>
+                    <TableCell>{getStatusBadge(entry.approval_status)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {canApprove(entry) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleApproveClick(entry)}
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            Aprovar
+                          </Button>
+                        )}
+                        {canAddEvidence(entry) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEvidenceClick(entry)}
+                          >
+                            <FileUp className="h-4 w-4 mr-1" />
+                            Adicionar Evidência
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -165,6 +258,23 @@ export default function TradeLancamentos() {
           )}
         </Card>
       </div>
+
+      {selectedEntry && (
+        <>
+          <AprovarLancamentoDialog
+            open={approvalDialogOpen}
+            onOpenChange={setApprovalDialogOpen}
+            entry={selectedEntry}
+            onSuccess={fetchData}
+          />
+          <AdicionarEvidenciaDialog
+            open={evidenceDialogOpen}
+            onOpenChange={setEvidenceDialogOpen}
+            entry={selectedEntry}
+            onSuccess={fetchData}
+          />
+        </>
+      )}
     </DashboardLayout>
   );
 }
