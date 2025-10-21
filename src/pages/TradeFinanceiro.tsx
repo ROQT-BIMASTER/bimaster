@@ -191,6 +191,8 @@ export default function TradeFinanceiro() {
         description: sanitizeText(formData.get("description") as string),
         payment_method: formData.get("payment_method") as string,
         created_by: user.id,
+        approval_status: "pending" as const,
+        status: "pending" as const,
       };
 
       // Validação básica
@@ -210,7 +212,7 @@ export default function TradeFinanceiro() {
 
       if (error) throw error;
 
-      toast.success("Investimento registrado com sucesso!");
+      toast.success("Investimento criado! Aguardando aprovação.");
       setNewInvestmentOpen(false);
       fetchData();
     } catch (error: any) {

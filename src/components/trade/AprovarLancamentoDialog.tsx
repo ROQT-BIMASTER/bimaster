@@ -20,6 +20,7 @@ interface AprovarLancamentoDialogProps {
   onOpenChange: (open: boolean) => void;
   entry: any;
   onSuccess: () => void;
+  type?: "entry" | "investment";
 }
 
 export function AprovarLancamentoDialog({
@@ -27,6 +28,7 @@ export function AprovarLancamentoDialog({
   onOpenChange,
   entry,
   onSuccess,
+  type = "entry",
 }: AprovarLancamentoDialogProps) {
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState<"approve" | "reject" | null>(null);
@@ -38,20 +40,28 @@ export function AprovarLancamentoDialog({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      const tableName = type === "investment" ? "trade_investments" : "trade_financial_entries";
+      const updateData: any = {
+        approval_status: "approved",
+        approved_by: user.id,
+        approved_at: new Date().toISOString(),
+      };
+
+      if (type === "entry") {
+        updateData.status = "approved";
+        updateData.updated_at = new Date().toISOString();
+      } else {
+        updateData.status = "approved";
+      }
+
       const { error } = await supabase
-        .from("trade_financial_entries")
-        .update({
-          approval_status: "approved",
-          status: "approved",
-          approved_by: user.id,
-          approved_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
+        .from(tableName)
+        .update(updateData)
         .eq("id", entry.id);
 
       if (error) throw error;
 
-      toast.success("Lançamento aprovado com sucesso!");
+      toast.success(type === "investment" ? "Investimento aprovado com sucesso!" : "Lançamento aprovado com sucesso!");
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
@@ -73,21 +83,27 @@ export function AprovarLancamentoDialog({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      const tableName = type === "investment" ? "trade_investments" : "trade_financial_entries";
+      const updateData: any = {
+        approval_status: "rejected",
+        status: "rejected",
+        rejected_reason: rejectionReason,
+        approved_by: user.id,
+        approved_at: new Date().toISOString(),
+      };
+
+      if (type === "entry") {
+        updateData.updated_at = new Date().toISOString();
+      }
+
       const { error } = await supabase
-        .from("trade_financial_entries")
-        .update({
-          approval_status: "rejected",
-          status: "rejected",
-          rejected_reason: rejectionReason,
-          approved_by: user.id,
-          approved_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
+        .from(tableName)
+        .update(updateData)
         .eq("id", entry.id);
 
       if (error) throw error;
 
-      toast.success("Lançamento rejeitado");
+      toast.success(type === "investment" ? "Investimento rejeitado" : "Lançamento rejeitado");
       onSuccess();
       onOpenChange(false);
       setRejectionReason("");
@@ -103,9 +119,11 @@ export function AprovarLancamentoDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Aprovar Lançamento Financeiro</DialogTitle>
+          <DialogTitle>
+            {type === "investment" ? "Aprovar Investimento" : "Aprovar Lançamento Financeiro"}
+          </DialogTitle>
           <DialogDescription>
-            Revise as informações e aprove ou rejeite este lançamento
+            Revise as informações e aprove ou rejeite este {type === "investment" ? "investimento" : "lançamento"}
           </DialogDescription>
         </DialogHeader>
 
@@ -122,15 +140,29 @@ export function AprovarLancamentoDialog({
             <div>
               <p className="text-muted-foreground">Data</p>
               <p className="font-semibold">
-                {new Date(entry.entry_date).toLocaleDateString("pt-BR")}
+                {new Date(type === "investment" ? entry.investment_date : entry.entry_date).toLocaleDateString("pt-BR")}
               </p>
             </div>
           </div>
+
+          {type === "investment" && entry.category && (
+            <div>
+              <p className="text-sm text-muted-foreground">Categoria</p>
+              <p className="text-sm mt-1 capitalize">{entry.category}</p>
+            </div>
+          )}
 
           <div>
             <p className="text-sm text-muted-foreground">Descrição</p>
             <p className="text-sm mt-1">{entry.description}</p>
           </div>
+
+          {entry.notes && (
+            <div>
+              <p className="text-sm text-muted-foreground">Observações</p>
+              <p className="text-sm mt-1">{entry.notes}</p>
+            </div>
+          )}
 
           {action === "reject" && (
             <div className="space-y-2">

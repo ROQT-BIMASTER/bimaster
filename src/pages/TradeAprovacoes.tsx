@@ -24,7 +24,9 @@ import { useNavigate } from "react-router-dom";
 export default function TradeAprovacoes() {
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<any[]>([]);
+  const [investments, setInvestments] = useState<any[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
+  const [selectedType, setSelectedType] = useState<"entry" | "investment">("entry");
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
@@ -43,7 +45,8 @@ export default function TradeAprovacoes() {
 
   const fetchData = async () => {
     try {
-      const { data, error } = await supabase
+      // Buscar lançamentos financeiros pendentes
+      const { data: entriesData, error: entriesError } = await supabase
         .from("trade_financial_entries")
         .select(`
           *,
@@ -54,11 +57,23 @@ export default function TradeAprovacoes() {
         .eq("approval_status", "pending")
         .order("entry_date", { ascending: false });
 
-      if (error) throw error;
+      if (entriesError) throw entriesError;
 
-      // Buscar informações dos criadores separadamente
-      if (data && data.length > 0) {
-        const userIds = [...new Set(data.map(entry => entry.created_by))];
+      // Buscar investimentos pendentes
+      const { data: investmentsData, error: investmentsError } = await supabase
+        .from("trade_investments")
+        .select(`
+          *,
+          store:stores(name, code)
+        `)
+        .eq("approval_status", "pending")
+        .order("investment_date", { ascending: false });
+
+      if (investmentsError) throw investmentsError;
+
+      // Buscar informações dos criadores de lançamentos
+      if (entriesData && entriesData.length > 0) {
+        const userIds = [...new Set(entriesData.map(entry => entry.created_by))];
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, nome, email")
@@ -66,14 +81,34 @@ export default function TradeAprovacoes() {
 
         const profileMap = new Map(profiles?.map(p => [p.id, p]));
         
-        const enrichedData = data.map(entry => ({
+        const enrichedEntries = entriesData.map(entry => ({
           ...entry,
           created_by_profile: profileMap.get(entry.created_by)
         }));
 
-        setEntries(enrichedData);
+        setEntries(enrichedEntries);
       } else {
-        setEntries(data || []);
+        setEntries(entriesData || []);
+      }
+
+      // Buscar informações dos criadores de investimentos
+      if (investmentsData && investmentsData.length > 0) {
+        const userIds = [...new Set(investmentsData.map(inv => inv.created_by))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, nome, email")
+          .in("id", userIds);
+
+        const profileMap = new Map(profiles?.map(p => [p.id, p]));
+        
+        const enrichedInvestments = investmentsData.map(inv => ({
+          ...inv,
+          created_by_profile: profileMap.get(inv.created_by)
+        }));
+
+        setInvestments(enrichedInvestments);
+      } else {
+        setInvestments(investmentsData || []);
       }
     } catch (error: any) {
       toast.error(getSafeErrorMessage(error));
@@ -93,13 +128,16 @@ export default function TradeAprovacoes() {
     return labels[type] || type;
   };
 
-  const handleApproveClick = (entry: any) => {
+  const handleApproveClick = (entry: any, type: "entry" | "investment") => {
     setSelectedEntry(entry);
+    setSelectedType(type);
     setApprovalDialogOpen(true);
   };
 
-  const pendingCount = entries.length;
-  const totalAmount = entries.reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+  const pendingCount = entries.length + investments.length;
+  const totalAmount = 
+    entries.reduce((sum, entry) => sum + parseFloat(entry.amount), 0) +
+    investments.reduce((sum, inv) => sum + parseFloat(inv.amount), 0);
 
   // Mostra loading enquanto verifica permissões
   if (roleLoading) {
@@ -179,13 +217,13 @@ export default function TradeAprovacoes() {
         <Card>
           {loading ? (
             <div className="p-8 text-center text-muted-foreground">
-              Carregando lançamentos pendentes...
+              Carregando pendências...
             </div>
-          ) : entries.length === 0 ? (
+          ) : pendingCount === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-50 text-green-500" />
-              <p className="text-lg font-semibold mb-2">Nenhum lançamento pendente</p>
-              <p className="text-sm">Todos os lançamentos foram processados</p>
+              <p className="text-lg font-semibold mb-2">Nenhuma pendência</p>
+              <p className="text-sm">Todos os lançamentos e investimentos foram processados</p>
             </div>
           ) : (
             <Table>
@@ -195,13 +233,14 @@ export default function TradeAprovacoes() {
                   <TableHead>Solicitante</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Descrição</TableHead>
-                  <TableHead>Conta</TableHead>
+                  <TableHead>Conta/Categoria</TableHead>
                   <TableHead>Loja</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {/* Lançamentos Financeiros */}
                 {entries.map((entry) => (
                   <TableRow key={entry.id}>
                     <TableCell className="whitespace-nowrap">
@@ -284,7 +323,63 @@ export default function TradeAprovacoes() {
                     <TableCell className="text-right">
                       <Button
                         size="sm"
-                        onClick={() => handleApproveClick(entry)}
+                        onClick={() => handleApproveClick(entry, "entry")}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        Revisar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+
+                {/* Investimentos */}
+                {investments.map((investment) => (
+                  <TableRow key={investment.id}>
+                    <TableCell className="whitespace-nowrap">
+                      {format(new Date(investment.investment_date), "dd/MM/yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-sm">
+                          {investment.created_by_profile?.nome || "N/A"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {investment.created_by_profile?.email || ""}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm whitespace-nowrap">
+                      <Badge variant="outline">Investimento PDV</Badge>
+                    </TableCell>
+                    <TableCell className="max-w-xs">
+                      <div className="truncate" title={investment.description}>
+                        {investment.description}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      <span className="capitalize text-xs bg-muted px-2 py-1 rounded">
+                        {investment.category}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {investment.store ? (
+                        <span className="text-xs">
+                          {investment.store.code}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold whitespace-nowrap">
+                      R$ {parseFloat(investment.amount).toLocaleString("pt-BR", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        onClick={() => handleApproveClick(investment, "investment")}
                       >
                         <CheckCircle2 className="h-4 w-4 mr-1" />
                         Revisar
@@ -303,6 +398,7 @@ export default function TradeAprovacoes() {
           open={approvalDialogOpen}
           onOpenChange={setApprovalDialogOpen}
           entry={selectedEntry}
+          type={selectedType}
           onSuccess={fetchData}
         />
       )}
