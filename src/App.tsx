@@ -36,6 +36,7 @@ import TradeContasCorrentes from "./pages/TradeContasCorrentes";
 import TradeExtratoBancario from "./pages/TradeExtratoBancario";
 import TradeVerbasSemestrais from "./pages/TradeVerbasSemestrais";
 import TradeLancamentos from "./pages/TradeLancamentos";
+import TradeCampaigns from "./pages/TradeCampaigns";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,7 @@ const App = () => (
         <Route path="/dashboard/trade/calendar" element={<ProtectedRoute><TradeCalendar /></ProtectedRoute>} />
         <Route path="/dashboard/trade/ideal-photos" element={<ProtectedRoute><TradeIdealPhotos /></ProtectedRoute>} />
         <Route path="/dashboard/trade/financeiro" element={<ProtectedRoute><TradeFinanceiro /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/financeiro/campanhas" element={<ProtectedRoute><TradeCampaigns /></ProtectedRoute>} />
         <Route path="/dashboard/trade/financeiro/contas" element={<ProtectedRoute><TradeContasCorrentes /></ProtectedRoute>} />
         <Route path="/dashboard/trade/financeiro/extrato/:accountId" element={<ProtectedRoute><TradeExtratoBancario /></ProtectedRoute>} />
         <Route path="/dashboard/trade/financeiro/verbas" element={<ProtectedRoute><TradeVerbasSemestrais /></ProtectedRoute>} />

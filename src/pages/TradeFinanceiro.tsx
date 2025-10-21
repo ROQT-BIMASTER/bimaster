@@ -251,7 +251,20 @@ export default function TradeFinanceiro() {
           </p>
         </div>
         
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
+          <Link to="/dashboard/trade/financeiro/campanhas">
+            <Card className="hover:border-primary cursor-pointer transition-colors">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Campanhas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Gestão de campanhas e aprovações
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+          
           <Link to="/dashboard/trade/financeiro/contas">
             <Card className="hover:border-primary cursor-pointer transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -415,6 +428,7 @@ export default function TradeFinanceiro() {
                     <TableHead>Nome</TableHead>
                     <TableHead>Período</TableHead>
                     <TableHead>Valor Total</TableHead>
+                    <TableHead>Reservado</TableHead>
                     <TableHead>Gasto</TableHead>
                     <TableHead>Disponível</TableHead>
                     <TableHead>Status</TableHead>
@@ -422,8 +436,10 @@ export default function TradeFinanceiro() {
                 </TableHeader>
                 <TableBody>
                   {budgets.map((budget) => {
-                    const available = parseFloat(budget.total_amount) - parseFloat(budget.spent_amount || 0);
-                    const percentUsed = (parseFloat(budget.spent_amount || 0) / parseFloat(budget.total_amount)) * 100;
+                    const reserved = parseFloat(budget.reserved_amount || 0);
+                    const spent = parseFloat(budget.spent_amount || 0);
+                    const available = parseFloat(budget.available_amount || 0);
+                    const percentUsed = ((spent + reserved) / parseFloat(budget.total_amount)) * 100;
                     
                     return (
                       <TableRow key={budget.id}>
@@ -436,10 +452,13 @@ export default function TradeFinanceiro() {
                         <TableCell>
                           R$ {parseFloat(budget.total_amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell>
-                          R$ {parseFloat(budget.spent_amount || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        <TableCell className="text-amber-600">
+                          R$ {reserved.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell>
+                          R$ {spent.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="font-bold">
                           R$ {available.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell>
