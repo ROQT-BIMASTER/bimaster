@@ -149,20 +149,8 @@ export const ProspectMap = () => {
 
         const { data: prospects, error } = await supabase
           .from("prospects")
-          .select(`
-            id, 
-            nome_empresa, 
-            tipo_logradouro,
-            logradouro,
-            numero,
-            bairro,
-            municipio,
-            uf,
-            cep,
-            endereco,
-            status,
-            vendedor_id
-          `);
+          .select("id, nome_empresa, tipo_logradouro, logradouro, numero, bairro, municipio, uf, cep, endereco, status, vendedor_id")
+          .limit(100);
 
         if (error) throw error;
 
