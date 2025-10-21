@@ -31,12 +31,14 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) throw new Error("Invalid user token");
 
-    // Get user profile to check permissions
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("tipo_usuario")
-      .eq("id", user.id)
+    // Get user role from user_roles table
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
       .single();
+
+    const userRole = roleData?.role;
 
     // Fetch prospects data based on user role
     let prospectsQuery = supabase
@@ -44,8 +46,9 @@ serve(async (req) => {
       .select("*")
       .order("created_at", { ascending: false });
 
-    // Filter by user role
-    if (profile?.tipo_usuario === "vendedor") {
+    // Filter by user role - vendedor (user role) sees only their prospects
+    // Admin and supervisor roles will see all prospects (no filter applied)
+    if (userRole === "user") {
       const { data: vinculos } = await supabase
         .from("municipios_usuarios")
         .select("municipio_id")
