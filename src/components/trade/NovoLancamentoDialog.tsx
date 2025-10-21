@@ -142,7 +142,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       // Combinar URLs de fotos com observações se houver fotos
       let finalNotes = notes.trim();
       if (uploadedPhotos.length > 0) {
-        const photosSection = `\n\n📷 Fotos/Evidências:\n${uploadedPhotos.map((url, i) => `${i + 1}. ${url}`).join('\n')}`;
+        const photosSection = `\n\nFotos/Evidências:\n${uploadedPhotos.map((url, i) => `${i + 1}. ${url}`).join('\n')}`;
         finalNotes = finalNotes ? finalNotes + photosSection : photosSection.trim();
       }
 

@@ -110,14 +110,14 @@ export function EditarLancamentoDialog({
       
       // Extrair fotos das observações se existirem
       const notesText = data.notes || "";
-      const photoSection = notesText.split("📷 Fotos/Evidências:")[1];
+      const photoSection = notesText.split("Fotos/Evidências:")[1];
       if (photoSection) {
         const urls = photoSection
           .split("\n")
           .filter(line => line.trim().match(/^\d+\.\s+https?:\/\//))
           .map(line => line.replace(/^\d+\.\s+/, "").trim());
         setUploadedPhotos(urls);
-        setNotes(notesText.split("📷 Fotos/Evidências:")[0].trim());
+        setNotes(notesText.split("Fotos/Evidências:")[0].trim());
       } else {
         setNotes(notesText);
         setUploadedPhotos([]);
@@ -186,7 +186,7 @@ export function EditarLancamentoDialog({
     try {
       let finalNotes = notes.trim();
       if (uploadedPhotos.length > 0) {
-        const photosSection = `\n\n📷 Fotos/Evidências:\n${uploadedPhotos.map((url, i) => `${i + 1}. ${url}`).join('\n')}`;
+        const photosSection = `\n\nFotos/Evidências:\n${uploadedPhotos.map((url, i) => `${i + 1}. ${url}`).join('\n')}`;
         finalNotes = finalNotes ? finalNotes + photosSection : photosSection.trim();
       }
 
