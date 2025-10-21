@@ -192,15 +192,27 @@ export const ProspectMap = () => {
           return;
         }
 
+        // Limitar a 100 prospects para evitar timeout
+        const MAX_PROSPECTS = 100;
+        const prospectsParaGeocodificar = prospectsComEndereco.slice(0, MAX_PROSPECTS);
+        
+        if (prospectsComEndereco.length > MAX_PROSPECTS) {
+          console.log(`⚠️ Limitando a ${MAX_PROSPECTS} prospects dos ${prospectsComEndereco.length} disponíveis`);
+          toast({
+            title: "Limite de exibição",
+            description: `Exibindo os primeiros ${MAX_PROSPECTS} prospects de ${prospectsComEndereco.length} encontrados.`,
+          });
+        }
+
         // Geocodificar endereços
         setGeocoding(true);
-        setProgress({ current: 0, total: prospectsComEndereco.length });
+        setProgress({ current: 0, total: prospectsParaGeocodificar.length });
 
         const geocodedProspects: GeocodedProspect[] = [];
 
-        for (let i = 0; i < prospectsComEndereco.length; i++) {
-          const prospect = prospectsComEndereco[i];
-          setProgress({ current: i + 1, total: prospectsComEndereco.length });
+        for (let i = 0; i < prospectsParaGeocodificar.length; i++) {
+          const prospect = prospectsParaGeocodificar[i];
+          setProgress({ current: i + 1, total: prospectsParaGeocodificar.length });
 
           // Construir endereço completo
           let enderecoCompleto = '';
@@ -218,7 +230,7 @@ export const ProspectMap = () => {
             enderecoCompleto = prospect.endereco + ', Brasil';
           }
 
-          console.log(`🌐 Geocodificando (${i + 1}/${prospectsComEndereco.length}): ${enderecoCompleto}`);
+          console.log(`🌐 Geocodificando (${i + 1}/${prospectsParaGeocodificar.length}): ${enderecoCompleto}`);
 
           const coords = await geocodeAddress(enderecoCompleto);
 
@@ -233,8 +245,8 @@ export const ProspectMap = () => {
             console.warn(`⚠️ Não foi possível geocodificar: ${prospect.nome_empresa}`);
           }
 
-          // Delay para não sobrecarregar a API
-          await new Promise(resolve => setTimeout(resolve, 300));
+          // Delay reduzido para geocodificação mais rápida
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
 
         setGeocoding(false);
