@@ -64,7 +64,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       const stRes = await supabase
         .from("stores")
         .select("id, name, code")
-        .eq("active", true);
+        .eq("status", "active");
       if (stRes.data) setStores(stRes.data);
 
       // @ts-ignore - Bypass TypeScript recursion issue with Supabase types  
