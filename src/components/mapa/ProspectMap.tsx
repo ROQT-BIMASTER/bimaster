@@ -128,26 +128,37 @@ export const ProspectMap = () => {
     let isMounted = true;
     
     const initMap = async () => {
+      console.log("🗺️ [MAPA] Iniciando carregamento do mapa...");
+      
       // Aguardar um pouco para garantir que o DOM está pronto
       await new Promise(resolve => setTimeout(resolve, 100));
       
       if (!isMounted || !mapContainer.current) {
+        console.warn("⚠️ [MAPA] Container não disponível");
         return;
       }
 
       try {
+        console.log("🔑 [MAPA] Buscando token do Mapbox...");
+        
         // Buscar token do Mapbox
         const { data: { session } } = await supabase.auth.getSession();
+        
+        console.log("🔐 [MAPA] Sessão:", session ? "Ativa" : "Não encontrada");
         
         if (!session?.access_token) {
           throw new Error("Sessão não encontrada. Faça login novamente.");
         }
+        
+        console.log("📞 [MAPA] Chamando get-mapbox-token...");
         
         const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-mapbox-token', {
           headers: {
             Authorization: `Bearer ${session.access_token}`
           }
         });
+        
+        console.log("📦 [MAPA] Resposta do get-mapbox-token:", { tokenData, tokenError });
         
         if (tokenError) {
           throw new Error(`Erro ao buscar token: ${tokenError.message}`);
@@ -157,9 +168,13 @@ export const ProspectMap = () => {
           throw new Error("Token do Mapbox não configurado");
         }
 
+        console.log("✅ [MAPA] Token obtido com sucesso");
+
 
         mapboxgl.accessToken = tokenData.token;
 
+        console.log("📊 [MAPA] Buscando prospects...");
+        
         // Buscar prospects com endereços completos
         const { data: prospects, error } = await supabase
           .from("prospects")
@@ -179,6 +194,8 @@ export const ProspectMap = () => {
           `);
 
         if (error) throw error;
+
+        console.log(`📋 [MAPA] ${prospects?.length || 0} prospects encontrados`);
 
         // Buscar vendedores separadamente para os prospects
         const vendedorIds = prospects
