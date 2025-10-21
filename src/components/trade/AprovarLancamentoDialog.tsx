@@ -41,6 +41,37 @@ export function AprovarLancamentoDialog({
       if (!user) throw new Error("Usuário não autenticado");
 
       const tableName = type === "investment" ? "trade_investments" : "trade_financial_entries";
+      
+      // Se for lançamento com verba vinculada, verificar saldo disponível
+      if (type === "entry" && entry.budget_id) {
+        const { data: budget, error: budgetError } = await supabase
+          .from("trade_budgets")
+          .select("total_amount, spent_amount, reserved_amount")
+          .eq("id", entry.budget_id)
+          .single();
+
+        if (budgetError) throw budgetError;
+
+        const available = 
+          parseFloat(String(budget.total_amount)) - 
+          parseFloat(String(budget.spent_amount || 0)) - 
+          parseFloat(String(budget.reserved_amount || 0));
+
+        if (available < parseFloat(entry.amount)) {
+          throw new Error(`Saldo insuficiente na verba. Disponível: R$ ${available.toFixed(2)}`);
+        }
+
+        // Consumir o crédito
+        const newSpentAmount = parseFloat(String(budget.spent_amount || 0)) + parseFloat(entry.amount);
+        const { error: updateBudgetError } = await supabase
+          .from("trade_budgets")
+          .update({ spent_amount: newSpentAmount })
+          .eq("id", entry.budget_id);
+
+        if (updateBudgetError) throw updateBudgetError;
+      }
+
+      // Atualizar o lançamento/investimento
       const updateData: any = {
         approval_status: "approved",
         approved_by: user.id,
@@ -54,7 +85,6 @@ export function AprovarLancamentoDialog({
         updateData.status = "approved";
       }
 
-      // Atualizar o lançamento/investimento
       const { error } = await supabase
         .from(tableName)
         .update(updateData)
@@ -62,24 +92,13 @@ export function AprovarLancamentoDialog({
 
       if (error) throw error;
 
-      // Se for lançamento com verba vinculada, consumir o crédito
-      if (type === "entry" && entry.budget_id) {
-        const { error: budgetError } = await supabase.rpc('consume_budget_credit', {
-          p_budget_id: entry.budget_id,
-          p_amount: parseFloat(entry.amount)
-        });
-
-        if (budgetError) {
-          // Se falhar ao consumir crédito, reverter aprovação
-          await supabase
-            .from(tableName)
-            .update({ approval_status: "pending", status: "pending" })
-            .eq("id", entry.id);
-          throw new Error(`Erro ao consumir crédito da verba: ${budgetError.message}`);
-        }
-      }
-
-      toast.success(type === "investment" ? "Investimento aprovado com sucesso!" : "Lançamento aprovado e crédito consumido!");
+      toast.success(
+        type === "investment" 
+          ? "Investimento aprovado com sucesso!" 
+          : entry.budget_id 
+            ? "Lançamento aprovado e crédito consumido!"
+            : "Lançamento aprovado com sucesso!"
+      );
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {

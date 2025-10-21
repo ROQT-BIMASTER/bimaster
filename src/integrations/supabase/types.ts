@@ -2940,6 +2940,10 @@ export type Database = {
       }
     }
     Functions: {
+      consume_budget_credit: {
+        Args: { p_amount: number; p_budget_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
