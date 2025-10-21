@@ -26,17 +26,20 @@ export default function TradeAprovacoes() {
   const [entries, setEntries] = useState<any[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
-  const { isAdminOrSupervisor } = useUserRole();
+  const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Aguarda o carregamento do role antes de verificar
+    if (roleLoading) return;
+    
     if (!isAdminOrSupervisor) {
       toast.error("Acesso negado. Apenas supervisores e administradores podem aprovar lançamentos.");
       navigate("/dashboard");
       return;
     }
     fetchData();
-  }, [isAdminOrSupervisor, navigate]);
+  }, [isAdminOrSupervisor, roleLoading, navigate]);
 
   const fetchData = async () => {
     try {
@@ -79,6 +82,19 @@ export default function TradeAprovacoes() {
 
   const pendingCount = entries.length;
   const totalAmount = entries.reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+
+  // Mostra loading enquanto verifica permissões
+  if (roleLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <p className="text-muted-foreground">Verificando permissões...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
