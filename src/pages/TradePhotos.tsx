@@ -10,6 +10,7 @@ import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TradeFilters } from "@/components/trade/TradeFilters";
+import { PhotoDetailDialog } from "@/components/trade/PhotoDetailDialog";
 
 interface Photo {
   id: string;
@@ -31,6 +32,8 @@ const TradePhotos = () => {
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
+  const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
+  const [photoDetailOpen, setPhotoDetailOpen] = useState(false);
 
   if (!permissionsLoading && !hasPermission("trade_photos")) {
     return <Navigate to="/dashboard" replace />;
@@ -168,7 +171,14 @@ const TradePhotos = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {photos.map((photo) => (
-              <Card key={photo.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
+              <Card 
+                key={photo.id} 
+                className="overflow-hidden group hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => {
+                  setSelectedPhotoId(photo.id);
+                  setPhotoDetailOpen(true);
+                }}
+              >
                 <div className="aspect-square bg-muted relative">
                   {photo.photo_url ? (
                     <img 
@@ -187,7 +197,10 @@ const TradePhotos = () => {
                         variant="secondary"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => window.open(photo.photo_url, '_blank')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(photo.photo_url, '_blank');
+                        }}
                       >
                         <ExternalLink className="h-4 w-4" />
                       </Button>
@@ -196,7 +209,10 @@ const TradePhotos = () => {
                       variant="destructive"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => setDeletingPhotoId(photo.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingPhotoId(photo.id);
+                      }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -250,6 +266,12 @@ const TradePhotos = () => {
             ))}
           </div>
         )}
+
+        <PhotoDetailDialog
+          photoId={selectedPhotoId}
+          open={photoDetailOpen}
+          onOpenChange={setPhotoDetailOpen}
+        />
 
         <AlertDialog open={!!deletingPhotoId} onOpenChange={(open) => !open && setDeletingPhotoId(null)}>
           <AlertDialogContent>
