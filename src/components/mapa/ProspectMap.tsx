@@ -51,278 +51,64 @@ export const ProspectMap = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [loading, setLoading] = useState(true);
-  const [geocoding, setGeocoding] = useState(false);
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const { toast } = useToast();
 
-  const geocodeAddress = async (address: string): Promise<{ latitude: number; longitude: number } | null> => {
-    try {
-      const { data, error } = await supabase.functions.invoke('geocode-address', {
-        body: { address },
-      });
-
-      if (error) throw error;
-      
-      if (data && data.latitude && data.longitude) {
-        return data;
-      }
-      return null;
-    } catch (error) {
-      console.error('Erro ao geocodificar:', error);
-      return null;
-    }
-  };
-
-  const geocodeInBatch = async (
-    prospects: Prospect[], 
-    batchSize: number = 10
-  ): Promise<GeocodedProspect[]> => {
-    const results: GeocodedProspect[] = [];
-    
-    for (let i = 0; i < prospects.length; i += batchSize) {
-      const batch = prospects.slice(i, i + batchSize);
-      
-      const batchPromises = batch.map(async (prospect) => {
-        let enderecoCompleto = '';
-        if (prospect.logradouro && prospect.municipio && prospect.uf) {
-          const parts = [
-            prospect.tipo_logradouro,
-            prospect.logradouro,
-            prospect.numero,
-            prospect.bairro,
-            prospect.municipio,
-            prospect.uf
-          ].filter(p => p && p.trim());
-          enderecoCompleto = parts.join(', ') + ', Brasil';
-        } else if (prospect.endereco) {
-          enderecoCompleto = prospect.endereco + ', Brasil';
-        }
-
-        const coords = await geocodeAddress(enderecoCompleto);
-        
-        if (coords) {
-          return {
-            ...prospect,
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-          };
-        }
-        return null;
-      });
-
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults.filter((r): r is GeocodedProspect => r !== null));
-      
-      setProgress({ current: Math.min(i + batchSize, prospects.length), total: prospects.length });
-      
-      // Pequeno delay entre batches para evitar rate limiting
-      if (i + batchSize < prospects.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    }
-    
-    return results;
+  const addDebug = (msg: string) => {
+    console.log(msg);
+    setDebugInfo(prev => [...prev, msg]);
   };
 
   useEffect(() => {
     let isMounted = true;
     
     const initMap = async () => {
-      console.log("🗺️ [MAPA] Iniciando carregamento do mapa...");
-      
-      // Aguardar um pouco para garantir que o DOM está pronto
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      if (!isMounted || !mapContainer.current) {
-        console.warn("⚠️ [MAPA] Container não disponível");
-        return;
-      }
-
       try {
-        console.log("🔑 [MAPA] Buscando token do Mapbox...");
+        addDebug("1. Iniciando...");
         
-        // Buscar token do Mapbox
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        if (!isMounted) {
+          addDebug("2. Componente desmontado");
+          return;
+        }
+        
+        addDebug("3. Buscando sessão...");
         const { data: { session } } = await supabase.auth.getSession();
         
-        console.log("🔐 [MAPA] Sessão:", session ? "Ativa" : "Não encontrada");
-        
-        if (!session?.access_token) {
-          throw new Error("Sessão não encontrada. Faça login novamente.");
+        if (!session) {
+          throw new Error("Sem sessão");
         }
         
-        console.log("📞 [MAPA] Chamando get-mapbox-token...");
-        
+        addDebug("4. Chamando get-mapbox-token...");
         const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-mapbox-token', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`
-          }
+          headers: { Authorization: `Bearer ${session.access_token}` }
         });
         
-        console.log("📦 [MAPA] Resposta do get-mapbox-token:", { tokenData, tokenError });
+        addDebug(`5. Resposta: ${tokenData ? 'OK' : 'ERRO'}`);
         
-        if (tokenError) {
-          throw new Error(`Erro ao buscar token: ${tokenError.message}`);
-        }
+        if (tokenError) throw new Error(tokenError.message);
+        if (!tokenData?.token) throw new Error("Sem token");
         
-        if (!tokenData?.token) {
-          throw new Error("Token do Mapbox não configurado");
-        }
-
-        console.log("✅ [MAPA] Token obtido com sucesso");
-
-
-        mapboxgl.accessToken = tokenData.token;
-
-        console.log("📊 [MAPA] Buscando prospects...");
+        addDebug("6. Token OK, buscando prospects...");
         
-        // Buscar prospects com endereços completos
-        const { data: prospects, error } = await supabase
+        const { data: prospects, error: prospectsError } = await supabase
           .from("prospects")
-          .select(`
-            id, 
-            nome_empresa, 
-            tipo_logradouro,
-            logradouro,
-            numero,
-            bairro,
-            municipio,
-            uf,
-            cep,
-            endereco,
-            status,
-            vendedor_id
-          `);
-
-        if (error) throw error;
-
-        console.log(`📋 [MAPA] ${prospects?.length || 0} prospects encontrados`);
-
-        // Buscar vendedores separadamente para os prospects
-        const vendedorIds = prospects
-          ?.map(p => p.vendedor_id)
-          .filter((id): id is string => id !== null && id !== undefined) || [];
-
-        const { data: vendedoresData } = await supabase
-          .from("profiles")
-          .select("id, nome")
-          .in("id", vendedorIds);
-
-        const vendedoresMap = new Map(vendedoresData?.map(v => [v.id, v]) || []);
-
-        // Adicionar dados do vendedor aos prospects
-        const prospectsWithVendedor = prospects?.map(p => ({
-          ...p,
-          vendedor: p.vendedor_id ? vendedoresMap.get(p.vendedor_id) : null
-        })) || [];
-
-        // Filtrar prospects com endereço
-        const prospectsComEndereco = prospectsWithVendedor.filter(p => {
-          // Preferir endereço estruturado
-          if (p.logradouro && p.municipio && p.uf) return true;
-          // Fallback para endereço completo
-          if (p.endereco && p.endereco.trim().length > 5) return true;
-          return false;
-        });
-
-        if (prospectsComEndereco.length === 0) {
-          toast({
-            title: "Sem dados",
-            description: "Nenhum prospect com endereço encontrado. Cadastre prospects com endereços completos.",
-          });
-          setLoading(false);
-          return;
-        }
-
-        // Limitar a 100 prospects para evitar timeout
-        const MAX_PROSPECTS = 100;
-        const prospectsParaGeocodificar = prospectsComEndereco.slice(0, MAX_PROSPECTS);
+          .select("id, nome_empresa, municipio")
+          .limit(5);
         
-        if (prospectsComEndereco.length > MAX_PROSPECTS) {
-          toast({
-            title: "Limite de exibição",
-            description: `Exibindo os primeiros ${MAX_PROSPECTS} prospects de ${prospectsComEndereco.length} encontrados.`,
-          });
-        }
-
-        // Geocodificar endereços em lote (paralelo)
-        setGeocoding(true);
-        setProgress({ current: 0, total: prospectsParaGeocodificar.length });
-
-        const geocodedProspects = await geocodeInBatch(prospectsParaGeocodificar, 10);
+        if (prospectsError) throw new Error(prospectsError.message);
         
-        setGeocoding(false);
-
-
-        if (geocodedProspects.length === 0) {
-          toast({
-            title: "Erro na geocodificação",
-            description: "Não foi possível localizar nenhum endereço. Verifique se os endereços estão corretos.",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-
-        // Inicializar mapa
-        const bounds = new mapboxgl.LngLatBounds();
-        geocodedProspects.forEach(p => bounds.extend([p.longitude, p.latitude]));
-
-        map.current = new mapboxgl.Map({
-          container: mapContainer.current!,
-          style: "mapbox://styles/mapbox/light-v11",
-          bounds: bounds,
-          fitBoundsOptions: { padding: 50 },
-        });
-
-        map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
-
-        // Adicionar marcadores
-        geocodedProspects.forEach((prospect) => {
-          const el = document.createElement("div");
-          el.className = "marker";
-          el.style.backgroundColor = statusColors[prospect.status] || "#666";
-          el.style.width = "20px";
-          el.style.height = "20px";
-          el.style.borderRadius = "50%";
-          el.style.border = "2px solid white";
-          el.style.cursor = "pointer";
-          el.style.boxShadow = "0 2px 4px rgba(0,0,0,0.3)";
-
-          const enderecoExibicao = prospect.logradouro 
-            ? `${prospect.tipo_logradouro || ''} ${prospect.logradouro}, ${prospect.numero || 's/n'} - ${prospect.bairro || ''}, ${prospect.municipio} - ${prospect.uf}`.replace(/\s+/g, ' ').trim()
-            : prospect.endereco;
-
-          const vendedorHTML = prospect.vendedor 
-            ? `<p style="font-size: 11px; color: #888; margin-top: 4px;">📋 Responsável: <strong>${prospect.vendedor.nome}</strong></p>` 
-            : '';
-
-          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-            <div style="padding: 8px;">
-              <h3 style="font-weight: bold; margin-bottom: 4px;">${prospect.nome_empresa}</h3>
-              <p style="font-size: 12px; color: #666; margin-bottom: 4px;">${enderecoExibicao}</p>
-              <span style="display: inline-block; padding: 2px 8px; background: ${statusColors[prospect.status]}; color: white; border-radius: 4px; font-size: 11px;">
-                ${statusLabels[prospect.status]}
-              </span>
-              ${vendedorHTML}
-            </div>
-          `);
-
-          new mapboxgl.Marker(el)
-            .setLngLat([prospect.longitude, prospect.latitude])
-            .setPopup(popup)
-            .addTo(map.current!);
-        });
-
+        addDebug(`7. ${prospects?.length || 0} prospects encontrados`);
+        
         setLoading(false);
-      } catch (error) {
-        console.error("Erro ao carregar mapa:", error);
-        toast({
-          title: "Erro",
-          description: error instanceof Error ? error.message : "Não foi possível carregar o mapa",
-          variant: "destructive",
-        });
+        
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Erro desconhecido';
+        addDebug(`ERRO: ${errorMsg}`);
+        setError(errorMsg);
         setLoading(false);
-        setGeocoding(false);
       }
     };
 
@@ -330,46 +116,57 @@ export const ProspectMap = () => {
 
     return () => {
       isMounted = false;
-      map.current?.remove();
     };
-  }, [toast]);
+  }, []);
 
-  if (loading || geocoding) {
+  if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-[600px] space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <div className="text-center">
-          <p className="text-lg font-medium">
-            {geocoding ? "Geocodificando endereços..." : "Carregando mapa..."}
-          </p>
-          {geocoding && (
-            <p className="text-sm text-muted-foreground mt-2">
-              {progress.current} de {progress.total} endereços processados
-            </p>
-          )}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold text-destructive mb-2">Erro ao carregar mapa</h3>
+        <p className="text-sm mb-4">{error}</p>
+        <div className="text-xs text-muted-foreground">
+          <p className="font-semibold mb-1">Debug:</p>
+          {debugInfo.map((info, i) => (
+            <p key={i}>{info}</p>
+          ))}
         </div>
+      </Card>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Card className="p-6">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <p className="text-lg font-medium">Carregando mapa...</p>
+          </div>
+        </Card>
+        
+        {debugInfo.length > 0 && (
+          <Card className="p-4">
+            <p className="text-sm font-semibold mb-2">Debug Info:</p>
+            <div className="text-xs text-muted-foreground space-y-1">
+              {debugInfo.map((info, i) => (
+                <p key={i}>{info}</p>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <Card className="p-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          <span className="font-medium">Legenda:</span>
-          {Object.entries(statusLabels).map(([status, label]) => (
-            <div key={status} className="flex items-center gap-2">
-              <div
-                className="w-4 h-4 rounded-full border-2 border-white shadow"
-                style={{ backgroundColor: statusColors[status] }}
-              />
-              <span className="text-sm">{label}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
-      
-      <div ref={mapContainer} className="w-full h-[600px] rounded-lg shadow-lg" />
-    </div>
+    <Card className="p-6">
+      <h3 className="text-lg font-semibold text-green-600">Mapa carregado com sucesso!</h3>
+      <div className="text-xs text-muted-foreground mt-4">
+        {debugInfo.map((info, i) => (
+          <p key={i}>{info}</p>
+        ))}
+      </div>
+    </Card>
   );
 };
+
