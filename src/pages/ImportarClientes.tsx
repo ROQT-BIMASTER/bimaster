@@ -5,11 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, Download, CheckCircle, XCircle, AlertCircle, Sparkles } from "lucide-react";
+import { Upload, Download, CheckCircle, XCircle, AlertCircle, Sparkles, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { CNPJBizCreditos } from "@/components/prospects/CNPJBizCreditos";
+import { CNPJBizFilters } from "@/components/prospects/CNPJBizFilters";
+import { CNPJBizPreview } from "@/components/prospects/CNPJBizPreview";
 import * as XLSX from 'xlsx';
 
 interface ImportResult {
@@ -34,6 +37,9 @@ const ImportarClientes = () => {
   const [result, setResult] = useState<ImportResult | null>(null);
   const [textoIA, setTextoIA] = useState("");
   const [loadingIA, setLoadingIA] = useState(false);
+  const [apiFilters, setApiFilters] = useState<any>(null);
+  const [apiCount, setApiCount] = useState<number>(0);
+  const [showPreview, setShowPreview] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -885,17 +891,21 @@ const ImportarClientes = () => {
         </div>
 
         <Tabs defaultValue="tradicional" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="tradicional">Importação Tradicional</TabsTrigger>
             <TabsTrigger value="ia">
               <Sparkles className="h-4 w-4 mr-2" />
               Importação com IA
             </TabsTrigger>
+            <TabsTrigger value="api">
+              <Search className="h-4 w-4 mr-2" />
+              Busca por API
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="tradicional" className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
-          <Card>
+              <Card>
             <CardHeader>
               <CardTitle>Upload de Arquivo</CardTitle>
               <CardDescription>
@@ -924,10 +934,10 @@ const ImportarClientes = () => {
                 <Upload className="h-4 w-4 mr-2" />
                 {loading ? "Importando..." : "Importar"}
               </Button>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
+            <Card>
             <CardHeader>
               <CardTitle>Modelo de Importação</CardTitle>
               <CardDescription>
@@ -1012,6 +1022,31 @@ Exemplo:
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="api" className="space-y-6">
+            <CNPJBizCreditos />
+            
+            {!showPreview ? (
+              <CNPJBizFilters 
+                onSearch={(filters, count) => {
+                  setApiFilters(filters);
+                  setApiCount(count);
+                  setShowPreview(true);
+                }}
+              />
+            ) : (
+              <CNPJBizPreview
+                filters={apiFilters}
+                totalCount={apiCount}
+                onBack={() => setShowPreview(false)}
+                onComplete={() => {
+                  setShowPreview(false);
+                  setApiFilters(null);
+                  setApiCount(0);
+                }}
+              />
+            )}
+          </TabsContent>
         </Tabs>
 
         {result && (
@@ -1091,6 +1126,34 @@ Exemplo:
             </CardContent>
           </Card>
         )}
+
+          </TabsContent>
+
+          <TabsContent value="api" className="space-y-6">
+            <CNPJBizCreditos />
+            
+            {!showPreview ? (
+              <CNPJBizFilters 
+                onSearch={(filters, count) => {
+                  setApiFilters(filters);
+                  setApiCount(count);
+                  setShowPreview(true);
+                }}
+              />
+            ) : (
+              <CNPJBizPreview
+                filters={apiFilters}
+                totalCount={apiCount}
+                onBack={() => setShowPreview(false)}
+                onComplete={() => {
+                  setShowPreview(false);
+                  setApiFilters(null);
+                  setApiCount(0);
+                }}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

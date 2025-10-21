@@ -223,6 +223,60 @@ export type Database = {
         }
         Relationships: []
       }
+      cnpjbiz_audit: {
+        Row: {
+          created_at: string | null
+          credits_used: number | null
+          filters: Json | null
+          id: string
+          operation: string
+          results_count: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits_used?: number | null
+          filters?: Json | null
+          id?: string
+          operation: string
+          results_count?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits_used?: number | null
+          filters?: Json | null
+          id?: string
+          operation?: string
+          results_count?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      cnpjbiz_cache: {
+        Row: {
+          cache_key: string
+          created_at: string | null
+          data: Json
+          expires_at: string
+          id: string
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string | null
+          data: Json
+          expires_at: string
+          id?: string
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string | null
+          data?: Json
+          expires_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       competitor_comparison_photos: {
         Row: {
           competitor_id: string | null
@@ -1203,10 +1257,12 @@ export type Database = {
       prospects: {
         Row: {
           bairro: string | null
+          capital_social: number | null
           categoria: Database["public"]["Enums"]["client_category"] | null
           cep: string | null
           cnae_codigo: string | null
           cnae_principal: string | null
+          cnae_secundarios: string[] | null
           cnpj: string | null
           cnpj_raiz: string | null
           contato_principal: string | null
@@ -1241,6 +1297,8 @@ export type Database = {
           score_propensao: number | null
           segmento: string | null
           situacao: string | null
+          situacao_cadastral: string | null
+          socios: Json | null
           status: Database["public"]["Enums"]["prospect_status"]
           subdistrito: string | null
           telefone: string | null
@@ -1262,10 +1320,12 @@ export type Database = {
         }
         Insert: {
           bairro?: string | null
+          capital_social?: number | null
           categoria?: Database["public"]["Enums"]["client_category"] | null
           cep?: string | null
           cnae_codigo?: string | null
           cnae_principal?: string | null
+          cnae_secundarios?: string[] | null
           cnpj?: string | null
           cnpj_raiz?: string | null
           contato_principal?: string | null
@@ -1300,6 +1360,8 @@ export type Database = {
           score_propensao?: number | null
           segmento?: string | null
           situacao?: string | null
+          situacao_cadastral?: string | null
+          socios?: Json | null
           status?: Database["public"]["Enums"]["prospect_status"]
           subdistrito?: string | null
           telefone?: string | null
@@ -1321,10 +1383,12 @@ export type Database = {
         }
         Update: {
           bairro?: string | null
+          capital_social?: number | null
           categoria?: Database["public"]["Enums"]["client_category"] | null
           cep?: string | null
           cnae_codigo?: string | null
           cnae_principal?: string | null
+          cnae_secundarios?: string[] | null
           cnpj?: string | null
           cnpj_raiz?: string | null
           contato_principal?: string | null
@@ -1359,6 +1423,8 @@ export type Database = {
           score_propensao?: number | null
           segmento?: string | null
           situacao?: string | null
+          situacao_cadastral?: string | null
+          socios?: Json | null
           status?: Database["public"]["Enums"]["prospect_status"]
           subdistrito?: string | null
           telefone?: string | null

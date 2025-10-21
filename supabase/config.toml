@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.export-conversion-rates]
 verify_jwt = false
+
+[functions.cnpjbiz-consulta]
+verify_jwt = true
