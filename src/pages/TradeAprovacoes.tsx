@@ -49,7 +49,7 @@ export default function TradeAprovacoes() {
           *,
           account:trade_chart_of_accounts(name, code),
           store:stores(name, code),
-          budget:trade_budgets(name, code)
+          budget:trade_budgets(name, code, total_amount, spent_amount, reserved_amount)
         `)
         .eq("approval_status", "pending")
         .order("entry_date", { ascending: false });
@@ -221,8 +221,40 @@ export default function TradeAprovacoes() {
                       {getEntryTypeLabel(entry.entry_type)}
                     </TableCell>
                     <TableCell className="max-w-xs">
-                      <div className="truncate" title={entry.description}>
-                        {entry.description}
+                      <div className="space-y-1">
+                        <div className="truncate" title={entry.description}>
+                          {entry.description}
+                        </div>
+                        {entry.budget && (
+                          <div className="text-xs text-muted-foreground bg-muted/50 p-1.5 rounded">
+                            <div className="font-semibold mb-0.5">
+                              {entry.budget.code} - {entry.budget.name}
+                            </div>
+                            <div className="flex gap-3">
+                              <span>
+                                💰 Disponível: R${" "}
+                                {(
+                                  parseFloat(entry.budget.total_amount || 0) -
+                                  parseFloat(entry.budget.spent_amount || 0) -
+                                  parseFloat(entry.budget.reserved_amount || 0)
+                                ).toLocaleString("pt-BR", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </span>
+                              <span>
+                                📊 Utilizado: R${" "}
+                                {parseFloat(entry.budget.spent_amount || 0).toLocaleString(
+                                  "pt-BR",
+                                  {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  }
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">
