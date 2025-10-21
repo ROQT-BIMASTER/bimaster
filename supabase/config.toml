@@ -6,6 +6,12 @@ verify_jwt = true
 [functions.analyze-competitor-photo]
 verify_jwt = true
 
+[functions.send-notifications]
+verify_jwt = false
+
+[functions.export-pdf]
+verify_jwt = true
+
 [functions.geocode-address]
 verify_jwt = false
 

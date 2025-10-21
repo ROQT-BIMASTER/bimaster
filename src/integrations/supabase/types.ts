@@ -625,6 +625,48 @@ export type Database = {
         }
         Relationships: []
       }
+      goals: {
+        Row: {
+          created_at: string | null
+          current_value: number | null
+          goal_type: string
+          id: string
+          period_end: string
+          period_start: string
+          status: string | null
+          target_value: number
+          team_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_value?: number | null
+          goal_type: string
+          id?: string
+          period_end: string
+          period_start: string
+          status?: string | null
+          target_value: number
+          team_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_value?: number | null
+          goal_type?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          status?: string | null
+          target_value?: number
+          team_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       gondola_audits: {
         Row: {
           concorrentes_detalhes: Json | null
@@ -729,6 +771,33 @@ export type Database = {
           description?: string | null
           id?: string
           photo_url?: string
+        }
+        Relationships: []
+      }
+      kpi_snapshots: {
+        Row: {
+          created_at: string | null
+          id: string
+          kpi_type: string
+          metadata: Json | null
+          snapshot_date: string
+          value: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          kpi_type: string
+          metadata?: Json | null
+          snapshot_date: string
+          value: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          kpi_type?: string
+          metadata?: Json | null
+          snapshot_date?: string
+          value?: number
         }
         Relationships: []
       }
@@ -927,6 +996,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notification_preferences: {
+        Row: {
+          digest_frequency: string | null
+          email_enabled: boolean | null
+          notification_types: Json | null
+          push_enabled: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          digest_frequency?: string | null
+          email_enabled?: boolean | null
+          notification_types?: Json | null
+          push_enabled?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          digest_frequency?: string | null
+          email_enabled?: boolean | null
+          notification_types?: Json | null
+          push_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string | null
+          id: string
+          message: string
+          read: boolean | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          read?: boolean | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       photos: {
         Row: {
@@ -1581,6 +1713,47 @@ export type Database = {
           },
         ]
       }
+      report_history: {
+        Row: {
+          file_url: string | null
+          filters: Json | null
+          generated_at: string | null
+          id: string
+          report_type: string
+          scheduled_report_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          file_url?: string | null
+          filters?: Json | null
+          generated_at?: string | null
+          id?: string
+          report_type: string
+          scheduled_report_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          file_url?: string | null
+          filters?: Json | null
+          generated_at?: string | null
+          id?: string
+          report_type?: string
+          scheduled_report_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_history_scheduled_report_id_fkey"
+            columns: ["scheduled_report_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissoes_telas: {
         Row: {
           created_at: string
@@ -1811,6 +1984,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      scheduled_reports: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          filters: Json | null
+          frequency: string
+          id: string
+          last_sent_at: string | null
+          recipient_emails: string[] | null
+          report_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          filters?: Json | null
+          frequency: string
+          id?: string
+          last_sent_at?: string | null
+          recipient_emails?: string[] | null
+          report_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          filters?: Json | null
+          frequency?: string
+          id?: string
+          last_sent_at?: string | null
+          recipient_emails?: string[] | null
+          report_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       shelf_share: {
         Row: {

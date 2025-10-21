@@ -11,6 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { MetricasDistribuicao } from "@/components/admin/MetricasDistribuicao";
 import { FunilProspeccao } from "@/components/dashboard/FunilProspeccao";
 import { AIInsightsChat } from "@/components/chat/AIInsightsChat";
+import { ExecutiveKPIs } from "@/components/dashboard/ExecutiveKPIs";
 
 interface Stats {
   totalProspects: number;
@@ -180,6 +181,9 @@ const Dashboard = () => {
         </div>
 
         {isAdmin && <MetricasDistribuicao />}
+
+        {/* Executive KPIs */}
+        <ExecutiveKPIs />
 
         {loading ? (
           <div className="text-center py-8">Carregando estatísticas...</div>

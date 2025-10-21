@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Session } from "@supabase/supabase-js";
 import logoUnion from "@/assets/logo-union.png";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -77,7 +78,10 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <SidebarTrigger />
               <h1 className="text-lg font-semibold">CRM - Gestão de Prospects</h1>
             </div>
-            <img src={logoUnion} alt="Union Logo" className="h-10" />
+            <div className="flex items-center gap-4">
+              <NotificationBell />
+              <img src={logoUnion} alt="Union Logo" className="h-10" />
+            </div>
           </header>
           <div className="p-6">{children}</div>
         </main>

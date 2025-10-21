@@ -39,6 +39,7 @@ import TradeLancamentos from "./pages/TradeLancamentos";
 import TradeAprovacoes from "./pages/TradeAprovacoes";
 import TradeExtratosPessoais from "./pages/TradeExtratosPessoais";
 import TradeCampaigns from "./pages/TradeCampaigns";
+import Relatorios from "./pages/Relatorios";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,7 @@ const App = () => (
         
         {/* Protected Routes */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/dashboard/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
         
         {/* Módulo de Prospects */}
         <Route path="/dashboard/prospects" element={<ProtectedRoute><ProspectsModule /></ProtectedRoute>} />
