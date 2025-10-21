@@ -125,9 +125,13 @@ export const ProspectMap = () => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    
     const initMap = async () => {
-      if (!mapContainer.current) {
-        console.warn("Container do mapa não encontrado");
+      // Aguardar um pouco para garantir que o DOM está pronto
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      if (!isMounted || !mapContainer.current) {
         return;
       }
 
@@ -308,6 +312,7 @@ export const ProspectMap = () => {
     initMap();
 
     return () => {
+      isMounted = false;
       map.current?.remove();
     };
   }, [toast]);
