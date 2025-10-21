@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, ShoppingCart
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -103,7 +103,8 @@ export function AppSidebar() {
 
   const otherMenus = permissions.filter(screen => 
     !['prospects', 'kanban', 'atividades', 'mapa', 'trade_marketing', 'trade_stores', 
-      'trade_visits', 'trade_photos', 'trade_promotions', 'trade_competitors', 'trade_insights'].includes(screen.codigo)
+      'trade_visits', 'trade_photos', 'trade_promotions', 'trade_competitors', 'trade_insights', 
+      'configuracoes'].includes(screen.codigo)
   );
 
   return (
