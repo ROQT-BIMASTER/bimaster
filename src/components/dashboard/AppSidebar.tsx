@@ -104,7 +104,7 @@ export function AppSidebar() {
   const otherMenus = permissions.filter(screen => 
     !['prospects', 'kanban', 'atividades', 'mapa', 'trade_marketing', 'trade_stores', 
       'trade_visits', 'trade_photos', 'trade_promotions', 'trade_competitors', 'trade_insights', 
-      'configuracoes'].includes(screen.codigo)
+      'configuracoes', 'dashboard'].includes(screen.codigo)
   );
 
   return (
