@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('🔍 [geocode] Requisição recebida');
+  console.log('🔍 [geocode] Requisição recebida - v2');
   
   if (req.method === 'OPTIONS') {
     console.log('🔍 [geocode] OPTIONS request');
