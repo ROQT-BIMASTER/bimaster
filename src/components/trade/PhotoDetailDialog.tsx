@@ -55,26 +55,20 @@ export function PhotoDetailDialog({ photoId, open, onOpenChange }: PhotoDetailDi
     try {
       setLoading(true);
 
-      // Buscar foto com informações da visita e loja
+      // Buscar foto
       const { data: photo, error: photoError } = await supabase
         .from("photos")
-        .select(`
-          *,
-          visit:visit_id (
-            *,
-            user:user_id (
-              nome,
-              email
-            )
-          ),
-          store:store_id (
-            *
-          )
-        `)
+        .select("*")
         .eq("id", photoId)
-        .single();
+        .maybeSingle();
 
       if (photoError) throw photoError;
+      if (!photo) {
+        toast.error("Foto não encontrada");
+        setLoading(false);
+        return;
+      }
+      
       setPhotoData(photo);
 
       if (!photo?.store_id) {
@@ -95,15 +89,22 @@ export function PhotoDetailDialog({ photoId, open, onOpenChange }: PhotoDetailDi
       if (photo.visit_id) {
         const { data: visit } = await supabase
           .from("visits")
-          .select(`
-            *,
-            user:user_id (
-              nome,
-              email
-            )
-          `)
+          .select("*")
           .eq("id", photo.visit_id)
           .maybeSingle();
+
+        // Buscar dados do usuário separadamente
+        if (visit?.user_id) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("nome, email")
+            .eq("id", visit.user_id)
+            .maybeSingle();
+          
+          if (profile) {
+            (visit as any).user = profile;
+          }
+        }
 
         setVisitData(visit);
 
