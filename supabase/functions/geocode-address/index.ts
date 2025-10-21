@@ -30,6 +30,15 @@ serve(async (req) => {
       throw new Error('Mapbox token not configured');
     }
 
+    // Verificar se o token tem o formato correto (deve começar com pk. ou sk.)
+    const tokenPrefix = MAPBOX_TOKEN.substring(0, 3);
+    console.log('🔍 [geocode] Token prefix:', tokenPrefix, '| Length:', MAPBOX_TOKEN.length);
+    
+    if (!tokenPrefix.startsWith('pk.') && !tokenPrefix.startsWith('sk.')) {
+      console.log('❌ [geocode] Token Mapbox com formato inválido');
+      throw new Error('Invalid Mapbox token format. Token should start with pk. or sk.');
+    }
+
     const encodedAddress = encodeURIComponent(address);
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?access_token=${MAPBOX_TOKEN}&limit=1&country=BR`;
     
