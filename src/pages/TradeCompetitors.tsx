@@ -11,6 +11,7 @@ import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { CompetitorComparisonUpload } from "@/components/trade/CompetitorComparisonUpload";
+import { NovoCompetitorDialog } from "@/components/trade/NovoCompetitorDialog";
 
 interface Competitor {
   id: string;
@@ -31,6 +32,7 @@ const TradeCompetitors = () => {
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
   const [selectedCompetitor, setSelectedCompetitor] = useState<string | null>(null);
+  const [showNovoCompetitor, setShowNovoCompetitor] = useState(false);
 
   if (!permissionsLoading && !hasPermission("trade_competitors")) {
     return <Navigate to="/dashboard" replace />;
@@ -102,7 +104,7 @@ const TradeCompetitors = () => {
               Análise competitiva e inteligência de mercado
             </p>
           </div>
-          <Button onClick={() => toast.info("Funcionalidade de cadastro de concorrentes em desenvolvimento")}>
+          <Button onClick={() => setShowNovoCompetitor(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Concorrente
           </Button>
@@ -221,6 +223,12 @@ const TradeCompetitors = () => {
             onPhotosUploaded={() => toast.success("Fotos atualizadas!")}
           />
         )}
+
+        <NovoCompetitorDialog
+          open={showNovoCompetitor}
+          onOpenChange={setShowNovoCompetitor}
+          onSuccess={fetchCompetitors}
+        />
       </div>
     </DashboardLayout>
   );
