@@ -1446,6 +1446,150 @@ export type Database = {
         }
         Relationships: []
       }
+      sale_items: {
+        Row: {
+          created_at: string | null
+          discount_percentage: number | null
+          id: string
+          notes: string | null
+          product_code: string | null
+          product_name: string
+          quantity: number
+          sale_id: string
+          total_value: number
+          unit_of_measure: string | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          discount_percentage?: number | null
+          id?: string
+          notes?: string | null
+          product_code?: string | null
+          product_name: string
+          quantity: number
+          sale_id: string
+          total_value: number
+          unit_of_measure?: string | null
+          unit_price: number
+        }
+        Update: {
+          created_at?: string | null
+          discount_percentage?: number | null
+          id?: string
+          notes?: string | null
+          product_code?: string | null
+          product_name?: string
+          quantity?: number
+          sale_id?: string
+          total_value?: number
+          unit_of_measure?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          campaign_id: string | null
+          converted_from_prospect: boolean | null
+          created_at: string | null
+          created_by: string | null
+          delivery_date: string | null
+          discount_value: number | null
+          id: string
+          net_value: number
+          notes: string | null
+          payment_method: string | null
+          payment_terms: string | null
+          prospect_id: string | null
+          sale_code: string
+          sale_date: string
+          salesperson_id: string | null
+          status: string | null
+          store_id: string | null
+          total_value: number
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          campaign_id?: string | null
+          converted_from_prospect?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          delivery_date?: string | null
+          discount_value?: number | null
+          id?: string
+          net_value: number
+          notes?: string | null
+          payment_method?: string | null
+          payment_terms?: string | null
+          prospect_id?: string | null
+          sale_code: string
+          sale_date: string
+          salesperson_id?: string | null
+          status?: string | null
+          store_id?: string | null
+          total_value: number
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          campaign_id?: string | null
+          converted_from_prospect?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          delivery_date?: string | null
+          discount_value?: number | null
+          id?: string
+          net_value?: number
+          notes?: string | null
+          payment_method?: string | null
+          payment_terms?: string | null
+          prospect_id?: string | null
+          sale_code?: string
+          sale_date?: string
+          salesperson_id?: string | null
+          status?: string | null
+          store_id?: string | null
+          total_value?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shelf_share: {
         Row: {
           competitor_nearby: boolean | null
