@@ -104,7 +104,7 @@ export function AppSidebar() {
   const otherMenus = permissions.filter(screen => 
     !['prospects', 'kanban', 'atividades', 'mapa', 'trade_marketing', 'trade_stores', 
       'trade_visits', 'trade_photos', 'trade_promotions', 'trade_competitors', 'trade_insights', 
-      'configuracoes', 'dashboard'].includes(screen.codigo)
+      'configuracoes', 'dashboard', 'ranking'].includes(screen.codigo)
   );
 
   return (
@@ -134,6 +134,24 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              
+              {hasPermission("ranking") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/dashboard/ranking"
+                      className={({ isActive }) =>
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "hover:bg-sidebar-accent/50"
+                      }
+                    >
+                      <TrendingUp className="h-4 w-4" />
+                      <span>Ranking</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
