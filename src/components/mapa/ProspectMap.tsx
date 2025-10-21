@@ -124,16 +124,15 @@ export const ProspectMap = () => {
   };
 
   useEffect(() => {
+    if (!mapContainer.current) {
+      console.log("❌ Container não disponível");
+      return;
+    }
+
     let isMounted = true;
     
     const initMap = async () => {
       console.log("🗺️ Iniciando mapa...");
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      if (!isMounted || !mapContainer.current) {
-        console.log("❌ Container não montado");
-        return;
-      }
 
       try {
         console.log("🔐 Buscando sessão...");
