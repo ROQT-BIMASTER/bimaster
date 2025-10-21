@@ -57,18 +57,28 @@ export const ProspectMap = () => {
 
   const geocodeAddress = async (address: string): Promise<{ latitude: number; longitude: number } | null> => {
     try {
+      console.log('📍 [frontend] Geocodificando endereço:', address);
+      
       const { data, error } = await supabase.functions.invoke('geocode-address', {
         body: { address },
       });
 
-      if (error) throw error;
+      console.log('📍 [frontend] Resposta da função:', { data, error });
+
+      if (error) {
+        console.error('📍 [frontend] Erro da função:', error);
+        throw error;
+      }
       
       if (data && data.latitude && data.longitude) {
+        console.log('✅ [frontend] Coordenadas obtidas:', data);
         return data;
       }
+      
+      console.log('⚠️ [frontend] Dados inválidos:', data);
       return null;
     } catch (error) {
-      console.error('Erro ao geocodificar:', error);
+      console.error('❌ [frontend] Erro ao geocodificar:', error);
       return null;
     }
   };
