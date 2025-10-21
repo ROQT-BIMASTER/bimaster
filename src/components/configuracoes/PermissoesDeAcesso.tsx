@@ -1,58 +1,55 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  LayoutDashboard, 
-  Users, 
-  MapPin, 
-  Calendar, 
-  CheckSquare, 
-  MessageSquare,
-  FileText,
-  Upload,
-  ShieldCheck,
-  Store,
-  Camera,
-  Tag,
-  Brain,
-  TrendingUp
-} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Shield, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import * as LucideIcons from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 
-interface RoutePermission {
+interface Tela {
   id: string;
-  route: string;
-  name: string;
-  icon: any;
-  admin: boolean;
-  supervisor: boolean;
-  vendedor: boolean;
+  codigo: string;
+  nome: string;
+  rota: string;
+  descricao: string;
+  icone: string;
+  ordem: number;
+  permissoes: {
+    supervisor: boolean;
+    vendedor: boolean;
+  };
 }
 
-// Mapeamento de ícones por nome
 const iconMap: Record<string, any> = {
-  LayoutDashboard,
-  Users,
-  MapPin,
-  Calendar,
-  CheckSquare,
-  MessageSquare,
-  FileText,
-  Upload,
-  ShieldCheck,
-  Store,
-  Camera,
-  Tag,
-  Brain,
-  TrendingUp,
+  LayoutDashboard: LucideIcons.LayoutDashboard,
+  Users: LucideIcons.Users,
+  KanbanSquare: LucideIcons.KanbanSquare,
+  Map: LucideIcons.Map,
+  Activity: LucideIcons.Activity,
+  CheckSquare: LucideIcons.CheckSquare,
+  MessageSquare: LucideIcons.MessageSquare,
+  MapPin: LucideIcons.MapPin,
+  Upload: LucideIcons.Upload,
+  Shield: LucideIcons.Shield,
+  Clock: LucideIcons.Clock,
+  Settings: LucideIcons.Settings,
+  Trophy: LucideIcons.Trophy,
+  TrendingUp: LucideIcons.TrendingUp,
+  Store: LucideIcons.Store,
+  Calendar: LucideIcons.Calendar,
+  Camera: LucideIcons.Camera,
+  Tag: LucideIcons.Tag,
+  Brain: LucideIcons.Brain,
 };
 
 export function PermissoesDeAcesso() {
-  const [permissions, setPermissions] = useState<RoutePermission[]>([]);
+  const [telas, setTelas] = useState<Tela[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -62,41 +59,43 @@ export function PermissoesDeAcesso() {
   const loadPermissions = async () => {
     setLoadingData(true);
     try {
-      // Buscar todas as telas do sistema
-      const { data: telas, error } = await supabase
+      // Buscar todas as telas
+      const { data: telasData, error: telasError } = await supabase
         .from("telas_sistema")
         .select("*")
         .eq("ativo", true)
         .order("ordem");
 
-      if (error) throw error;
+      if (telasError) throw telasError;
 
-      // SEGURANÇA: Não usar localStorage - sempre usar padrões
-      const mappedPermissions: RoutePermission[] = (telas || []).map((tela) => {
-        return {
-          id: tela.id,
-          route: tela.rota,
-          name: tela.nome,
-          icon: iconMap[tela.icone] || FileText,
-          admin: true,
-          supervisor: true,
-          vendedor: true,
-        };
-      });
+      // Buscar permissões por role
+      const { data: rolePermissoes, error: permissoesError } = await supabase
+        .from("role_permissoes_telas")
+        .select("role, tela_id");
 
-      setPermissions(mappedPermissions);
-      
-      // Aviso sobre segurança
-      toast({
-        title: "Aviso de Segurança",
-        description: "Esta funcionalidade foi desativada. Use 'Gerenciar Permissões de Telas' para controlar acesso via banco de dados.",
-        variant: "default",
-      });
+      if (permissoesError) throw permissoesError;
+
+      // Mapear permissões para cada tela
+      const telasComPermissoes: Tela[] = (telasData || []).map((tela) => ({
+        id: tela.id,
+        codigo: tela.codigo,
+        nome: tela.nome,
+        rota: tela.rota,
+        descricao: tela.descricao || "",
+        icone: tela.icone,
+        ordem: tela.ordem,
+        permissoes: {
+          supervisor: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'supervisor') || false,
+          vendedor: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'vendedor') || false,
+        },
+      }));
+
+      setTelas(telasComPermissoes);
     } catch (error) {
-      console.error('Erro ao carregar telas:', error);
+      console.error("Erro ao carregar permissões:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar as telas do sistema",
+        description: "Não foi possível carregar as permissões",
         variant: "destructive",
       });
     } finally {
@@ -104,103 +103,221 @@ export function PermissoesDeAcesso() {
     }
   };
 
-  const handlePermissionChange = (routeIndex: number, userType: 'admin' | 'supervisor' | 'vendedor', value: boolean) => {
-    const newPermissions = [...permissions];
-    newPermissions[routeIndex][userType] = value;
-    setPermissions(newPermissions);
+  const handlePermissionChange = (telaId: string, role: "supervisor" | "vendedor") => {
+    setTelas(prev => prev.map(tela => 
+      tela.id === telaId 
+        ? { ...tela, permissoes: { ...tela.permissoes, [role]: !tela.permissoes[role] } }
+        : tela
+    ));
   };
 
   const handleSave = async () => {
-    toast({
-      title: "Funcionalidade Desativada",
-      description: "Por segurança, use 'Gerenciar Permissões de Telas' para gerenciar permissões via banco de dados.",
-      variant: "destructive",
-    });
+    setLoading(true);
+    try {
+      // Para cada role, deletar e recriar as permissões
+      for (const role of ['supervisor', 'vendedor'] as const) {
+        // Deletar permissões existentes do role
+        await supabase
+          .from("role_permissoes_telas")
+          .delete()
+          .eq("role", role);
+
+        // Inserir novas permissões
+        const permissoesParaInserir = telas
+          .filter(tela => tela.permissoes[role])
+          .map(tela => ({
+            role,
+            tela_id: tela.id,
+          }));
+
+        if (permissoesParaInserir.length > 0) {
+          const { error } = await supabase
+            .from("role_permissoes_telas")
+            .insert(permissoesParaInserir);
+
+          if (error) throw error;
+        }
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Permissões por role salvas. Clique em 'Sincronizar' para aplicar aos usuários.",
+      });
+
+      await loadPermissions();
+    } catch (error) {
+      console.error("Erro ao salvar permissões:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar as permissões",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleReset = () => {
-    toast({
-      title: "Funcionalidade Desativada",
-      description: "Por segurança, use 'Gerenciar Permissões de Telas' para gerenciar permissões via banco de dados.",
-      variant: "destructive",
-    });
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      // Sincronizar permissões de todos os usuários não-admin
+      const { data: users } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .neq("role", "admin");
+
+      if (users && users.length > 0) {
+        let syncCount = 0;
+        for (const user of users) {
+          const { error } = await supabase.rpc("sincronizar_permissoes_usuario", {
+            p_user_id: user.user_id,
+          });
+          if (!error) syncCount++;
+        }
+
+        toast({
+          title: "Sincronização concluída",
+          description: `${syncCount} usuários tiveram suas permissões atualizadas`,
+        });
+      } else {
+        toast({
+          title: "Nenhum usuário",
+          description: "Não há usuários para sincronizar",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao sincronizar:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível sincronizar as permissões",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Permissões de Acesso às Telas</CardTitle>
+        <div className="flex items-center gap-2">
+          <Shield className="w-5 h-5" />
+          <CardTitle>Permissões de Acesso por Role</CardTitle>
+        </div>
         <CardDescription>
-          Defina quais telas cada tipo de usuário pode acessar no sistema
+          Defina quais telas cada tipo de usuário (role) pode acessar. Admins têm acesso total automaticamente.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Como funciona:</strong> Configure aqui as permissões padrão por role (Supervisor/Vendedor). Depois salve e clique em "Sincronizar" para aplicar aos usuários existentes.
+          </AlertDescription>
+        </Alert>
+
         {loadingData ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Carregando telas do sistema...
+          <div className="text-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+            <p className="text-sm text-muted-foreground mt-2">Carregando permissões...</p>
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="rounded-md border">
               <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold">Tela</th>
-                    <th className="text-center py-3 px-4 font-semibold">Admin</th>
-                    <th className="text-center py-3 px-4 font-semibold">Supervisor</th>
-                    <th className="text-center py-3 px-4 font-semibold">Vendedor</th>
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left p-4 font-medium">Tela</th>
+                    <th className="text-center p-4 font-medium w-32">
+                      <div className="flex flex-col items-center gap-1">
+                        <span>Admin</span>
+                        <Badge variant="default" className="text-xs">
+                          Acesso Total
+                        </Badge>
+                      </div>
+                    </th>
+                    <th className="text-center p-4 font-medium w-32">
+                      Supervisor
+                    </th>
+                    <th className="text-center p-4 font-medium w-32">
+                      Vendedor
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {permissions.map((permission, index) => {
-                    const Icon = permission.icon;
+                  {telas.map((tela) => {
+                    const IconComponent = iconMap[tela.icone] || Shield;
                     return (
-                      <tr key={permission.id} className="border-b hover:bg-muted/50">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium">{permission.name}</span>
-                      </div>
-                    </td>
-                    <td className="text-center py-3 px-4">
-                      <Checkbox
-                        checked={permission.admin}
-                        onCheckedChange={(checked) => 
-                          handlePermissionChange(index, 'admin', checked as boolean)
-                        }
-                      />
-                    </td>
-                    <td className="text-center py-3 px-4">
-                      <Checkbox
-                        checked={permission.supervisor}
-                        onCheckedChange={(checked) => 
-                          handlePermissionChange(index, 'supervisor', checked as boolean)
-                        }
-                      />
-                    </td>
-                    <td className="text-center py-3 px-4">
-                      <Checkbox
-                        checked={permission.vendedor}
-                        onCheckedChange={(checked) => 
-                          handlePermissionChange(index, 'vendedor', checked as boolean)
-                        }
-                      />
-                    </td>
-                  </tr>
-                );
+                      <tr key={tela.id} className="border-t hover:bg-muted/30 transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <IconComponent className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium">{tela.nome}</p>
+                              <p className="text-xs text-muted-foreground">{tela.rota}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="text-center p-4">
+                          <div className="flex justify-center">
+                            <CheckCircle2 className="w-5 h-5 text-primary" />
+                          </div>
+                        </td>
+                        <td className="text-center p-4">
+                          <Checkbox
+                            checked={tela.permissoes.supervisor}
+                            onCheckedChange={() => handlePermissionChange(tela.id, 'supervisor')}
+                            className="mx-auto"
+                          />
+                        </td>
+                        <td className="text-center p-4">
+                          <Checkbox
+                            checked={tela.permissoes.vendedor}
+                            onCheckedChange={() => handlePermissionChange(tela.id, 'vendedor')}
+                            className="mx-auto"
+                          />
+                        </td>
+                      </tr>
+                    );
                   })}
                 </tbody>
               </table>
             </div>
 
             <div className="flex gap-3">
-              <Button onClick={handleSave} disabled={loading || loadingData}>
-                {loading ? "Salvando..." : "Salvar Permissões"}
+              <Button
+                onClick={handleSave}
+                disabled={loading || syncing}
+                className="flex-1"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Shield className="w-4 h-4 mr-2" />
+                )}
+                Salvar Permissões
               </Button>
-              <Button onClick={handleReset} variant="outline" disabled={loading || loadingData}>
-                Restaurar Padrão
+              <Button
+                onClick={handleSync}
+                disabled={loading || syncing}
+                variant="secondary"
+                className="flex-1"
+              >
+                {syncing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                Sincronizar com Usuários
               </Button>
             </div>
+            
+            <Alert>
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Fluxo:</strong> 1️⃣ Ajuste as permissões acima → 2️⃣ Clique em "Salvar" → 3️⃣ Clique em "Sincronizar" para aplicar a todos os usuários com esse role. Você também pode personalizar permissões individuais na aba "Gerenciar Usuários".
+              </AlertDescription>
+            </Alert>
           </>
         )}
       </CardContent>

@@ -1581,6 +1581,35 @@ export type Database = {
           },
         ]
       }
+      role_permissoes_telas: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          tela_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          tela_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          tela_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissoes_telas_tela_id_fkey"
+            columns: ["tela_id"]
+            isOneToOne: false
+            referencedRelation: "telas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routes: {
         Row: {
           actual_distance_km: number | null
@@ -2926,6 +2955,10 @@ export type Database = {
       }
       refresh_daily_kpis: {
         Args: { target_date?: string }
+        Returns: undefined
+      }
+      sincronizar_permissoes_usuario: {
+        Args: { p_user_id: string }
         Returns: undefined
       }
       usuario_tem_acesso_prospect: {

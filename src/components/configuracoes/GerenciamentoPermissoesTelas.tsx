@@ -136,6 +136,36 @@ export const GerenciamentoPermissoesTelas = () => {
     setUserPermissions(newPermissions);
   };
 
+  const handleSyncWithRole = async () => {
+    if (!selectedUsuario) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.rpc("sincronizar_permissoes_usuario", {
+        p_user_id: selectedUsuario,
+      });
+
+      if (error) throw error;
+
+      // Recarregar permissões
+      await fetchUserPermissions(selectedUsuario);
+
+      toast({
+        title: "Permissões sincronizadas",
+        description: "As permissões foram restauradas de acordo com o role do usuário",
+      });
+    } catch (error) {
+      console.error("Error syncing permissions:", error);
+      toast({
+        title: "Erro ao sincronizar",
+        description: "Não foi possível sincronizar as permissões",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedUsuario) return;
 
@@ -257,14 +287,25 @@ export const GerenciamentoPermissoesTelas = () => {
             </div>
 
             {!isUserAdmin && (
-              <Button
-                onClick={handleSave}
-                disabled={saving}
-                className="w-full"
-              >
-                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Salvar Permissões
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex-1"
+                >
+                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Salvar Permissões Personalizadas
+                </Button>
+                <Button
+                  onClick={handleSyncWithRole}
+                  disabled={saving}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Restaurar do Role
+                </Button>
+              </div>
             )}
           </>
         )}
