@@ -128,9 +128,18 @@ export const ProspectMap = () => {
     let mapInstance: mapboxgl.Map | null = null;
     
     const initMap = async () => {
-      if (!mapContainer.current) return;
-      
       console.log("🗺️ Iniciando mapa...");
+      console.log("Container ref:", mapContainer.current);
+      
+      // Aguarda o container estar disponível
+      if (!mapContainer.current) {
+        console.log("⏳ Aguardando container...");
+        await new Promise(resolve => setTimeout(resolve, 100));
+        if (!mapContainer.current) {
+          console.log("❌ Container não disponível após espera");
+          return;
+        }
+      }
 
       try {
         console.log("🔐 Buscando sessão...");
@@ -235,7 +244,11 @@ export const ProspectMap = () => {
           return;
         }
 
-        if (!isMounted || !mapContainer.current) return;
+
+        if (!isMounted || !mapContainer.current) {
+          console.log("❌ Container não disponível para criar mapa");
+          return;
+        }
 
         console.log("🗺️ Criando mapa Mapbox...");
         const bounds = new mapboxgl.LngLatBounds();
