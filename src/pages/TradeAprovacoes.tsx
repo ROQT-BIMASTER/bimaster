@@ -49,14 +49,32 @@ export default function TradeAprovacoes() {
           *,
           account:trade_chart_of_accounts(name, code),
           store:stores(name, code),
-          budget:trade_budgets(name, code),
-          created_by_profile:profiles!trade_financial_entries_created_by_fkey(nome, email)
+          budget:trade_budgets(name, code)
         `)
         .eq("approval_status", "pending")
         .order("entry_date", { ascending: false });
 
       if (error) throw error;
-      setEntries(data || []);
+
+      // Buscar informações dos criadores separadamente
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map(entry => entry.created_by))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, nome, email")
+          .in("id", userIds);
+
+        const profileMap = new Map(profiles?.map(p => [p.id, p]));
+        
+        const enrichedData = data.map(entry => ({
+          ...entry,
+          created_by_profile: profileMap.get(entry.created_by)
+        }));
+
+        setEntries(enrichedData);
+      } else {
+        setEntries(data || []);
+      }
     } catch (error: any) {
       toast.error(getSafeErrorMessage(error));
     } finally {
