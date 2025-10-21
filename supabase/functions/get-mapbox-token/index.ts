@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const MAPBOX_TOKEN = Deno.env.get('MAPBOX_ACCESS_TOKEN') || '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -16,26 +16,37 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🔑 get-mapbox-token: Função invocada');
+    console.log('🔑 get-mapbox-token: Iniciando');
     
     // Validate JWT token
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
-      console.error('❌ Token de autorização não fornecido');
+      console.error('❌ Authorization header ausente');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
+    console.log('✅ Authorization header presente');
+
+    // Criar cliente com o token do usuário
+    const token = authHeader.replace('Bearer ', '');
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
+      global: {
+        headers: { Authorization: authHeader }
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
     });
 
-    // Get authenticated user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Verificar usuário através do token JWT
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
     if (userError || !user) {
-      console.error('❌ Token inválido:', userError);
+      console.error('❌ Token inválido:', userError?.message);
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
@@ -51,7 +62,15 @@ serve(async (req) => {
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile?.aprovado) {
+    if (profileError) {
+      console.error('❌ Erro ao buscar perfil:', profileError.message);
+      return new Response(
+        JSON.stringify({ error: 'Profile not found' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
+    }
+
+    if (!profile?.aprovado) {
       console.error('❌ Usuário não aprovado');
       return new Response(
         JSON.stringify({ error: 'User not approved' }),
@@ -60,20 +79,20 @@ serve(async (req) => {
     }
 
     if (!MAPBOX_TOKEN) {
-      console.error('❌ MAPBOX_ACCESS_TOKEN não configurado no ambiente');
+      console.error('❌ MAPBOX_ACCESS_TOKEN não configurado');
       return new Response(
         JSON.stringify({ error: 'Mapbox token not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    console.log('✅ Token Mapbox retornado para usuário aprovado:', user.id);
+    console.log('✅ Token Mapbox retornado');
     return new Response(
       JSON.stringify({ token: MAPBOX_TOKEN }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('❌ Erro na função get-mapbox-token:', error);
+    console.error('❌ Erro na função:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
