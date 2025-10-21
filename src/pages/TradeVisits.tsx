@@ -11,6 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { Navigate } from "react-router-dom";
 import { VincularStoreDialog } from "@/components/trade/VincularStoreDialog";
 import { NovaVisitaDialog } from "@/components/trade/NovaVisitaDialog";
+import { VisitDetailDialog } from "@/components/trade/VisitDetailDialog";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 
@@ -35,6 +36,7 @@ const TradeVisits = () => {
   const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
   const [showVincularDialog, setShowVincularDialog] = useState(false);
   const [showNovaVisita, setShowNovaVisita] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
 
@@ -257,7 +259,8 @@ const TradeVisits = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => {
-                          toast.info(`Visualizando detalhes da visita ${visit.visit_code}`);
+                          setSelectedVisitId(visit.id);
+                          setShowDetailDialog(true);
                         }}
                       >
                         Ver Detalhes
@@ -307,6 +310,12 @@ const TradeVisits = () => {
           open={showNovaVisita}
           onOpenChange={setShowNovaVisita}
           onSuccess={fetchVisits}
+        />
+
+        <VisitDetailDialog
+          open={showDetailDialog}
+          onOpenChange={setShowDetailDialog}
+          visitId={selectedVisitId}
         />
       </div>
     </DashboardLayout>
