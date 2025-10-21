@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Upload, Loader2, Sparkles } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface NovoCompetitorDialogProps {
   open: boolean;
@@ -17,6 +19,9 @@ interface NovoCompetitorDialogProps {
 
 export function NovoCompetitorDialog({ open, onOpenChange, onSuccess }: NovoCompetitorDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     brand: "",
@@ -28,6 +33,54 @@ export function NovoCompetitorDialog({ open, onOpenChange, onSuccess }: NovoComp
     logo_url: "",
     notes: "",
   });
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar tamanho (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem muito grande. Máximo 5MB.");
+      return;
+    }
+
+    // Validar tipo
+    if (!file.type.startsWith('image/')) {
+      toast.error("Apenas imagens são permitidas");
+      return;
+    }
+
+    try {
+      // Converter para base64
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        setPhotoPreview(base64);
+        
+        // Analisar com IA
+        setAnalyzing(true);
+        try {
+          const { data, error } = await supabase.functions.invoke('analyze-competitor-photo', {
+            body: { imageBase64: base64 }
+          });
+
+          if (error) throw error;
+
+          setAiAnalysis(data.analysis);
+          toast.success("Foto analisada com IA!");
+        } catch (error: any) {
+          console.error("Erro na análise:", error);
+          toast.error(error.message || "Erro ao analisar foto");
+        } finally {
+          setAnalyzing(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Erro ao processar foto:", error);
+      toast.error("Erro ao processar foto");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +120,8 @@ export function NovoCompetitorDialog({ open, onOpenChange, onSuccess }: NovoComp
         logo_url: "",
         notes: "",
       });
+      setPhotoPreview(null);
+      setAiAnalysis(null);
     } catch (error: any) {
       console.error("Erro ao cadastrar concorrente:", error);
       toast.error("Erro ao cadastrar concorrente");
@@ -185,6 +240,54 @@ export function NovoCompetitorDialog({ open, onOpenChange, onSuccess }: NovoComp
               }
             />
           </div>
+
+          {/* Upload de Foto com Análise IA */}
+          <Card className="border-2 border-dashed">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="photo">Foto do Produto Concorrente</Label>
+                  <Sparkles className="h-4 w-4 text-primary" />
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="photo"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="cursor-pointer"
+                    disabled={analyzing}
+                  />
+                  {analyzing && (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  )}
+                </div>
+
+                {photoPreview && (
+                  <div className="space-y-4">
+                    <img 
+                      src={photoPreview} 
+                      alt="Preview" 
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    
+                    {aiAnalysis && (
+                      <div className="p-4 bg-primary/5 rounded-lg space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          Análise com IA
+                        </div>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                          {aiAnalysis}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="space-y-2">
             <Label htmlFor="notes">Observações</Label>

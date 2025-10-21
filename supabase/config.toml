@@ -3,6 +3,9 @@ project_id = "aokkyrgaqjarhlywhjju"
 [functions.ai-insights]
 verify_jwt = true
 
+[functions.analyze-competitor-photo]
+verify_jwt = true
+
 [functions.geocode-address]
 verify_jwt = false
 
