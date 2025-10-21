@@ -26,6 +26,7 @@ import { format } from "date-fns";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { AdicionarEvidenciaDialog } from "@/components/trade/AdicionarEvidenciaDialog";
 import { NovoLancamentoDialog } from "@/components/trade/NovoLancamentoDialog";
+import { EditarLancamentoDialog } from "@/components/trade/EditarLancamentoDialog";
 
 export default function TradeLancamentos() {
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,7 @@ export default function TradeLancamentos() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -120,6 +122,18 @@ export default function TradeLancamentos() {
   const handleEvidenceClick = (entry: any) => {
     setSelectedEntry(entry);
     setEvidenceDialogOpen(true);
+  };
+
+  const canEdit = (entry: any) => {
+    return (
+      entry.created_by === currentUserId &&
+      entry.approval_status === "pending"
+    );
+  };
+
+  const handleEditClick = (entry: any) => {
+    setSelectedEntry(entry);
+    setEditDialogOpen(true);
   };
 
   return (
@@ -220,16 +234,27 @@ export default function TradeLancamentos() {
                     </TableCell>
                     <TableCell>{getStatusBadge(entry.approval_status)}</TableCell>
                     <TableCell className="text-right">
-                      {canAddEvidence(entry) && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEvidenceClick(entry)}
-                        >
-                          <FileUp className="h-4 w-4 mr-1" />
-                          Adicionar Evidência
-                        </Button>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {canEdit(entry) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditClick(entry)}
+                          >
+                            Editar
+                          </Button>
+                        )}
+                        {canAddEvidence(entry) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEvidenceClick(entry)}
+                          >
+                            <FileUp className="h-4 w-4 mr-1" />
+                            Adicionar Evidência
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -240,12 +265,20 @@ export default function TradeLancamentos() {
       </div>
 
       {selectedEntry && (
-        <AdicionarEvidenciaDialog
-          open={evidenceDialogOpen}
-          onOpenChange={setEvidenceDialogOpen}
-          entry={selectedEntry}
-          onSuccess={fetchData}
-        />
+        <>
+          <AdicionarEvidenciaDialog
+            open={evidenceDialogOpen}
+            onOpenChange={setEvidenceDialogOpen}
+            entry={selectedEntry}
+            onSuccess={fetchData}
+          />
+          <EditarLancamentoDialog
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+            entryId={selectedEntry.id}
+            onSuccess={fetchData}
+          />
+        </>
       )}
     </DashboardLayout>
   );
