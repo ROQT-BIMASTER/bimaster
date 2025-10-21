@@ -89,18 +89,40 @@ export const ProspectMap = () => {
 
         // Buscar token do Mapbox primeiro
         console.log("🔑 Buscando token do Mapbox...");
-        const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-mapbox-token');
         
-        if (tokenError || !tokenData?.token) {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log("🔐 Sessão do usuário:", session ? "Ativa" : "Não encontrada");
+        
+        const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-mapbox-token', {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`
+          }
+        });
+        
+        console.log("📦 Resposta do get-mapbox-token:", { tokenData, tokenError });
+        
+        if (tokenError) {
           console.error("❌ Erro ao buscar token:", tokenError);
           toast({
-            title: "Configuração necessária",
-            description: "Token do Mapbox não configurado. Configure MAPBOX_ACCESS_TOKEN nos secrets.",
+            title: "Erro ao configurar mapa",
+            description: `Erro: ${tokenError.message || 'Token do Mapbox não configurado'}`,
             variant: "destructive",
           });
           setLoading(false);
           return;
         }
+        
+        if (!tokenData?.token) {
+          console.error("❌ Token não retornado:", tokenData);
+          toast({
+            title: "Configuração necessária",
+            description: "Token do Mapbox não configurado. Entre em contato com o administrador.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
         console.log("✅ Token do Mapbox obtido com sucesso");
 
         // Configurar token do Mapbox

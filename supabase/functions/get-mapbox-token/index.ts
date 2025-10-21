@@ -13,19 +13,24 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🔑 get-mapbox-token: Função invocada');
+    console.log('📋 Headers:', Object.fromEntries(req.headers.entries()));
+    
     if (!MAPBOX_TOKEN) {
+      console.error('❌ MAPBOX_ACCESS_TOKEN não configurado no ambiente');
       return new Response(
         JSON.stringify({ error: 'Mapbox token not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
+    console.log('✅ Token encontrado, retornando para o cliente');
     return new Response(
       JSON.stringify({ token: MAPBOX_TOKEN }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('❌ Erro na função get-mapbox-token:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
