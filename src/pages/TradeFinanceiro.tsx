@@ -254,6 +254,19 @@ export default function TradeFinanceiro() {
         </div>
         
         <div className="grid gap-4 md:grid-cols-4">
+          <Link to="/dashboard/trade/financeiro/extrato">
+            <Card className="hover:border-primary cursor-pointer transition-colors">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Meu Extrato</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Histórico de lançamentos e aprovações
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
           <Link to="/dashboard/trade/financeiro/campanhas">
             <Card className="hover:border-primary cursor-pointer transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
