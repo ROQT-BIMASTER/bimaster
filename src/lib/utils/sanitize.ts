@@ -110,7 +110,16 @@ export function sanitizeObject<T extends Record<string, any>>(obj: T): T {
  * Previne vazamento de informações técnicas
  */
 export function getSafeErrorMessage(error: any): string {
+  // Se o erro já é uma string, retorna ela
+  if (typeof error === 'string') return error;
+  
   const errorMsg = error?.message?.toLowerCase() || "";
+  const originalMsg = error?.message || "";
+  
+  // Verificar se é um erro de saldo insuficiente (permitir passar a mensagem original)
+  if (errorMsg.includes('saldo insuficiente')) {
+    return originalMsg;
+  }
   
   const errorMap: Record<string, string> = {
     "permission denied": "Você não tem permissão para esta operação",
