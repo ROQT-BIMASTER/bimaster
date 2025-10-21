@@ -43,6 +43,9 @@ export default function TradeCampaigns() {
   const [stores, setStores] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedCampaignType, setSelectedCampaignType] = useState("");
+  const [selectedBudget, setSelectedBudget] = useState("");
+  const [selectedResponsible, setSelectedResponsible] = useState("");
   const { isAdmin, isAdminOrSupervisor } = useUserRole();
 
   useEffect(() => {
@@ -56,8 +59,7 @@ export default function TradeCampaigns() {
           .from("trade_campaigns")
           .select(`
             *,
-            budget:trade_budgets(name, code, available_amount),
-            responsible:profiles!trade_campaigns_responsible_user_id_fkey(nome)
+            budget:trade_budgets(name, code, available_amount)
           `)
           .order("created_at", { ascending: false }),
         supabase
@@ -110,6 +112,8 @@ export default function TradeCampaigns() {
       // Validações
       if (!code || code.length < 3) throw new Error("Código deve ter no mínimo 3 caracteres");
       if (!name || name.length < 5) throw new Error("Nome deve ter no mínimo 5 caracteres");
+      if (!campaign_type) throw new Error("Tipo de campanha é obrigatório");
+      if (!responsible_user_id) throw new Error("Responsável é obrigatório");
       if (!estimated_cost || estimated_cost <= 0) throw new Error("Custo estimado deve ser maior que zero");
       if (new Date(end_date) <= new Date(start_date)) {
         throw new Error("Data de fim deve ser posterior à data de início");
@@ -135,6 +139,9 @@ export default function TradeCampaigns() {
 
       toast.success("Campanha criada com sucesso!");
       setDialogOpen(false);
+      setSelectedCampaignType("");
+      setSelectedBudget("");
+      setSelectedResponsible("");
       fetchData();
     } catch (error: any) {
       toast.error(getSafeErrorMessage(error));
@@ -254,25 +261,26 @@ export default function TradeCampaigns() {
                       <Label htmlFor="code">Código da Campanha</Label>
                       <Input id="code" name="code" placeholder="Ex: CAMP-2025-001" required />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="campaign_type">Tipo</Label>
-                      <Select name="campaign_type" required>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sell_in">Sell-In</SelectItem>
-                          <SelectItem value="sell_out">Sell-Out</SelectItem>
-                          <SelectItem value="institucional">Institucional</SelectItem>
-                          <SelectItem value="cooperada">Cooperada</SelectItem>
-                          <SelectItem value="mdf">MDF</SelectItem>
-                          <SelectItem value="midia">Mídia</SelectItem>
-                          <SelectItem value="incentivo">Incentivo</SelectItem>
-                          <SelectItem value="degustacao">Degustação</SelectItem>
-                          <SelectItem value="bonificacao">Bonificação</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="campaign_type">Tipo</Label>
+                    <Select value={selectedCampaignType} onValueChange={setSelectedCampaignType}>
+                      <SelectTrigger id="campaign_type">
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sell_in">Sell-In</SelectItem>
+                        <SelectItem value="sell_out">Sell-Out</SelectItem>
+                        <SelectItem value="institucional">Institucional</SelectItem>
+                        <SelectItem value="cooperada">Cooperada</SelectItem>
+                        <SelectItem value="mdf">MDF</SelectItem>
+                        <SelectItem value="midia">Mídia</SelectItem>
+                        <SelectItem value="incentivo">Incentivo</SelectItem>
+                        <SelectItem value="degustacao">Degustação</SelectItem>
+                        <SelectItem value="bonificacao">Bonificação</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <input type="hidden" name="campaign_type" value={selectedCampaignType} />
+                  </div>
                   </div>
 
                   <div className="space-y-2">
@@ -286,21 +294,22 @@ export default function TradeCampaigns() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="budget_id">Verba (Opcional)</Label>
-                      <Select name="budget_id">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma verba" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {budgets.map((budget) => (
-                            <SelectItem key={budget.id} value={budget.id}>
-                              {budget.code} - {budget.name} (Disponível: R$ {parseFloat(budget.available_amount || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="budget_id">Verba (Opcional)</Label>
+                    <Select value={selectedBudget} onValueChange={setSelectedBudget}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma verba" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {budgets.map((budget) => (
+                          <SelectItem key={budget.id} value={budget.id}>
+                            {budget.code} - {budget.name} (Disponível: R$ {parseFloat(budget.available_amount || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <input type="hidden" name="budget_id" value={selectedBudget} />
+                  </div>
                     <div className="space-y-2">
                       <Label htmlFor="region">Região</Label>
                       <Input id="region" name="region" placeholder="Ex: Sul, Nordeste" />
@@ -331,8 +340,8 @@ export default function TradeCampaigns() {
 
                   <div className="space-y-2">
                     <Label htmlFor="responsible_user_id">Responsável</Label>
-                    <Select name="responsible_user_id" required>
-                      <SelectTrigger>
+                    <Select value={selectedResponsible} onValueChange={setSelectedResponsible}>
+                      <SelectTrigger id="responsible_user_id">
                         <SelectValue placeholder="Selecione o responsável" />
                       </SelectTrigger>
                       <SelectContent>
@@ -343,6 +352,7 @@ export default function TradeCampaigns() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <input type="hidden" name="responsible_user_id" value={selectedResponsible} />
                   </div>
 
                   <Button type="submit" className="w-full">Criar Campanha</Button>
