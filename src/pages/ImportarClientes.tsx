@@ -1126,34 +1126,6 @@ Exemplo:
             </CardContent>
           </Card>
         )}
-
-          </TabsContent>
-
-          <TabsContent value="api" className="space-y-6">
-            <CNPJBizCreditos />
-            
-            {!showPreview ? (
-              <CNPJBizFilters 
-                onSearch={(filters, count) => {
-                  setApiFilters(filters);
-                  setApiCount(count);
-                  setShowPreview(true);
-                }}
-              />
-            ) : (
-              <CNPJBizPreview
-                filters={apiFilters}
-                totalCount={apiCount}
-                onBack={() => setShowPreview(false)}
-                onComplete={() => {
-                  setShowPreview(false);
-                  setApiFilters(null);
-                  setApiCount(0);
-                }}
-              />
-            )}
-          </TabsContent>
-        </Tabs>
       </div>
     </DashboardLayout>
   );
