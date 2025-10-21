@@ -14,6 +14,7 @@ interface Prospect {
   id: string;
   nome_empresa: string;
   municipio?: string;
+  municipio_id?: string;
   vendedor_id: string | null;
   status?: string;
   vendedor?: {
@@ -27,6 +28,12 @@ interface Vendedor {
   email: string;
 }
 
+interface Municipio {
+  id: string;
+  nome: string;
+  uf: string;
+}
+
 interface AtribuirProspectsDialogProps {
   onSuccess?: () => void;
 }
@@ -36,8 +43,10 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
   const [loading, setLoading] = useState(false);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [selectedProspects, setSelectedProspects] = useState<Set<string>>(new Set());
   const [selectedVendedor, setSelectedVendedor] = useState("");
+  const [selectedMunicipio, setSelectedMunicipio] = useState<string>("todos");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -55,6 +64,7 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
           id, 
           nome_empresa, 
           municipio, 
+          municipio_id,
           vendedor_id,
           status,
           vendedor:profiles!prospects_vendedor_id_fkey(nome)
@@ -63,6 +73,15 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
 
       if (prospectsError) throw prospectsError;
       setProspects(prospectsData || []);
+
+      // Buscar municípios
+      const { data: municipiosData, error: municipiosError } = await supabase
+        .from("municipios")
+        .select("id, nome, uf")
+        .order("nome");
+
+      if (municipiosError) throw municipiosError;
+      setMunicipios(municipiosData || []);
 
       // Buscar vendedores
       const { data: profilesData, error: profilesError } = await supabase
@@ -110,12 +129,24 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
   };
 
   const handleToggleAll = () => {
-    if (selectedProspects.size === prospects.length) {
-      setSelectedProspects(new Set());
+    const filtered = filteredProspects;
+    if (selectedProspects.size === filtered.length && filtered.length > 0) {
+      // Desmarcar apenas os filtrados
+      const newSet = new Set(selectedProspects);
+      filtered.forEach(p => newSet.delete(p.id));
+      setSelectedProspects(newSet);
     } else {
-      setSelectedProspects(new Set(prospects.map((p) => p.id)));
+      // Marcar todos os filtrados
+      const newSet = new Set(selectedProspects);
+      filtered.forEach(p => newSet.add(p.id));
+      setSelectedProspects(newSet);
     }
   };
+
+  const filteredProspects = prospects.filter((prospect) => {
+    const matchesMunicipio = selectedMunicipio === "todos" || prospect.municipio_id === selectedMunicipio;
+    return matchesMunicipio;
+  });
 
   const handleSubmit = async () => {
     if (selectedProspects.size === 0) {
@@ -184,45 +215,66 @@ export const AtribuirProspectsDialog = ({ onSuccess }: AtribuirProspectsDialogPr
         </DialogHeader>
 
         <div className="space-y-4 overflow-y-auto flex-1">
-          <div className="space-y-2">
-            <Label htmlFor="vendedor">Vendedor *</Label>
-            <Select value={selectedVendedor} onValueChange={setSelectedVendedor}>
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Selecione um vendedor" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover z-[100]">
-                {vendedores.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.nome} ({v.email})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="vendedor">Vendedor *</Label>
+              <Select value={selectedVendedor} onValueChange={setSelectedVendedor}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Selecione um vendedor" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-[100]">
+                  {vendedores.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.nome} ({v.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="municipio">Filtrar por Município</Label>
+              <Select value={selectedMunicipio} onValueChange={setSelectedMunicipio}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Todos os municípios" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-[100]">
+                  <SelectItem value="todos">Todos os municípios</SelectItem>
+                  {municipios.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.nome} - {m.uf}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Prospects Disponíveis ({prospects.length})</Label>
+              <Label>Prospects Disponíveis ({filteredProspects.length})</Label>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={handleToggleAll}
               >
-                {selectedProspects.size === prospects.length
+                {selectedProspects.size === filteredProspects.length && filteredProspects.length > 0
                   ? "Desmarcar todos"
                   : "Selecionar todos"}
               </Button>
             </div>
             
             <ScrollArea className="h-[300px] border rounded-md p-4">
-              {prospects.length === 0 ? (
+              {filteredProspects.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  Nenhum prospect disponível
+                  {selectedMunicipio === "todos" 
+                    ? "Nenhum prospect disponível" 
+                    : "Nenhum prospect encontrado neste município"}
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {prospects.map((prospect) => (
+                  {filteredProspects.map((prospect) => (
                     <div
                       key={prospect.id}
                       className="flex items-center space-x-2 p-3 border rounded hover:bg-accent transition-colors"
