@@ -127,32 +127,52 @@ export const ProspectMap = () => {
     let isMounted = true;
     
     const initMap = async () => {
+      console.log("🗺️ Iniciando mapa...");
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      if (!isMounted || !mapContainer.current) return;
+      if (!isMounted || !mapContainer.current) {
+        console.log("❌ Container não montado");
+        return;
+      }
 
       try {
+        console.log("🔐 Buscando sessão...");
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session?.access_token) {
+          console.log("❌ Sessão não encontrada");
           throw new Error("Sessão não encontrada");
         }
         
+        console.log("🔑 Buscando token Mapbox...");
         const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-mapbox-token', {
           headers: { Authorization: `Bearer ${session.access_token}` }
         });
         
-        if (tokenError) throw new Error(`Erro ao buscar token: ${tokenError.message}`);
-        if (!tokenData?.token) throw new Error("Token do Mapbox não configurado");
+        if (tokenError) {
+          console.error("❌ Erro ao buscar token:", tokenError);
+          throw new Error(`Erro ao buscar token: ${tokenError.message}`);
+        }
+        if (!tokenData?.token) {
+          console.error("❌ Token não configurado");
+          throw new Error("Token do Mapbox não configurado");
+        }
 
+        console.log("✅ Token Mapbox obtido");
         mapboxgl.accessToken = tokenData.token;
 
+        console.log("📍 Buscando prospects...");
         const { data: prospects, error } = await supabase
           .from("prospects")
           .select("id, nome_empresa, tipo_logradouro, logradouro, numero, bairro, municipio, uf, cep, endereco, status, vendedor_id")
           .limit(100);
 
-        if (error) throw error;
+        if (error) {
+          console.error("❌ Erro ao buscar prospects:", error);
+          throw error;
+        }
+        
+        console.log(`✅ ${prospects?.length || 0} prospects encontrados`);
 
         const vendedorIds = prospects
           ?.map(p => p.vendedor_id)
@@ -176,7 +196,10 @@ export const ProspectMap = () => {
           return false;
         });
 
+        console.log(`📍 ${prospectsComEndereco.length} prospects com endereço`);
+
         if (prospectsComEndereco.length === 0) {
+          console.log("❌ Nenhum prospect com endereço");
           toast({
             title: "Sem dados",
             description: "Nenhum prospect com endereço encontrado.",
@@ -195,14 +218,17 @@ export const ProspectMap = () => {
           });
         }
 
+        console.log("🌍 Iniciando geocodificação...");
         setGeocoding(true);
         setProgress({ current: 0, total: prospectsParaGeocodificar.length });
 
         const geocodedProspects = await geocodeInBatch(prospectsParaGeocodificar, 10);
         
+        console.log(`✅ ${geocodedProspects.length} prospects geocodificados`);
         setGeocoding(false);
 
         if (geocodedProspects.length === 0) {
+          console.log("❌ Nenhum endereço geocodificado");
           toast({
             title: "Erro na geocodificação",
             description: "Não foi possível localizar nenhum endereço.",
@@ -212,6 +238,7 @@ export const ProspectMap = () => {
           return;
         }
 
+        console.log("🗺️ Criando mapa Mapbox...");
         const bounds = new mapboxgl.LngLatBounds();
         geocodedProspects.forEach(p => bounds.extend([p.longitude, p.latitude]));
 
@@ -223,6 +250,7 @@ export const ProspectMap = () => {
         });
 
         map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
+        console.log("✅ Mapa criado, adicionando marcadores...");
 
         geocodedProspects.forEach((prospect) => {
           const el = document.createElement("div");
@@ -259,9 +287,10 @@ export const ProspectMap = () => {
             .addTo(map.current!);
         });
 
+        console.log("✅ Mapa carregado com sucesso!");
         setLoading(false);
       } catch (error) {
-        console.error("Erro:", error);
+        console.error("❌ Erro ao carregar mapa:", error);
         toast({
           title: "Erro",
           description: error instanceof Error ? error.message : "Erro ao carregar mapa",
