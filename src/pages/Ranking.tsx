@@ -227,8 +227,8 @@ const Ranking = () => {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="ganhos" fill="hsl(var(--primary))" name="Ganhos" />
-                      <Bar dataKey="total" fill="hsl(var(--muted))" name="Total" />
+                      <Bar dataKey="ganhos" fill="hsl(160, 70%, 60%)" name="Ganhos" />
+                      <Bar dataKey="total" fill="hsl(200, 70%, 70%)" name="Total" />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
