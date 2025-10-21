@@ -124,14 +124,12 @@ export const ProspectMap = () => {
   };
 
   useEffect(() => {
-    if (!mapContainer.current) {
-      console.log("❌ Container não disponível");
-      return;
-    }
-
     let isMounted = true;
+    let mapInstance: mapboxgl.Map | null = null;
     
     const initMap = async () => {
+      if (!mapContainer.current) return;
+      
       console.log("🗺️ Iniciando mapa...");
 
       try {
@@ -237,18 +235,20 @@ export const ProspectMap = () => {
           return;
         }
 
+        if (!isMounted || !mapContainer.current) return;
+
         console.log("🗺️ Criando mapa Mapbox...");
         const bounds = new mapboxgl.LngLatBounds();
         geocodedProspects.forEach(p => bounds.extend([p.longitude, p.latitude]));
 
-        map.current = new mapboxgl.Map({
-          container: mapContainer.current!,
+        mapInstance = new mapboxgl.Map({
+          container: mapContainer.current,
           style: "mapbox://styles/mapbox/light-v11",
           bounds: bounds,
           fitBoundsOptions: { padding: 50 },
         });
 
-        map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
+        mapInstance.addControl(new mapboxgl.NavigationControl(), "top-right");
         console.log("✅ Mapa criado, adicionando marcadores...");
 
         geocodedProspects.forEach((prospect) => {
@@ -283,9 +283,10 @@ export const ProspectMap = () => {
           new mapboxgl.Marker(el)
             .setLngLat([prospect.longitude, prospect.latitude])
             .setPopup(popup)
-            .addTo(map.current!);
+            .addTo(mapInstance!);
         });
 
+        map.current = mapInstance;
         console.log("✅ Mapa carregado com sucesso!");
         setLoading(false);
       } catch (error) {
@@ -304,7 +305,9 @@ export const ProspectMap = () => {
 
     return () => {
       isMounted = false;
-      map.current?.remove();
+      if (mapInstance) {
+        mapInstance.remove();
+      }
     };
   }, [toast]);
 
