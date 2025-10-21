@@ -1676,6 +1676,78 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_approval_levels: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          level_number: number
+          max_approval_amount: number
+          role_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          level_number: number
+          max_approval_amount: number
+          role_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          level_number?: number
+          max_approval_amount?: number
+          role_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      trade_approvals: {
+        Row: {
+          amount: number
+          approval_level: number
+          approved_at: string | null
+          approver_user_id: string
+          comments: string | null
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          approval_level: number
+          approved_at?: string | null
+          approver_user_id: string
+          comments?: string | null
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          status: string
+        }
+        Update: {
+          amount?: number
+          approval_level?: number
+          approved_at?: string | null
+          approver_user_id?: string
+          comments?: string | null
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       trade_bank_accounts: {
         Row: {
           account_number: string
@@ -1796,10 +1868,65 @@ export type Database = {
           },
         ]
       }
+      trade_budget_reserves: {
+        Row: {
+          budget_id: string
+          campaign_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          released_at: string | null
+          reserved_amount: number
+          reserved_at: string | null
+          status: string | null
+        }
+        Insert: {
+          budget_id: string
+          campaign_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          released_at?: string | null
+          reserved_amount: number
+          reserved_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          budget_id?: string
+          campaign_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          released_at?: string | null
+          reserved_amount?: number
+          reserved_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_budget_reserves_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "trade_budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_budget_reserves_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_budgets: {
         Row: {
           account_id: string | null
           allocated_amount: number | null
+          available_amount: number | null
           code: string
           created_at: string | null
           created_by: string | null
@@ -1808,6 +1935,7 @@ export type Database = {
           name: string
           period_end: string
           period_start: string
+          reserved_amount: number | null
           spent_amount: number | null
           status: string | null
           total_amount: number
@@ -1816,6 +1944,7 @@ export type Database = {
         Insert: {
           account_id?: string | null
           allocated_amount?: number | null
+          available_amount?: number | null
           code: string
           created_at?: string | null
           created_by?: string | null
@@ -1824,6 +1953,7 @@ export type Database = {
           name: string
           period_end: string
           period_start: string
+          reserved_amount?: number | null
           spent_amount?: number | null
           status?: string | null
           total_amount: number
@@ -1832,6 +1962,7 @@ export type Database = {
         Update: {
           account_id?: string | null
           allocated_amount?: number | null
+          available_amount?: number | null
           code?: string
           created_at?: string | null
           created_by?: string | null
@@ -1840,6 +1971,7 @@ export type Database = {
           name?: string
           period_end?: string
           period_start?: string
+          reserved_amount?: number | null
           spent_amount?: number | null
           status?: string | null
           total_amount?: number
@@ -1851,6 +1983,80 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_campaigns: {
+        Row: {
+          actual_cost: number | null
+          actual_revenue: number | null
+          budget_id: string | null
+          campaign_type: string
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string
+          estimated_cost: number
+          id: string
+          name: string
+          region: string | null
+          responsible_user_id: string
+          start_date: string
+          status: string | null
+          target_revenue: number | null
+          target_stores: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_cost?: number | null
+          actual_revenue?: number | null
+          budget_id?: string | null
+          campaign_type: string
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date: string
+          estimated_cost: number
+          id?: string
+          name: string
+          region?: string | null
+          responsible_user_id: string
+          start_date: string
+          status?: string | null
+          target_revenue?: number | null
+          target_stores?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_cost?: number | null
+          actual_revenue?: number | null
+          budget_id?: string | null
+          campaign_type?: string
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string
+          estimated_cost?: number
+          id?: string
+          name?: string
+          region?: string | null
+          responsible_user_id?: string
+          start_date?: string
+          status?: string | null
+          target_revenue?: number | null
+          target_stores?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_campaigns_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "trade_budgets"
             referencedColumns: ["id"]
           },
         ]
@@ -1903,10 +2109,12 @@ export type Database = {
         Row: {
           account_id: string
           amount: number
+          approval_status: string | null
           approved_at: string | null
           approved_by: string | null
           bank_account_id: string | null
           budget_id: string | null
+          campaign_id: string | null
           created_at: string | null
           created_by: string | null
           description: string
@@ -1915,6 +2123,7 @@ export type Database = {
           id: string
           investment_id: string | null
           reference_number: string | null
+          rejected_reason: string | null
           status: string | null
           store_id: string | null
           updated_at: string | null
@@ -1922,10 +2131,12 @@ export type Database = {
         Insert: {
           account_id: string
           amount: number
+          approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
           bank_account_id?: string | null
           budget_id?: string | null
+          campaign_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description: string
@@ -1934,6 +2145,7 @@ export type Database = {
           id?: string
           investment_id?: string | null
           reference_number?: string | null
+          rejected_reason?: string | null
           status?: string | null
           store_id?: string | null
           updated_at?: string | null
@@ -1941,10 +2153,12 @@ export type Database = {
         Update: {
           account_id?: string
           amount?: number
+          approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
           bank_account_id?: string | null
           budget_id?: string | null
+          campaign_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string
@@ -1953,6 +2167,7 @@ export type Database = {
           id?: string
           investment_id?: string | null
           reference_number?: string | null
+          rejected_reason?: string | null
           status?: string | null
           store_id?: string | null
           updated_at?: string | null
@@ -1980,6 +2195,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "trade_financial_entries_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "trade_financial_entries_investment_id_fkey"
             columns: ["investment_id"]
             isOneToOne: false
@@ -1998,9 +2220,11 @@ export type Database = {
       trade_investments: {
         Row: {
           amount: number
+          approval_status: string | null
           approved_at: string | null
           approved_by: string | null
           bank_account_id: string | null
+          campaign_id: string | null
           category: string
           created_at: string | null
           created_by: string | null
@@ -2010,6 +2234,7 @@ export type Database = {
           notes: string | null
           payment_method: string | null
           receipt_url: string | null
+          rejected_reason: string | null
           status: string | null
           store_id: string
           updated_at: string | null
@@ -2017,9 +2242,11 @@ export type Database = {
         }
         Insert: {
           amount: number
+          approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
           bank_account_id?: string | null
+          campaign_id?: string | null
           category: string
           created_at?: string | null
           created_by?: string | null
@@ -2029,6 +2256,7 @@ export type Database = {
           notes?: string | null
           payment_method?: string | null
           receipt_url?: string | null
+          rejected_reason?: string | null
           status?: string | null
           store_id: string
           updated_at?: string | null
@@ -2036,9 +2264,11 @@ export type Database = {
         }
         Update: {
           amount?: number
+          approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
           bank_account_id?: string | null
+          campaign_id?: string | null
           category?: string
           created_at?: string | null
           created_by?: string | null
@@ -2048,6 +2278,7 @@ export type Database = {
           notes?: string | null
           payment_method?: string | null
           receipt_url?: string | null
+          rejected_reason?: string | null
           status?: string | null
           store_id?: string
           updated_at?: string | null
@@ -2059,6 +2290,13 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "trade_bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_investments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaigns"
             referencedColumns: ["id"]
           },
           {
