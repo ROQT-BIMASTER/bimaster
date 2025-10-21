@@ -126,54 +126,37 @@ export const ProspectMap = () => {
 
   useEffect(() => {
     const initMap = async () => {
-      if (!mapContainer.current) return;
+      if (!mapContainer.current) {
+        console.warn("Container do mapa não encontrado");
+        return;
+      }
 
       try {
-        console.log("🗺️ Iniciando carregamento do mapa...");
-
-        // Buscar token do Mapbox primeiro
-        console.log("🔑 Buscando token do Mapbox...");
-        
+        // Buscar token do Mapbox
         const { data: { session } } = await supabase.auth.getSession();
-        console.log("🔐 Sessão do usuário:", session ? "Ativa" : "Não encontrada");
+        
+        if (!session?.access_token) {
+          throw new Error("Sessão não encontrada. Faça login novamente.");
+        }
         
         const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-mapbox-token', {
           headers: {
-            Authorization: `Bearer ${session?.access_token}`
+            Authorization: `Bearer ${session.access_token}`
           }
         });
         
-        console.log("📦 Resposta do get-mapbox-token:", { tokenData, tokenError });
-        
         if (tokenError) {
-          console.error("❌ Erro ao buscar token:", tokenError);
-          toast({
-            title: "Erro ao configurar mapa",
-            description: `Erro: ${tokenError.message || 'Token do Mapbox não configurado'}`,
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
+          throw new Error(`Erro ao buscar token: ${tokenError.message}`);
         }
         
         if (!tokenData?.token) {
-          console.error("❌ Token não retornado:", tokenData);
-          toast({
-            title: "Configuração necessária",
-            description: "Token do Mapbox não configurado. Entre em contato com o administrador.",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
+          throw new Error("Token do Mapbox não configurado");
         }
-        
-        console.log("✅ Token do Mapbox obtido com sucesso");
 
-        // Configurar token do Mapbox
+
         mapboxgl.accessToken = tokenData.token;
 
         // Buscar prospects com endereços completos
-        console.log("📊 Buscando prospects...");
         const { data: prospects, error } = await supabase
           .from("prospects")
           .select(`
@@ -191,12 +174,7 @@ export const ProspectMap = () => {
             vendedor_id
           `);
 
-        if (error) {
-          console.error("❌ Erro ao buscar prospects:", error);
-          throw error;
-        }
-
-        console.log(`📋 ${prospects?.length || 0} prospects encontrados`);
+        if (error) throw error;
 
         // Buscar vendedores separadamente para os prospects
         const vendedorIds = prospects
@@ -225,8 +203,6 @@ export const ProspectMap = () => {
           return false;
         });
 
-        console.log(`📍 ${prospectsComEndereco.length} prospects com endereço válido`);
-
         if (prospectsComEndereco.length === 0) {
           toast({
             title: "Sem dados",
@@ -241,7 +217,6 @@ export const ProspectMap = () => {
         const prospectsParaGeocodificar = prospectsComEndereco.slice(0, MAX_PROSPECTS);
         
         if (prospectsComEndereco.length > MAX_PROSPECTS) {
-          console.log(`⚠️ Limitando a ${MAX_PROSPECTS} prospects dos ${prospectsComEndereco.length} disponíveis`);
           toast({
             title: "Limite de exibição",
             description: `Exibindo os primeiros ${MAX_PROSPECTS} prospects de ${prospectsComEndereco.length} encontrados.`,
@@ -252,12 +227,10 @@ export const ProspectMap = () => {
         setGeocoding(true);
         setProgress({ current: 0, total: prospectsParaGeocodificar.length });
 
-        console.log(`🌐 Iniciando geocodificação de ${prospectsParaGeocodificar.length} endereços...`);
         const geocodedProspects = await geocodeInBatch(prospectsParaGeocodificar, 10);
         
         setGeocoding(false);
 
-        console.log(`✅ ${geocodedProspects.length} endereços geocodificados com sucesso`);
 
         if (geocodedProspects.length === 0) {
           toast({
@@ -270,7 +243,6 @@ export const ProspectMap = () => {
         }
 
         // Inicializar mapa
-        console.log("🗺️ Inicializando mapa com marcadores...");
         const bounds = new mapboxgl.LngLatBounds();
         geocodedProspects.forEach(p => bounds.extend([p.longitude, p.latitude]));
 
@@ -320,10 +292,9 @@ export const ProspectMap = () => {
             .addTo(map.current!);
         });
 
-        console.log("✅ Mapa carregado com sucesso!");
         setLoading(false);
       } catch (error) {
-        console.error("❌ Erro ao carregar mapa:", error);
+        console.error("Erro ao carregar mapa:", error);
         toast({
           title: "Erro",
           description: error instanceof Error ? error.message : "Não foi possível carregar o mapa",
