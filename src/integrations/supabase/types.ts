@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      agg_daily_kpis: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          media_ticket: number | null
+          prospects_convertidos: number | null
+          regiao: string
+          taxa_conversao: number | null
+          total_atividades: number | null
+          total_investimentos: number | null
+          total_prospects: number | null
+          total_vendas: number | null
+          total_visitas: number | null
+          uf: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          media_ticket?: number | null
+          prospects_convertidos?: number | null
+          regiao?: string
+          taxa_conversao?: number | null
+          total_atividades?: number | null
+          total_investimentos?: number | null
+          total_prospects?: number | null
+          total_vendas?: number | null
+          total_visitas?: number | null
+          uf?: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          media_ticket?: number | null
+          prospects_convertidos?: number | null
+          regiao?: string
+          taxa_conversao?: number | null
+          total_atividades?: number | null
+          total_investimentos?: number | null
+          total_prospects?: number | null
+          total_vendas?: number | null
+          total_visitas?: number | null
+          uf?: string
+        }
+        Relationships: []
+      }
       ai_insights: {
         Row: {
           action_items: Json | null
@@ -317,6 +365,13 @@ export type Database = {
             foreignKeyName: "competitor_comparison_photos_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "competitor_comparison_photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -415,6 +470,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "photos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_intelligence_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
           },
           {
             foreignKeyName: "competitor_intelligence_store_id_fkey"
@@ -533,6 +595,36 @@ export type Database = {
           },
         ]
       }
+      etl_changelog: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          changed_data: Json | null
+          id: string
+          operation: string
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          changed_data?: Json | null
+          id?: string
+          operation: string
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          changed_data?: Json | null
+          id?: string
+          operation?: string
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       gondola_audits: {
         Row: {
           concorrentes_detalhes: Json | null
@@ -589,6 +681,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gondola_audits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
           },
           {
             foreignKeyName: "gondola_audits_store_id_fkey"
@@ -701,6 +800,13 @@ export type Database = {
           weighted_distribution?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "kpis_tracking_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
           {
             foreignKeyName: "kpis_tracking_store_id_fkey"
             columns: ["store_id"]
@@ -914,6 +1020,13 @@ export type Database = {
           visit_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
           {
             foreignKeyName: "photos_store_id_fkey"
             columns: ["store_id"]
@@ -1165,6 +1278,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "promotions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_execution_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
           },
           {
             foreignKeyName: "promotion_execution_store_id_fkey"
@@ -1651,6 +1771,13 @@ export type Database = {
             foreignKeyName: "sales_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "sales_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -1749,6 +1876,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_share_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
           },
           {
             foreignKeyName: "shelf_share_store_id_fkey"
@@ -2005,6 +2139,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "trade_bank_accounts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
           {
             foreignKeyName: "trade_bank_accounts_store_id_fkey"
             columns: ["store_id"]
@@ -2422,6 +2563,13 @@ export type Database = {
             foreignKeyName: "trade_financial_entries_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "trade_financial_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -2508,6 +2656,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "trade_campaigns"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_investments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
           },
           {
             foreignKeyName: "trade_investments_store_id_fkey"
@@ -2691,6 +2846,13 @@ export type Database = {
             foreignKeyName: "visits_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "visits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
@@ -2698,7 +2860,49 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      mv_conversion_funnel: {
+        Row: {
+          com_vendedor: number | null
+          convertidos: number | null
+          regiao: Database["public"]["Enums"]["region_type"] | null
+          semana: string | null
+          status: Database["public"]["Enums"]["prospect_status"] | null
+          total_atividades: number | null
+          total_prospects: number | null
+          uf: string | null
+        }
+        Relationships: []
+      }
+      mv_sales_performance: {
+        Row: {
+          mes: string | null
+          regiao: Database["public"]["Enums"]["region_type"] | null
+          salesperson_id: string | null
+          ticket_medio: number | null
+          total_descontos: number | null
+          total_vendas: number | null
+          uf: string | null
+          valor_liquido: number | null
+          vendedor: string | null
+        }
+        Relationships: []
+      }
+      mv_trade_performance: {
+        Row: {
+          auditorias_conformes: number | null
+          city: string | null
+          media_frentes: number | null
+          mes: string | null
+          produtos_faltantes: number | null
+          state: string | null
+          store_id: string | null
+          store_name: string | null
+          total_auditorias: number | null
+          total_investimentos: number | null
+          total_visitas: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -2715,6 +2919,14 @@ export type Database = {
       is_participant_of_conversa: {
         Args: { conversa_id_param: string; user_id_param: string }
         Returns: boolean
+      }
+      refresh_all_materialized_views: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      refresh_daily_kpis: {
+        Args: { target_date?: string }
+        Returns: undefined
       }
       usuario_tem_acesso_prospect: {
         Args: { _prospect_id: string; _user_id: string }
