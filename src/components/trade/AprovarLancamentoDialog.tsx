@@ -54,6 +54,7 @@ export function AprovarLancamentoDialog({
         updateData.status = "approved";
       }
 
+      // Atualizar o lançamento/investimento
       const { error } = await supabase
         .from(tableName)
         .update(updateData)
@@ -61,7 +62,24 @@ export function AprovarLancamentoDialog({
 
       if (error) throw error;
 
-      toast.success(type === "investment" ? "Investimento aprovado com sucesso!" : "Lançamento aprovado com sucesso!");
+      // Se for lançamento com verba vinculada, consumir o crédito
+      if (type === "entry" && entry.budget_id) {
+        const { error: budgetError } = await supabase.rpc('consume_budget_credit', {
+          p_budget_id: entry.budget_id,
+          p_amount: parseFloat(entry.amount)
+        });
+
+        if (budgetError) {
+          // Se falhar ao consumir crédito, reverter aprovação
+          await supabase
+            .from(tableName)
+            .update({ approval_status: "pending", status: "pending" })
+            .eq("id", entry.id);
+          throw new Error(`Erro ao consumir crédito da verba: ${budgetError.message}`);
+        }
+      }
+
+      toast.success(type === "investment" ? "Investimento aprovado com sucesso!" : "Lançamento aprovado e crédito consumido!");
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
