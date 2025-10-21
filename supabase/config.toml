@@ -29,3 +29,9 @@ verify_jwt = true
 
 [functions.ai-filter]
 verify_jwt = true
+
+[functions.export-prospects]
+verify_jwt = false
+
+[functions.export-conversion-rates]
+verify_jwt = false

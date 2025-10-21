@@ -166,6 +166,13 @@ export const GerenciamentoIntegracoes = () => {
     }));
   };
 
+  const handleUpdateSecret = (integration: IntegrationConfig) => {
+    toast.info(
+      `Para atualizar o ${integration.secretName}, use o botão "Editar Token" abaixo. O sistema abrirá um modal seguro para inserir o novo valor.`,
+      { duration: 5000 }
+    );
+  };
+
   const handleSaveApiKey = async (integration: IntegrationConfig) => {
     const apiKey = apiKeys[integration.id];
     
@@ -353,9 +360,45 @@ export const GerenciamentoIntegracoes = () => {
                 )}
 
                 {integration.status === "active" && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    Esta integração está configurada e funcionando corretamente.
+                  <div className="space-y-3 pt-2 border-t">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      Esta integração está configurada e funcionando corretamente.
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>
+                        Token Atual ({integration.secretName})
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="password"
+                          value="••••••••••••••••••••••••••••"
+                          disabled
+                          className="flex-1"
+                        />
+                        <Button 
+                          variant="outline"
+                          onClick={() => handleUpdateSecret(integration)}
+                        >
+                          Editar Token
+                        </Button>
+                      </div>
+                    </div>
+
+                    {integration.testConnection && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleTestConnection(integration)}
+                        disabled={testingConnection === integration.id}
+                        className="w-full"
+                      >
+                        {testingConnection === integration.id
+                          ? "Testando..."
+                          : "Testar Conexão"}
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>

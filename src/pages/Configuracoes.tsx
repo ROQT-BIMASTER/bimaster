@@ -14,6 +14,7 @@ import { PermissoesDeAcesso } from "@/components/configuracoes/PermissoesDeAcess
 import { GerenciamentoPermissoesTelas } from "@/components/configuracoes/GerenciamentoPermissoesTelas";
 import { VinculacaoUsuarioProspects } from "@/components/configuracoes/VinculacaoUsuarioProspects";
 import { GerenciamentoIntegracoes } from "@/components/configuracoes/GerenciamentoIntegracoes";
+import { DocumentacaoAPI } from "@/components/configuracoes/DocumentacaoAPI";
 import { AtribuirVendedorSupervisor } from "@/components/configuracoes/AtribuirVendedorSupervisor";
 import { Shield, UserCog, User, CheckCircle } from "lucide-react";
 
@@ -238,6 +239,7 @@ const Configuracoes = () => {
               {isAdmin && <TabsTrigger value="permissoes">Permissões</TabsTrigger>}
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
               {isAdmin && <TabsTrigger value="integracoes">Integrações</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="api">API</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="perfil" className="space-y-4">
@@ -289,6 +291,12 @@ const Configuracoes = () => {
             {isAdmin && (
               <TabsContent value="integracoes">
                 <GerenciamentoIntegracoes />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="api">
+                <DocumentacaoAPI />
               </TabsContent>
             )}
           </Tabs>
