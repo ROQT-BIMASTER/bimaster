@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { Plus, DollarSign, TrendingUp, AlertCircle, Calendar, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { EditarInvestimentoDialog } from "@/components/trade/EditarInvestimentoDialog";
+import { NovaLojaDialog } from "@/components/trade/NovaLojaDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { budgetSchema, chartOfAccountsSchema } from "@/lib/validations/budget";
@@ -57,6 +58,8 @@ export default function TradeFinanceiro() {
   const [allInvestments, setAllInvestments] = useState<any[]>([]);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
+  const [isNovaLojaOpen, setIsNovaLojaOpen] = useState(false);
+  const [selectedStoreForInvestment, setSelectedStoreForInvestment] = useState<string>("");
 
   useEffect(() => {
     fetchData();
@@ -182,9 +185,16 @@ export default function TradeFinanceiro() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
       
+      const storeId = formData.get("store_id") as string;
+      
+      if (!storeId) {
+        toast.error("Selecione uma loja antes de criar o investimento");
+        return;
+      }
+      
       // Sanitizar dados
       const sanitizedData = {
-        store_id: formData.get("store_id") as string,
+        store_id: storeId,
         investment_date: formData.get("investment_date") as string,
         amount: parseFloat(formData.get("amount") as string),
         category: formData.get("category") as string,
@@ -196,7 +206,7 @@ export default function TradeFinanceiro() {
       };
 
       // Validação básica
-      if (!sanitizedData.store_id || !sanitizedData.investment_date || !sanitizedData.amount) {
+      if (!sanitizedData.investment_date || !sanitizedData.amount) {
         throw new Error("Campos obrigatórios não preenchidos");
       }
 
@@ -519,21 +529,39 @@ export default function TradeFinanceiro() {
                   <DialogHeader>
                     <DialogTitle>Registrar Investimento em PDV</DialogTitle>
                   </DialogHeader>
-                  <form onSubmit={handleCreateInvestment} className="space-y-4">
+                   <form onSubmit={handleCreateInvestment} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="store_id">PDV</Label>
-                      <Select name="store_id" required>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o PDV" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {stores.map((store) => (
-                            <SelectItem key={store.id} value={store.id}>
-                              {store.code} - {store.name} ({store.city})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="store_id">PDV / Loja *</Label>
+                      <div className="flex gap-2">
+                        <Select 
+                          name="store_id" 
+                          required 
+                          value={selectedStoreForInvestment}
+                          onValueChange={setSelectedStoreForInvestment}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Selecione o PDV" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {stores.map((store) => (
+                              <SelectItem key={store.id} value={store.id}>
+                                {store.code} - {store.name} ({store.city})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsNovaLojaOpen(true)}
+                          title="Cadastrar nova loja"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        A loja deve estar cadastrada antes de criar o investimento
+                      </p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -709,6 +737,17 @@ export default function TradeFinanceiro() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <NovaLojaDialog
+          open={isNovaLojaOpen}
+          onOpenChange={setIsNovaLojaOpen}
+          onSuccess={(newStoreId) => {
+            if (newStoreId) {
+              setSelectedStoreForInvestment(newStoreId);
+            }
+            fetchData();
+          }}
+        />
       </div>
     </DashboardLayout>
   );

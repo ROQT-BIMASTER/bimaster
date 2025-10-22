@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { sanitizeText, getSafeErrorMessage } from "@/lib/utils/sanitize";
+import { NovaLojaDialog } from "./NovaLojaDialog";
 
 interface EditarInvestimentoDialogProps {
   open: boolean;
@@ -25,6 +26,7 @@ export const EditarInvestimentoDialog = ({
 }: EditarInvestimentoDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [stores, setStores] = useState<any[]>([]);
+  const [isNovaLojaOpen, setIsNovaLojaOpen] = useState(false);
   const [formData, setFormData] = useState({
     store_id: "",
     investment_date: "",
@@ -139,18 +141,28 @@ export const EditarInvestimentoDialog = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>PDV / Loja *</Label>
-              <Select value={formData.store_id} onValueChange={(value) => setFormData(prev => ({ ...prev, store_id: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o PDV" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stores.map((store) => (
-                    <SelectItem key={store.id} value={store.id}>
-                      {store.name} - {store.city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={formData.store_id} onValueChange={(value) => setFormData(prev => ({ ...prev, store_id: value }))}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecione o PDV" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stores.map((store) => (
+                      <SelectItem key={store.id} value={store.id}>
+                        {store.name} - {store.city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsNovaLojaOpen(true)}
+                  title="Cadastrar nova loja"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -239,6 +251,17 @@ export const EditarInvestimentoDialog = ({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <NovaLojaDialog
+        open={isNovaLojaOpen}
+        onOpenChange={setIsNovaLojaOpen}
+        onSuccess={(newStoreId) => {
+          if (newStoreId) {
+            setFormData(prev => ({ ...prev, store_id: newStoreId }));
+          }
+          fetchStores();
+        }}
+      />
     </Dialog>
   );
 };

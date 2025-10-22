@@ -11,7 +11,7 @@ import { toast } from "sonner";
 interface NovaLojaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
+  onSuccess?: (newStoreId?: string) => void;
 }
 
 export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialogProps) => {
@@ -46,17 +46,17 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
     try {
       const { data: userData } = await supabase.auth.getUser();
       
-      const { error } = await supabase.from("stores").insert({
+      const { data: newStore, error } = await supabase.from("stores").insert({
         ...formData,
         code: formData.code || `STORE-${Date.now()}`,
         status: "active",
         created_by: userData.user?.id,
-      });
+      }).select().single();
 
       if (error) throw error;
 
       toast.success("Loja cadastrada com sucesso!");
-      onSuccess?.();
+      onSuccess?.(newStore?.id);
       onOpenChange(false);
       setFormData({
         name: "",
