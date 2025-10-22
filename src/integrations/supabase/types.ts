@@ -2656,8 +2656,10 @@ export type Database = {
       trade_chart_of_accounts: {
         Row: {
           account_type: string
+          centro_custo: string | null
           code: string
           created_at: string | null
+          departamento: string | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -2667,8 +2669,10 @@ export type Database = {
         }
         Insert: {
           account_type: string
+          centro_custo?: string | null
           code: string
           created_at?: string | null
+          departamento?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -2678,8 +2682,10 @@ export type Database = {
         }
         Update: {
           account_type?: string
+          centro_custo?: string | null
           code?: string
           created_at?: string | null
+          departamento?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null

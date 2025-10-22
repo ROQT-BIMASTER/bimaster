@@ -486,6 +486,8 @@ function NovaContaContabilDialog({ open, onOpenChange, onSuccess }: NovaContaCon
     code: "",
     name: "",
     account_type: "expense",
+    centro_custo: "",
+    departamento: "",
     description: "",
   });
 
@@ -505,6 +507,8 @@ function NovaContaContabilDialog({ open, onOpenChange, onSuccess }: NovaContaCon
           code: formData.code.trim(),
           name: formData.name.trim(),
           account_type: formData.account_type,
+          centro_custo: formData.centro_custo.trim() || null,
+          departamento: formData.departamento.trim() || null,
           description: formData.description.trim() || null,
           is_active: true,
         })
@@ -516,7 +520,7 @@ function NovaContaContabilDialog({ open, onOpenChange, onSuccess }: NovaContaCon
       toast.success("Conta contábil cadastrada com sucesso!");
       onSuccess?.(data?.id);
       onOpenChange(false);
-      setFormData({ code: "", name: "", account_type: "expense", description: "" });
+      setFormData({ code: "", name: "", account_type: "expense", centro_custo: "", departamento: "", description: "" });
     } catch (error: any) {
       toast.error(getSafeErrorMessage(error));
     } finally {
@@ -573,6 +577,28 @@ function NovaContaContabilDialog({ open, onOpenChange, onSuccess }: NovaContaCon
               placeholder="Ex: Material de Marketing"
               required
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="centro_custo">Centro de Custo</Label>
+              <Input
+                id="centro_custo"
+                value={formData.centro_custo}
+                onChange={(e) => setFormData({ ...formData, centro_custo: e.target.value })}
+                placeholder="Ex: CC-01 Marketing"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="departamento">Departamento</Label>
+              <Input
+                id="departamento"
+                value={formData.departamento}
+                onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
+                placeholder="Ex: Marketing"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

@@ -678,6 +678,124 @@ export default function TradeFinanceiro() {
           <TabsContent value="accounts" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">Plano de Contas</h2>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nova Conta
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Criar Conta Contábil</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    
+                    try {
+                      const { error } = await supabase
+                        .from("trade_chart_of_accounts")
+                        .insert({
+                          code: sanitizeCode(formData.get("account_code") as string),
+                          name: sanitizeText(formData.get("account_name") as string),
+                          account_type: formData.get("account_type") as string,
+                          centro_custo: sanitizeText(formData.get("centro_custo") as string || ""),
+                          departamento: sanitizeText(formData.get("departamento") as string || ""),
+                          description: sanitizeText(formData.get("account_description") as string || ""),
+                          is_active: true,
+                        });
+
+                      if (error) throw error;
+
+                      toast.success("Conta contábil criada com sucesso!");
+                      e.currentTarget.reset();
+                      fetchData();
+                    } catch (error: any) {
+                      toast.error(getSafeErrorMessage(error));
+                    }
+                  }} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="account_code">Código *</Label>
+                        <Input
+                          id="account_code"
+                          name="account_code"
+                          placeholder="Ex: 1.01.001"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="account_type">Tipo *</Label>
+                        <Select name="account_type" defaultValue="expense">
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="asset">Ativo</SelectItem>
+                            <SelectItem value="liability">Passivo</SelectItem>
+                            <SelectItem value="equity">Patrimônio Líquido</SelectItem>
+                            <SelectItem value="revenue">Receita</SelectItem>
+                            <SelectItem value="expense">Despesa</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="account_name">Nome *</Label>
+                      <Input
+                        id="account_name"
+                        name="account_name"
+                        placeholder="Ex: Material de Marketing"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="centro_custo">Centro de Custo</Label>
+                        <Input
+                          id="centro_custo"
+                          name="centro_custo"
+                          placeholder="Ex: CC-01 Marketing"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="departamento">Departamento</Label>
+                        <Input
+                          id="departamento"
+                          name="departamento"
+                          placeholder="Ex: Marketing"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="account_description">Descrição</Label>
+                      <Textarea
+                        id="account_description"
+                        name="account_description"
+                        placeholder="Informações adicionais sobre esta conta..."
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <DialogTrigger asChild>
+                        <Button type="button" variant="outline">
+                          Cancelar
+                        </Button>
+                      </DialogTrigger>
+                      <Button type="submit">
+                        Criar Conta
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
 
             <Card>
@@ -687,6 +805,8 @@ export default function TradeFinanceiro() {
                     <TableHead>Código</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Tipo</TableHead>
+                    <TableHead>Centro de Custo</TableHead>
+                    <TableHead>Departamento</TableHead>
                     <TableHead>Descrição</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -697,10 +817,19 @@ export default function TradeFinanceiro() {
                       <TableCell>{account.name}</TableCell>
                       <TableCell>
                         <Badge variant={account.account_type === "expense" ? "destructive" : "default"}>
-                          {account.account_type === "expense" ? "Despesa" : account.account_type === "budget" ? "Verba" : account.account_type}
+                          {account.account_type === "expense" ? "Despesa" : 
+                           account.account_type === "revenue" ? "Receita" :
+                           account.account_type === "asset" ? "Ativo" :
+                           account.account_type === "liability" ? "Passivo" :
+                           account.account_type === "equity" ? "Patrimônio" :
+                           account.account_type}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{account.description}</TableCell>
+                      <TableCell className="text-sm">{account.centro_custo || "-"}</TableCell>
+                      <TableCell className="text-sm">{account.departamento || "-"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground truncate max-w-xs">
+                        {account.description || "-"}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
