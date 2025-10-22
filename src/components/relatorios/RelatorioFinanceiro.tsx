@@ -19,30 +19,102 @@ export const RelatorioFinanceiro = () => {
     try {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
+      // Try aggregated table first
       const { data: kpis } = await supabase
         .from('agg_daily_kpis')
         .select('*')
-        .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+        .gte('date', thirtyDaysAgoStr)
         .order('date', { ascending: true });
 
-      const formattedData = kpis?.map(kpi => ({
-        date: new Date(kpi.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-        vendas: kpi.total_vendas,
-        investimentos: kpi.total_investimentos,
-        ticket: kpi.media_ticket
-      })) || [];
+      let formattedData: any[] = [];
+      let totalSales = 0;
+      let totalInvestments = 0;
+      let avgTicket = 0;
+
+      // If no aggregated data, fetch from source tables
+      if (!kpis || kpis.length === 0) {
+        console.log('No aggregated data, fetching from source tables...');
+        
+        // Fetch sales data
+        const { data: salesData } = await supabase
+          .from('sales')
+          .select('sale_date, net_value')
+          .gte('sale_date', thirtyDaysAgoStr)
+          .order('sale_date', { ascending: true });
+
+        // Fetch investments data
+        const { data: investmentsData } = await supabase
+          .from('trade_investments')
+          .select('investment_date, amount')
+          .gte('investment_date', thirtyDaysAgoStr)
+          .order('investment_date', { ascending: true });
+
+        // Fetch visits count for ticket calculation
+        const { count: visitsCount } = await supabase
+          .from('visits')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', thirtyDaysAgo.toISOString());
+
+        // Create a map of dates for the last 30 days
+        const dateMap: Record<string, { vendas: number; investimentos: number }> = {};
+        
+        for (let i = 0; i < 30; i++) {
+          const date = new Date();
+          date.setDate(date.getDate() - (29 - i));
+          const dateStr = date.toISOString().split('T')[0];
+          dateMap[dateStr] = { vendas: 0, investimentos: 0 };
+        }
+
+        // Aggregate sales by date
+        salesData?.forEach(sale => {
+          const dateStr = sale.sale_date;
+          if (dateMap[dateStr]) {
+            dateMap[dateStr].vendas += sale.net_value || 0;
+          }
+        });
+
+        // Aggregate investments by date
+        investmentsData?.forEach(inv => {
+          const dateStr = inv.investment_date;
+          if (dateMap[dateStr]) {
+            dateMap[dateStr].investimentos += inv.amount || 0;
+          }
+        });
+
+        // Format data for chart
+        formattedData = Object.entries(dateMap).map(([date, values]) => ({
+          date: new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+          vendas: values.vendas,
+          investimentos: values.investimentos,
+          ticket: 0 // Will be calculated separately
+        }));
+
+        totalSales = salesData?.reduce((sum, sale) => sum + (sale.net_value || 0), 0) || 0;
+        totalInvestments = investmentsData?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0;
+        avgTicket = visitsCount && visitsCount > 0 ? totalSales / visitsCount : 0;
+
+      } else {
+        // Use aggregated data
+        formattedData = kpis.map(kpi => ({
+          date: new Date(kpi.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+          vendas: kpi.total_vendas || 0,
+          investimentos: kpi.total_investimentos || 0,
+          ticket: kpi.media_ticket || 0
+        }));
+
+        totalSales = formattedData.reduce((acc, curr) => acc + curr.vendas, 0);
+        totalInvestments = formattedData.reduce((acc, curr) => acc + curr.investimentos, 0);
+        avgTicket = formattedData.reduce((acc, curr) => acc + curr.ticket, 0) / (formattedData.length || 1);
+      }
 
       setData(formattedData);
-
-      const totalSales = formattedData.reduce((acc, curr) => acc + curr.vendas, 0);
-      const totalInvestments = formattedData.reduce((acc, curr) => acc + curr.investimentos, 0);
-      const avgTicket = formattedData.reduce((acc, curr) => acc + curr.ticket, 0) / (formattedData.length || 1);
 
       setSummary({
         totalSales,
         totalInvestments,
-        roi: totalSales > 0 ? ((totalSales - totalInvestments) / totalInvestments) * 100 : 0,
+        roi: totalInvestments > 0 ? ((totalSales - totalInvestments) / totalInvestments) * 100 : 0,
         avgTicket
       });
     } catch (error) {
