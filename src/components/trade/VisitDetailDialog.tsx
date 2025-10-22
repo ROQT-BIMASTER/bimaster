@@ -53,8 +53,18 @@ interface VisitDetail {
   } | null;
 }
 
+interface Photo {
+  id: string;
+  photo_url: string;
+  photo_type: string;
+  category: string | null;
+  upload_date: string;
+  observations: string | null;
+}
+
 export function VisitDetailDialog({ open, onOpenChange, visitId }: VisitDetailDialogProps) {
   const [visit, setVisit] = useState<VisitDetail | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -68,17 +78,28 @@ export function VisitDetailDialog({ open, onOpenChange, visitId }: VisitDetailDi
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("visits")
-        .select(`
-          *,
-          stores:store_id (name, address, city, state)
-        `)
-        .eq("id", visitId)
-        .single();
+      const [visitData, photosData] = await Promise.all([
+        supabase
+          .from("visits")
+          .select(`
+            *,
+            stores:store_id (name, address, city, state)
+          `)
+          .eq("id", visitId)
+          .single(),
+        supabase
+          .from("photos")
+          .select("id, photo_url, photo_type, category, upload_date, observations")
+          .eq("visit_id", visitId)
+          .order("upload_date", { ascending: true })
+      ]);
 
-      if (error) throw error;
-      setVisit(data as VisitDetail);
+      if (visitData.error) throw visitData.error;
+      setVisit(visitData.data as VisitDetail);
+      
+      if (photosData.data) {
+        setPhotos(photosData.data);
+      }
     } catch (error) {
       console.error("Erro ao buscar detalhes da visita:", error);
     } finally {
@@ -282,13 +303,54 @@ export function VisitDetailDialog({ open, onOpenChange, visitId }: VisitDetailDi
                   <div className="flex items-center gap-2 text-sm">
                     <Camera className="h-4 w-4 text-muted-foreground" />
                     <span>
-                      Fotos tiradas: {visit.photos_taken}
+                      Fotos tiradas: {visit.photos_taken || photos.length}
                     </span>
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
+
+          {/* Fotos da Visita */}
+          {photos.length > 0 && (
+            <Card>
+              <CardContent className="pt-6 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Camera className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="font-semibold">Fotos da Visita</h3>
+                  <Badge variant="secondary">{photos.length}</Badge>
+                </div>
+                <Separator />
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {photos.map((photo) => (
+                    <div key={photo.id} className="space-y-2">
+                      <div className="relative aspect-square rounded-lg overflow-hidden border group">
+                        <img
+                          src={photo.photo_url}
+                          alt={`Foto ${photo.photo_type}`}
+                          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                          onClick={() => window.open(photo.photo_url, '_blank')}
+                        />
+                        {photo.category && (
+                          <Badge 
+                            variant="secondary" 
+                            className="absolute top-2 left-2 text-xs"
+                          >
+                            {photo.category === 'before' ? 'Antes' : photo.category === 'after' ? 'Depois' : photo.category}
+                          </Badge>
+                        )}
+                      </div>
+                      {photo.observations && (
+                        <p className="text-xs text-muted-foreground">
+                          {photo.observations}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Observações */}
           {visit.notes && (
