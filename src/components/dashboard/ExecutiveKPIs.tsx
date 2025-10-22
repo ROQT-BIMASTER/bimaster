@@ -178,13 +178,6 @@ export const ExecutiveKPIs = () => {
       color: "text-green-600"
     },
     {
-      title: "Investimentos (30 dias)",
-      value: `R$ ${(kpis?.totalInvestments || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      trend: kpis?.investmentsTrend,
-      icon: DollarSign,
-      color: "text-purple-600"
-    },
-    {
       title: "Taxa de Conversão",
       value: `${(kpis?.conversionRate || 0).toFixed(1)}%`,
       icon: Target,
