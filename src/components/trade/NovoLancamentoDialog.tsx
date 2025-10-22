@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Upload, X } from "lucide-react";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
+import { NovaLojaDialog } from "./NovaLojaDialog";
 
 interface NovoLancamentoDialogProps {
   onSuccess: () => void;
@@ -47,6 +48,10 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [documentUrl, setDocumentUrl] = useState("");
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  
+  const [isNovaLojaOpen, setIsNovaLojaOpen] = useState(false);
+  const [isNovaContaOpen, setIsNovaContaOpen] = useState(false);
+  const [isNovaVerbaOpen, setIsNovaVerbaOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -234,18 +239,28 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
 
           <div className="space-y-2">
             <Label htmlFor="account_id">Conta Contábil *</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger id="account_id">
-                <SelectValue placeholder="Selecione a conta" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.code} - {account.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger id="account_id" className="flex-1">
+                  <SelectValue placeholder="Selecione a conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.code} - {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsNovaContaOpen(true)}
+                title="Cadastrar nova conta contábil"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -288,34 +303,54 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="store_id">Loja</Label>
-              <Select value={storeId} onValueChange={setStoreId}>
-                <SelectTrigger id="store_id">
-                  <SelectValue placeholder="Selecione (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stores.map((store) => (
-                    <SelectItem key={store.id} value={store.id}>
-                      {store.code} - {store.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={storeId} onValueChange={setStoreId}>
+                  <SelectTrigger id="store_id" className="flex-1">
+                    <SelectValue placeholder="Selecione (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stores.map((store) => (
+                      <SelectItem key={store.id} value={store.id}>
+                        {store.code} - {store.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsNovaLojaOpen(true)}
+                  title="Cadastrar nova loja"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="budget_id">Verba</Label>
-              <Select value={budgetId} onValueChange={setBudgetId}>
-                <SelectTrigger id="budget_id">
-                  <SelectValue placeholder="Selecione (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {budgets.map((budget) => (
-                    <SelectItem key={budget.id} value={budget.id}>
-                      {budget.code} - {budget.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={budgetId} onValueChange={setBudgetId}>
+                  <SelectTrigger id="budget_id" className="flex-1">
+                    <SelectValue placeholder="Selecione (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {budgets.map((budget) => (
+                      <SelectItem key={budget.id} value={budget.id}>
+                        {budget.code} - {budget.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsNovaVerbaOpen(true)}
+                  title="Cadastrar nova verba"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -397,6 +432,324 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
             </Button>
             <Button type="submit" disabled={loading}>
               Criar Lançamento
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+
+      <NovaLojaDialog
+        open={isNovaLojaOpen}
+        onOpenChange={setIsNovaLojaOpen}
+        onSuccess={(newStoreId) => {
+          if (newStoreId) {
+            setStoreId(newStoreId);
+          }
+          loadData();
+        }}
+      />
+
+      <NovaContaContabilDialog
+        open={isNovaContaOpen}
+        onOpenChange={setIsNovaContaOpen}
+        onSuccess={(newAccountId) => {
+          if (newAccountId) {
+            setAccountId(newAccountId);
+          }
+          loadData();
+        }}
+      />
+
+      <NovaVerbaDialog
+        open={isNovaVerbaOpen}
+        onOpenChange={setIsNovaVerbaOpen}
+        onSuccess={(newBudgetId) => {
+          if (newBudgetId) {
+            setBudgetId(newBudgetId);
+          }
+          loadData();
+        }}
+      />
+    </Dialog>
+  );
+}
+
+// Dialog para Nova Conta Contábil
+interface NovaContaContabilDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: (newAccountId?: string) => void;
+}
+
+function NovaContaContabilDialog({ open, onOpenChange, onSuccess }: NovaContaContabilDialogProps) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    code: "",
+    name: "",
+    account_type: "expense",
+    description: "",
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.code || !formData.name) {
+      toast.error("Código e nome são obrigatórios");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("trade_chart_of_accounts")
+        .insert({
+          code: formData.code.trim(),
+          name: formData.name.trim(),
+          account_type: formData.account_type,
+          description: formData.description.trim() || null,
+          is_active: true,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success("Conta contábil cadastrada com sucesso!");
+      onSuccess?.(data?.id);
+      onOpenChange(false);
+      setFormData({ code: "", name: "", account_type: "expense", description: "" });
+    } catch (error: any) {
+      toast.error(getSafeErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Nova Conta Contábil</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="account_code">Código *</Label>
+              <Input
+                id="account_code"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                placeholder="Ex: 1.01.001"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="account_type">Tipo *</Label>
+              <Select 
+                value={formData.account_type} 
+                onValueChange={(value) => setFormData({ ...formData, account_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="asset">Ativo</SelectItem>
+                  <SelectItem value="liability">Passivo</SelectItem>
+                  <SelectItem value="equity">Patrimônio Líquido</SelectItem>
+                  <SelectItem value="revenue">Receita</SelectItem>
+                  <SelectItem value="expense">Despesa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="account_name">Nome *</Label>
+            <Input
+              id="account_name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Ex: Material de Marketing"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="account_description">Descrição</Label>
+            <Textarea
+              id="account_description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Informações adicionais..."
+              rows={3}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Salvando..." : "Salvar Conta"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Dialog para Nova Verba
+interface NovaVerbaDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: (newBudgetId?: string) => void;
+}
+
+function NovaVerbaDialog({ open, onOpenChange, onSuccess }: NovaVerbaDialogProps) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    code: "",
+    name: "",
+    total_amount: "",
+    period_start: "",
+    period_end: "",
+    description: "",
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.code || !formData.name || !formData.total_amount || !formData.period_start || !formData.period_end) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    if (new Date(formData.period_end) <= new Date(formData.period_start)) {
+      toast.error("Data final deve ser posterior à data inicial");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data, error } = await supabase
+        .from("trade_budgets")
+        .insert({
+          code: formData.code.trim(),
+          name: formData.name.trim(),
+          total_amount: parseFloat(formData.total_amount),
+          period_start: formData.period_start,
+          period_end: formData.period_end,
+          description: formData.description.trim() || null,
+          status: "active",
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success("Verba cadastrada com sucesso!");
+      onSuccess?.(data?.id);
+      onOpenChange(false);
+      setFormData({ code: "", name: "", total_amount: "", period_start: "", period_end: "", description: "" });
+    } catch (error: any) {
+      toast.error(getSafeErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Nova Verba</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="budget_code">Código *</Label>
+              <Input
+                id="budget_code"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                placeholder="Ex: VB-2024-001"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="budget_amount">Valor Total (R$) *</Label>
+              <Input
+                id="budget_amount"
+                type="number"
+                step="0.01"
+                value={formData.total_amount}
+                onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
+                placeholder="0,00"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="budget_name">Nome *</Label>
+            <Input
+              id="budget_name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Ex: Verba Marketing Q1"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="period_start">Início *</Label>
+              <Input
+                id="period_start"
+                type="date"
+                value={formData.period_start}
+                onChange={(e) => setFormData({ ...formData, period_start: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="period_end">Fim *</Label>
+              <Input
+                id="period_end"
+                type="date"
+                value={formData.period_end}
+                onChange={(e) => setFormData({ ...formData, period_end: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="budget_description">Descrição</Label>
+            <Textarea
+              id="budget_description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Informações adicionais..."
+              rows={2}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Salvando..." : "Salvar Verba"}
             </Button>
           </DialogFooter>
         </form>
