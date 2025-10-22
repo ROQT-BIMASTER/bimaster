@@ -494,6 +494,59 @@ export type Database = {
           },
         ]
       }
+      competitor_products: {
+        Row: {
+          active: boolean | null
+          category: string | null
+          competitor_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          market_presence: string | null
+          photos: Json | null
+          price: number | null
+          product_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          category?: string | null
+          competitor_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          market_presence?: string | null
+          photos?: Json | null
+          price?: number | null
+          product_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          category?: string | null
+          competitor_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          market_presence?: string | null
+          photos?: Json | null
+          price?: number | null
+          product_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_products_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competitors: {
         Row: {
           active: boolean | null
@@ -1113,6 +1166,45 @@ export type Database = {
         }
         Relationships: []
       }
+      our_products: {
+        Row: {
+          active: boolean | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          photos: Json | null
+          sku: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          photos?: Json | null
+          sku?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          photos?: Json | null
+          sku?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       photos: {
         Row: {
           action_items: string[] | null
@@ -1266,6 +1358,51 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      product_comparisons: {
+        Row: {
+          comparison_notes: string | null
+          competitor_product_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          our_product_id: string | null
+          similarity_score: number | null
+        }
+        Insert: {
+          comparison_notes?: string | null
+          competitor_product_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          our_product_id?: string | null
+          similarity_score?: number | null
+        }
+        Update: {
+          comparison_notes?: string | null
+          competitor_product_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          our_product_id?: string | null
+          similarity_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_comparisons_competitor_product_id_fkey"
+            columns: ["competitor_product_id"]
+            isOneToOne: false
+            referencedRelation: "competitor_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_comparisons_our_product_id_fkey"
+            columns: ["our_product_id"]
+            isOneToOne: false
+            referencedRelation: "our_products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
