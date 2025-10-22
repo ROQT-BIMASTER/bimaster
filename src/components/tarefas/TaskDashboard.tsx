@@ -13,6 +13,8 @@ import {
 import { 
   BarChart, 
   Bar, 
+  LineChart,
+  Line,
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -114,12 +116,12 @@ export const TaskDashboard = () => {
   };
 
   const getAtividadesPorDia = () => {
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = subDays(new Date(), 6 - i);
+    const last30Days = Array.from({ length: 30 }, (_, i) => {
+      const date = subDays(new Date(), 29 - i);
       return format(startOfDay(date), 'yyyy-MM-dd');
     });
 
-    return last7Days.map(date => ({
+    return last30Days.map(date => ({
       date: format(new Date(date), 'dd/MM', { locale: ptBR }),
       count: atividades.filter(a => 
         format(new Date(a.data_atividade), 'yyyy-MM-dd') === date
@@ -216,15 +218,23 @@ export const TaskDashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Atividades - Últimos 7 Dias</CardTitle>
-            <CardDescription>Volume de atividades por dia</CardDescription>
+            <CardTitle>Atividades - Últimos 30 Dias</CardTitle>
+            <CardDescription>Linha do tempo de atividades registradas</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={getAtividadesPorDia()}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
+              <LineChart data={getAtividadesPorDia()}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis 
+                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fontSize: 12 }}
+                  allowDecimals={false}
+                />
                 <Tooltip
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
@@ -238,8 +248,15 @@ export const TaskDashboard = () => {
                     return null;
                   }}
                 />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-              </BarChart>
+                <Line 
+                  type="monotone" 
+                  dataKey="count" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
