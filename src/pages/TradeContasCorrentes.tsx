@@ -33,12 +33,15 @@ import { toast } from "sonner";
 import { Plus, Building2, Eye, ArrowUpDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { sanitizeText, getSafeErrorMessage } from "@/lib/utils/sanitize";
+import { NovaLojaDialog } from "@/components/trade/NovaLojaDialog";
 
 export default function TradeContasCorrentes() {
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isNovaLojaOpen, setIsNovaLojaOpen] = useState(false);
+  const [selectedStoreId, setSelectedStoreId] = useState<string>("");
 
   useEffect(() => {
     fetchData();
@@ -137,18 +140,33 @@ export default function TradeContasCorrentes() {
               <form onSubmit={handleCreateAccount} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="store_id">Cliente (Loja)</Label>
-                  <Select name="store_id" required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um cliente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {stores.map((store) => (
-                        <SelectItem key={store.id} value={store.id}>
-                          {store.code} - {store.name} ({store.city})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select 
+                      name="store_id" 
+                      required
+                      value={selectedStoreId}
+                      onValueChange={setSelectedStoreId}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Selecione um cliente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stores.map((store) => (
+                          <SelectItem key={store.id} value={store.id}>
+                            {store.code} - {store.name} ({store.city})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsNovaLojaOpen(true)}
+                      title="Cadastrar nova loja"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -347,6 +365,17 @@ export default function TradeContasCorrentes() {
           </CardContent>
         </Card>
       </div>
+
+      <NovaLojaDialog
+        open={isNovaLojaOpen}
+        onOpenChange={setIsNovaLojaOpen}
+        onSuccess={(newStoreId) => {
+          if (newStoreId) {
+            setSelectedStoreId(newStoreId);
+          }
+          fetchData();
+        }}
+      />
     </DashboardLayout>
   );
 }
