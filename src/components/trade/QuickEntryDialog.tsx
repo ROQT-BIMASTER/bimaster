@@ -39,6 +39,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     
     // Fotos e Análise
     photos: [] as File[],
+    photos_after: [] as File[],
     ai_insights: "",
     
     // Shelf Share
@@ -78,14 +79,19 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     }
   };
 
-  const handlePhotoUpload = async (files: FileList | null) => {
+  const handlePhotoUpload = async (files: FileList | null, type: 'before' | 'after' = 'before') => {
     if (!files || files.length === 0) return;
     
     const newPhotos = Array.from(files);
-    setFormData(prev => ({ ...prev, photos: [...prev.photos, ...newPhotos] }));
     
-    // Trigger AI analysis
-    await analyzePhotosWithAI(newPhotos);
+    if (type === 'before') {
+      setFormData(prev => ({ ...prev, photos: [...prev.photos, ...newPhotos] }));
+      // Trigger AI analysis only for "before" photos
+      await analyzePhotosWithAI(newPhotos);
+    } else {
+      setFormData(prev => ({ ...prev, photos_after: [...prev.photos_after, ...newPhotos] }));
+      toast.success("Fotos 'depois' adicionadas com sucesso!");
+    }
   };
 
   const analyzePhotosWithAI = async (photos: File[]) => {
@@ -158,9 +164,9 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
 
       if (visitError) throw visitError;
 
-      // 2. Upload photos and create records
+      // 2. Upload photos and create records (ANTES)
       for (const photo of formData.photos) {
-        const fileName = `${visit.id}/${Date.now()}-${photo.name}`;
+        const fileName = `${visit.id}/${Date.now()}-antes-${photo.name}`;
         const { error: uploadError } = await supabase.storage
           .from('trade-photos')
           .upload(fileName, photo);
@@ -175,8 +181,32 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             store_id: formData.store_id,
             photo_url: publicUrl,
             photo_type: "shelf",
+            category: "before",
             ai_processed: true,
             ai_analysis: { insights: formData.ai_insights },
+          });
+        }
+      }
+
+      // 2b. Upload photos "DEPOIS" (opcional)
+      for (const photo of formData.photos_after) {
+        const fileName = `${visit.id}/${Date.now()}-depois-${photo.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('trade-photos')
+          .upload(fileName, photo);
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('trade-photos')
+            .getPublicUrl(fileName);
+
+          await supabase.from("photos").insert({
+            visit_id: visit.id,
+            store_id: formData.store_id,
+            photo_url: publicUrl,
+            photo_type: "shelf",
+            category: "after",
+            ai_processed: false,
           });
         }
       }
@@ -297,6 +327,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       visit_time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       visit_type: "routine",
       photos: [],
+      photos_after: [],
       ai_insights: "",
       products_found: [],
       our_facings: 0,
@@ -427,25 +458,60 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                   Tire fotos do PDV e deixe a IA analisar automaticamente
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => handlePhotoUpload(e.target.files)}
-                    className="hidden"
-                    id="photo-upload"
-                  />
-                  <label htmlFor="photo-upload" className="cursor-pointer">
-                    <div className="flex flex-col items-center gap-2">
-                      <ImagePlus className="h-12 w-12 text-muted-foreground" />
-                      <p className="text-sm font-medium">Clique para adicionar fotos</p>
-                      <p className="text-xs text-muted-foreground">
-                        JPG, PNG ou WEBP (máx. 10 fotos)
-                      </p>
+              <CardContent className="space-y-6">
+                {/* Fotos ANTES */}
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold">Fotos ANTES *</Label>
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => handlePhotoUpload(e.target.files, 'before')}
+                      className="hidden"
+                      id="photo-upload-before"
+                    />
+                    <label htmlFor="photo-upload-before" className="cursor-pointer">
+                      <div className="flex flex-col items-center gap-2">
+                        <ImagePlus className="h-12 w-12 text-muted-foreground" />
+                        <p className="text-sm font-medium">Clique para adicionar fotos (ANTES)</p>
+                        <p className="text-xs text-muted-foreground">
+                          JPG, PNG ou WEBP (máx. 10 fotos)
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                   {formData.photos.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Fotos ANTES Adicionadas ({formData.photos.length})</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {formData.photos.map((photo, index) => (
+                          <div key={index} className="relative aspect-square rounded-lg overflow-hidden border group">
+                            <img
+                              src={URL.createObjectURL(photo)}
+                              alt={`Foto antes ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  photos: prev.photos.filter((_, i) => i !== index)
+                                }));
+                                toast.success("Foto removida");
+                              }}
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </label>
+                  )}
                 </div>
 
                 {analyzing && (
@@ -455,36 +521,63 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                   </div>
                 )}
 
-                {formData.photos.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Fotos Adicionadas ({formData.photos.length})</Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {formData.photos.map((photo, index) => (
-                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden border group">
-                          <img
-                            src={URL.createObjectURL(photo)}
-                            alt={`Foto ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
-                            onClick={() => {
-                              setFormData(prev => ({
-                                ...prev,
-                                photos: prev.photos.filter((_, i) => i !== index)
-                              }));
-                              toast.success("Foto removida");
-                            }}
-                          >
-                            ×
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
+                {/* Fotos DEPOIS (Opcional) */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-base font-semibold">Fotos DEPOIS</Label>
+                    <Badge variant="secondary">Opcional</Badge>
                   </div>
-                )}
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center bg-muted/30">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => handlePhotoUpload(e.target.files, 'after')}
+                      className="hidden"
+                      id="photo-upload-after"
+                    />
+                    <label htmlFor="photo-upload-after" className="cursor-pointer">
+                      <div className="flex flex-col items-center gap-2">
+                        <ImagePlus className="h-12 w-12 text-muted-foreground" />
+                        <p className="text-sm font-medium">Clique para adicionar fotos (DEPOIS)</p>
+                        <p className="text-xs text-muted-foreground">
+                          Para comparação com as fotos "antes"
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  {formData.photos_after.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Fotos DEPOIS Adicionadas ({formData.photos_after.length})</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {formData.photos_after.map((photo, index) => (
+                          <div key={index} className="relative aspect-square rounded-lg overflow-hidden border group">
+                            <img
+                              src={URL.createObjectURL(photo)}
+                              alt={`Foto depois ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  photos_after: prev.photos_after.filter((_, i) => i !== index)
+                                }));
+                                toast.success("Foto removida");
+                              }}
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {formData.ai_insights && (
                   <Card className="bg-primary/5">
