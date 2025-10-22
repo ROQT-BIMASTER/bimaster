@@ -12,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
+import { NovaPromocaoDialog } from "@/components/trade/NovaPromocaoDialog";
 
 interface Promotion {
   id: string;
@@ -34,6 +35,7 @@ const TradePromotions = () => {
   const [loading, setLoading] = useState(true);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   if (!permissionsLoading && !hasPermission("trade_promotions")) {
     return <Navigate to="/dashboard" replace />;
@@ -146,7 +148,7 @@ const TradePromotions = () => {
               Campanhas promocionais e execução em PDV
             </p>
           </div>
-          <Button onClick={() => toast.info("Funcionalidade de cadastro de promoções em desenvolvimento")}>
+          <Button onClick={() => setDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nova Promoção
           </Button>
@@ -207,7 +209,7 @@ const TradePromotions = () => {
                 <p className="text-muted-foreground mb-4">
                   Crie sua primeira campanha promocional
                 </p>
-                <Button onClick={() => toast.info("Funcionalidade de cadastro de promoções em desenvolvimento")}>
+                <Button onClick={() => setDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Nova Promoção
                 </Button>
@@ -287,6 +289,12 @@ const TradePromotions = () => {
             })
           )}
         </div>
+
+        <NovaPromocaoDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onSuccess={fetchPromotions}
+        />
       </div>
     </DashboardLayout>
   );
