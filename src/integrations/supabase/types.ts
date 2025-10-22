@@ -674,11 +674,14 @@ export type Database = {
           conforme_planograma: boolean | null
           created_at: string | null
           created_by: string | null
+          estoque_loja: number | null
           id: string
           observacoes: string | null
           photo_ids: string[] | null
           preco_praticado: number | null
           product_id: string
+          produto_descricao: string | null
+          produto_ean: string | null
           produto_presente: boolean
           quantidade_frentes: number | null
           store_id: string
@@ -690,11 +693,14 @@ export type Database = {
           conforme_planograma?: boolean | null
           created_at?: string | null
           created_by?: string | null
+          estoque_loja?: number | null
           id?: string
           observacoes?: string | null
           photo_ids?: string[] | null
           preco_praticado?: number | null
           product_id: string
+          produto_descricao?: string | null
+          produto_ean?: string | null
           produto_presente?: boolean
           quantidade_frentes?: number | null
           store_id: string
@@ -706,11 +712,14 @@ export type Database = {
           conforme_planograma?: boolean | null
           created_at?: string | null
           created_by?: string | null
+          estoque_loja?: number | null
           id?: string
           observacoes?: string | null
           photo_ids?: string[] | null
           preco_praticado?: number | null
           product_id?: string
+          produto_descricao?: string | null
+          produto_ean?: string | null
           produto_presente?: boolean
           quantidade_frentes?: number | null
           store_id?: string
@@ -743,6 +752,50 @@ export type Database = {
             columns: ["visit_id"]
             isOneToOne: false
             referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gondola_competitive_analysis: {
+        Row: {
+          analysis_data: Json
+          audit_id: string
+          competitive_score: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          price_competitiveness: string | null
+          recommendations: Json | null
+          shelf_share_impact: string | null
+        }
+        Insert: {
+          analysis_data: Json
+          audit_id: string
+          competitive_score?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          price_competitiveness?: string | null
+          recommendations?: Json | null
+          shelf_share_impact?: string | null
+        }
+        Update: {
+          analysis_data?: Json
+          audit_id?: string
+          competitive_score?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          price_competitiveness?: string | null
+          recommendations?: Json | null
+          shelf_share_impact?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gondola_competitive_analysis_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "gondola_audits"
             referencedColumns: ["id"]
           },
         ]

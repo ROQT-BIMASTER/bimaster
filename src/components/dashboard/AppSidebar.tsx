@@ -95,6 +95,7 @@ export function AppSidebar() {
     { title: "Fotos", url: "/dashboard/trade/photos", icon: Camera },
     { title: "Fotos Ideais", url: "/dashboard/trade/ideal-photos", icon: Image },
     { title: "Auditoria Gôndola", url: "/dashboard/trade/auditorias", icon: ClipboardCheck },
+    { title: "Análise Competitiva", url: "/dashboard/trade/relatorio-competitivo", icon: Brain },
     { title: "Promoções", url: "/dashboard/trade/promotions", icon: Tag },
     { title: "Concorrentes", url: "/dashboard/trade/competitors", icon: TrendingUp },
     { title: "Financeiro", url: "/dashboard/trade/financeiro", icon: DollarSign },

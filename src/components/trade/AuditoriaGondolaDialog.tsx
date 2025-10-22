@@ -21,11 +21,16 @@ interface AuditoriaGondolaDialogProps {
 interface ConcorrenteForm {
   nome: string;
   quantidade_frentes: number;
+  produto_nome: string;
+  preco_praticado: number;
 }
 
 interface FormData {
   product_id: string;
+  produto_ean: string;
+  produto_descricao: string;
   preco_praticado: number;
+  estoque_loja: number;
   produto_presente: boolean;
   quantidade_frentes: number;
   conforme_planograma: boolean;
@@ -69,7 +74,7 @@ export function AuditoriaGondolaDialog({
   }, []);
 
   const addConcorrente = () => {
-    setConcorrentes([...concorrentes, { nome: "", quantidade_frentes: 0 }]);
+    setConcorrentes([...concorrentes, { nome: "", quantidade_frentes: 0, produto_nome: "", preco_praticado: 0 }]);
   };
 
   const removeConcorrente = (index: number) => {
@@ -91,7 +96,10 @@ export function AuditoriaGondolaDialog({
         visit_id: visitId || null,
         store_id: storeId,
         product_id: data.product_id,
+        produto_ean: data.produto_ean || null,
+        produto_descricao: data.produto_descricao || null,
         preco_praticado: data.preco_praticado || null,
+        estoque_loja: data.estoque_loja || null,
         produto_presente: data.produto_presente,
         quantidade_frentes: data.quantidade_frentes,
         conforme_planograma: data.conforme_planograma,
@@ -101,11 +109,24 @@ export function AuditoriaGondolaDialog({
         created_by: user?.id,
       };
 
-      const { error } = await supabase
+      const { data: insertedData, error } = await supabase
         .from("gondola_audits")
-        .insert([auditData]);
+        .insert([auditData])
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Se há concorrentes, solicitar análise IA
+      if (data.concorrentes_presentes && concorrentes.length > 0) {
+        try {
+          await supabase.functions.invoke('analyze-gondola-competition', {
+            body: { auditId: insertedData.id }
+          });
+        } catch (aiError) {
+          console.error('Erro ao solicitar análise IA:', aiError);
+        }
+      }
 
       toast({
         title: "Auditoria registrada",
@@ -164,6 +185,37 @@ export function AuditoriaGondolaDialog({
 
           {produtoPresente && (
             <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="produto_ean">EAN</Label>
+                  <Input
+                    id="produto_ean"
+                    {...register("produto_ean")}
+                    placeholder="Código de barras"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="estoque_loja">Estoque da Loja</Label>
+                  <Input
+                    id="estoque_loja"
+                    type="number"
+                    {...register("estoque_loja")}
+                    placeholder="Quantidade"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="produto_descricao">Descrição do Produto</Label>
+                <Textarea
+                  id="produto_descricao"
+                  {...register("produto_descricao")}
+                  placeholder="Descrição detalhada do produto"
+                  rows={2}
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="preco_praticado">Preço Praticado (R$)</Label>
                 <Input
@@ -224,30 +276,54 @@ export function AuditoriaGondolaDialog({
               </div>
 
               {concorrentes.map((conc, index) => (
-                <div key={index} className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <Label>Nome do Concorrente</Label>
-                    <Input
-                      value={conc.nome}
-                      onChange={(e) => updateConcorrente(index, "nome", e.target.value)}
-                      placeholder="Ex: Marca X"
-                    />
+                <div key={index} className="space-y-2 border-t pt-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex-1">
+                      <Label>Marca Concorrente</Label>
+                      <Input
+                        value={conc.nome}
+                        onChange={(e) => updateConcorrente(index, "nome", e.target.value)}
+                        placeholder="Ex: Marca X"
+                      />
+                    </div>
+                    <div>
+                      <Label>Frentes</Label>
+                      <Input
+                        type="number"
+                        value={conc.quantidade_frentes}
+                        onChange={(e) => updateConcorrente(index, "quantidade_frentes", parseInt(e.target.value) || 0)}
+                      />
+                    </div>
                   </div>
-                  <div className="w-32">
-                    <Label>Frentes</Label>
-                    <Input
-                      type="number"
-                      value={conc.quantidade_frentes}
-                      onChange={(e) => updateConcorrente(index, "quantidade_frentes", parseInt(e.target.value) || 0)}
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label>Produto do Concorrente</Label>
+                      <Input
+                        value={conc.produto_nome}
+                        onChange={(e) => updateConcorrente(index, "produto_nome", e.target.value)}
+                        placeholder="Nome do produto"
+                      />
+                    </div>
+                    <div>
+                      <Label>Preço Praticado (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={conc.preco_praticado}
+                        onChange={(e) => updateConcorrente(index, "preco_praticado", parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                      />
+                    </div>
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
-                    size="icon"
+                    size="sm"
                     onClick={() => removeConcorrente(index)}
+                    className="w-full"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4 mr-2" />
+                    Remover
                   </Button>
                 </div>
               ))}
