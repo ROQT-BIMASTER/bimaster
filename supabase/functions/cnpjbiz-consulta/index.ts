@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const CNPJBIZ_API_KEY = Deno.env.get('CNPJBIZ_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -9,6 +10,50 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Validation schemas for API operations
+const cnpjSchema = z.object({
+  cnpj: z.string().regex(/^\d{14}$/, 'CNPJ must be exactly 14 digits')
+});
+
+const searchSchema = z.object({
+  cnaes_primarios: z.array(z.string().max(10)).max(20).optional(),
+  cnaes_secundarios: z.array(z.string().max(10)).max(20).optional(),
+  situacao: z.array(z.enum(['ATIVA', 'BAIXADA', 'INAPTA', 'SUSPENSA', 'NULA'])).max(5).optional(),
+  tipo: z.array(z.enum(['MATRIZ', 'FILIAL'])).max(2).optional(),
+  natureza_juridica: z.array(z.string().max(10)).max(20).optional(),
+  uf: z.array(z.string().length(2)).max(27).optional(),
+  municipio: z.array(z.string().max(100)).max(50).optional(),
+  bairro: z.array(z.string().max(100)).max(50).optional(),
+  pagina: z.number().int().min(1).max(1000).optional(),
+  por_pagina: z.number().int().min(1).max(100).optional()
+});
+
+const listSchema = searchSchema.extend({
+  pagina: z.number().int().min(1).max(1000).optional(),
+  por_pagina: z.number().int().min(1).max(100).optional()
+});
+
+// Safe error message mapper
+function getSafeErrorMessage(error: any): string {
+  const errorMsg = error?.message?.toLowerCase() || "";
+  
+  const errorMap: Record<string, string> = {
+    "invalid cnpj": "CNPJ inválido",
+    "must be exactly 14 digits": "CNPJ deve conter exatamente 14 dígitos",
+    "invalid parameter": "Parâmetros de busca inválidos",
+    "network error": "Erro de conexão com a API",
+    "fetch failed": "Falha ao consultar dados",
+    "timeout": "Tempo de consulta excedido"
+  };
+  
+  for (const [key, message] of Object.entries(errorMap)) {
+    if (errorMsg.includes(key)) return message;
+  }
+  
+  console.error("[SECURITY] API error:", error);
+  return "Erro ao processar consulta. Tente novamente";
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -47,6 +92,21 @@ serve(async (req) => {
 
     const { operation, ...params } = await req.json();
     console.log(`🔍 Operação: ${operation}, Usuário: ${user.id}`);
+
+    // Validate input based on operation type
+    try {
+      if (operation === 'buscar-cnpj') {
+        cnpjSchema.parse(params);
+      } else if (operation === 'listar' || operation === 'contar') {
+        searchSchema.parse(params);
+      }
+    } catch (validationError) {
+      console.error('❌ Validation error:', validationError);
+      return new Response(
+        JSON.stringify({ error: getSafeErrorMessage(validationError) }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
 
     // Gerar chave de cache
     const cacheKey = `${operation}:${JSON.stringify(params)}`;
@@ -100,18 +160,24 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Erro da API CNPJ.BIZ (${response.status}):`, errorText);
+      console.error(`❌ API error (${response.status}):`, errorText);
       
-      if (response.status === 401) {
-        return new Response(
-          JSON.stringify({ error: 'API Key do CNPJ.BIZ inválida' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
-        );
-      }
+      // Map common API errors to safe messages
+      const statusMessages: Record<number, string> = {
+        400: 'Parâmetros de consulta inválidos',
+        401: 'Erro de autenticação com a API',
+        402: 'Créditos insuficientes na API',
+        403: 'Acesso negado pela API',
+        429: 'Limite de requisições excedido. Tente novamente em alguns minutos',
+        500: 'Erro no servidor da API',
+        503: 'API temporariamente indisponível'
+      };
+      
+      const safeMessage = statusMessages[response.status] || 'Erro ao consultar dados';
       
       return new Response(
-        JSON.stringify({ error: `Erro na API CNPJ.BIZ: ${errorText}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+        JSON.stringify({ error: safeMessage }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status >= 500 ? 500 : 400 }
       );
     }
 
@@ -152,9 +218,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Erro na função:', error);
+    console.error('❌ Function error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Erro desconhecido' }),
+      JSON.stringify({ error: getSafeErrorMessage(error) }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
