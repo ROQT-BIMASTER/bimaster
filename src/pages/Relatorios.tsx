@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileDown, Calendar, Filter } from "lucide-react";
+import { Calendar, Filter } from "lucide-react";
 import { RelatorioDesempenho } from "@/components/relatorios/RelatorioDesempenho";
 import { RelatorioConcorrentes } from "@/components/relatorios/RelatorioConcorrentes";
-import { RelatorioFinanceiro } from "@/components/relatorios/RelatorioFinanceiro";
 
 export default function Relatorios() {
   const [activeTab, setActiveTab] = useState("desempenho");
@@ -34,10 +32,9 @@ export default function Relatorios() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
+          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
             <TabsTrigger value="desempenho">Desempenho</TabsTrigger>
             <TabsTrigger value="concorrentes">Concorrentes</TabsTrigger>
-            <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
           </TabsList>
 
           <TabsContent value="desempenho" className="space-y-4">
@@ -46,10 +43,6 @@ export default function Relatorios() {
 
           <TabsContent value="concorrentes" className="space-y-4">
             <RelatorioConcorrentes />
-          </TabsContent>
-
-          <TabsContent value="financeiro" className="space-y-4">
-            <RelatorioFinanceiro />
           </TabsContent>
         </Tabs>
       </div>
