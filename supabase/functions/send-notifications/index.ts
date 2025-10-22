@@ -24,7 +24,45 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Verify authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
     const { userId, type, title, message, actionUrl } = await req.json() as NotificationPayload;
+
+    // Authorization check: only admin/supervisor can send notifications to others
+    if (userId !== user.id) {
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+
+      const hasPrivilegedRole = userRoles?.some(r => 
+        ['admin', 'supervisor'].includes(r.role)
+      );
+
+      if (!hasPrivilegedRole) {
+        return new Response(
+          JSON.stringify({ error: 'Only admin/supervisor can send notifications to other users' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+        );
+      }
+    }
 
     // Check user preferences
     const { data: preferences } = await supabase

@@ -7,13 +7,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.send-notifications]
-verify_jwt = false
+verify_jwt = true
 
 [functions.export-pdf]
 verify_jwt = true
 
 [functions.geocode-address]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-mapbox-token]
 verify_jwt = true
@@ -40,10 +40,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.export-prospects]
-verify_jwt = false
+verify_jwt = true
 
 [functions.export-conversion-rates]
-verify_jwt = false
+verify_jwt = true
 
 [functions.cnpjbiz-consulta]
 verify_jwt = true
