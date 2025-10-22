@@ -30,18 +30,82 @@ export const ExecutiveKPIs = () => {
       const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
       const sixtyDaysAgo = new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000);
 
-      // Current period (last 30 days)
+      // Try aggregated table first
       const { data: currentKPIs } = await supabase
         .from('agg_daily_kpis')
         .select('*')
         .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
 
-      // Previous period (30-60 days ago)
       const { data: previousKPIs } = await supabase
         .from('agg_daily_kpis')
         .select('*')
         .gte('date', sixtyDaysAgo.toISOString().split('T')[0])
         .lt('date', thirtyDaysAgo.toISOString().split('T')[0]);
+
+      let currentTotal = { visits: 0, investments: 0, prospects: 0, activities: 0, sales: 0 };
+      let previousTotal = { visits: 0, investments: 0, prospects: 0 };
+
+      // If no aggregated data, fetch directly from source tables
+      if (!currentKPIs || currentKPIs.length === 0) {
+        console.log('No aggregated data, fetching from source tables...');
+        
+        // Fetch current period data
+        const [visitsResult, investmentsResult, salesResult, prospectsResult] = await Promise.all([
+          supabase.from('visits').select('*', { count: 'exact', head: true })
+            .gte('created_at', thirtyDaysAgo.toISOString()),
+          supabase.from('trade_investments').select('amount')
+            .gte('investment_date', thirtyDaysAgo.toISOString().split('T')[0]),
+          supabase.from('sales').select('net_value')
+            .gte('sale_date', thirtyDaysAgo.toISOString().split('T')[0]),
+          supabase.from('prospects').select('*', { count: 'exact', head: true })
+            .eq('status', 'ganho')
+            .gte('created_at', thirtyDaysAgo.toISOString())
+        ]);
+
+        // Fetch previous period data for trends
+        const [prevVisitsResult, prevInvestmentsResult, prevProspectsResult] = await Promise.all([
+          supabase.from('visits').select('*', { count: 'exact', head: true })
+            .gte('created_at', sixtyDaysAgo.toISOString())
+            .lt('created_at', thirtyDaysAgo.toISOString()),
+          supabase.from('trade_investments').select('amount')
+            .gte('investment_date', sixtyDaysAgo.toISOString().split('T')[0])
+            .lt('investment_date', thirtyDaysAgo.toISOString().split('T')[0]),
+          supabase.from('prospects').select('*', { count: 'exact', head: true })
+            .eq('status', 'ganho')
+            .gte('created_at', sixtyDaysAgo.toISOString())
+            .lt('created_at', thirtyDaysAgo.toISOString())
+        ]);
+
+        currentTotal = {
+          visits: visitsResult.count || 0,
+          investments: investmentsResult.data?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0,
+          sales: salesResult.data?.reduce((sum, sale) => sum + (sale.net_value || 0), 0) || 0,
+          prospects: prospectsResult.count || 0,
+          activities: 0
+        };
+
+        previousTotal = {
+          visits: prevVisitsResult.count || 0,
+          investments: prevInvestmentsResult.data?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0,
+          prospects: prevProspectsResult.count || 0
+        };
+      } else {
+        // Use aggregated data
+        currentTotal = currentKPIs.reduce((acc, kpi) => ({
+          visits: acc.visits + (kpi.total_visitas || 0),
+          investments: acc.investments + (kpi.total_investimentos || 0),
+          prospects: acc.prospects + (kpi.prospects_convertidos || 0),
+          activities: acc.activities + (kpi.total_atividades || 0),
+          sales: acc.sales + (kpi.total_vendas || 0)
+        }), { visits: 0, investments: 0, prospects: 0, activities: 0, sales: 0 });
+
+        previousTotal = previousKPIs?.reduce((acc, kpi) => ({
+          visits: acc.visits + (kpi.total_visitas || 0),
+          investments: acc.investments + (kpi.total_investimentos || 0),
+          prospects: acc.prospects + (kpi.prospects_convertidos || 0)
+        }), { visits: 0, investments: 0, prospects: 0 }) || 
+        { visits: 0, investments: 0, prospects: 0 };
+      }
 
       // Active goals
       const { data: goals } = await supabase
@@ -54,22 +118,6 @@ export const ExecutiveKPIs = () => {
         .from('prospects')
         .select('*', { count: 'exact', head: true });
 
-      const currentTotal = currentKPIs?.reduce((acc, kpi) => ({
-        visits: acc.visits + (kpi.total_visitas || 0),
-        investments: acc.investments + (kpi.total_investimentos || 0),
-        prospects: acc.prospects + (kpi.prospects_convertidos || 0),
-        activities: acc.activities + (kpi.total_atividades || 0),
-        sales: acc.sales + (kpi.total_vendas || 0)
-      }), { visits: 0, investments: 0, prospects: 0, activities: 0, sales: 0 }) || 
-      { visits: 0, investments: 0, prospects: 0, activities: 0, sales: 0 };
-
-      const previousTotal = previousKPIs?.reduce((acc, kpi) => ({
-        visits: acc.visits + (kpi.total_visitas || 0),
-        investments: acc.investments + (kpi.total_investimentos || 0),
-        prospects: acc.prospects + (kpi.prospects_convertidos || 0)
-      }), { visits: 0, investments: 0, prospects: 0 }) || 
-      { visits: 0, investments: 0, prospects: 0 };
-
       const calculateTrend = (current: number, previous: number) => {
         if (previous === 0) return current > 0 ? 100 : 0;
         return ((current - previous) / previous) * 100;
@@ -79,8 +127,8 @@ export const ExecutiveKPIs = () => {
         totalProspects: totalProspects || 0,
         totalVisits: currentTotal.visits,
         totalInvestments: currentTotal.investments,
-        conversionRate: currentTotal.prospects > 0 
-          ? (currentTotal.prospects / (totalProspects || 1)) * 100 
+        conversionRate: currentTotal.prospects > 0 && totalProspects 
+          ? (currentTotal.prospects / totalProspects) * 100 
           : 0,
         avgTicket: currentTotal.visits > 0 
           ? currentTotal.sales / currentTotal.visits 
