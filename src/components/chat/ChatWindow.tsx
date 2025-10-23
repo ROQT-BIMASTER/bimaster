@@ -40,8 +40,9 @@ export const ChatWindow = ({ conversaId }: ChatWindowProps) => {
     if (conversaId) {
       fetchMensagens();
       fetchNomeConversa();
-      subscribeToMensagens();
       marcarComoLida();
+      const cleanup = subscribeToMensagens();
+      return cleanup;
     }
   }, [conversaId]);
 

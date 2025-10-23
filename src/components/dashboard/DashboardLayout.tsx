@@ -27,34 +27,36 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         .from("profiles")
         .select("aprovado")
         .eq("id", session.user.id)
-        .single();
+        .maybeSingle();
 
       if (profile && !profile.aprovado) {
         navigate("/aguardando-aprovacao");
       }
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       if (session) {
-        setTimeout(() => checkUserStatus(session), 0);
+        await checkUserStatus(session);
       } else {
         navigate("/auth/login");
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       if (session) {
-        checkUserStatus(session);
+        await checkUserStatus(session);
       } else {
         navigate("/auth/login");
       }
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   if (loading) {
     return (

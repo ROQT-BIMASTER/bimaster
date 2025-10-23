@@ -38,7 +38,8 @@ export const ConversasList = ({ onSelectConversa, conversaSelecionada }: Convers
 
   useEffect(() => {
     fetchConversas();
-    subscribeToConversas();
+    const cleanup = subscribeToConversas();
+    return cleanup;
   }, []);
 
   const subscribeToConversas = () => {
@@ -87,47 +88,39 @@ export const ConversasList = ({ onSelectConversa, conversaSelecionada }: Convers
         (participacoes || []).map(async (part: any) => {
           const conversa = part.conversas;
           
-          // Buscar última mensagem
-          const { data: ultimaMensagem } = await supabase
-            .from("mensagens")
-            .select("conteudo, created_at")
-            .eq("conversa_id", conversa.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .single();
-
-          // Contar mensagens não lidas
-          const { count } = await supabase
-            .from("mensagens")
-            .select("*", { count: "exact", head: true })
-            .eq("conversa_id", conversa.id)
-            .eq("lida", false)
-            .neq("remetente_id", user.id);
-
-          // Se for conversa privada, buscar nome do outro usuário
-          let outroUsuario = null;
-          if (conversa.tipo === "privada") {
-            const { data: outroParticipante } = await supabase
-              .from("conversas_participantes")
-              .select(`
-                usuario_id,
-                profiles (nome)
-              `)
+          // Buscar todas as informações em paralelo
+          const [ultimaMensagemResult, naoLidasResult, outroParticipanteResult] = await Promise.all([
+            supabase
+              .from("mensagens")
+              .select("conteudo, created_at")
               .eq("conversa_id", conversa.id)
-              .neq("usuario_id", user.id)
-              .single();
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            supabase
+              .from("mensagens")
+              .select("*", { count: "exact", head: true })
+              .eq("conversa_id", conversa.id)
+              .eq("lida", false)
+              .neq("remetente_id", user.id),
+            conversa.tipo === "privada" 
+              ? supabase
+                  .from("conversas_participantes")
+                  .select("usuario_id, profiles (nome)")
+                  .eq("conversa_id", conversa.id)
+                  .neq("usuario_id", user.id)
+                  .maybeSingle()
+              : Promise.resolve({ data: null })
+          ]);
 
-            if (outroParticipante) {
-              outroUsuario = {
-                nome: (outroParticipante as any).profiles?.nome || "Usuário"
-              };
-            }
-          }
+          const outroUsuario = outroParticipanteResult.data
+            ? { nome: (outroParticipanteResult.data as any).profiles?.nome || "Usuário" }
+            : null;
 
           return {
             ...conversa,
-            ultimaMensagem,
-            mensagensNaoLidas: count || 0,
+            ultimaMensagem: ultimaMensagemResult.data,
+            mensagensNaoLidas: naoLidasResult.count || 0,
             outroUsuario
           };
         })

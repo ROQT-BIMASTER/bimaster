@@ -17,27 +17,38 @@ export const useNotifications = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchNotifications();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    // Realtime subscription
-    const channel = supabase
-      .channel('notifications-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${supabase.auth.getUser().then(r => r.data.user?.id)}`
-        },
-        () => {
-          fetchNotifications();
-        }
-      )
-      .subscribe();
+    const setupSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await fetchNotifications();
+
+      // Realtime subscription com user ID correto
+      channel = supabase
+        .channel('notifications-channel')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            fetchNotifications();
+          }
+        )
+        .subscribe();
+    };
+
+    setupSubscription();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
