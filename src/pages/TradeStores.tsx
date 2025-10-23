@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { NovaLojaDialog } from "@/components/trade/NovaLojaDialog";
+import { EditarLojaDialog } from "@/components/trade/EditarLojaDialog";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { StoreDetailDialog } from "@/components/trade/StoreDetailDialog";
@@ -38,6 +39,8 @@ const TradeStores = () => {
   const [aiCriteria, setAiCriteria] = useState<any>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [detailStoreId, setDetailStoreId] = useState<string | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editStoreId, setEditStoreId] = useState<string | null>(null);
 
   if (!permissionsLoading && !hasPermission("trade_stores")) {
     return <Navigate to="/dashboard" replace />;
@@ -197,7 +200,8 @@ const TradeStores = () => {
                           variant="ghost" 
                           size="sm"
                           onClick={() => {
-                            toast.info("Funcionalidade de edição será implementada em breve");
+                            setEditStoreId(store.id);
+                            setShowEditDialog(true);
                           }}
                         >
                           <Edit className="h-4 w-4" />
@@ -234,6 +238,13 @@ const TradeStores = () => {
           open={showDetailDialog}
           onOpenChange={setShowDetailDialog}
           storeId={detailStoreId}
+        />
+        
+        <EditarLojaDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          storeId={editStoreId}
+          onSuccess={fetchStores}
         />
       </div>
     </DashboardLayout>

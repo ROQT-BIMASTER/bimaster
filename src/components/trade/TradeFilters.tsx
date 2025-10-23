@@ -20,12 +20,26 @@ interface Store {
 
 export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: TradeFiltersProps) => {
   const [stores, setStores] = useState<Store[]>([]);
+  const [filteredStores, setFilteredStores] = useState<Store[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [aiQuery, setAiQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     fetchStores();
   }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const filtered = stores.filter(store =>
+        store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        store.code.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredStores(filtered);
+    } else {
+      setFilteredStores(stores);
+    }
+  }, [searchQuery, stores]);
 
   const fetchStores = async () => {
     try {
@@ -76,20 +90,36 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
   return (
     <div className="flex flex-col md:flex-row gap-4 p-4 bg-card rounded-lg border">
       <div className="flex-1">
-        <label className="text-sm font-medium mb-2 block">Filtrar por Cliente</label>
-        <Select value={selectedStore || "all"} onValueChange={(value) => onStoreChange(value === "all" ? null : value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Todos os clientes" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os clientes</SelectItem>
-            {stores.map((store) => (
-              <SelectItem key={store.id} value={store.id}>
-                {store.name} ({store.code})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <label className="text-sm font-medium mb-2 block">Buscar Cliente</label>
+        <div className="space-y-2">
+          <Input
+            placeholder="Digite o nome ou código do cliente..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="mb-2"
+          />
+          <Select value={selectedStore || "all"} onValueChange={(value) => {
+            onStoreChange(value === "all" ? null : value);
+            if (value !== "all") {
+              const store = stores.find(s => s.id === value);
+              if (store) setSearchQuery(store.name);
+            } else {
+              setSearchQuery("");
+            }
+          }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos os clientes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os clientes</SelectItem>
+              {filteredStores.map((store) => (
+                <SelectItem key={store.id} value={store.id}>
+                  {store.name} ({store.code})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex-1">

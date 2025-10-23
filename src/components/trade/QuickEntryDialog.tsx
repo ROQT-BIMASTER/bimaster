@@ -164,9 +164,9 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
 
       if (visitError) throw visitError;
 
-      // 2. Upload photos and create records (ANTES)
-      for (const photo of formData.photos) {
-        const fileName = `${visit.id}/${Date.now()}-antes-${photo.name}`;
+      // 2. Upload photos and create records (ANTES) - Paralelo
+      const beforePhotoPromises = formData.photos.map(async (photo) => {
+        const fileName = `${visit.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-antes-${photo.name}`;
         const { error: uploadError } = await supabase.storage
           .from('trade-photos')
           .upload(fileName, photo);
@@ -176,7 +176,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             .from('trade-photos')
             .getPublicUrl(fileName);
 
-          await supabase.from("photos").insert({
+          return supabase.from("photos").insert({
             visit_id: visit.id,
             store_id: formData.store_id,
             photo_url: publicUrl,
@@ -186,11 +186,11 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             ai_analysis: { insights: formData.ai_insights },
           });
         }
-      }
+      });
 
-      // 2b. Upload photos "DEPOIS" (opcional)
-      for (const photo of formData.photos_after) {
-        const fileName = `${visit.id}/${Date.now()}-depois-${photo.name}`;
+      // 2b. Upload photos "DEPOIS" (opcional) - Paralelo
+      const afterPhotoPromises = formData.photos_after.map(async (photo) => {
+        const fileName = `${visit.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-depois-${photo.name}`;
         const { error: uploadError } = await supabase.storage
           .from('trade-photos')
           .upload(fileName, photo);
@@ -200,7 +200,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             .from('trade-photos')
             .getPublicUrl(fileName);
 
-          await supabase.from("photos").insert({
+          return supabase.from("photos").insert({
             visit_id: visit.id,
             store_id: formData.store_id,
             photo_url: publicUrl,
@@ -209,19 +209,23 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             ai_processed: false,
           });
         }
-      }
+      });
 
-      // 3. Create shelf share records
+      // Aguardar todos os uploads em paralelo
+      await Promise.all([...beforePhotoPromises, ...afterPhotoPromises]);
+
+      // 3. Create shelf share records - Paralelo
       if (formData.products_found.length > 0) {
-        for (const productId of formData.products_found) {
-          await supabase.from("shelf_share").insert({
+        const shelfSharePromises = formData.products_found.map((productId) =>
+          supabase.from("shelf_share").insert({
             visit_id: visit.id,
             store_id: formData.store_id,
             product_id: productId,
             quantity_facings: formData.our_facings,
             in_stock: true,
-          });
-        }
+          })
+        );
+        await Promise.all(shelfSharePromises);
       }
 
       // 4. Create promotion execution record
