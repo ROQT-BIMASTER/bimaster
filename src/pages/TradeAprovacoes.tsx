@@ -51,7 +51,7 @@ export default function TradeAprovacoes() {
         .select(`
           *,
           account:trade_chart_of_accounts(name, code),
-          store:stores(name, code),
+          store:stores(name, code, address, city, state, zip_code),
           budget:trade_budgets(name, code, total_amount, spent_amount, reserved_amount)
         `)
         .eq("approval_status", "pending")
@@ -64,7 +64,7 @@ export default function TradeAprovacoes() {
         .from("trade_investments")
         .select(`
           *,
-          store:stores(name, code)
+          store:stores(name, code, address, city, state, zip_code)
         `)
         .eq("approval_status", "pending")
         .order("investment_date", { ascending: false });
