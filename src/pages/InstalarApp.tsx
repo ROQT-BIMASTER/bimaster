@@ -12,15 +12,29 @@ export default function InstalarApp() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
-    // Detectar se já está instalado
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
-    }
+    // Detectar se já está instalado (modo standalone)
+    const checkInstalled = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                          (window.navigator as any).standalone ||
+                          document.referrer.includes('android-app://');
+      setIsInstalled(isStandalone);
+    };
+    
+    checkInstalled();
 
     // Capturar o evento de instalação
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
+      console.log('beforeinstallprompt event captured');
       setDeferredPrompt(e);
+    };
+
+    // Detectar quando o app foi instalado
+    const handleAppInstalled = () => {
+      console.log('App foi instalado');
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+      toast.success("App instalado! Agora você pode acessá-lo pela tela inicial");
     };
 
     // Monitorar status online/offline
@@ -35,11 +49,13 @@ export default function InstalarApp() {
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
@@ -47,19 +63,32 @@ export default function InstalarApp() {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
-      toast.info("Use o menu do navegador para instalar o app");
+      // Instruções para iOS
+      if (/(iPhone|iPad|iPod)/.test(navigator.userAgent)) {
+        toast.info("No Safari: toque em 'Compartilhar' e depois em 'Adicionar à Tela de Início'");
+        return;
+      }
+      // Instruções para Android
+      toast.info("No Chrome: toque no menu (⋮) e depois em 'Instalar app' ou 'Adicionar à tela inicial'");
       return;
     }
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      toast.success("App instalado com sucesso!");
-      setIsInstalled(true);
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        toast.success("App instalado com sucesso! Abra-o pela tela inicial");
+        setIsInstalled(true);
+      } else {
+        toast.info("Instalação cancelada. Você pode instalar mais tarde pelo menu do navegador.");
+      }
+      
+      setDeferredPrompt(null);
+    } catch (error) {
+      console.error('Erro ao instalar:', error);
+      toast.error("Erro ao instalar. Tente pelo menu do navegador.");
     }
-    
-    setDeferredPrompt(null);
   };
 
   return (
@@ -161,15 +190,26 @@ export default function InstalarApp() {
             <CardTitle>Como Instalar</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {!isInstalled && deferredPrompt ? (
-              <div className="text-center py-6">
+            {!isInstalled && deferredPrompt && (
+              <div className="text-center py-6 space-y-4">
+                <p className="text-muted-foreground mb-4">
+                  Clique no botão abaixo para instalar o app no seu celular
+                </p>
                 <Button size="lg" onClick={handleInstallClick} className="gap-2">
                   <Download className="h-5 w-5" />
                   Instalar Aplicativo Agora
                 </Button>
               </div>
-            ) : (
+            )}
+            
+            {!isInstalled && !deferredPrompt && (
               <div className="space-y-6">
+                <div className="bg-muted p-4 rounded-lg text-center">
+                  <p className="text-sm text-muted-foreground">
+                    O botão de instalação automática não está disponível. Use as instruções abaixo para instalar manualmente.
+                  </p>
+                </div>
+                
                 {/* Android Chrome */}
                 <div>
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
