@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
 serve(async (req) => {
@@ -15,6 +15,15 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Validate API key for n8n integration
+    const apiKey = req.headers.get('X-API-Key');
+    const expectedKey = Deno.env.get('EXPORT_API_KEY');
+    
+    if (!apiKey || apiKey !== expectedKey) {
+      console.error('❌ Invalid API key');
+      throw new Error('Invalid API key');
+    }
 
     console.log('📈 Calculando taxas de conversão...');
 
@@ -156,7 +165,7 @@ serve(async (req) => {
           ...corsHeaders, 
           'Content-Type': 'application/json' 
         }, 
-        status: 500 
+        status: error instanceof Error && error.message === 'Invalid API key' ? 401 : 500
       }
     );
   }

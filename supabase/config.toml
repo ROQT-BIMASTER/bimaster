@@ -40,10 +40,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.export-prospects]
-verify_jwt = true
+verify_jwt = false
 
 [functions.export-conversion-rates]
-verify_jwt = true
+verify_jwt = false
+
+[functions.export-all-data]
+verify_jwt = false
 
 [functions.cnpjbiz-consulta]
 verify_jwt = true
