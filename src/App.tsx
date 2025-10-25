@@ -2,6 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { memoryManager } from "@/lib/utils/memory-manager";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -44,9 +46,28 @@ import TradeCampaigns from "./pages/TradeCampaigns";
 import Relatorios from "./pages/Relatorios";
 import InstalarApp from "./pages/InstalarApp";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutos
+      gcTime: 10 * 60 * 1000, // 10 minutos (antigo cacheTime)
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
-const App = () => (
+const App = () => {
+  useEffect(() => {
+    // Inicializar gerenciador de memória
+    console.log('🚀 Memory Manager inicializado');
+    
+    return () => {
+      memoryManager.destroy();
+    };
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <Toaster />
     <Sonner />
@@ -105,6 +126,7 @@ const App = () => (
       </Routes>
     </BrowserRouter>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

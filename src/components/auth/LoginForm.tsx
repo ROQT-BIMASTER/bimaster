@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -25,11 +25,48 @@ export const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast({
+        title: "✅ Conexão restaurada",
+        description: "Você está online novamente",
+      });
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast({
+        title: "⚠️ Sem conexão",
+        description: "Você está offline. Algumas funcionalidades podem não funcionar.",
+        variant: "destructive",
+      });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [toast]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isOnline) {
+      toast({
+        title: "Sem conexão",
+        description: "Você precisa estar online para fazer login. Conecte-se à internet e tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
       const validated = loginSchema.parse({ email, password });
@@ -109,9 +146,14 @@ export const LoginForm = () => {
               maxLength={100}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Entrando..." : "Entrar"}
+          <Button type="submit" className="w-full" disabled={loading || !isOnline}>
+            {loading ? "Entrando..." : isOnline ? "Entrar" : "Sem conexão"}
           </Button>
+          {!isOnline && (
+            <p className="text-sm text-destructive text-center">
+              ⚠️ Você está offline. Conecte-se para fazer login.
+            </p>
+          )}
           <div className="text-center text-sm">
             <span className="text-muted-foreground">Não tem uma conta? </span>
             <Button

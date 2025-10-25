@@ -58,9 +58,15 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   });
 
   useEffect(() => {
-    if (open) {
+    let mounted = true;
+    
+    if (open && mounted) {
       fetchInitialData();
     }
+
+    return () => {
+      mounted = false;
+    };
   }, [open]);
 
   const fetchInitialData = async () => {
@@ -390,19 +396,32 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                 <CardDescription>Selecione o PDV e detalhes da visita</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>PDV / Loja *</Label>
                     <Select value={formData.store_id} onValueChange={(value) => setFormData(prev => ({ ...prev, store_id: value }))}>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Selecione o PDV" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {stores.map((store) => (
-                          <SelectItem key={store.id} value={store.id}>
-                            {store.name} - {store.city}
-                          </SelectItem>
-                        ))}
+                      <SelectContent className="max-h-[300px] bg-background z-50">
+                        {stores.length === 0 ? (
+                          <div className="p-4 text-center text-muted-foreground">
+                            Nenhuma loja encontrada
+                          </div>
+                        ) : (
+                          stores.map((store) => (
+                            <SelectItem 
+                              key={store.id} 
+                              value={store.id}
+                              className="cursor-pointer"
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-medium">{store.name}</span>
+                                <span className="text-xs text-muted-foreground">{store.city}</span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

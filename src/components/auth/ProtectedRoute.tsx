@@ -41,21 +41,31 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        // CRITICAL: Nunca usar async diretamente no callback para evitar deadlock
+        setAuthenticated(!!session?.user);
+        
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("aprovado")
-            .eq("id", session.user.id)
-            .single();
-
-          setAuthenticated(true);
-          setApproved(profile?.aprovado || false);
+          // Defer Supabase calls com setTimeout para evitar deadlock
+          setTimeout(async () => {
+            try {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("aprovado")
+                .eq("id", session.user.id)
+                .single();
+              
+              setApproved(profile?.aprovado || false);
+            } catch (error) {
+              setApproved(false);
+            } finally {
+              setLoading(false);
+            }
+          }, 0);
         } else {
-          setAuthenticated(false);
           setApproved(false);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
