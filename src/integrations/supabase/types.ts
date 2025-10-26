@@ -62,6 +62,129 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_call_actions: {
+        Row: {
+          action_data: Json
+          action_type: string
+          call_id: string | null
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          action_data?: Json
+          action_type: string
+          call_id?: string | null
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          action_data?: Json
+          action_type?: string
+          call_id?: string | null
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_call_actions_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "ai_calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_call_transcriptions: {
+        Row: {
+          call_id: string | null
+          created_at: string | null
+          id: string
+          message: string
+          speaker: string
+          timestamp_ms: number
+        }
+        Insert: {
+          call_id?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          speaker: string
+          timestamp_ms: number
+        }
+        Update: {
+          call_id?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          speaker?: string
+          timestamp_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_call_transcriptions_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "ai_calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_calls: {
+        Row: {
+          audio_url: string | null
+          call_duration: number | null
+          call_status: string
+          created_at: string | null
+          id: string
+          meeting_date: string | null
+          meeting_scheduled: boolean | null
+          prospect_id: string | null
+          sentiment: string | null
+          summary: string | null
+          transcript: string | null
+          updated_at: string | null
+          vendedor_id: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          call_duration?: number | null
+          call_status: string
+          created_at?: string | null
+          id?: string
+          meeting_date?: string | null
+          meeting_scheduled?: boolean | null
+          prospect_id?: string | null
+          sentiment?: string | null
+          summary?: string | null
+          transcript?: string | null
+          updated_at?: string | null
+          vendedor_id?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          call_duration?: number | null
+          call_status?: string
+          created_at?: string | null
+          id?: string
+          meeting_date?: string | null
+          meeting_scheduled?: boolean | null
+          prospect_id?: string | null
+          sentiment?: string | null
+          summary?: string | null
+          transcript?: string | null
+          updated_at?: string | null
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_calls_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_insights: {
         Row: {
           action_items: Json | null
@@ -3201,6 +3324,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vendor_availability: {
+        Row: {
+          created_at: string | null
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean | null
+          start_time: string
+          vendedor_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean | null
+          start_time: string
+          vendedor_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean | null
+          start_time?: string
+          vendedor_id?: string | null
+        }
+        Relationships: []
       }
       visits: {
         Row: {
