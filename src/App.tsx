@@ -19,6 +19,7 @@ import Kanban from "./pages/Kanban";
 import Tarefas from "./pages/Tarefas";
 import Mapa from "./pages/Mapa";
 import Chat from "./pages/Chat";
+import CallHistory from "./pages/CallHistory";
 import AguardandoAprovacao from "./pages/AguardandoAprovacao";
 import NotFound from "./pages/NotFound";
 import TradeModule from "./pages/modules/TradeModule";
@@ -89,6 +90,7 @@ const App = () => {
         <Route path="/dashboard/prospects/kanban" element={<ProtectedRoute><Kanban /></ProtectedRoute>} />
         <Route path="/dashboard/prospects/atividades" element={<ProtectedRoute><Atividades /></ProtectedRoute>} />
         <Route path="/dashboard/prospects/mapa" element={<ProtectedRoute><Mapa /></ProtectedRoute>} />
+        <Route path="/dashboard/prospects/call-history" element={<ProtectedRoute><CallHistory /></ProtectedRoute>} />
         
         {/* Outras funcionalidades */}
         <Route path="/dashboard/municipios" element={<ProtectedRoute><Municipios /></ProtectedRoute>} />

@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,6 +87,7 @@ export function AppSidebar() {
     { title: "Kanban", url: "/dashboard/prospects/kanban", icon: LayoutGrid },
     { title: "Atividades", url: "/dashboard/prospects/atividades", icon: Activity },
     { title: "Mapa", url: "/dashboard/prospects/mapa", icon: MapPin },
+    { title: "Ligações com IA", url: "/dashboard/prospects/call-history", icon: Phone },
   ];
 
   const tradeSubMenus = [
