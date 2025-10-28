@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   BarChart3, 
   Users, 
@@ -76,11 +77,14 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container flex h-16 items-center">
+        <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold">Union CRM - Manual de Treinamento</span>
           </div>
+          <Button onClick={() => window.location.href = '/auth/login'}>
+            Acessar Sistema
+          </Button>
         </div>
       </header>
 
