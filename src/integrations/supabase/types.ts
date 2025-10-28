@@ -2454,6 +2454,191 @@ export type Database = {
           },
         ]
       }
+      store_products: {
+        Row: {
+          brand: string | null
+          category: string | null
+          created_at: string | null
+          current_stock: number | null
+          id: string
+          max_stock: number | null
+          min_stock: number | null
+          product_code: string | null
+          product_name: string
+          store_id: string
+          unit_price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          brand?: string | null
+          category?: string | null
+          created_at?: string | null
+          current_stock?: number | null
+          id?: string
+          max_stock?: number | null
+          min_stock?: number | null
+          product_code?: string | null
+          product_name: string
+          store_id: string
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          brand?: string | null
+          category?: string | null
+          created_at?: string | null
+          current_stock?: number | null
+          id?: string
+          max_stock?: number | null
+          min_stock?: number | null
+          product_code?: string | null
+          product_name?: string
+          store_id?: string
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_sellouts: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          sale_date: string
+          store_id: string
+          total_amount: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity: number
+          sale_date?: string
+          store_id: string
+          total_amount?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          sale_date?: string
+          store_id?: string
+          total_amount?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_sellouts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_sellouts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_sellouts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_stock_movements: {
+        Row: {
+          created_by: string | null
+          id: string
+          movement_date: string | null
+          movement_type: string
+          new_stock: number | null
+          notes: string | null
+          previous_stock: number | null
+          product_id: string
+          quantity: number
+          reason: string | null
+          store_id: string
+        }
+        Insert: {
+          created_by?: string | null
+          id?: string
+          movement_date?: string | null
+          movement_type: string
+          new_stock?: number | null
+          notes?: string | null
+          previous_stock?: number | null
+          product_id: string
+          quantity: number
+          reason?: string | null
+          store_id: string
+        }
+        Update: {
+          created_by?: string | null
+          id?: string
+          movement_date?: string | null
+          movement_type?: string
+          new_stock?: number | null
+          notes?: string | null
+          previous_stock?: number | null
+          product_id?: string
+          quantity?: number
+          reason?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_stock_movements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_stock_movements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stores: {
         Row: {
           address: string | null
