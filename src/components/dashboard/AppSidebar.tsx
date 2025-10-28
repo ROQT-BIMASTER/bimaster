@@ -87,7 +87,6 @@ export function AppSidebar() {
     { title: "Kanban", url: "/dashboard/prospects/kanban", icon: LayoutGrid },
     { title: "Atividades", url: "/dashboard/prospects/atividades", icon: Activity },
     { title: "Mapa", url: "/dashboard/prospects/mapa", icon: MapPin },
-    { title: "Ligações com IA", url: "/dashboard/prospects/call-history", icon: Phone },
   ];
 
   const tradeSubMenus = [

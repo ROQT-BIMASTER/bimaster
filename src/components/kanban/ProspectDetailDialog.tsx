@@ -10,8 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Loader2, Trash2, UserCircle, Phone } from "lucide-react";
-import AICallInterface from "@/components/crm/AICallInterface";
+import { Loader2, Trash2, UserCircle } from "lucide-react";
 
 interface Prospect {
   id: string;
@@ -51,7 +50,6 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
   const [formData, setFormData] = useState<Prospect | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [callDialogOpen, setCallDialogOpen] = useState(false);
   const { toast } = useToast();
   const { isAdmin } = useUserRole();
 
@@ -150,29 +148,14 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle>Editar Prospect</DialogTitle>
-              {formData.vendedor && (
-                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                  <UserCircle className="h-4 w-4" />
-                  <span>Responsável:</span>
-                  <Badge variant="secondary">{formData.vendedor.nome}</Badge>
-                </div>
-              )}
+          <DialogTitle>Editar Prospect</DialogTitle>
+          {formData.vendedor && (
+            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+              <UserCircle className="h-4 w-4" />
+              <span>Responsável:</span>
+              <Badge variant="secondary">{formData.vendedor.nome}</Badge>
             </div>
-            {formData.telefone && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCallDialogOpen(true)}
-                className="gap-2"
-              >
-                <Phone className="h-4 w-4" />
-                Ligar com IA
-              </Button>
-            )}
-          </div>
+          )}
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
@@ -447,13 +430,6 @@ export const ProspectDetailDialog = ({ prospect, open, onOpenChange, onUpdate }:
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <AICallInterface
-        open={callDialogOpen}
-        onOpenChange={setCallDialogOpen}
-        prospectId={formData.id}
-        prospectName={formData.nome_empresa}
-      />
     </Dialog>
   );
 };
