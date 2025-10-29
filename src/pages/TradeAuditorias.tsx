@@ -6,12 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AuditoriaGondolaDialog } from "@/components/trade/AuditoriaGondolaDialog";
+import { TradeFilters } from "@/components/trade/TradeFilters";
 import { Plus, Store, Package, TrendingUp, TrendingDown, CheckCircle, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Auditoria {
   id: string;
+  store_id: string;
   created_at: string;
   preco_praticado: number | null;
   produto_presente: boolean;
@@ -36,14 +38,14 @@ interface Auditoria {
 
 export default function TradeAuditorias() {
   const [auditorias, setAuditorias] = useState<Auditoria[]>([]);
+  const [filteredAuditorias, setFilteredAuditorias] = useState<Auditoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedStore, setSelectedStore] = useState<string>("");
-  const [stores, setStores] = useState<any[]>([]);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [aiCriteria, setAiCriteria] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchStores();
     fetchAuditorias();
 
     const channel = supabase
@@ -66,13 +68,22 @@ export default function TradeAuditorias() {
     };
   }, []);
 
-  const fetchStores = async () => {
-    const { data } = await supabase
-      .from("stores")
-      .select("id, name, code")
-      .eq("status", "active")
-      .order("name");
-    if (data) setStores(data);
+  useEffect(() => {
+    applyFilters();
+  }, [auditorias, selectedStore, aiCriteria]);
+
+  const applyFilters = () => {
+    let filtered = [...auditorias];
+
+    if (selectedStore) {
+      filtered = filtered.filter(a => a.store_id === selectedStore);
+    }
+
+    if (aiCriteria) {
+      // Implementar lógica de filtro IA conforme critérios retornados
+    }
+
+    setFilteredAuditorias(filtered);
   };
 
   const fetchAuditorias = async () => {
@@ -143,39 +154,34 @@ export default function TradeAuditorias() {
               Gerencie auditorias de preço, ruptura e planograma
             </p>
           </div>
-          <div className="flex gap-2">
-            <select
-              value={selectedStore}
-              onChange={(e) => setSelectedStore(e.target.value)}
-              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">Selecione uma loja</option>
-              {stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.name} ({store.code})
-                </option>
-              ))}
-            </select>
-            <Button onClick={openNewAuditDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Auditoria
-            </Button>
-          </div>
+          <Button onClick={openNewAuditDialog} disabled={!selectedStore}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Auditoria
+          </Button>
         </div>
+
+        <TradeFilters
+          onStoreChange={setSelectedStore}
+          onAIFilter={setAiCriteria}
+          selectedStore={selectedStore}
+        />
 
         {loading ? (
           <div className="text-center py-8">Carregando auditorias...</div>
-        ) : auditorias.length === 0 ? (
+        ) : filteredAuditorias.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
               <p className="text-muted-foreground">
-                Nenhuma auditoria registrada ainda.
+                {auditorias.length === 0 
+                  ? "Nenhuma auditoria registrada ainda."
+                  : "Nenhuma auditoria encontrada com os filtros aplicados."
+                }
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4">
-            {auditorias.map((audit) => (
+            {filteredAuditorias.map((audit) => (
               <Card key={audit.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
