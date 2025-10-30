@@ -20,6 +20,7 @@ interface Tela {
   permissoes: {
     supervisor: boolean;
     vendedor: boolean;
+    promotor: boolean;
   };
 }
 
@@ -87,6 +88,7 @@ export function PermissoesDeAcesso() {
         permissoes: {
           supervisor: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'supervisor') || false,
           vendedor: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'vendedor') || false,
+          promotor: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'promotor') || false,
         },
       }));
 
@@ -103,7 +105,7 @@ export function PermissoesDeAcesso() {
     }
   };
 
-  const handlePermissionChange = (telaId: string, role: "supervisor" | "vendedor") => {
+  const handlePermissionChange = (telaId: string, role: "supervisor" | "vendedor" | "promotor") => {
     setTelas(prev => prev.map(tela => 
       tela.id === telaId 
         ? { ...tela, permissoes: { ...tela.permissoes, [role]: !tela.permissoes[role] } }
@@ -115,7 +117,7 @@ export function PermissoesDeAcesso() {
     setLoading(true);
     try {
       // Para cada role, deletar e recriar as permissões
-      for (const role of ['supervisor', 'vendedor'] as const) {
+      for (const role of ['supervisor', 'vendedor', 'promotor'] as const) {
         // Deletar permissões existentes do role
         await supabase
           .from("role_permissoes_telas")
@@ -212,7 +214,7 @@ export function PermissoesDeAcesso() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Como funciona:</strong> Configure aqui as permissões padrão por role (Supervisor/Vendedor). Depois salve e clique em "Sincronizar" para aplicar aos usuários existentes.
+            <strong>Como funciona:</strong> Configure aqui as permissões padrão por role (Supervisor/Vendedor/Promotor). Depois salve e clique em "Sincronizar" para aplicar aos usuários existentes.
           </AlertDescription>
         </Alert>
 
@@ -241,6 +243,9 @@ export function PermissoesDeAcesso() {
                     </th>
                     <th className="text-center p-4 font-medium w-32">
                       Vendedor
+                    </th>
+                    <th className="text-center p-4 font-medium w-32">
+                      Promotor
                     </th>
                   </tr>
                 </thead>
@@ -274,6 +279,13 @@ export function PermissoesDeAcesso() {
                           <Checkbox
                             checked={tela.permissoes.vendedor}
                             onCheckedChange={() => handlePermissionChange(tela.id, 'vendedor')}
+                            className="mx-auto"
+                          />
+                        </td>
+                        <td className="text-center p-4">
+                          <Checkbox
+                            checked={tela.permissoes.promotor}
+                            onCheckedChange={() => handlePermissionChange(tela.id, 'promotor')}
                             className="mx-auto"
                           />
                         </td>
