@@ -31,6 +31,28 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
   useEffect(() => {
     if (open && storeId) {
       fetchStoreDetails();
+
+      // Subscrever para mudanças em tempo real nas visitas
+      const channel = supabase
+        .channel(`visits-${storeId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'visits',
+            filter: `store_id=eq.${storeId}`,
+          },
+          () => {
+            // Refetch quando houver qualquer mudança nas visitas desta loja
+            fetchStoreDetails();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [open, storeId]);
 
