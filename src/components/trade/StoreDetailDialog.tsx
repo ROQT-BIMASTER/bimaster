@@ -88,7 +88,7 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
         .from("visits")
         .select(`
           *,
-          user:profiles!visits_user_id_fkey(nome)
+          user:profiles(nome)
         `)
         .eq("store_id", storeId)
         .in("status", ["completed", "in_progress"])
@@ -108,7 +108,7 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
         .from("visits")
         .select(`
           *,
-          user:profiles!visits_user_id_fkey(nome)
+          user:profiles(nome)
         `)
         .eq("store_id", storeId)
         .eq("status", "scheduled")
@@ -185,14 +185,15 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
 
       setPromotions(promotionsData || []);
 
-      // Buscar histórico de vendas (sell-out)
+      // Buscar histórico de vendas (sell-out) - simplificado
       const { data: salesData } = await supabase
         .from("store_sellout_items")
         .select(`
           *,
-          sellout_batch:store_sellout_batches(sale_date),
           product:store_products(
-            product:products(name, sku)
+            id,
+            product_id,
+            products(name, sku)
           )
         `)
         .eq("store_id", storeId)
@@ -550,11 +551,11 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                       <div className="flex justify-between items-start">
                         <div>
                           <CardTitle className="text-base">
-                            {sale.product?.product?.name || "Produto"}
+                            {sale.product?.products?.name || "Produto"}
                           </CardTitle>
                           <CardDescription className="mt-1">
-                            {sale.product?.product?.sku && `SKU: ${sale.product.product.sku} • `}
-                            {sale.sellout_batch?.sale_date && format(new Date(sale.sellout_batch.sale_date), "dd/MM/yyyy", { locale: ptBR })}
+                            {sale.product?.products?.sku && `SKU: ${sale.product.products.sku} • `}
+                            {format(new Date(sale.created_at), "dd/MM/yyyy", { locale: ptBR })}
                           </CardDescription>
                         </div>
                         <Badge variant="default">
