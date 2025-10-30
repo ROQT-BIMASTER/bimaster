@@ -192,11 +192,13 @@ const { error } = await supabase.auth.signUp({
    - Hook `useUserRole` converte "promotora" antigo para "promotor"
    - Mantém compatibilidade com dados existentes
 
-### ⚠️ Warnings Remanescentes (Não Críticos):
+### ✅ Warnings Corrigidos (6 de 7):
 
-1. **3 funções antigas sem search_path** - Necessitam migração futura
-2. **3 materialized views expostas na API** - Avaliar necessidade de exposição
-3. **Password leak protection desabilitado** - Configurar no Supabase Auth
+1. ✅ **18 funções com search_path corrigidas** - TODAS as funções agora têm `SET search_path = ''`
+2. ✅ **3 materialized views protegidas** - Acesso revogado de anon/authenticated/public
+3. ⚠️ **Password leak protection** - Requer configuração manual no Auth (não bloqueante)
+
+**Resultado:** De 7 warnings para apenas 1 (que é configuração manual no dashboard)
 
 ## 🚀 Próximos Passos
 
