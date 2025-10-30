@@ -32,31 +32,6 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
   useEffect(() => {
     if (open && storeId) {
       fetchStoreDetails();
-
-      // Subscrever para mudanças em tempo real nas visitas
-      const channel = supabase
-        .channel(`visits-${storeId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'visits',
-            filter: `store_id=eq.${storeId}`,
-          },
-          (payload) => {
-            console.log('Realtime event received:', payload);
-            // Refetch quando houver qualquer mudança nas visitas desta loja
-            fetchStoreDetails();
-          }
-        )
-        .subscribe((status) => {
-          console.log('Subscription status:', status);
-        });
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     }
   }, [open, storeId]);
 
@@ -88,23 +63,19 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
 
       setVisits(visitsData || []);
 
-      // Buscar visitas agendadas
-      const { data: scheduledVisitsData, error: scheduledError } = await supabase
+      // Buscar visitas agendadas do usuário atual
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: scheduledVisitsData } = await supabase
         .from("visits")
         .select(`
           *,
           user:profiles!visits_user_id_fkey(nome)
         `)
         .eq("store_id", storeId)
+        .eq("user_id", userData.user?.id)
         .eq("status", "scheduled")
         .order("scheduled_date", { ascending: true })
         .limit(20);
-
-      if (scheduledError) {
-        console.error("Erro ao buscar visitas agendadas:", scheduledError);
-      } else {
-        console.log("Visitas agendadas encontradas:", scheduledVisitsData?.length || 0);
-      }
 
       setScheduledVisits(scheduledVisitsData || []);
 
