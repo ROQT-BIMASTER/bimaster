@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-type UserType = "admin" | "supervisor" | "vendedor" | "promotora" | null;
+type UserType = "admin" | "supervisor" | "vendedor" | "promotor" | null;
 
 export const useUserRole = () => {
   const [userType, setUserType] = useState<UserType>(null);
@@ -22,7 +22,9 @@ export const useUserRole = () => {
           .eq("user_id", user.id)
           .single();
 
-        setUserType(roles?.role || null);
+        // Normalizar "promotora" antigo para "promotor"
+        const normalizedRole = roles?.role === 'promotora' ? 'promotor' : roles?.role;
+        setUserType(normalizedRole as UserType || null);
       } catch (error) {
         console.error("Erro ao buscar tipo de usuário:", error);
         setUserType(null);
@@ -46,7 +48,8 @@ export const useUserRole = () => {
     isAdmin: userType === "admin",
     isSupervisor: userType === "supervisor",
     isVendedor: userType === "vendedor",
-    isPromotora: userType === "promotora",
+    isPromotor: userType === "promotor",
     isAdminOrSupervisor: userType === "admin" || userType === "supervisor",
+    isSalesTeam: userType === "vendedor" || userType === "promotor",
   };
 };

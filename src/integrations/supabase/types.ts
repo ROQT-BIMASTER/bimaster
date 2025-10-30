@@ -4050,11 +4050,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_role_or_higher: {
+        Args: {
+          _min_role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_admin_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
       is_participant_of_conversa: {
         Args: { conversa_id_param: string; user_id_param: string }
         Returns: boolean
       }
+      is_sales_team: { Args: { _user_id: string }; Returns: boolean }
       refresh_all_materialized_views: { Args: never; Returns: undefined }
       refresh_daily_kpis: { Args: { target_date?: string }; Returns: undefined }
       sincronizar_permissoes_usuario: {

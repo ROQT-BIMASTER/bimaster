@@ -17,7 +17,7 @@ interface Usuario {
   id: string;
   nome: string;
   email: string;
-  tipo_usuario: "admin" | "supervisor" | "vendedor" | "promotora";
+  tipo_usuario: "admin" | "supervisor" | "vendedor" | "promotor";
   status: "ativo" | "inativo";
   aprovado: boolean;
 }
@@ -42,7 +42,7 @@ export const GerenciamentoUsuarios = () => {
   const [novoUsuario, setNovoUsuario] = useState<{
     nome: string;
     email: string;
-    tipo_usuario: "admin" | "supervisor" | "vendedor" | "promotora";
+    tipo_usuario: "admin" | "supervisor" | "vendedor" | "promotor";
     senha: string;
   }>({
     nome: "",
@@ -471,7 +471,7 @@ export const GerenciamentoUsuarios = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="vendedor">Vendedor</SelectItem>
-                        <SelectItem value="promotora">Promotora</SelectItem>
+                        <SelectItem value="promotor">Promotor</SelectItem>
                         <SelectItem value="supervisor">Supervisor</SelectItem>
                         <SelectItem value="admin">Administrador</SelectItem>
                       </SelectContent>
