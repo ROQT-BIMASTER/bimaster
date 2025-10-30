@@ -42,12 +42,12 @@ const TradeMeasurementGuide = () => {
   const fetchGuidePhotos = async () => {
     try {
       const { data, error } = await supabase
-        .from("measurement_guide_photos")
+        .from("measurement_guide_photos" as any)
         .select("*")
         .order("order_index", { ascending: true });
 
       if (error) throw error;
-      setPhotos(data || []);
+      setPhotos((data as any) || []);
     } catch (error) {
       console.error("Erro ao buscar fotos do guia:", error);
       toast.error("Erro ao carregar guia de medição");
@@ -92,7 +92,7 @@ const TradeMeasurementGuide = () => {
         .getPublicUrl(filePath);
 
       const { error: insertError } = await supabase
-        .from("measurement_guide_photos")
+        .from("measurement_guide_photos" as any)
         .insert({
           photo_url: publicUrl,
           title: formData.title,
@@ -120,7 +120,7 @@ const TradeMeasurementGuide = () => {
 
     try {
       const { error } = await supabase
-        .from("measurement_guide_photos")
+        .from("measurement_guide_photos" as any)
         .delete()
         .eq("id", id);
 
