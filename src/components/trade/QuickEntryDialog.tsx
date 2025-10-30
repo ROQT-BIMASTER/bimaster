@@ -227,6 +227,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             category: "before",
             ai_processed: true,
             ai_analysis: { insights: formData.ai_insights },
+            vendedor_id: user.id,
           });
         }
       });
@@ -250,6 +251,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             photo_type: "shelf",
             category: "after",
             ai_processed: false,
+            vendedor_id: user.id,
           });
         }
       });
