@@ -37,6 +37,7 @@ export const GerenciamentoUsuarios = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
+  const [selectedSupervisor, setSelectedSupervisor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [novoUsuario, setNovoUsuario] = useState<{
@@ -57,11 +58,23 @@ export const GerenciamentoUsuarios = () => {
   }, []);
 
   useEffect(() => {
-    if (editingUser && isDialogOpen) {
-      fetchUserMunicipios(editingUser.id);
-    } else if (!isDialogOpen) {
-      setSelectedMunicipios([]);
-    }
+    const fetchUserData = async () => {
+      if (editingUser && isDialogOpen) {
+        fetchUserMunicipios(editingUser.id);
+        // Buscar supervisor do usuário
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("supervisor_id")
+          .eq("id", editingUser.id)
+          .single();
+        setSelectedSupervisor(profileData?.supervisor_id || null);
+      } else if (!isDialogOpen) {
+        setSelectedMunicipios([]);
+        setSelectedSupervisor(null);
+      }
+    };
+
+    fetchUserData();
   }, [editingUser, isDialogOpen]);
 
   const fetchUserMunicipios = async (userId: string) => {
@@ -165,7 +178,8 @@ export const GerenciamentoUsuarios = () => {
           .from("profiles")
           .update({ 
             status: "ativo",
-            aprovado: validatedData.tipo_usuario === "admin" ? true : undefined
+            aprovado: validatedData.tipo_usuario === "admin" ? true : undefined,
+            supervisor_id: selectedSupervisor
           })
           .eq("id", authData.user.id);
 
@@ -189,6 +203,7 @@ export const GerenciamentoUsuarios = () => {
       setIsDialogOpen(false);
       setNovoUsuario({ nome: "", email: "", tipo_usuario: "vendedor", senha: "" });
       setSelectedMunicipios([]);
+      setSelectedSupervisor(null);
       
       toast({
         title: "Usuário criado",
@@ -269,11 +284,12 @@ export const GerenciamentoUsuarios = () => {
     
     setLoading(true);
     try {
-      // Atualizar perfil (apenas nome)
+      // Atualizar perfil (nome e supervisor)
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
-          nome: novoUsuario.nome
+          nome: novoUsuario.nome,
+          supervisor_id: selectedSupervisor
         })
         .eq("id", editingUser.id);
 
@@ -310,6 +326,7 @@ export const GerenciamentoUsuarios = () => {
       setEditingUser(null);
       setNovoUsuario({ nome: "", email: "", tipo_usuario: "vendedor", senha: "" });
       setSelectedMunicipios([]);
+      setSelectedSupervisor(null);
       fetchUsuarios();
     } catch (error) {
       console.error("Erro ao atualizar usuário:", error);
@@ -492,6 +509,50 @@ export const GerenciamentoUsuarios = () => {
                     <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, com letras maiúsculas, minúsculas e números</p>
                   </div>
 
+                  {novoUsuario.tipo_usuario !== "admin" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="supervisor">Superior Hierárquico (Opcional)</Label>
+                      <Select
+                        value={selectedSupervisor || "none"}
+                        onValueChange={(value) => setSelectedSupervisor(value === "none" ? null : value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um superior" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">
+                            <span className="text-muted-foreground">Sem superior hierárquico</span>
+                          </SelectItem>
+                          {usuarios
+                            .filter(u => {
+                              // Filtrar superiores possíveis baseado no role
+                              if (novoUsuario.tipo_usuario === "promotor") {
+                                return u.tipo_usuario === "vendedor" || u.tipo_usuario === "supervisor" || u.tipo_usuario === "admin";
+                              } else if (novoUsuario.tipo_usuario === "vendedor") {
+                                return u.tipo_usuario === "supervisor" || u.tipo_usuario === "admin";
+                              } else if (novoUsuario.tipo_usuario === "supervisor") {
+                                return u.tipo_usuario === "admin";
+                              }
+                              return false;
+                            })
+                            .map((usuario) => (
+                              <SelectItem key={usuario.id} value={usuario.id}>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    {usuario.tipo_usuario}
+                                  </Badge>
+                                  <span>{usuario.nome}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Vincule este usuário a um superior na hierarquia organizacional
+                      </p>
+                    </div>
+                  )}
+
                   {novoUsuario.tipo_usuario === "vendedor" && (
                     <div className="space-y-2">
                       <Label>Vincular Municípios</Label>
@@ -530,6 +591,7 @@ export const GerenciamentoUsuarios = () => {
                     setEditingUser(null);
                     setNovoUsuario({ nome: "", email: "", tipo_usuario: "vendedor", senha: "" });
                     setSelectedMunicipios([]);
+                    setSelectedSupervisor(null);
                   }}>
                     Cancelar
                   </Button>

@@ -16,6 +16,7 @@ import { VinculacaoUsuarioProspects } from "@/components/configuracoes/Vinculaca
 import { GerenciamentoIntegracoes } from "@/components/configuracoes/GerenciamentoIntegracoes";
 import { DocumentacaoAPI } from "@/components/configuracoes/DocumentacaoAPI";
 import { AtribuirVendedorSupervisor } from "@/components/configuracoes/AtribuirVendedorSupervisor";
+import { HierarquiaUsuarios } from "@/components/configuracoes/HierarquiaUsuarios";
 import { Shield, UserCog, User, CheckCircle } from "lucide-react";
 
 interface Profile {
@@ -234,6 +235,7 @@ const Configuracoes = () => {
             <TabsList>
               <TabsTrigger value="perfil">Meu Perfil</TabsTrigger>
               {isAdmin && <TabsTrigger value="usuarios">Gerenciar Usuários</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="hierarquia">Hierarquia</TabsTrigger>}
               {isAdmin && <TabsTrigger value="vendedores">Vendedores/Supervisores</TabsTrigger>}
               <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
               {isAdmin && <TabsTrigger value="permissoes">Permissões</TabsTrigger>}
@@ -261,6 +263,12 @@ const Configuracoes = () => {
             {isAdmin && (
               <TabsContent value="usuarios">
                 <GerenciamentoUsuarios />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="hierarquia">
+                <HierarquiaUsuarios />
               </TabsContent>
             )}
 
