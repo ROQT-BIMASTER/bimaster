@@ -100,7 +100,18 @@ export const AtribuirVisitaDialog = ({ open, onOpenChange, onSuccess }: Atribuir
 
       const visitCode = `V-${Date.now()}`;
       
-      const { error } = await supabase
+      console.log("Tentando criar visita:", {
+        visit_code: visitCode,
+        user_id: formData.user_id,
+        store_id: formData.store_id,
+        scheduled_date: formData.scheduled_date,
+        scheduled_time: formData.scheduled_time,
+        visit_type: formData.visit_type,
+        status: "scheduled",
+        notes: formData.notes,
+      });
+      
+      const { data, error } = await supabase
         .from("visits")
         .insert({
           visit_code: visitCode,
@@ -111,7 +122,10 @@ export const AtribuirVisitaDialog = ({ open, onOpenChange, onSuccess }: Atribuir
           visit_type: formData.visit_type,
           status: "scheduled",
           notes: formData.notes,
-        });
+        })
+        .select();
+
+      console.log("Resultado da inserção:", { data, error });
 
       if (error) throw error;
 
