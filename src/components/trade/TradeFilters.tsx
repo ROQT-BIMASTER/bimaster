@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,8 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
   const [searchQuery, setSearchQuery] = useState("");
   const [aiQuery, setAiQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchStores();
@@ -33,6 +35,19 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
   useEffect(() => {
     filterStores();
   }, [searchQuery, stores]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const filterStores = () => {
     if (searchQuery.trim()) {
@@ -44,18 +59,21 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
         return nameMatch || codeMatch || cnpjMatch;
       });
       setFilteredStores(filtered);
-      
-      // Se houver apenas uma loja encontrada, seleciona automaticamente
-      if (filtered.length === 1 && filtered[0].id !== selectedStore) {
-        onStoreChange(filtered[0].id);
-      }
+      setShowDropdown(true);
     } else {
       setFilteredStores(stores);
+      setShowDropdown(false);
       // Se limpar a busca, remove o filtro
       if (selectedStore) {
         onStoreChange(null);
       }
     }
+  };
+
+  const handleSelectStore = (store: Store) => {
+    onStoreChange(store.id);
+    setSearchQuery(store.name);
+    setShowDropdown(false);
   };
 
   const fetchStores = async () => {
@@ -109,12 +127,13 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
     <div className="flex flex-col md:flex-row gap-4 p-4 bg-card rounded-lg border">
       <div className="flex-1">
         <label className="text-sm font-medium mb-2 block">Buscar Cliente</label>
-        <div className="space-y-2">
+        <div className="space-y-2" ref={dropdownRef}>
           <div className="relative">
             <Input
               placeholder="Digite o nome, código ou CNPJ do cliente..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => searchQuery && setShowDropdown(true)}
               className="pr-10"
             />
             {searchQuery && (
@@ -125,6 +144,7 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
                 onClick={() => {
                   setSearchQuery("");
                   onStoreChange(null);
+                  setShowDropdown(false);
                 }}
               >
                 <X className="h-4 w-4" />
@@ -133,8 +153,8 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
           </div>
           
           {/* Lista de resultados */}
-          {searchQuery && (
-            <div className="border rounded-md bg-background max-h-60 overflow-y-auto">
+          {showDropdown && searchQuery && (
+            <div className="absolute z-50 mt-1 border rounded-md bg-background shadow-lg max-h-60 overflow-y-auto w-[calc(100%-2rem)]">
               {filteredStores.length > 0 ? (
                 <div className="p-1">
                   {filteredStores.map((store) => (
@@ -144,10 +164,7 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
                       className={`w-full text-left px-3 py-2 rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
                         selectedStore === store.id ? 'bg-accent text-accent-foreground' : ''
                       }`}
-                      onClick={() => {
-                        onStoreChange(store.id);
-                        setSearchQuery(store.name);
-                      }}
+                      onClick={() => handleSelectStore(store)}
                     >
                       <div className="font-medium">{store.name}</div>
                       <div className="text-xs text-muted-foreground">

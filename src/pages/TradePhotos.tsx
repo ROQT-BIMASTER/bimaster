@@ -19,6 +19,7 @@ interface Photo {
   ai_processed: boolean;
   upload_date: string;
   ai_analysis: any;
+  store_id: string | null;
   stores: {
     name: string;
   } | null;
@@ -102,7 +103,7 @@ const TradePhotos = () => {
     let filtered = [...allPhotos];
 
     if (selectedStore) {
-      filtered = filtered.filter(p => p.stores && (p.stores as any).id === selectedStore);
+      filtered = filtered.filter(p => p.store_id === selectedStore);
     }
 
     if (aiCriteria) {
