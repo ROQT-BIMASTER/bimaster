@@ -8,7 +8,7 @@ import logoUnion from "@/assets/logo-union.png";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { offlineManager } from "@/lib/utils/offline-manager";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { WifiOff } from "lucide-react";
+import { WifiOff, Wifi } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DashboardLayoutProps {
@@ -20,6 +20,19 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const isOnline = useOnlineStatus();
+  const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
+
+  // Monitorar qualidade da conexão
+  useEffect(() => {
+    const checkQuality = () => {
+      setConnectionQuality(offlineManager.getConnectionQuality());
+    };
+
+    checkQuality();
+    const interval = setInterval(checkQuality, 5000); // Verificar a cada 5 segundos
+
+    return () => clearInterval(interval);
+  }, [isOnline]);
 
   useEffect(() => {
     const checkUserStatus = async (session: Session | null) => {
@@ -109,11 +122,19 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <img src={logoUnion} alt="Union Logo" className="h-10" />
             </div>
           </header>
-          {!isOnline && (
-            <Alert className="m-4 border-warning bg-warning/10">
+          {connectionQuality === 'offline' && (
+            <Alert className="m-4 border-destructive bg-destructive/10">
               <WifiOff className="h-4 w-4" />
               <AlertDescription>
                 Você está offline. Algumas funcionalidades podem estar limitadas. Os dados serão sincronizados quando você voltar online.
+              </AlertDescription>
+            </Alert>
+          )}
+          {connectionQuality === 'poor' && (
+            <Alert className="m-4 border-warning bg-warning/10">
+              <Wifi className="h-4 w-4" />
+              <AlertDescription>
+                Conexão instável detectada. O aplicativo tentará reconectar automaticamente se houver falhas.
               </AlertDescription>
             </Alert>
           )}

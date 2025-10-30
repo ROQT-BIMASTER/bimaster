@@ -69,6 +69,31 @@ export class OfflineManager {
     }
   }
 
+  /**
+   * Verifica a qualidade da conexão
+   */
+  getConnectionQuality(): 'good' | 'poor' | 'offline' {
+    if (!this.isOnline) return 'offline';
+    
+    // @ts-ignore - navigator.connection pode não existir em todos os browsers
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    
+    if (!connection) return 'good'; // Assumir boa se não temos info
+    
+    // Verificar tipo de conexão
+    const slowTypes = ['slow-2g', '2g', '3g'];
+    if (slowTypes.includes(connection.effectiveType)) {
+      return 'poor';
+    }
+    
+    // Verificar RTT (Round Trip Time)
+    if (connection.rtt && connection.rtt > 500) {
+      return 'poor';
+    }
+    
+    return 'good';
+  }
+
   cleanup() {
     window.removeEventListener('online', this.handleOnline);
     window.removeEventListener('offline', this.handleOffline);
