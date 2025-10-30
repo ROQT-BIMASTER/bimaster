@@ -271,14 +271,14 @@ export function EditarLojaDialog({
               <div className="space-y-2">
                 <Label htmlFor="supervisor_id">Supervisor</Label>
                 <Select 
-                  value={formData.supervisor_id} 
-                  onValueChange={(value) => setFormData({ ...formData, supervisor_id: value })}
+                  value={formData.supervisor_id || "none"} 
+                  onValueChange={(value) => setFormData({ ...formData, supervisor_id: value === "none" ? "" : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o supervisor" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {supervisores.map((supervisor) => (
                       <SelectItem key={supervisor.id} value={supervisor.id}>
                         {supervisor.nome} - {supervisor.role === 'supervisor' ? 'Supervisor' : 'Admin'}
