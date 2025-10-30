@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Camera, DollarSign, FileText, MapPin, Phone, Store, TrendingUp, User, Lightbulb, Clock, RefreshCw } from "lucide-react";
+import { Calendar, Camera, DollarSign, FileText, MapPin, Phone, Store, TrendingUp, User, Lightbulb, Clock, RefreshCw, ShoppingCart, Ruler, Target, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StoreShareHistoryChart } from "./StoreShareHistoryChart";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
 
 interface StoreDetailDialogProps {
   open: boolean;
@@ -28,6 +29,10 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
   const [audits, setAudits] = useState<any[]>([]);
   const [investments, setInvestments] = useState<any[]>([]);
   const [promotions, setPromotions] = useState<any[]>([]);
+  const [sales, setSales] = useState<any[]>([]);
+  const [shelfMeasurements, setShelfMeasurements] = useState<any[]>([]);
+  const [shelfShare, setShelfShare] = useState<any[]>([]);
+  const [competitorIntel, setCompetitorIntel] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +49,10 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
       setAudits([]);
       setInvestments([]);
       setPromotions([]);
+      setSales([]);
+      setShelfMeasurements([]);
+      setShelfShare([]);
+      setCompetitorIntel([]);
       setLoading(true);
     }
   }, [open, storeId]);
@@ -176,6 +185,58 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
 
       setPromotions(promotionsData || []);
 
+      // Buscar histórico de vendas (sell-out)
+      const { data: salesData } = await supabase
+        .from("store_sellout_items")
+        .select(`
+          *,
+          sellout_batch:store_sellout_batches(sale_date),
+          product:store_products(
+            product:products(name, sku)
+          )
+        `)
+        .eq("store_id", storeId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      setSales(salesData || []);
+
+      // Buscar medições de prateleira
+      const { data: measurementsData } = await supabase
+        .from("shelf_measurements")
+        .select("*")
+        .eq("store_id", storeId)
+        .order("measurement_date", { ascending: false })
+        .limit(20);
+
+      setShelfMeasurements(measurementsData || []);
+
+      // Buscar dados de shelf share
+      const { data: shelfShareData } = await supabase
+        .from("shelf_share")
+        .select(`
+          *,
+          product:products(name, sku)
+        `)
+        .eq("store_id", storeId)
+        .order("recorded_at", { ascending: false })
+        .limit(30);
+
+      setShelfShare(shelfShareData || []);
+
+      // Buscar inteligência de concorrentes
+      const { data: competitorData } = await supabase
+        .from("competitor_intelligence")
+        .select(`
+          *,
+          competitor:competitors(name, brand)
+        `)
+        .eq("store_id", storeId)
+        .order("recorded_at", { ascending: false })
+        .limit(30);
+
+      setCompetitorIntel(competitorData || []);
+
     } catch (error) {
       console.error("❌ Erro geral ao carregar detalhes:", error);
       toast.error("Erro ao carregar detalhes da loja");
@@ -202,10 +263,14 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
         </DialogHeader>
 
         <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12">
             <TabsTrigger value="info">Info</TabsTrigger>
             <TabsTrigger value="share">Share</TabsTrigger>
             <TabsTrigger value="visits">Visitas</TabsTrigger>
+            <TabsTrigger value="sales">Vendas</TabsTrigger>
+            <TabsTrigger value="measurements">Medições</TabsTrigger>
+            <TabsTrigger value="shelfshare">Shelf Share</TabsTrigger>
+            <TabsTrigger value="competitor">Concorrentes</TabsTrigger>
             <TabsTrigger value="insights">Insights</TabsTrigger>
             <TabsTrigger value="photos">Fotos</TabsTrigger>
             <TabsTrigger value="audits">Auditorias</TabsTrigger>
@@ -457,6 +522,337 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                   </div>
                 )}
               </div>
+            </TabsContent>
+
+            <TabsContent value="sales" className="space-y-4">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  Histórico de Vendas (Sell-Out) ({sales.length})
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Registros de vendas realizadas neste PDV
+                </p>
+              </div>
+              
+              {loading ? (
+                <p className="text-center text-muted-foreground">Carregando...</p>
+              ) : sales.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    Nenhuma venda registrada para este PDV
+                  </CardContent>
+                </Card>
+              ) : (
+                sales.map((sale) => (
+                  <Card key={sale.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-base">
+                            {sale.product?.product?.name || "Produto"}
+                          </CardTitle>
+                          <CardDescription className="mt-1">
+                            {sale.product?.product?.sku && `SKU: ${sale.product.product.sku} • `}
+                            {sale.sellout_batch?.sale_date && format(new Date(sale.sellout_batch.sale_date), "dd/MM/yyyy", { locale: ptBR })}
+                          </CardDescription>
+                        </div>
+                        <Badge variant="default">
+                          R$ {sale.total_amount?.toFixed(2) || "0.00"}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Quantidade</p>
+                          <p className="font-medium">{sale.quantity || 0} un</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Preço Unit.</p>
+                          <p className="font-medium">R$ {sale.unit_price?.toFixed(2) || "0.00"}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Total</p>
+                          <p className="font-medium text-primary">R$ {sale.total_amount?.toFixed(2) || "0.00"}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="measurements" className="space-y-4">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Ruler className="h-5 w-5" />
+                  Medições de Prateleira ({shelfMeasurements.length})
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Histórico de medições de espaço ocupado na gôndola
+                </p>
+              </div>
+              
+              {loading ? (
+                <p className="text-center text-muted-foreground">Carregando...</p>
+              ) : shelfMeasurements.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    Nenhuma medição registrada para este PDV
+                  </CardContent>
+                </Card>
+              ) : (
+                shelfMeasurements.map((measurement) => (
+                  <Card key={measurement.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-base">
+                            {measurement.shelf_section || "Medição de Prateleira"}
+                          </CardTitle>
+                          <CardDescription className="mt-1">
+                            {format(new Date(measurement.measurement_date), "dd/MM/yyyy", { locale: ptBR })}
+                          </CardDescription>
+                        </div>
+                        <div className="flex gap-2">
+                          <Badge variant="default">
+                            Share: {measurement.shelf_share_percentage?.toFixed(1) || 0}%
+                          </Badge>
+                          <Badge variant="outline">
+                            Frentes: {measurement.facing_share_percentage?.toFixed(1) || 0}%
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
+                        <div>
+                          <p className="text-muted-foreground">Largura Total</p>
+                          <p className="font-medium">{measurement.total_shelf_width_cm} cm</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Nossas Marcas</p>
+                          <p className="font-medium">{measurement.our_brands_width_cm || 0} cm</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Total Frentes</p>
+                          <p className="font-medium">{measurement.total_facings || 0}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Frentes Nossas</p>
+                          <p className="font-medium">{measurement.our_brands_facings || 0}</p>
+                        </div>
+                      </div>
+                      
+                      {measurement.shelf_share_percentage !== null && (
+                        <div>
+                          <div className="flex justify-between text-sm mb-2">
+                            <span>Espaço Ocupado</span>
+                            <span className="font-semibold">{measurement.shelf_share_percentage.toFixed(1)}%</span>
+                          </div>
+                          <Progress value={measurement.shelf_share_percentage} />
+                        </div>
+                      )}
+
+                      {measurement.observations && (
+                        <div className="mt-3 p-2 bg-muted rounded-md">
+                          <p className="text-sm">{measurement.observations}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="shelfshare" className="space-y-4">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Dados de Shelf Share ({shelfShare.length})
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Análises detalhadas de participação por produto
+                </p>
+              </div>
+              
+              {loading ? (
+                <p className="text-center text-muted-foreground">Carregando...</p>
+              ) : shelfShare.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    Nenhum dado de shelf share registrado para este PDV
+                  </CardContent>
+                </Card>
+              ) : (
+                shelfShare.map((share) => (
+                  <Card key={share.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-base">
+                            {share.product?.name || "Produto"}
+                          </CardTitle>
+                          <CardDescription className="mt-1">
+                            {share.product?.sku && `SKU: ${share.product.sku} • `}
+                            {format(new Date(share.recorded_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                          </CardDescription>
+                        </div>
+                        <Badge variant={share.in_stock ? "default" : "destructive"}>
+                          {share.in_stock ? "Em Estoque" : "Ruptura"}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Frentes</p>
+                          <p className="font-medium">{share.quantity_facings || 0}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Preço</p>
+                          <p className="font-medium">
+                            {share.price_found ? `R$ ${share.price_found.toFixed(2)}` : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Posição</p>
+                          <p className="font-medium">{share.shelf_position || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Visibilidade</p>
+                          <p className="font-medium">
+                            {share.visibility_score ? `${share.visibility_score}/10` : "-"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {share.promotion_active && (
+                        <div className="mt-3 pt-3 border-t">
+                          <Badge variant="default" className="mb-2">🎁 Promoção Ativa</Badge>
+                          {share.promotion_type && (
+                            <p className="text-sm text-muted-foreground">{share.promotion_type}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {share.competitor_nearby && (
+                        <div className="mt-2 pt-2 border-t">
+                          <Badge variant="destructive">⚠️ Concorrente próximo</Badge>
+                        </div>
+                      )}
+
+                      {share.observations && (
+                        <div className="mt-3 p-2 bg-muted rounded-md">
+                          <p className="text-sm">{share.observations}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="competitor" className="space-y-4">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  Inteligência de Concorrentes ({competitorIntel.length})
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Análises comparativas com produtos concorrentes
+                </p>
+              </div>
+              
+              {loading ? (
+                <p className="text-center text-muted-foreground">Carregando...</p>
+              ) : competitorIntel.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    Nenhuma análise de concorrente registrada para este PDV
+                  </CardContent>
+                </Card>
+              ) : (
+                competitorIntel.map((intel) => (
+                  <Card key={intel.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            {intel.competitor?.brand || "Concorrente"}
+                            {intel.competitor?.name && ` - ${intel.competitor.name}`}
+                          </CardTitle>
+                          <CardDescription className="mt-1">
+                            {intel.product_name && `${intel.product_name} • `}
+                            {format(new Date(intel.recorded_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                          </CardDescription>
+                        </div>
+                        <Badge variant={intel.price_difference_percentage && intel.price_difference_percentage < 0 ? "default" : "destructive"}>
+                          {intel.price_difference_percentage 
+                            ? `${intel.price_difference_percentage > 0 ? '+' : ''}${intel.price_difference_percentage.toFixed(1)}%`
+                            : "Sem dados"}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
+                        <div>
+                          <p className="text-muted-foreground">Preço Concorrente</p>
+                          <p className="font-medium">
+                            {intel.price ? `R$ ${intel.price.toFixed(2)}` : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Nosso Preço</p>
+                          <p className="font-medium">
+                            {intel.our_price ? `R$ ${intel.our_price.toFixed(2)}` : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Frentes</p>
+                          <p className="font-medium">{intel.facings_count || 0}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Share (%)</p>
+                          <p className="font-medium">
+                            {intel.shelf_share_percentage?.toFixed(1) || 0}%
+                          </p>
+                        </div>
+                      </div>
+
+                      {intel.promotion_active && (
+                        <div className="mb-2">
+                          <Badge variant="destructive">🎁 Promoção Concorrente Ativa</Badge>
+                          {intel.promotion_description && (
+                            <p className="text-sm text-muted-foreground mt-1">{intel.promotion_description}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {intel.has_special_display && (
+                        <Badge variant="secondary" className="mb-2">⭐ Display Especial</Badge>
+                      )}
+
+                      {intel.visibility_score && (
+                        <div className="mt-2">
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-muted-foreground">Visibilidade</span>
+                            <span className="font-semibold">{intel.visibility_score}/10</span>
+                          </div>
+                          <Progress value={intel.visibility_score * 10} />
+                        </div>
+                      )}
+
+                      {intel.observations && (
+                        <div className="mt-3 p-2 bg-muted rounded-md">
+                          <p className="text-sm">{intel.observations}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </TabsContent>
 
             <TabsContent value="insights" className="space-y-3">
