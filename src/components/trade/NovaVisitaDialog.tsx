@@ -73,9 +73,17 @@ export const NovaVisitaDialog = ({ open, onOpenChange, onSuccess }: NovaVisitaDi
 
       if (error) throw error;
 
+      console.log("✅ Visita criada com sucesso para loja:", formData.store_id);
       toast.success("Visita agendada com sucesso!");
-      onSuccess?.();
+      
+      // Chamar callback de sucesso ANTES de fechar o dialog
+      if (onSuccess) {
+        onSuccess();
+      }
+      
       onOpenChange(false);
+      
+      // Limpar formulário
       setFormData({
         store_id: "",
         store_name: "",

@@ -264,7 +264,13 @@ const TradeStores = () => {
         
         <StoreDetailDialog
           open={showDetailDialog}
-          onOpenChange={setShowDetailDialog}
+          onOpenChange={(open) => {
+            setShowDetailDialog(open);
+            if (!open) {
+              console.log("🔄 StoreDetailDialog fechado, limpando detailStoreId");
+              setDetailStoreId(null);
+            }
+          }}
           storeId={detailStoreId}
         />
         

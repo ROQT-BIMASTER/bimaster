@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StoreShareHistoryChart } from "./StoreShareHistoryChart";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 interface StoreDetailDialogProps {
   open: boolean;
@@ -32,25 +33,49 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
   useEffect(() => {
     if (open && storeId) {
       fetchStoreDetails();
+    } else if (!open) {
+      // Limpar estados ao fechar o dialog
+      console.log("🧹 Limpando estados do StoreDetailDialog");
+      setStore(null);
+      setVisits([]);
+      setScheduledVisits([]);
+      setInsights([]);
+      setPhotos([]);
+      setAudits([]);
+      setInvestments([]);
+      setPromotions([]);
+      setLoading(true);
     }
   }, [open, storeId]);
 
   const fetchStoreDetails = async () => {
-    if (!storeId) return;
+    if (!storeId) {
+      console.log("⚠️ StoreDetailDialog: storeId é null/undefined");
+      return;
+    }
     
+    console.log("🔄 StoreDetailDialog: Carregando detalhes da loja", storeId);
     setLoading(true);
+    
     try {
       // Buscar dados da loja
-      const { data: storeData } = await supabase
+      const { data: storeData, error: storeError } = await supabase
         .from("stores")
         .select("*")
         .eq("id", storeId)
         .single();
 
+      if (storeError) {
+        console.error("❌ Erro ao buscar loja:", storeError);
+        toast.error("Erro ao carregar dados da loja");
+        throw storeError;
+      }
+
+      console.log("✅ Loja carregada:", storeData?.name);
       setStore(storeData);
 
       // Buscar visitas realizadas
-      const { data: visitsData } = await supabase
+      const { data: visitsData, error: visitsError } = await supabase
         .from("visits")
         .select(`
           *,
@@ -61,10 +86,16 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
         .order("scheduled_date", { ascending: false })
         .limit(20);
 
+      if (visitsError) {
+        console.error("❌ Erro ao buscar visitas realizadas:", visitsError);
+      } else {
+        console.log(`✅ ${visitsData?.length || 0} visitas realizadas carregadas`);
+      }
+
       setVisits(visitsData || []);
 
       // Buscar visitas agendadas
-      const { data: scheduledVisitsData } = await supabase
+      const { data: scheduledVisitsData, error: scheduledError } = await supabase
         .from("visits")
         .select(`
           *,
@@ -75,7 +106,17 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
         .order("scheduled_date", { ascending: true })
         .limit(20);
 
+      if (scheduledError) {
+        console.error("❌ Erro ao buscar visitas agendadas:", scheduledError);
+      } else {
+        console.log(`✅ ${scheduledVisitsData?.length || 0} visitas agendadas carregadas`);
+      }
+
       setScheduledVisits(scheduledVisitsData || []);
+      
+      if ((scheduledVisitsData?.length || 0) > 0) {
+        toast.success(`${scheduledVisitsData!.length} visita(s) agendada(s) encontrada(s)`);
+      }
 
       // Buscar insights de IA
       const { data: insightsData } = await supabase
@@ -136,9 +177,11 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
       setPromotions(promotionsData || []);
 
     } catch (error) {
-      console.error("Erro ao carregar detalhes da loja:", error);
+      console.error("❌ Erro geral ao carregar detalhes:", error);
+      toast.error("Erro ao carregar detalhes da loja");
     } finally {
       setLoading(false);
+      console.log("✅ Carregamento concluído");
     }
   };
 
