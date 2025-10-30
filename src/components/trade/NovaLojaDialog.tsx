@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
+import { NovaCategoriaDialog } from "./NovaCategoriaDialog";
+import { NovaRedeDialog } from "./NovaRedeDialog";
 
 interface NovaLojaDialogProps {
   open: boolean;
@@ -135,32 +138,19 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
 
             <div className="space-y-2">
               <Label htmlFor="category">Categoria</Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="supermercado">Supermercado</SelectItem>
-                  <SelectItem value="farmacia">Farmácia</SelectItem>
-                  <SelectItem value="atacado">Atacado</SelectItem>
-                  <SelectItem value="conveniencia">Conveniência</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button type="button" size="icon" variant="outline" onClick={() => setShowCategoriaDialog(true)}>
-                <Plus className="h-4 w-4" />
-              </Button>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="chain">Rede</Label>
               <div className="flex gap-2">
-                <Input
-                  id="chain"
-                  value={formData.chain}
-                  onChange={(e) => setFormData({ ...formData, chain: e.target.value })}
-                />
-                <Button type="button" size="icon" variant="outline" onClick={() => setShowRedeDialog(true)}>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="supermercado">Supermercado</SelectItem>
+                    <SelectItem value="farmacia">Farmácia</SelectItem>
+                    <SelectItem value="atacado">Atacado</SelectItem>
+                    <SelectItem value="conveniencia">Conveniência</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button type="button" size="icon" variant="outline" onClick={() => setShowCategoriaDialog(true)}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -264,6 +254,22 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <NovaCategoriaDialog
+        open={showCategoriaDialog}
+        onOpenChange={setShowCategoriaDialog}
+        onSuccess={(newCategory) => {
+          setFormData({ ...formData, category: newCategory });
+        }}
+      />
+
+      <NovaRedeDialog
+        open={showRedeDialog}
+        onOpenChange={setShowRedeDialog}
+        onSuccess={(newChain) => {
+          setFormData({ ...formData, chain: newChain });
+        }}
+      />
     </Dialog>
   );
 };
