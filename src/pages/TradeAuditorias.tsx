@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AuditoriaGondolaDialog } from "@/components/trade/AuditoriaGondolaDialog";
+import { EditarAuditoriaDialog } from "@/components/trade/EditarAuditoriaDialog";
 import { TradeFilters } from "@/components/trade/TradeFilters";
-import { Plus, Store, Package, TrendingUp, TrendingDown, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Store, Package, TrendingUp, TrendingDown, CheckCircle, XCircle, Edit, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -41,6 +43,9 @@ export default function TradeAuditorias() {
   const [filteredAuditorias, setFilteredAuditorias] = useState<Auditoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
+  const [deleteAuditId, setDeleteAuditId] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
   const { toast } = useToast();
@@ -144,6 +149,33 @@ export default function TradeAuditorias() {
     );
   };
 
+  const handleDeleteAudit = async () => {
+    if (!deleteAuditId) return;
+
+    try {
+      const { error } = await supabase
+        .from("gondola_audits")
+        .delete()
+        .eq("id", deleteAuditId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Auditoria excluída",
+        description: "A auditoria foi removida com sucesso.",
+      });
+
+      fetchAuditorias();
+      setDeleteAuditId(null);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao excluir",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -185,7 +217,7 @@ export default function TradeAuditorias() {
               <Card key={audit.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex-1">
                       <CardTitle className="flex items-center gap-2">
                         <Package className="h-5 w-5" />
                         {audit.products?.name}
@@ -201,8 +233,29 @@ export default function TradeAuditorias() {
                         )}
                       </CardDescription>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {format(new Date(audit.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="text-sm text-muted-foreground">
+                        {format(new Date(audit.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedAuditId(audit.id);
+                            setEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteAuditId(audit.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
@@ -290,6 +343,30 @@ export default function TradeAuditorias() {
         storeId={selectedStore}
         onSuccess={fetchAuditorias}
       />
+
+      <EditarAuditoriaDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        auditoriaId={selectedAuditId}
+        onSuccess={fetchAuditorias}
+      />
+
+      <AlertDialog open={!!deleteAuditId} onOpenChange={(open) => !open && setDeleteAuditId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta auditoria? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAudit} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

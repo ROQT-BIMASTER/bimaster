@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Camera, DollarSign, FileText, MapPin, Phone, Store, TrendingUp, User } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { StoreShareHistoryChart } from "./StoreShareHistoryChart";
 
 interface StoreDetailDialogProps {
   open: boolean;
@@ -128,13 +129,14 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
         </DialogHeader>
 
         <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="info">Info</TabsTrigger>
-            <TabsTrigger value="visits">Visitas ({visits.length})</TabsTrigger>
-            <TabsTrigger value="photos">Fotos ({photos.length})</TabsTrigger>
-            <TabsTrigger value="audits">Auditorias ({audits.length})</TabsTrigger>
-            <TabsTrigger value="investments">Investimentos ({investments.length})</TabsTrigger>
-            <TabsTrigger value="promotions">Promoções ({promotions.length})</TabsTrigger>
+            <TabsTrigger value="share">Share</TabsTrigger>
+            <TabsTrigger value="visits">Visitas</TabsTrigger>
+            <TabsTrigger value="photos">Fotos</TabsTrigger>
+            <TabsTrigger value="audits">Auditorias</TabsTrigger>
+            <TabsTrigger value="investments">Investimentos</TabsTrigger>
+            <TabsTrigger value="promotions">Promoções</TabsTrigger>
           </TabsList>
 
           <ScrollArea className="h-[60vh] mt-4">
@@ -191,6 +193,10 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                   </CardContent>
                 </Card>
               )}
+            </TabsContent>
+
+            <TabsContent value="share">
+              <StoreShareHistoryChart storeId={storeId} months={6} />
             </TabsContent>
 
             <TabsContent value="visits" className="space-y-3">

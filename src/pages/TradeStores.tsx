@@ -3,7 +3,8 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Upload, Search, MapPin, Edit, Eye } from "lucide-react";
+import { Plus, Upload, Search, MapPin, Edit, Eye, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,7 @@ const TradeStores = () => {
   const [detailStoreId, setDetailStoreId] = useState<string | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editStoreId, setEditStoreId] = useState<string | null>(null);
+  const [deleteStoreId, setDeleteStoreId] = useState<string | null>(null);
 
   if (!permissionsLoading && !hasPermission("trade_stores")) {
     return <Navigate to="/dashboard" replace />;
@@ -104,6 +106,25 @@ const TradeStores = () => {
         return "secondary";
       default:
         return "outline";
+    }
+  };
+
+  const handleDeleteStore = async () => {
+    if (!deleteStoreId) return;
+
+    try {
+      const { error } = await supabase
+        .from("stores")
+        .update({ status: "inactive" })
+        .eq("id", deleteStoreId);
+
+      if (error) throw error;
+
+      toast.success("Loja desativada com sucesso!");
+      fetchStores();
+      setDeleteStoreId(null);
+    } catch (error: any) {
+      toast.error("Erro ao desativar loja: " + error.message);
     }
   };
 
@@ -209,6 +230,13 @@ const TradeStores = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
+                          onClick={() => setDeleteStoreId(store.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
                           onClick={() => {
                             if (store.latitude && store.longitude) {
                               window.open(`https://www.google.com/maps?q=${store.latitude},${store.longitude}`, '_blank');
@@ -246,6 +274,23 @@ const TradeStores = () => {
           storeId={editStoreId}
           onSuccess={fetchStores}
         />
+
+        <AlertDialog open={!!deleteStoreId} onOpenChange={(open) => !open && setDeleteStoreId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Desativação</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja desativar esta loja? A loja ficará inativa mas não será removida permanentemente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteStore} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Desativar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Calendar as CalendarIcon, Link as LinkIcon } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Link as LinkIcon, Edit, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import { Navigate } from "react-router-dom";
 import { VincularStoreDialog } from "@/components/trade/VincularStoreDialog";
 import { NovaVisitaDialog } from "@/components/trade/NovaVisitaDialog";
 import { VisitDetailDialog } from "@/components/trade/VisitDetailDialog";
+import { EditarVisitaDialog } from "@/components/trade/EditarVisitaDialog";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 
@@ -37,6 +39,9 @@ const TradeVisits = () => {
   const [showVincularDialog, setShowVincularDialog] = useState(false);
   const [showNovaVisita, setShowNovaVisita] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editVisitId, setEditVisitId] = useState<string | null>(null);
+  const [deleteVisitId, setDeleteVisitId] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
 
@@ -132,6 +137,25 @@ const TradeVisits = () => {
   useEffect(() => {
     applyFilters();
   }, [selectedStore, aiCriteria, allVisits]);
+
+  const handleDeleteVisit = async () => {
+    if (!deleteVisitId) return;
+
+    try {
+      const { error } = await supabase
+        .from("visits")
+        .delete()
+        .eq("id", deleteVisitId);
+
+      if (error) throw error;
+
+      toast.success("Visita excluída com sucesso!");
+      fetchVisits();
+      setDeleteVisitId(null);
+    } catch (error: any) {
+      toast.error("Erro ao excluir visita: " + error.message);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -265,6 +289,23 @@ const TradeVisits = () => {
                       >
                         Ver Detalhes
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditVisitId(visit.id);
+                          setShowEditDialog(true);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteVisitId(visit.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                       {visit.status === "scheduled" && (
                         <Button 
                           size="sm"
@@ -317,6 +358,30 @@ const TradeVisits = () => {
           onOpenChange={setShowDetailDialog}
           visitId={selectedVisitId}
         />
+
+        <EditarVisitaDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          visitId={editVisitId}
+          onSuccess={fetchVisits}
+        />
+
+        <AlertDialog open={!!deleteVisitId} onOpenChange={(open) => !open && setDeleteVisitId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir esta visita? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteVisit} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

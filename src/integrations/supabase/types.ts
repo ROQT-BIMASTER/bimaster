@@ -2578,6 +2578,141 @@ export type Database = {
           },
         ]
       }
+      shelf_share_history: {
+        Row: {
+          competitor_facings: number | null
+          competitor_width_cm: number | null
+          created_at: string | null
+          created_by: string | null
+          facing_share_percentage: number | null
+          id: string
+          measurement_date: string
+          notes: string | null
+          our_facings: number | null
+          our_width_cm: number | null
+          products_count: number | null
+          shelf_share_percentage: number | null
+          store_id: string
+          total_facings: number | null
+          total_width_cm: number | null
+        }
+        Insert: {
+          competitor_facings?: number | null
+          competitor_width_cm?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          facing_share_percentage?: number | null
+          id?: string
+          measurement_date: string
+          notes?: string | null
+          our_facings?: number | null
+          our_width_cm?: number | null
+          products_count?: number | null
+          shelf_share_percentage?: number | null
+          store_id: string
+          total_facings?: number | null
+          total_width_cm?: number | null
+        }
+        Update: {
+          competitor_facings?: number | null
+          competitor_width_cm?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          facing_share_percentage?: number | null
+          id?: string
+          measurement_date?: string
+          notes?: string | null
+          our_facings?: number | null
+          our_width_cm?: number | null
+          products_count?: number | null
+          shelf_share_percentage?: number | null
+          store_id?: string
+          total_facings?: number | null
+          total_width_cm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelf_share_history_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "shelf_share_history_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_categories: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      store_chains: {
+        Row: {
+          active: boolean | null
+          cnpj: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          cnpj?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          cnpj?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
       store_products: {
         Row: {
           brand: string | null

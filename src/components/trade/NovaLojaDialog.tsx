@@ -16,6 +16,8 @@ interface NovaLojaDialogProps {
 
 export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const [showCategoriaDialog, setShowCategoriaDialog] = useState(false);
+  const [showRedeDialog, setShowRedeDialog] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -144,6 +146,24 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
                   <SelectItem value="conveniencia">Conveniência</SelectItem>
                 </SelectContent>
               </Select>
+              <Button type="button" size="icon" variant="outline" onClick={() => setShowCategoriaDialog(true)}>
+                <Plus className="h-4 w-4" />
+              </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="chain">Rede</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="chain"
+                  value={formData.chain}
+                  onChange={(e) => setFormData({ ...formData, chain: e.target.value })}
+                />
+                <Button type="button" size="icon" variant="outline" onClick={() => setShowRedeDialog(true)}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="col-span-2 space-y-2">
