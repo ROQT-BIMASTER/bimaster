@@ -139,7 +139,7 @@ const TradeStores = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => navigate('/dashboard/trade-marketing/import-stores')}>
+            <Button onClick={() => navigate('/dashboard/trade/import-stores')}>
               <Upload className="mr-2 h-4 w-4" />
               Importar Lojas
             </Button>

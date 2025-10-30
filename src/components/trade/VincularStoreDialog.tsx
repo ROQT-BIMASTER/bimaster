@@ -182,7 +182,7 @@ export const VincularStoreDialog = ({
                 size="sm"
                 onClick={() => {
                   onOpenChange(false);
-                  navigate("/dashboard/trade-marketing/import-stores");
+                  navigate("/dashboard/trade/import-stores");
                 }}
               >
                 Ir para Importação
