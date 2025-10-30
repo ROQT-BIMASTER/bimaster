@@ -24,6 +24,9 @@ import {
   AlertCircle,
   Briefcase,
   User,
+  Ruler,
+  Target,
+  Award,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -42,6 +45,7 @@ export function PhotoDetailDialog({ photoId, open, onOpenChange }: PhotoDetailDi
   const [investments, setInvestments] = useState<any[]>([]);
   const [relatedPhotos, setRelatedPhotos] = useState<any[]>([]);
   const [shelfShare, setShelfShare] = useState<any[]>([]);
+  const [shelfMeasurements, setShelfMeasurements] = useState<any[]>([]);
 
   useEffect(() => {
     if (photoId && open) {
@@ -138,6 +142,15 @@ export function PhotoDetailDialog({ photoId, open, onOpenChange }: PhotoDetailDi
           .limit(10);
 
         setShelfShare(shelfData || []);
+        
+        // Buscar medições de prateleira relacionadas à visita
+        const { data: measurementsData } = await supabase
+          .from("shelf_measurements")
+          .select("*")
+          .eq("visit_id", photo.visit_id)
+          .order("created_at", { ascending: false });
+
+        setShelfMeasurements(measurementsData || []);
       }
 
     } catch (error: any) {
@@ -563,6 +576,208 @@ export function PhotoDetailDialog({ photoId, open, onOpenChange }: PhotoDetailDi
 
             {/* Aba: Análise da IA */}
             <TabsContent value="analysis" className="space-y-4">
+              {/* Medições de Prateleira e Score */}
+              {shelfMeasurements.length > 0 && (
+                <>
+                  {/* Score Geral do Trabalho */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Award className="h-5 w-5" />
+                        Score de Qualidade do Trabalho
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {(() => {
+                        const totalMeasurements = shelfMeasurements.length;
+                        const avgShelfShare = shelfMeasurements.reduce((acc, m) => acc + (m.shelf_share_percentage || 0), 0) / totalMeasurements;
+                        const avgFacingShare = shelfMeasurements.reduce((acc, m) => acc + (m.facing_share_percentage || 0), 0) / totalMeasurements;
+                        const completeness = shelfMeasurements.filter(m => 
+                          m.total_shelf_width_cm && m.our_brands_width_cm && m.competitors_width_cm
+                        ).length / totalMeasurements * 100;
+                        
+                        // Cálculo do score: média ponderada
+                        const qualityScore = Math.round(
+                          (avgShelfShare * 0.4) + 
+                          (avgFacingShare * 0.3) + 
+                          (completeness * 0.3)
+                        );
+
+                        return (
+                          <>
+                            <div className="flex items-center gap-4 mb-6">
+                              <div className={`text-5xl font-bold ${
+                                qualityScore >= 80 ? "text-green-500" :
+                                qualityScore >= 60 ? "text-yellow-500" :
+                                "text-destructive"
+                              }`}>
+                                {qualityScore}
+                              </div>
+                              <div className="flex-1 space-y-2">
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-muted-foreground">Qualidade Geral</span>
+                                  <span className="font-medium">
+                                    {qualityScore >= 80 ? "Excelente" :
+                                     qualityScore >= 60 ? "Bom" :
+                                     qualityScore >= 40 ? "Regular" : "Precisa Melhorar"}
+                                  </span>
+                                </div>
+                                <div className="h-3 bg-muted rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full transition-all ${
+                                      qualityScore >= 80 ? "bg-green-500" :
+                                      qualityScore >= 60 ? "bg-yellow-500" :
+                                      "bg-destructive"
+                                    }`}
+                                    style={{ width: `${qualityScore}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4">
+                              <div className="text-center p-3 rounded-lg bg-muted/50">
+                                <p className="text-xs text-muted-foreground mb-1">Share Médio</p>
+                                <p className="text-2xl font-bold">{avgShelfShare.toFixed(1)}%</p>
+                              </div>
+                              <div className="text-center p-3 rounded-lg bg-muted/50">
+                                <p className="text-xs text-muted-foreground mb-1">Facing Share</p>
+                                <p className="text-2xl font-bold">{avgFacingShare.toFixed(1)}%</p>
+                              </div>
+                              <div className="text-center p-3 rounded-lg bg-muted/50">
+                                <p className="text-xs text-muted-foreground mb-1">Completude</p>
+                                <p className="text-2xl font-bold">{completeness.toFixed(0)}%</p>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+
+                  {/* Detalhamento das Medições */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Ruler className="h-5 w-5" />
+                        Medições de Prateleira
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {shelfMeasurements.map((measurement) => (
+                        <div key={measurement.id} className="p-4 rounded-lg border bg-card">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold">{measurement.shelf_section || "Seção"}</h4>
+                            <Badge variant="outline">
+                              {format(new Date(measurement.measurement_date), "dd/MM/yyyy")}
+                            </Badge>
+                          </div>
+
+                          {/* Dimensões Totais */}
+                          <div className="grid grid-cols-3 gap-3 mb-4">
+                            <div className="text-center p-2 rounded bg-muted/50">
+                              <p className="text-xs text-muted-foreground">Largura Total</p>
+                              <p className="font-bold">{measurement.total_shelf_width_cm} cm</p>
+                            </div>
+                            <div className="text-center p-2 rounded bg-muted/50">
+                              <p className="text-xs text-muted-foreground">Altura</p>
+                              <p className="font-bold">{measurement.total_shelf_height_cm} cm</p>
+                            </div>
+                            <div className="text-center p-2 rounded bg-muted/50">
+                              <p className="text-xs text-muted-foreground">Total Facings</p>
+                              <p className="font-bold">{measurement.total_facings}</p>
+                            </div>
+                          </div>
+
+                          {/* Comparação Nossas Marcas vs Concorrentes */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <Target className="h-4 w-4 text-primary" />
+                              <span className="text-sm font-medium">Nossas Marcas</span>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                                <p className="text-xs text-muted-foreground mb-1">Largura</p>
+                                <p className="text-lg font-bold text-primary">
+                                  {measurement.our_brands_width_cm} cm
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {measurement.our_brands_facings} facings
+                                </p>
+                              </div>
+                              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                                <p className="text-xs text-muted-foreground mb-1">Concorrentes</p>
+                                <p className="text-lg font-bold text-destructive">
+                                  {measurement.competitors_width_cm} cm
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {measurement.competitors_facings} facings
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Gráfico de Share */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="font-medium">Share da Gôndola</span>
+                                <span className="font-bold text-primary">
+                                  {measurement.shelf_share_percentage?.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="h-6 bg-muted rounded-full overflow-hidden flex">
+                                <div
+                                  className="bg-primary flex items-center justify-center text-xs text-white font-medium"
+                                  style={{ width: `${measurement.shelf_share_percentage}%` }}
+                                >
+                                  {measurement.shelf_share_percentage > 15 && "Nosso"}
+                                </div>
+                                <div
+                                  className="bg-destructive flex items-center justify-center text-xs text-white font-medium"
+                                  style={{ width: `${100 - measurement.shelf_share_percentage}%` }}
+                                >
+                                  {(100 - measurement.shelf_share_percentage) > 15 && "Concorrentes"}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="font-medium">Share de Facings</span>
+                                <span className="font-bold text-primary">
+                                  {measurement.facing_share_percentage?.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="h-6 bg-muted rounded-full overflow-hidden flex">
+                                <div
+                                  className="bg-primary flex items-center justify-center text-xs text-white font-medium"
+                                  style={{ width: `${measurement.facing_share_percentage}%` }}
+                                >
+                                  {measurement.facing_share_percentage > 15 && "Nosso"}
+                                </div>
+                                <div
+                                  className="bg-destructive flex items-center justify-center text-xs text-white font-medium"
+                                  style={{ width: `${100 - measurement.facing_share_percentage}%` }}
+                                >
+                                  {(100 - measurement.facing_share_percentage) > 15 && "Concorrentes"}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {measurement.observations && (
+                            <div className="mt-3 pt-3 border-t">
+                              <p className="text-xs text-muted-foreground mb-1">Observações</p>
+                              <p className="text-sm">{measurement.observations}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+
               {photoData.ai_processed && photoData.ai_analysis ? (
                 <>
                   {photoData.ai_analysis.compliance_score && (
