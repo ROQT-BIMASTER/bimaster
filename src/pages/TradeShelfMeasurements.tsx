@@ -129,6 +129,7 @@ export default function TradeShelfMeasurements() {
           competitors_width_cm: formData.competitors_width_cm ? parseFloat(formData.competitors_width_cm) : null,
           competitors_facings: formData.competitors_facings ? parseInt(formData.competitors_facings) : null,
           observations: formData.observations || null,
+          vendedor_id: user.id,
           created_by: user.id
         });
 
