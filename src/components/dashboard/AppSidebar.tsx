@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Loader2 } from "lucide-react";
 
 const iconMap: Record<string, any> = {
@@ -56,10 +57,13 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { permissions, loading, hasPermission } = useScreenPermissions();
+  const { permissions, loading: permissionsLoading, hasPermission } = useScreenPermissions();
+  const { hasModulePermission, loading: modulesLoading } = useModulePermissions();
   
   const [prospectsOpen, setProspectsOpen] = useState(true);
   const [tradeOpen, setTradeOpen] = useState(true);
+
+  const loading = permissionsLoading || modulesLoading;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -194,7 +198,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Módulo de Prospects */}
-        {hasPermission("prospects") && (
+        {hasModulePermission("prospects") && (
           <SidebarGroup>
             <Collapsible open={prospectsOpen} onOpenChange={setProspectsOpen}>
               <SidebarGroupLabel asChild>
@@ -248,7 +252,7 @@ export function AppSidebar() {
         )}
 
         {/* Módulo de Trade Marketing */}
-        {hasPermission("trade_marketing") && (
+        {hasModulePermission("trade") && (
           <SidebarGroup>
             <Collapsible open={tradeOpen} onOpenChange={setTradeOpen}>
               <SidebarGroupLabel asChild>

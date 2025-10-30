@@ -1202,6 +1202,39 @@ export type Database = {
           },
         ]
       }
+      modulos_sistema: {
+        Row: {
+          ativo: boolean | null
+          codigo: string
+          created_at: string | null
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          ordem: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo: string
+          created_at?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo?: string
+          created_at?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+        }
+        Relationships: []
+      }
       municipios: {
         Row: {
           created_at: string | null
@@ -2192,6 +2225,35 @@ export type Database = {
             columns: ["scheduled_report_id"]
             isOneToOne: false
             referencedRelation: "scheduled_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permissoes_modulos: {
+        Row: {
+          created_at: string | null
+          id: string
+          modulo_id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          modulo_id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          modulo_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissoes_modulos_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "modulos_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -3957,6 +4019,42 @@ export type Database = {
         }
         Relationships: []
       }
+      usuario_permissoes_modulos: {
+        Row: {
+          created_at: string | null
+          id: string
+          modulo_id: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          modulo_id: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          modulo_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuario_permissoes_modulos_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "modulos_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usuario_permissoes_modulos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuario_permissoes_telas: {
         Row: {
           created_at: string | null
@@ -4243,6 +4341,10 @@ export type Database = {
       }
       usuario_tem_acesso_prospect: {
         Args: { _prospect_id: string; _user_id: string }
+        Returns: boolean
+      }
+      usuario_tem_permissao_modulo: {
+        Args: { _modulo_codigo: string; _user_id: string }
         Returns: boolean
       }
       usuario_tem_permissao_tela: {
