@@ -63,8 +63,7 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
 
       setVisits(visitsData || []);
 
-      // Buscar visitas agendadas do usuário atual
-      const { data: userData } = await supabase.auth.getUser();
+      // Buscar visitas agendadas
       const { data: scheduledVisitsData } = await supabase
         .from("visits")
         .select(`
@@ -72,7 +71,6 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
           user:profiles!visits_user_id_fkey(nome)
         `)
         .eq("store_id", storeId)
-        .eq("user_id", userData.user?.id)
         .eq("status", "scheduled")
         .order("scheduled_date", { ascending: true })
         .limit(20);
