@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   Store, Calendar, Camera, Tag, Upload, Sparkles, 
-  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck
+  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck, Ruler
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -402,6 +402,14 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     }
   };
   
+  const handleGoToShelfMeasurements = () => {
+    if (completedVisitId) {
+      onOpenChange(false);
+      resetForm();
+      navigate(`/dashboard/trade/shelf-measurements`);
+    }
+  };
+  
   const handleClose = () => {
     onOpenChange(false);
     resetForm();
@@ -435,6 +443,17 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                 >
                   <ClipboardCheck className="mr-2 h-4 w-4" />
                   Ir para Auditoria
+                </Button>
+              )}
+              
+              {hasPermission("trade_shelf_measurements") && (
+                <Button 
+                  className="w-full" 
+                  onClick={handleGoToShelfMeasurements}
+                  variant="default"
+                >
+                  <Ruler className="mr-2 h-4 w-4" />
+                  Medir Prateleira
                 </Button>
               )}
               
