@@ -36,6 +36,7 @@ import TradeRelatorioCompetitivo from "./pages/TradeRelatorioCompetitivo";
 import TradeComparacaoProdutos from "./pages/TradeComparacaoProdutos";
 import TradeSellOut from "./pages/TradeSellOut";
 import TradeShelfMeasurements from "./pages/TradeShelfMeasurements";
+import TradeMeasurementGuide from "./pages/TradeMeasurementGuide";
 import TradeOurBrands from "./pages/TradeOurBrands";
 import Ranking from "./pages/Ranking";
 import TradeFinanceiro from "./pages/TradeFinanceiro";

@@ -11,7 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TradeFilters } from "@/components/trade/TradeFilters";
-import { Ruler, CalendarIcon, TrendingUp, PieChart, BarChart3 } from "lucide-react";
+import { Ruler, CalendarIcon, TrendingUp, PieChart, BarChart3, HelpCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,7 @@ interface ShelfMeasurement {
 }
 
 export default function TradeShelfMeasurements() {
+  const navigate = useNavigate();
   const [measurements, setMeasurements] = useState<ShelfMeasurement[]>([]);
   const [filteredMeasurements, setFilteredMeasurements] = useState<ShelfMeasurement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -175,13 +177,22 @@ export default function TradeShelfMeasurements() {
               Gerencie o espaço ocupado pelas suas marcas nas lojas
             </p>
           </div>
-          <Button 
-            onClick={() => setDialogOpen(true)} 
-            disabled={!selectedStore}
-          >
-            <Ruler className="mr-2 h-4 w-4" />
-            Nova Medição
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => navigate("/dashboard/trade/measurement-guide")}
+            >
+              <HelpCircle className="mr-2 h-4 w-4" />
+              Como Medir
+            </Button>
+            <Button 
+              onClick={() => setDialogOpen(true)} 
+              disabled={!selectedStore}
+            >
+              <Ruler className="mr-2 h-4 w-4" />
+              Nova Medição
+            </Button>
+          </div>
         </div>
 
         <TradeFilters
