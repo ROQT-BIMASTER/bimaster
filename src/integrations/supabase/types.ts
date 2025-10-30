@@ -1289,6 +1289,42 @@ export type Database = {
         }
         Relationships: []
       }
+      our_brands: {
+        Row: {
+          active: boolean | null
+          brand_name: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_primary: boolean | null
+          logo_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          brand_name: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_primary?: boolean | null
+          logo_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          brand_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_primary?: boolean | null
+          logo_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       our_products: {
         Row: {
           active: boolean | null
@@ -2337,6 +2373,94 @@ export type Database = {
         }
         Relationships: []
       }
+      shelf_measurements: {
+        Row: {
+          competitors_facings: number | null
+          competitors_width_cm: number | null
+          created_at: string | null
+          created_by: string | null
+          facing_share_percentage: number | null
+          id: string
+          measurement_date: string
+          observations: string | null
+          our_brands_facings: number | null
+          our_brands_width_cm: number | null
+          photo_ids: string[] | null
+          shelf_section: string | null
+          shelf_share_percentage: number | null
+          store_id: string
+          total_facings: number | null
+          total_shelf_height_cm: number | null
+          total_shelf_width_cm: number
+          updated_at: string | null
+          visit_id: string | null
+        }
+        Insert: {
+          competitors_facings?: number | null
+          competitors_width_cm?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          facing_share_percentage?: number | null
+          id?: string
+          measurement_date?: string
+          observations?: string | null
+          our_brands_facings?: number | null
+          our_brands_width_cm?: number | null
+          photo_ids?: string[] | null
+          shelf_section?: string | null
+          shelf_share_percentage?: number | null
+          store_id: string
+          total_facings?: number | null
+          total_shelf_height_cm?: number | null
+          total_shelf_width_cm: number
+          updated_at?: string | null
+          visit_id?: string | null
+        }
+        Update: {
+          competitors_facings?: number | null
+          competitors_width_cm?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          facing_share_percentage?: number | null
+          id?: string
+          measurement_date?: string
+          observations?: string | null
+          our_brands_facings?: number | null
+          our_brands_width_cm?: number | null
+          photo_ids?: string[] | null
+          shelf_section?: string | null
+          shelf_share_percentage?: number | null
+          store_id?: string
+          total_facings?: number | null
+          total_shelf_height_cm?: number | null
+          total_shelf_width_cm?: number
+          updated_at?: string | null
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelf_measurements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "shelf_measurements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_measurements_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shelf_share: {
         Row: {
           competitor_nearby: boolean | null
@@ -2514,12 +2638,69 @@ export type Database = {
           },
         ]
       }
+      store_sellout_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          product_id: string
+          quantity: number
+          sellout_batch_id: string
+          store_id: string
+          total_amount: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          product_id: string
+          quantity: number
+          sellout_batch_id: string
+          store_id: string
+          total_amount?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          product_id?: string
+          quantity?: number
+          sellout_batch_id?: string
+          store_id?: string
+          total_amount?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_sellout_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_sellout_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_sellout_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_sellouts: {
         Row: {
+          batch_id: string | null
           created_at: string | null
           created_by: string | null
           id: string
           notes: string | null
+          order_number: string | null
           product_id: string
           quantity: number
           sale_date: string
@@ -2528,10 +2709,12 @@ export type Database = {
           unit_price: number | null
         }
         Insert: {
+          batch_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           notes?: string | null
+          order_number?: string | null
           product_id: string
           quantity: number
           sale_date?: string
@@ -2540,10 +2723,12 @@ export type Database = {
           unit_price?: number | null
         }
         Update: {
+          batch_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           notes?: string | null
+          order_number?: string | null
           product_id?: string
           quantity?: number
           sale_date?: string
@@ -3720,7 +3905,7 @@ export type Database = {
     Enums: {
       activity_result: "positivo" | "neutro" | "negativo"
       activity_type: "ligacao" | "email" | "reuniao" | "visita" | "proposta"
-      app_role: "admin" | "supervisor" | "vendedor"
+      app_role: "admin" | "supervisor" | "vendedor" | "promotora"
       client_category: "A" | "B" | "C" | "D"
       prospect_status:
         | "novo"
@@ -3870,7 +4055,7 @@ export const Constants = {
     Enums: {
       activity_result: ["positivo", "neutro", "negativo"],
       activity_type: ["ligacao", "email", "reuniao", "visita", "proposta"],
-      app_role: ["admin", "supervisor", "vendedor"],
+      app_role: ["admin", "supervisor", "vendedor", "promotora"],
       client_category: ["A", "B", "C", "D"],
       prospect_status: [
         "novo",

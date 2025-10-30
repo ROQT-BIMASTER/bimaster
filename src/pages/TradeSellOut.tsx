@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TradeFilters } from "@/components/trade/TradeFilters";
-import { NovoSellOutDialog } from "@/components/trade/NovoSellOutDialog";
+import { NovoSellOutMultiprodutos } from "@/components/trade/NovoSellOutMultiprodutos";
 import { GerenciarProdutosLojaDialog } from "@/components/trade/GerenciarProdutosLojaDialog";
 import { 
   Plus, Package, DollarSign, TrendingUp, TrendingDown, 
@@ -391,7 +391,7 @@ export default function TradeSellOut() {
         )}
       </div>
 
-      <NovoSellOutDialog
+      <NovoSellOutMultiprodutos
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         storeId={selectedStore}

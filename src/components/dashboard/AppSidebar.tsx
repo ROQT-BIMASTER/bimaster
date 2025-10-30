@@ -93,6 +93,8 @@ export function AppSidebar() {
     { title: "PDVs", url: "/dashboard/trade/stores", icon: Store },
     { title: "Visitas", url: "/dashboard/trade/visits", icon: Calendar },
     { title: "Sell Out", url: "/dashboard/trade/sellout", icon: TrendingUp },
+    { title: "Medição Prateleiras", url: "/dashboard/trade/shelf-measurements", icon: Activity },
+    { title: "Nossas Marcas", url: "/dashboard/trade/our-brands", icon: Tag },
     { title: "Fotos", url: "/dashboard/trade/photos", icon: Camera },
     { title: "Fotos Ideais", url: "/dashboard/trade/ideal-photos", icon: Image },
     { title: "Auditoria Gôndola", url: "/dashboard/trade/auditorias", icon: ClipboardCheck },

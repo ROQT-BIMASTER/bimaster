@@ -35,6 +35,8 @@ import TradeAuditorias from "./pages/TradeAuditorias";
 import TradeRelatorioCompetitivo from "./pages/TradeRelatorioCompetitivo";
 import TradeComparacaoProdutos from "./pages/TradeComparacaoProdutos";
 import TradeSellOut from "./pages/TradeSellOut";
+import TradeShelfMeasurements from "./pages/TradeShelfMeasurements";
+import TradeOurBrands from "./pages/TradeOurBrands";
 import Ranking from "./pages/Ranking";
 import TradeFinanceiro from "./pages/TradeFinanceiro";
 import TradeContasCorrentes from "./pages/TradeContasCorrentes";
@@ -121,6 +123,8 @@ const App = () => {
         <Route path="/dashboard/trade/financeiro/extrato" element={<ProtectedRoute><TradeExtratosPessoais /></ProtectedRoute>} />
         <Route path="/dashboard/trade/auditorias" element={<ProtectedRoute><TradeAuditorias /></ProtectedRoute>} />
         <Route path="/dashboard/trade/sellout" element={<ProtectedRoute><TradeSellOut /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/shelf-measurements" element={<ProtectedRoute><TradeShelfMeasurements /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/our-brands" element={<ProtectedRoute><TradeOurBrands /></ProtectedRoute>} />
         <Route path="/dashboard/trade/relatorio-competitivo" element={<ProtectedRoute><TradeRelatorioCompetitivo /></ProtectedRoute>} />
         <Route path="/dashboard/trade/comparacao-produtos" element={<ProtectedRoute><TradeComparacaoProdutos /></ProtectedRoute>} />
         
