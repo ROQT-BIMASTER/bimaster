@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,6 +20,82 @@ const TradeImportStores = () => {
   const [loading, setLoading] = useState(false);
   const [textoIA, setTextoIA] = useState("");
   const [loadingIA, setLoadingIA] = useState(false);
+  const [vendedores, setVendedores] = useState<any[]>([]);
+  const [supervisores, setSupervisores] = useState<any[]>([]);
+  const [vendedorSelecionado, setVendedorSelecionado] = useState<string>("");
+  const [supervisorSelecionado, setSupervisorSelecionado] = useState<string>("");
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!permissionsLoading) {
+      fetchUsuarios();
+      fetchCurrentUser();
+    }
+  }, [permissionsLoading]);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      setCurrentUserId(user.id);
+
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      setCurrentUserRole(roleData?.role || null);
+
+      // Se for vendedor ou promotor, já seleciona ele mesmo
+      if (roleData?.role === 'vendedor' || roleData?.role === 'promotor') {
+        setVendedorSelecionado(user.id);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar usuário atual:", error);
+    }
+  };
+
+  const fetchUsuarios = async () => {
+    try {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, nome, email")
+        .eq("status", "ativo")
+        .order("nome");
+
+      if (!profiles) return;
+
+      const userIds = profiles.map(p => p.id);
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", userIds);
+
+      const roleMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
+
+      const vendedoresList = profiles
+        .filter(p => {
+          const role = roleMap.get(p.id);
+          return role === 'vendedor' || role === 'promotor';
+        })
+        .map(p => ({ ...p, role: roleMap.get(p.id) }));
+
+      const supervisoresList = profiles
+        .filter(p => {
+          const role = roleMap.get(p.id);
+          return role === 'supervisor' || role === 'admin';
+        })
+        .map(p => ({ ...p, role: roleMap.get(p.id) }));
+
+      setVendedores(vendedoresList);
+      setSupervisores(supervisoresList);
+    } catch (error) {
+      console.error("Erro ao carregar usuários:", error);
+    }
+  };
 
   if (!permissionsLoading && !hasPermission("trade_import_stores")) {
     return <Navigate to="/dashboard" replace />;
@@ -35,6 +112,11 @@ const TradeImportStores = () => {
   const handleTraditionalImport = async () => {
     if (!file) {
       toast.error("Selecione um arquivo para importar");
+      return;
+    }
+
+    if (!vendedorSelecionado) {
+      toast.error("Selecione um vendedor responsável");
       return;
     }
 
@@ -76,6 +158,18 @@ const TradeImportStores = () => {
         return;
       }
 
+      // Buscar supervisor_id do vendedor se não foi informado
+      let supervisorId = supervisorSelecionado || null;
+      if (!supervisorId && vendedorSelecionado) {
+        const { data: vendedorProfile } = await supabase
+          .from("profiles")
+          .select("supervisor_id")
+          .eq("id", vendedorSelecionado)
+          .single();
+        
+        supervisorId = vendedorProfile?.supervisor_id || null;
+      }
+
       const stores = [];
       for (let i = 1; i < jsonData.length; i++) {
         const row = jsonData[i];
@@ -99,6 +193,8 @@ const TradeImportStores = () => {
           category: categoryIdx !== -1 ? String(row[categoryIdx] || "").trim() || null : null,
           priority: priorityIdx !== -1 ? String(row[priorityIdx] || "").trim() || null : null,
           status: "active",
+          vendedor_id: vendedorSelecionado,
+          supervisor_id: supervisorId,
         });
       }
 
@@ -140,6 +236,11 @@ const TradeImportStores = () => {
       return;
     }
 
+    if (!vendedorSelecionado) {
+      toast.error("Selecione um vendedor responsável");
+      return;
+    }
+
     setLoadingIA(true);
 
     try {
@@ -158,6 +259,18 @@ const TradeImportStores = () => {
         throw new Error("Formato de resposta inválido da IA");
       }
 
+      // Buscar supervisor_id do vendedor se não foi informado
+      let supervisorId = supervisorSelecionado || null;
+      if (!supervisorId && vendedorSelecionado) {
+        const { data: vendedorProfile } = await supabase
+          .from("profiles")
+          .select("supervisor_id")
+          .eq("id", vendedorSelecionado)
+          .single();
+        
+        supervisorId = vendedorProfile?.supervisor_id || null;
+      }
+
       const stores = functionData.stores.map((store: any, idx: number) => ({
         code: store.code || `STORE-${Date.now()}-${idx}`,
         name: store.name,
@@ -171,6 +284,8 @@ const TradeImportStores = () => {
         category: store.category || null,
         priority: store.priority || null,
         status: "active",
+        vendedor_id: vendedorSelecionado,
+        supervisor_id: supervisorId,
       }));
 
       const { data: userData } = await supabase.auth.getUser();
@@ -226,6 +341,56 @@ const TradeImportStores = () => {
                 <CardTitle>Upload de Planilha</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="vendedor-trad">Vendedor Responsável *</Label>
+                    <Select 
+                      value={vendedorSelecionado} 
+                      onValueChange={setVendedorSelecionado}
+                      disabled={currentUserRole === 'vendedor' || currentUserRole === 'promotor'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o vendedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vendedores.map((vendedor) => (
+                          <SelectItem key={vendedor.id} value={vendedor.id}>
+                            {vendedor.nome} - {vendedor.role === 'vendedor' ? 'Vendedor' : 'Promotor'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {currentUserRole === 'vendedor' || currentUserRole === 'promotor' 
+                        ? 'Você foi selecionado automaticamente'
+                        : 'Todas as lojas serão vinculadas a este vendedor'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="supervisor-trad">Supervisor (Opcional)</Label>
+                    <Select 
+                      value={supervisorSelecionado || "none"} 
+                      onValueChange={(value) => setSupervisorSelecionado(value === "none" ? "" : value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Usar supervisor do vendedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Usar supervisor do vendedor</SelectItem>
+                        {supervisores.map((supervisor) => (
+                          <SelectItem key={supervisor.id} value={supervisor.id}>
+                            {supervisor.nome} - {supervisor.role === 'supervisor' ? 'Supervisor' : 'Admin'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Se não informado, será usado o supervisor vinculado ao vendedor
+                    </p>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="file">Arquivo Excel (.xlsx, .xls)</Label>
                   <Input
@@ -242,7 +407,7 @@ const TradeImportStores = () => {
 
                 <Button
                   onClick={handleTraditionalImport}
-                  disabled={!file || loading}
+                  disabled={!file || loading || !vendedorSelecionado}
                   className="w-full"
                 >
                   {loading ? (
@@ -267,6 +432,56 @@ const TradeImportStores = () => {
                 <CardTitle>Importação Inteligente com IA</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="vendedor-ia">Vendedor Responsável *</Label>
+                    <Select 
+                      value={vendedorSelecionado} 
+                      onValueChange={setVendedorSelecionado}
+                      disabled={currentUserRole === 'vendedor' || currentUserRole === 'promotor'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o vendedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vendedores.map((vendedor) => (
+                          <SelectItem key={vendedor.id} value={vendedor.id}>
+                            {vendedor.nome} - {vendedor.role === 'vendedor' ? 'Vendedor' : 'Promotor'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {currentUserRole === 'vendedor' || currentUserRole === 'promotor' 
+                        ? 'Você foi selecionado automaticamente'
+                        : 'Todas as lojas serão vinculadas a este vendedor'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="supervisor-ia">Supervisor (Opcional)</Label>
+                    <Select 
+                      value={supervisorSelecionado || "none"} 
+                      onValueChange={(value) => setSupervisorSelecionado(value === "none" ? "" : value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Usar supervisor do vendedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Usar supervisor do vendedor</SelectItem>
+                        {supervisores.map((supervisor) => (
+                          <SelectItem key={supervisor.id} value={supervisor.id}>
+                            {supervisor.nome} - {supervisor.role === 'supervisor' ? 'Supervisor' : 'Admin'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Se não informado, será usado o supervisor vinculado ao vendedor
+                    </p>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="textoIA">
                     Cole os dados das lojas (qualquer formato)
@@ -288,7 +503,7 @@ Supermercado Extra Norte, contato@extra.com, (11) 98765-4321
 
                 <Button
                   onClick={handleImportIA}
-                  disabled={!textoIA.trim() || loadingIA}
+                  disabled={!textoIA.trim() || loadingIA || !vendedorSelecionado}
                   className="w-full"
                 >
                   {loadingIA ? (
