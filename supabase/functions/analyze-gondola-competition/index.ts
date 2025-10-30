@@ -1,10 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const requestSchema = z.object({
+  auditId: z.string().uuid({ message: 'auditId deve ser um UUID válido' })
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,7 +17,19 @@ serve(async (req) => {
   }
 
   try {
-    const { auditId } = await req.json();
+    // Validar entrada
+    const body = await req.json();
+    const validation = requestSchema.safeParse(body);
+    
+    if (!validation.success) {
+      console.error('❌ Erro de validação:', validation.error);
+      return new Response(
+        JSON.stringify({ error: 'Dados inválidos', details: validation.error.issues }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { auditId } = validation.data;
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

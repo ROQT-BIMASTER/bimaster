@@ -10,7 +10,7 @@ const corsHeaders = {
 const requestSchema = z.object({
   planilhaTexto: z.string().max(100000, { message: 'Texto da planilha muito longo (máx 100KB)' }).optional(),
   texto: z.string().max(100000, { message: 'Texto muito longo (máx 100KB)' }).optional(),
-  tipo: z.enum(['stores', 'prospects'], { message: 'Tipo deve ser "stores" ou "prospects"' })
+  tipo: z.enum(['stores', 'prospects'], { invalid_type_error: 'Tipo deve ser "stores" ou "prospects"' })
 }).refine(
   (data) => data.planilhaTexto || data.texto,
   { message: 'É necessário fornecer planilhaTexto ou texto' }
