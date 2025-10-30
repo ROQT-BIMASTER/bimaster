@@ -57,7 +57,7 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
         `)
         .eq("store_id", storeId)
         .in("status", ["completed", "in_progress"])
-        .order("visit_date", { ascending: false })
+        .order("scheduled_date", { ascending: false })
         .limit(20);
 
       setVisits(visitsData || []);
@@ -297,7 +297,7 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                               <CardTitle className="text-base">{visit.visit_code}</CardTitle>
                               <CardDescription className="flex items-center gap-2 mt-1">
                                 <Calendar className="h-3 w-3" />
-                                {format(new Date(visit.visit_date || visit.scheduled_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                                {format(new Date(visit.check_in_time || visit.scheduled_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                                 {visit.check_in_time && (
                                   <span className="text-xs">• Check-in: {format(new Date(visit.check_in_time), "HH:mm")}</span>
                                 )}
