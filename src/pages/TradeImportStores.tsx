@@ -19,6 +19,7 @@ const TradeImportStores = () => {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [textoIA, setTextoIA] = useState("");
+  const [pdfIA, setPdfIA] = useState<File | null>(null);
   const [loadingIA, setLoadingIA] = useState(false);
   const [vendedores, setVendedores] = useState<any[]>([]);
   const [supervisores, setSupervisores] = useState<any[]>([]);
@@ -231,8 +232,8 @@ const TradeImportStores = () => {
   };
 
   const handleImportIA = async () => {
-    if (!textoIA.trim()) {
-      toast.error("Digite ou cole os dados para análise");
+    if (!textoIA.trim() && !pdfIA) {
+      toast.error("Digite os dados ou faça upload de um PDF para análise");
       return;
     }
 
@@ -244,10 +245,31 @@ const TradeImportStores = () => {
     setLoadingIA(true);
 
     try {
+      let bodyData: any = { tipo: "stores" };
+
+      if (pdfIA) {
+        // Converter PDF para base64
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => {
+            const base64 = reader.result?.toString().split(',')[1];
+            resolve(base64 || '');
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(pdfIA);
+        });
+        
+        const base64PDF = await base64Promise;
+        bodyData.pdf = base64PDF;
+        bodyData.fileName = pdfIA.name;
+      } else {
+        bodyData.texto = textoIA;
+      }
+
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "analisar-planilha-ia",
         {
-          body: { texto: textoIA, tipo: "stores" },
+          body: bodyData,
         }
       );
 
@@ -305,6 +327,7 @@ const TradeImportStores = () => {
 
       toast.success(`${inserted?.length || 0} lojas importadas com sucesso via IA!`);
       setTextoIA("");
+      setPdfIA(null);
     } catch (error: any) {
       console.error("Erro na importação via IA:", error);
       toast.error("Erro ao processar com IA: " + error.message);
@@ -471,7 +494,7 @@ const TradeImportStores = () => {
           <TabsContent value="ia">
             <Card>
               <CardHeader>
-                <CardTitle>Importação Inteligente com IA</CardTitle>
+                <CardTitle>Análise com IA</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -493,11 +516,6 @@ const TradeImportStores = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">
-                      {currentUserRole === 'vendedor' || currentUserRole === 'promotor' 
-                        ? 'Você foi selecionado automaticamente'
-                        : 'Todas as lojas serão vinculadas a este vendedor'}
-                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -518,34 +536,68 @@ const TradeImportStores = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Se não informado, será usado o supervisor vinculado ao vendedor
-                    </p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="textoIA">
-                    Cole os dados das lojas (qualquer formato)
-                  </Label>
-                  <Textarea
-                    id="textoIA"
-                    placeholder="Cole aqui os dados das lojas... A IA vai analisar e estruturar automaticamente.
+                  <Label>Escolha o método de entrada</Label>
+                  <Tabs defaultValue="texto" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="texto">Texto</TabsTrigger>
+                      <TabsTrigger value="pdf">Upload PDF</TabsTrigger>
+                    </TabsList>
 
-Exemplo:
-Loja Carrefour Centro, CNPJ 12.345.678/0001-99, Rua Principal 123, São Paulo-SP
-Supermercado Extra Norte, contato@extra.com, (11) 98765-4321
-..."
-                    value={textoIA}
-                    onChange={(e) => setTextoIA(e.target.value)}
-                    rows={12}
-                    className="font-mono text-sm"
-                  />
+                    <TabsContent value="texto" className="mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="textoIA">Dados para Análise</Label>
+                        <Textarea
+                          id="textoIA"
+                          value={textoIA}
+                          onChange={(e) => {
+                            setTextoIA(e.target.value);
+                            setPdfIA(null);
+                          }}
+                          placeholder="Cole aqui os dados das lojas (lista, tabela, texto livre, etc.)"
+                          className="min-h-[200px]"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          A IA irá analisar o texto e extrair automaticamente as informações das lojas
+                        </p>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="pdf" className="mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="pdfIA">Arquivo PDF</Label>
+                        <Input
+                          id="pdfIA"
+                          type="file"
+                          accept=".pdf"
+                          onChange={(e) => {
+                            const selectedFile = e.target.files?.[0];
+                            if (selectedFile) {
+                              setPdfIA(selectedFile);
+                              setTextoIA("");
+                              toast.success("PDF selecionado: " + selectedFile.name);
+                            }
+                          }}
+                        />
+                        {pdfIA && (
+                          <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                            📄 {pdfIA.name}
+                          </div>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Faça upload de um PDF com dados de CNPJ, comprovantes ou listas de lojas. A IA irá extrair automaticamente todas as informações.
+                        </p>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
 
                 <Button
                   onClick={handleImportIA}
-                  disabled={!textoIA.trim() || loadingIA || !vendedorSelecionado}
+                  disabled={(!textoIA.trim() && !pdfIA) || loadingIA || !vendedorSelecionado}
                   className="w-full"
                 >
                   {loadingIA ? (
@@ -556,7 +608,7 @@ Supermercado Extra Norte, contato@extra.com, (11) 98765-4321
                   ) : (
                     <>
                       <Sparkles className="mr-2 h-4 w-4" />
-                      Importar com IA
+                      Analisar e Importar
                     </>
                   )}
                 </Button>
