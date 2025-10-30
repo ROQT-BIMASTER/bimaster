@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Calendar as CalendarIcon, Link as LinkIcon, Edit, Trash2 } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Link as LinkIcon, Edit, Trash2, UserPlus, BarChart3 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -14,7 +15,11 @@ import { VincularStoreDialog } from "@/components/trade/VincularStoreDialog";
 import { NovaVisitaDialog } from "@/components/trade/NovaVisitaDialog";
 import { VisitDetailDialog } from "@/components/trade/VisitDetailDialog";
 import { EditarVisitaDialog } from "@/components/trade/EditarVisitaDialog";
+import { VisitsCalendar } from "@/components/trade/VisitsCalendar";
+import { VisitsMonitoringPanel } from "@/components/trade/VisitsMonitoringPanel";
+import { AtribuirVisitaDialog } from "@/components/trade/AtribuirVisitaDialog";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { useUserRole } from "@/hooks/useUserRole";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 
 interface Visit {
@@ -32,26 +37,37 @@ interface Visit {
 
 const TradeVisits = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
+  const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
   const [visits, setVisits] = useState<Visit[]>([]);
   const [allVisits, setAllVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
   const [showVincularDialog, setShowVincularDialog] = useState(false);
   const [showNovaVisita, setShowNovaVisita] = useState(false);
+  const [showAtribuirVisita, setShowAtribuirVisita] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editVisitId, setEditVisitId] = useState<string | null>(null);
   const [deleteVisitId, setDeleteVisitId] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   if (!permissionsLoading && !hasPermission("trade_visits")) {
     return <Navigate to="/dashboard" replace />;
   }
 
   useEffect(() => {
+    fetchCurrentUser();
     fetchVisits();
   }, []);
+
+  const fetchCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setCurrentUserId(user.id);
+    }
+  };
 
   const fetchVisits = async () => {
     try {
@@ -167,178 +183,219 @@ const TradeVisits = () => {
               Agende e acompanhe visitas aos PDVs
             </p>
           </div>
-          <Button onClick={() => setShowNovaVisita(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Visita
-          </Button>
+          <div className="flex gap-2">
+            {isAdminOrSupervisor && (
+              <Button variant="outline" onClick={() => setShowAtribuirVisita(true)}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Atribuir Visita
+              </Button>
+            )}
+            <Button onClick={() => setShowNovaVisita(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Visita
+            </Button>
+          </div>
         </div>
 
-        <TradeFilters
-          selectedStore={selectedStore}
-          onStoreChange={setSelectedStore}
-          onAIFilter={setAiCriteria}
-        />
+        <Tabs defaultValue="lista" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="lista">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              Lista
+            </TabsTrigger>
+            <TabsTrigger value="calendario">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              Calendário
+            </TabsTrigger>
+            <TabsTrigger value="monitoramento">
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Monitoramento
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Hoje</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {visits.filter(v => v.scheduled_date === format(new Date(), "yyyy-MM-dd")).length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Esta Semana</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {visits.filter(v => v.status === "scheduled").length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {visits.filter(v => v.status === "in_progress").length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {visits.filter(v => v.status === "completed").length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          <TabsContent value="lista" className="space-y-4 mt-6">
+            <TradeFilters
+              selectedStore={selectedStore}
+              onStoreChange={setSelectedStore}
+              onAIFilter={setAiCriteria}
+            />
 
-        {/* Visits List */}
-        <div className="space-y-4">
-          {loading ? (
-            <Card>
-              <CardContent className="p-6 text-center">
-                Carregando visitas...
-              </CardContent>
-            </Card>
-          ) : visits.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center">
-                Nenhuma visita agendada
-              </CardContent>
-            </Card>
-          ) : (
-            visits.map((visit) => (
-              <Card key={visit.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-lg">
-                          {visit.stores?.name || "Loja não especificada"}
-                        </h3>
-                        <Badge variant={getStatusColor(visit.status)}>
-                          {getStatusLabel(visit.status)}
-                        </Badge>
-                        {visit.visit_type && (
-                          <Badge variant="outline">{visit.visit_type}</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="h-4 w-4" />
-                          {format(new Date(visit.scheduled_date), "dd/MM/yyyy", {
-                            locale: ptBR,
-                          })}
-                          {visit.scheduled_time && ` às ${visit.scheduled_time}`}
-                        </div>
-                        {visit.stores?.city && (
-                          <span>• {visit.stores.city}</span>
-                        )}
-                        <span>• Código: {visit.visit_code}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {!visit.stores && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleVincularLoja(visit.id)}
-                        >
-                          <LinkIcon className="mr-2 h-4 w-4" />
-                          Vincular Loja
-                        </Button>
-                      )}
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          setSelectedVisitId(visit.id);
-                          setShowDetailDialog(true);
-                        }}
-                      >
-                        Ver Detalhes
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setEditVisitId(visit.id);
-                          setShowEditDialog(true);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteVisitId(visit.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      {visit.status === "scheduled" && (
-                        <Button 
-                          size="sm"
-                          onClick={async () => {
-                            try {
-                              const { error } = await supabase
-                                .from("visits")
-                                .update({ 
-                                  status: "in_progress",
-                                  check_in_time: new Date().toISOString()
-                                })
-                                .eq("id", visit.id);
-
-                              if (error) throw error;
-                              
-                              toast.success("Visita iniciada!");
-                              fetchVisits();
-                            } catch (error: any) {
-                              console.error("Erro ao iniciar visita:", error);
-                              toast.error("Erro ao iniciar visita");
-                            }
-                          }}
-                        >
-                          Iniciar
-                        </Button>
-                      )}
-                    </div>
+            {/* Summary Cards */}
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Hoje</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {visits.filter(v => v.scheduled_date === format(new Date(), "yyyy-MM-dd")).length}
                   </div>
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Esta Semana</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {visits.filter(v => v.status === "scheduled").length}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {visits.filter(v => v.status === "in_progress").length}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {visits.filter(v => v.status === "completed").length}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Visits List */}
+            <div className="space-y-4">
+              {loading ? (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    Carregando visitas...
+                  </CardContent>
+                </Card>
+              ) : visits.length === 0 ? (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    Nenhuma visita agendada
+                  </CardContent>
+                </Card>
+              ) : (
+                visits.map((visit) => (
+                  <Card key={visit.id}>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-lg">
+                              {visit.stores?.name || "Loja não especificada"}
+                            </h3>
+                            <Badge variant={getStatusColor(visit.status)}>
+                              {getStatusLabel(visit.status)}
+                            </Badge>
+                            {visit.visit_type && (
+                              <Badge variant="outline">{visit.visit_type}</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <CalendarIcon className="h-4 w-4" />
+                              {format(new Date(visit.scheduled_date), "dd/MM/yyyy", {
+                                locale: ptBR,
+                              })}
+                              {visit.scheduled_time && ` às ${visit.scheduled_time}`}
+                            </div>
+                            {visit.stores?.city && (
+                              <span>• {visit.stores.city}</span>
+                            )}
+                            <span>• Código: {visit.visit_code}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          {!visit.stores && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleVincularLoja(visit.id)}
+                            >
+                              <LinkIcon className="mr-2 h-4 w-4" />
+                              Vincular Loja
+                            </Button>
+                          )}
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedVisitId(visit.id);
+                              setShowDetailDialog(true);
+                            }}
+                          >
+                            Ver Detalhes
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditVisitId(visit.id);
+                              setShowEditDialog(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteVisitId(visit.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          {visit.status === "scheduled" && (
+                            <Button 
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  const { error } = await supabase
+                                    .from("visits")
+                                    .update({ 
+                                      status: "in_progress",
+                                      check_in_time: new Date().toISOString()
+                                    })
+                                    .eq("id", visit.id);
+
+                                  if (error) throw error;
+                                  
+                                  toast.success("Visita iniciada!");
+                                  fetchVisits();
+                                } catch (error: any) {
+                                  console.error("Erro ao iniciar visita:", error);
+                                  toast.error("Erro ao iniciar visita");
+                                }
+                              }}
+                            >
+                              Iniciar
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="calendario" className="mt-6">
+            <VisitsCalendar 
+              userId={currentUserId || undefined}
+              onVisitClick={(visitId) => {
+                setSelectedVisitId(visitId);
+                setShowDetailDialog(true);
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="monitoramento" className="mt-6">
+            <VisitsMonitoringPanel userId={currentUserId || undefined} />
+          </TabsContent>
+        </Tabs>
 
         <VincularStoreDialog
           open={showVincularDialog}
@@ -363,6 +420,12 @@ const TradeVisits = () => {
           open={showEditDialog}
           onOpenChange={setShowEditDialog}
           visitId={editVisitId}
+          onSuccess={fetchVisits}
+        />
+
+        <AtribuirVisitaDialog
+          open={showAtribuirVisita}
+          onOpenChange={setShowAtribuirVisita}
           onSuccess={fetchVisits}
         />
 
