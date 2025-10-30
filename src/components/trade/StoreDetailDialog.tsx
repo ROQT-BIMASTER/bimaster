@@ -4,8 +4,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Camera, DollarSign, FileText, MapPin, Phone, Store, TrendingUp, User, Lightbulb, Clock } from "lucide-react";
+import { Calendar, Camera, DollarSign, FileText, MapPin, Phone, Store, TrendingUp, User, Lightbulb, Clock, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StoreShareHistoryChart } from "./StoreShareHistoryChart";
@@ -43,12 +44,15 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
             table: 'visits',
             filter: `store_id=eq.${storeId}`,
           },
-          () => {
+          (payload) => {
+            console.log('Realtime event received:', payload);
             // Refetch quando houver qualquer mudança nas visitas desta loja
             fetchStoreDetails();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Subscription status:', status);
+        });
 
       return () => {
         supabase.removeChannel(channel);
@@ -85,7 +89,7 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
       setVisits(visitsData || []);
 
       // Buscar visitas agendadas
-      const { data: scheduledVisitsData } = await supabase
+      const { data: scheduledVisitsData, error: scheduledError } = await supabase
         .from("visits")
         .select(`
           *,
@@ -95,6 +99,12 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
         .eq("status", "scheduled")
         .order("scheduled_date", { ascending: true })
         .limit(20);
+
+      if (scheduledError) {
+        console.error("Erro ao buscar visitas agendadas:", scheduledError);
+      } else {
+        console.log("Visitas agendadas encontradas:", scheduledVisitsData?.length || 0);
+      }
 
       setScheduledVisits(scheduledVisitsData || []);
 
@@ -300,11 +310,27 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
             </TabsContent>
 
             <TabsContent value="visits" className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
-                  Visitas Realizadas ({visits.length})
+                  Visitas
                 </h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchStoreDetails()}
+                  disabled={loading}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Atualizar
+                </Button>
+              </div>
+              
+              <div>
+                <h4 className="text-base font-semibold mb-3 flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Visitas Realizadas ({visits.length})
+                </h4>
                 {loading ? (
                   <p className="text-center text-muted-foreground">Carregando...</p>
                 ) : visits.length === 0 ? (
