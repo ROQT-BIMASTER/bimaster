@@ -111,7 +111,6 @@ export const AtribuirVisitaDialog = ({ open, onOpenChange, onSuccess }: Atribuir
           visit_type: formData.visit_type,
           status: "scheduled",
           notes: formData.notes,
-          created_by: user.id,
         });
 
       if (error) throw error;
