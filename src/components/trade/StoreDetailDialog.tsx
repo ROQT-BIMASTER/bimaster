@@ -102,8 +102,8 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
         .from("gondola_audits")
         .select(`
           *,
-          product:products(nome),
-          visit:visits(visit_date, visit_code)
+          product:products(name, sku),
+          visit:visits(scheduled_date, visit_code)
         `)
         .eq("store_id", storeId)
         .order("created_at", { ascending: false })
@@ -173,12 +173,16 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
             <TabsContent value="info" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Informações do PDV</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Store className="h-5 w-5" />
+                    Informações do PDV
+                  </CardTitle>
+                  <CardDescription>Dados cadastrais e informações de contato</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Código</p>
-                    <p className="text-base">{store.code}</p>
+                    <p className="text-base">{store.code || "-"}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Rede</p>
@@ -190,25 +194,57 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Telefone</p>
-                    <p className="text-base">{store.phone || "-"}</p>
+                    <p className="text-base flex items-center gap-2">
+                      {store.phone ? (
+                        <>
+                          <Phone className="h-3 w-3" />
+                          {store.phone}
+                        </>
+                      ) : "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Gerente</p>
-                    <p className="text-base">{store.manager_name || "-"}</p>
+                    <p className="text-base flex items-center gap-2">
+                      {store.manager_name ? (
+                        <>
+                          <User className="h-3 w-3" />
+                          {store.manager_name}
+                        </>
+                      ) : "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Tel. Gerente</p>
-                    <p className="text-base">{store.manager_phone || "-"}</p>
+                    <p className="text-base flex items-center gap-2">
+                      {store.manager_phone ? (
+                        <>
+                          <Phone className="h-3 w-3" />
+                          {store.manager_phone}
+                        </>
+                      ) : "-"}
+                    </p>
                   </div>
                   <div>
+                    <p className="text-sm font-medium text-muted-foreground">Categoria</p>
+                    <p className="text-base">{store.category || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Prioridade</p>
+                    <Badge variant={
+                      store.priority === "high" ? "destructive" :
+                      store.priority === "medium" ? "default" : "secondary"
+                    }>
+                      {store.priority === "high" ? "Alta" :
+                       store.priority === "medium" ? "Média" : 
+                       store.priority === "low" ? "Baixa" : "Normal"}
+                    </Badge>
+                  </div>
+                  <div className="col-span-2">
                     <p className="text-sm font-medium text-muted-foreground">Status</p>
                     <Badge variant={store.status === "active" ? "default" : "secondary"}>
                       {store.status === "active" ? "Ativo" : "Inativo"}
                     </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Prioridade</p>
-                    <Badge variant="outline">{store.priority || "Normal"}</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -216,16 +252,28 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
               {store.notes && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Observações</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Observações
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm">{store.notes}</p>
+                    <p className="text-sm text-muted-foreground">{store.notes}</p>
                   </CardContent>
                 </Card>
               )}
             </TabsContent>
 
             <TabsContent value="share">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Evolução de Share
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Histórico de participação de mercado nos últimos 6 meses
+                </p>
+              </div>
               <StoreShareHistoryChart storeId={storeId} months={6} />
             </TabsContent>
 
@@ -448,28 +496,59 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
               )}
             </TabsContent>
 
-            <TabsContent value="photos" className="space-y-3">
+            <TabsContent value="photos" className="space-y-4">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Camera className="h-5 w-5" />
+                  Galeria de Fotos ({photos.length})
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Fotos capturadas durante as visitas ao PDV
+                </p>
+              </div>
+              
               {loading ? (
                 <p className="text-center text-muted-foreground">Carregando...</p>
               ) : photos.length === 0 ? (
-                <p className="text-center text-muted-foreground">Nenhuma foto registrada</p>
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    Nenhuma foto registrada para este PDV
+                  </CardContent>
+                </Card>
               ) : (
                 <div className="grid grid-cols-3 gap-4">
                   {photos.map((photo) => (
-                    <Card key={photo.id} className="overflow-hidden">
+                    <Card key={photo.id} className="overflow-hidden group cursor-pointer hover:shadow-lg transition-shadow">
                       <img 
                         src={photo.photo_url} 
                         alt={photo.photo_type}
-                        className="w-full h-40 object-cover"
+                        className="w-full h-40 object-cover group-hover:scale-105 transition-transform"
                       />
                       <CardContent className="p-3">
-                        <p className="text-sm font-medium">{photo.photo_type}</p>
+                        <div className="flex items-center justify-between mb-1">
+                          <Badge variant="outline" className="text-xs">
+                            {photo.photo_type}
+                          </Badge>
+                          {photo.approved && (
+                            <Badge variant="default" className="text-xs">
+                              ✓ Aprovada
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(photo.upload_date), "dd/MM/yyyy", { locale: ptBR })}
+                          {format(new Date(photo.upload_date), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                         </p>
-                        {photo.compliance_score && (
-                          <Badge variant="outline" className="mt-2">
-                            Score: {photo.compliance_score}%
+                        {photo.compliance_score !== null && (
+                          <div className="mt-2 pt-2 border-t flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Conformidade</span>
+                            <Badge variant={photo.compliance_score >= 80 ? "default" : "secondary"} className="text-xs">
+                              {photo.compliance_score}%
+                            </Badge>
+                          </div>
+                        )}
+                        {photo.requires_action && (
+                          <Badge variant="destructive" className="mt-2 w-full text-xs">
+                            ⚠️ Requer ação
                           </Badge>
                         )}
                       </CardContent>
@@ -479,21 +558,40 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
               )}
             </TabsContent>
 
-            <TabsContent value="audits" className="space-y-3">
+            <TabsContent value="audits" className="space-y-4">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Auditorias de Gôndola ({audits.length})
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Registros de auditorias e verificações de produtos
+                </p>
+              </div>
+              
               {loading ? (
                 <p className="text-center text-muted-foreground">Carregando...</p>
               ) : audits.length === 0 ? (
-                <p className="text-center text-muted-foreground">Nenhuma auditoria registrada</p>
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    Nenhuma auditoria registrada para este PDV
+                  </CardContent>
+                </Card>
               ) : (
                 audits.map((audit) => (
                   <Card key={audit.id}>
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
                         <div>
-                          <CardTitle className="text-base">{audit.product?.nome || "Produto"}</CardTitle>
+                          <CardTitle className="text-base">
+                            {audit.product?.name || audit.produto_descricao || "Produto"}
+                          </CardTitle>
                           <CardDescription className="flex items-center gap-2 mt-1">
                             <Calendar className="h-3 w-3" />
                             {format(new Date(audit.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                            {audit.product?.sku && (
+                              <span className="text-xs">• SKU: {audit.product.sku}</span>
+                            )}
                           </CardDescription>
                         </div>
                         <Badge variant={audit.produto_presente ? "default" : "destructive"}>
@@ -502,18 +600,36 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="grid grid-cols-3 gap-3 text-sm">
                         <div>
                           <p className="text-muted-foreground">Frentes</p>
-                          <p className="font-medium">{audit.quantidade_frentes}</p>
+                          <p className="font-medium">{audit.quantidade_frentes || 0}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Preço</p>
-                          <p className="font-medium">R$ {audit.preco_praticado?.toFixed(2) || "-"}</p>
+                          <p className="font-medium">
+                            {audit.preco_praticado ? `R$ ${audit.preco_praticado.toFixed(2)}` : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Estoque</p>
+                          <p className="font-medium">{audit.estoque_loja || "-"}</p>
                         </div>
                       </div>
+                      {audit.conforme_planograma !== null && (
+                        <div className="mt-2 pt-2 border-t">
+                          <Badge variant={audit.conforme_planograma ? "default" : "secondary"}>
+                            {audit.conforme_planograma ? "Conforme planograma" : "Fora do planograma"}
+                          </Badge>
+                        </div>
+                      )}
                       {audit.observacoes && (
                         <p className="text-sm mt-2 text-muted-foreground">{audit.observacoes}</p>
+                      )}
+                      {audit.concorrentes_presentes && (
+                        <div className="mt-2 pt-2 border-t">
+                          <p className="text-sm font-medium text-destructive">⚠️ Concorrentes presentes</p>
+                        </div>
                       )}
                     </CardContent>
                   </Card>
@@ -521,11 +637,25 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
               )}
             </TabsContent>
 
-            <TabsContent value="investments" className="space-y-3">
+            <TabsContent value="investments" className="space-y-4">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Investimentos ({investments.length})
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Histórico de investimentos realizados no PDV
+                </p>
+              </div>
+              
               {loading ? (
                 <p className="text-center text-muted-foreground">Carregando...</p>
               ) : investments.length === 0 ? (
-                <p className="text-center text-muted-foreground">Nenhum investimento registrado</p>
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    Nenhum investimento registrado para este PDV
+                  </CardContent>
+                </Card>
               ) : (
                 investments.map((investment) => (
                   <Card key={investment.id}>
@@ -534,10 +664,10 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                         <div>
                           <CardTitle className="text-base flex items-center gap-2">
                             <DollarSign className="h-4 w-4" />
-                            R$ {investment.amount.toFixed(2)}
+                            R$ {investment.amount?.toFixed(2) || "0.00"}
                           </CardTitle>
                           <CardDescription className="mt-1">
-                            {investment.category} • {format(new Date(investment.investment_date), "dd/MM/yyyy", { locale: ptBR })}
+                            {investment.category || "Sem categoria"} • {format(new Date(investment.investment_date), "dd/MM/yyyy", { locale: ptBR })}
                           </CardDescription>
                         </div>
                         <Badge variant={
@@ -548,21 +678,48 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                         </Badge>
                       </div>
                     </CardHeader>
-                    {investment.description && (
-                      <CardContent>
-                        <p className="text-sm">{investment.description}</p>
-                      </CardContent>
-                    )}
+                    <CardContent>
+                      {investment.description && (
+                        <p className="text-sm mb-2">{investment.description}</p>
+                      )}
+                      {investment.evidence_url && (
+                        <div className="mt-2 pt-2 border-t">
+                          <a 
+                            href={investment.evidence_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline flex items-center gap-1"
+                          >
+                            <FileText className="h-3 w-3" />
+                            Ver evidência
+                          </a>
+                        </div>
+                      )}
+                    </CardContent>
                   </Card>
                 ))
               )}
             </TabsContent>
 
-            <TabsContent value="promotions" className="space-y-3">
+            <TabsContent value="promotions" className="space-y-4">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Execução de Promoções ({promotions.length})
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Histórico de verificação e execução de promoções
+                </p>
+              </div>
+              
               {loading ? (
                 <p className="text-center text-muted-foreground">Carregando...</p>
               ) : promotions.length === 0 ? (
-                <p className="text-center text-muted-foreground">Nenhuma promoção registrada</p>
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    Nenhuma execução de promoção registrada para este PDV
+                  </CardContent>
+                </Card>
               ) : (
                 promotions.map((promo) => (
                   <Card key={promo.id}>
@@ -574,24 +731,56 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                             {promo.promotion?.name || "Promoção"}
                           </CardTitle>
                           <CardDescription className="mt-1">
-                            {promo.promotion?.code} • {format(new Date(promo.checked_at), "dd/MM/yyyy", { locale: ptBR })}
+                            {promo.promotion?.code && `${promo.promotion.code} • `}
+                            {format(new Date(promo.checked_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                           </CardDescription>
                         </div>
-                        <Badge variant={promo.is_compliant ? "default" : "destructive"}>
-                          {promo.is_compliant ? "Conforme" : "Não conforme"}
-                        </Badge>
+                        <div className="flex flex-col gap-2">
+                          <Badge variant={promo.is_compliant ? "default" : "destructive"}>
+                            {promo.is_compliant ? "Conforme" : "Não conforme"}
+                          </Badge>
+                          {promo.is_active !== null && (
+                            <Badge variant={promo.is_active ? "default" : "secondary"}>
+                              {promo.is_active ? "Ativa" : "Inativa"}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2 text-sm">
-                        {promo.compliance_score && (
-                          <div className="flex justify-between">
+                        {promo.compliance_score !== null && (
+                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Score de Conformidade</span>
-                            <span className="font-medium">{promo.compliance_score}%</span>
+                            <Badge variant="outline">{promo.compliance_score}%</Badge>
+                          </div>
+                        )}
+                        {promo.positioning_correct !== null && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">Posicionamento:</span>
+                            <Badge variant={promo.positioning_correct ? "default" : "destructive"}>
+                              {promo.positioning_correct ? "Correto" : "Incorreto"}
+                            </Badge>
+                          </div>
+                        )}
+                        {promo.price_correct !== null && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">Preço:</span>
+                            <Badge variant={promo.price_correct ? "default" : "destructive"}>
+                              {promo.price_correct ? "Correto" : "Incorreto"}
+                            </Badge>
+                          </div>
+                        )}
+                        {promo.stock_sufficient !== null && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">Estoque:</span>
+                            <Badge variant={promo.stock_sufficient ? "default" : "destructive"}>
+                              {promo.stock_sufficient ? "Suficiente" : "Insuficiente"}
+                            </Badge>
                           </div>
                         )}
                         {promo.observations && (
-                          <p className="text-muted-foreground mt-2">{promo.observations}</p>
+                          <p className="text-muted-foreground mt-2 pt-2 border-t">{promo.observations}</p>
                         )}
                       </div>
                     </CardContent>
