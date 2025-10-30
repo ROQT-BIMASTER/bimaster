@@ -1,9 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const requestSchema = z.object({
+  planilhaTexto: z.string().max(100000, { message: 'Texto da planilha muito longo (máx 100KB)' }).optional(),
+  texto: z.string().max(100000, { message: 'Texto muito longo (máx 100KB)' }).optional(),
+  tipo: z.enum(['stores', 'prospects'], { message: 'Tipo deve ser "stores" ou "prospects"' })
+}).refine(
+  (data) => data.planilhaTexto || data.texto,
+  { message: 'É necessário fornecer planilhaTexto ou texto' }
+);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,7 +22,51 @@ serve(async (req) => {
   }
 
   try {
-    const { planilhaTexto, texto, tipo } = await req.json();
+    // Verificar autenticação
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      console.error('❌ Tentativa de acesso sem autorização');
+      return new Response(
+        JSON.stringify({ error: 'Autorização necessária' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Configuração do Supabase ausente');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error('❌ Token inválido ou usuário não encontrado:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ Usuário autenticado:', user.id);
+
+    // Validar entrada
+    const body = await req.json();
+    const validation = requestSchema.safeParse(body);
+    
+    if (!validation.success) {
+      console.error('❌ Erro de validação:', validation.error);
+      return new Response(
+        JSON.stringify({ error: 'Dados inválidos', details: validation.error.issues }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { planilhaTexto, texto, tipo } = validation.data;
     const textoAnalise = texto || planilhaTexto;
     console.log(`📊 Iniciando análise ${tipo === 'stores' ? 'de lojas' : 'de prospects'} com IA...`);
 
