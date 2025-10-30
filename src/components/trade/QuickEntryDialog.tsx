@@ -27,6 +27,8 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [stores, setStores] = useState<any[]>([]);
+  const [filteredStores, setFilteredStores] = useState<any[]>([]);
+  const [storeSearch, setStoreSearch] = useState("");
   const [products, setProducts] = useState<any[]>([]);
   const [promotions, setPromotions] = useState<any[]>([]);
   
@@ -77,12 +79,34 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         supabase.from("promotions").select("*").eq("status", "active"),
       ]);
 
-      if (storesData.data) setStores(storesData.data);
+      if (storesData.data) {
+        setStores(storesData.data);
+        setFilteredStores(storesData.data);
+      }
       if (productsData.data) setProducts(productsData.data);
       if (promotionsData.data) setPromotions(promotionsData.data);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
+  };
+
+  const handleStoreSearch = (searchValue: string) => {
+    setStoreSearch(searchValue);
+    
+    if (!searchValue.trim()) {
+      setFilteredStores(stores);
+      return;
+    }
+
+    const searchLower = searchValue.toLowerCase();
+    const filtered = stores.filter((store) => {
+      const nameMatch = store.name?.toLowerCase().includes(searchLower);
+      const cnpjMatch = store.cnpj?.replace(/\D/g, '').includes(searchValue.replace(/\D/g, ''));
+      const cityMatch = store.city?.toLowerCase().includes(searchLower);
+      return nameMatch || cnpjMatch || cityMatch;
+    });
+
+    setFilteredStores(filtered);
   };
 
   const handlePhotoUpload = async (files: FileList | null, type: 'before' | 'after' = 'before') => {
@@ -331,6 +355,8 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
 
   const resetForm = () => {
     setCurrentStep(1);
+    setStoreSearch("");
+    setFilteredStores(stores);
     setFormData({
       store_id: "",
       visit_date: new Date().toISOString().split('T')[0],
@@ -397,19 +423,29 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="col-span-2 space-y-2">
+                    <Label>Buscar PDV / Loja por Nome ou CNPJ</Label>
+                    <Input
+                      placeholder="Digite o nome da loja, cidade ou CNPJ..."
+                      value={storeSearch}
+                      onChange={(e) => handleStoreSearch(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="col-span-2 space-y-2">
                     <Label>PDV / Loja *</Label>
                     <Select value={formData.store_id} onValueChange={(value) => setFormData(prev => ({ ...prev, store_id: value }))}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Selecione o PDV" />
                       </SelectTrigger>
                       <SelectContent className="max-h-[300px] bg-background z-50">
-                        {stores.length === 0 ? (
+                        {filteredStores.length === 0 ? (
                           <div className="p-4 text-center text-muted-foreground">
-                            Nenhuma loja encontrada
+                            {storeSearch ? "Nenhuma loja encontrada com esse critério" : "Nenhuma loja encontrada"}
                           </div>
                         ) : (
-                          stores.map((store) => (
+                          filteredStores.map((store) => (
                             <SelectItem 
                               key={store.id} 
                               value={store.id}
@@ -417,7 +453,9 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                             >
                               <div className="flex flex-col">
                                 <span className="font-medium">{store.name}</span>
-                                <span className="text-xs text-muted-foreground">{store.city}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {store.city} {store.cnpj && `• CNPJ: ${store.cnpj}`}
+                                </span>
                               </div>
                             </SelectItem>
                           ))
