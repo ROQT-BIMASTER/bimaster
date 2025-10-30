@@ -4145,6 +4145,7 @@ export type Database = {
       }
       visits: {
         Row: {
+          atribuido_por: string | null
           check_in_latitude: number | null
           check_in_longitude: number | null
           check_in_time: string | null
@@ -4174,6 +4175,7 @@ export type Database = {
           weather: string | null
         }
         Insert: {
+          atribuido_por?: string | null
           check_in_latitude?: number | null
           check_in_longitude?: number | null
           check_in_time?: string | null
@@ -4203,6 +4205,7 @@ export type Database = {
           weather?: string | null
         }
         Update: {
+          atribuido_por?: string | null
           check_in_latitude?: number | null
           check_in_longitude?: number | null
           check_in_time?: string | null
@@ -4232,6 +4235,13 @@ export type Database = {
           weather?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "visits_atribuido_por_fkey"
+            columns: ["atribuido_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "visits_store_id_fkey"
             columns: ["store_id"]

@@ -13,7 +13,8 @@ import {
   Building2, 
   CheckCircle2, 
   Camera,
-  FileText
+  FileText,
+  UserCheck
 } from "lucide-react";
 
 interface VisitDetailDialogProps {
@@ -43,6 +44,7 @@ interface VisitDetail {
   duration_minutes: number | null;
   store_id?: string | null;
   user_id?: string | null;
+  atribuido_por?: string | null;
   created_at?: string;
   updated_at?: string;
   stores: {
@@ -50,6 +52,10 @@ interface VisitDetail {
     address: string | null;
     city: string | null;
     state: string | null;
+  } | null;
+  atribuidor?: {
+    nome: string;
+    email: string;
   } | null;
 }
 
@@ -83,7 +89,8 @@ export function VisitDetailDialog({ open, onOpenChange, visitId }: VisitDetailDi
           .from("visits")
           .select(`
             *,
-            stores:store_id (name, address, city, state)
+            stores:store_id (name, address, city, state),
+            atribuidor:atribuido_por (nome, email)
           `)
           .eq("id", visitId)
           .single(),
@@ -202,6 +209,23 @@ export function VisitDetailDialog({ open, onOpenChange, visitId }: VisitDetailDi
               )}
             </CardContent>
           </Card>
+
+          {/* Atribuído por */}
+          {visit.atribuidor && (
+            <Card>
+              <CardContent className="pt-6 space-y-3">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="font-semibold">Atribuído por</h3>
+                </div>
+                <Separator />
+                <div className="space-y-1">
+                  <p className="font-medium">{visit.atribuidor.nome}</p>
+                  <p className="text-sm text-muted-foreground">{visit.atribuidor.email}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Loja */}
           {visit.stores && (

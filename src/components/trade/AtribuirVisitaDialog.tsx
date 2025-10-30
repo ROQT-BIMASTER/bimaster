@@ -109,6 +109,7 @@ export const AtribuirVisitaDialog = ({ open, onOpenChange, onSuccess }: Atribuir
         visit_type: formData.visit_type,
         status: "scheduled",
         notes: formData.notes,
+        atribuido_por: user.id,
       });
       
       const { data, error } = await supabase
@@ -122,6 +123,7 @@ export const AtribuirVisitaDialog = ({ open, onOpenChange, onSuccess }: Atribuir
           visit_type: formData.visit_type,
           status: "scheduled",
           notes: formData.notes,
+          atribuido_por: user.id,
         })
         .select();
 
