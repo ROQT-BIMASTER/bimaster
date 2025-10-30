@@ -16,6 +16,7 @@ interface Store {
   id: string;
   name: string;
   code: string;
+  cnpj?: string;
 }
 
 export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: TradeFiltersProps) => {
@@ -30,22 +31,38 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
   }, []);
 
   useEffect(() => {
+    filterStores();
+  }, [searchQuery, stores]);
+
+  const filterStores = () => {
     if (searchQuery.trim()) {
-      const filtered = stores.filter(store =>
-        store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        store.code.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      const searchLower = searchQuery.toLowerCase();
+      const filtered = stores.filter(store => {
+        const nameMatch = store.name.toLowerCase().includes(searchLower);
+        const codeMatch = store.code.toLowerCase().includes(searchLower);
+        const cnpjMatch = store.cnpj?.replace(/\D/g, '').includes(searchQuery.replace(/\D/g, ''));
+        return nameMatch || codeMatch || cnpjMatch;
+      });
       setFilteredStores(filtered);
+      
+      // Se houver apenas uma loja encontrada, seleciona automaticamente
+      if (filtered.length === 1 && filtered[0].id !== selectedStore) {
+        onStoreChange(filtered[0].id);
+      }
     } else {
       setFilteredStores(stores);
+      // Se limpar a busca, remove o filtro
+      if (selectedStore) {
+        onStoreChange(null);
+      }
     }
-  }, [searchQuery, stores]);
+  };
 
   const fetchStores = async () => {
     try {
       const { data, error } = await supabase
         .from("stores")
-        .select("id, name, code")
+        .select("id, name, code, cnpj")
         .eq("status", "active")
         .order("name");
 
@@ -81,6 +98,7 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
   };
 
   const clearFilters = () => {
+    setSearchQuery("");
     onStoreChange(null);
     setAiQuery("");
     onAIFilter(null);
@@ -92,33 +110,37 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
       <div className="flex-1">
         <label className="text-sm font-medium mb-2 block">Buscar Cliente</label>
         <div className="space-y-2">
-          <Input
-            placeholder="Digite o nome ou código do cliente..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="mb-2"
-          />
-          <Select value={selectedStore || "all"} onValueChange={(value) => {
-            onStoreChange(value === "all" ? null : value);
-            if (value !== "all") {
-              const store = stores.find(s => s.id === value);
-              if (store) setSearchQuery(store.name);
-            } else {
-              setSearchQuery("");
-            }
-          }}>
-            <SelectTrigger>
-              <SelectValue placeholder="Todos os clientes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os clientes</SelectItem>
-              {filteredStores.map((store) => (
-                <SelectItem key={store.id} value={store.id}>
-                  {store.name} ({store.code})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="relative">
+            <Input
+              placeholder="Digite o nome, código ou CNPJ do cliente..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-10"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full"
+                onClick={() => {
+                  setSearchQuery("");
+                  onStoreChange(null);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          {searchQuery && filteredStores.length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              {filteredStores.length} cliente(s) encontrado(s)
+            </div>
+          )}
+          {searchQuery && filteredStores.length === 0 && (
+            <div className="text-xs text-destructive">
+              Nenhum cliente encontrado
+            </div>
+          )}
         </div>
       </div>
 
