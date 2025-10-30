@@ -250,7 +250,7 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh]">
+      <DialogContent className="max-w-7xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Store className="h-5 w-5" />
@@ -263,19 +263,19 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
         </DialogHeader>
 
         <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12">
-            <TabsTrigger value="info">Info</TabsTrigger>
-            <TabsTrigger value="share">Share</TabsTrigger>
-            <TabsTrigger value="visits">Visitas</TabsTrigger>
-            <TabsTrigger value="sales">Vendas</TabsTrigger>
-            <TabsTrigger value="measurements">Medições</TabsTrigger>
-            <TabsTrigger value="shelfshare">Shelf Share</TabsTrigger>
-            <TabsTrigger value="competitor">Concorrentes</TabsTrigger>
-            <TabsTrigger value="insights">Insights</TabsTrigger>
-            <TabsTrigger value="photos">Fotos</TabsTrigger>
-            <TabsTrigger value="audits">Auditorias</TabsTrigger>
-            <TabsTrigger value="investments">Investimentos</TabsTrigger>
-            <TabsTrigger value="promotions">Promoções</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-1">
+            <TabsTrigger value="info" className="text-xs lg:text-sm">Info</TabsTrigger>
+            <TabsTrigger value="share" className="text-xs lg:text-sm">Share</TabsTrigger>
+            <TabsTrigger value="visits" className="text-xs lg:text-sm">Visitas</TabsTrigger>
+            <TabsTrigger value="sales" className="text-xs lg:text-sm">Vendas</TabsTrigger>
+            <TabsTrigger value="measurements" className="text-xs lg:text-sm">Medições</TabsTrigger>
+            <TabsTrigger value="shelfshare" className="text-xs lg:text-sm">Shelf Share</TabsTrigger>
+            <TabsTrigger value="competitor" className="text-xs lg:text-sm">Concorrentes</TabsTrigger>
+            <TabsTrigger value="insights" className="text-xs lg:text-sm">Insights</TabsTrigger>
+            <TabsTrigger value="photos" className="text-xs lg:text-sm">Fotos</TabsTrigger>
+            <TabsTrigger value="audits" className="text-xs lg:text-sm">Auditorias</TabsTrigger>
+            <TabsTrigger value="investments" className="text-xs lg:text-sm">Investimentos</TabsTrigger>
+            <TabsTrigger value="promotions" className="text-xs lg:text-sm">Promoções</TabsTrigger>
           </TabsList>
 
           <ScrollArea className="h-[60vh] mt-4">
