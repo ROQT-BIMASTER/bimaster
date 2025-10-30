@@ -32,9 +32,13 @@ interface Usuario {
 export function HierarquiaUsuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [hierarquia, setHierarquia] = useState<Usuario[]>([]);
+  const [hierarquiasPorSupervisor, setHierarquiasPorSupervisor] = useState<Map<string, Usuario[]>>(new Map());
+  const [supervisores, setSupervisores] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [expandedSupervisors, setExpandedSupervisors] = useState<Set<string>>(new Set());
+  const [selectedSupervisor, setSelectedSupervisor] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -113,16 +117,32 @@ export function HierarquiaUsuarios() {
       usuariosMap.set(u.id, { ...u, subordinados: [] });
     });
 
+    // Separar supervisores
+    const supervisoresList = usuarios.filter(u => u.role === 'supervisor');
+    setSupervisores(supervisoresList);
+
     // Construir a árvore de hierarquia
     const raiz: Usuario[] = [];
+    const hierarquiasPorSup = new Map<string, Usuario[]>();
 
+    // Inicializar cada supervisor com sua hierarquia
+    supervisoresList.forEach(sup => {
+      const supervisorNode = usuariosMap.get(sup.id);
+      if (supervisorNode) {
+        hierarquiasPorSup.set(sup.id, [supervisorNode]);
+      }
+    });
+
+    // Construir subordinados para cada usuário
     usuarios.forEach(usuario => {
       const user = usuariosMap.get(usuario.id);
       if (!user) return;
 
       if (!usuario.supervisor_id) {
-        // Usuários sem supervisor vão para a raiz
-        raiz.push(user);
+        // Usuários sem supervisor vão para a raiz (admins geralmente)
+        if (usuario.role !== 'supervisor') {
+          raiz.push(user);
+        }
       } else {
         // Adicionar como subordinado do supervisor
         const supervisor = usuariosMap.get(usuario.supervisor_id);
@@ -138,7 +158,7 @@ export function HierarquiaUsuarios() {
       }
     });
 
-    // Ordenar por role (admin > supervisor > vendedor > promotor) e depois por nome
+    // Ordenar por role e nome
     const roleOrder = { admin: 0, supervisor: 1, vendedor: 2, promotor: 3 };
     const sortUsuarios = (list: Usuario[]) => {
       list.sort((a, b) => {
@@ -152,9 +172,12 @@ export function HierarquiaUsuarios() {
         }
       });
     };
+    
     sortUsuarios(raiz);
+    hierarquiasPorSup.forEach(h => sortUsuarios(h));
 
     setHierarquia(raiz);
+    setHierarquiasPorSupervisor(hierarquiasPorSup);
   };
 
   const handleVincularSupervisor = async (usuarioId: string, supervisorId: string | null) => {
@@ -228,6 +251,29 @@ export function HierarquiaUsuarios() {
       newExpanded.add(nodeId);
     }
     setExpandedNodes(newExpanded);
+  };
+
+  const toggleSupervisor = (supervisorId: string) => {
+    const newExpanded = new Set(expandedSupervisors);
+    if (newExpanded.has(supervisorId)) {
+      newExpanded.delete(supervisorId);
+    } else {
+      newExpanded.add(supervisorId);
+    }
+    setExpandedSupervisors(newExpanded);
+  };
+
+  const expandirTodos = () => {
+    const allIds = new Set<string>();
+    supervisores.forEach(s => allIds.add(s.id));
+    usuarios.forEach(u => allIds.add(u.id));
+    setExpandedNodes(allIds);
+    setExpandedSupervisors(allIds);
+  };
+
+  const recolherTodos = () => {
+    setExpandedNodes(new Set());
+    setExpandedSupervisors(new Set());
   };
 
   const getSuperioresPossiveis = (usuario: Usuario): Usuario[] => {
@@ -400,9 +446,27 @@ export function HierarquiaUsuarios() {
       supervisores: usuarios.filter(u => u.role === 'supervisor').length,
       vendedores: usuarios.filter(u => u.role === 'vendedor').length,
       promotores: usuarios.filter(u => u.role === 'promotor').length,
-      semSuperior: usuarios.filter(u => !u.supervisor_id && u.role !== 'admin').length,
+      semSuperior: usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'supervisor').length,
     };
     return stats;
+  };
+
+  const calcularEstatisticasSupervisor = (supervisorId: string) => {
+    const subordinados = usuarios.filter(u => {
+      // Verificar se é subordinado direto ou indireto
+      let current: Usuario | undefined = u;
+      while (current && current.supervisor_id) {
+        if (current.supervisor_id === supervisorId) return true;
+        current = usuarios.find(user => user.id === current!.supervisor_id);
+      }
+      return false;
+    });
+
+    return {
+      total: subordinados.length,
+      vendedores: subordinados.filter(u => u.role === 'vendedor').length,
+      promotores: subordinados.filter(u => u.role === 'promotor').length,
+    };
   };
 
   if (loading) {
@@ -492,23 +556,158 @@ export function HierarquiaUsuarios() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Estrutura Hierárquica
-          </CardTitle>
-          <CardDescription>
-            Visualize e edite a hierarquia organizacional. Clique nas setas para expandir/recolher subordinados.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Hierarquias por Supervisor
+              </CardTitle>
+              <CardDescription>
+                Visualize cada hierarquia de forma independente. Clique para expandir/recolher.
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={expandirTodos}>
+                Expandir Todos
+              </Button>
+              <Button variant="outline" size="sm" onClick={recolherTodos}>
+                Recolher Todos
+              </Button>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          {hierarquia.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum usuário cadastrado no sistema
-            </div>
+        <CardContent className="space-y-4">
+          {/* Admins (sem hierarquia) */}
+          {usuarios.filter(u => u.role === 'admin').length > 0 && (
+            <Card className="border-2 border-primary/20">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-6 w-6 text-primary" />
+                    <div>
+                      <CardTitle className="text-lg">Administradores</CardTitle>
+                      <CardDescription className="text-xs">
+                        Acesso total ao sistema
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Badge variant="default">
+                    {usuarios.filter(u => u.role === 'admin').length} admin(s)
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {usuarios
+                    .filter(u => u.role === 'admin')
+                    .map(admin => renderUsuario(admin, 0))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Hierarquias por Supervisor */}
+          {supervisores.length === 0 ? (
+            <Alert>
+              <AlertDescription>
+                Nenhum supervisor cadastrado. Crie supervisores para começar a organizar hierarquias.
+              </AlertDescription>
+            </Alert>
           ) : (
-            <div className="space-y-2">
-              {hierarquia.map(usuario => renderUsuario(usuario, 0))}
+            <div className="space-y-4">
+              {supervisores.map(supervisor => {
+                const hierarquia = hierarquiasPorSupervisor.get(supervisor.id) || [];
+                const isExpanded = expandedSupervisors.has(supervisor.id);
+                const stats = calcularEstatisticasSupervisor(supervisor.id);
+                
+                return (
+                  <Card key={supervisor.id} className="border-2">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => toggleSupervisor(supervisor.id)}
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="h-5 w-5" />
+                            ) : (
+                              <ChevronRight className="h-5 w-5" />
+                            )}
+                          </Button>
+                          <UserCog className="h-6 w-6 text-secondary" />
+                          <div className="flex-1">
+                            <CardTitle className="text-lg">{supervisor.nome}</CardTitle>
+                            <CardDescription className="text-xs">
+                              {supervisor.email}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Badge variant="secondary">
+                            {stats.total} subordinado{stats.total !== 1 ? 's' : ''}
+                          </Badge>
+                          {stats.vendedores > 0 && (
+                            <Badge variant="outline">
+                              {stats.vendedores} vendedor{stats.vendedores !== 1 ? 'es' : ''}
+                            </Badge>
+                          )}
+                          {stats.promotores > 0 && (
+                            <Badge variant="outline">
+                              {stats.promotores} promotor{stats.promotores !== 1 ? 'es' : ''}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    {isExpanded && (
+                      <CardContent>
+                        {hierarquia.length === 0 ? (
+                          <div className="text-center py-4 text-sm text-muted-foreground">
+                            Este supervisor ainda não possui subordinados
+                          </div>
+                        ) : (
+                          <div className="space-y-2 pl-8">
+                            {hierarquia.map(usuario => renderUsuario(usuario, 0))}
+                          </div>
+                        )}
+                      </CardContent>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
+          )}
+
+          {/* Usuários sem supervisor */}
+          {usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'supervisor').length > 0 && (
+            <Card className="border-2 border-dashed border-muted-foreground/30">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <User className="h-6 w-6 text-muted-foreground" />
+                    <div>
+                      <CardTitle className="text-lg text-muted-foreground">Sem Supervisor</CardTitle>
+                      <CardDescription className="text-xs">
+                        Usuários que precisam ser vinculados a um supervisor
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Badge variant="outline">
+                    {usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'supervisor').length} usuário(s)
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {usuarios
+                    .filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'supervisor')
+                    .map(usuario => renderUsuario(usuario, 0))}
+                </div>
+              </CardContent>
+            </Card>
           )}
         </CardContent>
       </Card>
