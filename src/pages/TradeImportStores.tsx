@@ -13,6 +13,10 @@ import { Upload, FileSpreadsheet, Sparkles, Download } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import * as XLSX from "xlsx";
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configurar worker do PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const TradeImportStores = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
@@ -245,31 +249,42 @@ const TradeImportStores = () => {
     setLoadingIA(true);
 
     try {
-      let bodyData: any = { tipo: "stores" };
+      let textoParaAnalise = textoIA;
 
       if (pdfIA) {
-        // Converter PDF para base64
-        const reader = new FileReader();
-        const base64Promise = new Promise<string>((resolve, reject) => {
-          reader.onload = () => {
-            const base64 = reader.result?.toString().split(',')[1];
-            resolve(base64 || '');
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(pdfIA);
-        });
+        toast.info("Extraindo texto do PDF...");
         
-        const base64PDF = await base64Promise;
-        bodyData.pdf = base64PDF;
-        bodyData.fileName = pdfIA.name;
-      } else {
-        bodyData.texto = textoIA;
+        // Ler o PDF como ArrayBuffer
+        const arrayBuffer = await pdfIA.arrayBuffer();
+        
+        // Usar pdf.js para extrair texto
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        
+        let fullText = '';
+        
+        // Extrair texto de todas as páginas
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          fullText += pageText + '\n\n';
+        }
+        
+        if (!fullText.trim()) {
+          toast.error("Não foi possível extrair texto do PDF. Tente um PDF com texto selecionável.");
+          setLoadingIA(false);
+          return;
+        }
+        
+        textoParaAnalise = fullText;
+        toast.success("Texto extraído com sucesso! Analisando com IA...");
       }
 
       const { data: functionData, error: functionError } = await supabase.functions.invoke(
         "analisar-planilha-ia",
         {
-          body: bodyData,
+          body: { texto: textoParaAnalise, tipo: "stores" },
         }
       );
 

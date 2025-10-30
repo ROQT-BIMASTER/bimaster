@@ -11,12 +11,9 @@ serve(async (req) => {
   }
 
   try {
-    const { planilhaTexto, texto, tipo, pdf, fileName } = await req.json();
+    const { planilhaTexto, texto, tipo } = await req.json();
+    const textoAnalise = texto || planilhaTexto;
     console.log(`📊 Iniciando análise ${tipo === 'stores' ? 'de lojas' : 'de prospects'} com IA...`);
-    
-    if (pdf) {
-      console.log(`📄 Processando PDF: ${fileName}`);
-    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -127,62 +124,25 @@ Retorne um JSON com a seguinte estrutura:
 }`;
     }
 
+    const userPrompt = `Analise os seguintes dados e extraia ${tipo === 'stores' ? 'todas as lojas/PDVs' : 'todas as empresas/prospects'} que encontrar:\n\n${textoAnalise}`;
+
     console.log("🤖 Chamando IA para análise...");
     
-    let response;
-    
-    if (pdf) {
-      // Processar PDF com Gemini (aceita PDFs diretamente)
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { 
-              role: "user", 
-              content: [
-                {
-                  type: "text",
-                  text: `Analise o documento PDF anexado e extraia ${tipo === 'stores' ? 'todas as lojas/PDVs' : 'todas as empresas/prospects'} que encontrar. Retorne os dados em JSON conforme o formato especificado.`
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: `data:application/pdf;base64,${pdf}`
-                  }
-                }
-              ]
-            }
-          ],
-          temperature: 0.3,
-        }),
-      });
-    } else {
-      // Processar texto
-      const textoAnalise = texto || planilhaTexto;
-      const userPrompt = `Analise os seguintes dados e extraia ${tipo === 'stores' ? 'todas as lojas/PDVs' : 'todas as empresas/prospects'} que encontrar:\n\n${textoAnalise}`;
-      
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt }
-          ],
-          temperature: 0.3,
-        }),
-      });
-    }
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.3,
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
