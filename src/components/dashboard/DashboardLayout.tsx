@@ -6,6 +6,10 @@ import { AppSidebar } from "./AppSidebar";
 import { Session } from "@supabase/supabase-js";
 import logoUnion from "@/assets/logo-union.png";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { offlineManager } from "@/lib/utils/offline-manager";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { WifiOff } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -15,22 +19,36 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     const checkUserStatus = async (session: Session | null) => {
       if (!session) {
+        // Se offline e há cache, não redirecionar
+        if (!isOnline && offlineManager.hasCachedSession()) {
+          return;
+        }
         navigate("/auth/login");
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("aprovado")
-        .eq("id", session.user.id)
-        .maybeSingle();
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("aprovado")
+          .eq("id", session.user.id)
+          .maybeSingle();
 
-      if (profile && !profile.aprovado) {
-        navigate("/aguardando-aprovacao");
+        if (profile && !profile.aprovado) {
+          navigate("/aguardando-aprovacao");
+        } else if (profile?.aprovado) {
+          localStorage.setItem('user_approved_cache', 'true');
+        }
+      } catch (error) {
+        // Se offline, usar cache de aprovação
+        if (!isOnline && localStorage.getItem('user_approved_cache') !== 'true') {
+          navigate("/aguardando-aprovacao");
+        }
       }
     };
 
@@ -48,7 +66,13 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       if (session) {
         await checkUserStatus(session);
       } else {
-        navigate("/auth/login");
+        // Se offline e há cache, não redirecionar
+        if (!isOnline && offlineManager.hasCachedSession()) {
+          // Criar sessão mock para modo offline
+          setSession({ user: { id: 'offline' } } as Session);
+        } else {
+          navigate("/auth/login");
+        }
       }
       setLoading(false);
     });
@@ -85,6 +109,14 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <img src={logoUnion} alt="Union Logo" className="h-10" />
             </div>
           </header>
+          {!isOnline && (
+            <Alert className="m-4 border-warning bg-warning/10">
+              <WifiOff className="h-4 w-4" />
+              <AlertDescription>
+                Você está offline. Algumas funcionalidades podem estar limitadas. Os dados serão sincronizados quando você voltar online.
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="p-6">{children}</div>
         </main>
       </div>

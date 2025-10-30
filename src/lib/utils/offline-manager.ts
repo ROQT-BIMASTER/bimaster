@@ -53,6 +53,22 @@ export class OfflineManager {
     return this.isOnline;
   }
 
+  /**
+   * Verifica se há uma sessão em cache no localStorage
+   * Útil para modo offline
+   */
+  hasCachedSession(): boolean {
+    try {
+      const authStorage = localStorage.getItem('sb-aokkyrgaqjarhlywhjju-auth-token');
+      if (!authStorage) return false;
+      
+      const authData = JSON.parse(authStorage);
+      return !!(authData && authData.access_token && authData.expires_at && authData.expires_at > Date.now() / 1000);
+    } catch {
+      return false;
+    }
+  }
+
   cleanup() {
     window.removeEventListener('online', this.handleOnline);
     window.removeEventListener('offline', this.handleOffline);

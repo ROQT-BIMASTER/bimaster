@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { offlineManager } from "@/lib/utils/offline-manager";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,10 +13,19 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [approved, setApproved] = useState(false);
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Se estamos offline mas há sessão em cache, confiar nela
+        if (!isOnline && offlineManager.hasCachedSession()) {
+          setAuthenticated(true);
+          setApproved(true); // Assumir aprovado quando offline com cache válido
+          setLoading(false);
+          return;
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
@@ -27,12 +38,24 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
           setAuthenticated(true);
           setApproved(profile?.aprovado || false);
+          
+          // Salvar estado de aprovação em cache para uso offline
+          if (profile?.aprovado) {
+            localStorage.setItem('user_approved_cache', 'true');
+          }
         } else {
           setAuthenticated(false);
         }
       } catch (error) {
         console.error("Error checking auth:", error);
-        setAuthenticated(false);
+        
+        // Se falhou mas estamos offline e há cache, usar cache
+        if (!isOnline && offlineManager.hasCachedSession()) {
+          setAuthenticated(true);
+          setApproved(localStorage.getItem('user_approved_cache') === 'true');
+        } else {
+          setAuthenticated(false);
+        }
       } finally {
         setLoading(false);
       }
