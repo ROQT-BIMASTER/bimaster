@@ -11,10 +11,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   Store, Calendar, Camera, Tag, Upload, Sparkles, 
-  CheckCircle2, Loader2, ArrowRight, ImagePlus 
+  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { useNavigate } from "react-router-dom";
 
 interface QuickEntryDialogProps {
   open: boolean;
@@ -31,6 +33,11 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   const [storeSearch, setStoreSearch] = useState("");
   const [products, setProducts] = useState<any[]>([]);
   const [promotions, setPromotions] = useState<any[]>([]);
+  const [completedVisitId, setCompletedVisitId] = useState<string | null>(null);
+  const [showSuccessActions, setShowSuccessActions] = useState(false);
+  
+  const { hasPermission } = useScreenPermissions();
+  const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
     // Visita
@@ -99,11 +106,14 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     }
 
     const searchLower = searchValue.toLowerCase();
+    const searchNumbers = searchValue.replace(/\D/g, '');
+    
     const filtered = stores.filter((store) => {
       const nameMatch = store.name?.toLowerCase().includes(searchLower);
-      const cnpjMatch = store.cnpj?.replace(/\D/g, '').includes(searchValue.replace(/\D/g, ''));
+      const cnpjMatch = searchNumbers && store.cnpj?.replace(/\D/g, '').includes(searchNumbers);
       const cityMatch = store.city?.toLowerCase().includes(searchLower);
-      return nameMatch || cnpjMatch || cityMatch;
+      const addressMatch = store.address?.toLowerCase().includes(searchLower);
+      return nameMatch || cnpjMatch || cityMatch || addressMatch;
     });
 
     setFilteredStores(filtered);
@@ -193,6 +203,9 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         .single();
 
       if (visitError) throw visitError;
+      
+      // Salvar ID da visita para uso posterior
+      setCompletedVisitId(visit.id);
 
       // 2. Upload photos and create records (ANTES) - Paralelo
       const beforePhotoPromises = formData.photos.map(async (photo) => {
@@ -342,9 +355,10 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       }
 
       toast.success("✅ Lançamento concluído com sucesso!");
+      
+      // Mostrar opções de ações pós-lançamento
+      setShowSuccessActions(true);
       onSuccess?.();
-      onOpenChange(false);
-      resetForm();
     } catch (error: any) {
       console.error("Erro no lançamento:", error);
       toast.error("Erro ao salvar dados: " + error.message);
@@ -357,6 +371,8 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     setCurrentStep(1);
     setStoreSearch("");
     setFilteredStores(stores);
+    setCompletedVisitId(null);
+    setShowSuccessActions(false);
     setFormData({
       store_id: "",
       visit_date: new Date().toISOString().split('T')[0],
@@ -375,11 +391,79 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       issues_found: [],
     });
   };
+  
+  const handleGoToAudit = () => {
+    if (completedVisitId) {
+      onOpenChange(false);
+      resetForm();
+      navigate(`/dashboard/trade/auditorias?visitId=${completedVisitId}`);
+    }
+  };
+  
+  const handleClose = () => {
+    onOpenChange(false);
+    resetForm();
+  };
 
   const progress = (currentStep / 4) * 100;
+  
+  // Se concluído com sucesso, mostrar opções
+  if (showSuccessActions) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              Lançamento Concluído!
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Seu lançamento foi salvo com sucesso. O que deseja fazer agora?
+            </p>
+            
+            <div className="space-y-2">
+              {hasPermission("trade-auditorias") && (
+                <Button 
+                  className="w-full" 
+                  onClick={handleGoToAudit}
+                  variant="default"
+                >
+                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                  Ir para Auditoria
+                </Button>
+              )}
+              
+              <Button 
+                className="w-full" 
+                onClick={() => {
+                  setShowSuccessActions(false);
+                  setCurrentStep(1);
+                }}
+                variant="outline"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Fazer Outro Lançamento
+              </Button>
+              
+              <Button 
+                className="w-full" 
+                onClick={handleClose}
+                variant="ghost"
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
