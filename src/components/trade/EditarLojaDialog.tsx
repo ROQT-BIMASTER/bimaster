@@ -37,6 +37,8 @@ export function EditarLojaDialog({
 }: EditarLojaDialogProps) {
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [vendedores, setVendedores] = useState<any[]>([]);
+  const [supervisores, setSupervisores] = useState<any[]>([]);
   
   const [formData, setFormData] = useState({
     code: "",
@@ -54,13 +56,55 @@ export function EditarLojaDialog({
     status: "active",
     monthly_revenue: "",
     notes: "",
+    vendedor_id: "",
+    supervisor_id: "",
   });
 
   useEffect(() => {
     if (open && storeId) {
       loadStoreData();
+      fetchUsuarios();
     }
   }, [open, storeId]);
+
+  const fetchUsuarios = async () => {
+    try {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, nome, email")
+        .eq("status", "ativo")
+        .order("nome");
+
+      if (!profiles) return;
+
+      const userIds = profiles.map(p => p.id);
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", userIds);
+
+      const roleMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
+
+      const vendedoresList = profiles
+        .filter(p => {
+          const role = roleMap.get(p.id);
+          return role === 'vendedor' || role === 'promotor';
+        })
+        .map(p => ({ ...p, role: roleMap.get(p.id) }));
+
+      const supervisoresList = profiles
+        .filter(p => {
+          const role = roleMap.get(p.id);
+          return role === 'supervisor' || role === 'admin';
+        })
+        .map(p => ({ ...p, role: roleMap.get(p.id) }));
+
+      setVendedores(vendedoresList);
+      setSupervisores(supervisoresList);
+    } catch (error) {
+      console.error("Erro ao carregar usuários:", error);
+    }
+  };
 
   const loadStoreData = async () => {
     setLoadingData(true);
@@ -90,6 +134,8 @@ export function EditarLojaDialog({
         status: data.status || "active",
         monthly_revenue: data.monthly_revenue?.toString() || "",
         notes: data.notes || "",
+        vendedor_id: data.vendedor_id || "",
+        supervisor_id: data.supervisor_id || "",
       });
     } catch (error) {
       toast.error(getSafeErrorMessage(error));
@@ -103,6 +149,11 @@ export function EditarLojaDialog({
 
     if (!formData.code || !formData.name) {
       toast.error("Código e nome são obrigatórios");
+      return;
+    }
+
+    if (!formData.vendedor_id) {
+      toast.error("Vendedor responsável é obrigatório");
       return;
     }
 
@@ -124,6 +175,8 @@ export function EditarLojaDialog({
         status: formData.status,
         monthly_revenue: formData.monthly_revenue ? parseFloat(formData.monthly_revenue) : null,
         notes: formData.notes.trim() || null,
+        vendedor_id: formData.vendedor_id,
+        supervisor_id: formData.supervisor_id || null,
       };
 
       const { error } = await supabase
@@ -193,6 +246,47 @@ export function EditarLojaDialog({
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="vendedor_id">Vendedor Responsável *</Label>
+                <Select 
+                  value={formData.vendedor_id} 
+                  onValueChange={(value) => setFormData({ ...formData, vendedor_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o vendedor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendedores.map((vendedor) => (
+                      <SelectItem key={vendedor.id} value={vendedor.id}>
+                        {vendedor.nome} - {vendedor.role === 'vendedor' ? 'Vendedor' : 'Promotor'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="supervisor_id">Supervisor</Label>
+                <Select 
+                  value={formData.supervisor_id} 
+                  onValueChange={(value) => setFormData({ ...formData, supervisor_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o supervisor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhum</SelectItem>
+                    {supervisores.map((supervisor) => (
+                      <SelectItem key={supervisor.id} value={supervisor.id}>
+                        {supervisor.nome} - {supervisor.role === 'supervisor' ? 'Supervisor' : 'Admin'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

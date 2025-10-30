@@ -2287,8 +2287,10 @@ export type Database = {
           salesperson_id: string | null
           status: string | null
           store_id: string | null
+          supervisor_id: string | null
           total_value: number
           updated_at: string | null
+          vendedor_id: string | null
         }
         Insert: {
           approved_at?: string | null
@@ -2310,8 +2312,10 @@ export type Database = {
           salesperson_id?: string | null
           status?: string | null
           store_id?: string | null
+          supervisor_id?: string | null
           total_value: number
           updated_at?: string | null
+          vendedor_id?: string | null
         }
         Update: {
           approved_at?: string | null
@@ -2333,8 +2337,10 @@ export type Database = {
           salesperson_id?: string | null
           status?: string | null
           store_id?: string | null
+          supervisor_id?: string | null
           total_value?: number
           updated_at?: string | null
+          vendedor_id?: string | null
         }
         Relationships: [
           {
@@ -3016,7 +3022,9 @@ export type Database = {
           size: string | null
           state: string | null
           status: string | null
+          supervisor_id: string | null
           updated_at: string | null
+          vendedor_id: string | null
           visit_frequency: string | null
           zip_code: string | null
         }
@@ -3043,7 +3051,9 @@ export type Database = {
           size?: string | null
           state?: string | null
           status?: string | null
+          supervisor_id?: string | null
           updated_at?: string | null
+          vendedor_id?: string | null
           visit_frequency?: string | null
           zip_code?: string | null
         }
@@ -3070,7 +3080,9 @@ export type Database = {
           size?: string | null
           state?: string | null
           status?: string | null
+          supervisor_id?: string | null
           updated_at?: string | null
+          vendedor_id?: string | null
           visit_frequency?: string | null
           zip_code?: string | null
         }
@@ -3915,8 +3927,10 @@ export type Database = {
           signature_url: string | null
           status: string | null
           store_id: string | null
+          supervisor_id: string | null
           updated_at: string | null
           user_id: string | null
+          vendedor_id: string | null
           visit_code: string
           visit_type: string | null
           weather: string | null
@@ -3942,8 +3956,10 @@ export type Database = {
           signature_url?: string | null
           status?: string | null
           store_id?: string | null
+          supervisor_id?: string | null
           updated_at?: string | null
           user_id?: string | null
+          vendedor_id?: string | null
           visit_code: string
           visit_type?: string | null
           weather?: string | null
@@ -3969,8 +3985,10 @@ export type Database = {
           signature_url?: string | null
           status?: string | null
           store_id?: string | null
+          supervisor_id?: string | null
           updated_at?: string | null
           user_id?: string | null
+          vendedor_id?: string | null
           visit_code?: string
           visit_type?: string | null
           weather?: string | null
@@ -4043,6 +4061,12 @@ export type Database = {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined
       }
+      get_subordinados: {
+        Args: { _user_id: string }
+        Returns: {
+          subordinado_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4063,11 +4087,19 @@ export type Database = {
         Returns: boolean
       }
       is_sales_team: { Args: { _user_id: string }; Returns: boolean }
+      is_supervisor_of: {
+        Args: { _supervisor_id: string; _user_id: string }
+        Returns: boolean
+      }
       refresh_all_materialized_views: { Args: never; Returns: undefined }
       refresh_daily_kpis: { Args: { target_date?: string }; Returns: undefined }
       sincronizar_permissoes_usuario: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      usuario_tem_acesso_loja: {
+        Args: { _store_id: string; _user_id: string }
+        Returns: boolean
       }
       usuario_tem_acesso_prospect: {
         Args: { _prospect_id: string; _user_id: string }
