@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, FileSpreadsheet, Sparkles } from "lucide-react";
+import { Upload, FileSpreadsheet, Sparkles, Download } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import * as XLSX from "xlsx";
@@ -313,14 +313,56 @@ const TradeImportStores = () => {
     }
   };
 
+  const handleDownloadModelo = () => {
+    // Criar dados de exemplo
+    const modeloData = [
+      ["Código", "Nome", "Rede", "CNPJ", "Endereço", "Cidade", "Estado", "Telefone", "Email", "Categoria", "Prioridade"],
+      ["LOJA001", "Supermercado Centro", "Rede Bom Preço", "12.345.678/0001-99", "Rua Principal, 123", "São Paulo", "SP", "(11) 98765-4321", "centro@exemplo.com", "supermercado", "alta"],
+      ["LOJA002", "Farmácia Saúde", "Rede Farma+", "98.765.432/0001-11", "Av. Comercial, 456", "Rio de Janeiro", "RJ", "(21) 91234-5678", "contato@farma.com", "farmacia", "media"],
+      ["", "Minimercado Bairro", "", "", "Rua das Flores, 789", "Curitiba", "PR", "", "", "conveniencia", "baixa"],
+    ];
+
+    // Criar workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(modeloData);
+
+    // Definir larguras das colunas
+    ws['!cols'] = [
+      { wch: 12 }, // Código
+      { wch: 25 }, // Nome
+      { wch: 20 }, // Rede
+      { wch: 20 }, // CNPJ
+      { wch: 30 }, // Endereço
+      { wch: 20 }, // Cidade
+      { wch: 8 },  // Estado
+      { wch: 18 }, // Telefone
+      { wch: 25 }, // Email
+      { wch: 15 }, // Categoria
+      { wch: 12 }, // Prioridade
+    ];
+
+    // Adicionar worksheet ao workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Lojas");
+
+    // Gerar arquivo e fazer download
+    XLSX.writeFile(wb, "modelo_importacao_lojas.xlsx");
+    toast.success("Modelo baixado com sucesso!");
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Importar Lojas</h1>
-          <p className="text-muted-foreground">
-            Importe lojas e PDVs de planilhas ou com IA
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Importar Lojas</h1>
+            <p className="text-muted-foreground">
+              Importe lojas e PDVs de planilhas ou com IA
+            </p>
+          </div>
+          <Button variant="outline" onClick={handleDownloadModelo}>
+            <Download className="mr-2 h-4 w-4" />
+            Baixar Modelo
+          </Button>
         </div>
 
         <Tabs defaultValue="tradicional" className="w-full">
