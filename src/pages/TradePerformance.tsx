@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 interface UserRanking {
   id: string;
@@ -46,6 +47,7 @@ interface Challenge {
 
 const TradePerformance = () => {
   const { isAdminOrSupervisor } = useUserRole();
+  const navigate = useNavigate();
   const [currentUserRanking, setCurrentUserRanking] = useState<UserRanking | null>(null);
   const [topRankings, setTopRankings] = useState<UserRanking[]>([]);
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
@@ -254,7 +256,7 @@ const TradePerformance = () => {
             </p>
           </div>
           {isAdminOrSupervisor && (
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => navigate('/configuracoes')}>
               <Settings className="mr-2 h-4 w-4" />
               Configurações
             </Button>
