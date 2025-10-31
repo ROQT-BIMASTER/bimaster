@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, X } from "lucide-react";
 
 interface Reward {
   id: string;
@@ -32,7 +32,7 @@ export function GerenciamentoPremiacoes() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
-  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -48,7 +48,7 @@ export function GerenciamentoPremiacoes() {
     period_type: "monthly",
     is_active: true,
     requires_approval: true,
-    banner_url: null as string | null,
+    banner_url: "",
   });
 
   useEffect(() => {
@@ -88,7 +88,7 @@ export function GerenciamentoPremiacoes() {
       period_type: "monthly",
       is_active: true,
       requires_approval: true,
-      banner_url: null,
+      banner_url: "",
     });
     setBannerPreview(null);
     setEditingReward(null);
@@ -110,7 +110,7 @@ export function GerenciamentoPremiacoes() {
       period_type: reward.period_type || "monthly",
       is_active: reward.is_active,
       requires_approval: reward.requires_approval,
-      banner_url: reward.banner_url,
+      banner_url: reward.banner_url || "",
     });
     setBannerPreview(reward.banner_url);
     setDialogOpen(true);
@@ -120,33 +120,38 @@ export function GerenciamentoPremiacoes() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validar tipo de arquivo
     if (!file.type.startsWith('image/')) {
       toast({
         title: "Arquivo inválido",
-        description: "Por favor, selecione uma imagem.",
+        description: "Por favor, selecione apenas arquivos de imagem.",
         variant: "destructive",
       });
       return;
     }
 
-    // Validar tamanho (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "Arquivo muito grande",
-        description: "O banner deve ter no máximo 5MB.",
+        description: "O arquivo deve ter no máximo 5MB.",
         variant: "destructive",
       });
       return;
     }
 
-    setUploadingBanner(true);
     try {
+      setUploading(true);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBannerPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('reward-banners')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -160,41 +165,26 @@ export function GerenciamentoPremiacoes() {
         .getPublicUrl(filePath);
 
       setFormData({ ...formData, banner_url: publicUrl });
-      setBannerPreview(publicUrl);
 
       toast({
         title: "Banner enviado",
         description: "O banner foi enviado com sucesso.",
       });
     } catch (error) {
-      console.error("Erro ao fazer upload do banner:", error);
+      console.error("Erro ao fazer upload:", error);
       toast({
-        title: "Erro ao enviar banner",
+        title: "Erro no upload",
         description: "Não foi possível enviar o banner.",
         variant: "destructive",
       });
     } finally {
-      setUploadingBanner(false);
+      setUploading(false);
     }
   };
 
-  const handleRemoveBanner = async () => {
-    if (formData.banner_url) {
-      try {
-        // Extrair o caminho do arquivo da URL
-        const urlParts = formData.banner_url.split('/');
-        const fileName = urlParts[urlParts.length - 1];
-        
-        await supabase.storage
-          .from('reward-banners')
-          .remove([fileName]);
-      } catch (error) {
-        console.error("Erro ao remover banner:", error);
-      }
-    }
-    
-    setFormData({ ...formData, banner_url: null });
+  const handleRemoveBanner = () => {
     setBannerPreview(null);
+    setFormData({ ...formData, banner_url: "" });
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -213,7 +203,7 @@ export function GerenciamentoPremiacoes() {
         period_type: formData.period_type,
         is_active: formData.is_active,
         requires_approval: formData.requires_approval,
-        banner_url: formData.banner_url,
+        banner_url: formData.banner_url || null,
       };
 
       if (editingReward) {
@@ -292,7 +282,7 @@ export function GerenciamentoPremiacoes() {
           <div>
             <CardTitle>Gerenciamento de Premiações</CardTitle>
             <CardDescription>
-              Configure as premiações por faixa de pontuação
+              Configure as premiações por faixa de pontuação com banners de comunicação visual
             </CardDescription>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => {
@@ -422,6 +412,53 @@ export function GerenciamentoPremiacoes() {
                   </Select>
                 </div>
 
+                <div className="grid gap-2">
+                  <Label htmlFor="banner">Banner da Campanha</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Faça upload de uma imagem para comunicação visual (max 5MB)
+                  </p>
+                  
+                  {bannerPreview ? (
+                    <div className="relative">
+                      <img 
+                        src={bannerPreview} 
+                        alt="Banner preview" 
+                        className="w-full h-48 object-cover rounded-lg border"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={handleRemoveBanner}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors">
+                      <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Clique para fazer upload do banner
+                      </p>
+                      <Input
+                        ref={fileInputRef}
+                        id="banner"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerUpload}
+                        disabled={uploading}
+                        className="cursor-pointer"
+                      />
+                      {uploading && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Enviando...
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between">
                   <Label htmlFor="is_active">Premiação Ativa</Label>
                   <Switch
@@ -438,62 +475,6 @@ export function GerenciamentoPremiacoes() {
                     checked={formData.requires_approval}
                     onCheckedChange={(checked) => setFormData({ ...formData, requires_approval: checked })}
                   />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Banner da Campanha</Label>
-                  <div className="space-y-4">
-                    {bannerPreview ? (
-                      <div className="relative w-full rounded-lg overflow-hidden border-2 border-border">
-                        <img 
-                          src={bannerPreview} 
-                          alt="Preview do banner" 
-                          className="w-full h-48 object-cover"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2"
-                          onClick={handleRemoveBanner}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div 
-                        className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <ImageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Clique para fazer upload do banner
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          PNG, JPG ou WEBP (máx. 5MB)
-                        </p>
-                      </div>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleBannerUpload}
-                      disabled={uploadingBanner}
-                    />
-                    {!bannerPreview && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploadingBanner}
-                        className="w-full"
-                      >
-                        <Upload className="mr-2 h-4 w-4" />
-                        {uploadingBanner ? "Enviando..." : "Selecionar Banner"}
-                      </Button>
-                    )}
-                  </div>
                 </div>
               </div>
               <DialogFooter>
@@ -515,6 +496,7 @@ export function GerenciamentoPremiacoes() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Banner</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Faixa de Pontos</TableHead>
@@ -528,17 +510,19 @@ export function GerenciamentoPremiacoes() {
             {rewards.map((reward) => (
               <TableRow key={reward.id}>
                 <TableCell>
-                  <div className="flex items-center gap-3">
-                    {reward.banner_url && (
-                      <img 
-                        src={reward.banner_url} 
-                        alt={reward.reward_name}
-                        className="w-16 h-10 object-cover rounded border"
-                      />
-                    )}
-                    <span className="font-medium">{reward.reward_name}</span>
-                  </div>
+                  {reward.banner_url ? (
+                    <img 
+                      src={reward.banner_url} 
+                      alt={reward.reward_name} 
+                      className="w-20 h-12 object-cover rounded"
+                    />
+                  ) : (
+                    <div className="w-20 h-12 bg-muted rounded flex items-center justify-center">
+                      <span className="text-xs text-muted-foreground">Sem banner</span>
+                    </div>
+                  )}
                 </TableCell>
+                <TableCell className="font-medium">{reward.reward_name}</TableCell>
                 <TableCell>
                   {reward.reward_type === "monetary" && "Monetária"}
                   {reward.reward_type === "points_conversion" && "Conversão"}
