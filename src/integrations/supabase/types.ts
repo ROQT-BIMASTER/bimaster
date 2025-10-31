@@ -2028,6 +2028,7 @@ export type Database = {
           socios: Json | null
           status: Database["public"]["Enums"]["prospect_status"]
           subdistrito: string | null
+          supervisor_id: string | null
           telefone: string | null
           tendencia_crescimento: string | null
           territorio: string | null
@@ -2091,6 +2092,7 @@ export type Database = {
           socios?: Json | null
           status?: Database["public"]["Enums"]["prospect_status"]
           subdistrito?: string | null
+          supervisor_id?: string | null
           telefone?: string | null
           tendencia_crescimento?: string | null
           territorio?: string | null
@@ -2154,6 +2156,7 @@ export type Database = {
           socios?: Json | null
           status?: Database["public"]["Enums"]["prospect_status"]
           subdistrito?: string | null
+          supervisor_id?: string | null
           telefone?: string | null
           tendencia_crescimento?: string | null
           territorio?: string | null
@@ -2177,6 +2180,13 @@ export type Database = {
             columns: ["municipio_id"]
             isOneToOne: false
             referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospects_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
