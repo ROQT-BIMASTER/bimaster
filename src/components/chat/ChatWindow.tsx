@@ -268,7 +268,12 @@ export const ChatWindow = ({ conversaId }: ChatWindowProps) => {
             placeholder="Digite sua mensagem..."
             disabled={loading}
           />
-          <Button type="submit" size="icon" disabled={loading || !novaMensagem.trim()}>
+          <Button 
+            type="submit" 
+            size="icon" 
+            disabled={loading || !novaMensagem.trim()}
+            aria-label="Enviar mensagem"
+          >
             <Send className="h-4 w-4" />
           </Button>
         </form>

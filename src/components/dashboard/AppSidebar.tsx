@@ -122,7 +122,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <div className="p-4 border-b">
-          <img src={logoUnion} alt="Union Logo" className="w-32 mx-auto" />
+          <img src={logoUnion} alt="Logo Union - Sistema BiMaster" className="w-32 mx-auto" />
         </div>
 
         {/* Dashboard Principal */}

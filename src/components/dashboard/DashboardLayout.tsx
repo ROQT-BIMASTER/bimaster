@@ -114,12 +114,12 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <main className="flex-1">
           <header className="h-14 border-b flex items-center justify-between px-4 bg-card">
             <div className="flex items-center gap-4">
-              <SidebarTrigger />
+              <SidebarTrigger aria-label="Alternar menu lateral" />
               <h1 className="text-lg font-semibold">CRM - Gestão de Prospects</h1>
             </div>
             <div className="flex items-center gap-4">
               <NotificationBell />
-              <img src={logoUnion} alt="Union Logo" className="h-10" />
+              <img src={logoUnion} alt="Logo Union - Sistema de Gestão BiMaster" className="h-10" />
             </div>
           </header>
           {connectionQuality === 'offline' && (
