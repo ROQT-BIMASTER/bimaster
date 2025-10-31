@@ -237,7 +237,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
 
           console.log('Creating photo record with URL:', publicUrl);
           
-          const { data: photoData, error: photoError } = await supabase.from("photos").insert({
+          const { error: photoError } = await supabase.from("photos").insert({
             visit_id: visit.id,
             store_id: formData.store_id,
             photo_url: publicUrl,
@@ -247,15 +247,15 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             ai_analysis: { insights: formData.ai_insights },
             vendedor_id: user.id,
             supervisor_id: supervisorId,
-          }).select().single();
+          });
           
           if (photoError) {
             console.error('Photo insert error:', photoError);
             throw photoError;
           }
           
-          console.log('Photo created successfully:', photoData);
-          return photoData;
+          console.log('Photo created successfully');
+          return true;
         } catch (error) {
           console.error('Error in photo upload/insert:', error);
           throw error;
@@ -283,7 +283,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
 
           console.log('Creating after photo record with URL:', publicUrl);
           
-          const { data: photoData, error: photoError } = await supabase.from("photos").insert({
+          const { error: photoError } = await supabase.from("photos").insert({
             visit_id: visit.id,
             store_id: formData.store_id,
             photo_url: publicUrl,
@@ -292,15 +292,15 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             ai_processed: false,
             vendedor_id: user.id,
             supervisor_id: supervisorId,
-          }).select().single();
+          });
           
           if (photoError) {
             console.error('After photo insert error:', photoError);
             throw photoError;
           }
           
-          console.log('After photo created successfully:', photoData);
-          return photoData;
+          console.log('After photo created successfully');
+          return true;
         } catch (error) {
           console.error('Error in after photo upload/insert:', error);
           throw error;
