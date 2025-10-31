@@ -4901,6 +4901,16 @@ export type Database = {
       }
       refresh_all_materialized_views: { Args: never; Returns: undefined }
       refresh_daily_kpis: { Args: { target_date?: string }; Returns: undefined }
+      register_action_points: {
+        Args: {
+          p_action_code: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_metadata?: Json
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       register_user_points: {
         Args: {
           p_action_code: string
