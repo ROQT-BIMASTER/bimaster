@@ -192,6 +192,9 @@
 Os seguintes avisos são **normais e informativos**:
 - ⚠️ React Router Future Flags (v7_startTransition, v7_relativeSplatPath)
 - ⚠️ Service Worker MIME type em dev mode
+- ⚠️ Cache-control headers faltando em dev mode (APIs externas e arquivos Vite)
+  - Em produção, os headers estão configurados corretamente no vite.config.ts
+  - APIs externas (Supabase, etc.) não são controladas pela aplicação
 
 ### Erros que NÃO Devem Aparecer
 - ❌ Erros de autenticação
