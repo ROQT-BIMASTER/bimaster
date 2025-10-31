@@ -51,10 +51,50 @@ const TradePerformance = () => {
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<'monthly' | 'quarterly' | 'yearly' | 'all_time'>('monthly');
+  const [recentPoints, setRecentPoints] = useState<any[]>([]);
 
   useEffect(() => {
     fetchPerformanceData();
   }, [selectedPeriod]);
+
+  // Realtime subscription para pontos
+  useEffect(() => {
+    const setupRealtimeSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      const channel = supabase
+        .channel('user-points-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'user_points_history',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            const newPoints = payload.new;
+            
+            // Notificar usuário
+            toast.success(`🎉 +${newPoints.final_points} pontos!`, {
+              description: `Ação: ${newPoints.action_code.replace(/_/g, ' ').toUpperCase()}`
+            });
+
+            // Atualizar dados
+            fetchPerformanceData();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    setupRealtimeSubscription();
+  }, []);
 
   const fetchPerformanceData = async () => {
     try {
@@ -98,6 +138,21 @@ const TradePerformance = () => {
         }));
 
         setTopRankings(rankingsWithProfiles as any);
+      }
+
+      // Buscar histórico recente de pontos
+      const { data: pointsHistory } = await supabase
+        .from("user_points_history")
+        .select(`
+          *,
+          trade_action_points:action_code (action_name)
+        `)
+        .eq("user_id", user.id)
+        .order("earned_at", { ascending: false })
+        .limit(10);
+
+      if (pointsHistory) {
+        setRecentPoints(pointsHistory);
       }
 
       // Buscar desafios ativos
@@ -259,6 +314,50 @@ const TradePerformance = () => {
           </TabsList>
 
           <TabsContent value={selectedPeriod} className="space-y-6">
+            {/* Recent Points History */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="h-5 w-5" />
+                  Histórico Recente de Pontos
+                </CardTitle>
+                <CardDescription>Seus últimos ganhos de pontuação</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {recentPoints.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    Nenhum ponto ganho ainda. Comece fazendo visitas e lançamentos!
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {recentPoints.map((point) => (
+                      <div
+                        key={point.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium">
+                            {point.trade_action_points?.action_name || point.action_code}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(point.earned_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-lg text-primary">+{point.final_points}</p>
+                          {point.multiplier > 1 && (
+                            <Badge variant="secondary" className="text-xs">
+                              {point.multiplier}x
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Rankings */}
               <Card>
