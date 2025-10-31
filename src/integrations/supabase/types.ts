@@ -257,6 +257,48 @@ export type Database = {
         }
         Relationships: []
       }
+      api_access_log: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          error_message: string | null
+          format: string | null
+          id: string
+          include_photos: boolean | null
+          ip_address: string | null
+          record_count: number | null
+          requested_at: string
+          success: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          error_message?: string | null
+          format?: string | null
+          id?: string
+          include_photos?: boolean | null
+          ip_address?: string | null
+          record_count?: number | null
+          requested_at?: string
+          success: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          error_message?: string | null
+          format?: string | null
+          id?: string
+          include_photos?: boolean | null
+          ip_address?: string | null
+          record_count?: number | null
+          requested_at?: string
+          success?: boolean
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       assinaturas: {
         Row: {
           cancelado_em: string | null
