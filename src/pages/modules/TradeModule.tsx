@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Store, Calendar, TrendingUp, Target, Camera, Tag, Brain, Zap, DollarSign } from "lucide-react";
+import { Store, Calendar, TrendingUp, Target, Camera, Tag, Brain, Zap, DollarSign, Trophy } from "lucide-react";
 import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Link, Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
@@ -494,7 +494,7 @@ const TradeModule = () => {
           <CardHeader>
             <CardTitle>Ações Rápidas</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-2 md:grid-cols-3 lg:grid-cols-7">
+          <CardContent className="grid gap-2 md:grid-cols-3 lg:grid-cols-8">
             <Link to="/dashboard/trade/stores">
               <Button variant="outline" className="w-full justify-start gap-2">
                 <Store className="h-4 w-4" />
@@ -529,6 +529,12 @@ const TradeModule = () => {
               <Button variant="outline" className="w-full justify-start gap-2">
                 <DollarSign className="h-4 w-4" />
                 Financeiro
+              </Button>
+            </Link>
+            <Link to="/dashboard/trade/performance">
+              <Button variant="outline" className="w-full justify-start gap-2 bg-gradient-to-r from-primary/10 to-primary/5 border-primary/30">
+                <Trophy className="h-4 w-4 text-primary" />
+                Performance
               </Button>
             </Link>
             <Link to="/dashboard/trade/insights">
