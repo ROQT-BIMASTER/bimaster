@@ -3316,6 +3316,39 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_action_points: {
+        Row: {
+          action_code: string
+          action_name: string
+          base_points: number
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          multiplier_conditions: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_code: string
+          action_name: string
+          base_points?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          multiplier_conditions?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_code?: string
+          action_name?: string
+          base_points?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          multiplier_conditions?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       trade_approval_levels: {
         Row: {
           created_at: string | null
@@ -3708,6 +3741,51 @@ export type Database = {
           },
         ]
       }
+      trade_challenges: {
+        Row: {
+          bonus_points: number
+          challenge_name: string
+          challenge_type: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string
+          id: string
+          is_active: boolean | null
+          start_date: string
+          target_action_code: string | null
+          target_quantity: number | null
+        }
+        Insert: {
+          bonus_points?: number
+          challenge_name: string
+          challenge_type: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          start_date: string
+          target_action_code?: string | null
+          target_quantity?: number | null
+        }
+        Update: {
+          bonus_points?: number
+          challenge_name?: string
+          challenge_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          start_date?: string
+          target_action_code?: string | null
+          target_quantity?: number | null
+        }
+        Relationships: []
+      }
       trade_chart_of_accounts: {
         Row: {
           account_type: string
@@ -4004,6 +4082,241 @@ export type Database = {
             columns: ["visit_id"]
             isOneToOne: false
             referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_rewards: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          fixed_amount: number | null
+          id: string
+          is_active: boolean | null
+          max_points: number | null
+          min_points: number | null
+          period_type: string | null
+          points_value: number | null
+          requires_approval: boolean | null
+          reward_name: string
+          reward_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          fixed_amount?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_points?: number | null
+          min_points?: number | null
+          period_type?: string | null
+          points_value?: number | null
+          requires_approval?: boolean | null
+          reward_name: string
+          reward_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          fixed_amount?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_points?: number | null
+          min_points?: number | null
+          period_type?: string | null
+          points_value?: number | null
+          requires_approval?: boolean | null
+          reward_name?: string
+          reward_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_challenge_progress: {
+        Row: {
+          bonus_awarded: boolean | null
+          challenge_id: string
+          completed: boolean | null
+          completed_at: string | null
+          current_progress: number | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          bonus_awarded?: boolean | null
+          challenge_id: string
+          completed?: boolean | null
+          completed_at?: string | null
+          current_progress?: number | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          bonus_awarded?: boolean | null
+          challenge_id?: string
+          completed?: boolean | null
+          completed_at?: string | null
+          current_progress?: number | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_challenge_progress_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "trade_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_points_history: {
+        Row: {
+          action_code: string
+          base_points: number
+          earned_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          final_points: number
+          id: string
+          metadata: Json | null
+          multiplier: number | null
+          period_month: string
+          user_id: string
+        }
+        Insert: {
+          action_code: string
+          base_points: number
+          earned_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          final_points: number
+          id?: string
+          metadata?: Json | null
+          multiplier?: number | null
+          period_month: string
+          user_id: string
+        }
+        Update: {
+          action_code?: string
+          base_points?: number
+          earned_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          final_points?: number
+          id?: string
+          metadata?: Json | null
+          multiplier?: number | null
+          period_month?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_rankings: {
+        Row: {
+          badges: Json | null
+          created_at: string | null
+          id: string
+          last_activity_date: string | null
+          level_name: string | null
+          level_number: number | null
+          period_key: string
+          period_type: string
+          ranking_position: number | null
+          region: string | null
+          streak_days: number | null
+          total_points: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          badges?: Json | null
+          created_at?: string | null
+          id?: string
+          last_activity_date?: string | null
+          level_name?: string | null
+          level_number?: number | null
+          period_key: string
+          period_type: string
+          ranking_position?: number | null
+          region?: string | null
+          streak_days?: number | null
+          total_points?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          badges?: Json | null
+          created_at?: string | null
+          id?: string
+          last_activity_date?: string | null
+          level_name?: string | null
+          level_number?: number | null
+          period_key?: string
+          period_type?: string
+          ranking_position?: number | null
+          region?: string | null
+          streak_days?: number | null
+          total_points?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_rewards_received: {
+        Row: {
+          amount_received: number | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          id: string
+          paid_at: string | null
+          period_key: string
+          points_used: number
+          rejection_reason: string | null
+          reward_id: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_received?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          id?: string
+          paid_at?: string | null
+          period_key: string
+          points_used: number
+          rejection_reason?: string | null
+          reward_id?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_received?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          id?: string
+          paid_at?: string | null
+          period_key?: string
+          points_used?: number
+          rejection_reason?: string | null
+          reward_id?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_rewards_received_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "trade_rewards"
             referencedColumns: ["id"]
           },
         ]
@@ -4315,6 +4628,13 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_user_level: {
+        Args: { points: number }
+        Returns: {
+          level_name: string
+          level_number: number
+        }[]
+      }
       consume_budget_credit: {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined
@@ -4351,8 +4671,22 @@ export type Database = {
       }
       refresh_all_materialized_views: { Args: never; Returns: undefined }
       refresh_daily_kpis: { Args: { target_date?: string }; Returns: undefined }
+      register_user_points: {
+        Args: {
+          p_action_code: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_metadata?: Json
+          p_user_id: string
+        }
+        Returns: number
+      }
       sincronizar_permissoes_usuario: {
         Args: { p_user_id: string }
+        Returns: undefined
+      }
+      update_user_ranking: {
+        Args: { p_period_key: string; p_period_type: string; p_user_id: string }
         Returns: undefined
       }
       usuario_tem_acesso_loja: {
