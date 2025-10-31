@@ -220,18 +220,27 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       const beforePhotoPromises = formData.photos.map(async (photo) => {
         try {
           const fileName = `${visit.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-antes-${photo.name}`;
+          console.log('📸 Upload iniciado:', fileName);
           
           const { error: uploadError } = await supabase.storage
             .from('trade-photos')
             .upload(fileName, photo);
 
           if (uploadError) {
+            console.error('❌ Erro no upload do arquivo:', uploadError);
             throw uploadError;
           }
 
           const { data: { publicUrl } } = supabase.storage
             .from('trade-photos')
             .getPublicUrl(fileName);
+          
+          console.log('✅ Upload concluído. Inserindo registro no DB:', {
+            visit_id: visit.id,
+            store_id: formData.store_id,
+            vendedor_id: user.id,
+            supervisor_id: supervisorId
+          });
           
           const { error: photoError } = await supabase.from("photos").insert({
             visit_id: visit.id,
@@ -246,11 +255,14 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           });
           
           if (photoError) {
+            console.error('❌ Erro ao inserir foto no DB:', photoError);
             throw photoError;
           }
           
+          console.log('✅ Foto salva com sucesso');
           return true;
         } catch (error) {
+          console.error('❌ Erro geral no upload:', error);
           toast.error("Erro ao fazer upload de foto");
           throw error;
         }
@@ -260,18 +272,22 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       const afterPhotoPromises = formData.photos_after.map(async (photo) => {
         try {
           const fileName = `${visit.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-depois-${photo.name}`;
+          console.log('📸 Upload iniciado (depois):', fileName);
           
           const { error: uploadError } = await supabase.storage
             .from('trade-photos')
             .upload(fileName, photo);
 
           if (uploadError) {
+            console.error('❌ Erro no upload do arquivo (depois):', uploadError);
             throw uploadError;
           }
 
           const { data: { publicUrl } } = supabase.storage
             .from('trade-photos')
             .getPublicUrl(fileName);
+          
+          console.log('✅ Upload concluído (depois). Inserindo registro no DB');
           
           const { error: photoError } = await supabase.from("photos").insert({
             visit_id: visit.id,
@@ -285,11 +301,14 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           });
           
           if (photoError) {
+            console.error('❌ Erro ao inserir foto no DB (depois):', photoError);
             throw photoError;
           }
           
+          console.log('✅ Foto (depois) salva com sucesso');
           return true;
         } catch (error) {
+          console.error('❌ Erro geral no upload (depois):', error);
           toast.error("Erro ao fazer upload de foto");
           throw error;
         }
