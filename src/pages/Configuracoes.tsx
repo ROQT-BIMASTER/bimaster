@@ -18,6 +18,7 @@ import { GerenciamentoIntegracoes } from "@/components/configuracoes/Gerenciamen
 import { DocumentacaoAPI } from "@/components/configuracoes/DocumentacaoAPI";
 import { AtribuirVendedorSupervisor } from "@/components/configuracoes/AtribuirVendedorSupervisor";
 import { HierarquiaUsuarios } from "@/components/configuracoes/HierarquiaUsuarios";
+import { GerenciamentoPontuacao } from "@/components/configuracoes/GerenciamentoPontuacao";
 import { Shield, UserCog, User, CheckCircle } from "lucide-react";
 
 interface Profile {
@@ -240,6 +241,7 @@ const Configuracoes = () => {
               {isAdmin && <TabsTrigger value="vendedores">Vendedores/Supervisores</TabsTrigger>}
               <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
               {isAdmin && <TabsTrigger value="permissoes">Permissões</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>}
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
               {isAdmin && <TabsTrigger value="integracoes">Integrações</TabsTrigger>}
               {isAdmin && <TabsTrigger value="api">API</TabsTrigger>}
@@ -289,6 +291,12 @@ const Configuracoes = () => {
                 <GerenciamentoPermissoesModulos />
                 <GerenciamentoPermissoesTelas />
                 <VinculacaoUsuarioProspects />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="pontuacao">
+                <GerenciamentoPontuacao />
               </TabsContent>
             )}
 
