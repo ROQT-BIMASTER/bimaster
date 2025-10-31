@@ -516,21 +516,14 @@ const TradePerformance = () => {
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Badge variant="secondary" className="mt-0.5">+15%</Badge>
+                      <Badge variant="secondary" className="mt-0.5">+20%</Badge>
                       <div>
                         <p className="font-medium text-sm">Checklist Completo</p>
                         <p className="text-xs text-muted-foreground">Marque todos os itens</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Badge variant="secondary" className="mt-0.5">+10%</Badge>
-                      <div>
-                        <p className="font-medium text-sm">Check-in com GPS</p>
-                        <p className="text-xs text-muted-foreground">Localização confirmada</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Badge variant="secondary" className="mt-0.5">+10%</Badge>
+                      <Badge variant="secondary" className="mt-0.5">+15%</Badge>
                       <div>
                         <p className="font-medium text-sm">Duração Registrada</p>
                         <p className="text-xs text-muted-foreground">Tempo de permanência</p>
@@ -548,7 +541,7 @@ const TradePerformance = () => {
                   <div className="mt-4 p-3 bg-background rounded border">
                     <p className="text-sm font-semibold mb-2">Exemplo de Visita Completa:</p>
                     <p className="text-xs text-muted-foreground">
-                      Base: 50 pts + 40% (3 fotos) + 15% (observações) + 15% (checklist) + 10% (check-in GPS) + 10% (duração) + 20% (compliance 100%) 
+                      Base: 50 pts + 40% (3 fotos) + 15% (observações) + 20% (checklist) + 15% (duração) + 20% (compliance 100%) 
                       <span className="font-bold text-primary block mt-1">= 105 pontos totais! 🎉</span>
                     </p>
                   </div>

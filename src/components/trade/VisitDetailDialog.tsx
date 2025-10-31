@@ -300,12 +300,6 @@ export function VisitDetailDialog({ open, onOpenChange, visitId }: VisitDetailDi
                       {Math.floor(visit.duration_minutes / 60)}h {visit.duration_minutes % 60}min
                     </div>
                   )}
-                  {visit.check_in_latitude && visit.check_in_longitude && (
-                    <div className="text-sm text-muted-foreground">
-                      <span className="font-medium">Localização:</span>{" "}
-                      {visit.check_in_latitude.toFixed(6)}, {visit.check_in_longitude.toFixed(6)}
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
