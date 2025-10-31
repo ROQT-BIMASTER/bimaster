@@ -195,6 +195,9 @@ Os seguintes avisos são **normais e informativos**:
 - ⚠️ Cache-control headers faltando em dev mode (APIs externas e arquivos Vite)
   - Em produção, os headers estão configurados corretamente no vite.config.ts
   - APIs externas (Supabase, etc.) não são controladas pela aplicação
+- ⚠️ Headers de segurança em recursos externos (cdn.gpteng.co, lovable.dev)
+  - Scripts e analytics do Lovable não são controlados pela aplicação
+  - Não representam risco de segurança para sua aplicação
 
 ### Erros que NÃO Devem Aparecer
 - ❌ Erros de autenticação
