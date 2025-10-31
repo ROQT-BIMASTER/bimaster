@@ -11,6 +11,28 @@ serve(async (req) => {
 
   try {
     const { message } = await req.json();
+    
+    // Input validation
+    if (!message || typeof message !== 'string') {
+      throw new Error('Invalid input: message is required and must be a string');
+    }
+    
+    // Limit message length to prevent abuse
+    const MAX_MESSAGE_LENGTH = 2000;
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      throw new Error(`Message too long. Maximum ${MAX_MESSAGE_LENGTH} characters allowed`);
+    }
+    
+    // Sanitize message - remove control characters and excessive whitespace
+    const sanitizedMessage = message
+      .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '') // Remove control chars
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+    
+    if (sanitizedMessage.length === 0) {
+      throw new Error('Invalid input: message cannot be empty');
+    }
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -116,7 +138,7 @@ Sempre responda em português de forma clara e objetiva.
 ${dataContext}
 ` 
           },
-          { role: "user", content: message }
+          { role: "user", content: sanitizedMessage }
         ],
       }),
     });

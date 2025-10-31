@@ -19,15 +19,35 @@ serve(async (req) => {
     // Validate API key for n8n integration
     const apiKey = req.headers.get('X-API-Key');
     const expectedKey = Deno.env.get('EXPORT_API_KEY');
+    const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const userAgent = req.headers.get('user-agent') || 'unknown';
     
     if (!apiKey || apiKey !== expectedKey) {
-      console.error('❌ Invalid API key');
+      console.error('❌ Invalid API key attempt from IP:', clientIp);
+      // Log unauthorized access attempt
+      try {
+        await supabase.from('api_access_log').insert({
+          endpoint: 'export-all-data',
+          ip_address: clientIp,
+          user_agent: userAgent,
+          success: false,
+          error_message: 'Invalid API key',
+          requested_at: new Date().toISOString()
+        });
+      } catch (logError) {
+        console.error('Failed to log access attempt:', logError);
+      }
       throw new Error('Invalid API key');
     }
 
     const url = new URL(req.url);
     const format = url.searchParams.get('format') || 'json';
     const includePhotos = url.searchParams.get('include_photos') === 'true';
+    
+    // Validate format parameter
+    if (format !== 'json' && format !== 'csv') {
+      throw new Error('Invalid format parameter. Must be json or csv');
+    }
     
     console.log('📦 Iniciando exportação completa do sistema...');
     console.log(`📝 Formato: ${format}, Incluir fotos: ${includePhotos}`);
@@ -211,6 +231,22 @@ serve(async (req) => {
 
     console.log('✅ Exportação completa finalizada!');
     console.log(`📊 Total de registros: ${result.export_info.statistics.total_records}`);
+    
+    // Log successful export for audit trail
+    try {
+      await supabase.from('api_access_log').insert({
+        endpoint: 'export-all-data',
+        ip_address: clientIp,
+        user_agent: userAgent,
+        success: true,
+        record_count: result.export_info.statistics.total_records,
+        format: format,
+        include_photos: includePhotos,
+        requested_at: new Date().toISOString()
+      });
+    } catch (logError) {
+      console.error('Failed to log successful export:', logError);
+    }
 
     // Resposta baseada no formato
     if (format === 'csv') {
