@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { Image as ImageIcon, Upload, Trash2, ExternalLink } from "lucide-react";
+import { Image as ImageIcon, Upload, Trash2, ExternalLink, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,27 @@ const TradePhotos = () => {
 
   useEffect(() => {
     fetchPhotos();
+
+    // Realtime subscription para novos uploads
+    const channel = supabase
+      .channel('photos-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'photos'
+        },
+        (payload) => {
+          console.log('Photo change detected:', payload);
+          fetchPhotos();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchPhotos = async () => {
@@ -141,10 +162,22 @@ const TradePhotos = () => {
               Gestão e análise de fotos de campo
             </p>
           </div>
-          <Button onClick={() => toast.info("Funcionalidade de upload em desenvolvimento. Use o cadastro rápido em Trade Marketing.")}>
-            <Upload className="mr-2 h-4 w-4" />
-            Upload de Fotos
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setLoading(true);
+                fetchPhotos();
+              }}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Atualizar
+            </Button>
+            <Button onClick={() => toast.info("Funcionalidade de upload em desenvolvimento. Use o cadastro rápido em Trade Marketing.")}>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload de Fotos
+            </Button>
+          </div>
         </div>
 
         <TradeFilters
