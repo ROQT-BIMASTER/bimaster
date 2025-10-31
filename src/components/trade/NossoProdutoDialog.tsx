@@ -212,6 +212,7 @@ export function NossoProdutoDialog({ open, onOpenChange, onSuccess }: NossoProdu
                       size="icon"
                       className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => removePhoto(index)}
+                      aria-label="Remover foto"
                     >
                       <X className="h-4 w-4" />
                     </Button>

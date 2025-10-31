@@ -146,6 +146,7 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
                   onStoreChange(null);
                   setShowDropdown(false);
                 }}
+                aria-label="Limpar busca"
               >
                 <X className="h-4 w-4" />
               </Button>

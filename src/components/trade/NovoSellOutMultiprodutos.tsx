@@ -354,6 +354,7 @@ export const NovoSellOutMultiprodutos = ({ open, onOpenChange, storeId, onSucces
                             variant="ghost"
                             size="icon"
                             onClick={() => handleRemoveItem(item.id)}
+                            aria-label="Remover item"
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>

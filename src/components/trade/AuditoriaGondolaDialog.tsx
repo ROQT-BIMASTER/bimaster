@@ -257,6 +257,7 @@ export function AuditoriaGondolaDialog({
                           variant="ghost"
                           size="icon"
                           onClick={() => removeProduto(index)}
+                          aria-label="Remover produto"
                         >
                           <X className="h-4 w-4 text-destructive" />
                         </Button>
@@ -289,6 +290,7 @@ export function AuditoriaGondolaDialog({
                         setCurrentProductIndex(index);
                         setShowCadastroProduto(true);
                       }}
+                      aria-label="Cadastrar produto rapidamente"
                       title="Cadastrar novo produto"
                     >
                       <Plus className="h-4 w-4" />

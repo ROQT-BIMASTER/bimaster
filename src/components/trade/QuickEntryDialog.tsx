@@ -220,22 +220,18 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       const beforePhotoPromises = formData.photos.map(async (photo) => {
         try {
           const fileName = `${visit.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-antes-${photo.name}`;
-          console.log('Uploading photo:', fileName);
           
-          const { error: uploadError, data: uploadData } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from('trade-photos')
             .upload(fileName, photo);
 
           if (uploadError) {
-            console.error('Upload error:', uploadError);
             throw uploadError;
           }
 
           const { data: { publicUrl } } = supabase.storage
             .from('trade-photos')
             .getPublicUrl(fileName);
-
-          console.log('Creating photo record with URL:', publicUrl);
           
           const { error: photoError } = await supabase.from("photos").insert({
             visit_id: visit.id,
@@ -250,14 +246,12 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           });
           
           if (photoError) {
-            console.error('Photo insert error:', photoError);
             throw photoError;
           }
           
-          console.log('Photo created successfully');
           return true;
         } catch (error) {
-          console.error('Error in photo upload/insert:', error);
+          toast.error("Erro ao fazer upload de foto");
           throw error;
         }
       });
@@ -266,22 +260,18 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       const afterPhotoPromises = formData.photos_after.map(async (photo) => {
         try {
           const fileName = `${visit.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-depois-${photo.name}`;
-          console.log('Uploading after photo:', fileName);
           
           const { error: uploadError } = await supabase.storage
             .from('trade-photos')
             .upload(fileName, photo);
 
           if (uploadError) {
-            console.error('After photo upload error:', uploadError);
             throw uploadError;
           }
 
           const { data: { publicUrl } } = supabase.storage
             .from('trade-photos')
             .getPublicUrl(fileName);
-
-          console.log('Creating after photo record with URL:', publicUrl);
           
           const { error: photoError } = await supabase.from("photos").insert({
             visit_id: visit.id,
@@ -295,32 +285,23 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           });
           
           if (photoError) {
-            console.error('After photo insert error:', photoError);
             throw photoError;
           }
           
-          console.log('After photo created successfully');
           return true;
         } catch (error) {
-          console.error('Error in after photo upload/insert:', error);
+          toast.error("Erro ao fazer upload de foto");
           throw error;
         }
       });
 
       // Aguardar todos os uploads em paralelo
-      console.log('Waiting for photo uploads...', {
-        beforeCount: formData.photos.length,
-        afterCount: formData.photos_after.length
-      });
-      
       const allPhotoPromises = [...beforePhotoPromises, ...afterPhotoPromises];
       
       if (allPhotoPromises.length > 0) {
         try {
           await Promise.all(allPhotoPromises);
-          console.log('All photos uploaded successfully');
         } catch (photoError) {
-          console.error('Error uploading photos:', photoError);
           toast.error("Erro ao fazer upload das fotos");
           // Não vamos falhar a visita inteira por causa das fotos
         }
@@ -737,6 +718,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                                 }));
                                 toast.success("Foto removida");
                               }}
+                              aria-label="Remover foto"
                             >
                               ×
                             </Button>
@@ -802,6 +784,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                                 }));
                                 toast.success("Foto removida");
                               }}
+                              aria-label="Remover foto"
                             >
                               ×
                             </Button>

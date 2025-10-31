@@ -235,6 +235,7 @@ const TradePhotos = () => {
                           e.stopPropagation();
                           window.open(photo.photo_url, '_blank');
                         }}
+                        aria-label="Abrir foto em nova aba"
                       >
                         <ExternalLink className="h-4 w-4" />
                       </Button>
@@ -247,6 +248,7 @@ const TradePhotos = () => {
                         e.stopPropagation();
                         setDeletingPhotoId(photo.id);
                       }}
+                      aria-label="Excluir foto"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

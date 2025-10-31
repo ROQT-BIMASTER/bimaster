@@ -297,7 +297,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
                     <SelectItem value="conveniencia">Conveniência</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button type="button" size="icon" variant="outline" onClick={() => setShowCategoriaDialog(true)}>
+                <Button type="button" size="icon" variant="outline" onClick={() => setShowCategoriaDialog(true)} aria-label="Adicionar nova categoria">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
