@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CNPJBizCreditos } from "@/components/prospects/CNPJBizCreditos";
 import { CNPJBizFilters } from "@/components/prospects/CNPJBizFilters";
 import { CNPJBizPreview } from "@/components/prospects/CNPJBizPreview";
@@ -41,10 +43,18 @@ const ImportarClientes = () => {
   const [apiFilters, setApiFilters] = useState<any>(null);
   const [apiCount, setApiCount] = useState<number>(0);
   const [showPreview, setShowPreview] = useState(false);
+  const [vendedores, setVendedores] = useState<any[]>([]);
+  const [supervisores, setSupervisores] = useState<any[]>([]);
+  const [vendedorSelecionado, setVendedorSelecionado] = useState<string>("");
+  const [supervisorSelecionado, setSupervisorSelecionado] = useState<string>("");
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     checkAdmin();
+    fetchUsuarios();
+    fetchCurrentUser();
   }, []);
 
   const checkAdmin = async () => {
@@ -61,6 +71,69 @@ const ImportarClientes = () => {
       setIsAdmin(roleData?.role === 'admin');
     } catch (error) {
       console.error("Erro ao verificar permissões:", error);
+    }
+  };
+
+  const fetchCurrentUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      setCurrentUserId(user.id);
+
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      setCurrentUserRole(roleData?.role || null);
+
+      // Se for vendedor ou promotor, já seleciona ele mesmo
+      if (roleData?.role === 'vendedor' || roleData?.role === 'promotor') {
+        setVendedorSelecionado(user.id);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar usuário atual:", error);
+    }
+  };
+
+  const fetchUsuarios = async () => {
+    try {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, nome, email")
+        .eq("status", "ativo")
+        .order("nome");
+
+      if (!profiles) return;
+
+      const userIds = profiles.map(p => p.id);
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", userIds);
+
+      const roleMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
+
+      const vendedoresList = profiles
+        .filter(p => {
+          const role = roleMap.get(p.id);
+          return role === 'vendedor' || role === 'promotor';
+        })
+        .map(p => ({ ...p, role: roleMap.get(p.id) }));
+
+      const supervisoresList = profiles
+        .filter(p => {
+          const role = roleMap.get(p.id);
+          return role === 'supervisor' || role === 'admin';
+        })
+        .map(p => ({ ...p, role: roleMap.get(p.id) }));
+
+      setVendedores(vendedoresList);
+      setSupervisores(supervisoresList);
+    } catch (error) {
+      console.error("Erro ao buscar usuários:", error);
     }
   };
 
@@ -714,10 +787,26 @@ const ImportarClientes = () => {
           municipio = municipioData;
         }
 
+        // Buscar supervisor_id do vendedor se foi selecionado e não foi informado supervisor
+        let supervisorId = supervisorSelecionado || null;
+        if (!supervisorId && vendedorSelecionado) {
+          const { data: vendedorProfile } = await supabase
+            .from("profiles")
+            .select("supervisor_id")
+            .eq("id", vendedorSelecionado)
+            .maybeSingle();
+          
+          supervisorId = vendedorProfile?.supervisor_id || null;
+        }
+
+        // Determinar vendedor_id final: usar selecionado manualmente ou do município
+        const vendedorFinal = vendedorSelecionado || municipio?.vendedor_id || null;
+
         const prospectData = {
           nome_empresa: p.nome_empresa,
           municipio_id: municipio?.id || null,
-          vendedor_id: municipio?.vendedor_id || null,
+          vendedor_id: vendedorFinal,
+          supervisor_id: supervisorId,
           cnpj: p.cnpj || null,
           cnpj_raiz: p.cnpj_raiz || null,
           dominio: p.dominio || null,
@@ -767,8 +856,8 @@ const ImportarClientes = () => {
               mensagem: `Erro ao atualizar: ${updateError.message}`
             });
           } else {
-            const mensagemSucesso = municipio?.vendedor_id 
-              ? 'Atualizado e distribuído automaticamente' 
+            const mensagemSucesso = vendedorFinal 
+              ? 'Atualizado e distribuído' 
               : 'Cliente atualizado com sucesso';
             
             detalhes.push({
@@ -783,8 +872,8 @@ const ImportarClientes = () => {
           detalhes.push({
             linha: i + 1,
             empresa: p.nome_empresa,
-            status: municipio?.vendedor_id ? 'sucesso' : 'sem_vendedor',
-            mensagem: municipio?.vendedor_id 
+            status: vendedorFinal ? 'sucesso' : 'sem_vendedor',
+            mensagem: vendedorFinal 
               ? 'Distribuído automaticamente' 
               : 'Município sem vendedor atribuído'
           });
@@ -986,8 +1075,56 @@ const ImportarClientes = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="vendedor-ia">Vendedor Responsável (Opcional)</Label>
+                    <Select 
+                      value={vendedorSelecionado} 
+                      onValueChange={setVendedorSelecionado}
+                      disabled={currentUserRole === 'vendedor' || currentUserRole === 'promotor'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Usar distribuição automática" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Usar distribuição automática</SelectItem>
+                        {vendedores.map((vendedor) => (
+                          <SelectItem key={vendedor.id} value={vendedor.id}>
+                            {vendedor.nome} - {vendedor.role === 'vendedor' ? 'Vendedor' : 'Promotor'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Se não selecionar, será usado o vendedor do município
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="supervisor-ia">Supervisor (Opcional)</Label>
+                    <Select 
+                      value={supervisorSelecionado || "none"} 
+                      onValueChange={(value) => setSupervisorSelecionado(value === "none" ? "" : value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Usar supervisor do vendedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Usar supervisor do vendedor</SelectItem>
+                        {supervisores.map((supervisor) => (
+                          <SelectItem key={supervisor.id} value={supervisor.id}>
+                            {supervisor.nome} - {supervisor.role === 'supervisor' ? 'Supervisor' : 'Admin'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
+                  <Label htmlFor="textoIA">Dados para Análise</Label>
                   <Textarea
+                    id="textoIA"
                     placeholder="Cole aqui os dados da sua planilha (pode ser do Excel, Google Sheets, ou até mesmo uma lista não estruturada de empresas)...
 
 Exemplo:
@@ -1023,6 +1160,8 @@ Exemplo:
                       <li>Extrai informações como nome, município, contato, CNPJ, etc.</li>
                       <li>Normaliza e padroniza os dados automaticamente</li>
                       <li>Cadastra os prospects no sistema</li>
+                      <li>Se vendedor for selecionado, todos os prospects serão atribuídos a ele</li>
+                      <li>Caso contrário, usa a distribuição automática por município</li>
                     </ul>
                   </AlertDescription>
                 </Alert>
