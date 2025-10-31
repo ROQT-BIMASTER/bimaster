@@ -4,10 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Users, TrendingUp } from "lucide-react";
-import { format } from "date-fns";
+import { Users, TrendingUp, Search, ArrowUpDown, Calendar } from "lucide-react";
+import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
@@ -33,6 +35,10 @@ const TradeTeamPerformance = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<keyof TeamMember>("monthly_points");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [periodFilter, setPeriodFilter] = useState<string>("current");
 
   useEffect(() => {
     if (!isAdminOrSupervisor) {
@@ -59,10 +65,36 @@ const TradeTeamPerformance = () => {
     }
   };
 
-  const filteredMembers = teamMembers.filter(member => {
-    if (filterRole === "all") return true;
-    return member.role === filterRole;
-  });
+  const handleSort = (column: keyof TeamMember) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(column);
+      setSortOrder("desc");
+    }
+  };
+
+  const filteredMembers = teamMembers
+    .filter(member => {
+      if (filterRole !== "all" && member.role !== filterRole) return false;
+      if (searchQuery && !member.user_name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const aValue = a[sortBy] ?? 0;
+      const bValue = b[sortBy] ?? 0;
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortOrder === "asc" 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      const numA = typeof aValue === 'number' ? aValue : 0;
+      const numB = typeof bValue === 'number' ? bValue : 0;
+      
+      return sortOrder === "asc" ? numA - numB : numB - numA;
+    });
 
   const getLevelColor = (level: string | null) => {
     if (!level) return "bg-gray-500";
@@ -147,43 +179,164 @@ const TradeTeamPerformance = () => {
           </Card>
         </div>
 
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Filtros</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Buscar por nome</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Digite o nome..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Função</label>
+                <Select value={filterRole} onValueChange={setFilterRole}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por função" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as funções</SelectItem>
+                    <SelectItem value="supervisor">Supervisores</SelectItem>
+                    <SelectItem value="vendedor">Vendedores</SelectItem>
+                    <SelectItem value="promotor">Promotores</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Período</label>
+                <Select value={periodFilter} onValueChange={setPeriodFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="current">Mês Atual</SelectItem>
+                    <SelectItem value="last">Mês Passado</SelectItem>
+                    <SelectItem value="last3">Últimos 3 Meses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Performance Table */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Desempenho Individual</CardTitle>
-                <CardDescription>Métricas detalhadas por membro da equipe</CardDescription>
+                <CardDescription>
+                  {filteredMembers.length} {filteredMembers.length === 1 ? 'membro' : 'membros'} da equipe
+                </CardDescription>
               </div>
-              <Select value={filterRole} onValueChange={setFilterRole}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Filtrar por função" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="supervisor">Supervisores</SelectItem>
-                  <SelectItem value="vendedor">Vendedores</SelectItem>
-                  <SelectItem value="promotor">Promotores</SelectItem>
-                </SelectContent>
-              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchTeamPerformance()}
+              >
+                Atualizar
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Posição</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Função</TableHead>
-                  <TableHead>Nível</TableHead>
-                  <TableHead className="text-right">Pontos</TableHead>
-                  <TableHead className="text-right">Visitas</TableHead>
-                  <TableHead className="text-right">Fotos</TableHead>
-                  <TableHead className="text-right">Auditorias</TableHead>
-                  <TableHead className="text-right">Compliance</TableHead>
-                  <TableHead>Última Atividade</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                        onClick={() => handleSort("monthly_position")}
+                      >
+                        Posição
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                        onClick={() => handleSort("user_name")}
+                      >
+                        Nome
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead>Função</TableHead>
+                    <TableHead>Nível</TableHead>
+                    <TableHead className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                        onClick={() => handleSort("monthly_points")}
+                      >
+                        Pontos
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                        onClick={() => handleSort("visits_this_month")}
+                      >
+                        Visitas
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                        onClick={() => handleSort("photos_this_month")}
+                      >
+                        Fotos
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                        onClick={() => handleSort("audits_this_month")}
+                      >
+                        Auditorias
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                        onClick={() => handleSort("avg_compliance")}
+                      >
+                        Compliance
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead>Última Atividade</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {filteredMembers.length === 0 ? (
                   <TableRow>
@@ -227,7 +380,8 @@ const TradeTeamPerformance = () => {
                   ))
                 )}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
