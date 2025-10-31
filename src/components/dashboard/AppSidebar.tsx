@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +51,7 @@ const iconMap: Record<string, any> = {
   Tag: Tag,
   TrendingUp: TrendingUp,
   Brain: Brain,
+  Trophy: Trophy,
 };
 
 export function AppSidebar() {
@@ -107,6 +108,7 @@ export function AppSidebar() {
     { title: "Promoções", url: "/dashboard/trade/promotions", icon: Tag },
     { title: "Concorrentes", url: "/dashboard/trade/competitors", icon: TrendingUp },
     { title: "Financeiro", url: "/dashboard/trade/financeiro", icon: DollarSign },
+    { title: "Premiações", url: "/dashboard/trade/rewards", icon: Trophy },
     { title: "Insights IA", url: "/dashboard/trade/insights", icon: Brain },
   ];
 
