@@ -218,17 +218,26 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
 
       // 2. Upload photos and create records (ANTES) - Paralelo
       const beforePhotoPromises = formData.photos.map(async (photo) => {
-        const fileName = `${visit.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-antes-${photo.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('trade-photos')
-          .upload(fileName, photo);
+        try {
+          const fileName = `${visit.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-antes-${photo.name}`;
+          console.log('Uploading photo:', fileName);
+          
+          const { error: uploadError, data: uploadData } = await supabase.storage
+            .from('trade-photos')
+            .upload(fileName, photo);
 
-        if (!uploadError) {
+          if (uploadError) {
+            console.error('Upload error:', uploadError);
+            throw uploadError;
+          }
+
           const { data: { publicUrl } } = supabase.storage
             .from('trade-photos')
             .getPublicUrl(fileName);
 
-          return supabase.from("photos").insert({
+          console.log('Creating photo record with URL:', publicUrl);
+          
+          const { data: photoData, error: photoError } = await supabase.from("photos").insert({
             visit_id: visit.id,
             store_id: formData.store_id,
             photo_url: publicUrl,
@@ -238,23 +247,43 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             ai_analysis: { insights: formData.ai_insights },
             vendedor_id: user.id,
             supervisor_id: supervisorId,
-          });
+          }).select().single();
+          
+          if (photoError) {
+            console.error('Photo insert error:', photoError);
+            throw photoError;
+          }
+          
+          console.log('Photo created successfully:', photoData);
+          return photoData;
+        } catch (error) {
+          console.error('Error in photo upload/insert:', error);
+          throw error;
         }
       });
 
       // 2b. Upload photos "DEPOIS" (opcional) - Paralelo
       const afterPhotoPromises = formData.photos_after.map(async (photo) => {
-        const fileName = `${visit.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-depois-${photo.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('trade-photos')
-          .upload(fileName, photo);
+        try {
+          const fileName = `${visit.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-depois-${photo.name}`;
+          console.log('Uploading after photo:', fileName);
+          
+          const { error: uploadError } = await supabase.storage
+            .from('trade-photos')
+            .upload(fileName, photo);
 
-        if (!uploadError) {
+          if (uploadError) {
+            console.error('After photo upload error:', uploadError);
+            throw uploadError;
+          }
+
           const { data: { publicUrl } } = supabase.storage
             .from('trade-photos')
             .getPublicUrl(fileName);
 
-          return supabase.from("photos").insert({
+          console.log('Creating after photo record with URL:', publicUrl);
+          
+          const { data: photoData, error: photoError } = await supabase.from("photos").insert({
             visit_id: visit.id,
             store_id: formData.store_id,
             photo_url: publicUrl,
@@ -263,12 +292,39 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             ai_processed: false,
             vendedor_id: user.id,
             supervisor_id: supervisorId,
-          });
+          }).select().single();
+          
+          if (photoError) {
+            console.error('After photo insert error:', photoError);
+            throw photoError;
+          }
+          
+          console.log('After photo created successfully:', photoData);
+          return photoData;
+        } catch (error) {
+          console.error('Error in after photo upload/insert:', error);
+          throw error;
         }
       });
 
       // Aguardar todos os uploads em paralelo
-      await Promise.all([...beforePhotoPromises, ...afterPhotoPromises]);
+      console.log('Waiting for photo uploads...', {
+        beforeCount: formData.photos.length,
+        afterCount: formData.photos_after.length
+      });
+      
+      const allPhotoPromises = [...beforePhotoPromises, ...afterPhotoPromises];
+      
+      if (allPhotoPromises.length > 0) {
+        try {
+          await Promise.all(allPhotoPromises);
+          console.log('All photos uploaded successfully');
+        } catch (photoError) {
+          console.error('Error uploading photos:', photoError);
+          toast.error("Erro ao fazer upload das fotos");
+          // Não vamos falhar a visita inteira por causa das fotos
+        }
+      }
 
       // 3. Create shelf share records - Paralelo
       if (formData.products_found.length > 0) {
