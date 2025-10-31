@@ -144,5 +144,18 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     include: ['react', 'react-dom', '@tanstack/react-query'],
+    exclude: ['@supabase/supabase-js'],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-tabs'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
   },
 }));

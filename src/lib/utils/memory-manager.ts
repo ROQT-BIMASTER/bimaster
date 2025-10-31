@@ -6,7 +6,7 @@
 class MemoryManager {
   private static instance: MemoryManager;
   private cleanupInterval: number | null = null;
-  private readonly CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
+  private readonly CLEANUP_INTERVAL_MS = 3 * 60 * 1000; // 3 minutos (mais frequente)
 
   private constructor() {
     this.startPeriodicCleanup();

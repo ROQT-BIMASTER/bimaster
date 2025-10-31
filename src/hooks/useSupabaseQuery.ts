@@ -13,10 +13,11 @@ export function useSupabaseQuery<T>(
     queryKey,
     queryFn: () => withRetry(queryFn, queryKey[0] as string),
     retry: false, // Desabilitar retry do React Query, pois já temos nosso próprio
-    staleTime: 30000, // Dados ficam frescos por 30 segundos
-    gcTime: 5 * 60 * 1000, // Cache por 5 minutos
+    staleTime: 60000, // Dados ficam frescos por 60 segundos (aumentado)
+    gcTime: 10 * 60 * 1000, // Cache por 10 minutos (aumentado)
     refetchOnWindowFocus: false, // Não refetch ao focar na janela
     refetchOnReconnect: true, // Refetch quando reconectar
+    refetchInterval: false, // Desabilitar polling automático
     ...options,
   });
 }

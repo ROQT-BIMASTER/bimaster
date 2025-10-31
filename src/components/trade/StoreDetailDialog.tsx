@@ -67,176 +67,174 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
     setLoading(true);
     
     try {
-      // Buscar dados da loja
-      const { data: storeData, error: storeError } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("id", storeId)
-        .single();
+      // Executar todas as queries em paralelo para melhor performance
+      const results = await Promise.allSettled([
+        // 0: Buscar dados da loja
+        supabase.from("stores").select("*").eq("id", storeId).single(),
+        
+        // 1: Buscar visitas realizadas
+        supabase
+          .from("visits")
+          .select(`*, user:profiles(nome)`)
+          .eq("store_id", storeId)
+          .in("status", ["completed", "in_progress"])
+          .order("scheduled_date", { ascending: false })
+          .limit(20),
+        
+        // 2: Buscar visitas agendadas
+        supabase
+          .from("visits")
+          .select(`*, user:profiles(nome)`)
+          .eq("store_id", storeId)
+          .eq("status", "scheduled")
+          .order("scheduled_date", { ascending: true })
+          .limit(20),
+        
+        // 3: Buscar insights de IA
+        supabase
+          .from("ai_insights")
+          .select("*")
+          .eq("entity_type", "store")
+          .eq("entity_id", storeId)
+          .order("generated_at", { ascending: false })
+          .limit(20),
+        
+        // 4: Buscar fotos
+        supabase
+          .from("photos")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("upload_date", { ascending: false })
+          .limit(50),
+        
+        // 5: Buscar auditorias de gôndola
+        supabase
+          .from("gondola_audits")
+          .select(`*, product:products(name, sku), visit:visits(scheduled_date, visit_code)`)
+          .eq("store_id", storeId)
+          .order("created_at", { ascending: false })
+          .limit(20),
+        
+        // 6: Buscar investimentos
+        supabase
+          .from("trade_investments")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("investment_date", { ascending: false })
+          .limit(20),
+        
+        // 7: Buscar promoções ativas
+        supabase
+          .from("promotion_execution")
+          .select(`*, promotion:promotions(name, code, promotion_type)`)
+          .eq("store_id", storeId)
+          .order("checked_at", { ascending: false })
+          .limit(20),
+        
+        // 8: Buscar histórico de vendas (sell-out)
+        supabase
+          .from("store_sellout_items")
+          .select(`*, product:store_products(id, product_id, products(name, sku))`)
+          .eq("store_id", storeId)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        
+        // 9: Buscar medições de prateleira
+        supabase
+          .from("shelf_measurements")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("measurement_date", { ascending: false })
+          .limit(20),
+        
+        // 10: Buscar dados de shelf share
+        supabase
+          .from("shelf_share")
+          .select(`*, product:products(name, sku)`)
+          .eq("store_id", storeId)
+          .order("recorded_at", { ascending: false })
+          .limit(30),
+        
+        // 11: Buscar inteligência de concorrentes
+        supabase
+          .from("competitor_intelligence")
+          .select(`*, competitor:competitors(name, brand)`)
+          .eq("store_id", storeId)
+          .order("recorded_at", { ascending: false })
+          .limit(30),
+      ]);
 
-      if (storeError) {
-        console.error("❌ Erro ao buscar loja:", storeError);
+      // Processar resultado da loja (índice 0)
+      if (results[0].status === "fulfilled" && !results[0].value.error) {
+        console.log("✅ Loja carregada:", results[0].value.data?.name);
+        setStore(results[0].value.data);
+      } else {
+        console.error("❌ Erro ao buscar loja");
         toast.error("Erro ao carregar dados da loja");
-        throw storeError;
+        return;
       }
 
-      console.log("✅ Loja carregada:", storeData?.name);
-      setStore(storeData);
-
-      // Buscar visitas realizadas
-      const { data: visitsData, error: visitsError } = await supabase
-        .from("visits")
-        .select(`
-          *,
-          user:profiles(nome)
-        `)
-        .eq("store_id", storeId)
-        .in("status", ["completed", "in_progress"])
-        .order("scheduled_date", { ascending: false })
-        .limit(20);
-
-      if (visitsError) {
-        console.error("❌ Erro ao buscar visitas realizadas:", visitsError);
-      } else {
-        console.log(`✅ ${visitsData?.length || 0} visitas realizadas carregadas`);
+      // Processar visitas realizadas (índice 1)
+      if (results[1].status === "fulfilled") {
+        const data = results[1].value.data || [];
+        console.log(`✅ ${data.length} visitas realizadas carregadas`);
+        setVisits(data);
       }
 
-      setVisits(visitsData || []);
-
-      // Buscar visitas agendadas
-      const { data: scheduledVisitsData, error: scheduledError } = await supabase
-        .from("visits")
-        .select(`
-          *,
-          user:profiles(nome)
-        `)
-        .eq("store_id", storeId)
-        .eq("status", "scheduled")
-        .order("scheduled_date", { ascending: true })
-        .limit(20);
-
-      if (scheduledError) {
-        console.error("❌ Erro ao buscar visitas agendadas:", scheduledError);
-      } else {
-        console.log(`✅ ${scheduledVisitsData?.length || 0} visitas agendadas carregadas`);
+      // Processar visitas agendadas (índice 2)
+      if (results[2].status === "fulfilled") {
+        const data = results[2].value.data || [];
+        console.log(`✅ ${data.length} visitas agendadas carregadas`);
+        setScheduledVisits(data);
+        if (data.length > 0) {
+          toast.success(`${data.length} visita(s) agendada(s) encontrada(s)`);
+        }
       }
 
-      setScheduledVisits(scheduledVisitsData || []);
-      
-      if ((scheduledVisitsData?.length || 0) > 0) {
-        toast.success(`${scheduledVisitsData!.length} visita(s) agendada(s) encontrada(s)`);
+      // Processar insights (índice 3)
+      if (results[3].status === "fulfilled") {
+        setInsights(results[3].value.data || []);
       }
 
-      // Buscar insights de IA
-      const { data: insightsData } = await supabase
-        .from("ai_insights")
-        .select("*")
-        .eq("entity_type", "store")
-        .eq("entity_id", storeId)
-        .order("generated_at", { ascending: false })
-        .limit(20);
+      // Processar fotos (índice 4)
+      if (results[4].status === "fulfilled") {
+        setPhotos(results[4].value.data || []);
+      }
 
-      setInsights(insightsData || []);
+      // Processar auditorias (índice 5)
+      if (results[5].status === "fulfilled") {
+        setAudits(results[5].value.data || []);
+      }
 
-      // Buscar fotos
-      const { data: photosData } = await supabase
-        .from("photos")
-        .select("*")
-        .eq("store_id", storeId)
-        .order("upload_date", { ascending: false })
-        .limit(50);
+      // Processar investimentos (índice 6)
+      if (results[6].status === "fulfilled") {
+        setInvestments(results[6].value.data || []);
+      }
 
-      setPhotos(photosData || []);
+      // Processar promoções (índice 7)
+      if (results[7].status === "fulfilled") {
+        setPromotions(results[7].value.data || []);
+      }
 
-      // Buscar auditorias de gôndola
-      const { data: auditsData } = await supabase
-        .from("gondola_audits")
-        .select(`
-          *,
-          product:products(name, sku),
-          visit:visits(scheduled_date, visit_code)
-        `)
-        .eq("store_id", storeId)
-        .order("created_at", { ascending: false })
-        .limit(20);
+      // Processar vendas (índice 8)
+      if (results[8].status === "fulfilled") {
+        setSales(results[8].value.data || []);
+      }
 
-      setAudits(auditsData || []);
+      // Processar medições (índice 9)
+      if (results[9].status === "fulfilled") {
+        setShelfMeasurements(results[9].value.data || []);
+      }
 
-      // Buscar investimentos
-      const { data: investmentsData } = await supabase
-        .from("trade_investments")
-        .select("*")
-        .eq("store_id", storeId)
-        .order("investment_date", { ascending: false })
-        .limit(20);
+      // Processar shelf share (índice 10)
+      if (results[10].status === "fulfilled") {
+        setShelfShare(results[10].value.data || []);
+      }
 
-      setInvestments(investmentsData || []);
-
-      // Buscar promoções ativas
-      const { data: promotionsData } = await supabase
-        .from("promotion_execution")
-        .select(`
-          *,
-          promotion:promotions(name, code, promotion_type)
-        `)
-        .eq("store_id", storeId)
-        .order("checked_at", { ascending: false })
-        .limit(20);
-
-      setPromotions(promotionsData || []);
-
-      // Buscar histórico de vendas (sell-out) - simplificado
-      const { data: salesData } = await supabase
-        .from("store_sellout_items")
-        .select(`
-          *,
-          product:store_products(
-            id,
-            product_id,
-            products(name, sku)
-          )
-        `)
-        .eq("store_id", storeId)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      setSales(salesData || []);
-
-      // Buscar medições de prateleira
-      const { data: measurementsData } = await supabase
-        .from("shelf_measurements")
-        .select("*")
-        .eq("store_id", storeId)
-        .order("measurement_date", { ascending: false })
-        .limit(20);
-
-      setShelfMeasurements(measurementsData || []);
-
-      // Buscar dados de shelf share
-      const { data: shelfShareData } = await supabase
-        .from("shelf_share")
-        .select(`
-          *,
-          product:products(name, sku)
-        `)
-        .eq("store_id", storeId)
-        .order("recorded_at", { ascending: false })
-        .limit(30);
-
-      setShelfShare(shelfShareData || []);
-
-      // Buscar inteligência de concorrentes
-      const { data: competitorData } = await supabase
-        .from("competitor_intelligence")
-        .select(`
-          *,
-          competitor:competitors(name, brand)
-        `)
-        .eq("store_id", storeId)
-        .order("recorded_at", { ascending: false })
-        .limit(30);
-
-      setCompetitorIntel(competitorData || []);
+      // Processar inteligência de concorrentes (índice 11)
+      if (results[11].status === "fulfilled") {
+        setCompetitorIntel(results[11].value.data || []);
+      }
 
     } catch (error) {
       console.error("❌ Erro geral ao carregar detalhes:", error);
