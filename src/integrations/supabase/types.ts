@@ -4635,6 +4635,7 @@ export type Database = {
           level_number: number
         }[]
       }
+      calculate_visit_points: { Args: { visit_id: string }; Returns: number }
       consume_budget_credit: {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined

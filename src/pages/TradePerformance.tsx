@@ -450,33 +450,107 @@ const TradePerformance = () => {
                   <Star className="h-5 w-5" />
                   Como Ganhar Pontos
                 </CardTitle>
-                <CardDescription>Ações que geram pontuação</CardDescription>
+                <CardDescription>Sistema de pontuação inteligente baseado na completude</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="p-3 border rounded-lg">
-                    <p className="font-semibold">Visita Completa</p>
-                    <p className="text-2xl font-bold text-primary">50 pts</p>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Pontuação Base por Ação</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="p-3 border rounded-lg">
+                      <p className="font-semibold">Visita Completa</p>
+                      <p className="text-2xl font-bold text-primary">50 pts</p>
+                      <p className="text-xs text-muted-foreground mt-1">+ bônus por completude</p>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <p className="font-semibold">Auditoria Completa</p>
+                      <p className="text-2xl font-bold text-primary">100 pts</p>
+                      <p className="text-xs text-muted-foreground mt-1">2x se compliance ≥95%</p>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <p className="font-semibold">Medição de Gôndola</p>
+                      <p className="text-2xl font-bold text-primary">80 pts</p>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <p className="font-semibold">Lançamento Sell Out</p>
+                      <p className="text-2xl font-bold text-primary">70 pts</p>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <p className="font-semibold">Inteligência Competitiva</p>
+                      <p className="text-2xl font-bold text-primary">60 pts</p>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <p className="font-semibold">Upload de Foto</p>
+                      <p className="text-2xl font-bold text-primary">30 pts</p>
+                    </div>
                   </div>
-                  <div className="p-3 border rounded-lg">
-                    <p className="font-semibold">Auditoria Completa</p>
-                    <p className="text-2xl font-bold text-primary">100 pts</p>
+                </div>
+
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    Multiplicadores de Visita
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Ganhe mais pontos completando todos os requisitos da visita:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="flex items-start gap-2">
+                      <Badge variant="secondary" className="mt-0.5">+40%</Badge>
+                      <div>
+                        <p className="font-medium text-sm">3+ Fotos</p>
+                        <p className="text-xs text-muted-foreground">Documente bem a visita</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Badge variant="secondary" className="mt-0.5">+20%</Badge>
+                      <div>
+                        <p className="font-medium text-sm">1+ Foto</p>
+                        <p className="text-xs text-muted-foreground">Registro fotográfico</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Badge variant="secondary" className="mt-0.5">+15%</Badge>
+                      <div>
+                        <p className="font-medium text-sm">Observações</p>
+                        <p className="text-xs text-muted-foreground">Preencha as notas da visita</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Badge variant="secondary" className="mt-0.5">+15%</Badge>
+                      <div>
+                        <p className="font-medium text-sm">Checklist Completo</p>
+                        <p className="text-xs text-muted-foreground">Marque todos os itens</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Badge variant="secondary" className="mt-0.5">+10%</Badge>
+                      <div>
+                        <p className="font-medium text-sm">Check-in com GPS</p>
+                        <p className="text-xs text-muted-foreground">Localização confirmada</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Badge variant="secondary" className="mt-0.5">+10%</Badge>
+                      <div>
+                        <p className="font-medium text-sm">Duração Registrada</p>
+                        <p className="text-xs text-muted-foreground">Tempo de permanência</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 md:col-span-2">
+                      <Badge variant="default" className="mt-0.5">até +20%</Badge>
+                      <div>
+                        <p className="font-medium text-sm">Bônus de Compliance</p>
+                        <p className="text-xs text-muted-foreground">+1% para cada ponto acima de 80% de compliance</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-3 border rounded-lg">
-                    <p className="font-semibold">Medição de Gôndola</p>
-                    <p className="text-2xl font-bold text-primary">80 pts</p>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <p className="font-semibold">Lançamento Sell Out</p>
-                    <p className="text-2xl font-bold text-primary">70 pts</p>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <p className="font-semibold">Inteligência Competitiva</p>
-                    <p className="text-2xl font-bold text-primary">60 pts</p>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <p className="font-semibold">Upload de Foto</p>
-                    <p className="text-2xl font-bold text-primary">30 pts</p>
+                  
+                  <div className="mt-4 p-3 bg-background rounded border">
+                    <p className="text-sm font-semibold mb-2">Exemplo de Visita Completa:</p>
+                    <p className="text-xs text-muted-foreground">
+                      Base: 50 pts + 40% (3 fotos) + 15% (observações) + 15% (checklist) + 10% (check-in GPS) + 10% (duração) + 20% (compliance 100%) 
+                      <span className="font-bold text-primary block mt-1">= 105 pontos totais! 🎉</span>
+                    </p>
                   </div>
                 </div>
               </CardContent>
