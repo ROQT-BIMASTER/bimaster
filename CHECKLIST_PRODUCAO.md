@@ -85,6 +85,8 @@
 - ✅ Imagens otimizadas
 - ✅ Chunks manuais configurados
 - ✅ Cache de assets estáticos
+- ✅ Cache busting com hash em todos os assets
+- ✅ Headers de cache otimizados
 
 ### Métricas Alvo
 - 🎯 First Contentful Paint: < 1.8s
