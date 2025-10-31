@@ -34,7 +34,6 @@ import TradeIdealPhotos from "./pages/TradeIdealPhotos";
 import TradeAuditorias from "./pages/TradeAuditorias";
 import TradeRelatorioCompetitivo from "./pages/TradeRelatorioCompetitivo";
 import TradeComparacaoProdutos from "./pages/TradeComparacaoProdutos";
-import TradePerformance from "./pages/TradePerformance";
 import TradeSellOut from "./pages/TradeSellOut";
 import TradeShelfMeasurements from "./pages/TradeShelfMeasurements";
 import TradeMeasurementGuide from "./pages/TradeMeasurementGuide";
@@ -48,6 +47,7 @@ import TradeLancamentos from "./pages/TradeLancamentos";
 import TradeAprovacoes from "./pages/TradeAprovacoes";
 import TradeExtratosPessoais from "./pages/TradeExtratosPessoais";
 import TradeCampaigns from "./pages/TradeCampaigns";
+import TradePerformance from "./pages/TradePerformance";
 import Relatorios from "./pages/Relatorios";
 import InstalarApp from "./pages/InstalarApp";
 
