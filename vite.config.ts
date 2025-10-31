@@ -143,8 +143,7 @@ export default defineConfig(({ mode }) => ({
     dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', '@tanstack/react-query'],
-    exclude: ['@supabase/supabase-js'],
+    include: ['react', 'react-dom', '@tanstack/react-query', '@supabase/supabase-js'],
   },
   build: {
     rollupOptions: {
