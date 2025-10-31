@@ -183,6 +183,15 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      // Buscar supervisor_id do perfil do usuário
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("supervisor_id")
+        .eq("id", user.id)
+        .single();
+
+      const supervisorId = profile?.supervisor_id || null;
+
       // 1. Create visit
       const visitCode = `V-${Date.now()}`;
       const { data: visit, error: visitError } = await supabase
@@ -228,6 +237,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             ai_processed: true,
             ai_analysis: { insights: formData.ai_insights },
             vendedor_id: user.id,
+            supervisor_id: supervisorId,
           });
         }
       });
@@ -252,6 +262,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             category: "after",
             ai_processed: false,
             vendedor_id: user.id,
+            supervisor_id: supervisorId,
           });
         }
       });
