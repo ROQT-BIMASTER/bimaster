@@ -256,7 +256,7 @@ const TradePerformance = () => {
             </p>
           </div>
           {isAdminOrSupervisor && (
-            <Button variant="outline" onClick={() => navigate('/configuracoes')}>
+            <Button variant="outline" onClick={() => navigate('/dashboard/configuracoes')}>
               <Settings className="mr-2 h-4 w-4" />
               Configurações
             </Button>

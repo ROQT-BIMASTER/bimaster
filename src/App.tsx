@@ -48,6 +48,7 @@ import TradeAprovacoes from "./pages/TradeAprovacoes";
 import TradeExtratosPessoais from "./pages/TradeExtratosPessoais";
 import TradeCampaigns from "./pages/TradeCampaigns";
 import TradePerformance from "./pages/TradePerformance";
+import TradeTeamPerformance from "./pages/TradeTeamPerformance";
 import Relatorios from "./pages/Relatorios";
 import InstalarApp from "./pages/InstalarApp";
 
@@ -131,6 +132,7 @@ const App = () => {
         <Route path="/dashboard/trade/relatorio-competitivo" element={<ProtectedRoute><TradeRelatorioCompetitivo /></ProtectedRoute>} />
         <Route path="/dashboard/trade/comparacao-produtos" element={<ProtectedRoute><TradeComparacaoProdutos /></ProtectedRoute>} />
         <Route path="/dashboard/trade/performance" element={<ProtectedRoute><TradePerformance /></ProtectedRoute>} />
+        <Route path="/dashboard/trade/team-performance" element={<ProtectedRoute><TradeTeamPerformance /></ProtectedRoute>} />
         
         <Route path="*" element={<NotFound />} />
       </Routes>
