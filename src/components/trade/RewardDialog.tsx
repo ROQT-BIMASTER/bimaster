@@ -160,6 +160,15 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
     try {
       setLoading(true);
 
+      // Buscar usuário atual
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("Usuário não autenticado");
+      }
+
+      console.log("Salvando premiação...", formData);
+
       const rewardData = {
         reward_name: formData.name,
         description: formData.description || null,
@@ -172,13 +181,19 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
         is_active: formData.is_active,
         requires_approval: formData.requires_approval,
         banner_url: formData.banner_url || null,
+        created_by: user.id,
       };
 
+      console.log("Dados da premiação:", rewardData);
+
       if (reward) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("trade_rewards")
           .update(rewardData)
-          .eq("id", reward.id);
+          .eq("id", reward.id)
+          .select();
+
+        console.log("Resultado update:", { data, error });
 
         if (error) throw error;
 
@@ -187,9 +202,12 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
           description: "A premiação foi atualizada com sucesso.",
         });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("trade_rewards")
-          .insert([rewardData]);
+          .insert([rewardData])
+          .select();
+
+        console.log("Resultado insert:", { data, error });
 
         if (error) throw error;
 
@@ -201,7 +219,7 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
 
       onSuccess();
     } catch (error: any) {
-      console.error("Erro ao salvar premiação:", error);
+      console.error("Erro detalhado ao salvar premiação:", error);
       toast({
         title: "Erro ao salvar",
         description: error.message || "Erro ao salvar premiação",
