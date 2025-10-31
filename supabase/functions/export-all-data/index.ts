@@ -6,48 +6,92 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
+// Rate limiting: Track last request time per IP (simple in-memory cache)
+const requestLog = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW_MS = 3600000; // 1 hour
+const MAX_REQUESTS_PER_HOUR = 10;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const requestStartTime = Date.now();
+  let totalRecords = 0;
+  let ipAddress = 'unknown';
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Get IP address for audit logging and rate limiting
+    ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                req.headers.get('x-real-ip') || 
+                'unknown';
+
     // Validate API key for n8n integration
     const apiKey = req.headers.get('X-API-Key');
     const expectedKey = Deno.env.get('EXPORT_API_KEY');
-    const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
-    const userAgent = req.headers.get('user-agent') || 'unknown';
     
     if (!apiKey || apiKey !== expectedKey) {
-      console.error('❌ Invalid API key attempt from IP:', clientIp);
-      // Log unauthorized access attempt
+      console.error(`❌ Invalid API key attempt from ${ipAddress}`);
+      
+      // Log failed authentication attempt
       try {
         await supabase.from('api_access_log').insert({
           endpoint: 'export-all-data',
-          ip_address: clientIp,
-          user_agent: userAgent,
+          ip_address: ipAddress,
           success: false,
           error_message: 'Invalid API key',
           requested_at: new Date().toISOString()
         });
       } catch (logError) {
-        console.error('Failed to log access attempt:', logError);
+        console.warn('Failed to log invalid auth:', logError);
       }
+      
       throw new Error('Invalid API key');
     }
+
+    // Rate limiting check
+    const now = Date.now();
+    const userRequests = requestLog.get(ipAddress) || [];
+    const recentRequests = userRequests.filter(time => now - time < RATE_LIMIT_WINDOW_MS);
+    
+    if (recentRequests.length >= MAX_REQUESTS_PER_HOUR) {
+      console.error(`⚠️ Rate limit exceeded for ${ipAddress}`);
+      
+      try {
+        await supabase.from('api_access_log').insert({
+          endpoint: 'export-all-data',
+          ip_address: ipAddress,
+          success: false,
+          error_message: 'Rate limit exceeded',
+          requested_at: new Date().toISOString()
+        });
+      } catch (logError) {
+        console.warn('Failed to log rate limit:', logError);
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Rate limit exceeded. Maximum 10 requests per hour.' 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 429 
+        }
+      );
+    }
+    
+    // Update rate limiting log
+    recentRequests.push(now);
+    requestLog.set(ipAddress, recentRequests);
 
     const url = new URL(req.url);
     const format = url.searchParams.get('format') || 'json';
     const includePhotos = url.searchParams.get('include_photos') === 'true';
-    
-    // Validate format parameter
-    if (format !== 'json' && format !== 'csv') {
-      throw new Error('Invalid format parameter. Must be json or csv');
-    }
     
     console.log('📦 Iniciando exportação completa do sistema...');
     console.log(`📝 Formato: ${format}, Incluir fotos: ${includePhotos}`);
@@ -221,31 +265,37 @@ serve(async (req) => {
     }
 
     // 6. ESTATÍSTICAS FINAIS
+    totalRecords = calculateTotalRecords(result);
     result.export_info.statistics = {
       total_dimensions: Object.keys(result.dimensions).length,
       total_facts: Object.keys(result.facts).length,
       total_aggregations: Object.keys(result.aggregations).length,
       total_configuration: Object.keys(result.configuration).length,
-      total_records: calculateTotalRecords(result),
+      total_records: totalRecords,
     };
 
     console.log('✅ Exportação completa finalizada!');
-    console.log(`📊 Total de registros: ${result.export_info.statistics.total_records}`);
-    
-    // Log successful export for audit trail
+    console.log(`📊 Total de registros: ${totalRecords}`);
+
+    // Audit log: Record successful export
+    const requestDurationMs = Date.now() - requestStartTime;
     try {
       await supabase.from('api_access_log').insert({
         endpoint: 'export-all-data',
-        ip_address: clientIp,
-        user_agent: userAgent,
+        ip_address: ipAddress,
         success: true,
-        record_count: result.export_info.statistics.total_records,
-        format: format,
-        include_photos: includePhotos,
+        record_count: totalRecords,
+        request_duration_ms: requestDurationMs,
+        exported_tables: [
+          ...Object.keys(result.dimensions),
+          ...Object.keys(result.facts),
+          ...Object.keys(result.aggregations),
+          ...Object.keys(result.configuration)
+        ].join(','),
         requested_at: new Date().toISOString()
       });
     } catch (logError) {
-      console.error('Failed to log successful export:', logError);
+      console.warn('Failed to log successful export:', logError);
     }
 
     // Resposta baseada no formato
@@ -271,6 +321,24 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('❌ Erro na exportação:', error);
+    
+    // Log error to database
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      await supabase.from('api_access_log').insert({
+        endpoint: 'export-all-data',
+        ip_address: ipAddress,
+        success: false,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        requested_at: new Date().toISOString()
+      });
+    } catch (logError) {
+      console.warn('Failed to log error:', logError);
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false,

@@ -10,27 +10,30 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { message } = await req.json();
+    const body = await req.json();
+    const { message } = body;
     
     // Input validation
     if (!message || typeof message !== 'string') {
-      throw new Error('Invalid input: message is required and must be a string');
+      throw new Error('Message is required and must be a string');
     }
     
-    // Limit message length to prevent abuse
-    const MAX_MESSAGE_LENGTH = 2000;
-    if (message.length > MAX_MESSAGE_LENGTH) {
-      throw new Error(`Message too long. Maximum ${MAX_MESSAGE_LENGTH} characters allowed`);
+    // Length validation
+    if (message.length === 0) {
+      throw new Error('Message cannot be empty');
     }
     
-    // Sanitize message - remove control characters and excessive whitespace
+    if (message.length > 5000) {
+      throw new Error('Message too long. Maximum 5000 characters allowed');
+    }
+    
+    // Sanitize message (remove control characters but keep normal text)
     const sanitizedMessage = message
-      .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '') // Remove control chars
-      .replace(/\s+/g, ' ') // Normalize whitespace
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control chars
       .trim();
     
     if (sanitizedMessage.length === 0) {
-      throw new Error('Invalid input: message cannot be empty');
+      throw new Error('Message contains only invalid characters');
     }
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
