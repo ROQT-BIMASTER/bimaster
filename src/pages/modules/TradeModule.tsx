@@ -3,11 +3,13 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Store, Calendar, TrendingUp, Target, Camera, Tag, Brain, Zap, DollarSign } from "lucide-react";
-import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Link, Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { Button } from "@/components/ui/button";
 import { QuickEntryDialog } from "@/components/trade/QuickEntryDialog";
+import { format, subDays, startOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
@@ -19,65 +21,209 @@ const TradeModule = () => {
     avgShare: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [visitsTrend, setVisitsTrend] = useState<any[]>([]);
+  const [categoryDistribution, setCategoryDistribution] = useState<any[]>([]);
+  const [shareTrend, setShareTrend] = useState<any[]>([]);
+  const [investmentData, setInvestmentData] = useState<any[]>([]);
+  const [complianceTrend, setComplianceTrend] = useState<any[]>([]);
 
   if (!permissionsLoading && !hasPermission("trade_marketing")) {
     return <Navigate to="/dashboard" replace />;
   }
 
   useEffect(() => {
-    fetchStats();
+    fetchAllData();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchAllData = async () => {
+    setLoading(true);
     try {
-      const { count: storesCount } = await supabase
-        .from("stores")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "active");
-
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      const { count: visitsCount } = await supabase
-        .from("visits")
-        .select("*", { count: "exact", head: true })
-        .gte("scheduled_date", startOfMonth.toISOString().split("T")[0]);
-
-      const { data: visitsData } = await supabase
-        .from("visits")
-        .select("compliance_score")
-        .eq("status", "completed")
-        .not("compliance_score", "is", null);
-
-      const avgCompliance = visitsData?.length
-        ? visitsData.reduce((acc, v) => acc + (Number(v.compliance_score) || 0), 0) / visitsData.length
-        : 0;
-
-      setStats({
-        totalStores: storesCount || 0,
-        totalVisits: visitsCount || 0,
-        avgCompliance: Number(avgCompliance.toFixed(1)),
-        avgShare: 34.2,
-      });
+      await Promise.all([
+        fetchStats(),
+        fetchVisitsTrend(),
+        fetchCategoryDistribution(),
+        fetchShareTrend(),
+        fetchInvestmentData(),
+        fetchComplianceTrend()
+      ]);
     } catch (error) {
-      console.error("Erro ao buscar estatísticas:", error);
+      console.error("Erro ao buscar dados:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const visitsTrend = [
-    { name: "Sem 1", visits: 850 },
-    { name: "Sem 2", visits: 920 },
-    { name: "Sem 3", visits: 880 },
-    { name: "Sem 4", visits: 950 },
-  ];
+  const fetchStats = async () => {
+    const { count: storesCount } = await supabase
+      .from("stores")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "active");
 
-  const categoryDistribution = [
-    { name: "Supermercados", value: 45, color: "#60A5FA" }, // Azul claro
-    { name: "Farmácias", value: 25, color: "#34D399" }, // Verde menta
-    { name: "Atacados", value: 20, color: "#F472B6" }, // Rosa suave
-    { name: "Conveniências", value: 10, color: "#A78BFA" }, // Roxo claro
-  ];
+    const monthStart = startOfMonth(new Date());
+    const { count: visitsCount } = await supabase
+      .from("visits")
+      .select("*", { count: "exact", head: true })
+      .gte("scheduled_date", monthStart.toISOString().split("T")[0]);
+
+    const { data: visitsData } = await supabase
+      .from("visits")
+      .select("compliance_score")
+      .eq("status", "completed")
+      .not("compliance_score", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    const avgCompliance = visitsData?.length
+      ? visitsData.reduce((acc, v) => acc + (Number(v.compliance_score) || 0), 0) / visitsData.length
+      : 0;
+
+    const { data: shareData } = await supabase
+      .from("shelf_share_history")
+      .select("shelf_share_percentage")
+      .order("measurement_date", { ascending: false })
+      .limit(50);
+
+    const avgShare = shareData?.length
+      ? shareData.reduce((acc, s) => acc + (Number(s.shelf_share_percentage) || 0), 0) / shareData.length
+      : 0;
+
+    setStats({
+      totalStores: storesCount || 0,
+      totalVisits: visitsCount || 0,
+      avgCompliance: Number(avgCompliance.toFixed(1)),
+      avgShare: Number(avgShare.toFixed(1)),
+    });
+  };
+
+  const fetchVisitsTrend = async () => {
+    const last30Days = subDays(new Date(), 30);
+    const { data } = await supabase
+      .from("visits")
+      .select("scheduled_date, created_at")
+      .gte("scheduled_date", last30Days.toISOString().split("T")[0])
+      .order("scheduled_date", { ascending: true });
+
+    if (data) {
+      const grouped = data.reduce((acc: any, visit) => {
+        const week = format(new Date(visit.scheduled_date), "'Sem' w", { locale: ptBR });
+        acc[week] = (acc[week] || 0) + 1;
+        return acc;
+      }, {});
+
+      const trend = Object.entries(grouped).map(([name, visits]) => ({
+        name,
+        visits: visits as number
+      }));
+
+      setVisitsTrend(trend);
+    }
+  };
+
+  const fetchCategoryDistribution = async () => {
+    const { data } = await supabase
+      .from("stores")
+      .select("category")
+      .eq("status", "active");
+
+    if (data) {
+      const grouped = data.reduce((acc: any, store) => {
+        const category = store.category || "Outros";
+        acc[category] = (acc[category] || 0) + 1;
+        return acc;
+      }, {});
+
+      const colors = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--muted))"];
+      const distribution = Object.entries(grouped).map(([name, value], index) => ({
+        name,
+        value: value as number,
+        color: colors[index % colors.length]
+      }));
+
+      setCategoryDistribution(distribution);
+    }
+  };
+
+  const fetchShareTrend = async () => {
+    const last30Days = subDays(new Date(), 30);
+    const { data } = await supabase
+      .from("shelf_share_history")
+      .select("measurement_date, shelf_share_percentage, facing_share_percentage")
+      .gte("measurement_date", last30Days.toISOString())
+      .order("measurement_date", { ascending: true })
+      .limit(30);
+
+    if (data) {
+      const trend = data.map(item => ({
+        date: format(new Date(item.measurement_date), "dd/MM", { locale: ptBR }),
+        shelfShare: Number(item.shelf_share_percentage || 0),
+        facingShare: Number(item.facing_share_percentage || 0)
+      }));
+
+      setShareTrend(trend);
+    }
+  };
+
+  const fetchInvestmentData = async () => {
+    const last30Days = subDays(new Date(), 30);
+    const { data: investments } = await supabase
+      .from("trade_investments")
+      .select("investment_date, amount")
+      .gte("investment_date", last30Days.toISOString().split("T")[0])
+      .order("investment_date", { ascending: true });
+
+    const { data: sales } = await supabase
+      .from("store_sellout_items")
+      .select("created_at, quantity, unit_price")
+      .gte("created_at", last30Days.toISOString())
+      .order("created_at", { ascending: true });
+
+    if (investments || sales) {
+      const grouped: any = {};
+
+      investments?.forEach(inv => {
+        const date = format(new Date(inv.investment_date), "dd/MM");
+        if (!grouped[date]) grouped[date] = { date, investment: 0, sales: 0 };
+        grouped[date].investment += Number(inv.amount || 0);
+      });
+
+      sales?.forEach(sale => {
+        const date = format(new Date(sale.created_at), "dd/MM");
+        if (!grouped[date]) grouped[date] = { date, investment: 0, sales: 0 };
+        grouped[date].sales += Number(sale.quantity || 0) * Number(sale.unit_price || 0);
+      });
+
+      const investmentTrend = Object.values(grouped);
+      setInvestmentData(investmentTrend as any[]);
+    }
+  };
+
+  const fetchComplianceTrend = async () => {
+    const last30Days = subDays(new Date(), 30);
+    const { data } = await supabase
+      .from("visits")
+      .select("scheduled_date, compliance_score")
+      .eq("status", "completed")
+      .not("compliance_score", "is", null)
+      .gte("scheduled_date", last30Days.toISOString().split("T")[0])
+      .order("scheduled_date", { ascending: true });
+
+    if (data) {
+      const grouped = data.reduce((acc: any, visit) => {
+        const date = format(new Date(visit.scheduled_date), "dd/MM");
+        if (!acc[date]) acc[date] = { date, total: 0, count: 0 };
+        acc[date].total += Number(visit.compliance_score || 0);
+        acc[date].count += 1;
+        return acc;
+      }, {});
+
+      const trend = Object.values(grouped).map((item: any) => ({
+        date: item.date,
+        compliance: Number((item.total / item.count).toFixed(1))
+      }));
+
+      setComplianceTrend(trend);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -146,49 +292,43 @@ const TradeModule = () => {
           </Card>
         </div>
 
-        {/* Charts */}
-        <div className="grid gap-4 md:grid-cols-2">
+        {/* Charts Grid */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+          {/* Evolução de Visitas */}
           <Card>
             <CardHeader>
-              <CardTitle>Evolução de Visitas</CardTitle>
+              <CardTitle>Evolução de Visitas (Últimos 30 dias)</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={visitsTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <BarChart data={visitsTrend}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="name" 
-                    stroke="#6B7280"
-                    style={{ fontSize: '12px' }}
+                    className="text-xs"
                   />
-                  <YAxis 
-                    stroke="#6B7280"
-                    style={{ fontSize: '12px' }}
-                  />
+                  <YAxis className="text-xs" />
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: '#FFFFFF',
-                      border: '1px solid #E5E7EB',
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                     }}
                   />
-                  <Line 
-                    type="monotone" 
+                  <Bar 
                     dataKey="visits" 
-                    stroke="#3B82F6" 
-                    strokeWidth={3}
-                    dot={{ fill: '#3B82F6', r: 5 }}
-                    activeDot={{ r: 7, fill: '#2563EB' }}
+                    fill="hsl(var(--primary))"
+                    radius={[8, 8, 0, 0]}
                   />
-                </LineChart>
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
+          {/* Distribuição por Categoria */}
           <Card>
             <CardHeader>
-              <CardTitle>Distribuição por Categoria</CardTitle>
+              <CardTitle>PDVs por Categoria</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -201,7 +341,6 @@ const TradeModule = () => {
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     outerRadius={90}
                     innerRadius={50}
-                    fill="#8884d8"
                     dataKey="value"
                     paddingAngle={2}
                   >
@@ -209,24 +348,146 @@ const TradeModule = () => {
                       <Cell 
                         key={`cell-${index}`} 
                         fill={entry.color}
-                        stroke="#FFFFFF"
-                        strokeWidth={2}
                       />
                     ))}
                   </Pie>
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: '#FFFFFF',
-                      border: '1px solid #E5E7EB',
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                     }}
                   />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
+
+          {/* Evolução de Share */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Evolução de Share (Últimos 30 dias)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={shareTrend}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="date" 
+                    className="text-xs"
+                  />
+                  <YAxis className="text-xs" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="shelfShare" 
+                    name="Share Prateleira"
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="facingShare" 
+                    name="Share Faces"
+                    stroke="hsl(var(--secondary))" 
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Investimentos vs Vendas */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Investimentos vs Vendas (Últimos 30 dias)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={investmentData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="date" 
+                    className="text-xs"
+                  />
+                  <YAxis className="text-xs" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+                  />
+                  <Legend />
+                  <Area 
+                    type="monotone" 
+                    dataKey="investment" 
+                    name="Investimentos"
+                    stroke="hsl(var(--destructive))" 
+                    fill="hsl(var(--destructive) / 0.2)"
+                    strokeWidth={2}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="sales" 
+                    name="Vendas"
+                    stroke="hsl(var(--primary))" 
+                    fill="hsl(var(--primary) / 0.2)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Compliance Trend */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Evolução de Conformidade (Últimos 30 dias)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={complianceTrend}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="date" 
+                  className="text-xs"
+                />
+                <YAxis 
+                  className="text-xs"
+                  domain={[0, 100]}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value: number) => `${value}%`}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="compliance" 
+                  name="Conformidade"
+                  stroke="hsl(var(--primary))" 
+                  fill="hsl(var(--primary) / 0.3)"
+                  strokeWidth={3}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
         {/* Quick Actions */}
         <Card>
@@ -282,7 +543,7 @@ const TradeModule = () => {
         <QuickEntryDialog 
           open={quickEntryOpen}
           onOpenChange={setQuickEntryOpen}
-          onSuccess={fetchStats}
+          onSuccess={fetchAllData}
         />
       </div>
     </DashboardLayout>
