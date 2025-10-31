@@ -602,7 +602,10 @@ const ImportarClientes = () => {
       const { data: analiseData, error: analiseError } = await supabase.functions.invoke(
         'analisar-planilha-ia',
         {
-          body: { planilhaTexto: textoIA }
+          body: { 
+            planilhaTexto: textoIA,
+            tipo: 'prospects'
+          }
         }
       );
 
