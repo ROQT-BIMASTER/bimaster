@@ -11,7 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TradeFilters } from "@/components/trade/TradeFilters";
-import { Ruler, CalendarIcon, TrendingUp, PieChart, BarChart3, HelpCircle } from "lucide-react";
+import { Ruler, CalendarIcon, TrendingUp, PieChart, BarChart3, HelpCircle, Pencil, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -43,6 +44,9 @@ export default function TradeShelfMeasurements() {
   const [filteredMeasurements, setFilteredMeasurements] = useState<ShelfMeasurement[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingMeasurement, setEditingMeasurement] = useState<ShelfMeasurement | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [measurementToDelete, setMeasurementToDelete] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [measurementDate, setMeasurementDate] = useState<Date>(new Date());
   
@@ -106,7 +110,7 @@ export default function TradeShelfMeasurements() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedStore) {
+    if (!selectedStore && !editingMeasurement) {
       toast.error("Selecione uma loja");
       return;
     }
@@ -115,32 +119,90 @@ export default function TradeShelfMeasurements() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      const { error } = await supabase
-        .from("shelf_measurements")
-        .insert({
-          store_id: selectedStore,
-          measurement_date: format(measurementDate, "yyyy-MM-dd"),
-          shelf_section: formData.shelf_section || null,
-          total_shelf_width_cm: parseFloat(formData.total_shelf_width_cm),
-          total_shelf_height_cm: formData.total_shelf_height_cm ? parseFloat(formData.total_shelf_height_cm) : null,
-          total_facings: formData.total_facings ? parseInt(formData.total_facings) : null,
-          our_brands_width_cm: formData.our_brands_width_cm ? parseFloat(formData.our_brands_width_cm) : null,
-          our_brands_facings: formData.our_brands_facings ? parseInt(formData.our_brands_facings) : null,
-          competitors_width_cm: formData.competitors_width_cm ? parseFloat(formData.competitors_width_cm) : null,
-          competitors_facings: formData.competitors_facings ? parseInt(formData.competitors_facings) : null,
-          observations: formData.observations || null,
-          vendedor_id: user.id,
-          created_by: user.id
-        });
+      const measurementData = {
+        store_id: selectedStore || editingMeasurement?.store_id,
+        measurement_date: format(measurementDate, "yyyy-MM-dd"),
+        shelf_section: formData.shelf_section || null,
+        total_shelf_width_cm: parseFloat(formData.total_shelf_width_cm),
+        total_shelf_height_cm: formData.total_shelf_height_cm ? parseFloat(formData.total_shelf_height_cm) : null,
+        total_facings: formData.total_facings ? parseInt(formData.total_facings) : null,
+        our_brands_width_cm: formData.our_brands_width_cm ? parseFloat(formData.our_brands_width_cm) : null,
+        our_brands_facings: formData.our_brands_facings ? parseInt(formData.our_brands_facings) : null,
+        competitors_width_cm: formData.competitors_width_cm ? parseFloat(formData.competitors_width_cm) : null,
+        competitors_facings: formData.competitors_facings ? parseInt(formData.competitors_facings) : null,
+        observations: formData.observations || null,
+      };
 
-      if (error) throw error;
+      if (editingMeasurement) {
+        const { error } = await supabase
+          .from("shelf_measurements")
+          .update(measurementData)
+          .eq("id", editingMeasurement.id);
 
-      toast.success("Medição registrada com sucesso!");
+        if (error) throw error;
+        toast.success("Medição atualizada com sucesso!");
+      } else {
+        const { error } = await supabase
+          .from("shelf_measurements")
+          .insert({
+            ...measurementData,
+            vendedor_id: user.id,
+            created_by: user.id
+          });
+
+        if (error) throw error;
+        toast.success("Medição registrada com sucesso!");
+      }
+
       setDialogOpen(false);
+      setEditingMeasurement(null);
       resetForm();
       fetchMeasurements();
     } catch (error: any) {
-      toast.error(error.message || "Erro ao registrar medição");
+      toast.error(error.message || "Erro ao processar medição");
+    }
+  };
+
+  const handleEdit = (measurement: ShelfMeasurement) => {
+    setEditingMeasurement(measurement);
+    setSelectedStore(measurement.store_id);
+    setMeasurementDate(new Date(measurement.measurement_date));
+    setFormData({
+      shelf_section: measurement.shelf_section || "",
+      total_shelf_width_cm: measurement.total_shelf_width_cm.toString(),
+      total_shelf_height_cm: "",
+      total_facings: measurement.total_facings?.toString() || "",
+      our_brands_width_cm: measurement.our_brands_width_cm?.toString() || "",
+      our_brands_facings: measurement.our_brands_facings?.toString() || "",
+      competitors_width_cm: "",
+      competitors_facings: "",
+      observations: measurement.observations || ""
+    });
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (measurementId: string) => {
+    setMeasurementToDelete(measurementId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!measurementToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("shelf_measurements")
+        .delete()
+        .eq("id", measurementToDelete);
+
+      if (error) throw error;
+
+      toast.success("Medição excluída com sucesso!");
+      setDeleteDialogOpen(false);
+      setMeasurementToDelete(null);
+      fetchMeasurements();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao excluir medição");
     }
   };
 
@@ -157,6 +219,8 @@ export default function TradeShelfMeasurements() {
       observations: ""
     });
     setMeasurementDate(new Date());
+    setEditingMeasurement(null);
+    setSelectedStore(null);
   };
 
   // KPIs
@@ -253,20 +317,36 @@ export default function TradeShelfMeasurements() {
               <Card key={measurement.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex-1">
                       <CardTitle>{measurement.stores?.name}</CardTitle>
                       <CardDescription>
                         {format(new Date(measurement.measurement_date), "dd/MM/yyyy", { locale: ptBR })}
                         {measurement.shelf_section && ` • ${measurement.shelf_section}`}
                       </CardDescription>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <Badge variant="secondary">
                         Share: {measurement.shelf_share_percentage?.toFixed(1) || 0}%
                       </Badge>
                       <Badge variant="outline">
                         Frentes: {measurement.facing_share_percentage?.toFixed(1) || 0}%
                       </Badge>
+                      <div className="flex gap-1 ml-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEdit(measurement)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteClick(measurement.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
@@ -312,11 +392,19 @@ export default function TradeShelfMeasurements() {
         )}
       </div>
 
-      {/* Dialog Nova Medição */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Dialog Nova/Editar Medição */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => {
+        setDialogOpen(open);
+        if (!open) {
+          setEditingMeasurement(null);
+          resetForm();
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nova Medição de Prateleira</DialogTitle>
+            <DialogTitle>
+              {editingMeasurement ? "Editar Medição de Prateleira" : "Nova Medição de Prateleira"}
+            </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -473,14 +561,40 @@ export default function TradeShelfMeasurements() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => {
+                setDialogOpen(false);
+                setEditingMeasurement(null);
+                resetForm();
+              }}>
                 Cancelar
               </Button>
-              <Button type="submit">Registrar Medição</Button>
+              <Button type="submit">
+                {editingMeasurement ? "Salvar Alterações" : "Registrar Medição"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta medição? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setMeasurementToDelete(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
