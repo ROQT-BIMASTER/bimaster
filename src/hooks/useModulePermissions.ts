@@ -43,17 +43,22 @@ export const useModulePermissions = () => {
 
       // Verificar permissões para cada módulo
       const permissionsPromises = allModules.map(async (module) => {
-        const { data, error } = await supabase.rpc("usuario_tem_permissao_modulo", {
-          _user_id: user.id,
-          _modulo_codigo: module.codigo,
-        });
+        try {
+          const { data, error } = await supabase.rpc("usuario_tem_permissao_modulo", {
+            _user_id: user.id,
+            _modulo_codigo: module.codigo,
+          });
 
-        if (error) {
-          console.error(`Erro ao verificar permissão para ${module.codigo}:`, error);
+          if (error) {
+            console.error(`Erro ao verificar permissão para ${module.codigo}:`, error);
+            return null;
+          }
+
+          return data ? module : null;
+        } catch (err) {
+          console.error(`Erro ao verificar permissão para ${module.codigo}:`, err);
           return null;
         }
-
-        return data ? module : null;
       });
 
       const results = await Promise.all(permissionsPromises);

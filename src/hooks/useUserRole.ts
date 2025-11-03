@@ -16,11 +16,17 @@ export const useUserRole = () => {
           return;
         }
 
-        const { data: roles } = await supabase
+        const { data: roles, error } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
+
+        if (error) {
+          console.error("Erro ao buscar role do usuário:", error);
+          setUserType(null);
+          return;
+        }
 
         // Normalizar "promotora" antigo para "promotor"
         const normalizedRole = roles?.role === 'promotora' ? 'promotor' : roles?.role;
