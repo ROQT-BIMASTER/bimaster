@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
 interface QueryParams {
@@ -33,28 +33,49 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Validate JWT token
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Check for API key authentication (for ERP integrations)
+    const apiKey = req.headers.get('X-API-Key');
+    const expectedKey = Deno.env.get('EXPORT_API_KEY');
     
-    if (authError || !user) {
-      throw new Error('Unauthorized');
+    let isAuthenticated = false;
+    let userId = null;
+
+    if (apiKey && apiKey === expectedKey) {
+      // API Key authentication (for ERP/external systems)
+      isAuthenticated = true;
+      console.log('✅ Authenticated via API Key');
+    } else {
+      // JWT authentication (for web/mobile apps)
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        throw new Error('Missing authorization header or API key');
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (authError || !user) {
+        throw new Error('Unauthorized');
+      }
+
+      // Check if user is approved
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('aprovado')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profile?.aprovado) {
+        throw new Error('User not approved');
+      }
+
+      isAuthenticated = true;
+      userId = user.id;
+      console.log('✅ Authenticated via JWT');
     }
 
-    // Check if user is approved
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('aprovado')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.aprovado) {
-      throw new Error('User not approved');
+    if (!isAuthenticated) {
+      throw new Error('Authentication failed');
     }
 
     const url = new URL(req.url);

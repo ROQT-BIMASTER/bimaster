@@ -532,8 +532,9 @@ export const DocumentacaoAPI = () => {
       </Card>
 
       <Tabs defaultValue="crm" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="crm">APIs CRM</TabsTrigger>
+          <TabsTrigger value="trade">Trade Marketing</TabsTrigger>
           <TabsTrigger value="datawarehouse">Data Warehouse ETL</TabsTrigger>
         </TabsList>
 
@@ -554,6 +555,214 @@ export const DocumentacaoAPI = () => {
               <strong>Dica:</strong> Estas APIs podem ser consumidas por qualquer linguagem de programação 
               (Python, PHP, Java, etc.) ou ferramenta de integração (Zapier, Make, n8n). 
               Use os exemplos de requisição como base para sua implementação.
+            </AlertDescription>
+          </Alert>
+        </TabsContent>
+
+        <TabsContent value="trade" className="space-y-6 mt-6">
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Trade Marketing API:</strong> API dedicada para integração dos dados de Trade Marketing com ERP. 
+              Requer autenticação via <code className="text-xs bg-muted px-1 rounded">X-API-Key</code> header.
+              Rate limit: 100 requisições por hora por IP.
+            </AlertDescription>
+          </Alert>
+
+          <Card className="bg-primary/5 border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-lg">API Completa para Integração ERP</CardTitle>
+              <CardDescription>
+                Endpoints especializados para cada entidade do Trade Marketing
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-3 bg-background rounded-lg border">
+                  <h4 className="font-semibold text-sm mb-2">📍 Visitas & Auditorias</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Dados completos de visitas, auditorias de gôndola, medições de prateleira e fotos
+                  </p>
+                </div>
+                <div className="p-3 bg-background rounded-lg border">
+                  <h4 className="font-semibold text-sm mb-2">💰 Financeiro</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Investimentos, lançamentos financeiros e dados de sell-out
+                  </p>
+                </div>
+                <div className="p-3 bg-background rounded-lg border">
+                  <h4 className="font-semibold text-sm mb-2">🏪 Lojas & KPIs</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Dados de lojas cadastradas e KPIs agregados por região
+                  </p>
+                </div>
+                <div className="p-3 bg-background rounded-lg border">
+                  <h4 className="font-semibold text-sm mb-2">🎯 Inteligência Competitiva</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Dados de concorrência e execução de promoções
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="h-5 w-5" />
+                Trade Marketing API - Endpoint Base
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-md font-mono text-sm break-all">
+                <span className="flex-1">{apiBaseUrl}/functions/v1/trade-marketing-api</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleCopy(`${apiBaseUrl}/functions/v1/trade-marketing-api`)}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mt-3">
+                Acesse <code className="text-xs bg-muted px-1 rounded">/docs</code> para documentação completa da API
+              </p>
+              <Button
+                variant="outline"
+                className="mt-3"
+                asChild
+              >
+                <a
+                  href={`${apiBaseUrl}/functions/v1/trade-marketing-api/docs`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Ver Documentação Completa
+                </a>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Endpoints Disponíveis</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-2 text-sm">
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                  <Badge>GET</Badge>
+                  <code className="flex-1">/visits</code>
+                  <span className="text-muted-foreground text-xs">Visitas realizadas</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                  <Badge>GET</Badge>
+                  <code className="flex-1">/sell-out</code>
+                  <span className="text-muted-foreground text-xs">Dados de sell-out</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                  <Badge>GET</Badge>
+                  <code className="flex-1">/audits</code>
+                  <span className="text-muted-foreground text-xs">Auditorias de gôndola</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                  <Badge>GET</Badge>
+                  <code className="flex-1">/shelf-measurements</code>
+                  <span className="text-muted-foreground text-xs">Medições de prateleira</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                  <Badge>GET</Badge>
+                  <code className="flex-1">/photos</code>
+                  <span className="text-muted-foreground text-xs">Fotos de visitas</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                  <Badge>GET</Badge>
+                  <code className="flex-1">/investments</code>
+                  <span className="text-muted-foreground text-xs">Investimentos em Trade</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                  <Badge>GET</Badge>
+                  <code className="flex-1">/financial-entries</code>
+                  <span className="text-muted-foreground text-xs">Lançamentos financeiros</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                  <Badge>GET</Badge>
+                  <code className="flex-1">/stores</code>
+                  <span className="text-muted-foreground text-xs">Lojas cadastradas</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                  <Badge>GET</Badge>
+                  <code className="flex-1">/kpis</code>
+                  <span className="text-muted-foreground text-xs">KPIs agregados</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                  <Badge>GET</Badge>
+                  <code className="flex-1">/competitor-intelligence</code>
+                  <span className="text-muted-foreground text-xs">Inteligência competitiva</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                  <Badge>GET</Badge>
+                  <code className="flex-1">/promotion-execution</code>
+                  <span className="text-muted-foreground text-xs">Execução de promoções</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                  <Badge>GET</Badge>
+                  <code className="flex-1">/full-export</code>
+                  <span className="text-muted-foreground text-xs">Exportação completa</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Exemplo de Uso</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Buscar visitas do último mês</h4>
+                <div className="flex items-center gap-2">
+                  <pre className="flex-1 p-3 bg-muted rounded-md overflow-x-auto text-xs">
+                    <code>{`curl -X GET '${apiBaseUrl}/functions/v1/trade-marketing-api/visits?start_date=2025-01-01&end_date=2025-01-31&format=json' \\
+  -H 'X-API-Key: YOUR_API_KEY'`}</code>
+                  </pre>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopy(`curl -X GET '${apiBaseUrl}/functions/v1/trade-marketing-api/visits?start_date=2025-01-01&end_date=2025-01-31&format=json' -H 'X-API-Key: YOUR_API_KEY'`)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Exportação completa em CSV</h4>
+                <div className="flex items-center gap-2">
+                  <pre className="flex-1 p-3 bg-muted rounded-md overflow-x-auto text-xs">
+                    <code>{`curl -X GET '${apiBaseUrl}/functions/v1/trade-marketing-api/full-export?start_date=2025-01-01&end_date=2025-01-31&format=csv' \\
+  -H 'X-API-Key: YOUR_API_KEY' \\
+  -o export.csv`}</code>
+                  </pre>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopy(`curl -X GET '${apiBaseUrl}/functions/v1/trade-marketing-api/full-export?start_date=2025-01-01&end_date=2025-01-31&format=csv' -H 'X-API-Key: YOUR_API_KEY' -o export.csv`)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Formatos Suportados:</strong> Todos os endpoints suportam formato JSON (padrão) e CSV 
+              via parâmetro <code className="text-xs bg-muted px-1 rounded">?format=csv</code>. 
+              Ideal para importação direta em ERPs e sistemas de BI.
             </AlertDescription>
           </Alert>
         </TabsContent>
