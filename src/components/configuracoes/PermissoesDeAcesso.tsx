@@ -8,6 +8,7 @@ import { Loader2, Shield, CheckCircle2, AlertCircle, RefreshCw } from "lucide-re
 import * as LucideIcons from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { permissionsCache } from "@/lib/utils/permissions-cache";
 
 interface Tela {
   id: string;
@@ -141,6 +142,9 @@ export function PermissoesDeAcesso() {
         }
       }
 
+      // Invalidar todo o cache de permissões
+      permissionsCache.clear();
+
       toast({
         title: "Sucesso",
         description: "Permissões por role salvas. Clique em 'Sincronizar' para aplicar aos usuários.",
@@ -177,14 +181,12 @@ export function PermissoesDeAcesso() {
           if (!error) syncCount++;
         }
 
+        // Invalidar todo o cache após sincronização
+        permissionsCache.clear();
+
         toast({
           title: "Sincronização concluída",
-          description: `${syncCount} usuários tiveram suas permissões atualizadas`,
-        });
-      } else {
-        toast({
-          title: "Nenhum usuário",
-          description: "Não há usuários para sincronizar",
+          description: `${syncCount} usuários sincronizados com sucesso`,
         });
       }
     } catch (error) {

@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { permissionsCache } from "@/lib/utils/permissions-cache";
 
 interface Screen {
   id: string;
@@ -190,6 +191,9 @@ export const GerenciamentoPermissoesTelas = () => {
 
         if (error) throw error;
       }
+
+      // Invalidar cache do usuário
+      permissionsCache.invalidate(selectedUsuario);
 
       toast({
         title: "Permissões atualizadas",

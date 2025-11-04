@@ -4917,6 +4917,18 @@ export type Database = {
           subordinado_id: string
         }[]
       }
+      get_user_module_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          modulo_codigo: string
+        }[]
+      }
+      get_user_screen_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          tela_codigo: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

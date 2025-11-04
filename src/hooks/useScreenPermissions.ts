@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { permissionsCache } from "@/lib/utils/permissions-cache";
 
 interface ScreenPermission {
   id: string;
@@ -27,6 +28,17 @@ export const useScreenPermissions = () => {
         return;
       }
 
+      // Verificar cache primeiro
+      const cacheKey = `screens_${user.id}`;
+      const cached = permissionsCache.get<{ screens: ScreenPermission[]; isAdmin: boolean }>(cacheKey);
+      
+      if (cached) {
+        setPermissions(cached.screens);
+        setIsAdmin(cached.isAdmin);
+        setLoading(false);
+        return;
+      }
+
       // Check if user is admin
       const { data: roleData } = await supabase
         .from("user_roles")
@@ -38,38 +50,39 @@ export const useScreenPermissions = () => {
       const userIsAdmin = !!roleData;
       setIsAdmin(userIsAdmin);
 
-      // Admins têm acesso a todas as telas
-      if (userIsAdmin) {
-        const { data: allScreens } = await supabase
-          .from("telas_sistema")
-          .select("id, codigo, nome, rota, icone, ordem")
-          .eq("ativo", true)
-          .order("ordem");
+      // Buscar permissões usando função otimizada
+      const { data: permissionCodes, error: permError } = await supabase
+        .rpc("get_user_screen_permissions", { _user_id: user.id });
 
-        setPermissions(allScreens || []);
-      } else {
-        // Outros usuários só veem telas com permissão
-        const { data: userPermissions } = await supabase
-          .from("usuario_permissoes_telas")
-          .select(`
-            tela_id,
-            telas_sistema!inner (
-              id,
-              codigo,
-              nome,
-              rota,
-              icone,
-              ordem,
-              ativo
-            )
-          `)
-          .eq("usuario_id", user.id)
-          .eq("telas_sistema.ativo", true)
-          .order("telas_sistema.ordem");
-
-        const screens = userPermissions?.map(p => p.telas_sistema).flat().filter(Boolean) || [];
-        setPermissions(screens as ScreenPermission[]);
+      if (permError) {
+        console.error("Erro ao buscar permissões:", permError);
+        setPermissions([]);
+        setLoading(false);
+        return;
       }
+
+      const allowedCodes = new Set(permissionCodes?.map((p: { tela_codigo: string }) => p.tela_codigo) || []);
+
+      // Buscar detalhes das telas
+      const { data: allScreens, error: screensError } = await supabase
+        .from("telas_sistema")
+        .select("id, codigo, nome, rota, icone, ordem")
+        .eq("ativo", true)
+        .order("ordem");
+
+      if (screensError) {
+        console.error("Erro ao buscar telas:", screensError);
+        setPermissions([]);
+        setLoading(false);
+        return;
+      }
+
+      // Filtrar telas baseado nas permissões
+      const filteredScreens = allScreens?.filter(s => allowedCodes.has(s.codigo)) || [];
+      setPermissions(filteredScreens);
+      
+      // Salvar no cache
+      permissionsCache.set(cacheKey, { screens: filteredScreens, isAdmin: userIsAdmin });
     } catch (error) {
       console.error("Error fetching permissions:", error);
     } finally {

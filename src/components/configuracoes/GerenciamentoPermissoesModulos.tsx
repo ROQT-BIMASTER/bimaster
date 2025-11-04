@@ -8,6 +8,7 @@ import { Loader2, Users, Store, FileText, Settings, LayoutDashboard } from "luci
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { permissionsCache } from "@/lib/utils/permissions-cache";
 
 interface Module {
   id: string;
@@ -133,6 +134,9 @@ export function GerenciamentoPermissoesModulos() {
         setRolePermissions((prev) => [...prev, { role, moduleId }]);
       }
 
+      // Invalidar cache de todos os usuários dessa role
+      permissionsCache.clear();
+
       toast({
         title: "Sucesso",
         description: "Permissão atualizada",
@@ -171,6 +175,9 @@ export function GerenciamentoPermissoesModulos() {
 
         setUserPermissions((prev) => [...prev, { userId, moduleId }]);
       }
+
+      // Invalidar cache do usuário específico
+      permissionsCache.invalidate(userId);
 
       toast({
         title: "Sucesso",
