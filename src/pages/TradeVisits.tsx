@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Calendar as CalendarIcon, Link as LinkIcon, Edit, Trash2, UserPlus, BarChart3 } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Link as LinkIcon, Edit, Trash2, UserPlus, BarChart3, TrendingUp } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { TeamHierarchyFilter } from "@/components/trade/TeamHierarchyFilter";
+import { TeamPerformanceChart } from "@/components/trade/TeamPerformanceChart";
 
 interface Visit {
   id: string;
@@ -235,7 +236,7 @@ const TradeVisits = () => {
         </div>
 
         <Tabs defaultValue="lista" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="lista">
               <CalendarIcon className="mr-2 h-4 w-4" />
               Lista
@@ -248,6 +249,12 @@ const TradeVisits = () => {
               <BarChart3 className="mr-2 h-4 w-4" />
               Monitoramento
             </TabsTrigger>
+            {isAdminOrSupervisor && (
+              <TabsTrigger value="performance">
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Performance
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="lista" className="space-y-4 mt-6">
@@ -448,6 +455,12 @@ const TradeVisits = () => {
           <TabsContent value="monitoramento" className="mt-6">
             <VisitsMonitoringPanel userId={currentUserId || undefined} />
           </TabsContent>
+
+          {isAdminOrSupervisor && (
+            <TabsContent value="performance" className="mt-6">
+              <TeamPerformanceChart />
+            </TabsContent>
+          )}
         </Tabs>
 
         <VincularStoreDialog
