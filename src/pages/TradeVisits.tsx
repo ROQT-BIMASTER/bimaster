@@ -21,6 +21,7 @@ import { AtribuirVisitaDialog } from "@/components/trade/AtribuirVisitaDialog";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { TradeFilters } from "@/components/trade/TradeFilters";
+import { TeamHierarchyFilter } from "@/components/trade/TeamHierarchyFilter";
 
 interface Visit {
   id: string;
@@ -29,9 +30,13 @@ interface Visit {
   scheduled_time: string | null;
   status: string;
   visit_type: string | null;
+  user_id: string | null;
   stores: {
     name: string;
     city: string | null;
+  } | null;
+  profiles?: {
+    nome: string;
   } | null;
 }
 
@@ -52,6 +57,7 @@ const TradeVisits = () => {
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [selectedTeamMember, setSelectedTeamMember] = useState<string | null>(null);
 
   if (!permissionsLoading && !hasPermission("trade_visits")) {
     return <Navigate to="/dashboard" replace />;
@@ -80,8 +86,35 @@ const TradeVisits = () => {
         .order("scheduled_date", { ascending: true });
 
       if (error) throw error;
-      setAllVisits(data || []);
-      setVisits(data || []);
+
+      // Buscar nomes dos usuários responsáveis
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.filter(v => v.user_id).map(v => v.user_id))];
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, nome")
+            .in("id", userIds);
+
+          const profileMap = new Map(profiles?.map(p => [p.id, p.nome]) || []);
+          
+          const visitsWithProfiles = data.map(visit => ({
+            ...visit,
+            profiles: visit.user_id && profileMap.has(visit.user_id) 
+              ? { nome: profileMap.get(visit.user_id)! }
+              : null
+          }));
+
+          setAllVisits(visitsWithProfiles);
+          setVisits(visitsWithProfiles);
+        } else {
+          setAllVisits(data);
+          setVisits(data);
+        }
+      } else {
+        setAllVisits(data || []);
+        setVisits(data || []);
+      }
     } catch (error) {
       console.error("Erro ao buscar visitas:", error);
       toast.error("Erro ao carregar visitas");
@@ -132,6 +165,10 @@ const TradeVisits = () => {
       filtered = filtered.filter(v => v.stores && (v.stores as any).id === selectedStore);
     }
 
+    if (selectedTeamMember) {
+      filtered = filtered.filter(v => v.user_id === selectedTeamMember);
+    }
+
     if (aiCriteria) {
       if (aiCriteria.status) {
         filtered = filtered.filter(v => aiCriteria.status.includes(v.status));
@@ -152,7 +189,7 @@ const TradeVisits = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [selectedStore, aiCriteria, allVisits]);
+  }, [selectedStore, aiCriteria, allVisits, selectedTeamMember]);
 
   const handleDeleteVisit = async () => {
     if (!deleteVisitId) return;
@@ -214,11 +251,22 @@ const TradeVisits = () => {
           </TabsList>
 
           <TabsContent value="lista" className="space-y-4 mt-6">
-            <TradeFilters
-              selectedStore={selectedStore}
-              onStoreChange={setSelectedStore}
-              onAIFilter={setAiCriteria}
-            />
+            <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+              {isAdminOrSupervisor && (
+                <div className="lg:sticky lg:top-4 lg:self-start">
+                  <TeamHierarchyFilter
+                    selectedUserId={selectedTeamMember}
+                    onUserSelect={setSelectedTeamMember}
+                  />
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                <TradeFilters
+                  selectedStore={selectedStore}
+                  onStoreChange={setSelectedStore}
+                  onAIFilter={setAiCriteria}
+                />
 
             {/* Summary Cards */}
             <div className="grid gap-4 md:grid-cols-4">
@@ -306,6 +354,9 @@ const TradeVisits = () => {
                             {visit.stores?.city && (
                               <span>• {visit.stores.city}</span>
                             )}
+                            {visit.profiles?.nome && (
+                              <span>• Responsável: {visit.profiles.nome}</span>
+                            )}
                             <span>• Código: {visit.visit_code}</span>
                           </div>
                         </div>
@@ -379,6 +430,8 @@ const TradeVisits = () => {
                   </Card>
                 ))
               )}
+            </div>
+              </div>
             </div>
           </TabsContent>
 
