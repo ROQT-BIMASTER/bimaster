@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { startPhotoQueueProcessor } from "./lib/utils/photo-queue-processor";
 
 // Registrar o Service Worker para funcionalidade offline
 if ('serviceWorker' in navigator) {
@@ -15,6 +16,9 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
+
+// Iniciar processador de fila de análise de fotos
+startPhotoQueueProcessor();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

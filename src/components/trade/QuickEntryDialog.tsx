@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useNavigate } from "react-router-dom";
+import { compressImage, uploadFile } from "@/lib/utils/storage-helper";
 
 interface QuickEntryDialogProps {
   open: boolean;
@@ -126,55 +127,14 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     
     if (type === 'before') {
       setFormData(prev => ({ ...prev, photos: [...prev.photos, ...newPhotos] }));
-      // Trigger AI analysis only for "before" photos
-      await analyzePhotosWithAI(newPhotos);
+      toast.success(`${newPhotos.length} foto(s) adicionada(s). Análise será feita após salvar.`);
     } else {
       setFormData(prev => ({ ...prev, photos_after: [...prev.photos_after, ...newPhotos] }));
       toast.success("Fotos 'depois' adicionadas com sucesso!");
     }
   };
 
-  const analyzePhotosWithAI = async (photos: File[]) => {
-    setAnalyzing(true);
-    toast.info("🤖 Analisando fotos com IA...");
-
-    try {
-      // Convert photos to base64 for AI analysis
-      const photoData = await Promise.all(
-        photos.map(async (photo) => {
-          const reader = new FileReader();
-          return new Promise<string>((resolve) => {
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(photo);
-          });
-        })
-      );
-
-      const { data, error } = await supabase.functions.invoke('analyze-shelf-photos', {
-        body: { photos: photoData }
-      });
-
-      if (error) throw error;
-
-      if (data) {
-        setFormData(prev => ({
-          ...prev,
-          ai_insights: data.insights,
-          products_found: data.products_detected || [],
-          our_facings: data.our_facings || 0,
-          competitor_facings: data.competitor_facings || 0,
-          issues_found: data.issues || [],
-        }));
-
-        toast.success("✨ Análise concluída! Dados preenchidos automaticamente.");
-      }
-    } catch (error) {
-      console.error("Erro na análise:", error);
-      toast.error("Erro ao analisar fotos. Continue manualmente.");
-    } finally {
-      setAnalyzing(false);
-    }
-  };
+  // Removida análise síncrona - agora será feita em background após salvar
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -216,61 +176,64 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       // Salvar ID da visita para uso posterior
       setCompletedVisitId(visit.id);
 
-      // 2. Upload photos and create records (ANTES) - Paralelo
-      const beforePhotoPromises = formData.photos.map(async (photo) => {
+      // 2. Upload photos and create records (ANTES) - Com compressão e análise assíncrona
+      const beforePhotoPromises = formData.photos.map(async (photo, index) => {
         try {
-          const fileName = `${visit.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-antes-${photo.name}`;
+          // Comprimir imagem antes do upload (otimização mobile)
+          const compressedPhoto = await compressImage(photo, 1200, 0.8);
           
-          const { error: uploadError } = await supabase.storage
-            .from('trade-photos')
-            .upload(fileName, photo);
+          const filePath = `${user.id}/${visit.id}/before-${Date.now()}-${index}.jpg`;
+          
+          const { path, error: uploadError } = await uploadFile('trade-photos', filePath, compressedPhoto);
 
           if (uploadError) throw uploadError;
 
-          const { data: { publicUrl } } = supabase.storage
-            .from('trade-photos')
-            .getPublicUrl(fileName);
-          
-          const { error: photoError } = await supabase.from("photos").insert({
-            visit_id: visit.id,
-            store_id: formData.store_id,
-            photo_url: publicUrl,
-            photo_type: "shelf",
-            category: "before",
-            ai_processed: true,
-            ai_analysis: { insights: formData.ai_insights },
-            vendedor_id: user.id,
-            supervisor_id: supervisorId,
-          });
+          // Salvar referência com path ao invés de URL pública
+          const { data: photoRecord, error: photoError } = await supabase
+            .from("photos")
+            .insert({
+              visit_id: visit.id,
+              store_id: formData.store_id,
+              photo_url: path, // Salvando path, não URL pública
+              photo_type: "shelf",
+              category: "before",
+              ai_processed: false, // Será processado assincronamente
+              vendedor_id: user.id,
+              supervisor_id: supervisorId,
+            })
+            .select()
+            .single();
           
           if (photoError) throw photoError;
+
+          // Adicionar à fila de análise de IA
+          await supabase.from("photo_analysis_queue").insert({
+            photo_id: photoRecord.id,
+            photo_url: path,
+            created_by: user.id,
+          });
           
           return true;
         } catch (error) {
-          toast.error("Erro ao fazer upload de foto");
-          throw error;
+          console.error("Erro ao fazer upload de foto:", error);
+          return false;
         }
       });
 
-      // 2b. Upload photos "DEPOIS" (opcional) - Paralelo
-      const afterPhotoPromises = formData.photos_after.map(async (photo) => {
+      // 2b. Upload photos "DEPOIS" (opcional) - Com compressão
+      const afterPhotoPromises = formData.photos_after.map(async (photo, index) => {
         try {
-          const fileName = `${visit.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-depois-${photo.name}`;
+          const compressedPhoto = await compressImage(photo, 1200, 0.8);
+          const filePath = `${user.id}/${visit.id}/after-${Date.now()}-${index}.jpg`;
           
-          const { error: uploadError } = await supabase.storage
-            .from('trade-photos')
-            .upload(fileName, photo);
+          const { path, error: uploadError } = await uploadFile('trade-photos', filePath, compressedPhoto);
 
           if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('trade-photos')
-            .getPublicUrl(fileName);
           
           const { error: photoError } = await supabase.from("photos").insert({
             visit_id: visit.id,
             store_id: formData.store_id,
-            photo_url: publicUrl,
+            photo_url: path,
             photo_type: "shelf",
             category: "after",
             ai_processed: false,
@@ -282,8 +245,8 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           
           return true;
         } catch (error) {
-          toast.error("Erro ao fazer upload de foto");
-          throw error;
+          console.error("Erro ao fazer upload de foto:", error);
+          return false;
         }
       });
 
@@ -291,11 +254,14 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       const allPhotoPromises = [...beforePhotoPromises, ...afterPhotoPromises];
       
       if (allPhotoPromises.length > 0) {
-        try {
-          await Promise.all(allPhotoPromises);
-        } catch (photoError) {
-          toast.error("Erro ao fazer upload das fotos");
-          // Não vamos falhar a visita inteira por causa das fotos
+        const results = await Promise.all(allPhotoPromises);
+        const successCount = results.filter(r => r === true).length;
+        
+        if (successCount > 0) {
+          toast.success(`${successCount} foto(s) salva(s). Análise em andamento...`);
+        }
+        if (successCount < results.length) {
+          toast.warning(`${results.length - successCount} foto(s) falharam no upload`);
         }
       }
 

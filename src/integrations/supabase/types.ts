@@ -1527,6 +1527,53 @@ export type Database = {
         }
         Relationships: []
       }
+      photo_analysis_queue: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          created_by: string | null
+          error_message: string | null
+          id: string
+          photo_id: string | null
+          photo_url: string
+          processed_at: string | null
+          result: Json | null
+          status: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          photo_id?: string | null
+          photo_url: string
+          processed_at?: string | null
+          result?: Json | null
+          status?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          photo_id?: string | null
+          photo_url?: string
+          processed_at?: string | null
+          result?: Json | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_analysis_queue_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photos: {
         Row: {
           action_items: string[] | null

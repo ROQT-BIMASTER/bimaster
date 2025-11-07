@@ -23,6 +23,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { TeamHierarchyFilter } from "@/components/trade/TeamHierarchyFilter";
 import { TeamPerformanceChart } from "@/components/trade/TeamPerformanceChart";
+import { PhotoAnalysisStatus } from "@/components/trade/PhotoAnalysisStatus";
 
 interface Visit {
   id: string;
@@ -234,6 +235,8 @@ const TradeVisits = () => {
             </Button>
           </div>
         </div>
+
+        <PhotoAnalysisStatus />
 
         <Tabs defaultValue="lista" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
