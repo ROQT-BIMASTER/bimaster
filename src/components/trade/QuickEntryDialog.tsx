@@ -184,17 +184,24 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           
           const filePath = `${user.id}/${visit.id}/before-${Date.now()}-${index}.jpg`;
           
-          const { path, error: uploadError } = await uploadFile('trade-photos', filePath, compressedPhoto);
+          const { error: uploadError } = await supabase.storage
+            .from('trade-photos')
+            .upload(filePath, compressedPhoto);
 
           if (uploadError) throw uploadError;
 
-          // Salvar referência com path ao invés de URL pública
+          // Obter URL pública para compatibilidade
+          const { data: { publicUrl } } = supabase.storage
+            .from('trade-photos')
+            .getPublicUrl(filePath);
+
+          // Salvar registro da foto
           const { data: photoRecord, error: photoError } = await supabase
             .from("photos")
             .insert({
               visit_id: visit.id,
               store_id: formData.store_id,
-              photo_url: path, // Salvando path, não URL pública
+              photo_url: publicUrl,
               photo_type: "shelf",
               category: "before",
               ai_processed: false, // Será processado assincronamente
@@ -209,7 +216,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           // Adicionar à fila de análise de IA
           await supabase.from("photo_analysis_queue").insert({
             photo_id: photoRecord.id,
-            photo_url: path,
+            photo_url: publicUrl,
             created_by: user.id,
           });
           
@@ -226,14 +233,20 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           const compressedPhoto = await compressImage(photo, 1200, 0.8);
           const filePath = `${user.id}/${visit.id}/after-${Date.now()}-${index}.jpg`;
           
-          const { path, error: uploadError } = await uploadFile('trade-photos', filePath, compressedPhoto);
+          const { error: uploadError } = await supabase.storage
+            .from('trade-photos')
+            .upload(filePath, compressedPhoto);
 
           if (uploadError) throw uploadError;
+          
+          const { data: { publicUrl } } = supabase.storage
+            .from('trade-photos')
+            .getPublicUrl(filePath);
           
           const { error: photoError } = await supabase.from("photos").insert({
             visit_id: visit.id,
             store_id: formData.store_id,
-            photo_url: path,
+            photo_url: publicUrl,
             photo_type: "shelf",
             category: "after",
             ai_processed: false,

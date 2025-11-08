@@ -54,16 +54,8 @@ serve(async (req) => {
             })
             .eq("id", item.id);
 
-          // Obter signed URL da foto
-          const photoPath = extractPathFromUrl(item.photo_url);
-          if (!photoPath) throw new Error("Caminho da foto inválido");
-
-          const { data: signedData, error: signedError } = await supabase
-            .storage
-            .from("trade-photos")
-            .createSignedUrl(photoPath, 3600);
-
-          if (signedError) throw signedError;
+          // Usar URL diretamente (já é pública)
+          const photoUrl = item.photo_url;
 
           // Chamar API de análise
           const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -101,7 +93,7 @@ Seja específico e objetivo. Retorne em formato JSON com as chaves:
                     },
                     {
                       type: "image_url",
-                      image_url: { url: signedData.signedUrl }
+                      image_url: { url: photoUrl }
                     }
                   ]
                 }
@@ -185,13 +177,3 @@ Seja específico e objetivo. Retorne em formato JSON com as chaves:
     );
   }
 });
-
-function extractPathFromUrl(url: string): string | null {
-  try {
-    const urlObj = new URL(url);
-    const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/(public|sign)\/[^/]+\/(.+)/);
-    return pathMatch ? pathMatch[2] : null;
-  } catch {
-    return null;
-  }
-}

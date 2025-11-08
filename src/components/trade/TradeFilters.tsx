@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
+import { debounce } from "@/lib/utils/debounce";
 
 interface TradeFiltersProps {
   onStoreChange: (storeId: string | null) => void;
@@ -17,6 +17,8 @@ interface Store {
   name: string;
   code: string;
   cnpj?: string;
+  city?: string;
+  address?: string;
 }
 
 export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: TradeFiltersProps) => {
@@ -32,9 +34,38 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
     fetchStores();
   }, []);
 
+  // Debounced filter function
+  const debouncedFilter = useMemo(
+    () =>
+      debounce((query: string) => {
+        if (query.trim()) {
+          const searchLower = query.toLowerCase();
+          const searchNumbers = query.replace(/\D/g, '');
+          
+          const filtered = stores.filter(store => {
+            const nameMatch = store.name?.toLowerCase().includes(searchLower);
+            const codeMatch = store.code?.toLowerCase().includes(searchLower);
+            const cnpjMatch = searchNumbers && store.cnpj?.replace(/\D/g, '').includes(searchNumbers);
+            const cityMatch = store.city?.toLowerCase().includes(searchLower);
+            const addressMatch = store.address?.toLowerCase().includes(searchLower);
+            return nameMatch || codeMatch || cnpjMatch || cityMatch || addressMatch;
+          });
+          setFilteredStores(filtered);
+          setShowDropdown(true);
+        } else {
+          setFilteredStores(stores);
+          setShowDropdown(false);
+          if (selectedStore) {
+            onStoreChange(null);
+          }
+        }
+      }, 300),
+    [stores, selectedStore, onStoreChange]
+  );
+
   useEffect(() => {
-    filterStores();
-  }, [searchQuery, stores]);
+    debouncedFilter(searchQuery);
+  }, [searchQuery, stores, debouncedFilter]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -49,27 +80,6 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
     };
   }, []);
 
-  const filterStores = () => {
-    if (searchQuery.trim()) {
-      const searchLower = searchQuery.toLowerCase();
-      const filtered = stores.filter(store => {
-        const nameMatch = store.name.toLowerCase().includes(searchLower);
-        const codeMatch = store.code.toLowerCase().includes(searchLower);
-        const cnpjMatch = store.cnpj?.replace(/\D/g, '').includes(searchQuery.replace(/\D/g, ''));
-        return nameMatch || codeMatch || cnpjMatch;
-      });
-      setFilteredStores(filtered);
-      setShowDropdown(true);
-    } else {
-      setFilteredStores(stores);
-      setShowDropdown(false);
-      // Se limpar a busca, remove o filtro
-      if (selectedStore) {
-        onStoreChange(null);
-      }
-    }
-  };
-
   const handleSelectStore = (store: Store) => {
     onStoreChange(store.id);
     setSearchQuery(store.name);
@@ -80,7 +90,7 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
     try {
       const { data, error } = await supabase
         .from("stores")
-        .select("id, name, code, cnpj")
+        .select("id, name, code, cnpj, city, address")
         .eq("status", "active")
         .order("name");
 
@@ -130,7 +140,7 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
         <div className="space-y-2" ref={dropdownRef}>
           <div className="relative">
             <Input
-              placeholder="Digite o nome, código ou CNPJ do cliente..."
+              placeholder="Digite o nome, código, CNPJ, cidade ou endereço..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchQuery && setShowDropdown(true)}
@@ -171,6 +181,7 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
                       <div className="text-xs text-muted-foreground">
                         {store.code}
                         {store.cnpj && ` • ${store.cnpj}`}
+                        {store.city && ` • ${store.city}`}
                       </div>
                     </button>
                   ))}
