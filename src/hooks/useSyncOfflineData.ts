@@ -1,0 +1,136 @@
+import { useEffect } from 'react';
+import { useOnlineStatus } from './useOnlineStatus';
+import { offlineStorage } from '@/lib/utils/offline-storage';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+/**
+ * Hook para sincronizar dados offline quando o usuário voltar online
+ */
+export const useSyncOfflineData = () => {
+  const isOnline = useOnlineStatus();
+
+  useEffect(() => {
+    if (isOnline) {
+      syncOfflineData();
+    }
+  }, [isOnline]);
+
+  const syncOfflineData = async () => {
+    try {
+      const { photos, data } = await offlineStorage.getStorageSize();
+      
+      if (photos === 0 && data === 0) {
+        return; // Nada para sincronizar
+      }
+
+      console.log(`🔄 Sincronizando dados offline: ${photos} fotos, ${data} registros`);
+      
+      let successCount = 0;
+      let failCount = 0;
+
+      // Sincronizar dados primeiro (usando any para evitar problemas de tipo)
+      const pendingData = await offlineStorage.getPendingData();
+      for (const item of pendingData) {
+        try {
+          if (item.operation === 'insert') {
+            const { error } = await (supabase as any)
+              .from(item.table)
+              .insert(item.data);
+            
+            if (error) throw error;
+          } else if (item.operation === 'update') {
+            const { error } = await (supabase as any)
+              .from(item.table)
+              .update(item.data)
+              .eq('id', item.data.id);
+            
+            if (error) throw error;
+          }
+
+          await offlineStorage.removePendingData(item.id);
+          successCount++;
+        } catch (error) {
+          console.error('Erro ao sincronizar dado:', error);
+          failCount++;
+          
+          // Limitar tentativas
+          if (item.retries >= 3) {
+            await offlineStorage.removePendingData(item.id);
+            console.log('Dado descartado após 3 tentativas:', item.id);
+          }
+        }
+      }
+
+      // Sincronizar fotos
+      const pendingPhotos = await offlineStorage.getPendingPhotos();
+      for (const photo of pendingPhotos) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('Usuário não autenticado');
+
+          // Upload da foto
+          const filePath = `${user.id}/${photo.visitId || 'temp'}/${Date.now()}.jpg`;
+          const { error: uploadError } = await supabase.storage
+            .from('trade-photos')
+            .upload(filePath, photo.file);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('trade-photos')
+            .getPublicUrl(filePath);
+
+          // Criar registro da foto
+          const { data: photoRecord, error: photoError } = await supabase
+            .from('photos')
+            .insert({
+              visit_id: photo.visitId,
+              store_id: photo.storeId,
+              photo_url: publicUrl,
+              photo_type: 'shelf',
+              vendedor_id: user.id,
+            })
+            .select()
+            .single();
+
+          if (photoError) throw photoError;
+
+          // Adicionar à fila de análise
+          await supabase.from('photo_analysis_queue').insert({
+            photo_id: photoRecord.id,
+            photo_url: publicUrl,
+            created_by: user.id,
+          });
+
+          await offlineStorage.removePendingPhoto(photo.id);
+          successCount++;
+        } catch (error) {
+          console.error('Erro ao sincronizar foto:', error);
+          failCount++;
+          
+          // Incrementar tentativas
+          await offlineStorage.incrementPhotoRetries(photo.id);
+          
+          // Remover após 3 tentativas
+          if (photo.retries >= 2) {
+            await offlineStorage.removePendingPhoto(photo.id);
+            console.log('Foto descartada após 3 tentativas:', photo.id);
+          }
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`✅ ${successCount} item(ns) sincronizado(s)`);
+      }
+      
+      if (failCount > 0) {
+        toast.warning(`⚠️ ${failCount} item(ns) falharam na sincronização`);
+      }
+    } catch (error) {
+      console.error('Erro na sincronização offline:', error);
+    }
+  };
+
+  return { syncOfflineData };
+};

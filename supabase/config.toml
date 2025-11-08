@@ -62,3 +62,6 @@ verify_jwt = true
 
 [functions.process-photo-analysis-queue]
 verify_jwt = false
+
+[functions.padronizar-nome-cliente]
+verify_jwt = true

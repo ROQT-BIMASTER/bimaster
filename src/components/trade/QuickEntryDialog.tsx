@@ -214,11 +214,19 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           if (photoError) throw photoError;
 
           // Adicionar à fila de análise de IA
-          await supabase.from("photo_analysis_queue").insert({
+          const { error: queueError } = await supabase.from("photo_analysis_queue").insert({
             photo_id: photoRecord.id,
             photo_url: publicUrl,
             created_by: user.id,
+            status: 'pending',
+            attempts: 0,
           });
+          
+          if (queueError) {
+            console.error('Erro ao adicionar à fila:', queueError);
+          } else {
+            console.log('✅ Foto adicionada à fila de análise:', photoRecord.id);
+          }
           
           return true;
         } catch (error) {

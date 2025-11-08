@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Upload, Search, MapPin, Edit, Eye, Trash2 } from "lucide-react";
+import { Plus, Upload, Search, MapPin, Edit, Eye, Trash2, AlertTriangle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -109,6 +109,8 @@ const TradeStores = () => {
     }
   };
 
+  const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
+
   const handleDeleteStore = async () => {
     if (!deleteStoreId) return;
 
@@ -125,6 +127,38 @@ const TradeStores = () => {
       setDeleteStoreId(null);
     } catch (error: any) {
       toast.error("Erro ao desativar loja: " + error.message);
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!permanentDeleteId) return;
+
+    try {
+      // Verificar se há dados vinculados
+      const { data: visits } = await supabase
+        .from("visits")
+        .select("id")
+        .eq("store_id", permanentDeleteId)
+        .limit(1);
+
+      if (visits && visits.length > 0) {
+        toast.error("Não é possível excluir: loja possui visitas registradas. Desative ao invés de excluir.");
+        setPermanentDeleteId(null);
+        return;
+      }
+
+      const { error } = await supabase
+        .from("stores")
+        .delete()
+        .eq("id", permanentDeleteId);
+
+      if (error) throw error;
+
+      toast.success("Loja excluída permanentemente!");
+      fetchStores();
+      setPermanentDeleteId(null);
+    } catch (error: any) {
+      toast.error("Erro ao excluir loja: " + error.message);
     }
   };
 
@@ -231,8 +265,18 @@ const TradeStores = () => {
                           variant="ghost" 
                           size="sm"
                           onClick={() => setDeleteStoreId(store.id)}
+                          title="Desativar loja"
                         >
                           <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setPermanentDeleteId(store.id)}
+                          title="Excluir definitivamente"
+                        >
+                          <AlertTriangle className="h-4 w-4" />
                         </Button>
                         <Button 
                           variant="ghost" 
@@ -293,6 +337,26 @@ const TradeStores = () => {
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={handleDeleteStore} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 Desativar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={!!permanentDeleteId} onOpenChange={(open) => !open && setPermanentDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-destructive">⚠️ Excluir Permanentemente</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p className="font-semibold">ATENÇÃO: Esta ação não pode ser desfeita!</p>
+                <p>A loja será removida permanentemente do sistema.</p>
+                <p>Se a loja possui histórico de visitas ou vendas, ela não poderá ser excluída.</p>
+                <p className="text-sm text-muted-foreground">Recomendação: desative ao invés de excluir para manter o histórico.</p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handlePermanentDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Excluir Permanentemente
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

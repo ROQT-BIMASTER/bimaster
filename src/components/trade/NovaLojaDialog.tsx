@@ -134,6 +134,60 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
     try {
       const { data: userData } = await supabase.auth.getUser();
       
+      // Padronizar nome do cliente com IA
+      let normalizedName = formData.name;
+      try {
+        const { data: normData } = await supabase.functions.invoke('padronizar-nome-cliente', {
+          body: { name: formData.name }
+        });
+        if (normData?.normalized) {
+          normalizedName = normData.normalized;
+          console.log('Nome padronizado:', normalizedName);
+        }
+      } catch (normError) {
+        console.warn('Erro ao padronizar nome, usando original:', normError);
+      }
+
+      // Verificar duplicatas por nome normalizado ou CNPJ
+      const duplicateQueries = [];
+      
+      if (normalizedName) {
+        duplicateQueries.push(
+          supabase
+            .from("stores")
+            .select("id, name")
+            .eq("name", normalizedName)
+            .eq("status", "active")
+            .limit(1)
+        );
+      }
+      
+      if (formData.cnpj) {
+        const cleanCNPJ = formData.cnpj.replace(/\D/g, '');
+        if (cleanCNPJ) {
+          duplicateQueries.push(
+            supabase
+              .from("stores")
+              .select("id, name, cnpj")
+              .eq("cnpj", cleanCNPJ)
+              .eq("status", "active")
+              .limit(1)
+          );
+        }
+      }
+
+      if (duplicateQueries.length > 0) {
+        const results = await Promise.all(duplicateQueries);
+        const hasDuplicate = results.some(r => r.data && r.data.length > 0);
+        
+        if (hasDuplicate) {
+          const duplicate = results.find(r => r.data && r.data.length > 0)?.data?.[0];
+          toast.error(`Cliente já cadastrado: ${duplicate?.name || 'Verificar CNPJ'}`);
+          setLoading(false);
+          return;
+        }
+      }
+      
       // Buscar supervisor_id do profile do vendedor se não foi informado
       let supervisorId = formData.supervisor_id || null;
       if (!supervisorId && formData.vendedor_id) {
@@ -148,6 +202,8 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
       
       const { data: newStore, error } = await supabase.from("stores").insert({
         ...formData,
+        name: normalizedName, // Usar nome padronizado
+        cnpj: formData.cnpj ? formData.cnpj.replace(/\D/g, '') : null, // Limpar CNPJ
         code: formData.code || `STORE-${Date.now()}`,
         status: "active",
         created_by: userData.user?.id,
@@ -157,7 +213,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
 
       if (error) throw error;
 
-      toast.success("Loja cadastrada com sucesso!");
+      toast.success(`Loja cadastrada: ${normalizedName}`);
       onSuccess?.(newStore?.id);
       onOpenChange(false);
       setFormData({

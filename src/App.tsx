@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import { memoryManager } from "@/lib/utils/memory-manager";
+import { useSyncOfflineData } from "@/hooks/useSyncOfflineData";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -65,6 +66,9 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
+  // Hook para sincronizar dados offline quando voltar online
+  useSyncOfflineData();
+
   useEffect(() => {
     // Inicializar gerenciador de memória
     console.log('🚀 Memory Manager inicializado');

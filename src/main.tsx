@@ -9,15 +9,20 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then((registration) => {
-        console.log('SW registrado: ', registration);
+        console.log('✅ Service Worker registrado:', registration);
+        
+        // Verificar atualizações a cada minuto
+        setInterval(() => {
+          registration.update();
+        }, 60000);
       })
       .catch((error) => {
-        console.log('SW registro falhou: ', error);
+        console.error('❌ Erro ao registrar Service Worker:', error);
       });
   });
 }
 
-// Iniciar processador de fila de análise de fotos
+// Iniciar processador de fila de análise de fotos (a cada 2 minutos)
 startPhotoQueueProcessor();
 
 createRoot(document.getElementById("root")!).render(
