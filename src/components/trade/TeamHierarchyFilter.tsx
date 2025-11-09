@@ -49,24 +49,27 @@ export const TeamHierarchyFilter = ({ onUserSelect, selectedUserId }: TeamHierar
       if (roleData?.role === 'admin') {
         const { data: profiles, error } = await supabase
           .from("profiles")
-          .select(`
-            id,
-            nome,
-            email,
-            supervisor_id,
-            user_roles (role)
-          `)
+          .select("id, nome, email, supervisor_id")
           .eq("aprovado", true)
           .order("nome");
 
         if (error) throw error;
+
+        // Buscar roles separadamente
+        const userIds = profiles?.map(p => p.id) || [];
+        const { data: rolesData } = await supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .in("user_id", userIds);
+
+        const rolesMap = new Map(rolesData?.map(r => [r.user_id, r.role]) || []);
 
         const profilesWithRole = profiles?.map(p => ({
           id: p.id,
           nome: p.nome,
           email: p.email,
           supervisor_id: p.supervisor_id,
-          role: (p.user_roles as any)?.[0]?.role || 'vendedor'
+          role: rolesMap.get(p.id) || 'vendedor'
         })) || [];
 
         const hierarchy = buildHierarchy(profilesWithRole);
@@ -79,25 +82,29 @@ export const TeamHierarchyFilter = ({ onUserSelect, selectedUserId }: TeamHierar
         if (error) throw error;
 
         if (subordinados && subordinados.length > 0) {
+          const subordinadosIds = subordinados.map((s: any) => s.subordinado_id);
+          
           const { data: profiles, error: profilesError } = await supabase
             .from("profiles")
-            .select(`
-              id,
-              nome,
-              email,
-              supervisor_id,
-              user_roles (role)
-            `)
-            .in("id", subordinados.map((s: any) => s.subordinado_id));
+            .select("id, nome, email, supervisor_id")
+            .in("id", subordinadosIds);
 
           if (profilesError) throw profilesError;
+
+          // Buscar roles separadamente
+          const { data: rolesData } = await supabase
+            .from("user_roles")
+            .select("user_id, role")
+            .in("user_id", subordinadosIds);
+
+          const rolesMap = new Map(rolesData?.map(r => [r.user_id, r.role]) || []);
 
           const profilesWithRole = profiles?.map(p => ({
             id: p.id,
             nome: p.nome,
             email: p.email,
             supervisor_id: p.supervisor_id,
-            role: (p.user_roles as any)?.[0]?.role || 'vendedor'
+            role: rolesMap.get(p.id) || 'vendedor'
           })) || [];
 
           const hierarchy = buildHierarchy(profilesWithRole);
