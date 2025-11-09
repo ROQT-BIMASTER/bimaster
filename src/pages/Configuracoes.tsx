@@ -20,6 +20,7 @@ import { AtribuirVendedorSupervisor } from "@/components/configuracoes/AtribuirV
 import { HierarquiaUsuarios } from "@/components/configuracoes/HierarquiaUsuarios";
 import { GerenciamentoPontuacao } from "@/components/configuracoes/GerenciamentoPontuacao";
 import { GerenciamentoPremiacoes } from "@/components/configuracoes/GerenciamentoPremiacoes";
+import { VincularWhatsApp } from "@/components/configuracoes/VincularWhatsApp";
 import { Shield, UserCog, User, CheckCircle } from "lucide-react";
 
 interface Profile {
@@ -283,8 +284,9 @@ const Configuracoes = () => {
               </TabsContent>
             )}
 
-            <TabsContent value="notificacoes">
+            <TabsContent value="notificacoes" className="space-y-4">
               <ConfiguracoesNotificacoes />
+              <VincularWhatsApp />
             </TabsContent>
 
             {isAdmin && (
@@ -349,8 +351,9 @@ const Configuracoes = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="notificacoes">
+            <TabsContent value="notificacoes" className="space-y-4">
               <ConfiguracoesNotificacoes />
+              <VincularWhatsApp />
             </TabsContent>
           </Tabs>
         )}

@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.padronizar-nome-cliente]
 verify_jwt = true
+
+[functions.whatsapp-webhook]
+verify_jwt = false
