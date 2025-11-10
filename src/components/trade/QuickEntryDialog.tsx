@@ -184,53 +184,67 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           
           const filePath = `${user.id}/${visit.id}/before-${Date.now()}-${index}.jpg`;
           
-          const { error: uploadError } = await supabase.storage
+          // Usar helper para upload com retry
+          const { path, error: uploadError } = await uploadFile('trade-photos', filePath, compressedPhoto);
+
+          if (uploadError) {
+            console.error('❌ Erro no upload:', uploadError);
+            throw uploadError;
+          }
+
+          // Obter URL assinada (válida por 1 ano)
+          const { data: { signedUrl }, error: urlError } = await supabase.storage
             .from('trade-photos')
-            .upload(filePath, compressedPhoto);
+            .createSignedUrl(path, 31536000); // 1 ano
 
-          if (uploadError) throw uploadError;
+          if (urlError) {
+            console.error('❌ Erro ao gerar URL assinada:', urlError);
+            throw urlError;
+          }
 
-          // Obter URL pública para compatibilidade
-          const { data: { publicUrl } } = supabase.storage
-            .from('trade-photos')
-            .getPublicUrl(filePath);
+          console.log('✅ Upload concluído:', path);
 
-          // Salvar registro da foto
+          // Salvar registro da foto com URL assinada
           const { data: photoRecord, error: photoError } = await supabase
             .from("photos")
             .insert({
               visit_id: visit.id,
               store_id: formData.store_id,
-              photo_url: publicUrl,
+              photo_url: signedUrl,
               photo_type: "shelf",
               category: "before",
-              ai_processed: false, // Será processado assincronamente
+              ai_processed: false,
               vendedor_id: user.id,
               supervisor_id: supervisorId,
             })
             .select()
             .single();
           
-          if (photoError) throw photoError;
+          if (photoError) {
+            console.error('❌ Erro ao salvar registro da foto:', photoError);
+            throw photoError;
+          }
+
+          console.log('✅ Registro da foto salvo:', photoRecord.id);
 
           // Adicionar à fila de análise de IA
           const { error: queueError } = await supabase.from("photo_analysis_queue").insert({
             photo_id: photoRecord.id,
-            photo_url: publicUrl,
+            photo_url: signedUrl,
             created_by: user.id,
             status: 'pending',
             attempts: 0,
           });
           
           if (queueError) {
-            console.error('Erro ao adicionar à fila:', queueError);
+            console.error('❌ Erro ao adicionar à fila:', queueError);
           } else {
             console.log('✅ Foto adicionada à fila de análise:', photoRecord.id);
           }
           
           return true;
         } catch (error) {
-          console.error("Erro ao fazer upload de foto:", error);
+          console.error("❌ Erro ao processar foto:", error);
           return false;
         }
       });
@@ -241,20 +255,30 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           const compressedPhoto = await compressImage(photo, 1200, 0.8);
           const filePath = `${user.id}/${visit.id}/after-${Date.now()}-${index}.jpg`;
           
-          const { error: uploadError } = await supabase.storage
-            .from('trade-photos')
-            .upload(filePath, compressedPhoto);
+          // Usar helper para upload com retry
+          const { path, error: uploadError } = await uploadFile('trade-photos', filePath, compressedPhoto);
 
-          if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error('❌ Erro no upload (after):', uploadError);
+            throw uploadError;
+          }
           
-          const { data: { publicUrl } } = supabase.storage
+          // Obter URL assinada (válida por 1 ano)
+          const { data: { signedUrl }, error: urlError } = await supabase.storage
             .from('trade-photos')
-            .getPublicUrl(filePath);
+            .createSignedUrl(path, 31536000);
+
+          if (urlError) {
+            console.error('❌ Erro ao gerar URL assinada (after):', urlError);
+            throw urlError;
+          }
+
+          console.log('✅ Upload concluído (after):', path);
           
           const { error: photoError } = await supabase.from("photos").insert({
             visit_id: visit.id,
             store_id: formData.store_id,
-            photo_url: publicUrl,
+            photo_url: signedUrl,
             photo_type: "shelf",
             category: "after",
             ai_processed: false,
@@ -262,11 +286,14 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             supervisor_id: supervisorId,
           });
           
-          if (photoError) throw photoError;
+          if (photoError) {
+            console.error('❌ Erro ao salvar registro (after):', photoError);
+            throw photoError;
+          }
           
           return true;
         } catch (error) {
-          console.error("Erro ao fazer upload de foto:", error);
+          console.error("❌ Erro ao processar foto (after):", error);
           return false;
         }
       });
