@@ -195,6 +195,22 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/dashboard/whatsapp"
+                    className={({ isActive }) =>
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "hover:bg-sidebar-accent/50"
+                    }
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span>WhatsApp</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

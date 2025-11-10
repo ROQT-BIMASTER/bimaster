@@ -53,6 +53,7 @@ import TradeTeamPerformance from "./pages/TradeTeamPerformance";
 import TradeRewards from "./pages/TradeRewards";
 import Relatorios from "./pages/Relatorios";
 import InstalarApp from "./pages/InstalarApp";
+import WhatsAppMonitoring from "./pages/WhatsAppMonitoring";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -107,6 +108,7 @@ const App = () => {
         <Route path="/dashboard/tarefas" element={<ProtectedRoute><Tarefas /></ProtectedRoute>} />
         <Route path="/dashboard/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
         <Route path="/dashboard/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+        <Route path="/dashboard/whatsapp" element={<ProtectedRoute><WhatsAppMonitoring /></ProtectedRoute>} />
         <Route path="/dashboard/importar-clientes" element={<ProtectedRoute><ImportarClientes /></ProtectedRoute>} />
         <Route path="/dashboard/auditoria" element={<ProtectedRoute><Auditoria /></ProtectedRoute>} />
         
