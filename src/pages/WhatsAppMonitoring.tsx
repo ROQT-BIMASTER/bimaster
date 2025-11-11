@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { WhatsAppMonitoringPanel } from "@/components/whatsapp/WhatsAppMonitoringPanel";
 import { WhatsAppMessagesPanel } from "@/components/whatsapp/WhatsAppMessagesPanel";
 import { WhatsAppFilters } from "@/components/whatsapp/WhatsAppFilters";
+import { WhatsAppCharts } from "@/components/whatsapp/WhatsAppCharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRange } from "react-day-picker";
 
@@ -41,6 +42,11 @@ export default function WhatsAppMonitoring() {
             userId: filters.userId,
             dateRange: dateRangeForPanel,
           }}
+        />
+
+        <WhatsAppCharts
+          userId={filters.userId}
+          dateRange={dateRangeForPanel}
         />
 
         <Card>
