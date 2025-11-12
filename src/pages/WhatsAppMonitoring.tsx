@@ -5,6 +5,8 @@ import { WhatsAppMessagesPanel } from "@/components/whatsapp/WhatsAppMessagesPan
 import { WhatsAppFilters } from "@/components/whatsapp/WhatsAppFilters";
 import { WhatsAppCharts } from "@/components/whatsapp/WhatsAppCharts";
 import { WhatsAppSentimentDashboard } from "@/components/whatsapp/WhatsAppSentimentDashboard";
+import { WhatsAppAgentConfig } from "@/components/whatsapp/WhatsAppAgentConfig";
+import { WhatsAppAgentFlow } from "@/components/whatsapp/WhatsAppAgentFlow";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRange } from "react-day-picker";
@@ -34,9 +36,11 @@ export default function WhatsAppMonitoring() {
         <WhatsAppFilters onFilterChange={setFilters} />
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="sentiment">Análise de Sentimento</TabsTrigger>
+            <TabsTrigger value="sentiment">Sentimento</TabsTrigger>
+            <TabsTrigger value="agent-flow">Fluxo do Agente</TabsTrigger>
+            <TabsTrigger value="agent-config">Configuração IA</TabsTrigger>
             <TabsTrigger value="about">Sobre</TabsTrigger>
           </TabsList>
 
@@ -62,6 +66,14 @@ export default function WhatsAppMonitoring() {
 
           <TabsContent value="sentiment" className="mt-6">
             <WhatsAppSentimentDashboard />
+          </TabsContent>
+
+          <TabsContent value="agent-flow" className="mt-6">
+            <WhatsAppAgentFlow />
+          </TabsContent>
+
+          <TabsContent value="agent-config" className="mt-6">
+            <WhatsAppAgentConfig />
           </TabsContent>
 
           <TabsContent value="about" className="mt-6">
