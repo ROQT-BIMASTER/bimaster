@@ -4,6 +4,8 @@ import { WhatsAppMonitoringPanel } from "@/components/whatsapp/WhatsAppMonitorin
 import { WhatsAppMessagesPanel } from "@/components/whatsapp/WhatsAppMessagesPanel";
 import { WhatsAppFilters } from "@/components/whatsapp/WhatsAppFilters";
 import { WhatsAppCharts } from "@/components/whatsapp/WhatsAppCharts";
+import { WhatsAppSentimentDashboard } from "@/components/whatsapp/WhatsAppSentimentDashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRange } from "react-day-picker";
 
@@ -31,54 +33,79 @@ export default function WhatsAppMonitoring() {
 
         <WhatsAppFilters onFilterChange={setFilters} />
 
-        <WhatsAppMonitoringPanel
-          userId={filters.userId}
-          dateRange={dateRangeForPanel}
-        />
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="sentiment">Análise de Sentimento</TabsTrigger>
+            <TabsTrigger value="about">Sobre</TabsTrigger>
+          </TabsList>
 
-        <WhatsAppMessagesPanel
-          filters={{
-            status: filters.status,
-            userId: filters.userId,
-            dateRange: dateRangeForPanel,
-          }}
-        />
+          <TabsContent value="overview" className="space-y-6 mt-6">
+            <WhatsAppMonitoringPanel
+              userId={filters.userId}
+              dateRange={dateRangeForPanel}
+            />
 
-        <WhatsAppCharts
-          userId={filters.userId}
-          dateRange={dateRangeForPanel}
-        />
+            <WhatsAppMessagesPanel
+              filters={{
+                status: filters.status,
+                userId: filters.userId,
+                dateRange: dateRangeForPanel,
+              }}
+            />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Sobre o Painel</CardTitle>
-            <CardDescription>
-              Informações sobre as métricas exibidas
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <h4 className="font-medium mb-1">Taxa de Resposta</h4>
-              <p className="text-sm text-muted-foreground">
-                Percentual de conversas que receberam pelo menos uma resposta do bot
-              </p>
-            </div>
-            <div>
-              <h4 className="font-medium mb-1">Tempo Médio de Resposta</h4>
-              <p className="text-sm text-muted-foreground">
-                Tempo médio entre uma mensagem do usuário e a resposta do bot
-              </p>
-            </div>
-            <div>
-              <h4 className="font-medium mb-1">Status das Conversas</h4>
-              <p className="text-sm text-muted-foreground">
-                • <strong>Ativa:</strong> Conversa em andamento<br />
-                • <strong>Completa:</strong> Lançamento criado com sucesso<br />
-                • <strong>Cancelada:</strong> Usuário cancelou o fluxo
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            <WhatsAppCharts
+              userId={filters.userId}
+              dateRange={dateRangeForPanel}
+            />
+          </TabsContent>
+
+          <TabsContent value="sentiment" className="mt-6">
+            <WhatsAppSentimentDashboard />
+          </TabsContent>
+
+          <TabsContent value="about" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sobre o Painel</CardTitle>
+                <CardDescription>
+                  Informações sobre as métricas exibidas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <h4 className="font-medium mb-1">Taxa de Resposta</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Percentual de conversas que receberam pelo menos uma resposta do bot
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-1">Tempo Médio de Resposta</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Tempo médio entre uma mensagem do usuário e a resposta do bot
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-1">Status das Conversas</h4>
+                  <p className="text-sm text-muted-foreground">
+                    • <strong>Ativa:</strong> Conversa em andamento<br />
+                    • <strong>Completa:</strong> Lançamento criado com sucesso<br />
+                    • <strong>Cancelada:</strong> Usuário cancelou o fluxo
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-1">Análise de Sentimento</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Utilizamos IA para analisar automaticamente o sentimento das conversas:<br />
+                    • <strong>Positivo:</strong> Cliente satisfeito e engajado<br />
+                    • <strong>Neutro:</strong> Conversa informativa sem emoção clara<br />
+                    • <strong>Negativo:</strong> Cliente insatisfeito ou frustrado
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

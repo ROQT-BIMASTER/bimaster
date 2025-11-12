@@ -68,3 +68,6 @@ verify_jwt = true
 
 [functions.whatsapp-webhook]
 verify_jwt = false
+
+[functions.analyze-whatsapp-sentiment]
+verify_jwt = true

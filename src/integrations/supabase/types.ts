@@ -4896,6 +4896,9 @@ export type Database = {
           created_at: string
           id: string
           phone_number: string
+          sentiment: string | null
+          sentiment_analyzed_at: string | null
+          sentiment_score: number | null
           status: string
           updated_at: string
           user_id: string | null
@@ -4905,6 +4908,9 @@ export type Database = {
           created_at?: string
           id?: string
           phone_number: string
+          sentiment?: string | null
+          sentiment_analyzed_at?: string | null
+          sentiment_score?: number | null
           status?: string
           updated_at?: string
           user_id?: string | null
@@ -4914,6 +4920,9 @@ export type Database = {
           created_at?: string
           id?: string
           phone_number?: string
+          sentiment?: string | null
+          sentiment_analyzed_at?: string | null
+          sentiment_score?: number | null
           status?: string
           updated_at?: string
           user_id?: string | null
