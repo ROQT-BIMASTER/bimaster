@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.analyze-whatsapp-sentiment]
 verify_jwt = true
+
+[functions.marketing-insights]
+verify_jwt = true

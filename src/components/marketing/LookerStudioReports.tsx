@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Settings, ExternalLink } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { MarketingInsightsChat } from "./MarketingInsightsChat";
 
 interface ReportConfig {
   title: string;
@@ -15,7 +16,6 @@ interface ReportConfig {
 }
 
 export function LookerStudioReports() {
-  const { toast } = useToast();
   const [reports, setReports] = useState<ReportConfig[]>([
     { title: "Relatório 1", url: "", enabled: false },
     { title: "Relatório 2", url: "", enabled: false },
@@ -42,10 +42,7 @@ export function LookerStudioReports() {
     localStorage.setItem("looker_studio_reports", JSON.stringify(editingReports));
     setReports(editingReports);
     setConfigOpen(false);
-    toast({
-      title: "Configurações salvas",
-      description: "Os relatórios foram configurados com sucesso",
-    });
+    toast.success("Configurações dos relatórios salvas com sucesso!");
   };
 
   const handleUpdateReport = (index: number, field: keyof ReportConfig, value: string | boolean) => {
@@ -251,6 +248,11 @@ export function LookerStudioReports() {
           </TabsContent>
         ))}
       </Tabs>
+
+      <MarketingInsightsChat 
+        dashboardType="looker"
+        activeDashboards={activeReports}
+      />
     </div>
   );
 }
