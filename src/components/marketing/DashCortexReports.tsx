@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, ExternalLink, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
+import { MarketingInsightsChat } from "./MarketingInsightsChat";
 
 interface ReportConfig {
   title: string;
@@ -206,7 +207,7 @@ export const DashCortexReports = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="w-full" style={{ height: '600px' }}>
+                <div className="w-full" style={{ height: '800px' }}>
                   <iframe
                     src={report.url}
                     className="w-full h-full border-0 rounded-md"
@@ -219,6 +220,11 @@ export const DashCortexReports = () => {
           </TabsContent>
         ))}
       </Tabs>
+
+      <MarketingInsightsChat 
+        dashboardType="dashcortex"
+        activeDashboards={activeReports}
+      />
     </div>
   );
 };
