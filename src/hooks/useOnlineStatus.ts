@@ -6,11 +6,13 @@ import { offlineManager } from '@/lib/utils/offline-manager';
  * Previne memory leaks e melhora performance
  */
 export const useOnlineStatus = () => {
-  const [isOnline, setIsOnline] = useState(offlineManager.getStatus());
+  const [isOnline, setIsOnline] = useState(() => offlineManager.getStatus());
 
   useEffect(() => {
     const unsubscribe = offlineManager.subscribe(setIsOnline);
-    return unsubscribe;
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   return isOnline;

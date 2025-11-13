@@ -68,17 +68,17 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  // Hook para sincronizar dados offline quando voltar online
-  useSyncOfflineData();
-
+  // Inicializar gerenciador de memória primeiro
   useEffect(() => {
-    // Inicializar gerenciador de memória
     console.log('🚀 Memory Manager inicializado');
     
     return () => {
       memoryManager.destroy();
     };
   }, []);
+
+  // Hook para sincronizar dados offline quando voltar online
+  useSyncOfflineData();
 
   return (
   <QueryClientProvider client={queryClient}>
