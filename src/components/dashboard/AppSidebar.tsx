@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -176,6 +176,22 @@ export function AppSidebar() {
                   >
                     <FileText className="h-4 w-4" />
                     <span>Relatórios</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to="/dashboard/marketing"
+                    className={({ isActive }) =>
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "hover:bg-sidebar-accent/50"
+                    }
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    <span>Marketing</span>
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
