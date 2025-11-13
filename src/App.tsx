@@ -54,6 +54,7 @@ import TradeRewards from "./pages/TradeRewards";
 import Relatorios from "./pages/Relatorios";
 import InstalarApp from "./pages/InstalarApp";
 import WhatsAppMonitoring from "./pages/WhatsAppMonitoring";
+import Marketing from "./pages/Marketing";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,6 +94,7 @@ const App = () => {
         {/* Protected Routes */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/dashboard/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
+        <Route path="/dashboard/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
         <Route path="/dashboard/instalar-app" element={<ProtectedRoute><InstalarApp /></ProtectedRoute>} />
         
         {/* Módulo de Prospects */}
