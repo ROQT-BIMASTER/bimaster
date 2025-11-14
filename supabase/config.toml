@@ -74,3 +74,6 @@ verify_jwt = true
 
 [functions.marketing-insights]
 verify_jwt = true
+
+[functions.social-media-metrics]
+verify_jwt = true
