@@ -30,7 +30,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const whatsappToken = Deno.env.get("WHATSAPP_API_TOKEN");
     const whatsappVerifyToken = Deno.env.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN");
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY") || "";
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
