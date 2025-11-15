@@ -3059,6 +3059,75 @@ export type Database = {
           },
         ]
       }
+      social_media_accounts: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          id: string
+          platform: string
+          updated_at: string
+          user_id: string | null
+          username: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          id?: string
+          platform: string
+          updated_at?: string
+          user_id?: string | null
+          username: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          id?: string
+          platform?: string
+          updated_at?: string
+          user_id?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
+      social_media_metrics_history: {
+        Row: {
+          created_at: string
+          engagement: number | null
+          followers: number | null
+          id: string
+          platform: string
+          posts: number | null
+          reach: number | null
+          sentiment_label: string | null
+          sentiment_score: number | null
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          engagement?: number | null
+          followers?: number | null
+          id?: string
+          platform: string
+          posts?: number | null
+          reach?: number | null
+          sentiment_label?: string | null
+          sentiment_score?: number | null
+          username: string
+        }
+        Update: {
+          created_at?: string
+          engagement?: number | null
+          followers?: number | null
+          id?: string
+          platform?: string
+          posts?: number | null
+          reach?: number | null
+          sentiment_label?: string | null
+          sentiment_score?: number | null
+          username?: string
+        }
+        Relationships: []
+      }
       store_categories: {
         Row: {
           active: boolean | null
