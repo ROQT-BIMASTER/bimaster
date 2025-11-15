@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { SocialMediaCharts } from "./SocialMediaCharts";
+import { SocialMediaSentiment } from "./SocialMediaSentiment";
 
 interface SocialMetrics {
   followers: number;
@@ -196,7 +198,14 @@ export const SocialMediaMonitoring = () => {
   const hasAnyToken = Object.values(tokens).some(token => token !== "");
 
   return (
-    <div className="space-y-6">
+    <Tabs defaultValue="metrics" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="metrics">Métricas em Tempo Real</TabsTrigger>
+        <TabsTrigger value="charts">Gráficos de Evolução</TabsTrigger>
+        <TabsTrigger value="sentiment">Análise de Sentimento</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="metrics" className="space-y-6">
       {!hasAnyToken && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
@@ -445,6 +454,15 @@ export const SocialMediaMonitoring = () => {
           Esta interface está pronta para receber esses dados. Entre em contato com o suporte para configurar as integrações.
         </p>
       </Card>
-    </div>
+      </TabsContent>
+
+      <TabsContent value="charts">
+        <SocialMediaCharts />
+      </TabsContent>
+
+      <TabsContent value="sentiment">
+        <SocialMediaSentiment />
+      </TabsContent>
+    </Tabs>
   );
 };

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { platform, username, token } = await req.json();
+    const { platform, username, token, saveToHistory = false } = await req.json();
 
     console.log(`Fetching metrics for ${platform} - ${username}`);
 
@@ -36,8 +37,24 @@ serve(async (req) => {
       case 'tiktok':
         metrics = await fetchTikTokMetrics(username, token);
         break;
-      default:
+    default:
         throw new Error('Plataforma não suportada');
+    }
+
+    // Salvar no histórico se solicitado
+    if (saveToHistory) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      await supabase.from('social_media_metrics_history').insert({
+        platform,
+        username,
+        followers: metrics.followers,
+        posts: metrics.posts,
+        engagement: metrics.engagement,
+        reach: metrics.reach,
+      });
     }
 
     return new Response(JSON.stringify(metrics), {
