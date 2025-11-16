@@ -146,6 +146,7 @@ export default defineConfig(({ mode }) => ({
     include: ['react', 'react-dom', '@tanstack/react-query', '@supabase/supabase-js'],
   },
   build: {
+    sourcemap: mode === 'development' ? true : 'hidden',
     rollupOptions: {
       output: {
         manualChunks: {
@@ -170,6 +171,12 @@ export default defineConfig(({ mode }) => ({
       },
     },
     chunkSizeWarningLimit: 1000,
+    terserOptions: {
+      compress: {
+        drop_console: mode === 'production',
+        drop_debugger: mode === 'production',
+      },
+    },
   },
   preview: {
     headers: {
