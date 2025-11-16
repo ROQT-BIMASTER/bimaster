@@ -407,6 +407,48 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          new_data: Json | null
+          old_data: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          new_data?: Json | null
+          old_data?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          new_data?: Json | null
+          old_data?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       auditoria_atribuicoes: {
         Row: {
           created_at: string | null
@@ -3089,6 +3131,45 @@ export type Database = {
         }
         Relationships: []
       }
+      social_media_credentials: {
+        Row: {
+          access_token: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          platform: string
+          refresh_token: string | null
+          scope: string | null
+          token_type: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          platform: string
+          refresh_token?: string | null
+          scope?: string | null
+          token_type?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          platform?: string
+          refresh_token?: string | null
+          scope?: string | null
+          token_type?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       social_media_metrics_history: {
         Row: {
           created_at: string
@@ -5131,11 +5212,72 @@ export type Database = {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined
       }
+      get_conversion_funnel: {
+        Args: never
+        Returns: {
+          com_vendedor: number | null
+          convertidos: number | null
+          regiao: Database["public"]["Enums"]["region_type"] | null
+          semana: string | null
+          status: Database["public"]["Enums"]["prospect_status"] | null
+          total_atividades: number | null
+          total_prospects: number | null
+          uf: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "mv_conversion_funnel"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_sales_performance: {
+        Args: never
+        Returns: {
+          mes: string | null
+          regiao: Database["public"]["Enums"]["region_type"] | null
+          salesperson_id: string | null
+          ticket_medio: number | null
+          total_descontos: number | null
+          total_vendas: number | null
+          uf: string | null
+          valor_liquido: number | null
+          vendedor: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "mv_sales_performance"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_subordinados: {
         Args: { _user_id: string }
         Returns: {
           subordinado_id: string
         }[]
+      }
+      get_trade_performance: {
+        Args: never
+        Returns: {
+          auditorias_conformes: number | null
+          city: string | null
+          media_frentes: number | null
+          mes: string | null
+          produtos_faltantes: number | null
+          state: string | null
+          store_id: string | null
+          store_name: string | null
+          total_auditorias: number | null
+          total_investimentos: number | null
+          total_visitas: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "mv_trade_performance"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_user_module_permissions: {
         Args: { _user_id: string }
@@ -5172,6 +5314,17 @@ export type Database = {
       is_supervisor_of: {
         Args: { _supervisor_id: string; _user_id: string }
         Returns: boolean
+      }
+      log_audit: {
+        Args: {
+          p_action: string
+          p_entity_id: string
+          p_entity_type: string
+          p_metadata?: Json
+          p_new_data?: Json
+          p_old_data?: Json
+        }
+        Returns: string
       }
       refresh_all_materialized_views: { Args: never; Returns: undefined }
       refresh_daily_kpis: { Args: { target_date?: string }; Returns: undefined }
