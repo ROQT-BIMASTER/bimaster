@@ -8,55 +8,65 @@ import { useEffect } from "react";
 import { memoryManager } from "@/lib/utils/memory-manager";
 import { useSyncOfflineData } from "@/hooks/useSyncOfflineData";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import ProspectsModule from "./pages/modules/ProspectsModule";
-import Prospects from "./pages/Prospects";
-import Municipios from "./pages/Municipios";
-import Atividades from "./pages/Atividades";
-import Configuracoes from "./pages/Configuracoes";
-import ImportarClientes from "./pages/ImportarClientes";
-import Auditoria from "./pages/Auditoria";
-import Kanban from "./pages/Kanban";
-import Tarefas from "./pages/Tarefas";
-import Mapa from "./pages/Mapa";
-import Chat from "./pages/Chat";
-import AguardandoAprovacao from "./pages/AguardandoAprovacao";
-import NotFound from "./pages/NotFound";
-import TradeModule from "./pages/modules/TradeModule";
-import TradeStores from "./pages/TradeStores";
-import TradeVisits from "./pages/TradeVisits";
-import TradePhotos from "./pages/TradePhotos";
-import TradeInsights from "./pages/TradeInsights";
-import TradeCompetitors from "./pages/TradeCompetitors";
-import TradePromotions from "./pages/TradePromotions";
-import TradeImportStores from "./pages/TradeImportStores";
-import TradeCalendar from "./pages/TradeCalendar";
-import TradeIdealPhotos from "./pages/TradeIdealPhotos";
-import TradeAuditorias from "./pages/TradeAuditorias";
-import TradeRelatorioCompetitivo from "./pages/TradeRelatorioCompetitivo";
-import TradeComparacaoProdutos from "./pages/TradeComparacaoProdutos";
-import TradeSellOut from "./pages/TradeSellOut";
-import TradeShelfMeasurements from "./pages/TradeShelfMeasurements";
-import TradeMeasurementGuide from "./pages/TradeMeasurementGuide";
-import TradeOurBrands from "./pages/TradeOurBrands";
-import Ranking from "./pages/Ranking";
-import TradeFinanceiro from "./pages/TradeFinanceiro";
-import TradeContasCorrentes from "./pages/TradeContasCorrentes";
-import TradeExtratoBancario from "./pages/TradeExtratoBancario";
-import TradeVerbasSemestrais from "./pages/TradeVerbasSemestrais";
-import TradeLancamentos from "./pages/TradeLancamentos";
-import TradeAprovacoes from "./pages/TradeAprovacoes";
-import TradeExtratosPessoais from "./pages/TradeExtratosPessoais";
-import TradeCampaigns from "./pages/TradeCampaigns";
-import TradePerformance from "./pages/TradePerformance";
-import TradeTeamPerformance from "./pages/TradeTeamPerformance";
-import TradeRewards from "./pages/TradeRewards";
-import Relatorios from "./pages/Relatorios";
-import InstalarApp from "./pages/InstalarApp";
-import WhatsAppMonitoring from "./pages/WhatsAppMonitoring";
-import Marketing from "./pages/Marketing";
+import { lazy, Suspense } from "react";
+
+// Lazy load das páginas para otimizar bundle
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const ProspectsModule = lazy(() => import("./pages/modules/ProspectsModule"));
+const Prospects = lazy(() => import("./pages/Prospects"));
+const Municipios = lazy(() => import("./pages/Municipios"));
+const Atividades = lazy(() => import("./pages/Atividades"));
+const Configuracoes = lazy(() => import("./pages/Configuracoes"));
+const ImportarClientes = lazy(() => import("./pages/ImportarClientes"));
+const Auditoria = lazy(() => import("./pages/Auditoria"));
+const Kanban = lazy(() => import("./pages/Kanban"));
+const Tarefas = lazy(() => import("./pages/Tarefas"));
+const Mapa = lazy(() => import("./pages/Mapa"));
+const Chat = lazy(() => import("./pages/Chat"));
+const AguardandoAprovacao = lazy(() => import("./pages/AguardandoAprovacao"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const TradeModule = lazy(() => import("./pages/modules/TradeModule"));
+const TradeStores = lazy(() => import("./pages/TradeStores"));
+const TradeVisits = lazy(() => import("./pages/TradeVisits"));
+const TradePhotos = lazy(() => import("./pages/TradePhotos"));
+const TradeInsights = lazy(() => import("./pages/TradeInsights"));
+const TradeCompetitors = lazy(() => import("./pages/TradeCompetitors"));
+const TradePromotions = lazy(() => import("./pages/TradePromotions"));
+const TradeImportStores = lazy(() => import("./pages/TradeImportStores"));
+const TradeCalendar = lazy(() => import("./pages/TradeCalendar"));
+const TradeIdealPhotos = lazy(() => import("./pages/TradeIdealPhotos"));
+const TradeAuditorias = lazy(() => import("./pages/TradeAuditorias"));
+const TradeRelatorioCompetitivo = lazy(() => import("./pages/TradeRelatorioCompetitivo"));
+const TradeComparacaoProdutos = lazy(() => import("./pages/TradeComparacaoProdutos"));
+const TradeSellOut = lazy(() => import("./pages/TradeSellOut"));
+const TradeShelfMeasurements = lazy(() => import("./pages/TradeShelfMeasurements"));
+const TradeMeasurementGuide = lazy(() => import("./pages/TradeMeasurementGuide"));
+const TradeOurBrands = lazy(() => import("./pages/TradeOurBrands"));
+const Ranking = lazy(() => import("./pages/Ranking"));
+const TradeFinanceiro = lazy(() => import("./pages/TradeFinanceiro"));
+const TradeContasCorrentes = lazy(() => import("./pages/TradeContasCorrentes"));
+const TradeExtratoBancario = lazy(() => import("./pages/TradeExtratoBancario"));
+const TradeVerbasSemestrais = lazy(() => import("./pages/TradeVerbasSemestrais"));
+const TradeLancamentos = lazy(() => import("./pages/TradeLancamentos"));
+const TradeAprovacoes = lazy(() => import("./pages/TradeAprovacoes"));
+const TradeExtratosPessoais = lazy(() => import("./pages/TradeExtratosPessoais"));
+const TradeCampaigns = lazy(() => import("./pages/TradeCampaigns"));
+const TradePerformance = lazy(() => import("./pages/TradePerformance"));
+const TradeTeamPerformance = lazy(() => import("./pages/TradeTeamPerformance"));
+const TradeRewards = lazy(() => import("./pages/TradeRewards"));
+const Relatorios = lazy(() => import("./pages/Relatorios"));
+const InstalarApp = lazy(() => import("./pages/InstalarApp"));
+const WhatsAppMonitoring = lazy(() => import("./pages/WhatsAppMonitoring"));
+const Marketing = lazy(() => import("./pages/Marketing"));
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,9 +98,10 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            {/* Error route */}
-            <Route path="*" element={<ErrorPage />} />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Error route */}
+              <Route path="*" element={<ErrorPage />} />
         <Route path="/" element={<Index />} />
         <Route path="/auth/login" element={<Auth />} />
         <Route path="/auth/signup" element={<Auth />} />
@@ -149,7 +160,8 @@ const App = () => {
         <Route path="/dashboard/trade/team-performance" element={<ProtectedRoute><TradeTeamPerformance /></ProtectedRoute>} />
         <Route path="/dashboard/trade/rewards" element={<ProtectedRoute><TradeRewards /></ProtectedRoute>} />
         
-          </Routes>
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>
