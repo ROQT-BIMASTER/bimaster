@@ -63,6 +63,7 @@ export function AppSidebar() {
   
   const [prospectsOpen, setProspectsOpen] = useState(true);
   const [tradeOpen, setTradeOpen] = useState(true);
+  const [marketingOpen, setMarketingOpen] = useState(true);
 
   const loading = permissionsLoading || modulesLoading;
 
@@ -110,6 +111,11 @@ export function AppSidebar() {
     { title: "Financeiro", url: "/dashboard/trade/financeiro", icon: DollarSign },
     { title: "Premiações", url: "/dashboard/trade/rewards", icon: Trophy },
     { title: "Insights IA", url: "/dashboard/trade/insights", icon: Brain },
+  ];
+
+  const marketingSubMenus = [
+    { title: "Dashboards", url: "/dashboard/marketing/dashboards", icon: BarChart3 },
+    { title: "WhatsApp", url: "/dashboard/marketing/whatsapp", icon: MessageSquare },
   ];
 
   const otherMenus = permissions.filter(screen => 
@@ -183,22 +189,6 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink
-                    to="/dashboard/marketing"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "hover:bg-sidebar-accent/50"
-                    }
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                    <span>Marketing</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
                     to="/dashboard/instalar-app"
                     className={({ isActive }) =>
                       isActive
@@ -208,22 +198,6 @@ export function AppSidebar() {
                   >
                     <Download className="h-4 w-4" />
                     <span>Instalar App</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/dashboard/whatsapp"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "hover:bg-sidebar-accent/50"
-                    }
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    <span>WhatsApp</span>
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -284,6 +258,58 @@ export function AppSidebar() {
             </Collapsible>
           </SidebarGroup>
         )}
+
+        {/* Módulo de Marketing */}
+        <SidebarGroup>
+          <Collapsible open={marketingOpen} onOpenChange={setMarketingOpen}>
+            <SidebarGroupLabel asChild>
+              <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                {marketingOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                <BarChart3 className="h-4 w-4" />
+                Módulo de Marketing
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/dashboard/marketing"
+                        end
+                        className={({ isActive }) =>
+                          isActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                            : "hover:bg-sidebar-accent/50"
+                        }
+                      >
+                        <Home className="h-4 w-4" />
+                        <span>Visão Geral</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {marketingSubMenus.map((item) => (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to={item.url}
+                          className={({ isActive }) =>
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "hover:bg-sidebar-accent/50"
+                          }
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
 
         {/* Módulo de Trade Marketing */}
         {hasModulePermission("trade") && (
