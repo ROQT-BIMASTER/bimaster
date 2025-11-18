@@ -15,6 +15,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ProspectsModule = lazy(() => import("./pages/modules/ProspectsModule"));
+const MarketingModule = lazy(() => import("./pages/modules/MarketingModule"));
 const Prospects = lazy(() => import("./pages/Prospects"));
 const Municipios = lazy(() => import("./pages/Municipios"));
 const Atividades = lazy(() => import("./pages/Atividades"));
@@ -110,7 +111,12 @@ const App = () => {
         {/* Protected Routes */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/dashboard/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
-        <Route path="/dashboard/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
+        
+        {/* Módulo de Marketing */}
+        <Route path="/dashboard/marketing" element={<ProtectedRoute><MarketingModule /></ProtectedRoute>} />
+        <Route path="/dashboard/marketing/dashboards" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
+        <Route path="/dashboard/marketing/whatsapp" element={<ProtectedRoute><WhatsAppMonitoring /></ProtectedRoute>} />
+        
         <Route path="/dashboard/instalar-app" element={<ProtectedRoute><InstalarApp /></ProtectedRoute>} />
         
         {/* Módulo de Prospects */}

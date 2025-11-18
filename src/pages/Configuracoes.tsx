@@ -21,6 +21,7 @@ import { HierarquiaUsuarios } from "@/components/configuracoes/HierarquiaUsuario
 import { GerenciamentoPontuacao } from "@/components/configuracoes/GerenciamentoPontuacao";
 import { GerenciamentoPremiacoes } from "@/components/configuracoes/GerenciamentoPremiacoes";
 import { VincularWhatsApp } from "@/components/configuracoes/VincularWhatsApp";
+import { PersonalizarCores } from "@/components/configuracoes/PersonalizarCores";
 import { Shield, UserCog, User, CheckCircle } from "lucide-react";
 
 interface Profile {
@@ -242,6 +243,7 @@ const Configuracoes = () => {
               {isAdmin && <TabsTrigger value="hierarquia">Hierarquia</TabsTrigger>}
               {isAdmin && <TabsTrigger value="vendedores">Vendedores/Supervisores</TabsTrigger>}
               <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
+              <TabsTrigger value="personalizacao">Personalização</TabsTrigger>
               {isAdmin && <TabsTrigger value="permissoes">Permissões</TabsTrigger>}
               {isAdmin && <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>}
               {isAdmin && <TabsTrigger value="premiacoes">Premiações</TabsTrigger>}
@@ -289,6 +291,10 @@ const Configuracoes = () => {
               <VincularWhatsApp />
             </TabsContent>
 
+            <TabsContent value="personalizacao">
+              <PersonalizarCores />
+            </TabsContent>
+
             {isAdmin && (
               <TabsContent value="permissoes" className="space-y-6">
                 <PermissoesDeAcesso />
@@ -333,6 +339,7 @@ const Configuracoes = () => {
             <TabsList>
               <TabsTrigger value="perfil">Meu Perfil</TabsTrigger>
               <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
+              <TabsTrigger value="personalizacao">Personalização</TabsTrigger>
             </TabsList>
 
             <TabsContent value="perfil" className="space-y-4">
@@ -354,6 +361,10 @@ const Configuracoes = () => {
             <TabsContent value="notificacoes" className="space-y-4">
               <ConfiguracoesNotificacoes />
               <VincularWhatsApp />
+            </TabsContent>
+
+            <TabsContent value="personalizacao">
+              <PersonalizarCores />
             </TabsContent>
           </Tabs>
         )}
