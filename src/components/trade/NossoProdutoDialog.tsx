@@ -86,11 +86,8 @@ export function NossoProdutoDialog({ open, onOpenChange, onSuccess }: NossoProdu
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('trade-photos')
-          .getPublicUrl(filePath);
-
-        photoUrls.push(publicUrl);
+        // Armazenar apenas o caminho (path) por segurança
+        photoUrls.push(filePath);
       }
 
       setUploadingPhotos(false);

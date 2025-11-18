@@ -44,15 +44,12 @@ export const CompetitorComparisonUpload = ({
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("trade-photos")
-        .getPublicUrl(filePath);
-
+      // Armazenar apenas o caminho (path) por segurança
       const { error: insertError } = await supabase
         .from("competitor_comparison_photos")
         .insert({
           competitor_id: competitorId,
-          photo_url: publicUrl,
+          photo_url: filePath,
           photo_type: photoType,
           created_by: userData.user.id,
         });
@@ -60,9 +57,9 @@ export const CompetitorComparisonUpload = ({
       if (insertError) throw insertError;
 
       if (photoType === 'competitor') {
-        setCompetitorPhotos(prev => [...prev, publicUrl]);
+        setCompetitorPhotos(prev => [...prev, filePath]);
       } else {
-        setOurPhotos(prev => [...prev, publicUrl]);
+        setOurPhotos(prev => [...prev, filePath]);
       }
 
       toast.success("Foto enviada com sucesso!");

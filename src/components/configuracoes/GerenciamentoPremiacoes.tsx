@@ -160,11 +160,8 @@ export function GerenciamentoPremiacoes() {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('reward-banners')
-        .getPublicUrl(filePath);
-
-      setFormData({ ...formData, banner_url: publicUrl });
+      // Armazenar apenas o caminho (path) por segurança
+      setFormData({ ...formData, banner_url: filePath });
 
       toast({
         title: "Banner enviado",

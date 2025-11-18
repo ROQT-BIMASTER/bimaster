@@ -117,12 +117,8 @@ export function RewardDialog({ open, onOpenChange, reward, onSuccess }: RewardDi
 
       if (uploadError) throw uploadError;
 
-      // Obter URL pública
-      const { data: urlData } = supabase.storage
-        .from("reward-banners")
-        .getPublicUrl(filePath);
-
-      setFormData((prev) => ({ ...prev, banner_url: urlData.publicUrl }));
+      // Armazenar apenas o caminho (path) por segurança
+      setFormData((prev) => ({ ...prev, banner_url: filePath }));
 
       toast({
         title: "Banner enviado",
