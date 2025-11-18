@@ -69,15 +69,12 @@ const TradeIdealPhotos = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("trade-photos")
-        .getPublicUrl(filePath);
-
+      // Armazenar apenas o caminho (path) por segurança
       const { error: insertError } = await supabase
         .from("ideal_pdv_photos")
         .insert({
           category,
-          photo_url: publicUrl,
+          photo_url: filePath,
           description: `Foto ideal de ${category}`,
           created_by: userData.user.id,
         });

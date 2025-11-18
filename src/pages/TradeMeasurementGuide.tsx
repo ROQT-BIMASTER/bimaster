@@ -87,14 +87,11 @@ const TradeMeasurementGuide = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("trade-photos")
-        .getPublicUrl(filePath);
-
+      // Armazenar apenas o caminho (path) por segurança
       const { error: insertError } = await supabase
         .from("measurement_guide_photos" as any)
         .insert({
-          photo_url: publicUrl,
+          photo_url: filePath,
           title: formData.title,
           description: formData.description || null,
           order_index: parseInt(formData.order_index) || photos.length + 1,

@@ -148,11 +148,8 @@ export function EditarLancamentoDialog({
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("trade-photos")
-          .getPublicUrl(fileName);
-
-        return publicUrl;
+        // Retornar apenas o caminho (path) por segurança
+        return fileName;
       });
 
       const urls = await Promise.all(uploadPromises);
