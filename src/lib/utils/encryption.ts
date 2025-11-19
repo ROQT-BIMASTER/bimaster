@@ -38,7 +38,9 @@ async function deriveKey(userId: string): Promise<CryptoKey> {
  * Generates a random initialization vector
  */
 function generateIV(): Uint8Array {
-  return crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const iv = new Uint8Array(IV_LENGTH);
+  crypto.getRandomValues(iv);
+  return iv;
 }
 
 /**
@@ -74,11 +76,15 @@ export async function encryptData(data: string, userId: string): Promise<string>
     const iv = generateIV();
     const encoder = new TextEncoder();
     
-    const dataArray = encoder.encode(data);
+    const encoded = encoder.encode(data);
+    // Type assertions needed as Web Crypto API types are too strict
     const encryptedData = await crypto.subtle.encrypt(
-      { name: ALGORITHM, iv },
+      {
+        name: ALGORITHM,
+        iv: iv.buffer as ArrayBuffer
+      } as AesGcmParams,
       key,
-      dataArray.buffer
+      encoded.buffer as ArrayBuffer
     );
 
     // Combine IV and encrypted data
@@ -105,10 +111,14 @@ export async function decryptData(encryptedData: string, userId: string): Promis
     const iv = new Uint8Array(combined.slice(0, IV_LENGTH));
     const data = new Uint8Array(combined.slice(IV_LENGTH));
 
+    // Type assertions needed as Web Crypto API types are too strict
     const decryptedData = await crypto.subtle.decrypt(
-      { name: ALGORITHM, iv },
+      {
+        name: ALGORITHM,
+        iv: iv.buffer as ArrayBuffer
+      } as AesGcmParams,
       key,
-      data
+      data.buffer as ArrayBuffer
     );
 
     const decoder = new TextDecoder();
