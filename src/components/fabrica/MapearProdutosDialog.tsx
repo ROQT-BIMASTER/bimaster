@@ -177,14 +177,17 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
       toast.success("Produto vinculado! Agora configure as regras fiscais.");
       queryClient.invalidateQueries({ queryKey: ["itens-pendentes", notaId] });
       
-      // Abrir dialog de dados fiscais OBRIGATORIAMENTE
-      setProdutoIdParaFiscal(produtoInternoId);
-      setProdutoNomeParaFiscal(produto?.nome || "Produto");
-      setShowDadosFiscaisDialog(true);
-      
+      // Limpar formulário primeiro
       setSelectedItem(null);
       setProdutoInternoId("");
       setFatorConversao("1");
+      
+      // Abrir dialog de dados fiscais OBRIGATORIAMENTE com pequeno delay
+      setTimeout(() => {
+        setProdutoIdParaFiscal(produtoInternoId);
+        setProdutoNomeParaFiscal(produto?.nome || "Produto");
+        setShowDadosFiscaisDialog(true);
+      }, 100);
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao vincular produto");
@@ -282,11 +285,7 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
       toast.success("Produto criado! Agora configure as regras fiscais.");
       queryClient.invalidateQueries({ queryKey: ["itens-pendentes", notaId] });
       
-      // Abrir dialog de dados fiscais OBRIGATORIAMENTE
-      setProdutoIdParaFiscal(produto.id);
-      setProdutoNomeParaFiscal(produto.nome);
-      setShowDadosFiscaisDialog(true);
-      
+      // Limpar formulário primeiro
       setSelectedItem(null);
       setNovoProduto({
         codigo: "",
@@ -296,6 +295,13 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
         custo_unitario: "",
       });
       setFatorConversao("1");
+      
+      // Abrir dialog de dados fiscais OBRIGATORIAMENTE com pequeno delay
+      setTimeout(() => {
+        setProdutoIdParaFiscal(produto.id);
+        setProdutoNomeParaFiscal(produto.nome);
+        setShowDadosFiscaisDialog(true);
+      }, 100);
     },
     onError: (error: any) => {
       console.error("Erro completo ao criar produto:", error);
