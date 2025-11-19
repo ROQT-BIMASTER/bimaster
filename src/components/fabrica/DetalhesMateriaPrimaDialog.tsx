@@ -1,9 +1,18 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { History } from "lucide-react";
+import { HistoricoMovimentacoesDialog } from "./HistoricoMovimentacoesDialog";
 
 interface DetalhesMateriaPrimaDialogProps {
   open: boolean;
@@ -28,14 +37,28 @@ export function DetalhesMateriaPrimaDialog({
   onOpenChange,
   materiaPrima,
 }: DetalhesMateriaPrimaDialogProps) {
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  
   if (!materiaPrima) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Detalhes da Matéria-Prima</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Detalhes da Matéria-Prima</DialogTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setHistoricoOpen(true)}
+                className="gap-2"
+              >
+                <History className="w-4 h-4" />
+                Ver Histórico
+              </Button>
+            </div>
+          </DialogHeader>
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -151,5 +174,13 @@ export function DetalhesMateriaPrimaDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    <HistoricoMovimentacoesDialog
+      open={historicoOpen}
+      onOpenChange={setHistoricoOpen}
+      materiaPrimaId={materiaPrima.id}
+      materiaPrimaNome={materiaPrima.nome}
+    />
+  </>
   );
 }

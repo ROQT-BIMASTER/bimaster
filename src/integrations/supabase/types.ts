@@ -1173,6 +1173,7 @@ export type Database = {
           aliquota_icms: number | null
           aliquota_ipi: number | null
           aliquota_pis: number | null
+          altura: number | null
           caixa_padrao_compra: number | null
           cest: string | null
           cfop_padrao: string | null
@@ -1181,6 +1182,7 @@ export type Database = {
           cod_nbm: string | null
           comissao_cobranca: number | null
           comissao_venda: number | null
+          comprimento: number | null
           created_at: string | null
           created_by: string | null
           cst_cofins: string | null
@@ -1201,6 +1203,7 @@ export type Database = {
           excecao_ncm: string | null
           frete: number | null
           id: string
+          largura: number | null
           markup_percentual: number | null
           ncm: string | null
           observacoes: string | null
@@ -1222,12 +1225,14 @@ export type Database = {
           unidade_compra: string | null
           unidade_venda: string | null
           updated_at: string | null
+          volume_m3: number | null
         }
         Insert: {
           aliquota_cofins?: number | null
           aliquota_icms?: number | null
           aliquota_ipi?: number | null
           aliquota_pis?: number | null
+          altura?: number | null
           caixa_padrao_compra?: number | null
           cest?: string | null
           cfop_padrao?: string | null
@@ -1236,6 +1241,7 @@ export type Database = {
           cod_nbm?: string | null
           comissao_cobranca?: number | null
           comissao_venda?: number | null
+          comprimento?: number | null
           created_at?: string | null
           created_by?: string | null
           cst_cofins?: string | null
@@ -1256,6 +1262,7 @@ export type Database = {
           excecao_ncm?: string | null
           frete?: number | null
           id?: string
+          largura?: number | null
           markup_percentual?: number | null
           ncm?: string | null
           observacoes?: string | null
@@ -1277,12 +1284,14 @@ export type Database = {
           unidade_compra?: string | null
           unidade_venda?: string | null
           updated_at?: string | null
+          volume_m3?: number | null
         }
         Update: {
           aliquota_cofins?: number | null
           aliquota_icms?: number | null
           aliquota_ipi?: number | null
           aliquota_pis?: number | null
+          altura?: number | null
           caixa_padrao_compra?: number | null
           cest?: string | null
           cfop_padrao?: string | null
@@ -1291,6 +1300,7 @@ export type Database = {
           cod_nbm?: string | null
           comissao_cobranca?: number | null
           comissao_venda?: number | null
+          comprimento?: number | null
           created_at?: string | null
           created_by?: string | null
           cst_cofins?: string | null
@@ -1311,6 +1321,7 @@ export type Database = {
           excecao_ncm?: string | null
           frete?: number | null
           id?: string
+          largura?: number | null
           markup_percentual?: number | null
           ncm?: string | null
           observacoes?: string | null
@@ -1332,6 +1343,7 @@ export type Database = {
           unidade_compra?: string | null
           unidade_venda?: string | null
           updated_at?: string | null
+          volume_m3?: number | null
         }
         Relationships: [
           {
@@ -1959,6 +1971,85 @@ export type Database = {
           },
           {
             foreignKeyName: "fabrica_movimentacoes_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_movimentacoes_estoque: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          custo_total: number | null
+          custo_unitario: number | null
+          data_validade: string | null
+          id: string
+          lote: string | null
+          mp_id: string | null
+          nota_fiscal_id: string | null
+          observacoes: string | null
+          ordem_producao_id: string | null
+          quantidade: number
+          quantidade_anterior: number | null
+          quantidade_nova: number | null
+          responsavel_id: string | null
+          tipo_movimento: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_total?: number | null
+          custo_unitario?: number | null
+          data_validade?: string | null
+          id?: string
+          lote?: string | null
+          mp_id?: string | null
+          nota_fiscal_id?: string | null
+          observacoes?: string | null
+          ordem_producao_id?: string | null
+          quantidade: number
+          quantidade_anterior?: number | null
+          quantidade_nova?: number | null
+          responsavel_id?: string | null
+          tipo_movimento: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_total?: number | null
+          custo_unitario?: number | null
+          data_validade?: string | null
+          id?: string
+          lote?: string | null
+          mp_id?: string | null
+          nota_fiscal_id?: string | null
+          observacoes?: string | null
+          ordem_producao_id?: string | null
+          quantidade?: number
+          quantidade_anterior?: number | null
+          quantidade_nova?: number | null
+          responsavel_id?: string | null
+          tipo_movimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_movimentacoes_estoque_mp_id_fkey"
+            columns: ["mp_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_movimentacoes_estoque_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_movimentacoes_estoque_ordem_producao_id_fkey"
             columns: ["ordem_producao_id"]
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"

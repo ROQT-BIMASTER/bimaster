@@ -780,6 +780,48 @@ export const DadosFiscaisProdutoDialog = ({
                   </div>
                 </div>
 
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="font-medium mb-3 text-sm text-foreground">Cubagem / Dimensões da Embalagem</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="altura">Altura (cm)</Label>
+                      <Input
+                        id="altura"
+                        type="number"
+                        step="0.01"
+                        value={pesoLiquido}
+                        onChange={(e) => setPesoLiquido(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="largura">Largura (cm)</Label>
+                      <Input
+                        id="largura"
+                        type="number"
+                        step="0.01"
+                        value={pesoBruto}
+                        onChange={(e) => setPesoBruto(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="comprimento">Comprimento (cm)</Label>
+                      <Input
+                        id="comprimento"
+                        type="number"
+                        step="0.01"
+                        value={pesoBruto}
+                        onChange={(e) => setPesoBruto(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Volume será calculado automaticamente em m³
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="curva-fisica">Curva Física</Label>
