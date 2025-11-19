@@ -69,7 +69,17 @@ serve(async (req) => {
 
     if (existing) {
       console.log('[process-nfe-xml] Nota duplicada:', xmlData.chave_acesso);
-      throw new Error('Nota fiscal já importada anteriormente');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Nota fiscal já foi importada anteriormente',
+          nota_id: existing.id,
+          duplicada: true
+        }),
+        { 
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Buscar ou criar fornecedor
