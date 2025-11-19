@@ -6,7 +6,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import ErrorPage from "@/pages/ErrorPage";
 import { memoryManager } from "@/lib/utils/memory-manager";
-import { useSyncOfflineData } from "@/hooks/useSyncOfflineData";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 // Lazy load das páginas para otimizar bundle
@@ -81,9 +80,7 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  const { syncOfflineData } = useSyncOfflineData();
-  
-  // Inicializar gerenciador de memória e sincronização offline
+  // Inicializar gerenciador de memória
   useEffect(() => {
     console.log('🚀 Memory Manager inicializado');
     
