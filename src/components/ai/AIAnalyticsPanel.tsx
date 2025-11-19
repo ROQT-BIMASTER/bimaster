@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Sparkles, BarChart3, TrendingUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Send, Sparkles, BarChart3, TrendingUp, Database, Search, Image, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
@@ -12,19 +13,29 @@ import ReactMarkdown from "react-markdown";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  toolExecuting?: string;
 }
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#8b5cf6', '#ec4899', '#f59e0b'];
+
+const EXAMPLE_QUESTIONS = [
+  "Quais são os top 5 prospects mais promissores?",
+  "Mostre as visitas realizadas esta semana",
+  "Gráfico de vendas dos últimos 30 dias",
+  "Análise de performance competitiva",
+  "Ranking de promotores por pontos",
+];
 
 export const AIAnalyticsPanel = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Olá! Sou seu analista de dados com IA. Posso ajudá-lo a:\n\n📊 Gerar relatórios personalizados\n📈 Criar gráficos e visualizações\n🔍 Analisar dados do sistema\n💡 Fornecer insights acionáveis\n\nO que você gostaria de saber?"
+      content: "Olá! Sou seu analista de dados com IA avançada. Posso ajudá-lo a:\n\n📊 Gerar relatórios e visualizações\n📈 Analisar tendências e padrões\n🔍 Consultar dados em tempo real\n🏆 Análise competitiva e fotos IA\n💡 Insights acionáveis\n\n**Exemplos de perguntas:**\n• Quais lojas têm melhor compliance?\n• Mostre vendas por região em gráfico\n• Análise de fotos aprovadas\n\nO que você gostaria de saber?"
     }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [currentTool, setCurrentTool] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -43,6 +54,10 @@ export const AIAnalyticsPanel = () => {
     const newMessages = [...messages, { role: "user" as const, content: userMessage }];
     setMessages(newMessages);
     setIsLoading(true);
+    setCurrentTool(null);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -54,23 +69,31 @@ export const AIAnalyticsPanel = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
             messages: newMessages,
             userId: user.id,
           }),
+          signal: controller.signal,
         }
       );
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
         if (response.status === 429) {
-          throw new Error("Rate limit excedido. Aguarde alguns instantes.");
+          throw new Error("⏱️ Rate limit excedido. Aguarde alguns instantes e tente novamente.");
         }
         if (response.status === 402) {
-          throw new Error("Créditos insuficientes.");
+          throw new Error("💳 Créditos insuficientes. Adicione mais créditos em Settings → Workspace → Usage.");
         }
-        throw new Error("Erro ao processar requisição");
+        if (response.status === 500) {
+          const errorText = await response.text();
+          console.error("Server error:", errorText);
+          throw new Error("🔧 Erro no servidor. Tente novamente ou contate o suporte.");
+        }
+        throw new Error(`❌ Erro ${response.status}: ${response.statusText}`);
       }
 
       const reader = response.body?.getReader();

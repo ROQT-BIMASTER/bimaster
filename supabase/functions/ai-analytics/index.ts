@@ -30,12 +30,13 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "consultar_prospects",
-          description: "Consulta prospects no sistema com filtros opcionais",
+          description: "Consulta prospects no sistema com filtros opcionais por status, categoria ou município",
           parameters: {
             type: "object",
             properties: {
               status: { type: "string", enum: ["novo", "contato", "qualificado", "proposta", "negociacao", "ganho", "perdido"] },
-              limit: { type: "number", default: 10 }
+              categoria: { type: "string" },
+              limit: { type: "number", default: 10, maximum: 50 }
             }
           }
         }
@@ -44,12 +45,13 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "consultar_lojas",
-          description: "Consulta lojas cadastradas no sistema",
+          description: "Consulta lojas cadastradas no sistema com informações de localização e atividade",
           parameters: {
             type: "object",
             properties: {
               ativo: { type: "boolean" },
-              limit: { type: "number", default: 10 }
+              estado: { type: "string" },
+              limit: { type: "number", default: 10, maximum: 50 }
             }
           }
         }
@@ -58,13 +60,14 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "consultar_visitas",
-          description: "Consulta visitas realizadas com dados de compliance",
+          description: "Consulta visitas realizadas com dados de compliance, duração e check-in/out",
           parameters: {
             type: "object",
             properties: {
               status: { type: "string", enum: ["planned", "completed", "cancelled"] },
               data_inicio: { type: "string", format: "date" },
-              limit: { type: "number", default: 10 }
+              data_fim: { type: "string", format: "date" },
+              limit: { type: "number", default: 10, maximum: 50 }
             }
           }
         }
@@ -73,12 +76,12 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "consultar_kpis",
-          description: "Consulta KPIs agregados por período",
+          description: "Consulta KPIs agregados por período: vendas, investimentos, visitas, taxa de conversão",
           parameters: {
             type: "object",
             properties: {
-              data_inicio: { type: "string", format: "date" },
-              data_fim: { type: "string", format: "date" },
+              data_inicio: { type: "string", format: "date", description: "Data início YYYY-MM-DD" },
+              data_fim: { type: "string", format: "date", description: "Data fim YYYY-MM-DD" },
               regiao: { type: "string" }
             },
             required: ["data_inicio", "data_fim"]
@@ -89,13 +92,13 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "consultar_vendas",
-          description: "Consulta vendas realizadas no período",
+          description: "Consulta vendas realizadas no período com valores líquidos e detalhes de loja",
           parameters: {
             type: "object",
             properties: {
               data_inicio: { type: "string", format: "date" },
               data_fim: { type: "string", format: "date" },
-              limit: { type: "number", default: 20 }
+              limit: { type: "number", default: 20, maximum: 100 }
             },
             required: ["data_inicio", "data_fim"]
           }
@@ -105,20 +108,78 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "ranking_usuarios",
-          description: "Consulta ranking de usuários por pontos",
+          description: "Consulta ranking de usuários por pontos gamificados com posição e nível",
           parameters: {
             type: "object",
             properties: {
               period_type: { type: "string", enum: ["monthly", "quarterly", "yearly", "all_time"] },
-              limit: { type: "number", default: 10 }
+              limit: { type: "number", default: 10, maximum: 50 }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "consultar_analise_competitiva",
+          description: "Consulta inteligência competitiva: produtos concorrentes, preços, share de gôndola, promoções",
+          parameters: {
+            type: "object",
+            properties: {
+              store_id: { type: "string", format: "uuid" },
+              data_inicio: { type: "string", format: "date" },
+              limit: { type: "number", default: 20, maximum: 50 }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "consultar_fotos_ia",
+          description: "Consulta fotos com análise IA: detecção de produtos, compliance score, rupturas, promoções",
+          parameters: {
+            type: "object",
+            properties: {
+              aprovadas: { type: "boolean" },
+              store_id: { type: "string", format: "uuid" },
+              data_inicio: { type: "string", format: "date" },
+              limit: { type: "number", default: 15, maximum: 50 }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "consultar_campanhas",
+          description: "Consulta campanhas de trade marketing ativas com orçamento, período e status",
+          parameters: {
+            type: "object",
+            properties: {
+              ativa: { type: "boolean" },
+              limit: { type: "number", default: 10, maximum: 30 }
             }
           }
         }
       }
     ];
 
-    // Executar ferramentas
+    // Cache simples em memória
+    const queryCache = new Map<string, { data: any; timestamp: number }>();
+    const CACHE_TTL = 2 * 60 * 1000; // 2 minutos
+
+    // Executar ferramentas com cache e logs detalhados
     const executeFunction = async (name: string, args: any) => {
+      const startTime = Date.now();
+      const cacheKey = `${name}:${JSON.stringify(args)}`;
+      
+      // Verificar cache
+      const cached = queryCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        console.log(`✅ Cache hit for ${name}`, { args, cacheAge: Date.now() - cached.timestamp });
+        return cached.data;
+      }
       console.log("Executing function:", name, args);
       
       try {
