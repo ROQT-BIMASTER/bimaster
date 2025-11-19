@@ -11,9 +11,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const { messages, userId } = await req.json();
-    console.log("Received request:", { messagesCount: messages.length, userId });
+    try {
+      const { messages, userId } = await req.json();
+      console.log("📨 Received request:", { messagesCount: messages.length, userId, timestamp: new Date().toISOString() });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -183,6 +183,9 @@ serve(async (req) => {
       console.log("Executing function:", name, args);
       
       try {
+        console.log(`🔧 Executing tool: ${name}`, { args, timestamp: new Date().toISOString() });
+        const startTime = Date.now();
+        
         switch (name) {
           case "consultar_prospects": {
             let query = supabase
@@ -197,6 +200,8 @@ serve(async (req) => {
             
             const { data, error } = await query;
             if (error) throw error;
+            const executionTime = Date.now() - startTime;
+            console.log(`✅ consultar_prospects completed in ${executionTime}ms, found ${data.length} records`);
             return { success: true, data, count: data.length };
           }
 
@@ -213,6 +218,8 @@ serve(async (req) => {
             
             const { data, error } = await query;
             if (error) throw error;
+            const executionTime = Date.now() - startTime;
+            console.log(`✅ consultar_lojas completed in ${executionTime}ms, found ${data.length} records`);
             return { success: true, data, count: data.length };
           }
 
@@ -240,6 +247,8 @@ serve(async (req) => {
             
             const { data, error } = await query;
             if (error) throw error;
+            const executionTime = Date.now() - startTime;
+            console.log(`✅ consultar_visitas completed in ${executionTime}ms, found ${data.length} records`);
             return { success: true, data, count: data.length };
           }
 
@@ -262,6 +271,8 @@ serve(async (req) => {
               data: data
             };
             
+            const executionTime = Date.now() - startTime;
+            console.log(`✅ consultar_kpis completed in ${executionTime}ms, processed ${data.length} records`);
             return { success: true, summary, detalhes: data };
           }
 
@@ -283,6 +294,8 @@ serve(async (req) => {
             if (error) throw error;
             
             const total = data.reduce((sum, sale) => sum + (sale.net_value || 0), 0);
+            const executionTime = Date.now() - startTime;
+            console.log(`✅ consultar_vendas completed in ${executionTime}ms, found ${data.length} sales, total: ${total}`);
             return { success: true, data, total_vendas: total, count: data.length };
           }
 
@@ -301,14 +314,18 @@ serve(async (req) => {
               .limit(args.limit || 10);
             
             if (error) throw error;
+            const executionTime = Date.now() - startTime;
+            console.log(`✅ ranking_usuarios completed in ${executionTime}ms, found ${data.length} users`);
             return { success: true, data, count: data.length };
           }
 
           default:
+            console.log(`❌ Unknown function: ${name}`);
             return { success: false, error: "Função não encontrada" };
         }
       } catch (error) {
-        console.error("Error executing function:", error);
+        const executionTime = Date.now() - startTime;
+        console.error(`❌ Error executing ${name} after ${executionTime}ms:`, error);
         return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     };
@@ -361,6 +378,8 @@ Tipos de gráficos disponíveis:
         tools,
         tool_choice: "auto",
         stream: true,
+        temperature: 0.7,
+        max_tokens: 2000,
       }),
     });
 
@@ -440,19 +459,32 @@ Tipos de gráficos disponíveis:
                   controller.enqueue(encoder.encode(`data: ${data}\n\n`));
                 } else if (choice?.finish_reason === "tool_calls" && toolCalls.length > 0) {
                   // Executar tool calls
-                  console.log("Tool calls detected:", toolCalls);
+                  console.log(`🔄 Tool calls detected: ${toolCalls.length} tools to execute`);
                   
                   const toolResults = await Promise.all(
                     toolCalls.map(async (toolCall) => {
-                      const args = JSON.parse(toolCall.function.arguments);
-                      const result = await executeFunction(toolCall.function.name, args);
-                      return {
-                        tool_call_id: toolCall.id,
-                        role: "tool",
-                        content: JSON.stringify(result)
-                      };
+                      try {
+                        const args = JSON.parse(toolCall.function.arguments);
+                        console.log(`⚙️ Calling tool: ${toolCall.function.name}`);
+                        const result = await executeFunction(toolCall.function.name, args);
+                        console.log(`✅ Tool ${toolCall.function.name} completed successfully`);
+                        return {
+                          tool_call_id: toolCall.id,
+                          role: "tool",
+                          content: JSON.stringify(result)
+                        };
+                      } catch (error) {
+                        console.error(`❌ Tool ${toolCall.function.name} failed:`, error);
+                        return {
+                          tool_call_id: toolCall.id,
+                          role: "tool",
+                          content: JSON.stringify({ success: false, error: String(error) })
+                        };
+                      }
                     })
                   );
+                  
+                  console.log(`✅ All ${toolResults.length} tools executed, generating final response...`);
 
                   // Segunda chamada à IA com os resultados das ferramentas
                   const followUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -480,6 +512,8 @@ Tipos de gráficos disponíveis:
                         ...toolResults
                       ],
                       stream: true,
+                      temperature: 0.7,
+                      max_tokens: 2000,
                     }),
                   });
 
