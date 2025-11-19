@@ -198,12 +198,14 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
 
       // Validar dados antes de criar
       try {
+        const custoUnitario = novoProduto.custo_unitario ? parseFloat(novoProduto.custo_unitario) : null;
+        
         materiaPrimaSchema.parse({
           codigo: novoProduto.codigo,
           nome: novoProduto.nome,
           categoria_id: novoProduto.categoria_id || null,
           unidade_medida_id: novoProduto.unidade_medida_id,
-          custo_unitario: parseFloat(novoProduto.custo_unitario),
+          custo_unitario: custoUnitario,
         });
       } catch (validationError: any) {
         const firstError = validationError.errors?.[0];
@@ -213,6 +215,8 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
       // Criar produto interno
       const { data: session } = await supabase.auth.getSession();
       
+      const custoUnitario = novoProduto.custo_unitario ? parseFloat(novoProduto.custo_unitario) : null;
+      
       const { data: produto, error: produtoError } = await supabase
         .from("fabrica_materias_primas")
         .insert({
@@ -220,7 +224,7 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
           nome: novoProduto.nome.trim(),
           categoria_id: novoProduto.categoria_id || null,
           unidade_medida_id: novoProduto.unidade_medida_id,
-          custo_unitario: parseFloat(novoProduto.custo_unitario),
+          custo_unitario: custoUnitario,
           status: "ativo",
           created_by: session.session?.user.id,
         })
