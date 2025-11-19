@@ -57,7 +57,15 @@ export const AIAnalyticsPanel = () => {
     setCurrentTool(null);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      toast({
+        title: "⏱️ Tempo limite excedido",
+        description: "A consulta está demorando muito (45s). Tente uma pergunta mais simples.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }, 45000); // 45s timeout - mais rápido!
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
