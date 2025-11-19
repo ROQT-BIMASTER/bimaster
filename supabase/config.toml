@@ -1,5 +1,14 @@
 project_id = "aokkyrgaqjarhlywhjju"
 
+# Edge Functions
+[functions.publish-scheduled-posts]
+verify_jwt = false
+
+# Cron job para publicar posts agendados (executa a cada 5 minutos)
+[[edge_runtime.schedules]]
+function = "publish-scheduled-posts"
+schedule = "*/5 * * * *"
+
 [functions.ai-insights]
 verify_jwt = true
 
