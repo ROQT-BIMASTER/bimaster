@@ -45,18 +45,24 @@ class MemoryManager {
           cacheNames.forEach(cacheName => {
             // Manter apenas caches essenciais recentes
             if (cacheName.includes('old') || cacheName.includes('outdated')) {
-              caches.delete(cacheName);
+              caches.delete(cacheName).catch(err => 
+                console.warn('Erro ao deletar cache:', err)
+              );
             }
           });
-        });
+        }).catch(err => console.warn('Erro ao acessar caches:', err));
       }
 
       // 2. Limpar localStorage de dados antigos (mais de 7 dias)
       this.cleanOldLocalStorage();
 
-      // 3. Sugerir garbage collection se disponível
-      if (window.gc) {
-        window.gc();
+      // 3. Sugerir garbage collection se disponível (apenas em dev/debug)
+      if (typeof (window as any).gc === 'function' && import.meta.env.DEV) {
+        try {
+          (window as any).gc();
+        } catch (err) {
+          // Ignorar erro se GC não estiver disponível
+        }
       }
 
       console.log('✅ Limpeza de memória concluída');
@@ -70,10 +76,15 @@ class MemoryManager {
       const keysToCheck = Object.keys(localStorage);
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
       const now = Date.now();
+      let cleanedCount = 0;
 
       keysToCheck.forEach(key => {
-        // Não mexer em chaves do Supabase Auth
-        if (key.startsWith('sb-') || key === 'supabase.auth.token') {
+        // Não mexer em chaves do Supabase Auth e configurações críticas
+        if (
+          key.startsWith('sb-') || 
+          key === 'supabase.auth.token' ||
+          key === 'user_approved_cache'
+        ) {
           return;
         }
 
@@ -84,12 +95,16 @@ class MemoryManager {
           const data = JSON.parse(item);
           if (data.timestamp && (now - data.timestamp) > ONE_WEEK_MS) {
             localStorage.removeItem(key);
-            console.log(`Removido item antigo: ${key}`);
+            cleanedCount++;
           }
         } catch {
-          // Ignorar itens que não são JSON
+          // Ignorar itens que não são JSON ou não têm timestamp
         }
       });
+
+      if (cleanedCount > 0) {
+        console.log(`🗑️ Removidos ${cleanedCount} itens antigos do localStorage`);
+      }
     } catch (error) {
       console.error('Erro ao limpar localStorage:', error);
     }

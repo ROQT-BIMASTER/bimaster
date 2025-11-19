@@ -59,12 +59,27 @@ export class OfflineManager {
    */
   hasCachedSession(): boolean {
     try {
-      const authStorage = localStorage.getItem('sb-aokkyrgaqjarhlywhjju-auth-token');
+      // Buscar chave de auth dinamicamente
+      const authKeys = Object.keys(localStorage).filter(key => 
+        key.startsWith('sb-') && key.endsWith('-auth-token')
+      );
+      
+      if (authKeys.length === 0) return false;
+      
+      const authStorage = localStorage.getItem(authKeys[0]);
       if (!authStorage) return false;
       
       const authData = JSON.parse(authStorage);
-      return !!(authData && authData.access_token && authData.expires_at && authData.expires_at > Date.now() / 1000);
-    } catch {
+      const now = Date.now() / 1000;
+      
+      return !!(
+        authData && 
+        authData.access_token && 
+        authData.expires_at && 
+        authData.expires_at > now
+      );
+    } catch (error) {
+      console.error('Erro ao verificar sessão em cache:', error);
       return false;
     }
   }
