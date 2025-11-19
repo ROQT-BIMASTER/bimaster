@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Globe, Sparkles } from "lucide-react";
+import { Loader2, Globe, Sparkles, Check, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 interface AnalyzeBrandWebsiteDialogProps {
   open: boolean;
@@ -15,6 +17,21 @@ interface AnalyzeBrandWebsiteDialogProps {
   brandId: string;
   brandName: string;
   onSuccess: () => void;
+}
+
+interface AnalysisResult {
+  brand: {
+    description: string;
+    mission?: string;
+    categories?: string[];
+  };
+  products: Array<{
+    name: string;
+    description?: string;
+    category: string;
+    sku?: string;
+  }>;
+  products_count: number;
 }
 
 export function AnalyzeBrandWebsiteDialog({ 
@@ -25,8 +42,9 @@ export function AnalyzeBrandWebsiteDialog({
   onSuccess 
 }: AnalyzeBrandWebsiteDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [websiteUrl, setWebsiteUrl] = useState("");
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
 
   const handleAnalyze = async () => {
     if (!websiteUrl.trim()) {
@@ -49,10 +67,7 @@ export function AnalyzeBrandWebsiteDialog({
       console.log('🚀 Iniciando análise do site:', websiteUrl);
       
       const { data, error } = await supabase.functions.invoke('analyze-brand-website', {
-        body: {
-          brand_id: brandId,
-          website_url: websiteUrl,
-        }
+        body: { website_url: websiteUrl }
       });
 
       if (error) {
@@ -69,10 +84,8 @@ export function AnalyzeBrandWebsiteDialog({
       
       toast.success(
         `Análise concluída! ${data.products_count} produtos encontrados.`,
-        { duration: 5000 }
+        { duration: 4000 }
       );
-      
-      onSuccess();
     } catch (error: any) {
       console.error("Erro ao analisar site:", error);
       
@@ -85,6 +98,40 @@ export function AnalyzeBrandWebsiteDialog({
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!result) return;
+
+    setSaving(true);
+    try {
+      console.log('💾 Salvando dados no banco...');
+      
+      const { data, error } = await supabase.functions.invoke('save-brand-analysis', {
+        body: {
+          brand_id: brandId,
+          brand_data: result.brand,
+          products: result.products,
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(
+        `Dados salvos com sucesso! ${data.products_inserted} produtos cadastrados.`,
+        { duration: 4000 }
+      );
+      
+      onSuccess();
+      handleClose();
+      
+    } catch (error: any) {
+      console.error("Erro ao salvar:", error);
+      toast.error(error.message || "Erro ao salvar dados");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -107,122 +154,188 @@ export function AnalyzeBrandWebsiteDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="website">URL do Site</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="website"
-                  type="url"
-                  placeholder="https://exemplo.com"
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                  disabled={loading}
-                  className="pl-10"
-                />
+        <div className="space-y-4">
+          {/* Input de URL */}
+          {!result && (
+            <div className="space-y-2">
+              <Label htmlFor="website">URL do Site</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="website"
+                    type="url"
+                    placeholder="https://exemplo.com"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    disabled={loading}
+                    className="pl-10"
+                  />
+                </div>
+                <Button
+                  onClick={handleAnalyze}
+                  disabled={loading || !websiteUrl.trim()}
+                  className="min-w-[120px]"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Analisando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Analisar
+                    </>
+                  )}
+                </Button>
               </div>
-              <Button
-                onClick={handleAnalyze}
-                disabled={loading || !websiteUrl.trim()}
-                className="min-w-[120px]"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Analisando...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Analisar
-                  </>
-                )}
-              </Button>
+              <p className="text-xs text-muted-foreground">
+                A IA irá acessar o site e extrair informações sobre a marca e produtos.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              A IA irá acessar o site, extrair informações sobre a marca e produtos, e atualizar automaticamente no sistema.
-            </p>
-          </div>
+          )}
 
+          {/* Loading State */}
           {loading && (
-            <Card className="p-4 bg-muted/50">
-              <div className="flex items-center gap-3">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <Card className="p-6 bg-muted/50">
+              <div className="flex flex-col items-center gap-3 text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">Processando...</p>
+                  <p className="text-sm font-medium">Processando site...</p>
                   <p className="text-xs text-muted-foreground">
-                    Coletando conteúdo do site e analisando com IA. Isso pode levar alguns segundos.
+                    Coletando conteúdo e analisando com IA. Aguarde alguns segundos.
                   </p>
                 </div>
               </div>
             </Card>
           )}
 
-          {result && (
-            <Card className="p-4 space-y-4">
-              <div className="space-y-2">
-                <h4 className="font-semibold text-sm flex items-center gap-2">
-                  ✅ Análise Concluída
-                </h4>
-                
-                <div className="space-y-3">
-                  {result.brand?.description && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">Descrição da Marca:</p>
-                      <p className="text-sm">{result.brand.description.substring(0, 200)}...</p>
+          {/* Resultados da Análise */}
+          {result && !loading && (
+            <ScrollArea className="h-[50vh]">
+              <div className="space-y-4 pr-4">
+                <Card className="p-4 border-primary/20 bg-primary/5">
+                  <div className="flex items-start gap-2 mb-3">
+                    <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-sm">Análise Concluída</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Revise os dados extraídos antes de salvar
+                      </p>
                     </div>
-                  )}
-
-                  {result.brand?.categories && result.brand.categories.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">Categorias:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {result.brand.categories.map((cat: string, idx: number) => (
-                          <Badge key={idx} variant="secondary" className="text-xs">
-                            {cat}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground">Produtos Encontrados:</p>
-                    <p className="text-2xl font-bold text-primary">{result.products_count}</p>
                   </div>
+                </Card>
 
-                  {result.products && result.products.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">Primeiros produtos:</p>
-                      <ul className="text-sm space-y-1">
-                        {result.products.slice(0, 5).map((product: any, idx: number) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="text-muted-foreground">•</span>
-                            <span>
-                              <strong>{product.name}</strong>
-                              {product.category && (
-                                <span className="text-muted-foreground"> - {product.category}</span>
-                              )}
-                            </span>
-                          </li>
-                        ))}
-                        {result.products.length > 5 && (
-                          <li className="text-muted-foreground text-xs">
-                            ... e mais {result.products.length - 5} produtos
-                          </li>
-                        )}
-                      </ul>
+                {/* Informações da Marca */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    📋 Descrição da Marca
+                  </h4>
+                  <Card className="p-4">
+                    <p className="text-sm whitespace-pre-wrap">{result.brand.description}</p>
+                    
+                    {result.brand.mission && (
+                      <>
+                        <Separator className="my-3" />
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-1">Missão:</p>
+                          <p className="text-sm">{result.brand.mission}</p>
+                        </div>
+                      </>
+                    )}
+
+                    {result.brand.categories && result.brand.categories.length > 0 && (
+                      <>
+                        <Separator className="my-3" />
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Categorias:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {result.brand.categories.map((cat: string, idx: number) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {cat}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </Card>
+                </div>
+
+                {/* Produtos Encontrados */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    🛍️ Produtos Encontrados ({result.products_count})
+                  </h4>
+                  
+                  {result.products.length === 0 ? (
+                    <Card className="p-4">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Nenhum produto foi encontrado no site
+                      </p>
+                    </Card>
+                  ) : (
+                    <div className="space-y-2">
+                      {result.products.map((product: any, idx: number) => (
+                        <Card key={idx} className="p-3">
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <h5 className="font-medium text-sm">{product.name}</h5>
+                              <Badge variant="outline" className="text-xs">
+                                {product.category}
+                              </Badge>
+                            </div>
+                            
+                            {product.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                {product.description}
+                              </p>
+                            )}
+                            
+                            {product.sku && (
+                              <p className="text-xs text-muted-foreground">
+                                SKU: {product.sku}
+                              </p>
+                            )}
+                          </div>
+                        </Card>
+                      ))}
                     </div>
                   )}
                 </div>
-              </div>
 
-              <Button onClick={handleClose} className="w-full">
-                Concluir
-              </Button>
-            </Card>
+                {/* Botões de Ação */}
+                <div className="flex gap-2 pt-2 sticky bottom-0 bg-background pb-2">
+                  <Button
+                    onClick={handleClose}
+                    variant="outline"
+                    className="flex-1"
+                    disabled={saving}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Descartar
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    className="flex-1"
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Salvar Dados
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </ScrollArea>
           )}
         </div>
       </DialogContent>
