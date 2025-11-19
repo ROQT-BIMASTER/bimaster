@@ -9,12 +9,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Save, ArrowLeft, Play, FileText, Plus } from "lucide-react";
+import { Save, ArrowLeft, Play, FileText, Plus, Layers } from "lucide-react";
 import { FormulaItemRow } from "@/components/fabrica/FormulaItemRow";
 import { SimuladorProducao } from "@/components/fabrica/SimuladorProducao";
+import { FormulaTree } from "@/components/fabrica/FormulaTree";
 import { validarFormula } from "@/lib/fabrica/formula-validator";
 import { calcularCustoFormula } from "@/lib/fabrica/custo-calculator";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function FabricaFormulaEditor() {
   const { id } = useParams();
@@ -270,12 +278,15 @@ export default function FabricaFormulaEditor() {
             <Button
               variant="outline"
               onClick={() => setShowSimulator(true)}
-              disabled={itens.length === 0}
+              disabled={itens.length === 0 || !produtoId}
             >
               <Play className="mr-2 h-4 w-4" />
               Simular Produção
             </Button>
-            <Button onClick={() => salvarMutation.mutate()}>
+            <Button
+              onClick={() => salvarMutation.mutate()}
+              disabled={!produtoId || itens.length === 0}
+            >
               <Save className="mr-2 h-4 w-4" />
               Salvar
             </Button>
@@ -290,23 +301,27 @@ export default function FabricaFormulaEditor() {
             </CardHeader>
             <CardContent>
               <div>
-                <Label>Selecione o Produto</Label>
-                <select
-                  value={produtoId}
-                  onChange={(e) => setProdutoId(e.target.value)}
-                  className="w-full mt-2 px-3 py-2 border rounded-md"
-                  required
-                >
-                  <option value="">Selecione...</option>
-                  {produtos?.map((produto) => (
-                    <option key={produto.id} value={produto.id}>
-                      {produto.codigo} - {produto.nome}
-                    </option>
-                  ))}
-                </select>
+                <Label>Selecione o Produto *</Label>
+                <Select value={produtoId} onValueChange={setProdutoId}>
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="Selecione o produto..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {produtos?.map((produto) => (
+                      <SelectItem key={produto.id} value={produto.id}>
+                        {produto.codigo} - {produto.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Visualização em Árvore */}
+        {itens.length > 0 && formula && (
+          <FormulaTree formula={formula} itens={itens} />
         )}
 
         {/* Informações da Fórmula */}

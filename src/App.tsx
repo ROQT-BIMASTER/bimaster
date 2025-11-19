@@ -65,6 +65,8 @@ const FabricaModule = lazy(() => import("./pages/modules/FabricaModule"));
 const FabricaMateriasPrimas = lazy(() => import("./pages/FabricaMateriasPrimas"));
 const FabricaFormulas = lazy(() => import("./pages/FabricaFormulas"));
 const FabricaFormulaEditor = lazy(() => import("./pages/FabricaFormulaEditor"));
+const FabricaPlanejamento = lazy(() => import("./pages/FabricaPlanejamento"));
+const FabricaOrdensProducao = lazy(() => import("./pages/FabricaOrdensProducao"));
 
 // Loading component
 const PageLoader = () => (
@@ -192,6 +194,8 @@ const App = () => {
         <Route path="/dashboard/fabrica/materias-primas" element={<ProtectedRoute><FabricaMateriasPrimas /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/formulas" element={<ProtectedRoute><FabricaFormulas /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/formulas/:id" element={<ProtectedRoute><FabricaFormulaEditor /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/planejamento" element={<ProtectedRoute><FabricaPlanejamento /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/ordens-producao" element={<ProtectedRoute><FabricaOrdensProducao /></ProtectedRoute>} />
         
         <Route path="/404" element={<NotFound />} />
             </Routes>
