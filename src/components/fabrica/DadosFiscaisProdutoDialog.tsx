@@ -5,16 +5,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Receipt, TrendingUp, Package, FileText } from "lucide-react";
+import { Loader2, Receipt, TrendingUp, Package, FileText, Lightbulb, CheckCircle2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface RegraFiscal {
+  id: string;
+  nome: string;
+  tipo_imposto: string;
+  cfop: string;
+  cst: string;
+  aliquota: number | null;
+  base_calculo_reduzida: number | null;
+  observacoes: string | null;
+}
 
 interface DadosFiscaisProdutoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   produtoId: string;
   produtoNome: string;
+}
+
+interface FieldSuggestion {
+  value: string;
+  reason: string;
+  confidence: 'high' | 'medium' | 'low';
 }
 
 export const DadosFiscaisProdutoDialog = ({ 
@@ -25,7 +43,13 @@ export const DadosFiscaisProdutoDialog = ({
 }: DadosFiscaisProdutoDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
+  const [loadingRegras, setLoadingRegras] = useState(false);
   const [dadosId, setDadosId] = useState<string | null>(null);
+  
+  // Regras fiscais de recebimento
+  const [regrasFiscais, setRegrasFiscais] = useState<RegraFiscal[]>([]);
+  const [tipoOperacao] = useState("recebimento"); // Flag fixa para recebimento
+  const [suggestions, setSuggestions] = useState<Record<string, FieldSuggestion>>({});
 
   // Classificação fiscal
   const [ncm, setNcm] = useState("");
@@ -47,6 +71,12 @@ export const DadosFiscaisProdutoDialog = ({
   const [cstIpi, setCstIpi] = useState("");
   const [cstPis, setCstPis] = useState("");
   const [cstCofins, setCstCofins] = useState("");
+
+  // Flags de geração de crédito
+  const [geraCreditoIcms, setGeraCreditoIcms] = useState(false);
+  const [geraCreditoIpi, setGeraCreditoIpi] = useState(false);
+  const [geraCreditoPis, setGeraCreditoPis] = useState(false);
+  const [geraCreditoCofins, setGeraCreditoCofins] = useState(false);
 
   // Preços
   const [precoCusto, setPrecoCusto] = useState("");
@@ -128,7 +158,6 @@ export const DadosFiscaisProdutoDialog = ({
       const c = parseFloat(comprimento);
       
       if (!isNaN(h) && !isNaN(l) && !isNaN(c) && h > 0 && l > 0 && c > 0) {
-        // Converter cm³ para m³ (dividir por 1.000.000)
         const volumeCalculado = (h * l * c) / 1000000;
         setVolumeM3(volumeCalculado.toFixed(6));
       }
@@ -137,12 +166,98 @@ export const DadosFiscaisProdutoDialog = ({
     }
   }, [altura, largura, comprimento]);
 
-  // Carregar dados existentes
+  // Carregar regras fiscais de recebimento
   useEffect(() => {
-    if (open && produtoId) {
+    if (open) {
+      carregarRegrasFiscais();
       carregarDados();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, produtoId]);
+
+  const carregarRegrasFiscais = async () => {
+    setLoadingRegras(true);
+    try {
+      const { data, error } = await supabase
+        .from("fabrica_regras_fiscais")
+        .select("*")
+        .eq("ativa", true)
+        .order("nome");
+
+      if (error) throw error;
+      setRegrasFiscais(data || []);
+    } catch (error: any) {
+      console.error("Erro ao carregar regras fiscais:", error);
+      toast.error("Erro ao carregar regras fiscais");
+    } finally {
+      setLoadingRegras(false);
+    }
+  };
+
+  // Gerar sugestões inteligentes baseadas nas regras
+  useEffect(() => {
+    if (regrasFiscais.length > 0 && cfopPadrao) {
+      const newSuggestions: Record<string, FieldSuggestion> = {};
+      const regrasRelevantes = regrasFiscais.filter(r => r.cfop === cfopPadrao);
+
+      const regraIcms = regrasRelevantes.find(r => r.tipo_imposto === 'ICMS');
+      if (regraIcms) {
+        newSuggestions.cstIcms = {
+          value: regraIcms.cst,
+          reason: `Regra "${regraIcms.nome}" sugere CST ${regraIcms.cst} para CFOP ${cfopPadrao}`,
+          confidence: 'high'
+        };
+        if (regraIcms.aliquota) {
+          newSuggestions.aliquotaIcms = {
+            value: regraIcms.aliquota.toString(),
+            reason: `Alíquota padrão de ${regraIcms.aliquota}%`,
+            confidence: 'high'
+          };
+        }
+      }
+
+      const regraIpi = regrasRelevantes.find(r => r.tipo_imposto === 'IPI');
+      if (regraIpi?.cst) {
+        newSuggestions.cstIpi = { value: regraIpi.cst, reason: `CST ${regraIpi.cst}`, confidence: 'high' };
+        if (regraIpi.aliquota) newSuggestions.aliquotaIpi = { value: regraIpi.aliquota.toString(), reason: `${regraIpi.aliquota}%`, confidence: 'high' };
+      }
+
+      const regraPis = regrasRelevantes.find(r => r.tipo_imposto === 'PIS');
+      if (regraPis?.cst) {
+        newSuggestions.cstPis = { value: regraPis.cst, reason: `CST ${regraPis.cst}`, confidence: 'high' };
+        if (regraPis.aliquota) newSuggestions.aliquotaPis = { value: regraPis.aliquota.toString(), reason: `${regraPis.aliquota}%`, confidence: 'high' };
+      }
+
+      const regraCofins = regrasRelevantes.find(r => r.tipo_imposto === 'COFINS');
+      if (regraCofins?.cst) {
+        newSuggestions.cstCofins = { value: regraCofins.cst, reason: `CST ${regraCofins.cst}`, confidence: 'high' };
+        if (regraCofins.aliquota) newSuggestions.aliquotaCofins = { value: regraCofins.aliquota.toString(), reason: `${regraCofins.aliquota}%`, confidence: 'high' };
+      }
+
+      setSuggestions(newSuggestions);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfopPadrao]);
+
+  const applySuggestion = (field: string, value: string) => {
+    switch(field) {
+      case 'cstIcms': setCstIcms(value); break;
+      case 'cstIpi': setCstIpi(value); break;
+      case 'cstPis': setCstPis(value); break;
+      case 'cstCofins': setCstCofins(value); break;
+      case 'aliquotaIcms': setAliquotaIcms(value); break;
+      case 'aliquotaIpi': setAliquotaIpi(value); break;
+      case 'aliquotaPis': setAliquotaPis(value); break;
+      case 'aliquotaCofins': setAliquotaCofins(value); break;
+    }
+    toast.success("Sugestão aplicada");
+  };
+
+  const getCFOPsRecebimento = () => {
+    // CFOPs de recebimento (entrada) das regras cadastradas
+    const cfops = Array.from(new Set(regrasFiscais.map(r => r.cfop).filter(Boolean)));
+    return cfops.sort();
+  };
 
   const carregarDados = async () => {
     setLoadingData(true);
@@ -157,18 +272,12 @@ export const DadosFiscaisProdutoDialog = ({
 
       if (data) {
         setDadosId(data.id);
-        // Classificação fiscal
         setNcm(data.ncm || "");
         setCest(data.cest || "");
         setOrigemMercadoria(data.origem_mercadoria || "");
         setClassificacaoFiscal(data.classificacao_fiscal || "");
-        setClassificacaoPisCofins(data.classificacao_pis_cofins || "");
-        setCstpPis(data.cstp_pis || "");
-        setCodNbm(data.cod_nbm || "");
-        setExcecaoNcm(data.excecao_ncm || "");
         setCfopPadrao(data.cfop_padrao || "");
         
-        // Impostos
         setAliquotaIcms(data.aliquota_icms?.toString() || "");
         setAliquotaIpi(data.aliquota_ipi?.toString() || "");
         setAliquotaPis(data.aliquota_pis?.toString() || "");
@@ -177,6 +286,31 @@ export const DadosFiscaisProdutoDialog = ({
         setCstIpi(data.cst_ipi || "");
         setCstPis(data.cst_pis || "");
         setCstCofins(data.cst_cofins || "");
+        
+        setGeraCreditoIcms(data.gera_credito_icms || false);
+        setGeraCreditoIpi(data.gera_credito_ipi || false);
+        setGeraCreditoPis(data.gera_credito_pis || false);
+        setGeraCreditoCofins(data.gera_credito_cofins || false);
+        
+        setPrecoCusto(data.preco_custo?.toString() || "");
+        setPrecoVenda(data.preco_venda?.toString() || "");
+        setCustoMedio(data.custo_medio?.toString() || "");
+        
+        setEstoqueMinimo(data.estoque_minimo?.toString() || "");
+        setEstoqueMaximo(data.estoque_maximo?.toString() || "");
+        
+        setPesoBruto(data.peso_bruto?.toString() || "");
+        setPesoLiquido(data.peso_liquido?.toString() || "");
+        
+        setAltura(data.altura?.toString() || "");
+        setLargura(data.largura?.toString() || "");
+        setComprimento(data.comprimento?.toString() || "");
+        setVolumeM3(data.volume_m3?.toString() || "");
+        
+        setUnidadeCompra(data.unidade_compra || "");
+        setUnidadeVenda(data.unidade_venda || "");
+        
+        setObservacoes(data.observacoes || "");
         
         // Preços
         setPrecoCusto(data.preco_custo?.toString() || "");
