@@ -65,7 +65,7 @@ export default function FabricaTabelaImpostos() {
     queryKey: ["regras-fiscais", tipoFiltro],
     queryFn: async () => {
       let query = supabase
-        .from("fabrica_regras_fiscais")
+        .from("fabrica_regras_fiscais" as any)
         .select("*")
         .eq("ativo", true)
         .order("tipo_imposto")
@@ -77,7 +77,7 @@ export default function FabricaTabelaImpostos() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as RegraFiscal[];
+      return (data || []) as unknown as RegraFiscal[];
     },
   });
 
@@ -85,13 +85,13 @@ export default function FabricaTabelaImpostos() {
     mutationFn: async (data: any) => {
       if (editingRegra) {
         const { error } = await supabase
-          .from("fabrica_regras_fiscais")
+          .from("fabrica_regras_fiscais" as any)
           .update(data)
           .eq("id", editingRegra.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("fabrica_regras_fiscais")
+          .from("fabrica_regras_fiscais" as any)
           .insert(data);
         if (error) throw error;
       }
@@ -109,7 +109,7 @@ export default function FabricaTabelaImpostos() {
   const deletarMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("fabrica_regras_fiscais")
+        .from("fabrica_regras_fiscais" as any)
         .update({ ativo: false })
         .eq("id", id);
       if (error) throw error;

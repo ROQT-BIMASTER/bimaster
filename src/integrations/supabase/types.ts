@@ -2741,6 +2741,51 @@ export type Database = {
           },
         ]
       }
+      fabrica_regras_fiscais: {
+        Row: {
+          aliquota: number
+          ativo: boolean | null
+          base_calculo_reduzida: number | null
+          cfop: string
+          created_at: string | null
+          created_by: string | null
+          cst: string
+          id: string
+          nome: string
+          observacoes: string | null
+          tipo_imposto: string
+          updated_at: string | null
+        }
+        Insert: {
+          aliquota: number
+          ativo?: boolean | null
+          base_calculo_reduzida?: number | null
+          cfop: string
+          created_at?: string | null
+          created_by?: string | null
+          cst: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          tipo_imposto: string
+          updated_at?: string | null
+        }
+        Update: {
+          aliquota?: number
+          ativo?: boolean | null
+          base_calculo_reduzida?: number | null
+          cfop?: string
+          created_at?: string | null
+          created_by?: string | null
+          cst?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          tipo_imposto?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       fabrica_unidades_medida: {
         Row: {
           created_at: string | null
