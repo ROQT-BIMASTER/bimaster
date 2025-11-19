@@ -997,35 +997,125 @@ export type Database = {
           },
         ]
       }
+      fabrica_formula_alteracoes: {
+        Row: {
+          data_alteracao: string | null
+          formula_id: string | null
+          id: string
+          motivo: string | null
+          mp_anterior_id: string | null
+          mp_nova_id: string | null
+          quantidade_anterior: number | null
+          quantidade_nova: number | null
+          tipo_alteracao: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          data_alteracao?: string | null
+          formula_id?: string | null
+          id?: string
+          motivo?: string | null
+          mp_anterior_id?: string | null
+          mp_nova_id?: string | null
+          quantidade_anterior?: number | null
+          quantidade_nova?: number | null
+          tipo_alteracao?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          data_alteracao?: string | null
+          formula_id?: string | null
+          id?: string
+          motivo?: string | null
+          mp_anterior_id?: string | null
+          mp_nova_id?: string | null
+          quantidade_anterior?: number | null
+          quantidade_nova?: number | null
+          tipo_alteracao?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_formula_alteracoes_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_alteracoes_mp_anterior_id_fkey"
+            columns: ["mp_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_alteracoes_mp_nova_id_fkey"
+            columns: ["mp_nova_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_alteracoes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_alteracoes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       fabrica_formula_itens: {
         Row: {
           created_at: string | null
+          criticidade: string | null
           formula_id: string | null
           id: string
+          mp_alternativa_id: string | null
           mp_id: string | null
           observacoes: string | null
+          observacoes_tecnicas: string | null
           ordem: number | null
+          ordem_adicao: number | null
           percentual: number | null
+          permite_substituicao: boolean | null
           quantidade: number
         }
         Insert: {
           created_at?: string | null
+          criticidade?: string | null
           formula_id?: string | null
           id?: string
+          mp_alternativa_id?: string | null
           mp_id?: string | null
           observacoes?: string | null
+          observacoes_tecnicas?: string | null
           ordem?: number | null
+          ordem_adicao?: number | null
           percentual?: number | null
+          permite_substituicao?: boolean | null
           quantidade: number
         }
         Update: {
           created_at?: string | null
+          criticidade?: string | null
           formula_id?: string | null
           id?: string
+          mp_alternativa_id?: string | null
           mp_id?: string | null
           observacoes?: string | null
+          observacoes_tecnicas?: string | null
           ordem?: number | null
+          ordem_adicao?: number | null
           percentual?: number | null
+          permite_substituicao?: boolean | null
           quantidade?: number
         }
         Relationships: [
@@ -1037,10 +1127,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fabrica_formula_itens_mp_alternativa_id_fkey"
+            columns: ["mp_alternativa_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fabrica_formula_itens_mp_id_fkey"
             columns: ["mp_id"]
             isOneToOne: false
             referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_formula_versoes: {
+        Row: {
+          alterado_por: string | null
+          aprovada_por: string | null
+          changelog: Json | null
+          created_at: string | null
+          data_alteracao: string | null
+          data_aprovacao: string | null
+          formula_id: string | null
+          id: string
+          motivo_alteracao: string | null
+          status: string | null
+          versao_anterior_id: string | null
+          versao_numero: number
+        }
+        Insert: {
+          alterado_por?: string | null
+          aprovada_por?: string | null
+          changelog?: Json | null
+          created_at?: string | null
+          data_alteracao?: string | null
+          data_aprovacao?: string | null
+          formula_id?: string | null
+          id?: string
+          motivo_alteracao?: string | null
+          status?: string | null
+          versao_anterior_id?: string | null
+          versao_numero: number
+        }
+        Update: {
+          alterado_por?: string | null
+          aprovada_por?: string | null
+          changelog?: Json | null
+          created_at?: string | null
+          data_alteracao?: string | null
+          data_aprovacao?: string | null
+          formula_id?: string | null
+          id?: string
+          motivo_alteracao?: string | null
+          status?: string | null
+          versao_anterior_id?: string | null
+          versao_numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_formula_versoes_alterado_por_fkey"
+            columns: ["alterado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_versoes_alterado_por_fkey"
+            columns: ["alterado_por"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_versoes_aprovada_por_fkey"
+            columns: ["aprovada_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_versoes_aprovada_por_fkey"
+            columns: ["aprovada_por"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_versoes_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_versoes_versao_anterior_id_fkey"
+            columns: ["versao_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_formula_versoes"
             referencedColumns: ["id"]
           },
         ]
@@ -1052,8 +1237,15 @@ export type Database = {
           created_by: string | null
           descricao: string | null
           id: string
+          observacoes_tecnicas: string | null
+          perdas_esperadas: number | null
+          ph_ideal: number | null
           produto_id: string | null
           rendimento: number | null
+          rendimento_real: number | null
+          rendimento_teorico: number | null
+          temperatura_ideal: number | null
+          tempo_producao_minutos: number | null
           versao: number | null
         }
         Insert: {
@@ -1062,8 +1254,15 @@ export type Database = {
           created_by?: string | null
           descricao?: string | null
           id?: string
+          observacoes_tecnicas?: string | null
+          perdas_esperadas?: number | null
+          ph_ideal?: number | null
           produto_id?: string | null
           rendimento?: number | null
+          rendimento_real?: number | null
+          rendimento_teorico?: number | null
+          temperatura_ideal?: number | null
+          tempo_producao_minutos?: number | null
           versao?: number | null
         }
         Update: {
@@ -1072,8 +1271,15 @@ export type Database = {
           created_by?: string | null
           descricao?: string | null
           id?: string
+          observacoes_tecnicas?: string | null
+          perdas_esperadas?: number | null
+          ph_ideal?: number | null
           produto_id?: string | null
           rendimento?: number | null
+          rendimento_real?: number | null
+          rendimento_teorico?: number | null
+          temperatura_ideal?: number | null
+          tempo_producao_minutos?: number | null
           versao?: number | null
         }
         Relationships: [
