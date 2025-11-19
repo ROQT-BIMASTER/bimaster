@@ -1,31 +1,22 @@
-import { useRouteError, isRouteErrorResponse, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AlertTriangle, Home, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { logger } from '@/lib/logger';
 
 export default function ErrorPage() {
-  const error = useRouteError();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Pegar erro do state da navegação (se houver)
+  const error = location.state?.error;
+  const errorStatus = location.state?.status || 404;
 
-  // Log do erro
-  logger.error(
-    'Router error occurred',
-    error instanceof Error ? error : new Error('Unknown router error'),
-    {
-      component: 'ErrorPage',
-      metadata: { error },
-    }
-  );
-
-  let errorMessage = 'Ocorreu um erro inesperado.';
-  let errorStatus = 500;
-
-  if (isRouteErrorResponse(error)) {
-    errorStatus = error.status;
-    errorMessage = error.statusText || error.data?.message || errorMessage;
-  } else if (error instanceof Error) {
+  let errorMessage = 'Página não encontrada';
+  
+  if (error instanceof Error) {
     errorMessage = error.message;
+  } else if (typeof error === 'string') {
+    errorMessage = error;
   }
 
   return (
@@ -43,29 +34,11 @@ export default function ErrorPage() {
           <CardDescription>{errorMessage}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {errorStatus === 404 ? (
-            <p className="text-center text-muted-foreground">
-              A página que você está procurando não existe ou foi movida.
-            </p>
-          ) : (
-            <p className="text-center text-muted-foreground">
-              Ocorreu um problema ao processar sua solicitação. Por favor, tente novamente.
-            </p>
-          )}
-
-          {/* Mostrar stack trace apenas em desenvolvimento */}
-          {import.meta.env.DEV && error instanceof Error && (
-            <div className="rounded-lg bg-muted p-4 text-sm font-mono overflow-auto max-h-48">
-              <p className="text-destructive font-semibold mb-2">
-                {error.name}: {error.message}
-              </p>
-              {error.stack && (
-                <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
-                  {error.stack}
-                </pre>
-              )}
-            </div>
-          )}
+          <p className="text-center text-muted-foreground">
+            {errorStatus === 404 
+              ? 'A página que você está procurando não existe ou foi movida.'
+              : 'Ocorreu um problema. Por favor, tente novamente.'}
+          </p>
 
           <div className="flex gap-3 justify-center">
             <Button onClick={() => navigate(-1)} variant="outline">
