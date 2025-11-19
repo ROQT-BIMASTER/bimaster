@@ -383,36 +383,6 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Outras Opções */}
-        {otherMenus.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Outras Opções</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {otherMenus.map((screen) => {
-                  const Icon = iconMap[screen.icone] || Home;
-                  return (
-                    <SidebarMenuItem key={screen.codigo}>
-                      <SidebarMenuButton asChild>
-                        <NavLink
-                          to={screen.rota}
-                          className={({ isActive }) =>
-                            isActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                              : "hover:bg-sidebar-accent/50"
-                          }
-                        >
-                          <Icon className="h-4 w-4" />
-                          <span>{screen.nome}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
       
       <SidebarFooter>
