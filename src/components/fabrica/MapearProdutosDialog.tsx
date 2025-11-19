@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Link2, Plus } from "lucide-react";
+import { Loader2, Link2, Plus, CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface MapearProdutosDialogProps {
@@ -254,15 +255,17 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
 
   const handleClose = () => {
     if (itensPendentes && itensPendentes.length === 0) {
+      toast.success("Todos os produtos foram mapeados!");
+      queryClient.invalidateQueries({ queryKey: ["nota-fiscal", notaId] });
+      queryClient.invalidateQueries({ queryKey: ["nota-fiscal-itens", notaId] });
       onOpenChange(false);
     } else {
-      toast.info("Ainda há produtos pendentes de mapeamento");
+      toast.warning("Ainda há produtos pendentes de mapeamento");
     }
   };
 
-  if (!itensPendentes || itensPendentes.length === 0) {
-    return null;
-  }
+  // Sempre renderizar o dialog quando open=true
+  // mas mostrar mensagem de sucesso se não há mais itens
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -270,21 +273,47 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
         <DialogHeader>
           <DialogTitle>Mapear Produtos do Fornecedor</DialogTitle>
           <DialogDescription>
-            {itensPendentes.length} {itensPendentes.length === 1 ? "produto precisa" : "produtos precisam"} ser mapeado(s) para produtos internos
+            {!itensPendentes || itensPendentes.length === 0 ? (
+              <span className="text-green-600 font-medium flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                Todos os produtos foram mapeados com sucesso!
+              </span>
+            ) : (
+              <>
+                {itensPendentes.length} {itensPendentes.length === 1 ? "produto precisa" : "produtos precisam"} ser mapeado(s) para produtos internos
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4">
-          {/* Lista de itens pendentes */}
-          <div className="space-y-2">
-            <h3 className="font-semibold">Produtos Pendentes</h3>
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : (
-                itensPendentes.map((item) => (
+        {!itensPendentes || itensPendentes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <CheckCircle2 className="h-16 w-16 text-green-600 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Mapeamento Concluído!</h3>
+            <p className="text-muted-foreground mb-4">
+              Todos os produtos desta nota foram mapeados com sucesso.
+            </p>
+            <Button onClick={() => onOpenChange(false)}>
+              Fechar
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            {/* Lista de itens pendentes */}
+            <div className="space-y-2">
+              <h3 className="font-semibold">
+                Produtos Pendentes 
+                <Badge variant="secondary" className="ml-2">
+                  {itensPendentes.length}
+                </Badge>
+              </h3>
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                {isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : (
+                  itensPendentes.map((item) => (
                   <Card
                     key={item.id}
                     className={`cursor-pointer transition-colors ${
@@ -314,13 +343,13 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
                       </p>
                     </CardContent>
                   </Card>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Formulário de mapeamento */}
-          <div className="space-y-4">
+            {/* Formulário de mapeamento */}
+            <div className="space-y-4">
             {selectedItem ? (
               <>
                 <h3 className="font-semibold">Mapear: {selectedItem.descricao}</h3>
@@ -493,9 +522,10 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 Selecione um produto para mapear
               </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );
