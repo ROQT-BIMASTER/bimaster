@@ -99,19 +99,16 @@ export function AppSidebar() {
   const tradeSubMenus = [
     { title: "PDVs", url: "/dashboard/trade/stores", icon: Store },
     { title: "Visitas", url: "/dashboard/trade/visits", icon: Calendar },
-    { title: "Sell Out", url: "/dashboard/trade/sellout", icon: TrendingUp },
+    { title: "Sell Out", url: "/dashboard/trade/sellout", icon: DollarSign },
     { title: "Medição Prateleiras", url: "/dashboard/trade/shelf-measurements", icon: Activity },
     { title: "Nossas Marcas", url: "/dashboard/trade/our-brands", icon: Tag },
     { title: "Fotos", url: "/dashboard/trade/photos", icon: Camera },
     { title: "Fotos Ideais", url: "/dashboard/trade/ideal-photos", icon: Image },
     { title: "Auditoria Gôndola", url: "/dashboard/trade/auditorias", icon: ClipboardCheck },
-    { title: "Análise Competitiva", url: "/dashboard/trade/relatorio-competitivo", icon: Brain },
-    { title: "Comparação Produtos", url: "/dashboard/trade/comparacao-produtos", icon: TrendingUp },
-    { title: "Promoções", url: "/dashboard/trade/promotions", icon: Tag },
-    { title: "Concorrentes", url: "/dashboard/trade/competitors", icon: TrendingUp },
-    { title: "Financeiro", url: "/dashboard/trade/financeiro", icon: DollarSign },
+    { title: "Análise Competitiva", url: "/dashboard/trade/relatorio-competitivo", icon: BarChart3 },
+    { title: "Financeiro", url: "/dashboard/trade/financeiro", icon: FileText },
     { title: "Premiações", url: "/dashboard/trade/rewards", icon: Trophy },
-    { title: "Insights IA", url: "/dashboard/trade/insights", icon: Brain },
+    { title: "Insights IA", url: "/dashboard/trade/insights", icon: Sparkles },
   ];
 
   const marketingSubMenus = [
