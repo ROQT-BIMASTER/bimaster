@@ -19,6 +19,17 @@ export const useModulePermissions = () => {
 
   useEffect(() => {
     fetchModules();
+
+    // Listener para atualização de módulos
+    const handleModulesUpdate = () => {
+      fetchModules();
+    };
+
+    window.addEventListener('modules-updated', handleModulesUpdate);
+
+    return () => {
+      window.removeEventListener('modules-updated', handleModulesUpdate);
+    };
   }, []);
 
   const fetchModules = async () => {

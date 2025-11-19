@@ -13,6 +13,7 @@ import { ConfiguracoesNotificacoes } from "@/components/configuracoes/Configurac
 import { PermissoesDeAcesso } from "@/components/configuracoes/PermissoesDeAcesso";
 import { GerenciamentoPermissoesTelas } from "@/components/configuracoes/GerenciamentoPermissoesTelas";
 import { GerenciamentoPermissoesModulos } from "@/components/configuracoes/GerenciamentoPermissoesModulos";
+import { GerenciadorOrdemModulos } from "@/components/configuracoes/GerenciadorOrdemModulos";
 import { VinculacaoUsuarioProspects } from "@/components/configuracoes/VinculacaoUsuarioProspects";
 import { GerenciamentoIntegracoes } from "@/components/configuracoes/GerenciamentoIntegracoes";
 import { DocumentacaoAPI } from "@/components/configuracoes/DocumentacaoAPI";
@@ -298,6 +299,7 @@ const Configuracoes = () => {
             {isAdmin && (
               <TabsContent value="permissoes" className="space-y-6">
                 <PermissoesDeAcesso />
+                <GerenciadorOrdemModulos />
                 <GerenciamentoPermissoesModulos />
                 <GerenciamentoPermissoesTelas />
                 <VinculacaoUsuarioProspects />
