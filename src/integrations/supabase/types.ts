@@ -1692,20 +1692,68 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_historico_custos: {
+        Row: {
+          created_at: string | null
+          custo_anterior: number | null
+          custo_novo: number
+          id: string
+          motivo: string | null
+          produto_id: string | null
+          quantidade_movimento: number
+          tipo_movimento: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custo_anterior?: number | null
+          custo_novo: number
+          id?: string
+          motivo?: string | null
+          produto_id?: string | null
+          quantidade_movimento: number
+          tipo_movimento: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custo_anterior?: number | null
+          custo_novo?: number
+          id?: string
+          motivo?: string | null
+          produto_id?: string | null
+          quantidade_movimento?: number
+          tipo_movimento?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_historico_custos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_itens_nf: {
         Row: {
           cfop: string | null
           codigo_fornecedor: string
           codigo_mapeado_id: string | null
+          conferido: boolean | null
           created_at: string | null
           descricao: string
+          divergencia_percentual: number | null
           id: string
           lote: string | null
           ncm: string | null
           nota_id: string | null
           numero_item: number
+          observacoes_conferencia: string | null
           produto_interno_id: string | null
           quantidade: number
+          quantidade_conferida: number | null
           quantidade_convertida: number | null
           score_similaridade: number | null
           status_mapeamento: string | null
@@ -1720,15 +1768,19 @@ export type Database = {
           cfop?: string | null
           codigo_fornecedor: string
           codigo_mapeado_id?: string | null
+          conferido?: boolean | null
           created_at?: string | null
           descricao: string
+          divergencia_percentual?: number | null
           id?: string
           lote?: string | null
           ncm?: string | null
           nota_id?: string | null
           numero_item: number
+          observacoes_conferencia?: string | null
           produto_interno_id?: string | null
           quantidade: number
+          quantidade_conferida?: number | null
           quantidade_convertida?: number | null
           score_similaridade?: number | null
           status_mapeamento?: string | null
@@ -1743,15 +1795,19 @@ export type Database = {
           cfop?: string | null
           codigo_fornecedor?: string
           codigo_mapeado_id?: string | null
+          conferido?: boolean | null
           created_at?: string | null
           descricao?: string
+          divergencia_percentual?: number | null
           id?: string
           lote?: string | null
           ncm?: string | null
           nota_id?: string | null
           numero_item?: number
+          observacoes_conferencia?: string | null
           produto_interno_id?: string | null
           quantidade?: number
+          quantidade_conferida?: number | null
           quantidade_convertida?: number | null
           score_similaridade?: number | null
           status_mapeamento?: string | null
@@ -1786,6 +1842,69 @@ export type Database = {
           },
         ]
       }
+      fabrica_lotes: {
+        Row: {
+          codigo_lote: string
+          created_at: string | null
+          custo_unitario: number
+          data_fabricacao: string | null
+          data_validade: string | null
+          id: string
+          nota_fiscal_id: string | null
+          observacoes: string | null
+          produto_id: string | null
+          quantidade_atual: number
+          quantidade_inicial: number
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          codigo_lote: string
+          created_at?: string | null
+          custo_unitario: number
+          data_fabricacao?: string | null
+          data_validade?: string | null
+          id?: string
+          nota_fiscal_id?: string | null
+          observacoes?: string | null
+          produto_id?: string | null
+          quantidade_atual: number
+          quantidade_inicial: number
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          codigo_lote?: string
+          created_at?: string | null
+          custo_unitario?: number
+          data_fabricacao?: string | null
+          data_validade?: string | null
+          id?: string
+          nota_fiscal_id?: string | null
+          observacoes?: string | null
+          produto_id?: string | null
+          quantidade_atual?: number
+          quantidade_inicial?: number
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_lotes_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_lotes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_materias_primas: {
         Row: {
           categoria_id: string | null
@@ -1802,6 +1921,7 @@ export type Database = {
           lead_time_dias: number | null
           lote: string | null
           lote_minimo_compra: number | null
+          metodo_custeio: string | null
           nome: string
           observacoes: string | null
           ponto_reposicao: number | null
@@ -1827,6 +1947,7 @@ export type Database = {
           lead_time_dias?: number | null
           lote?: string | null
           lote_minimo_compra?: number | null
+          metodo_custeio?: string | null
           nome: string
           observacoes?: string | null
           ponto_reposicao?: number | null
@@ -1852,6 +1973,7 @@ export type Database = {
           lead_time_dias?: number | null
           lote?: string | null
           lote_minimo_compra?: number | null
+          metodo_custeio?: string | null
           nome?: string
           observacoes?: string | null
           ponto_reposicao?: number | null
@@ -2060,11 +2182,14 @@ export type Database = {
       fabrica_notas_fiscais: {
         Row: {
           chave_acesso: string
+          conferido_por: string | null
           created_at: string | null
           data_conferencia: string | null
           data_emissao: string
+          divergencias_conferencia: Json | null
           fornecedor_id: string | null
           id: string
+          justificativa_divergencias: string | null
           motivo_rejeicao: string | null
           numero: string
           observacoes: string | null
@@ -2078,11 +2203,14 @@ export type Database = {
         }
         Insert: {
           chave_acesso: string
+          conferido_por?: string | null
           created_at?: string | null
           data_conferencia?: string | null
           data_emissao: string
+          divergencias_conferencia?: Json | null
           fornecedor_id?: string | null
           id?: string
+          justificativa_divergencias?: string | null
           motivo_rejeicao?: string | null
           numero: string
           observacoes?: string | null
@@ -2096,11 +2224,14 @@ export type Database = {
         }
         Update: {
           chave_acesso?: string
+          conferido_por?: string | null
           created_at?: string | null
           data_conferencia?: string | null
           data_emissao?: string
+          divergencias_conferencia?: Json | null
           fornecedor_id?: string | null
           id?: string
+          justificativa_divergencias?: string | null
           motivo_rejeicao?: string | null
           numero?: string
           observacoes?: string | null
@@ -6740,6 +6871,14 @@ export type Database = {
       }
     }
     Functions: {
+      calcular_custo_medio_fifo: {
+        Args: { p_produto_id: string; p_quantidade_saida: number }
+        Returns: number
+      }
+      calcular_custo_medio_ponderado: {
+        Args: { p_produto_id: string }
+        Returns: number
+      }
       calculate_user_level: {
         Args: { points: number }
         Returns: {
