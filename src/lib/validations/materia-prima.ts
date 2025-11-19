@@ -23,12 +23,14 @@ export const materiaPrimaSchema = z.object({
   unidade_medida_id: z
     .string()
     .uuid("Unidade de medida inválida")
-    .min(1, "Unidade de medida é obrigatória"),
+    .refine((val) => val && val.length > 0, "Unidade de medida é obrigatória"),
   
   custo_unitario: z
     .number()
     .positive("Custo unitário deve ser maior que zero")
-    .finite("Custo unitário deve ser um número válido"),
+    .finite("Custo unitário deve ser um número válido")
+    .optional()
+    .nullable(),
   
   estoque_minimo: z
     .number()
