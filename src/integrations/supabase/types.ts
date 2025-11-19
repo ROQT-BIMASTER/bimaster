@@ -3247,6 +3247,51 @@ export type Database = {
           },
         ]
       }
+      social_media_posts: {
+        Row: {
+          account_ids: string[]
+          content: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          media_urls: string[] | null
+          post_ids: Json | null
+          published_at: string | null
+          scheduled_at: string
+          status: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_ids: string[]
+          content: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          media_urls?: string[] | null
+          post_ids?: Json | null
+          published_at?: string | null
+          scheduled_at: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_ids?: string[]
+          content?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          media_urls?: string[] | null
+          post_ids?: Json | null
+          published_at?: string | null
+          scheduled_at?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       store_categories: {
         Row: {
           active: boolean | null
