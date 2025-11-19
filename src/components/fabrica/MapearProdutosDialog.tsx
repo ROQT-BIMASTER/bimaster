@@ -197,29 +197,42 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
   // Mutation para criar
   const criarMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedItem) return null;
+      console.log("🔵 Iniciando criação de produto...");
+      console.log("🔵 Dados do formulário:", novoProduto);
+      console.log("🔵 Item selecionado:", selectedItem);
+      
+      if (!selectedItem) {
+        console.error("❌ Item não selecionado");
+        return null;
+      }
 
       // Validar dados antes de criar
       try {
         const custoUnitario = novoProduto.custo_unitario ? parseFloat(novoProduto.custo_unitario) : null;
         
-        materiaPrimaSchema.parse({
+        console.log("🔵 Validando dados com schema...");
+        const dadosValidados = materiaPrimaSchema.parse({
           codigo: novoProduto.codigo,
           nome: novoProduto.nome,
           categoria_id: novoProduto.categoria_id || null,
           unidade_medida_id: novoProduto.unidade_medida_id,
           custo_unitario: custoUnitario,
         });
+        console.log("✅ Dados validados:", dadosValidados);
       } catch (validationError: any) {
+        console.error("❌ Erro de validação:", validationError);
         const firstError = validationError.errors?.[0];
         throw new Error(firstError?.message || "Erro de validação nos dados do produto");
       }
 
       // Criar produto interno
+      console.log("🔵 Buscando sessão do usuário...");
       const { data: session } = await supabase.auth.getSession();
+      console.log("✅ Sessão:", session.session?.user.id);
       
       const custoUnitario = novoProduto.custo_unitario ? parseFloat(novoProduto.custo_unitario) : null;
       
+      console.log("🔵 Inserindo produto na tabela fabrica_materias_primas...");
       const { data: produto, error: produtoError } = await supabase
         .from("fabrica_materias_primas")
         .insert({
@@ -235,19 +248,34 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
         .single();
 
       if (produtoError) {
-        console.error("Erro ao criar produto:", produtoError);
+        console.error("❌ Erro ao criar produto:", produtoError);
+        console.error("❌ Detalhes do erro:", {
+          message: produtoError.message,
+          details: produtoError.details,
+          hint: produtoError.hint,
+          code: produtoError.code
+        });
         throw new Error(produtoError.message || "Erro ao criar produto interno");
       }
+      
+      console.log("✅ Produto criado:", produto);
 
-      const { data: nota } = await supabase
+      console.log("🔵 Buscando fornecedor da nota...");
+      const { data: nota, error: notaError } = await supabase
         .from("fabrica_notas_fiscais")
         .select("fornecedor_id")
         .eq("id", notaId)
         .single();
 
-      if (!nota) throw new Error("Nota não encontrada");
+      if (notaError) {
+        console.error("❌ Erro ao buscar nota:", notaError);
+        throw new Error("Nota não encontrada");
+      }
+      
+      console.log("✅ Nota encontrada, fornecedor:", nota.fornecedor_id);
 
       // Criar código de fornecedor
+      console.log("🔵 Criando código de fornecedor...");
       const { data: codigo, error: codigoError } = await supabase
         .from("fabrica_codigos_fornecedor")
         .insert({
@@ -261,9 +289,15 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
         .select()
         .single();
 
-      if (codigoError) throw codigoError;
+      if (codigoError) {
+        console.error("❌ Erro ao criar código fornecedor:", codigoError);
+        throw codigoError;
+      }
+      
+      console.log("✅ Código fornecedor criado:", codigo);
 
       // Atualizar item da nota
+      console.log("🔵 Atualizando item da nota fiscal...");
       const { error: updateError } = await supabase
         .from("fabrica_itens_nf")
         .update({
@@ -274,7 +308,13 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
         })
         .eq("id", selectedItem.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("❌ Erro ao atualizar item:", updateError);
+        throw updateError;
+      }
+      
+      console.log("✅ Item da nota atualizado com sucesso");
+      console.log("✅ Fluxo completo de criação finalizado!");
       
       // Retornar produto criado para usar no onSuccess
       return produto;
