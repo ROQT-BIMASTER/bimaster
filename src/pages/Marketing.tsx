@@ -3,6 +3,7 @@ import { LookerStudioReports } from "@/components/marketing/LookerStudioReports"
 import { DashCortexReports } from "@/components/marketing/DashCortexReports";
 import { PowerBIReports } from "@/components/marketing/PowerBIReports";
 import { SocialMediaMonitoring } from "@/components/marketing/SocialMediaMonitoring";
+import { AIImageGenerator } from "@/components/marketing/AIImageGenerator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3 } from "lucide-react";
 
@@ -21,11 +22,12 @@ export default function Marketing() {
       </div>
 
       <Tabs defaultValue="looker" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="looker">Instagram</TabsTrigger>
           <TabsTrigger value="dashcortex">DashCortex</TabsTrigger>
           <TabsTrigger value="powerbi">Power BI</TabsTrigger>
           <TabsTrigger value="social">Redes Sociais</TabsTrigger>
+          <TabsTrigger value="ai-images">Gerador IA</TabsTrigger>
         </TabsList>
         <TabsContent value="looker" className="mt-6">
           <LookerStudioReports />
@@ -38,6 +40,9 @@ export default function Marketing() {
         </TabsContent>
         <TabsContent value="social" className="mt-6">
           <SocialMediaMonitoring />
+        </TabsContent>
+        <TabsContent value="ai-images" className="mt-6">
+          <AIImageGenerator />
         </TabsContent>
       </Tabs>
       </div>
