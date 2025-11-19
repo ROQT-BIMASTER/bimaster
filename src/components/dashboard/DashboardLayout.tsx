@@ -8,6 +8,7 @@ import logoUnion from "@/assets/logo-union.png";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { offlineManager } from "@/lib/utils/offline-manager";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useSyncOfflineData } from "@/hooks/useSyncOfflineData";
 import { WifiOff, Wifi } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -20,6 +21,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const isOnline = useOnlineStatus();
+  useSyncOfflineData(); // Sincronização automática quando online
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
 
   // Monitorar qualidade da conexão
