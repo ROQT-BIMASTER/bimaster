@@ -1,6 +1,8 @@
 // Service Worker para modo offline
-const CACHE_NAME = 'trade-marketing-cache-v1';
-const PHOTO_CACHE = 'trade-photos-cache-v1';
+const CACHE_NAME = 'trade-marketing-cache-v2';
+const PHOTO_CACHE = 'trade-photos-cache-v2';
+const MAX_PHOTO_CACHE_SIZE = 100; // Limitar a 100 fotos
+const MAX_API_CACHE_SIZE = 50; // Limitar a 50 responses
 
 // Arquivos essenciais para cache
 const STATIC_ASSETS = [
@@ -8,6 +10,19 @@ const STATIC_ASSETS = [
   '/index.html',
   '/offline.html'
 ];
+
+// Função para limitar tamanho do cache
+async function limitCacheSize(cacheName, maxSize) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  
+  if (keys.length > maxSize) {
+    // Remover itens mais antigos
+    const keysToDelete = keys.slice(0, keys.length - maxSize);
+    await Promise.all(keysToDelete.map(key => cache.delete(key)));
+    console.log(`[SW] Cache ${cacheName} limitado a ${maxSize} itens`);
+  }
+}
 
 // Instalar service worker e fazer cache dos assets estáticos
 self.addEventListener('install', (event) => {
@@ -43,6 +58,12 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
+// Adicionar limpeza periódica (a cada hora)
+setInterval(() => {
+  limitCacheSize(PHOTO_CACHE, MAX_PHOTO_CACHE_SIZE);
+  limitCacheSize(CACHE_NAME, MAX_API_CACHE_SIZE);
+}, 3600000); // 1 hora
+
 // Estratégia de cache
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -62,7 +83,9 @@ self.addEventListener('fetch', (event) => {
             // Retornar do cache e atualizar em background
             fetch(request).then((networkResponse) => {
               if (networkResponse && networkResponse.status === 200) {
-                cache.put(request, networkResponse.clone());
+                cache.put(request, networkResponse.clone()).then(() => {
+                  limitCacheSize(PHOTO_CACHE, MAX_PHOTO_CACHE_SIZE);
+                });
               }
             }).catch(() => {});
             return cachedResponse;
@@ -71,7 +94,9 @@ self.addEventListener('fetch', (event) => {
           // Se não está no cache, buscar da rede
           return fetch(request).then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
-              cache.put(request, networkResponse.clone());
+              cache.put(request, networkResponse.clone()).then(() => {
+                limitCacheSize(PHOTO_CACHE, MAX_PHOTO_CACHE_SIZE);
+              });
             }
             return networkResponse;
           }).catch(() => {
@@ -96,7 +121,9 @@ self.addEventListener('fetch', (event) => {
           if (response && response.status === 200 && request.method === 'GET') {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
+              cache.put(request, responseClone).then(() => {
+                limitCacheSize(CACHE_NAME, MAX_API_CACHE_SIZE);
+              });
             });
           }
           return response;
@@ -135,7 +162,9 @@ self.addEventListener('fetch', (event) => {
 
         const responseClone = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, responseClone);
+          cache.put(request, responseClone).then(() => {
+            limitCacheSize(CACHE_NAME, MAX_API_CACHE_SIZE);
+          });
         });
 
         return response;

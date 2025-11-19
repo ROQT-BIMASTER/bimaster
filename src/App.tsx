@@ -6,6 +6,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import ErrorPage from "@/pages/ErrorPage";
 import { memoryManager } from "@/lib/utils/memory-manager";
+import { memoryMonitor } from "@/lib/utils/memory-monitor";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 // Lazy load das páginas para otimizar bundle
@@ -71,8 +72,8 @@ const PageLoader = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutos
-      gcTime: 10 * 60 * 1000, // 10 minutos (antigo cacheTime)
+      staleTime: 2 * 60 * 1000, // 2 minutos (reduzido de 5)
+      gcTime: 5 * 60 * 1000, // 5 minutos (reduzido de 10)
       refetchOnWindowFocus: false,
       retry: 1,
     },
@@ -80,12 +81,31 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  // Inicializar gerenciador de memória
+  // Inicializar gerenciador de memória e monitor
   useEffect(() => {
-    console.log('🚀 Memory Manager inicializado');
+    console.log('🚀 Memory Manager e Monitor inicializados');
+    
+    // Iniciar monitoramento de memória
+    memoryMonitor.startMonitoring();
+    
+    // Limpar cache antigo a cada 5 minutos
+    const cacheCleanupInterval = setInterval(() => {
+      queryClient.clear(); // Limpa queries inativas
+    }, 5 * 60 * 1000);
+    
+    // Listener para forçar limpeza quando necessário
+    const handleForceCleanup = () => {
+      queryClient.clear();
+      memoryManager.forceCleanup();
+    };
+    
+    window.addEventListener('force-memory-cleanup', handleForceCleanup);
     
     return () => {
+      clearInterval(cacheCleanupInterval);
+      window.removeEventListener('force-memory-cleanup', handleForceCleanup);
       memoryManager.destroy();
+      memoryMonitor.destroy();
     };
   }, []);
 
