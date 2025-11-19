@@ -23,7 +23,8 @@ import { GerenciamentoPontuacao } from "@/components/configuracoes/Gerenciamento
 import { GerenciamentoPremiacoes } from "@/components/configuracoes/GerenciamentoPremiacoes";
 import { VincularWhatsApp } from "@/components/configuracoes/VincularWhatsApp";
 import { PersonalizarCores } from "@/components/configuracoes/PersonalizarCores";
-import { Shield, UserCog, User, CheckCircle } from "lucide-react";
+import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
+import { Shield, UserCog, User, CheckCircle, Lock } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -39,6 +40,8 @@ const Configuracoes = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [outrasOpcoesUnlocked, setOutrasOpcoesUnlocked] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -98,6 +101,18 @@ const Configuracoes = () => {
       toast({
         title: "Erro",
         description: "Não foi possível enviar o email de redefinição",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleOutrasOpcoesClick = () => {
+    if (userRole === "admin") {
+      setShowPasswordDialog(true);
+    } else {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas administradores podem acessar esta seção",
         variant: "destructive",
       });
     }
@@ -249,8 +264,23 @@ const Configuracoes = () => {
               {isAdmin && <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>}
               {isAdmin && <TabsTrigger value="premiacoes">Premiações</TabsTrigger>}
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="integracoes">Integrações</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="api">API</TabsTrigger>}
+              {isAdmin && (
+                <TabsTrigger 
+                  value="outras-opcoes" 
+                  className="flex items-center gap-2"
+                  disabled={!outrasOpcoesUnlocked}
+                  onClick={(e) => {
+                    if (!outrasOpcoesUnlocked) {
+                      e.preventDefault();
+                      handleOutrasOpcoesClick();
+                    }
+                  }}
+                >
+                  <Lock className="h-4 w-4" />
+                  Outras opções
+                  {outrasOpcoesUnlocked && <CheckCircle className="h-3 w-3 text-green-500" />}
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="perfil" className="space-y-4">
@@ -324,14 +354,20 @@ const Configuracoes = () => {
               </TabsContent>
             )}
 
-            {isAdmin && (
-              <TabsContent value="integracoes">
+            {isAdmin && outrasOpcoesUnlocked && (
+              <TabsContent value="outras-opcoes" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Configurações Avançadas
+                    </CardTitle>
+                    <CardDescription>
+                      Área restrita para configurações avançadas do sistema
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
                 <GerenciamentoIntegracoes />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="api">
                 <DocumentacaoAPI />
               </TabsContent>
             )}
@@ -371,6 +407,12 @@ const Configuracoes = () => {
           </Tabs>
         )}
       </div>
+
+      <AdminPasswordDialog
+        open={showPasswordDialog}
+        onOpenChange={setShowPasswordDialog}
+        onSuccess={() => setOutrasOpcoesUnlocked(true)}
+      />
     </DashboardLayout>
   );
 };
