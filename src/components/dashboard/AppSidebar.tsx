@@ -112,7 +112,7 @@ export function AppSidebar() {
   ];
 
   const marketingSubMenus = [
-    { title: "Dashboards", url: "/dashboard/marketing/dashboards", icon: BarChart3 },
+    { title: "Dashboards & IA", url: "/dashboard/marketing/social", icon: BarChart3 },
     { title: "WhatsApp", url: "/dashboard/marketing/whatsapp", icon: MessageSquare },
   ];
 
