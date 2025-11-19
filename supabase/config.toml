@@ -6,6 +6,9 @@ verify_jwt = true
 [functions.analyze-competitor-photo]
 verify_jwt = true
 
+[functions.analyze-brand-website]
+verify_jwt = true
+
 [functions.send-notifications]
 verify_jwt = true
 
