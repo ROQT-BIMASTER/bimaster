@@ -108,12 +108,12 @@ export function AppSidebar() {
     { title: "Análise Competitiva", url: "/dashboard/trade/relatorio-competitivo", icon: BarChart3 },
     { title: "Financeiro", url: "/dashboard/trade/financeiro", icon: FileText },
     { title: "Premiações", url: "/dashboard/trade/rewards", icon: Trophy },
+    { title: "WhatsApp", url: "/dashboard/trade/whatsapp", icon: MessageSquare },
     { title: "Insights IA", url: "/dashboard/trade/insights", icon: Sparkles },
   ];
 
   const marketingSubMenus = [
     { title: "Dashboards & IA", url: "/dashboard/marketing/social", icon: BarChart3 },
-    { title: "WhatsApp", url: "/dashboard/marketing/whatsapp", icon: MessageSquare },
   ];
 
   const otherMenus = permissions.filter(screen => 
@@ -121,7 +121,7 @@ export function AppSidebar() {
       'marketing', 'marketing_dashboards', 'marketing_whatsapp',
       'trade', 'trade_stores', 'trade_visits', 'trade_sellout', 'trade_shelf_measurements',
       'trade_our_brands', 'trade_photos', 'trade_ideal_photos', 'trade_auditorias',
-      'trade_relatorio_competitivo', 'trade_financeiro', 'trade_rewards', 'trade_insights',
+      'trade_relatorio_competitivo', 'trade_financeiro', 'trade_rewards', 'trade_whatsapp', 'trade_insights',
       'relatorios', 'ai_analytics', 'instalar_app',
       'configuracoes', 'dashboard', 'ranking'].includes(screen.codigo)
   );
