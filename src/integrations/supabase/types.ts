@@ -926,6 +926,60 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_apuracao_fiscal: {
+        Row: {
+          created_at: string | null
+          data_escrituracao: string | null
+          data_fechamento: string | null
+          escriturado_sped: boolean | null
+          id: string
+          periodo: string
+          responsavel_id: string | null
+          saldo_a_transportar: number | null
+          saldo_anterior: number | null
+          saldo_periodo: number | null
+          status: string | null
+          tipo_imposto: string
+          total_creditos: number | null
+          total_debitos: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_escrituracao?: string | null
+          data_fechamento?: string | null
+          escriturado_sped?: boolean | null
+          id?: string
+          periodo: string
+          responsavel_id?: string | null
+          saldo_a_transportar?: number | null
+          saldo_anterior?: number | null
+          saldo_periodo?: number | null
+          status?: string | null
+          tipo_imposto: string
+          total_creditos?: number | null
+          total_debitos?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_escrituracao?: string | null
+          data_fechamento?: string | null
+          escriturado_sped?: boolean | null
+          id?: string
+          periodo?: string
+          responsavel_id?: string | null
+          saldo_a_transportar?: number | null
+          saldo_anterior?: number | null
+          saldo_periodo?: number | null
+          status?: string | null
+          tipo_imposto?: string
+          total_creditos?: number | null
+          total_debitos?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       fabrica_categorias_mp: {
         Row: {
           ativa: boolean | null
@@ -1123,6 +1177,103 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_creditos_tributarios: {
+        Row: {
+          aliquota: number | null
+          base_calculo: number | null
+          cfop: string | null
+          created_at: string | null
+          created_by: string | null
+          cst: string | null
+          data_credito: string
+          data_utilizacao: string | null
+          escriturado_sped: boolean | null
+          id: string
+          movimentacao_id: string | null
+          nota_id: string | null
+          observacoes: string | null
+          periodo_apuracao: string
+          periodo_escrituracao: string | null
+          produto_id: string
+          saldo_credito: number | null
+          status: string
+          tipo_credito: string
+          updated_at: string | null
+          valor_credito: number
+          valor_utilizado: number | null
+        }
+        Insert: {
+          aliquota?: number | null
+          base_calculo?: number | null
+          cfop?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          cst?: string | null
+          data_credito: string
+          data_utilizacao?: string | null
+          escriturado_sped?: boolean | null
+          id?: string
+          movimentacao_id?: string | null
+          nota_id?: string | null
+          observacoes?: string | null
+          periodo_apuracao: string
+          periodo_escrituracao?: string | null
+          produto_id: string
+          saldo_credito?: number | null
+          status?: string
+          tipo_credito: string
+          updated_at?: string | null
+          valor_credito: number
+          valor_utilizado?: number | null
+        }
+        Update: {
+          aliquota?: number | null
+          base_calculo?: number | null
+          cfop?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          cst?: string | null
+          data_credito?: string
+          data_utilizacao?: string | null
+          escriturado_sped?: boolean | null
+          id?: string
+          movimentacao_id?: string | null
+          nota_id?: string | null
+          observacoes?: string | null
+          periodo_apuracao?: string
+          periodo_escrituracao?: string | null
+          produto_id?: string
+          saldo_credito?: number | null
+          status?: string
+          tipo_credito?: string
+          updated_at?: string | null
+          valor_credito?: number
+          valor_utilizado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_creditos_tributarios_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_movimentacoes_estoque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_creditos_tributarios_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_creditos_tributarios_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_custos_producao: {
         Row: {
           created_at: string | null
@@ -1170,10 +1321,16 @@ export type Database = {
       fabrica_dados_fiscais_produto: {
         Row: {
           aliquota_cofins: number | null
+          aliquota_fcp: number | null
           aliquota_icms: number | null
           aliquota_ipi: number | null
           aliquota_pis: number | null
           altura: number | null
+          bc_cofins: number | null
+          bc_fcp: number | null
+          bc_icms: number | null
+          bc_ipi: number | null
+          bc_pis: number | null
           caixa_padrao_compra: number | null
           cest: string | null
           cfop_padrao: string | null
@@ -1207,12 +1364,21 @@ export type Database = {
           estoque_minimo: number | null
           excecao_ncm: string | null
           frete: number | null
+          gera_credito_cofins: boolean | null
+          gera_credito_icms: boolean | null
+          gera_credito_ipi: boolean | null
+          gera_credito_pis: boolean | null
+          icms_diferido: boolean | null
           id: string
           indicador_composicao_total: number | null
+          industrializacao_encomenda: boolean | null
           informacoes_adicionais: string | null
           largura: number | null
           markup_percentual: number | null
+          modalidade_bc_icms: string | null
+          motivo_desoneracao_icms: string | null
           ncm: string | null
+          numero_drawback: string | null
           observacoes: string | null
           origem_mercadoria: string | null
           percentual_st: number | null
@@ -1229,23 +1395,38 @@ export type Database = {
           qtd_max_dia_vendedor: number | null
           qtd_maxima: number | null
           qtd_minima: number | null
+          regime_tributacao: string | null
           repasse_icm: number | null
           reserva: number | null
           substancia: string | null
+          tem_drawback: boolean | null
+          tipo_operacao: string | null
           unidade_compra: string | null
           unidade_venda: string | null
           updated_at: string | null
           v_icms_st_ret: number | null
           v_icms_substituto: number | null
+          valor_cofins: number | null
+          valor_fcp: number | null
+          valor_icms: number | null
+          valor_icms_desonerado: number | null
+          valor_ipi: number | null
+          valor_pis: number | null
           vbc_st_ret: number | null
           volume_m3: number | null
         }
         Insert: {
           aliquota_cofins?: number | null
+          aliquota_fcp?: number | null
           aliquota_icms?: number | null
           aliquota_ipi?: number | null
           aliquota_pis?: number | null
           altura?: number | null
+          bc_cofins?: number | null
+          bc_fcp?: number | null
+          bc_icms?: number | null
+          bc_ipi?: number | null
+          bc_pis?: number | null
           caixa_padrao_compra?: number | null
           cest?: string | null
           cfop_padrao?: string | null
@@ -1279,12 +1460,21 @@ export type Database = {
           estoque_minimo?: number | null
           excecao_ncm?: string | null
           frete?: number | null
+          gera_credito_cofins?: boolean | null
+          gera_credito_icms?: boolean | null
+          gera_credito_ipi?: boolean | null
+          gera_credito_pis?: boolean | null
+          icms_diferido?: boolean | null
           id?: string
           indicador_composicao_total?: number | null
+          industrializacao_encomenda?: boolean | null
           informacoes_adicionais?: string | null
           largura?: number | null
           markup_percentual?: number | null
+          modalidade_bc_icms?: string | null
+          motivo_desoneracao_icms?: string | null
           ncm?: string | null
+          numero_drawback?: string | null
           observacoes?: string | null
           origem_mercadoria?: string | null
           percentual_st?: number | null
@@ -1301,23 +1491,38 @@ export type Database = {
           qtd_max_dia_vendedor?: number | null
           qtd_maxima?: number | null
           qtd_minima?: number | null
+          regime_tributacao?: string | null
           repasse_icm?: number | null
           reserva?: number | null
           substancia?: string | null
+          tem_drawback?: boolean | null
+          tipo_operacao?: string | null
           unidade_compra?: string | null
           unidade_venda?: string | null
           updated_at?: string | null
           v_icms_st_ret?: number | null
           v_icms_substituto?: number | null
+          valor_cofins?: number | null
+          valor_fcp?: number | null
+          valor_icms?: number | null
+          valor_icms_desonerado?: number | null
+          valor_ipi?: number | null
+          valor_pis?: number | null
           vbc_st_ret?: number | null
           volume_m3?: number | null
         }
         Update: {
           aliquota_cofins?: number | null
+          aliquota_fcp?: number | null
           aliquota_icms?: number | null
           aliquota_ipi?: number | null
           aliquota_pis?: number | null
           altura?: number | null
+          bc_cofins?: number | null
+          bc_fcp?: number | null
+          bc_icms?: number | null
+          bc_ipi?: number | null
+          bc_pis?: number | null
           caixa_padrao_compra?: number | null
           cest?: string | null
           cfop_padrao?: string | null
@@ -1351,12 +1556,21 @@ export type Database = {
           estoque_minimo?: number | null
           excecao_ncm?: string | null
           frete?: number | null
+          gera_credito_cofins?: boolean | null
+          gera_credito_icms?: boolean | null
+          gera_credito_ipi?: boolean | null
+          gera_credito_pis?: boolean | null
+          icms_diferido?: boolean | null
           id?: string
           indicador_composicao_total?: number | null
+          industrializacao_encomenda?: boolean | null
           informacoes_adicionais?: string | null
           largura?: number | null
           markup_percentual?: number | null
+          modalidade_bc_icms?: string | null
+          motivo_desoneracao_icms?: string | null
           ncm?: string | null
+          numero_drawback?: string | null
           observacoes?: string | null
           origem_mercadoria?: string | null
           percentual_st?: number | null
@@ -1373,14 +1587,23 @@ export type Database = {
           qtd_max_dia_vendedor?: number | null
           qtd_maxima?: number | null
           qtd_minima?: number | null
+          regime_tributacao?: string | null
           repasse_icm?: number | null
           reserva?: number | null
           substancia?: string | null
+          tem_drawback?: boolean | null
+          tipo_operacao?: string | null
           unidade_compra?: string | null
           unidade_venda?: string | null
           updated_at?: string | null
           v_icms_st_ret?: number | null
           v_icms_substituto?: number | null
+          valor_cofins?: number | null
+          valor_fcp?: number | null
+          valor_icms?: number | null
+          valor_icms_desonerado?: number | null
+          valor_ipi?: number | null
+          valor_pis?: number | null
           vbc_st_ret?: number | null
           volume_m3?: number | null
         }
