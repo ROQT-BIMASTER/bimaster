@@ -408,6 +408,14 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
+                        <NavLink to="/dashboard/fabrica/recebimentos" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                          <Upload className="h-4 w-4" />
+                          <span>Recebimento NF-e</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
                         <NavLink to="/dashboard/fabrica/materias-primas" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
                           <Package className="h-4 w-4" />
                           <span>Matérias-Primas</span>
