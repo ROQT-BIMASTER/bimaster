@@ -69,6 +69,7 @@ const FabricaPlanejamento = lazy(() => import("@/pages/FabricaPlanejamento"));
 const FabricaOrdensProducao = lazy(() => import("@/pages/FabricaOrdensProducao"));
 const FabricaRecebimentos = lazy(() => import("@/pages/FabricaRecebimentos"));
 const FabricaFiscal = lazy(() => import("@/pages/FabricaFiscal"));
+const FabricaTabelaImpostos = lazy(() => import("@/pages/FabricaTabelaImpostos"));
 
 // Loading component
 const PageLoader = () => (
@@ -199,6 +200,7 @@ const App = () => {
         <Route path="/dashboard/fabrica/formulas/:id" element={<ProtectedRoute><FabricaFormulaEditor /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/planejamento" element={<ProtectedRoute><FabricaPlanejamento /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/fiscal" element={<ProtectedRoute><FabricaFiscal /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/tabela-impostos" element={<ProtectedRoute><FabricaTabelaImpostos /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/ordens-producao" element={<ProtectedRoute><FabricaOrdensProducao /></ProtectedRoute>} />
         
         <Route path="/404" element={<NotFound />} />
