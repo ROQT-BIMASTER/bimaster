@@ -20,7 +20,11 @@ export function usePhotoAnalysisQueue(userId?: string) {
   useEffect(() => {
     if (userId) {
       fetchQueue();
-      subscribeToQueue();
+      const unsubscribe = subscribeToQueue();
+      
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
     }
   }, [userId]);
 
