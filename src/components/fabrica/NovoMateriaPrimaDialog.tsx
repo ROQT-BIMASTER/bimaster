@@ -68,7 +68,7 @@ export const NovoMateriaPrimaDialog = ({ open, onOpenChange, onSuccess }: NovoMa
 
     try {
       // Validar dados
-      materiaPrimaSchema.parse({
+      const validatedData = materiaPrimaSchema.parse({
         codigo: formData.codigo,
         nome: formData.nome,
         categoria_id: formData.categoria_id || null,
@@ -76,23 +76,41 @@ export const NovoMateriaPrimaDialog = ({ open, onOpenChange, onSuccess }: NovoMa
         custo_unitario: parseFloat(formData.custo_unitario),
       });
 
+      console.log("Dados validados:", validatedData);
+
       const { data: session } = await supabase.auth.getSession();
+      
+      if (!session.session?.user) {
+        toast.error("Usuário não autenticado");
+        return;
+      }
+
+      console.log("Usuário autenticado:", session.session.user.id);
+
+      const insertData = {
+        codigo: formData.codigo.trim(),
+        nome: formData.nome.trim(),
+        categoria_id: formData.categoria_id || null,
+        unidade_medida_id: formData.unidade_medida_id,
+        custo_unitario: parseFloat(formData.custo_unitario),
+        status: "ativo",
+        created_by: session.session.user.id,
+      };
+
+      console.log("Dados para inserir:", insertData);
 
       const { data, error } = await supabase
         .from("fabrica_materias_primas")
-        .insert({
-          codigo: formData.codigo.trim(),
-          nome: formData.nome.trim(),
-          categoria_id: formData.categoria_id || null,
-          unidade_medida_id: formData.unidade_medida_id,
-          custo_unitario: parseFloat(formData.custo_unitario),
-          status: "ativo",
-          created_by: session.session?.user.id,
-        })
+        .insert(insertData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro detalhado do Supabase:", error);
+        throw error;
+      }
+
+      console.log("Produto criado com sucesso:", data);
 
       toast.success("Produto interno criado com sucesso");
       
@@ -106,7 +124,7 @@ export const NovoMateriaPrimaDialog = ({ open, onOpenChange, onSuccess }: NovoMa
         custo_unitario: "",
       });
     } catch (error: any) {
-      console.error("Erro ao criar produto:", error);
+      console.error("Erro completo ao criar produto:", error);
       if (error.errors) {
         const firstError = error.errors?.[0];
         toast.error(firstError?.message || "Erro de validação");
