@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { materiaPrimaSchema } from "@/lib/validations/materia-prima";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NovaCategoriaMP } from "./NovaCategoriaMP";
+import { NovoMateriaPrimaDialog } from "./NovoMateriaPrimaDialog";
 
 interface MapearProdutosDialogProps {
   notaId: string | null;
@@ -36,6 +37,7 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
   const [selectedItem, setSelectedItem] = useState<ItemPendente | null>(null);
   const [acao, setAcao] = useState<"vincular" | "criar">("vincular");
   const [showNovaCategoriaDialog, setShowNovaCategoriaDialog] = useState(false);
+  const [showNovoMateriaPrimaDialog, setShowNovoMateriaPrimaDialog] = useState(false);
   
   // Campos para vincular
   const [produtoInternoId, setProdutoInternoId] = useState("");
@@ -392,7 +394,18 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
 
                   <TabsContent value="vincular" className="space-y-4">
                     <div>
-                      <Label>Produto Interno</Label>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label>Produto Interno</Label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowNovoMateriaPrimaDialog(true)}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Novo
+                        </Button>
+                      </div>
                       <Select value={produtoInternoId} onValueChange={setProdutoInternoId}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o produto interno" />
@@ -588,6 +601,18 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
           // Selecionar a categoria recém-criada
           setNovoProduto({ ...novoProduto, categoria_id: categoryId });
           toast.success(`Categoria "${categoryName}" criada com sucesso`);
+        }}
+      />
+
+      <NovoMateriaPrimaDialog
+        open={showNovoMateriaPrimaDialog}
+        onOpenChange={setShowNovoMateriaPrimaDialog}
+        onSuccess={(productId, productName) => {
+          // Atualizar lista de produtos internos
+          queryClient.invalidateQueries({ queryKey: ["produtos-internos"] });
+          // Selecionar o produto recém-criado
+          setProdutoInternoId(productId);
+          toast.success(`Produto "${productName}" criado com sucesso`);
         }}
       />
     </Dialog>
