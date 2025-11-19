@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export async function processPhotoQueue() {
   try {
-    const { data, error } = await supabase.functions.invoke('process-photo-analysis-queue', {
+    const { data, error } = await supabase.functions.invoke('trigger-photo-queue', {
       body: {},
     });
 
