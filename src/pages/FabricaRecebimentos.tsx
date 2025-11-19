@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DetalhesNotaFiscalDialog } from "@/components/fabrica/DetalhesNotaFiscalDialog";
+import { MapearProdutosDialog } from "@/components/fabrica/MapearProdutosDialog";
 
 interface NotaFiscal {
   id: string;
@@ -31,6 +32,8 @@ export default function FabricaRecebimentos() {
   const [loading, setLoading] = useState(false);
   const [selectedNotaId, setSelectedNotaId] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [mapearNotaId, setMapearNotaId] = useState<string | null>(null);
+  const [mapearOpen, setMapearOpen] = useState(false);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -54,6 +57,13 @@ export default function FabricaRecebimentos() {
       if (error) throw error;
 
       toast.success("XML importado com sucesso!");
+      
+      // Se houver itens não mapeados, abrir dialog de mapeamento
+      if (data?.itens_processados?.naoMapeados > 0) {
+        setMapearNotaId(data.nota_id);
+        setMapearOpen(true);
+      }
+      
       fetchNotas(); // Recarregar lista
     } catch (error: any) {
       console.error("Erro ao importar XML:", error);
@@ -237,6 +247,12 @@ export default function FabricaRecebimentos() {
         notaId={selectedNotaId}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
+      />
+
+      <MapearProdutosDialog
+        notaId={mapearNotaId}
+        open={mapearOpen}
+        onOpenChange={setMapearOpen}
       />
     </DashboardLayout>
   );
