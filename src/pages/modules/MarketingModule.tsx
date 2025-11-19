@@ -178,10 +178,10 @@ const MarketingModule = () => {
             <CardTitle>Acesso Rápido</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Link to="/dashboard/marketing/dashboards">
+            <Link to="/dashboard/marketing/social">
               <Button variant="outline" className="w-full justify-start">
                 <BarChart3 className="mr-2 h-4 w-4" />
-                Dashboards
+                Dashboards & IA
               </Button>
             </Link>
             <Link to="/dashboard/marketing/whatsapp">
