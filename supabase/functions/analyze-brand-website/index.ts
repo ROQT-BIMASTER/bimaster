@@ -44,7 +44,7 @@ serve(async (req) => {
       .replace(/<[^>]+>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
-      .substring(0, 15000); // Reduzir para 15k caracteres para processar mais rápido
+      .substring(0, 8000); // Reduzir para 8k caracteres para processar mais rápido
 
     console.log(`📄 Conteúdo extraído: ${textContent.length} caracteres`);
     
@@ -68,7 +68,7 @@ serve(async (req) => {
       },
       signal: AbortSignal.timeout(45000), // Timeout de 45 segundos
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash', // Modelo mais rápido
+        model: 'google/gemini-2.5-flash-lite', // Modelo mais rápido para esta tarefa
         messages: [
           {
             role: 'system',
