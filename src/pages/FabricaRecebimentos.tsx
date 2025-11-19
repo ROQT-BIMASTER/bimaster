@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DetalhesNotaFiscalDialog } from "@/components/fabrica/DetalhesNotaFiscalDialog";
 
 interface NotaFiscal {
   id: string;
@@ -28,6 +29,8 @@ export default function FabricaRecebimentos() {
   const [uploading, setUploading] = useState(false);
   const [notas, setNotas] = useState<NotaFiscal[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedNotaId, setSelectedNotaId] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -211,7 +214,14 @@ export default function FabricaRecebimentos() {
                     
                     <div className="flex items-center gap-2">
                       {getStatusBadge(nota.status)}
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedNotaId(nota.id);
+                          setDetailsOpen(true);
+                        }}
+                      >
                         Ver Detalhes
                       </Button>
                     </div>
@@ -222,6 +232,12 @@ export default function FabricaRecebimentos() {
           </CardContent>
         </Card>
       </div>
+
+      <DetalhesNotaFiscalDialog
+        notaId={selectedNotaId}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
     </DashboardLayout>
   );
 }
