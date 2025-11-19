@@ -63,6 +63,8 @@ const Marketing = lazy(() => import("./pages/Marketing"));
 const AIAnalytics = lazy(() => import("./pages/AIAnalytics"));
 const FabricaModule = lazy(() => import("./pages/modules/FabricaModule"));
 const FabricaMateriasPrimas = lazy(() => import("./pages/FabricaMateriasPrimas"));
+const FabricaFormulas = lazy(() => import("./pages/FabricaFormulas"));
+const FabricaFormulaEditor = lazy(() => import("./pages/FabricaFormulaEditor"));
 
 // Loading component
 const PageLoader = () => (
@@ -188,6 +190,8 @@ const App = () => {
         {/* Módulo de Fábrica */}
         <Route path="/dashboard/fabrica" element={<ProtectedRoute><FabricaModule /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/materias-primas" element={<ProtectedRoute><FabricaMateriasPrimas /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/formulas" element={<ProtectedRoute><FabricaFormulas /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/formulas/:id" element={<ProtectedRoute><FabricaFormulaEditor /></ProtectedRoute>} />
         
         <Route path="/404" element={<NotFound />} />
             </Routes>
