@@ -92,6 +92,13 @@ export default function FabricaFiscal() {
               Configure os dados fiscais e tributários dos produtos
             </p>
           </div>
+          <Button 
+            onClick={() => window.location.href = '/dashboard/fabrica/tabela-impostos'}
+            className="gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            Tabela de Impostos
+          </Button>
         </div>
 
         {/* KPIs */}
