@@ -78,6 +78,12 @@ export const DadosFiscaisProdutoDialog = ({
   const [pesoBruto, setPesoBruto] = useState("");
   const [pesoLiquido, setPesoLiquido] = useState("");
 
+  // Cubagem / Dimensões
+  const [altura, setAltura] = useState("");
+  const [largura, setLargura] = useState("");
+  const [comprimento, setComprimento] = useState("");
+  const [volumeM3, setVolumeM3] = useState("");
+
   // Curvas
   const [curvaFisica, setCurvaFisica] = useState("");
   const [curvaMonetaria, setCurvaMonetaria] = useState("");
@@ -92,6 +98,23 @@ export const DadosFiscaisProdutoDialog = ({
   const [repasseIcm, setRepasseIcm] = useState("");
   const [substancia, setSubstancia] = useState("");
   const [observacoes, setObservacoes] = useState("");
+
+  // Calcular volume automaticamente quando dimensões mudarem
+  useEffect(() => {
+    if (altura && largura && comprimento) {
+      const h = parseFloat(altura);
+      const l = parseFloat(largura);
+      const c = parseFloat(comprimento);
+      
+      if (!isNaN(h) && !isNaN(l) && !isNaN(c) && h > 0 && l > 0 && c > 0) {
+        // Converter cm³ para m³ (dividir por 1.000.000)
+        const volumeCalculado = (h * l * c) / 1000000;
+        setVolumeM3(volumeCalculado.toFixed(6));
+      }
+    } else {
+      setVolumeM3("");
+    }
+  }, [altura, largura, comprimento]);
 
   // Carregar dados existentes
   useEffect(() => {
@@ -163,6 +186,12 @@ export const DadosFiscaisProdutoDialog = ({
         // Pesos
         setPesoBruto(data.peso_bruto?.toString() || "");
         setPesoLiquido(data.peso_liquido?.toString() || "");
+        
+        // Cubagem
+        setAltura(data.altura?.toString() || "");
+        setLargura(data.largura?.toString() || "");
+        setComprimento(data.comprimento?.toString() || "");
+        setVolumeM3(data.volume_m3?.toString() || "");
         
         // Curvas
         setCurvaFisica(data.curva_fisica || "");
@@ -241,6 +270,11 @@ export const DadosFiscaisProdutoDialog = ({
         // Pesos
         peso_bruto: pesoBruto ? parseFloat(pesoBruto) : null,
         peso_liquido: pesoLiquido ? parseFloat(pesoLiquido) : null,
+        // Cubagem
+        altura: altura ? parseFloat(altura) : null,
+        largura: largura ? parseFloat(largura) : null,
+        comprimento: comprimento ? parseFloat(comprimento) : null,
+        volume_m3: volumeM3 ? parseFloat(volumeM3) : null,
         // Curvas
         curva_fisica: curvaFisica || null,
         curva_monetaria: curvaMonetaria || null,
@@ -782,15 +816,15 @@ export const DadosFiscaisProdutoDialog = ({
 
                 <div className="border-t pt-4 mt-4">
                   <h4 className="font-medium mb-3 text-sm text-foreground">Cubagem / Dimensões da Embalagem</h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-4 gap-4">
                     <div>
                       <Label htmlFor="altura">Altura (cm)</Label>
                       <Input
                         id="altura"
                         type="number"
                         step="0.01"
-                        value={pesoLiquido}
-                        onChange={(e) => setPesoLiquido(e.target.value)}
+                        value={altura}
+                        onChange={(e) => setAltura(e.target.value)}
                         placeholder="0.00"
                       />
                     </div>
@@ -800,8 +834,8 @@ export const DadosFiscaisProdutoDialog = ({
                         id="largura"
                         type="number"
                         step="0.01"
-                        value={pesoBruto}
-                        onChange={(e) => setPesoBruto(e.target.value)}
+                        value={largura}
+                        onChange={(e) => setLargura(e.target.value)}
                         placeholder="0.00"
                       />
                     </div>
@@ -811,14 +845,26 @@ export const DadosFiscaisProdutoDialog = ({
                         id="comprimento"
                         type="number"
                         step="0.01"
-                        value={pesoBruto}
-                        onChange={(e) => setPesoBruto(e.target.value)}
+                        value={comprimento}
+                        onChange={(e) => setComprimento(e.target.value)}
                         placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="volume">Volume (m³)</Label>
+                      <Input
+                        id="volume"
+                        type="text"
+                        value={volumeM3}
+                        readOnly
+                        disabled
+                        className="bg-muted"
+                        placeholder="Calculado"
                       />
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Volume será calculado automaticamente em m³
+                    Volume é calculado automaticamente: (altura × largura × comprimento) / 1.000.000
                   </p>
                 </div>
 
