@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
 import { FileText, Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -61,9 +62,9 @@ export default function FabricaTabelaImpostos() {
     observacoes: "",
   });
 
-  const { data: regras, isLoading } = useQuery({
-    queryKey: ["regras-fiscais", tipoFiltro],
-    queryFn: async () => {
+  const { data: regras, isLoading } = useSupabaseQuery<RegraFiscal[]>(
+    ["regras-fiscais", tipoFiltro],
+    async () => {
       let query = supabase
         .from("fabrica_regras_fiscais" as any)
         .select("*")
@@ -78,8 +79,8 @@ export default function FabricaTabelaImpostos() {
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as unknown as RegraFiscal[];
-    },
-  });
+    }
+  );
 
   const salvarMutation = useMutation({
     mutationFn: async (data: any) => {
