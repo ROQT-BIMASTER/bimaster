@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { platform, username, token, saveToHistory = false } = await req.json();
+    const { platform, username, token, accountId, saveToHistory = false } = await req.json();
 
     console.log(`Fetching metrics for ${platform} - ${username}`);
 
@@ -37,7 +37,7 @@ serve(async (req) => {
       case 'tiktok':
         metrics = await fetchTikTokMetrics(username, token);
         break;
-    default:
+      default:
         throw new Error('Plataforma não suportada');
     }
 
@@ -48,12 +48,16 @@ serve(async (req) => {
       const supabase = createClient(supabaseUrl, supabaseKey);
 
       await supabase.from('social_media_metrics_history').insert({
+        account_id: accountId || null,
         platform,
         username,
         followers: metrics.followers,
         posts: metrics.posts,
         engagement: metrics.engagement,
         reach: metrics.reach,
+        likes: metrics.likes || 0,
+        comments: metrics.comments || 0,
+        shares: metrics.shares || 0,
       });
     }
 
@@ -90,8 +94,11 @@ async function fetchInstagramMetrics(username: string, token: string) {
   );
 
   const mediaData = await mediaResponse.json();
-  const totalEngagement = mediaData.data?.reduce((sum: number, post: any) => 
-    sum + (post.like_count || 0) + (post.comments_count || 0), 0) || 0;
+  const totalLikes = mediaData.data?.reduce((sum: number, post: any) => 
+    sum + (post.like_count || 0), 0) || 0;
+  const totalComments = mediaData.data?.reduce((sum: number, post: any) => 
+    sum + (post.comments_count || 0), 0) || 0;
+  const totalEngagement = totalLikes + totalComments;
   
   const avgEngagement = mediaData.data?.length ? 
     (totalEngagement / (data.followers_count * mediaData.data.length)) * 100 : 0;
@@ -101,6 +108,9 @@ async function fetchInstagramMetrics(username: string, token: string) {
     posts: data.media_count || 0,
     engagement: avgEngagement,
     reach: data.followers_count * 0.15 || 0, // Estimativa de 15% de alcance
+    likes: totalLikes,
+    comments: totalComments,
+    shares: 0,
   };
 }
 
@@ -121,6 +131,9 @@ async function fetchFacebookMetrics(username: string, token: string) {
     posts: 0, // Precisa de endpoint adicional
     engagement: data.engagement?.count ? (data.engagement.count / data.fan_count) * 100 : 0,
     reach: data.fan_count * 0.2 || 0,
+    likes: 0,
+    comments: 0,
+    shares: 0,
   };
 }
 
@@ -148,6 +161,9 @@ async function fetchTwitterMetrics(username: string, token: string) {
     engagement: metrics?.followers_count ? 
       ((metrics.listed_count / metrics.followers_count) * 100) : 0,
     reach: metrics?.followers_count * 0.1 || 0,
+    likes: 0,
+    comments: 0,
+    shares: 0,
   };
 }
 
@@ -170,6 +186,9 @@ async function fetchYouTubeMetrics(channelId: string, token: string) {
     engagement: stats?.viewCount && stats?.subscriberCount ? 
       ((parseInt(stats.viewCount) / parseInt(stats.subscriberCount)) / parseInt(stats.videoCount || '1')) : 0,
     reach: parseInt(stats?.viewCount || '0'),
+    likes: 0,
+    comments: 0,
+    shares: 0,
   };
 }
 
@@ -196,6 +215,9 @@ async function fetchLinkedInMetrics(companyId: string, token: string) {
     posts: 0, // Precisa de endpoint adicional
     engagement: 0,
     reach: data.followersCount * 0.25 || 0,
+    likes: 0,
+    comments: 0,
+    shares: 0,
   };
 }
 
@@ -223,5 +245,8 @@ async function fetchTikTokMetrics(username: string, token: string) {
     engagement: user?.follower_count && user?.total_favorited ? 
       ((user.total_favorited / (user.follower_count * user.video_count)) * 100) : 0,
     reach: user?.follower_count * 0.3 || 0,
+    likes: user?.total_favorited || 0,
+    comments: 0,
+    shares: 0,
   };
 }

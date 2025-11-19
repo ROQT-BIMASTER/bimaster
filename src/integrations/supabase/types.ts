@@ -3104,27 +3104,45 @@ export type Database = {
       social_media_accounts: {
         Row: {
           access_token: string | null
+          account_group: string | null
+          account_name: string | null
           created_at: string
+          error_message: string | null
           id: string
+          last_sync_at: string | null
           platform: string
+          region: string | null
+          status: string | null
           updated_at: string
           user_id: string | null
           username: string
         }
         Insert: {
           access_token?: string | null
+          account_group?: string | null
+          account_name?: string | null
           created_at?: string
+          error_message?: string | null
           id?: string
+          last_sync_at?: string | null
           platform: string
+          region?: string | null
+          status?: string | null
           updated_at?: string
           user_id?: string | null
           username: string
         }
         Update: {
           access_token?: string | null
+          account_group?: string | null
+          account_name?: string | null
           created_at?: string
+          error_message?: string | null
           id?: string
+          last_sync_at?: string | null
           platform?: string
+          region?: string | null
+          status?: string | null
           updated_at?: string
           user_id?: string | null
           username?: string
@@ -3172,42 +3190,62 @@ export type Database = {
       }
       social_media_metrics_history: {
         Row: {
+          account_id: string | null
+          comments: number | null
           created_at: string
           engagement: number | null
           followers: number | null
           id: string
+          likes: number | null
           platform: string
           posts: number | null
           reach: number | null
           sentiment_label: string | null
           sentiment_score: number | null
+          shares: number | null
           username: string
         }
         Insert: {
+          account_id?: string | null
+          comments?: number | null
           created_at?: string
           engagement?: number | null
           followers?: number | null
           id?: string
+          likes?: number | null
           platform: string
           posts?: number | null
           reach?: number | null
           sentiment_label?: string | null
           sentiment_score?: number | null
+          shares?: number | null
           username: string
         }
         Update: {
+          account_id?: string | null
+          comments?: number | null
           created_at?: string
           engagement?: number | null
           followers?: number | null
           id?: string
+          likes?: number | null
           platform?: string
           posts?: number | null
           reach?: number | null
           sentiment_label?: string | null
           sentiment_score?: number | null
+          shares?: number | null
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "social_media_metrics_history_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "social_media_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       store_categories: {
         Row: {
