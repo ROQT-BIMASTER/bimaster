@@ -61,6 +61,7 @@ const Relatorios = lazy(() => import("./pages/Relatorios"));
 const InstalarApp = lazy(() => import("./pages/InstalarApp"));
 const WhatsAppMonitoring = lazy(() => import("./pages/WhatsAppMonitoring"));
 const Marketing = lazy(() => import("./pages/Marketing"));
+const AIAnalytics = lazy(() => import("./pages/AIAnalytics"));
 
 // Loading component
 const PageLoader = () => (
@@ -110,6 +111,7 @@ const App = () => {
         
         {/* Protected Routes */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/dashboard/ai-analytics" element={<ProtectedRoute><AIAnalytics /></ProtectedRoute>} />
         <Route path="/dashboard/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
         
         {/* Módulo de Marketing */}
