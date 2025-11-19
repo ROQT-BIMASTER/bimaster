@@ -116,25 +116,24 @@ const App = () => {
         
         {/* Módulo de Marketing */}
         <Route path="/dashboard/marketing" element={<ProtectedRoute><MarketingModule /></ProtectedRoute>} />
-        <Route path="/dashboard/marketing/dashboards" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
+        <Route path="/dashboard/marketing/social" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
         <Route path="/dashboard/marketing/whatsapp" element={<ProtectedRoute><WhatsAppMonitoring /></ProtectedRoute>} />
         
         <Route path="/dashboard/instalar-app" element={<ProtectedRoute><InstalarApp /></ProtectedRoute>} />
         
         {/* Módulo de Prospects */}
         <Route path="/dashboard/prospects" element={<ProtectedRoute><ProspectsModule /></ProtectedRoute>} />
-        <Route path="/dashboard/prospects/list" element={<ProtectedRoute><Prospects /></ProtectedRoute>} />
+        <Route path="/dashboard/prospects/lista" element={<ProtectedRoute><Prospects /></ProtectedRoute>} />
         <Route path="/dashboard/prospects/kanban" element={<ProtectedRoute><Kanban /></ProtectedRoute>} />
         <Route path="/dashboard/prospects/atividades" element={<ProtectedRoute><Atividades /></ProtectedRoute>} />
         <Route path="/dashboard/prospects/mapa" element={<ProtectedRoute><Mapa /></ProtectedRoute>} />
+        <Route path="/dashboard/prospects/municipios" element={<ProtectedRoute><Municipios /></ProtectedRoute>} />
         
         {/* Outras funcionalidades */}
-        <Route path="/dashboard/municipios" element={<ProtectedRoute><Municipios /></ProtectedRoute>} />
         <Route path="/dashboard/ranking" element={<ProtectedRoute><Ranking /></ProtectedRoute>} />
         <Route path="/dashboard/tarefas" element={<ProtectedRoute><Tarefas /></ProtectedRoute>} />
         <Route path="/dashboard/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
         <Route path="/dashboard/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
-        <Route path="/dashboard/whatsapp" element={<ProtectedRoute><WhatsAppMonitoring /></ProtectedRoute>} />
         <Route path="/dashboard/importar-clientes" element={<ProtectedRoute><ImportarClientes /></ProtectedRoute>} />
         <Route path="/dashboard/auditoria" element={<ProtectedRoute><Auditoria /></ProtectedRoute>} />
         
