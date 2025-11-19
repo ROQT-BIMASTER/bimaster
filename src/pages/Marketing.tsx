@@ -74,13 +74,37 @@ export default function Marketing() {
         return <AIImageGenerator />;
       case "pollo":
         return (
-          <div className="w-full h-[calc(100vh-12rem)] rounded-lg overflow-hidden border border-border">
-            <iframe
-              src="https://pollo.ai/pt/app/pro-effects"
-              className="w-full h-full"
-              title="Pollo AI"
-              allow="camera; microphone"
-            />
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pollo AI - Efeitos de Vídeo</CardTitle>
+                <CardDescription>
+                  Para usar o Pollo AI com login do Google, é necessário abrir em uma nova aba.
+                  Iframes têm restrições de segurança que impedem o login social.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button
+                  onClick={() => window.open("https://pollo.ai/pt/app/pro-effects", "_blank")}
+                  className="w-full gap-2"
+                  size="lg"
+                >
+                  <Video className="h-5 w-5" />
+                  Abrir Pollo AI em Nova Aba
+                </Button>
+                <p className="text-sm text-muted-foreground text-center">
+                  O login do Google funcionará normalmente na nova aba
+                </p>
+              </CardContent>
+            </Card>
+            <div className="w-full h-[calc(100vh-24rem)] rounded-lg overflow-hidden border border-border">
+              <iframe
+                src="https://pollo.ai/pt/app/pro-effects"
+                className="w-full h-full"
+                title="Pollo AI"
+                allow="camera; microphone"
+              />
+            </div>
           </div>
         );
       default:
