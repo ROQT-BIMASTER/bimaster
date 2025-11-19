@@ -61,6 +61,8 @@ const InstalarApp = lazy(() => import("./pages/InstalarApp"));
 const WhatsAppMonitoring = lazy(() => import("./pages/WhatsAppMonitoring"));
 const Marketing = lazy(() => import("./pages/Marketing"));
 const AIAnalytics = lazy(() => import("./pages/AIAnalytics"));
+const FabricaModule = lazy(() => import("./pages/modules/FabricaModule"));
+const FabricaMateriasPrimas = lazy(() => import("./pages/FabricaMateriasPrimas"));
 
 // Loading component
 const PageLoader = () => (
@@ -182,7 +184,12 @@ const App = () => {
         <Route path="/dashboard/trade/performance" element={<ProtectedRoute><TradePerformance /></ProtectedRoute>} />
         <Route path="/dashboard/trade/team-performance" element={<ProtectedRoute><TradeTeamPerformance /></ProtectedRoute>} />
         <Route path="/dashboard/trade/rewards" element={<ProtectedRoute><TradeRewards /></ProtectedRoute>} />
+
+        {/* Módulo de Fábrica */}
+        <Route path="/dashboard/fabrica" element={<ProtectedRoute><FabricaModule /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/materias-primas" element={<ProtectedRoute><FabricaMateriasPrimas /></ProtectedRoute>} />
         
+        <Route path="/404" element={<NotFound />} />
             </Routes>
           </Suspense>
         </BrowserRouter>

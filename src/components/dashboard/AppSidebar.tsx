@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,6 +65,7 @@ export function AppSidebar() {
   const [prospectsOpen, setProspectsOpen] = useState(true);
   const [tradeOpen, setTradeOpen] = useState(true);
   const [marketingOpen, setMarketingOpen] = useState(true);
+  const [fabricaOpen, setFabricaOpen] = useState(true);
 
   const loading = permissionsLoading || modulesLoading;
 
@@ -376,6 +377,43 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+        {/* Módulo de Fábrica */}
+        {hasModulePermission("fabrica") && (
+          <SidebarGroup>
+            <Collapsible open={fabricaOpen} onOpenChange={setFabricaOpen}>
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                  {fabricaOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <Factory className="h-4 w-4" />
+                  Módulo Fábrica
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/dashboard/fabrica" end className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                          <Home className="h-4 w-4" />
+                          <span>Dashboard</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/dashboard/fabrica/materias-primas" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                          <Package className="h-4 w-4" />
+                          <span>Matérias-Primas</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
