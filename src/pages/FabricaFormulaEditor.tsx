@@ -49,6 +49,20 @@ export default function FabricaFormulaEditor() {
     enabled: !!id && id !== "nova",
   });
 
+  const { data: produtos } = useQuery({
+    queryKey: ["fabrica-produtos-ativos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fabrica_produtos")
+        .select("*")
+        .eq("ativo", true)
+        .order("nome");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: materiasPrimas } = useQuery({
     queryKey: ["fabrica-mps-ativas"],
     queryFn: async () => {
@@ -63,12 +77,29 @@ export default function FabricaFormulaEditor() {
     },
   });
 
+  const [produtoId, setProdutoId] = useState("");
+  const [rendimento, setRendimento] = useState(100);
+  const [tempoProducao, setTempoProducao] = useState(60);
+  const [perdasEsperadas, setPerdasEsperadas] = useState(5);
+  const [temperaturaIdeal, setTemperaturaIdeal] = useState<number | undefined>();
+  const [phIdeal, setPhIdeal] = useState<number | undefined>();
+  const [observacoesTecnicas, setObservacoesTecnicas] = useState("");
   const [itens, setItens] = useState<any[]>([]);
 
-  // Carregar itens quando fórmula for carregada
+  // Carregar dados quando fórmula for carregada
   useEffect(() => {
-    if (formula?.fabrica_formula_itens) {
-      setItens(formula.fabrica_formula_itens);
+    if (formula) {
+      setProdutoId(formula.produto_id || "");
+      setRendimento(formula.rendimento_teorico || 100);
+      setTempoProducao(formula.tempo_producao_minutos || 60);
+      setPerdasEsperadas(formula.perdas_esperadas || 5);
+      setTemperaturaIdeal(formula.temperatura_ideal);
+      setPhIdeal(formula.ph_ideal);
+      setObservacoesTecnicas(formula.observacoes_tecnicas || "");
+      
+      if (formula.fabrica_formula_itens) {
+        setItens(formula.fabrica_formula_itens);
+      }
     }
   }, [formula]);
 
@@ -110,6 +141,11 @@ export default function FabricaFormulaEditor() {
 
   const salvarMutation = useMutation({
     mutationFn: async () => {
+      // Validar produto selecionado
+      if (!produtoId) {
+        throw new Error("Selecione um produto para a fórmula");
+      }
+
       // Validar fórmula
       const validacao = validarFormula(itens);
       if (!validacao.valida) {
@@ -120,24 +156,24 @@ export default function FabricaFormulaEditor() {
         validacao.avisos.forEach((aviso) => toast.warning(aviso));
       }
 
-      // Calcular custo
-      const custoTotal = calcularCustoFormula(
-        itens.map((item) => ({
-          quantidade: item.quantidade,
-          custo_unitario:
-            materiasPrimas?.find((mp) => mp.id === item.mp_id)
-              ?.custo_unitario || 0,
-        }))
-      );
+      // Obter ID do usuário
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session?.session?.user?.id;
 
       // Salvar fórmula e itens
       const { data: formulaSalva, error: formulaError } = await supabase
         .from("fabrica_formulas")
         .upsert({
           id: id !== "nova" ? id : undefined,
-          produto_id: formula?.produto_id,
-          rendimento: formula?.rendimento,
+          produto_id: produtoId,
+          rendimento_teorico: rendimento,
+          tempo_producao_minutos: tempoProducao,
+          perdas_esperadas: perdasEsperadas,
+          temperatura_ideal: temperaturaIdeal,
+          ph_ideal: phIdeal,
+          observacoes_tecnicas: observacoesTecnicas,
           ativa: true,
+          created_by: userId,
         })
         .select()
         .single();
@@ -246,6 +282,33 @@ export default function FabricaFormulaEditor() {
           </div>
         </div>
 
+        {/* Seleção de Produto */}
+        {id === "nova" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Produto</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <Label>Selecione o Produto</Label>
+                <select
+                  value={produtoId}
+                  onChange={(e) => setProdutoId(e.target.value)}
+                  className="w-full mt-2 px-3 py-2 border rounded-md"
+                  required
+                >
+                  <option value="">Selecione...</option>
+                  {produtos?.map((produto) => (
+                    <option key={produto.id} value={produto.id}>
+                      {produto.codigo} - {produto.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Informações da Fórmula */}
         <Card>
           <CardHeader>
@@ -254,20 +317,63 @@ export default function FabricaFormulaEditor() {
           <CardContent className="grid gap-4 md:grid-cols-3">
             <div>
               <Label>Rendimento (unidades)</Label>
-              <Input type="number" placeholder="100" />
+              <Input
+                type="number"
+                value={rendimento}
+                onChange={(e) => setRendimento(Number(e.target.value))}
+                placeholder="100"
+              />
             </div>
             <div>
               <Label>Tempo de Produção (min)</Label>
-              <Input type="number" placeholder="60" />
+              <Input
+                type="number"
+                value={tempoProducao}
+                onChange={(e) => setTempoProducao(Number(e.target.value))}
+                placeholder="60"
+              />
             </div>
             <div>
               <Label>Perdas Esperadas (%)</Label>
-              <Input type="number" placeholder="5" />
+              <Input
+                type="number"
+                value={perdasEsperadas}
+                onChange={(e) => setPerdasEsperadas(Number(e.target.value))}
+                placeholder="5"
+                step="0.1"
+              />
+            </div>
+            <div>
+              <Label>Temperatura Ideal (°C)</Label>
+              <Input
+                type="number"
+                value={temperaturaIdeal || ""}
+                onChange={(e) =>
+                  setTemperaturaIdeal(
+                    e.target.value ? Number(e.target.value) : undefined
+                  )
+                }
+                placeholder="25"
+              />
+            </div>
+            <div>
+              <Label>pH Ideal</Label>
+              <Input
+                type="number"
+                value={phIdeal || ""}
+                onChange={(e) =>
+                  setPhIdeal(e.target.value ? Number(e.target.value) : undefined)
+                }
+                placeholder="7.0"
+                step="0.1"
+              />
             </div>
             <div className="md:col-span-3">
               <Label>Observações Técnicas</Label>
               <Textarea
-                placeholder="pH ideal, temperatura, etc."
+                value={observacoesTecnicas}
+                onChange={(e) => setObservacoesTecnicas(e.target.value)}
+                placeholder="Instruções especiais, cuidados, etc."
                 rows={3}
               />
             </div>
