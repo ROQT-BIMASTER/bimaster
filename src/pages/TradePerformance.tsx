@@ -12,6 +12,11 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { PerformanceEvolutionChart } from "@/components/trade/PerformanceEvolutionChart";
+import { PerformanceMetricsCard } from "@/components/trade/PerformanceMetricsCard";
+import { LevelProgressCard } from "@/components/trade/LevelProgressCard";
+import { BadgesShowcase } from "@/components/trade/BadgesShowcase";
+import { TeamComparisonCard } from "@/components/trade/TeamComparisonCard";
 
 interface UserRanking {
   id: string;
@@ -265,46 +270,12 @@ const TradePerformance = () => {
 
         {/* User Performance Card */}
         {currentUserRanking && (
-          <Card className="border-primary/50">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Seu Desempenho</span>
-                <Badge className={getLevelColor(currentUserRanking.level_name)}>
-                  {currentUserRanking.level_name}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <p className="text-2xl font-bold">{currentUserRanking.total_points}</p>
-                  <p className="text-sm text-muted-foreground">Pontos</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold">#{currentUserRanking.ranking_position}</p>
-                  <p className="text-sm text-muted-foreground">Posição</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold">{currentUserRanking.streak_days}</p>
-                  <p className="text-sm text-muted-foreground">Dias Sequenciais</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold">{currentUserRanking.level_number}</p>
-                  <p className="text-sm text-muted-foreground">Nível</p>
-                </div>
-              </div>
-
-              {nextLevelPoints && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Progresso para {currentUserRanking.level_number < 5 ? ['Prata', 'Ouro', 'Platina', 'Elite'][currentUserRanking.level_number - 1] : 'Máximo'}</span>
-                    <span>{currentUserRanking.total_points} / {nextLevelPoints}</span>
-                  </div>
-                  <Progress value={Math.min(progressToNextLevel, 100)} />
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <LevelProgressCard 
+            currentLevel={currentUserRanking.level_number}
+            currentLevelName={currentUserRanking.level_name || 'Bronze'}
+            currentPoints={currentUserRanking.total_points}
+            nextLevelPoints={nextLevelPoints}
+          />
         )}
 
         <Tabs value={selectedPeriod} onValueChange={(v) => setSelectedPeriod(v as any)}>
@@ -316,6 +287,23 @@ const TradePerformance = () => {
           </TabsList>
 
           <TabsContent value={selectedPeriod} className="space-y-6">
+            {/* Métricas de Performance */}
+            <PerformanceMetricsCard />
+
+            {/* Gráfico de Evolução */}
+            <PerformanceEvolutionChart />
+
+            {/* Comparação com Equipe */}
+            <TeamComparisonCard />
+
+            {/* Badges & Conquistas */}
+            {currentUserRanking && (
+              <BadgesShowcase 
+                badges={currentUserRanking.badges}
+                streakDays={currentUserRanking.streak_days}
+              />
+            )}
+
             {/* Recent Points History */}
             <Card>
               <CardHeader>
