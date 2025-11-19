@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,21 +11,16 @@ serve(async (req) => {
   }
 
   try {
-    const { brand_id, website_url } = await req.json();
+    const { website_url } = await req.json();
 
-    if (!brand_id || !website_url) {
+    if (!website_url) {
       return new Response(
-        JSON.stringify({ error: 'brand_id e website_url são obrigatórios' }),
+        JSON.stringify({ error: 'website_url é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`🔍 Analisando site: ${website_url} para brand_id: ${brand_id}`);
-
-    // Inicializar Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    console.log(`🔍 Analisando site: ${website_url}`);
 
     // 1. Buscar conteúdo do site
     console.log('📥 Fazendo fetch do conteúdo do site...');
@@ -181,52 +175,13 @@ Por favor, extraia o máximo de informações possível sobre a marca e seus pro
     const extractedData = JSON.parse(toolCall.function.arguments);
     console.log('📊 Dados extraídos:', JSON.stringify(extractedData, null, 2));
 
-    // 3. Atualizar marca no banco
-    const brandDescription = `${extractedData.brand.description}\n\n${extractedData.brand.mission || ''}`.trim();
-    
-    const { error: updateError } = await supabase
-      .from('our_brands')
-      .update({
-        description: brandDescription,
-      })
-      .eq('id', brand_id);
-
-    if (updateError) {
-      console.error('Erro ao atualizar marca:', updateError);
-      throw updateError;
-    }
-
-    console.log('✅ Marca atualizada no banco de dados');
-
-    // 4. Criar produtos no banco
-    const productsToInsert = extractedData.products.map((product: any) => ({
-      name: product.name,
-      description: product.description || null,
-      category: product.category || null,
-      sku: product.sku || null,
-      active: true,
-    }));
-
-    if (productsToInsert.length > 0) {
-      const { error: productsError } = await supabase
-        .from('our_products')
-        .insert(productsToInsert);
-
-      if (productsError) {
-        console.error('Erro ao inserir produtos:', productsError);
-        // Não falhar se produtos não forem inseridos
-        console.warn('Continuando apesar do erro nos produtos');
-      } else {
-        console.log(`✅ ${productsToInsert.length} produtos inseridos no banco de dados`);
-      }
-    }
-
+    // Retornar dados para o usuário revisar e aprovar
     return new Response(
       JSON.stringify({
         success: true,
         brand: extractedData.brand,
-        products_count: extractedData.products.length,
         products: extractedData.products,
+        products_count: extractedData.products.length,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
