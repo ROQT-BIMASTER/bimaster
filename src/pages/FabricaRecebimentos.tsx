@@ -224,6 +224,18 @@ export default function FabricaRecebimentos() {
                     
                     <div className="flex items-center gap-2">
                       {getStatusBadge(nota.status)}
+                      {nota.status === 'imported' && (
+                        <Button 
+                          size="sm" 
+                          variant="default"
+                          onClick={() => {
+                            setMapearNotaId(nota.id);
+                            setMapearOpen(true);
+                          }}
+                        >
+                          Mapear Produtos
+                        </Button>
+                      )}
                       <Button 
                         size="sm" 
                         variant="outline"
