@@ -1180,6 +1180,11 @@ export type Database = {
           classificacao_fiscal: string | null
           classificacao_pis_cofins: string | null
           cod_nbm: string | null
+          codigo_ean: string | null
+          codigo_ean_tributavel: string | null
+          codigo_enquadramento_ipi: string | null
+          cofins_qtd_bc_prod: number | null
+          cofins_v_aliq_prod: number | null
           comissao_cobranca: number | null
           comissao_venda: number | null
           comprimento: number | null
@@ -1203,13 +1208,18 @@ export type Database = {
           excecao_ncm: string | null
           frete: number | null
           id: string
+          indicador_composicao_total: number | null
+          informacoes_adicionais: string | null
           largura: number | null
           markup_percentual: number | null
           ncm: string | null
           observacoes: string | null
           origem_mercadoria: string | null
+          percentual_st: number | null
           peso_bruto: number | null
           peso_liquido: number | null
+          pis_qtd_bc_prod: number | null
+          pis_v_aliq_prod: number | null
           preco_custo: number | null
           preco_fabrica: number | null
           preco_maximo: number | null
@@ -1225,6 +1235,9 @@ export type Database = {
           unidade_compra: string | null
           unidade_venda: string | null
           updated_at: string | null
+          v_icms_st_ret: number | null
+          v_icms_substituto: number | null
+          vbc_st_ret: number | null
           volume_m3: number | null
         }
         Insert: {
@@ -1239,6 +1252,11 @@ export type Database = {
           classificacao_fiscal?: string | null
           classificacao_pis_cofins?: string | null
           cod_nbm?: string | null
+          codigo_ean?: string | null
+          codigo_ean_tributavel?: string | null
+          codigo_enquadramento_ipi?: string | null
+          cofins_qtd_bc_prod?: number | null
+          cofins_v_aliq_prod?: number | null
           comissao_cobranca?: number | null
           comissao_venda?: number | null
           comprimento?: number | null
@@ -1262,13 +1280,18 @@ export type Database = {
           excecao_ncm?: string | null
           frete?: number | null
           id?: string
+          indicador_composicao_total?: number | null
+          informacoes_adicionais?: string | null
           largura?: number | null
           markup_percentual?: number | null
           ncm?: string | null
           observacoes?: string | null
           origem_mercadoria?: string | null
+          percentual_st?: number | null
           peso_bruto?: number | null
           peso_liquido?: number | null
+          pis_qtd_bc_prod?: number | null
+          pis_v_aliq_prod?: number | null
           preco_custo?: number | null
           preco_fabrica?: number | null
           preco_maximo?: number | null
@@ -1284,6 +1307,9 @@ export type Database = {
           unidade_compra?: string | null
           unidade_venda?: string | null
           updated_at?: string | null
+          v_icms_st_ret?: number | null
+          v_icms_substituto?: number | null
+          vbc_st_ret?: number | null
           volume_m3?: number | null
         }
         Update: {
@@ -1298,6 +1324,11 @@ export type Database = {
           classificacao_fiscal?: string | null
           classificacao_pis_cofins?: string | null
           cod_nbm?: string | null
+          codigo_ean?: string | null
+          codigo_ean_tributavel?: string | null
+          codigo_enquadramento_ipi?: string | null
+          cofins_qtd_bc_prod?: number | null
+          cofins_v_aliq_prod?: number | null
           comissao_cobranca?: number | null
           comissao_venda?: number | null
           comprimento?: number | null
@@ -1321,13 +1352,18 @@ export type Database = {
           excecao_ncm?: string | null
           frete?: number | null
           id?: string
+          indicador_composicao_total?: number | null
+          informacoes_adicionais?: string | null
           largura?: number | null
           markup_percentual?: number | null
           ncm?: string | null
           observacoes?: string | null
           origem_mercadoria?: string | null
+          percentual_st?: number | null
           peso_bruto?: number | null
           peso_liquido?: number | null
+          pis_qtd_bc_prod?: number | null
+          pis_v_aliq_prod?: number | null
           preco_custo?: number | null
           preco_fabrica?: number | null
           preco_maximo?: number | null
@@ -1343,6 +1379,9 @@ export type Database = {
           unidade_compra?: string | null
           unidade_venda?: string | null
           updated_at?: string | null
+          v_icms_st_ret?: number | null
+          v_icms_substituto?: number | null
+          vbc_st_ret?: number | null
           volume_m3?: number | null
         }
         Relationships: [
