@@ -117,8 +117,12 @@ export function AppSidebar() {
   ];
 
   const otherMenus = permissions.filter(screen => 
-    !['prospects', 'kanban', 'atividades', 'mapa', 'trade_marketing', 'trade_stores', 
-      'trade_visits', 'trade_photos', 'trade_promotions', 'trade_competitors', 'trade_insights', 
+    !['prospects', 'kanban', 'atividades', 'mapa', 
+      'marketing', 'marketing_dashboards', 'marketing_whatsapp',
+      'trade', 'trade_stores', 'trade_visits', 'trade_sellout', 'trade_shelf_measurements',
+      'trade_our_brands', 'trade_photos', 'trade_ideal_photos', 'trade_auditorias',
+      'trade_relatorio_competitivo', 'trade_financeiro', 'trade_rewards', 'trade_insights',
+      'relatorios', 'ai_analytics', 'instalar_app',
       'configuracoes', 'dashboard', 'ranking'].includes(screen.codigo)
   );
 
