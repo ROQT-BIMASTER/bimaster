@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-queue-secret",
 };
 
 serve(async (req) => {
@@ -12,6 +12,27 @@ serve(async (req) => {
   }
 
   try {
+    // Verify secret token for background processor security
+    const queueSecret = Deno.env.get('QUEUE_PROCESSOR_SECRET');
+    const requestSecret = req.headers.get('x-queue-secret');
+
+    if (!queueSecret) {
+      console.error('❌ QUEUE_PROCESSOR_SECRET not configured');
+      return new Response(
+        JSON.stringify({ error: 'Queue processor secret not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (requestSecret !== queueSecret) {
+      console.error('❌ Invalid queue processor secret');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ Queue processor authentication verified');
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");

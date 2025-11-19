@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
 
 Deno.serve(async (req) => {
@@ -11,6 +11,27 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Verify secret token for cron job security
+    const cronSecret = Deno.env.get('CRON_SECRET');
+    const requestSecret = req.headers.get('x-cron-secret');
+
+    if (!cronSecret) {
+      console.error('❌ CRON_SECRET not configured');
+      return new Response(
+        JSON.stringify({ error: 'Cron secret not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (requestSecret !== cronSecret) {
+      console.error('❌ Invalid cron secret');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ Cron authentication verified');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
