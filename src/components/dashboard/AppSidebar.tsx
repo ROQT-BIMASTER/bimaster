@@ -52,6 +52,7 @@ const iconMap: Record<string, any> = {
   TrendingUp: TrendingUp,
   Brain: Brain,
   Trophy: Trophy,
+  Sparkles: Sparkles,
 };
 
 export function AppSidebar() {
