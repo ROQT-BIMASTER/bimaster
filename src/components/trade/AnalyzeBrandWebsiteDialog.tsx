@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 
 interface AnalyzeBrandWebsiteDialogProps {
   open: boolean;
@@ -45,6 +46,8 @@ export function AnalyzeBrandWebsiteDialog({
   const [saving, setSaving] = useState(false);
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState("");
 
   const handleAnalyze = async () => {
     if (!websiteUrl.trim()) {
@@ -62,13 +65,35 @@ export function AnalyzeBrandWebsiteDialog({
 
     setLoading(true);
     setResult(null);
+    setProgress(0);
 
     try {
       console.log('🚀 Iniciando análise do site:', websiteUrl);
       
-      const { data, error } = await supabase.functions.invoke('analyze-brand-website', {
-        body: { website_url: websiteUrl }
-      });
+      // Simulação de progresso
+      setStatusMessage("Conectando ao site...");
+      setProgress(10);
+      
+      // Timeout de 60 segundos
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: A análise está demorando muito. Tente um site menor ou tente novamente.')), 60000)
+      );
+      
+      const analysisPromise = (async () => {
+        setStatusMessage("Coletando conteúdo do site...");
+        setProgress(30);
+        
+        const { data, error } = await supabase.functions.invoke('analyze-brand-website', {
+          body: { website_url: websiteUrl }
+        });
+        
+        setStatusMessage("Processando com IA...");
+        setProgress(70);
+        
+        return { data, error };
+      })();
+      
+      const { data, error } = await Promise.race([analysisPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error('Erro da função:', error);
@@ -79,6 +104,9 @@ export function AnalyzeBrandWebsiteDialog({
         throw new Error(data.error);
       }
 
+      setStatusMessage("Finalizando análise...");
+      setProgress(100);
+      
       console.log('✅ Análise concluída:', data);
       setResult(data);
       
@@ -98,6 +126,8 @@ export function AnalyzeBrandWebsiteDialog({
       }
     } finally {
       setLoading(false);
+      setProgress(0);
+      setStatusMessage("");
     }
   };
 
@@ -199,12 +229,16 @@ export function AnalyzeBrandWebsiteDialog({
           {/* Loading State */}
           {loading && (
             <Card className="p-6 bg-muted/50">
-              <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex flex-col items-center gap-4 text-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">Processando site...</p>
+                <div className="space-y-2 w-full">
+                  <p className="text-sm font-medium">{statusMessage || "Processando site..."}</p>
+                  <Progress value={progress} className="w-full" />
                   <p className="text-xs text-muted-foreground">
-                    Coletando conteúdo e analisando com IA. Aguarde alguns segundos.
+                    {progress < 30 && "Acessando o site e coletando informações..."}
+                    {progress >= 30 && progress < 70 && "Extraindo conteúdo da página..."}
+                    {progress >= 70 && progress < 100 && "Analisando com IA e estruturando dados..."}
+                    {progress === 100 && "Análise concluída!"}
                   </p>
                 </div>
               </div>

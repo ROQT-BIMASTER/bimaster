@@ -35,6 +35,7 @@ serve(async (req) => {
     }
 
     const htmlContent = await websiteResponse.text();
+    console.log(`📄 HTML recebido: ${htmlContent.length} caracteres`);
     
     // Extrair texto relevante do HTML (remover scripts, styles, etc)
     const textContent = htmlContent
@@ -43,9 +44,13 @@ serve(async (req) => {
       .replace(/<[^>]+>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
-      .substring(0, 30000); // Limitar a 30k caracteres
+      .substring(0, 15000); // Reduzir para 15k caracteres para processar mais rápido
 
     console.log(`📄 Conteúdo extraído: ${textContent.length} caracteres`);
+    
+    if (textContent.length < 100) {
+      throw new Error('Conteúdo insuficiente extraído do site. Verifique se a URL está correta.');
+    }
 
     // 2. Analisar com IA usando Lovable AI
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -61,8 +66,9 @@ serve(async (req) => {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(45000), // Timeout de 45 segundos
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-flash', // Modelo mais rápido
         messages: [
           {
             role: 'system',
@@ -70,14 +76,15 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: `Analise o seguinte conteúdo de um site de marca e extraia:
-1. Informações sobre a marca (descrição, valores, história)
-2. Lista de produtos encontrados (nome, descrição, categoria)
+            content: `Analise o seguinte conteúdo de um site de marca e extraia APENAS as informações mais relevantes:
+
+1. Uma descrição CURTA e OBJETIVA da marca (máximo 3 frases)
+2. Até 10 produtos principais (não liste todos, apenas os mais importantes)
 
 Conteúdo do site:
 ${textContent}
 
-Por favor, extraia o máximo de informações possível sobre a marca e seus produtos.`
+IMPORTANTE: Seja conciso e extraia apenas informações essenciais. Limite a 10 produtos no máximo.`
           }
         ],
         tools: [
