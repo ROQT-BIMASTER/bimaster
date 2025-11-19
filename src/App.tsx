@@ -1,14 +1,13 @@
+import { lazy, Suspense, useEffect } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import ErrorPage from "@/pages/ErrorPage";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect } from "react";
 import { memoryManager } from "@/lib/utils/memory-manager";
 import { useSyncOfflineData } from "@/hooks/useSyncOfflineData";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { lazy, Suspense } from "react";
 
 // Lazy load das páginas para otimizar bundle
 const Index = lazy(() => import("./pages/Index"));
@@ -82,7 +81,9 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  // Inicializar gerenciador de memória primeiro
+  const { syncOfflineData } = useSyncOfflineData();
+  
+  // Inicializar gerenciador de memória e sincronização offline
   useEffect(() => {
     console.log('🚀 Memory Manager inicializado');
     
@@ -90,9 +91,6 @@ const App = () => {
       memoryManager.destroy();
     };
   }, []);
-
-  // Hook para sincronizar dados offline quando voltar online
-  useSyncOfflineData();
 
   return (
     <ErrorBoundary>
