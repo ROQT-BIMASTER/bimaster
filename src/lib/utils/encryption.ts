@@ -74,10 +74,11 @@ export async function encryptData(data: string, userId: string): Promise<string>
     const iv = generateIV();
     const encoder = new TextEncoder();
     
+    const dataArray = encoder.encode(data);
     const encryptedData = await crypto.subtle.encrypt(
       { name: ALGORITHM, iv },
       key,
-      encoder.encode(data)
+      dataArray.buffer
     );
 
     // Combine IV and encrypted data
