@@ -4,11 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
-import { FileText, Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { FileText, Plus, Pencil, Trash2, ArrowLeft, Info } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -33,6 +35,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { isICMSST, geraCredIcms, getTipoCreditoICMS, geraCredPisCofins, getTipoCreditoPisCofins } from "@/lib/fabrica/fiscal-rules";
 
 interface RegraFiscal {
   id: string;
@@ -47,6 +51,7 @@ interface RegraFiscal {
 }
 
 export default function FabricaTabelaImpostos() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRegra, setEditingRegra] = useState<RegraFiscal | null>(null);
@@ -271,7 +276,14 @@ export default function FabricaTabelaImpostos() {
                         </TableCell>
                         <TableCell>{regra.tipo_imposto}</TableCell>
                         <TableCell>{regra.cfop}</TableCell>
-                        <TableCell>{regra.cst}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span>{regra.cst}</span>
+                            {regra.cst && regra.tipo_imposto === 'ICMS' && isICMSST(regra.cst) && (
+                              <Badge variant="secondary" className="text-xs">ST</Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-right">
                           {regra.aliquota}%
                         </TableCell>
@@ -280,8 +292,34 @@ export default function FabricaTabelaImpostos() {
                             ? `${regra.base_calculo_reduzida}%`
                             : "-"}
                         </TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {regra.observacoes || "-"}
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <div className="max-w-xs truncate">{regra.observacoes || '-'}</div>
+                            {regra.cst && (
+                              <div className="flex gap-1 flex-wrap">
+                                {regra.tipo_imposto === 'ICMS' && (
+                                  <Badge 
+                                    variant={geraCredIcms(regra.cst) ? "default" : "outline"}
+                                    className="text-xs whitespace-nowrap"
+                                  >
+                                    {geraCredIcms(regra.cst) 
+                                      ? `✓ Crédito ${getTipoCreditoICMS(regra.cst)}` 
+                                      : '✗ Sem crédito'}
+                                  </Badge>
+                                )}
+                                {(regra.tipo_imposto === 'PIS' || regra.tipo_imposto === 'COFINS') && (
+                                  <Badge 
+                                    variant={geraCredPisCofins(regra.cst) ? "default" : "outline"}
+                                    className="text-xs whitespace-nowrap"
+                                  >
+                                    {geraCredPisCofins(regra.cst) 
+                                      ? `✓ Crédito ${getTipoCreditoPisCofins(regra.cst)}` 
+                                      : '✗ Sem crédito'}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">

@@ -6,6 +6,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Regras fiscais para determinação automática
+function isICMSST(cst: string | null): boolean {
+  if (!cst) return false;
+  const cstNumber = cst.replace(/\D/g, '');
+  return ['10', '30', '60', '70'].includes(cstNumber);
+}
+
+function geraCredIcms(cst: string | null): boolean {
+  if (!cst) return false;
+  const cstNumber = cst.replace(/\D/g, '');
+  
+  if (isICMSST(cst)) return false;
+  if (['00', '20', '90'].includes(cstNumber)) return true;
+  
+  return false;
+}
+
+function geraCredPisCofins(cst: string | null): boolean {
+  if (!cst) return false;
+  const cstNumber = cst.replace(/\D/g, '');
+  const creditCodes = ['01', '02', '50', '51', '52', '53', '54', '55', '56'];
+  return creditCodes.includes(cstNumber);
+}
+
 interface XMLProduct {
   codigo: string;
   descricao: string;
@@ -16,6 +40,15 @@ interface XMLProduct {
   valor_unitario: number;
   valor_total: number;
   numero_item: number;
+  cst_icms?: string;
+  aliquota_icms?: number;
+  valor_icms?: number;
+  cst_pis?: string;
+  aliquota_pis?: number;
+  valor_pis?: number;
+  cst_cofins?: string;
+  aliquota_cofins?: number;
+  valor_cofins?: number;
 }
 
 interface XMLData {
@@ -279,7 +312,12 @@ async function processarItens(
       naoMapeados++;
     }
 
-    // Inserir item
+    // Inserir item com validação fiscal automática
+    const temIcmsST = isICMSST(produto.cst_icms || null);
+    const geraCreditoIcms = geraCredIcms(produto.cst_icms || null);
+    const geraCreditoPis = geraCredPisCofins(produto.cst_pis || null);
+    const geraCreditoCofins = geraCredPisCofins(produto.cst_cofins || null);
+
     await supabase.from('fabrica_itens_nf').insert({
       nota_id: notaId,
       numero_item: produto.numero_item,
@@ -291,6 +329,19 @@ async function processarItens(
       quantidade: produto.quantidade,
       valor_unitario: produto.valor_unitario,
       valor_total: produto.valor_total,
+      cst_icms: produto.cst_icms || null,
+      aliquota_icms: produto.aliquota_icms || null,
+      valor_icms: produto.valor_icms || null,
+      tem_icms_st: temIcmsST,
+      gera_credito_icms: geraCreditoIcms,
+      cst_pis: produto.cst_pis || null,
+      aliquota_pis: produto.aliquota_pis || null,
+      valor_pis: produto.valor_pis || null,
+      gera_credito_pis: geraCreditoPis,
+      cst_cofins: produto.cst_cofins || null,
+      aliquota_cofins: produto.aliquota_cofins || null,
+      valor_cofins: produto.valor_cofins || null,
+      gera_credito_cofins: geraCreditoCofins,
       produto_interno_id: produtoInternoId,
       codigo_mapeado_id: codigoMapeadoId,
       status_mapeamento: statusMapeamento,
