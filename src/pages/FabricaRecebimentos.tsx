@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,12 @@ export default function FabricaRecebimentos() {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao buscar notas:", error);
+        throw error;
+      }
+
+      console.log("Notas encontradas:", data?.length || 0);
 
       // Buscar contagem de itens para cada nota
       const notasComItens = await Promise.all(
@@ -90,15 +95,16 @@ export default function FabricaRecebimentos() {
       setNotas(notasComItens as NotaFiscal[]);
     } catch (error: any) {
       console.error("Erro ao buscar notas:", error);
-      toast.error("Erro ao buscar notas fiscais");
+      toast.error(error.message || "Erro ao buscar notas fiscais");
     } finally {
       setLoading(false);
     }
   };
 
-  useState(() => {
+  // Carregar notas ao montar o componente
+  useEffect(() => {
     fetchNotas();
-  });
+  }, []);
 
   const getStatusBadge = (status: string) => {
     const statusMap = {
