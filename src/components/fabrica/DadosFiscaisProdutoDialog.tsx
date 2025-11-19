@@ -93,10 +93,31 @@ export const DadosFiscaisProdutoDialog = ({
   const [unidadeCompra, setUnidadeCompra] = useState("");
   const [unidadeVenda, setUnidadeVenda] = useState("");
 
+  // Códigos de barras
+  const [codigoEan, setCodigoEan] = useState("");
+  const [codigoEanTributavel, setCodigoEanTributavel] = useState("");
+  
+  // IPI
+  const [codigoEnqIpi, setCodigoEnqIpi] = useState("");
+  const [indicadorTotal, setIndicadorTotal] = useState("1");
+  
+  // Substituição Tributária
+  const [vbcStRet, setVbcStRet] = useState("");
+  const [percentualSt, setPercentualSt] = useState("");
+  const [vIcmsSubstituto, setVIcmsSubstituto] = useState("");
+  const [vIcmsStRet, setVIcmsStRet] = useState("");
+  
+  // PIS/COFINS por quantidade
+  const [pisQtdBcProd, setPisQtdBcProd] = useState("");
+  const [pisVAliqProd, setPisVAliqProd] = useState("");
+  const [cofinsQtdBcProd, setCofinsQtdBcProd] = useState("");
+  const [cofinsVAliqProd, setCofinsVAliqProd] = useState("");
+  
   // Outros
   const [frete, setFrete] = useState("");
   const [repasseIcm, setRepasseIcm] = useState("");
   const [substancia, setSubstancia] = useState("");
+  const [informacoesAdicionais, setInformacoesAdicionais] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
   // Calcular volume automaticamente quando dimensões mudarem
@@ -202,10 +223,31 @@ export const DadosFiscaisProdutoDialog = ({
         setUnidadeCompra(data.unidade_compra || "");
         setUnidadeVenda(data.unidade_venda || "");
         
+        // Códigos de barras
+        setCodigoEan(data.codigo_ean || "");
+        setCodigoEanTributavel(data.codigo_ean_tributavel || "");
+        
+        // IPI
+        setCodigoEnqIpi(data.codigo_enquadramento_ipi || "");
+        setIndicadorTotal(data.indicador_composicao_total?.toString() || "1");
+        
+        // Substituição Tributária
+        setVbcStRet(data.vbc_st_ret?.toString() || "");
+        setPercentualSt(data.percentual_st?.toString() || "");
+        setVIcmsSubstituto(data.v_icms_substituto?.toString() || "");
+        setVIcmsStRet(data.v_icms_st_ret?.toString() || "");
+        
+        // PIS/COFINS por quantidade
+        setPisQtdBcProd(data.pis_qtd_bc_prod?.toString() || "");
+        setPisVAliqProd(data.pis_v_aliq_prod?.toString() || "");
+        setCofinsQtdBcProd(data.cofins_qtd_bc_prod?.toString() || "");
+        setCofinsVAliqProd(data.cofins_v_aliq_prod?.toString() || "");
+        
         // Outros
         setFrete(data.frete?.toString() || "");
         setRepasseIcm(data.repasse_icm?.toString() || "");
         setSubstancia(data.substancia || "");
+        setInformacoesAdicionais(data.informacoes_adicionais || "");
         setObservacoes(data.observacoes || "");
       }
     } catch (error: any) {
@@ -282,10 +324,27 @@ export const DadosFiscaisProdutoDialog = ({
         caixa_padrao_compra: caixaPadraoCompra ? parseFloat(caixaPadraoCompra) : null,
         unidade_compra: unidadeCompra || null,
         unidade_venda: unidadeVenda || null,
+        // Códigos de barras
+        codigo_ean: codigoEan || null,
+        codigo_ean_tributavel: codigoEanTributavel || null,
+        // IPI
+        codigo_enquadramento_ipi: codigoEnqIpi || null,
+        indicador_composicao_total: indicadorTotal ? parseInt(indicadorTotal) : 1,
+        // Substituição Tributária
+        vbc_st_ret: vbcStRet ? parseFloat(vbcStRet) : null,
+        percentual_st: percentualSt ? parseFloat(percentualSt) : null,
+        v_icms_substituto: vIcmsSubstituto ? parseFloat(vIcmsSubstituto) : null,
+        v_icms_st_ret: vIcmsStRet ? parseFloat(vIcmsStRet) : null,
+        // PIS/COFINS por quantidade
+        pis_qtd_bc_prod: pisQtdBcProd ? parseFloat(pisQtdBcProd) : null,
+        pis_v_aliq_prod: pisVAliqProd ? parseFloat(pisVAliqProd) : null,
+        cofins_qtd_bc_prod: cofinsQtdBcProd ? parseFloat(cofinsQtdBcProd) : null,
+        cofins_v_aliq_prod: cofinsVAliqProd ? parseFloat(cofinsVAliqProd) : null,
         // Outros
         frete: frete ? parseFloat(frete) : null,
         repasse_icm: repasseIcm ? parseFloat(repasseIcm) : null,
         substancia: substancia || null,
+        informacoes_adicionais: informacoesAdicionais || null,
         observacoes: observacoes || null,
         // Controle
         updated_at: new Date().toISOString(),
@@ -395,6 +454,43 @@ export const DadosFiscaisProdutoDialog = ({
                         <SelectItem value="6">6 - Estrangeira (importação direta sem similar nacional)</SelectItem>
                         <SelectItem value="7">7 - Estrangeira (adquirida mercado interno sem similar nacional)</SelectItem>
                         <SelectItem value="8">8 - Nacional com conteúdo de importação &gt; 70%</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="ean">Código EAN/GTIN</Label>
+                    <Input
+                      id="ean"
+                      value={codigoEan}
+                      onChange={(e) => setCodigoEan(e.target.value)}
+                      placeholder="7891234567890"
+                      maxLength={14}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="ean-trib">EAN Tributável</Label>
+                    <Input
+                      id="ean-trib"
+                      value={codigoEanTributavel}
+                      onChange={(e) => setCodigoEanTributavel(e.target.value)}
+                      placeholder="7891234567890"
+                      maxLength={14}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="ind-total">Compõe Total NF-e</Label>
+                    <Select value={indicadorTotal} onValueChange={setIndicadorTotal}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Sim</SelectItem>
+                        <SelectItem value="0">Não</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -538,6 +634,145 @@ export const DadosFiscaisProdutoDialog = ({
                       value={cstpPis}
                       onChange={(e) => setCstpPis(e.target.value)}
                       maxLength={10}
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="font-medium mb-3 text-sm text-foreground">PIS/COFINS por Quantidade</h4>
+                  <div className="grid grid-cols-4 gap-4">
+                    <div>
+                      <Label htmlFor="pis-qtd">PIS - Qtd BC</Label>
+                      <Input
+                        id="pis-qtd"
+                        type="number"
+                        step="0.0001"
+                        value={pisQtdBcProd}
+                        onChange={(e) => setPisQtdBcProd(e.target.value)}
+                        placeholder="0.0000"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="pis-aliq">PIS - Alíq. (R$)</Label>
+                      <Input
+                        id="pis-aliq"
+                        type="number"
+                        step="0.0001"
+                        value={pisVAliqProd}
+                        onChange={(e) => setPisVAliqProd(e.target.value)}
+                        placeholder="0.0000"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="cofins-qtd">COFINS - Qtd BC</Label>
+                      <Input
+                        id="cofins-qtd"
+                        type="number"
+                        step="0.0001"
+                        value={cofinsQtdBcProd}
+                        onChange={(e) => setCofinsQtdBcProd(e.target.value)}
+                        placeholder="0.0000"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="cofins-aliq">COFINS - Alíq. (R$)</Label>
+                      <Input
+                        id="cofins-aliq"
+                        type="number"
+                        step="0.0001"
+                        value={cofinsVAliqProd}
+                        onChange={(e) => setCofinsVAliqProd(e.target.value)}
+                        placeholder="0.0000"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Use estes campos quando PIS/COFINS são calculados por quantidade ao invés de alíquota percentual
+                  </p>
+                </div>
+
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="font-medium mb-3 text-sm text-foreground">Substituição Tributária (ICMS-ST)</h4>
+                  <div className="grid grid-cols-4 gap-4">
+                    <div>
+                      <Label htmlFor="vbc-st">BC ICMS ST Retido</Label>
+                      <Input
+                        id="vbc-st"
+                        type="number"
+                        step="0.01"
+                        value={vbcStRet}
+                        onChange={(e) => setVbcStRet(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="perc-st">% Redução BC ST</Label>
+                      <Input
+                        id="perc-st"
+                        type="number"
+                        step="0.0001"
+                        value={percentualSt}
+                        onChange={(e) => setPercentualSt(e.target.value)}
+                        placeholder="0.0000"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="v-subst">ICMS Substituto</Label>
+                      <Input
+                        id="v-subst"
+                        type="number"
+                        step="0.01"
+                        value={vIcmsSubstituto}
+                        onChange={(e) => setVIcmsSubstituto(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="v-st-ret">ICMS ST Retido</Label>
+                      <Input
+                        id="v-st-ret"
+                        type="number"
+                        step="0.01"
+                        value={vIcmsStRet}
+                        onChange={(e) => setVIcmsStRet(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="font-medium mb-3 text-sm text-foreground">IPI</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="enq-ipi">Código de Enquadramento</Label>
+                      <Input
+                        id="enq-ipi"
+                        value={codigoEnqIpi}
+                        onChange={(e) => setCodigoEnqIpi(e.target.value)}
+                        placeholder="999"
+                        maxLength={10}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="font-medium mb-3 text-sm text-foreground">Informações Adicionais</h4>
+                  <div>
+                    <Label htmlFor="info-adic">Informações do XML (infAdProd)</Label>
+                    <Textarea
+                      id="info-adic"
+                      value={informacoesAdicionais}
+                      onChange={(e) => setInformacoesAdicionais(e.target.value)}
+                      placeholder="Informações adicionais extraídas do XML..."
+                      rows={3}
                     />
                   </div>
                 </div>
