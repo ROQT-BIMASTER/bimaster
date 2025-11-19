@@ -83,3 +83,12 @@ verify_jwt = false
 
 [functions.pollo-generate-image]
 verify_jwt = true
+
+[functions.pollo-generate-video]
+verify_jwt = true
+
+[functions.pollo-check-status]
+verify_jwt = true
+
+[functions.pollo-analyze-website]
+verify_jwt = true
