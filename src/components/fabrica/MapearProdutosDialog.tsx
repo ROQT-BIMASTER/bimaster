@@ -12,6 +12,7 @@ import { Loader2, Link2, Plus, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { materiaPrimaSchema } from "@/lib/validations/materia-prima";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NovaCategoriaMP } from "./NovaCategoriaMP";
 
 interface MapearProdutosDialogProps {
   notaId: string | null;
@@ -34,6 +35,7 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
   const queryClient = useQueryClient();
   const [selectedItem, setSelectedItem] = useState<ItemPendente | null>(null);
   const [acao, setAcao] = useState<"vincular" | "criar">("vincular");
+  const [showNovaCategoriaDialog, setShowNovaCategoriaDialog] = useState(false);
   
   // Campos para vincular
   const [produtoInternoId, setProdutoInternoId] = useState("");
@@ -190,6 +192,8 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
       }
 
       // Criar produto interno
+      const { data: session } = await supabase.auth.getSession();
+      
       const { data: produto, error: produtoError } = await supabase
         .from("fabrica_materias_primas")
         .insert({
@@ -199,6 +203,7 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
           unidade_medida_id: novoProduto.unidade_medida_id,
           custo_unitario: parseFloat(novoProduto.custo_unitario),
           status: "ativo",
+          created_by: session.session?.user.id,
         })
         .select()
         .single();
@@ -455,7 +460,18 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
                     </div>
 
                     <div>
-                      <Label>Categoria (Opcional)</Label>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label>Categoria (Opcional)</Label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowNovaCategoriaDialog(true)}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Nova
+                        </Button>
+                      </div>
                       <Select
                         value={novoProduto.categoria_id}
                         onValueChange={(v) => setNovoProduto({ ...novoProduto, categoria_id: v })}
@@ -562,6 +578,18 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
           </div>
         )}
       </DialogContent>
+
+      <NovaCategoriaMP
+        open={showNovaCategoriaDialog}
+        onOpenChange={setShowNovaCategoriaDialog}
+        onSuccess={(categoryId, categoryName) => {
+          // Atualizar lista de categorias
+          queryClient.invalidateQueries({ queryKey: ["categorias-mp"] });
+          // Selecionar a categoria recém-criada
+          setNovoProduto({ ...novoProduto, categoria_id: categoryId });
+          toast.success(`Categoria "${categoryName}" criada com sucesso`);
+        }}
+      />
     </Dialog>
   );
 }
