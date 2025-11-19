@@ -54,7 +54,22 @@ export default function FabricaRecebimentos() {
         body: { xml: xmlText }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Verificar se é erro de duplicata (status 409)
+        if (error.message?.includes('Edge Function returned a non-2xx status code')) {
+          toast.error("Esta nota fiscal já foi importada anteriormente");
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      // Verificar se retornou erro de duplicata no body
+      if (data?.duplicada) {
+        toast.error("Esta nota fiscal já foi importada anteriormente");
+        fetchNotas();
+        return;
+      }
 
       toast.success("XML importado com sucesso!");
       

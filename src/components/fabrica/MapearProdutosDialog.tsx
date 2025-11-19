@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Link2, Plus, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { materiaPrimaSchema } from "@/lib/validations/materia-prima";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface MapearProdutosDialogProps {
@@ -174,12 +175,26 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
     mutationFn: async () => {
       if (!selectedItem) return;
 
+      // Validar dados antes de criar
+      try {
+        materiaPrimaSchema.parse({
+          codigo: novoProduto.codigo,
+          nome: novoProduto.nome,
+          categoria_id: novoProduto.categoria_id || null,
+          unidade_medida_id: novoProduto.unidade_medida_id,
+          custo_unitario: parseFloat(novoProduto.custo_unitario),
+        });
+      } catch (validationError: any) {
+        const firstError = validationError.errors?.[0];
+        throw new Error(firstError?.message || "Erro de validação nos dados do produto");
+      }
+
       // Criar produto interno
       const { data: produto, error: produtoError } = await supabase
         .from("fabrica_materias_primas")
         .insert({
-          codigo: novoProduto.codigo,
-          nome: novoProduto.nome,
+          codigo: novoProduto.codigo.trim(),
+          nome: novoProduto.nome.trim(),
           categoria_id: novoProduto.categoria_id || null,
           unidade_medida_id: novoProduto.unidade_medida_id,
           custo_unitario: parseFloat(novoProduto.custo_unitario),
@@ -188,7 +203,10 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
         .select()
         .single();
 
-      if (produtoError) throw produtoError;
+      if (produtoError) {
+        console.error("Erro ao criar produto:", produtoError);
+        throw new Error(produtoError.message || "Erro ao criar produto interno");
+      }
 
       const { data: nota } = await supabase
         .from("fabrica_notas_fiscais")
@@ -241,6 +259,7 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
       setFatorConversao("1");
     },
     onError: (error: any) => {
+      console.error("Erro completo ao criar produto:", error);
       toast.error(error.message || "Erro ao criar produto");
     },
   });
@@ -415,16 +434,19 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
 
                   <TabsContent value="criar" className="space-y-4">
                     <div>
-                      <Label>Código</Label>
+                      <Label>Código *</Label>
                       <Input
                         value={novoProduto.codigo}
                         onChange={(e) => setNovoProduto({ ...novoProduto, codigo: e.target.value })}
-                        placeholder="Código interno"
+                        placeholder="Ex: MP001"
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Apenas letras, números, hífen e underscore
+                      </p>
                     </div>
 
                     <div>
-                      <Label>Nome</Label>
+                      <Label>Nome *</Label>
                       <Input
                         value={novoProduto.nome}
                         onChange={(e) => setNovoProduto({ ...novoProduto, nome: e.target.value })}
@@ -452,7 +474,7 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
                     </div>
 
                     <div>
-                      <Label>Unidade de Medida</Label>
+                      <Label>Unidade de Medida *</Label>
                       <Select
                         value={novoProduto.unidade_medida_id}
                         onValueChange={(v) => setNovoProduto({ ...novoProduto, unidade_medida_id: v })}
@@ -471,10 +493,11 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
                     </div>
 
                     <div>
-                      <Label>Custo Unitário</Label>
+                      <Label>Custo Unitário *</Label>
                       <Input
                         type="number"
                         step="0.01"
+                        min="0.01"
                         value={novoProduto.custo_unitario}
                         onChange={(e) => setNovoProduto({ ...novoProduto, custo_unitario: e.target.value })}
                         placeholder="0.00"
@@ -486,6 +509,7 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
                       <Input
                         type="number"
                         step="0.01"
+                        min="0.01"
                         value={fatorConversao}
                         onChange={(e) => setFatorConversao(e.target.value)}
                         placeholder="1.0"
@@ -498,10 +522,11 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
                     <Button
                       onClick={handleSubmit}
                       disabled={
-                        !novoProduto.codigo ||
-                        !novoProduto.nome ||
+                        !novoProduto.codigo.trim() ||
+                        !novoProduto.nome.trim() ||
                         !novoProduto.unidade_medida_id ||
                         !novoProduto.custo_unitario ||
+                        parseFloat(novoProduto.custo_unitario) <= 0 ||
                         criarMutation.isPending
                       }
                       className="w-full"
@@ -515,6 +540,16 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
                         "Criar e Vincular"
                       )}
                     </Button>
+                    
+                    {(!novoProduto.codigo.trim() || 
+                      !novoProduto.nome.trim() || 
+                      !novoProduto.unidade_medida_id || 
+                      !novoProduto.custo_unitario ||
+                      parseFloat(novoProduto.custo_unitario) <= 0) && (
+                      <p className="text-xs text-destructive text-center">
+                        * Preencha todos os campos obrigatórios
+                      </p>
+                    )}
                   </TabsContent>
                 </Tabs>
               </>
