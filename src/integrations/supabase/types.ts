@@ -3653,6 +3653,7 @@ export type Database = {
           descricao: string | null
           icone: string | null
           id: string
+          modulo_codigo: string | null
           nome: string
           ordem: number | null
           rota: string
@@ -3664,6 +3665,7 @@ export type Database = {
           descricao?: string | null
           icone?: string | null
           id?: string
+          modulo_codigo?: string | null
           nome: string
           ordem?: number | null
           rota: string
@@ -3675,11 +3677,20 @@ export type Database = {
           descricao?: string | null
           icone?: string | null
           id?: string
+          modulo_codigo?: string | null
           nome?: string
           ordem?: number | null
           rota?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telas_sistema_modulo_codigo_fkey"
+            columns: ["modulo_codigo"]
+            isOneToOne: false
+            referencedRelation: "modulos_sistema"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       trade_action_points: {
         Row: {

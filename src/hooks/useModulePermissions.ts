@@ -32,11 +32,11 @@ export const useModulePermissions = () => {
 
       // Verificar cache primeiro
       const cacheKey = `modules_${user.id}`;
-      const cached = permissionsCache.get<{ modules: Module[]; codes: Set<string> }>(cacheKey);
+      const cached = permissionsCache.get<{ modules: Module[]; codes: string[] }>(cacheKey);
       
       if (cached) {
         setModules(cached.modules);
-        setAllowedCodes(cached.codes);
+        setAllowedCodes(new Set(cached.codes));
         setLoading(false);
         return;
       }
@@ -52,7 +52,9 @@ export const useModulePermissions = () => {
         return;
       }
 
-      const allowedCodesSet = new Set(permissions?.map((p: { modulo_codigo: string }) => p.modulo_codigo) || []);
+      // A função RPC retorna array de objetos { modulo_codigo: string }
+      const codes = permissions?.map((p: { modulo_codigo: string }) => p.modulo_codigo) || [];
+      const allowedCodesSet = new Set(codes);
       setAllowedCodes(allowedCodesSet);
 
       // Buscar detalhes dos módulos permitidos
@@ -73,8 +75,8 @@ export const useModulePermissions = () => {
       const filteredModules = allModules?.filter(m => allowedCodesSet.has(m.codigo)) || [];
       setModules(filteredModules);
       
-      // Salvar no cache
-      permissionsCache.set(cacheKey, { modules: filteredModules, codes: allowedCodesSet });
+      // Salvar no cache (usando array para serialização)
+      permissionsCache.set(cacheKey, { modules: filteredModules, codes });
     } catch (error) {
       console.error("Erro ao buscar módulos:", error);
       setModules([]);
