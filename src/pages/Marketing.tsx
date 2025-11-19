@@ -22,12 +22,13 @@ export default function Marketing() {
       </div>
 
       <Tabs defaultValue="looker" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="looker">Instagram</TabsTrigger>
           <TabsTrigger value="dashcortex">DashCortex</TabsTrigger>
           <TabsTrigger value="powerbi">Power BI</TabsTrigger>
           <TabsTrigger value="social">Redes Sociais</TabsTrigger>
           <TabsTrigger value="ai-images">Gerador IA</TabsTrigger>
+          <TabsTrigger value="pollo">Pollo AI</TabsTrigger>
         </TabsList>
         <TabsContent value="looker" className="mt-6">
           <LookerStudioReports />
@@ -43,6 +44,16 @@ export default function Marketing() {
         </TabsContent>
         <TabsContent value="ai-images" className="mt-6">
           <AIImageGenerator />
+        </TabsContent>
+        <TabsContent value="pollo" className="mt-6">
+          <div className="w-full h-[calc(100vh-12rem)] rounded-lg overflow-hidden border border-border">
+            <iframe
+              src="https://pollo.ai/pt/app/pro-effects"
+              className="w-full h-full"
+              title="Pollo AI"
+              allow="camera; microphone"
+            />
+          </div>
         </TabsContent>
       </Tabs>
       </div>
