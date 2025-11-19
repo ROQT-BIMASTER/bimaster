@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Loader2 } from "lucide-react";
+import { Plus, Search, Filter, Loader2, Receipt } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { NovaMateriaPrimaDialog } from "@/components/fabrica/NovaMateriaPrimaDialog";
 import { EditarMateriaPrimaDialog } from "@/components/fabrica/EditarMateriaPrimaDialog";
 import { DetalhesMateriaPrimaDialog } from "@/components/fabrica/DetalhesMateriaPrimaDialog";
+import { DadosFiscaisProdutoDialog } from "@/components/fabrica/DadosFiscaisProdutoDialog";
 
 interface MateriaPrima {
   id: string;
@@ -56,6 +57,7 @@ export default function FabricaMateriasPrimas() {
   const [novoDialogOpen, setNovoDialogOpen] = useState(false);
   const [editarDialogOpen, setEditarDialogOpen] = useState(false);
   const [detalhesDialogOpen, setDetalhesDialogOpen] = useState(false);
+  const [dadosFiscaisDialogOpen, setDadosFiscaisDialogOpen] = useState(false);
   const [selectedMP, setSelectedMP] = useState<MateriaPrima | null>(null);
 
   if (!permissionsLoading && !hasPermission("fabrica_mps")) {
@@ -103,6 +105,11 @@ export default function FabricaMateriasPrimas() {
   const handleDetails = (mp: MateriaPrima) => {
     setSelectedMP(mp);
     setDetalhesDialogOpen(true);
+  };
+
+  const handleDadosFiscais = (mp: MateriaPrima) => {
+    setSelectedMP(mp);
+    setDadosFiscaisDialogOpen(true);
   };
 
   if (loading || permissionsLoading) {
@@ -205,16 +212,29 @@ export default function FabricaMateriasPrimas() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(mp);
-                          }}
-                        >
-                          Editar
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDadosFiscais(mp);
+                            }}
+                          >
+                            <Receipt className="h-4 w-4 mr-1" />
+                            Fiscal
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(mp);
+                            }}
+                          >
+                            Editar
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -243,6 +263,12 @@ export default function FabricaMateriasPrimas() {
             open={detalhesDialogOpen}
             onOpenChange={setDetalhesDialogOpen}
             materiaPrima={selectedMP}
+          />
+          <DadosFiscaisProdutoDialog
+            open={dadosFiscaisDialogOpen}
+            onOpenChange={setDadosFiscaisDialogOpen}
+            produtoId={selectedMP.id}
+            produtoNome={selectedMP.nome}
           />
         </>
       )}

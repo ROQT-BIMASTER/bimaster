@@ -1167,6 +1167,182 @@ export type Database = {
           },
         ]
       }
+      fabrica_dados_fiscais_produto: {
+        Row: {
+          aliquota_cofins: number | null
+          aliquota_icms: number | null
+          aliquota_ipi: number | null
+          aliquota_pis: number | null
+          caixa_padrao_compra: number | null
+          cest: string | null
+          cfop_padrao: string | null
+          classificacao_fiscal: string | null
+          classificacao_pis_cofins: string | null
+          cod_nbm: string | null
+          comissao_cobranca: number | null
+          comissao_venda: number | null
+          created_at: string | null
+          created_by: string | null
+          cst_cofins: string | null
+          cst_icms: string | null
+          cst_ipi: string | null
+          cst_pis: string | null
+          cstp_pis: string | null
+          curva_fisica: string | null
+          curva_monetaria: string | null
+          custo_icms: number | null
+          custo_icms_percentual: number | null
+          custo_medio: number | null
+          desconto_compra: number | null
+          desconto_entrada: number | null
+          desconto_maximo: number | null
+          estoque_maximo: number | null
+          estoque_minimo: number | null
+          excecao_ncm: string | null
+          frete: number | null
+          id: string
+          markup_percentual: number | null
+          ncm: string | null
+          observacoes: string | null
+          origem_mercadoria: string | null
+          peso_bruto: number | null
+          peso_liquido: number | null
+          preco_custo: number | null
+          preco_fabrica: number | null
+          preco_maximo: number | null
+          preco_venda: number | null
+          produto_id: string
+          qtd_max_dia_cliente: number | null
+          qtd_max_dia_vendedor: number | null
+          qtd_maxima: number | null
+          qtd_minima: number | null
+          repasse_icm: number | null
+          reserva: number | null
+          substancia: string | null
+          unidade_compra: string | null
+          unidade_venda: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aliquota_cofins?: number | null
+          aliquota_icms?: number | null
+          aliquota_ipi?: number | null
+          aliquota_pis?: number | null
+          caixa_padrao_compra?: number | null
+          cest?: string | null
+          cfop_padrao?: string | null
+          classificacao_fiscal?: string | null
+          classificacao_pis_cofins?: string | null
+          cod_nbm?: string | null
+          comissao_cobranca?: number | null
+          comissao_venda?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          cst_cofins?: string | null
+          cst_icms?: string | null
+          cst_ipi?: string | null
+          cst_pis?: string | null
+          cstp_pis?: string | null
+          curva_fisica?: string | null
+          curva_monetaria?: string | null
+          custo_icms?: number | null
+          custo_icms_percentual?: number | null
+          custo_medio?: number | null
+          desconto_compra?: number | null
+          desconto_entrada?: number | null
+          desconto_maximo?: number | null
+          estoque_maximo?: number | null
+          estoque_minimo?: number | null
+          excecao_ncm?: string | null
+          frete?: number | null
+          id?: string
+          markup_percentual?: number | null
+          ncm?: string | null
+          observacoes?: string | null
+          origem_mercadoria?: string | null
+          peso_bruto?: number | null
+          peso_liquido?: number | null
+          preco_custo?: number | null
+          preco_fabrica?: number | null
+          preco_maximo?: number | null
+          preco_venda?: number | null
+          produto_id: string
+          qtd_max_dia_cliente?: number | null
+          qtd_max_dia_vendedor?: number | null
+          qtd_maxima?: number | null
+          qtd_minima?: number | null
+          repasse_icm?: number | null
+          reserva?: number | null
+          substancia?: string | null
+          unidade_compra?: string | null
+          unidade_venda?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aliquota_cofins?: number | null
+          aliquota_icms?: number | null
+          aliquota_ipi?: number | null
+          aliquota_pis?: number | null
+          caixa_padrao_compra?: number | null
+          cest?: string | null
+          cfop_padrao?: string | null
+          classificacao_fiscal?: string | null
+          classificacao_pis_cofins?: string | null
+          cod_nbm?: string | null
+          comissao_cobranca?: number | null
+          comissao_venda?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          cst_cofins?: string | null
+          cst_icms?: string | null
+          cst_ipi?: string | null
+          cst_pis?: string | null
+          cstp_pis?: string | null
+          curva_fisica?: string | null
+          curva_monetaria?: string | null
+          custo_icms?: number | null
+          custo_icms_percentual?: number | null
+          custo_medio?: number | null
+          desconto_compra?: number | null
+          desconto_entrada?: number | null
+          desconto_maximo?: number | null
+          estoque_maximo?: number | null
+          estoque_minimo?: number | null
+          excecao_ncm?: string | null
+          frete?: number | null
+          id?: string
+          markup_percentual?: number | null
+          ncm?: string | null
+          observacoes?: string | null
+          origem_mercadoria?: string | null
+          peso_bruto?: number | null
+          peso_liquido?: number | null
+          preco_custo?: number | null
+          preco_fabrica?: number | null
+          preco_maximo?: number | null
+          preco_venda?: number | null
+          produto_id?: string
+          qtd_max_dia_cliente?: number | null
+          qtd_max_dia_vendedor?: number | null
+          qtd_maxima?: number | null
+          qtd_minima?: number | null
+          repasse_icm?: number | null
+          reserva?: number | null
+          substancia?: string | null
+          unidade_compra?: string | null
+          unidade_venda?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_dados_fiscais_produto_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_formula_alteracoes: {
         Row: {
           data_alteracao: string | null
