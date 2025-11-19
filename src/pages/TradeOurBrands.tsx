@@ -10,7 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Star, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, Star, Tag, Sparkles } from "lucide-react";
+import { AnalyzeBrandWebsiteDialog } from "@/components/trade/AnalyzeBrandWebsiteDialog";
 
 interface Brand {
   id: string;
@@ -27,6 +28,8 @@ export default function TradeOurBrands() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
+  const [analyzeDialogOpen, setAnalyzeDialogOpen] = useState(false);
+  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   
   const [formData, setFormData] = useState({
     brand_name: "",
@@ -240,24 +243,38 @@ export default function TradeOurBrands() {
                       />
                     </div>
                   )}
-                  <div className="flex gap-2">
+                  <div className="space-y-2">
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
-                      onClick={() => handleEdit(brand)}
-                      className="flex-1"
+                      onClick={() => {
+                        setSelectedBrand(brand);
+                        setAnalyzeDialogOpen(true);
+                      }}
+                      className="w-full"
                     >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Editar
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Analisar Site com IA
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(brand.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(brand)}
+                        className="flex-1"
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(brand.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -353,6 +370,17 @@ export default function TradeOurBrands() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de Análise com IA */}
+      {selectedBrand && (
+        <AnalyzeBrandWebsiteDialog
+          open={analyzeDialogOpen}
+          onOpenChange={setAnalyzeDialogOpen}
+          brandId={selectedBrand.id}
+          brandName={selectedBrand.brand_name}
+          onSuccess={fetchBrands}
+        />
+      )}
     </DashboardLayout>
   );
 }
