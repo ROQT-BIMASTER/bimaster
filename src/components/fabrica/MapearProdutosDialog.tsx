@@ -14,6 +14,7 @@ import { materiaPrimaSchema } from "@/lib/validations/materia-prima";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NovaCategoriaMP } from "./NovaCategoriaMP";
 import { NovoMateriaPrimaDialog } from "./NovoMateriaPrimaDialog";
+import { DadosFiscaisProdutoDialog } from "./DadosFiscaisProdutoDialog";
 
 interface MapearProdutosDialogProps {
   notaId: string | null;
@@ -38,6 +39,9 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
   const [acao, setAcao] = useState<"vincular" | "criar">("vincular");
   const [showNovaCategoriaDialog, setShowNovaCategoriaDialog] = useState(false);
   const [showNovoMateriaPrimaDialog, setShowNovoMateriaPrimaDialog] = useState(false);
+  const [showDadosFiscaisDialog, setShowDadosFiscaisDialog] = useState(false);
+  const [produtoIdParaFiscal, setProdutoIdParaFiscal] = useState<string | null>(null);
+  const [produtoNomeParaFiscal, setProdutoNomeParaFiscal] = useState<string>("");
   
   // Campos para vincular
   const [produtoInternoId, setProdutoInternoId] = useState("");
@@ -162,9 +166,22 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
 
       if (updateError) throw updateError;
     },
-    onSuccess: () => {
-      toast.success("Produto vinculado com sucesso!");
+    onSuccess: async () => {
+      // Buscar nome do produto vinculado
+      const { data: produto } = await supabase
+        .from("fabrica_materias_primas")
+        .select("nome")
+        .eq("id", produtoInternoId)
+        .single();
+      
+      toast.success("Produto vinculado! Agora configure as regras fiscais.");
       queryClient.invalidateQueries({ queryKey: ["itens-pendentes", notaId] });
+      
+      // Abrir dialog de dados fiscais OBRIGATORIAMENTE
+      setProdutoIdParaFiscal(produtoInternoId);
+      setProdutoNomeParaFiscal(produto?.nome || "Produto");
+      setShowDadosFiscaisDialog(true);
+      
       setSelectedItem(null);
       setProdutoInternoId("");
       setFatorConversao("1");
@@ -177,7 +194,7 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
   // Mutation para criar
   const criarMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedItem) return;
+      if (!selectedItem) return null;
 
       // Validar dados antes de criar
       try {
@@ -251,10 +268,21 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
         .eq("id", selectedItem.id);
 
       if (updateError) throw updateError;
+      
+      // Retornar produto criado para usar no onSuccess
+      return produto;
     },
-    onSuccess: () => {
-      toast.success("Produto criado e vinculado com sucesso!");
+    onSuccess: (produto) => {
+      if (!produto) return;
+      
+      toast.success("Produto criado! Agora configure as regras fiscais.");
       queryClient.invalidateQueries({ queryKey: ["itens-pendentes", notaId] });
+      
+      // Abrir dialog de dados fiscais OBRIGATORIAMENTE
+      setProdutoIdParaFiscal(produto.id);
+      setProdutoNomeParaFiscal(produto.nome);
+      setShowDadosFiscaisDialog(true);
+      
       setSelectedItem(null);
       setNovoProduto({
         codigo: "",
@@ -614,6 +642,13 @@ export function MapearProdutosDialog({ notaId, open, onOpenChange }: MapearProdu
           setProdutoInternoId(productId);
           toast.success(`Produto "${productName}" criado com sucesso`);
         }}
+      />
+      
+      <DadosFiscaisProdutoDialog
+        open={showDadosFiscaisDialog}
+        onOpenChange={setShowDadosFiscaisDialog}
+        produtoId={produtoIdParaFiscal || ""}
+        produtoNome={produtoNomeParaFiscal}
       />
     </Dialog>
   );
