@@ -926,6 +926,508 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_categorias_mp: {
+        Row: {
+          ativa: boolean | null
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativa?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativa?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      fabrica_custos_producao: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          custo_unitario: number | null
+          descricao: string
+          id: string
+          ordem_producao_id: string | null
+          quantidade: number | null
+          tipo_custo: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_unitario?: number | null
+          descricao: string
+          id?: string
+          ordem_producao_id?: string | null
+          quantidade?: number | null
+          tipo_custo: string
+          valor: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_unitario?: number | null
+          descricao?: string
+          id?: string
+          ordem_producao_id?: string | null
+          quantidade?: number | null
+          tipo_custo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_custos_producao_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_formula_itens: {
+        Row: {
+          created_at: string | null
+          formula_id: string | null
+          id: string
+          mp_id: string | null
+          observacoes: string | null
+          ordem: number | null
+          percentual: number | null
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string | null
+          formula_id?: string | null
+          id?: string
+          mp_id?: string | null
+          observacoes?: string | null
+          ordem?: number | null
+          percentual?: number | null
+          quantidade: number
+        }
+        Update: {
+          created_at?: string | null
+          formula_id?: string | null
+          id?: string
+          mp_id?: string | null
+          observacoes?: string | null
+          ordem?: number | null
+          percentual?: number | null
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_formula_itens_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_formula_itens_mp_id_fkey"
+            columns: ["mp_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_formulas: {
+        Row: {
+          ativa: boolean | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          id: string
+          produto_id: string | null
+          rendimento: number | null
+          versao: number | null
+        }
+        Insert: {
+          ativa?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          produto_id?: string | null
+          rendimento?: number | null
+          versao?: number | null
+        }
+        Update: {
+          ativa?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          produto_id?: string | null
+          rendimento?: number | null
+          versao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_formulas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_fornecedores: {
+        Row: {
+          ativo: boolean | null
+          cnpj: string | null
+          contato: string | null
+          created_at: string | null
+          email: string | null
+          endereco: string | null
+          id: string
+          nome_fantasia: string | null
+          razao_social: string
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cnpj?: string | null
+          contato?: string | null
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome_fantasia?: string | null
+          razao_social: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cnpj?: string | null
+          contato?: string | null
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome_fantasia?: string | null
+          razao_social?: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      fabrica_materias_primas: {
+        Row: {
+          categoria_id: string | null
+          codigo: string
+          created_at: string | null
+          created_by: string | null
+          custo_unitario: number | null
+          data_validade: string | null
+          estoque_atual: number | null
+          estoque_minimo: number | null
+          fornecedor_id: string | null
+          id: string
+          lote: string | null
+          nome: string
+          observacoes: string | null
+          status: string | null
+          unidade_medida_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          categoria_id?: string | null
+          codigo: string
+          created_at?: string | null
+          created_by?: string | null
+          custo_unitario?: number | null
+          data_validade?: string | null
+          estoque_atual?: number | null
+          estoque_minimo?: number | null
+          fornecedor_id?: string | null
+          id?: string
+          lote?: string | null
+          nome: string
+          observacoes?: string | null
+          status?: string | null
+          unidade_medida_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          categoria_id?: string | null
+          codigo?: string
+          created_at?: string | null
+          created_by?: string | null
+          custo_unitario?: number | null
+          data_validade?: string | null
+          estoque_atual?: number | null
+          estoque_minimo?: number | null
+          fornecedor_id?: string | null
+          id?: string
+          lote?: string | null
+          nome?: string
+          observacoes?: string | null
+          status?: string | null
+          unidade_medida_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_materias_primas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_categorias_mp"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_materias_primas_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_materias_primas_unidade_medida_id_fkey"
+            columns: ["unidade_medida_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_unidades_medida"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_movimentacoes: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          custo_unitario: number | null
+          data_validade: string | null
+          documento: string | null
+          estoque_anterior: number | null
+          estoque_novo: number | null
+          id: string
+          lote: string | null
+          motivo: string | null
+          mp_id: string | null
+          observacoes: string | null
+          ordem_producao_id: string | null
+          quantidade: number
+          tipo: string
+          valor_total: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_unitario?: number | null
+          data_validade?: string | null
+          documento?: string | null
+          estoque_anterior?: number | null
+          estoque_novo?: number | null
+          id?: string
+          lote?: string | null
+          motivo?: string | null
+          mp_id?: string | null
+          observacoes?: string | null
+          ordem_producao_id?: string | null
+          quantidade: number
+          tipo: string
+          valor_total?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_unitario?: number | null
+          data_validade?: string | null
+          documento?: string | null
+          estoque_anterior?: number | null
+          estoque_novo?: number | null
+          id?: string
+          lote?: string | null
+          motivo?: string | null
+          mp_id?: string | null
+          observacoes?: string | null
+          ordem_producao_id?: string | null
+          quantidade?: number
+          tipo?: string
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_movimentacoes_mp_id_fkey"
+            columns: ["mp_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_movimentacoes_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_ordens_producao: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          data_prevista: string | null
+          formula_id: string | null
+          id: string
+          lote: string | null
+          numero: string
+          observacoes: string | null
+          produto_id: string | null
+          quantidade_planejada: number
+          quantidade_produzida: number | null
+          responsavel_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          data_prevista?: string | null
+          formula_id?: string | null
+          id?: string
+          lote?: string | null
+          numero: string
+          observacoes?: string | null
+          produto_id?: string | null
+          quantidade_planejada: number
+          quantidade_produzida?: number | null
+          responsavel_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          data_prevista?: string | null
+          formula_id?: string | null
+          id?: string
+          lote?: string | null
+          numero?: string
+          observacoes?: string | null
+          produto_id?: string | null
+          quantidade_planejada?: number
+          quantidade_produzida?: number | null
+          responsavel_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_ordens_producao_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_ordens_producao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_produtos: {
+        Row: {
+          ativo: boolean | null
+          codigo: string
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          foto_url: string | null
+          id: string
+          nome: string
+          rendimento: number | null
+          tempo_producao_minutos: number | null
+          unidade_medida_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          foto_url?: string | null
+          id?: string
+          nome: string
+          rendimento?: number | null
+          tempo_producao_minutos?: number | null
+          unidade_medida_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo?: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          foto_url?: string | null
+          id?: string
+          nome?: string
+          rendimento?: number | null
+          tempo_producao_minutos?: number | null
+          unidade_medida_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_produtos_unidade_medida_id_fkey"
+            columns: ["unidade_medida_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_unidades_medida"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_unidades_medida: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string
+          sigla: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome: string
+          sigla: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string
+          sigla?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       goals: {
         Row: {
           created_at: string | null
