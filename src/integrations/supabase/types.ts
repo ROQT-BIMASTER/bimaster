@@ -953,6 +953,86 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_compras: {
+        Row: {
+          created_at: string | null
+          data_entrega_prevista: string | null
+          data_entrega_real: string | null
+          data_pedido: string
+          fornecedor_id: string | null
+          id: string
+          lote_recebido: string | null
+          mp_id: string | null
+          nota_fiscal: string | null
+          preco_total: number
+          preco_unitario: number
+          quantidade: number
+          responsavel_id: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_entrega_prevista?: string | null
+          data_entrega_real?: string | null
+          data_pedido: string
+          fornecedor_id?: string | null
+          id?: string
+          lote_recebido?: string | null
+          mp_id?: string | null
+          nota_fiscal?: string | null
+          preco_total: number
+          preco_unitario: number
+          quantidade: number
+          responsavel_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_entrega_prevista?: string | null
+          data_entrega_real?: string | null
+          data_pedido?: string
+          fornecedor_id?: string | null
+          id?: string
+          lote_recebido?: string | null
+          mp_id?: string | null
+          nota_fiscal?: string | null
+          preco_total?: number
+          preco_unitario?: number
+          quantidade?: number
+          responsavel_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_compras_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_compras_mp_id_fkey"
+            columns: ["mp_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_compras_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_compras_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       fabrica_custos_producao: {
         Row: {
           created_at: string | null
@@ -1344,12 +1424,19 @@ export type Database = {
           data_validade: string | null
           estoque_atual: number | null
           estoque_minimo: number | null
+          estoque_seguranca: number | null
           fornecedor_id: string | null
           id: string
+          lead_time_dias: number | null
           lote: string | null
+          lote_minimo_compra: number | null
           nome: string
           observacoes: string | null
+          ponto_reposicao: number | null
+          preco_medio_ponderado: number | null
           status: string | null
+          ultima_compra_data: string | null
+          ultima_compra_preco: number | null
           unidade_medida_id: string | null
           updated_at: string | null
         }
@@ -1362,12 +1449,19 @@ export type Database = {
           data_validade?: string | null
           estoque_atual?: number | null
           estoque_minimo?: number | null
+          estoque_seguranca?: number | null
           fornecedor_id?: string | null
           id?: string
+          lead_time_dias?: number | null
           lote?: string | null
+          lote_minimo_compra?: number | null
           nome: string
           observacoes?: string | null
+          ponto_reposicao?: number | null
+          preco_medio_ponderado?: number | null
           status?: string | null
+          ultima_compra_data?: string | null
+          ultima_compra_preco?: number | null
           unidade_medida_id?: string | null
           updated_at?: string | null
         }
@@ -1380,12 +1474,19 @@ export type Database = {
           data_validade?: string | null
           estoque_atual?: number | null
           estoque_minimo?: number | null
+          estoque_seguranca?: number | null
           fornecedor_id?: string | null
           id?: string
+          lead_time_dias?: number | null
           lote?: string | null
+          lote_minimo_compra?: number | null
           nome?: string
           observacoes?: string | null
+          ponto_reposicao?: number | null
+          preco_medio_ponderado?: number | null
           status?: string | null
+          ultima_compra_data?: string | null
+          ultima_compra_preco?: number | null
           unidade_medida_id?: string | null
           updated_at?: string | null
         }
@@ -1553,6 +1654,66 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_planejamento_necessidades: {
+        Row: {
+          compra_realizada_em: string | null
+          created_at: string | null
+          data_necessidade: string
+          data_sugestao_compra: string | null
+          id: string
+          mp_id: string | null
+          ordem_producao_id: string | null
+          quantidade_a_comprar: number | null
+          quantidade_disponivel: number | null
+          quantidade_necessaria: number
+          status: string | null
+          sugestao_gerada_em: string | null
+        }
+        Insert: {
+          compra_realizada_em?: string | null
+          created_at?: string | null
+          data_necessidade: string
+          data_sugestao_compra?: string | null
+          id?: string
+          mp_id?: string | null
+          ordem_producao_id?: string | null
+          quantidade_a_comprar?: number | null
+          quantidade_disponivel?: number | null
+          quantidade_necessaria: number
+          status?: string | null
+          sugestao_gerada_em?: string | null
+        }
+        Update: {
+          compra_realizada_em?: string | null
+          created_at?: string | null
+          data_necessidade?: string
+          data_sugestao_compra?: string | null
+          id?: string
+          mp_id?: string | null
+          ordem_producao_id?: string | null
+          quantidade_a_comprar?: number | null
+          quantidade_disponivel?: number | null
+          quantidade_necessaria?: number
+          status?: string | null
+          sugestao_gerada_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_planejamento_necessidades_mp_id_fkey"
+            columns: ["mp_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_planejamento_necessidades_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
           },
         ]
