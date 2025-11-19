@@ -1274,6 +1274,39 @@ export type Database = {
           },
         ]
       }
+      fabrica_cst_referencia: {
+        Row: {
+          codigo_cst: string
+          created_at: string | null
+          descricao: string
+          gera_credito: boolean
+          id: string
+          observacoes: string | null
+          tipo_credito: string | null
+          tipo_imposto: string
+        }
+        Insert: {
+          codigo_cst: string
+          created_at?: string | null
+          descricao: string
+          gera_credito?: boolean
+          id?: string
+          observacoes?: string | null
+          tipo_credito?: string | null
+          tipo_imposto: string
+        }
+        Update: {
+          codigo_cst?: string
+          created_at?: string | null
+          descricao?: string
+          gera_credito?: boolean
+          id?: string
+          observacoes?: string | null
+          tipo_credito?: string | null
+          tipo_imposto?: string
+        }
+        Relationships: []
+      }
       fabrica_custos_producao: {
         Row: {
           created_at: string | null
@@ -7291,6 +7324,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      icms_gera_credito: { Args: { p_cst: string }; Returns: boolean }
+      icms_tipo_credito: { Args: { p_cst: string }; Returns: string }
       is_admin_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
       is_participant_of_conversa: {
         Args: { conversa_id_param: string; user_id_param: string }
@@ -7312,6 +7347,8 @@ export type Database = {
         }
         Returns: string
       }
+      pis_cofins_gera_credito: { Args: { p_cst: string }; Returns: boolean }
+      pis_cofins_tipo_credito: { Args: { p_cst: string }; Returns: string }
       refresh_all_materialized_views: { Args: never; Returns: undefined }
       refresh_daily_kpis: { Args: { target_date?: string }; Returns: undefined }
       register_action_points: {
@@ -7361,6 +7398,10 @@ export type Database = {
       usuario_tem_permissao_tela: {
         Args: { _tela_codigo: string; _user_id: string }
         Returns: boolean
+      }
+      validar_creditos_nota_fiscal: {
+        Args: { p_nota_id: string }
+        Returns: Json
       }
     }
     Enums: {
