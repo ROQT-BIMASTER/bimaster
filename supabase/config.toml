@@ -80,3 +80,6 @@ verify_jwt = true
 
 [functions.social-media-cron]
 verify_jwt = false
+
+[functions.pollo-generate-image]
+verify_jwt = true
