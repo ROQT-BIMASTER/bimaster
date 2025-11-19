@@ -953,6 +953,66 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_codigos_fornecedor: {
+        Row: {
+          ativo: boolean | null
+          codigo_fornecedor: string
+          created_at: string | null
+          descricao_fornecedor: string | null
+          fator_conversao: number | null
+          fornecedor_id: string | null
+          id: string
+          produto_interno_id: string | null
+          regras: Json | null
+          score_confianca: number | null
+          unidade_fornecedor: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo_fornecedor: string
+          created_at?: string | null
+          descricao_fornecedor?: string | null
+          fator_conversao?: number | null
+          fornecedor_id?: string | null
+          id?: string
+          produto_interno_id?: string | null
+          regras?: Json | null
+          score_confianca?: number | null
+          unidade_fornecedor?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo_fornecedor?: string
+          created_at?: string | null
+          descricao_fornecedor?: string | null
+          fator_conversao?: number | null
+          fornecedor_id?: string | null
+          id?: string
+          produto_interno_id?: string | null
+          regras?: Json | null
+          score_confianca?: number | null
+          unidade_fornecedor?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_codigos_fornecedor_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_codigos_fornecedor_produto_interno_id_fkey"
+            columns: ["produto_interno_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_compras: {
         Row: {
           created_at: string | null
@@ -1032,6 +1092,36 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      fabrica_conversoes_unidade: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          descricao: string | null
+          fator: number
+          id: string
+          unidade_destino: string
+          unidade_origem: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          fator: number
+          id?: string
+          unidade_destino: string
+          unidade_origem: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          fator?: number
+          id?: string
+          unidade_destino?: string
+          unidade_origem?: string
+        }
+        Relationships: []
       }
       fabrica_custos_producao: {
         Row: {
@@ -1414,6 +1504,100 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_itens_nf: {
+        Row: {
+          cfop: string | null
+          codigo_fornecedor: string
+          codigo_mapeado_id: string | null
+          created_at: string | null
+          descricao: string
+          id: string
+          lote: string | null
+          ncm: string | null
+          nota_id: string | null
+          numero_item: number
+          produto_interno_id: string | null
+          quantidade: number
+          quantidade_convertida: number | null
+          score_similaridade: number | null
+          status_mapeamento: string | null
+          teor: number | null
+          unidade: string
+          unidade_convertida: string | null
+          validade: string | null
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          cfop?: string | null
+          codigo_fornecedor: string
+          codigo_mapeado_id?: string | null
+          created_at?: string | null
+          descricao: string
+          id?: string
+          lote?: string | null
+          ncm?: string | null
+          nota_id?: string | null
+          numero_item: number
+          produto_interno_id?: string | null
+          quantidade: number
+          quantidade_convertida?: number | null
+          score_similaridade?: number | null
+          status_mapeamento?: string | null
+          teor?: number | null
+          unidade: string
+          unidade_convertida?: string | null
+          validade?: string | null
+          valor_total: number
+          valor_unitario: number
+        }
+        Update: {
+          cfop?: string | null
+          codigo_fornecedor?: string
+          codigo_mapeado_id?: string | null
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          lote?: string | null
+          ncm?: string | null
+          nota_id?: string | null
+          numero_item?: number
+          produto_interno_id?: string | null
+          quantidade?: number
+          quantidade_convertida?: number | null
+          score_similaridade?: number | null
+          status_mapeamento?: string | null
+          teor?: number | null
+          unidade?: string
+          unidade_convertida?: string | null
+          validade?: string | null
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_itens_nf_codigo_mapeado_id_fkey"
+            columns: ["codigo_mapeado_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_codigos_fornecedor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_itens_nf_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_itens_nf_produto_interno_id_fkey"
+            columns: ["produto_interno_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_materias_primas: {
         Row: {
           categoria_id: string | null
@@ -1524,9 +1708,11 @@ export type Database = {
           estoque_anterior: number | null
           estoque_novo: number | null
           id: string
+          item_nf_id: string | null
           lote: string | null
           motivo: string | null
           mp_id: string | null
+          nota_fiscal_id: string | null
           observacoes: string | null
           ordem_producao_id: string | null
           quantidade: number
@@ -1542,9 +1728,11 @@ export type Database = {
           estoque_anterior?: number | null
           estoque_novo?: number | null
           id?: string
+          item_nf_id?: string | null
           lote?: string | null
           motivo?: string | null
           mp_id?: string | null
+          nota_fiscal_id?: string | null
           observacoes?: string | null
           ordem_producao_id?: string | null
           quantidade: number
@@ -1560,9 +1748,11 @@ export type Database = {
           estoque_anterior?: number | null
           estoque_novo?: number | null
           id?: string
+          item_nf_id?: string | null
           lote?: string | null
           motivo?: string | null
           mp_id?: string | null
+          nota_fiscal_id?: string | null
           observacoes?: string | null
           ordem_producao_id?: string | null
           quantidade?: number
@@ -1571,6 +1761,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fabrica_movimentacoes_item_nf_id_fkey"
+            columns: ["item_nf_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_itens_nf"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fabrica_movimentacoes_mp_id_fkey"
             columns: ["mp_id"]
             isOneToOne: false
@@ -1578,10 +1775,82 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fabrica_movimentacoes_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fabrica_movimentacoes_ordem_producao_id_fkey"
             columns: ["ordem_producao_id"]
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_notas_fiscais: {
+        Row: {
+          chave_acesso: string
+          created_at: string | null
+          data_conferencia: string | null
+          data_emissao: string
+          fornecedor_id: string | null
+          id: string
+          motivo_rejeicao: string | null
+          numero: string
+          observacoes: string | null
+          pdf_url: string | null
+          processed_at: string | null
+          serie: string | null
+          status: string | null
+          usuario_conferente: string | null
+          valor_total: number
+          xml_raw: string | null
+        }
+        Insert: {
+          chave_acesso: string
+          created_at?: string | null
+          data_conferencia?: string | null
+          data_emissao: string
+          fornecedor_id?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          numero: string
+          observacoes?: string | null
+          pdf_url?: string | null
+          processed_at?: string | null
+          serie?: string | null
+          status?: string | null
+          usuario_conferente?: string | null
+          valor_total: number
+          xml_raw?: string | null
+        }
+        Update: {
+          chave_acesso?: string
+          created_at?: string | null
+          data_conferencia?: string | null
+          data_emissao?: string
+          fornecedor_id?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          numero?: string
+          observacoes?: string | null
+          pdf_url?: string | null
+          processed_at?: string | null
+          serie?: string | null
+          status?: string | null
+          usuario_conferente?: string | null
+          valor_total?: number
+          xml_raw?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_notas_fiscais_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_fornecedores"
             referencedColumns: ["id"]
           },
         ]
@@ -1714,6 +1983,47 @@ export type Database = {
             columns: ["ordem_producao_id"]
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_processamento_logs: {
+        Row: {
+          created_at: string | null
+          detalhes: Json | null
+          etapa: string
+          id: string
+          mensagem: string
+          nota_id: string | null
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          detalhes?: Json | null
+          etapa: string
+          id?: string
+          mensagem: string
+          nota_id?: string | null
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          detalhes?: Json | null
+          etapa?: string
+          id?: string
+          mensagem?: string
+          nota_id?: string | null
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_processamento_logs_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_notas_fiscais"
             referencedColumns: ["id"]
           },
         ]
@@ -6309,6 +6619,10 @@ export type Database = {
           p_metadata?: Json
           p_user_id: string
         }
+        Returns: number
+      }
+      similarity_score: {
+        Args: { str1: string; str2: string }
         Returns: number
       }
       sincronizar_permissoes_usuario: {
