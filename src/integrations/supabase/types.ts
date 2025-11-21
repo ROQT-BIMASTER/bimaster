@@ -1650,6 +1650,54 @@ export type Database = {
           },
         ]
       }
+      fabrica_empresa_config: {
+        Row: {
+          cnpj: string
+          contribuinte_ipi: boolean | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          inscricao_estadual: string | null
+          observacoes: string | null
+          razao_social: string
+          regime_apuracao_icms: string | null
+          regime_apuracao_pis_cofins: string | null
+          regime_tributario: string
+          uf: string
+          updated_at: string | null
+        }
+        Insert: {
+          cnpj: string
+          contribuinte_ipi?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          observacoes?: string | null
+          razao_social: string
+          regime_apuracao_icms?: string | null
+          regime_apuracao_pis_cofins?: string | null
+          regime_tributario: string
+          uf: string
+          updated_at?: string | null
+        }
+        Update: {
+          cnpj?: string
+          contribuinte_ipi?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          observacoes?: string | null
+          razao_social?: string
+          regime_apuracao_icms?: string | null
+          regime_apuracao_pis_cofins?: string | null
+          regime_tributario?: string
+          uf?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       fabrica_formula_alteracoes: {
         Row: {
           data_alteracao: string | null
@@ -2474,6 +2522,45 @@ export type Database = {
           },
         ]
       }
+      fabrica_ncm: {
+        Row: {
+          ativo: boolean | null
+          codigo: string
+          created_at: string | null
+          created_by: string | null
+          descricao: string
+          ex: string | null
+          id: string
+          observacoes: string | null
+          unidade_padrao: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao: string
+          ex?: string | null
+          id?: string
+          observacoes?: string | null
+          unidade_padrao?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo?: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string
+          ex?: string | null
+          id?: string
+          observacoes?: string | null
+          unidade_padrao?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       fabrica_notas_fiscais: {
         Row: {
           chave_acesso: string
@@ -2818,6 +2905,101 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      fabrica_regras_fiscais_ncm: {
+        Row: {
+          aliquota_cofins: number | null
+          aliquota_fcp: number | null
+          aliquota_icms: number | null
+          aliquota_ipi: number | null
+          aliquota_pis: number | null
+          ativo: boolean | null
+          cfop_entrada: string | null
+          cfop_saida: string | null
+          comentario: string | null
+          created_at: string | null
+          created_by: string | null
+          cst_cofins: string | null
+          cst_icms_entrada: string | null
+          cst_icms_saida: string | null
+          cst_ipi: string | null
+          cst_pis: string | null
+          id: string
+          mva: number | null
+          ncm_id: string
+          reducao_base_icms: number | null
+          tem_st: boolean | null
+          uf_destino: string
+          uf_origem: string
+          updated_at: string | null
+          vigencia_fim: string | null
+          vigencia_inicio: string | null
+        }
+        Insert: {
+          aliquota_cofins?: number | null
+          aliquota_fcp?: number | null
+          aliquota_icms?: number | null
+          aliquota_ipi?: number | null
+          aliquota_pis?: number | null
+          ativo?: boolean | null
+          cfop_entrada?: string | null
+          cfop_saida?: string | null
+          comentario?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          cst_cofins?: string | null
+          cst_icms_entrada?: string | null
+          cst_icms_saida?: string | null
+          cst_ipi?: string | null
+          cst_pis?: string | null
+          id?: string
+          mva?: number | null
+          ncm_id: string
+          reducao_base_icms?: number | null
+          tem_st?: boolean | null
+          uf_destino: string
+          uf_origem: string
+          updated_at?: string | null
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Update: {
+          aliquota_cofins?: number | null
+          aliquota_fcp?: number | null
+          aliquota_icms?: number | null
+          aliquota_ipi?: number | null
+          aliquota_pis?: number | null
+          ativo?: boolean | null
+          cfop_entrada?: string | null
+          cfop_saida?: string | null
+          comentario?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          cst_cofins?: string | null
+          cst_icms_entrada?: string | null
+          cst_icms_saida?: string | null
+          cst_ipi?: string | null
+          cst_pis?: string | null
+          id?: string
+          mva?: number | null
+          ncm_id?: string
+          reducao_base_icms?: number | null
+          tem_st?: boolean | null
+          uf_destino?: string
+          uf_origem?: string
+          updated_at?: string | null
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_regras_fiscais_ncm_ncm_id_fkey"
+            columns: ["ncm_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ncm"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fabrica_unidades_medida: {
         Row: {
@@ -7211,6 +7393,14 @@ export type Database = {
       }
     }
     Functions: {
+      buscar_regra_fiscal_ncm: {
+        Args: {
+          p_ncm_codigo: string
+          p_uf_destino: string
+          p_uf_origem: string
+        }
+        Returns: Json
+      }
       calcular_custo_medio_fifo: {
         Args: { p_produto_id: string; p_quantidade_saida: number }
         Returns: number

@@ -167,7 +167,9 @@ export const DadosFiscaisProdutoDialog = ({
 
   const carregarSugestoes = async () => {
     try {
-      // Simplificado para evitar problemas de tipo TypeScript profundo
+      // As sugestões automáticas serão implementadas
+      // diretamente no processamento do XML na tela de recebimentos
+      // onde já temos acesso aos dados do fornecedor e NCM
       setAiSuggestions({});
     } catch (error: any) {
       console.error("Erro ao carregar sugestões:", error);
