@@ -8,6 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Search, Package, Receipt, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DadosFiscaisProdutoDialog } from "@/components/fabrica/DadosFiscaisProdutoDialog";
+import { ConfiguracaoEmpresaDialog } from "@/components/fabrica/ConfiguracaoEmpresaDialog";
+import { CadastroNCMDialog } from "@/components/fabrica/CadastroNCMDialog";
+import { CadastroRegrasFiscaisNCM } from "@/components/fabrica/CadastroRegrasFiscaisNCM";
 import {
   Table,
   TableBody,
@@ -92,13 +95,19 @@ export default function FabricaFiscal() {
               Configure os dados fiscais e tributários dos produtos
             </p>
           </div>
-          <Button 
-            onClick={() => window.location.href = '/dashboard/fabrica/tabela-impostos'}
-            className="gap-2"
-          >
-            <FileText className="h-4 w-4" />
-            Tabela de Impostos
-          </Button>
+          <div className="flex gap-2">
+            <ConfiguracaoEmpresaDialog />
+            <CadastroNCMDialog />
+            <CadastroRegrasFiscaisNCM />
+            <Button 
+              onClick={() => window.location.href = '/dashboard/fabrica/tabela-impostos'}
+              variant="outline"
+              className="gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Tabela de Impostos
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}
