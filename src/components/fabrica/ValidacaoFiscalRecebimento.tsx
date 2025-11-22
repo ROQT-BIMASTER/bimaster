@@ -52,9 +52,16 @@ export const ValidacaoFiscalRecebimento = ({
   aliquotaCofins,
 }: ValidacaoFiscalRecebimentoProps) => {
   
-  // Cálculos de custo
+  // ========================================
+  // TEORIA CONTÁBIL: COMPOSIÇÃO DO CUSTO
+  // ========================================
+  // Custo = Valor Produto + IPI + ICMS ST + Frete + Seguro - Descontos
+  // ICMS próprio NÃO entra no custo (é recuperável via crédito)
+  
   const valorTotal = valorUnitario * quantidade;
   const totalImpostos = valorIcms + valorIpi + valorPis + valorCofins + valorIcmsSt;
+  
+  // Custo real de entrada (conforme teoria contábil)
   const custoFinal = valorTotal + valorIpi + valorIcmsSt; // IPI e ST agregam ao custo
   const custoUnitarioFinal = custoFinal / quantidade;
   
