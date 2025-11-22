@@ -2081,11 +2081,20 @@ export type Database = {
       }
       fabrica_itens_nf: {
         Row: {
+          aliquota_icms_st: number | null
+          aliquota_ipi: number | null
+          base_cofins: number | null
+          base_icms: number | null
+          base_icms_st: number | null
+          base_pis: number | null
           cfop: string | null
           codigo_fornecedor: string
           codigo_mapeado_id: string | null
           conferido: boolean | null
           created_at: string | null
+          cst_ipi: string | null
+          custo_total_entrada: number | null
+          custo_unitario_entrada: number | null
           descricao: string
           divergencia_percentual: number | null
           id: string
@@ -2094,6 +2103,7 @@ export type Database = {
           nota_id: string | null
           numero_item: number
           observacoes_conferencia: string | null
+          observacoes_fiscais: string | null
           produto_interno_id: string | null
           quantidade: number
           quantidade_conferida: number | null
@@ -2104,15 +2114,29 @@ export type Database = {
           unidade: string
           unidade_convertida: string | null
           validade: string | null
+          validado_em: string | null
+          validado_fiscalmente: boolean | null
+          validado_por: string | null
+          valor_icms_st: number | null
+          valor_ipi: number | null
           valor_total: number
           valor_unitario: number
         }
         Insert: {
+          aliquota_icms_st?: number | null
+          aliquota_ipi?: number | null
+          base_cofins?: number | null
+          base_icms?: number | null
+          base_icms_st?: number | null
+          base_pis?: number | null
           cfop?: string | null
           codigo_fornecedor: string
           codigo_mapeado_id?: string | null
           conferido?: boolean | null
           created_at?: string | null
+          cst_ipi?: string | null
+          custo_total_entrada?: number | null
+          custo_unitario_entrada?: number | null
           descricao: string
           divergencia_percentual?: number | null
           id?: string
@@ -2121,6 +2145,7 @@ export type Database = {
           nota_id?: string | null
           numero_item: number
           observacoes_conferencia?: string | null
+          observacoes_fiscais?: string | null
           produto_interno_id?: string | null
           quantidade: number
           quantidade_conferida?: number | null
@@ -2131,15 +2156,29 @@ export type Database = {
           unidade: string
           unidade_convertida?: string | null
           validade?: string | null
+          validado_em?: string | null
+          validado_fiscalmente?: boolean | null
+          validado_por?: string | null
+          valor_icms_st?: number | null
+          valor_ipi?: number | null
           valor_total: number
           valor_unitario: number
         }
         Update: {
+          aliquota_icms_st?: number | null
+          aliquota_ipi?: number | null
+          base_cofins?: number | null
+          base_icms?: number | null
+          base_icms_st?: number | null
+          base_pis?: number | null
           cfop?: string | null
           codigo_fornecedor?: string
           codigo_mapeado_id?: string | null
           conferido?: boolean | null
           created_at?: string | null
+          cst_ipi?: string | null
+          custo_total_entrada?: number | null
+          custo_unitario_entrada?: number | null
           descricao?: string
           divergencia_percentual?: number | null
           id?: string
@@ -2148,6 +2187,7 @@ export type Database = {
           nota_id?: string | null
           numero_item?: number
           observacoes_conferencia?: string | null
+          observacoes_fiscais?: string | null
           produto_interno_id?: string | null
           quantidade?: number
           quantidade_conferida?: number | null
@@ -2158,6 +2198,11 @@ export type Database = {
           unidade?: string
           unidade_convertida?: string | null
           validade?: string | null
+          validado_em?: string | null
+          validado_fiscalmente?: boolean | null
+          validado_por?: string | null
+          valor_icms_st?: number | null
+          valor_ipi?: number | null
           valor_total?: number
           valor_unitario?: number
         }
@@ -3024,6 +3069,66 @@ export type Database = {
           tipo?: string
         }
         Relationships: []
+      }
+      fabrica_validacoes_fiscais: {
+        Row: {
+          ajustes_realizados: boolean | null
+          created_at: string | null
+          creditos_gerados: Json | null
+          custo_entrada_calculado: number
+          dados_originais: Json
+          dados_validados: Json
+          id: string
+          item_nf_id: string
+          nota_id: string
+          tipos_ajustes: string[] | null
+          validado_em: string | null
+          validado_por: string
+        }
+        Insert: {
+          ajustes_realizados?: boolean | null
+          created_at?: string | null
+          creditos_gerados?: Json | null
+          custo_entrada_calculado: number
+          dados_originais: Json
+          dados_validados: Json
+          id?: string
+          item_nf_id: string
+          nota_id: string
+          tipos_ajustes?: string[] | null
+          validado_em?: string | null
+          validado_por: string
+        }
+        Update: {
+          ajustes_realizados?: boolean | null
+          created_at?: string | null
+          creditos_gerados?: Json | null
+          custo_entrada_calculado?: number
+          dados_originais?: Json
+          dados_validados?: Json
+          id?: string
+          item_nf_id?: string
+          nota_id?: string
+          tipos_ajustes?: string[] | null
+          validado_em?: string | null
+          validado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_validacoes_fiscais_item_nf_id_fkey"
+            columns: ["item_nf_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_itens_nf"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_validacoes_fiscais_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_notas_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       goals: {
         Row: {
@@ -7393,6 +7498,30 @@ export type Database = {
       }
     }
     Functions: {
+      buscar_regra_fiscal_item: {
+        Args: {
+          p_ncm: string
+          p_tipo_operacao?: string
+          p_uf_destino: string
+          p_uf_origem: string
+        }
+        Returns: {
+          aliquota_cofins: number
+          aliquota_fcp: number
+          aliquota_icms: number
+          aliquota_ipi: number
+          aliquota_pis: number
+          cfop_entrada: string
+          cfop_saida: string
+          comentario: string
+          cst_entrada: string
+          cst_saida: string
+          mva: number
+          reducao_base: number
+          regra_id: string
+          tem_st: boolean
+        }[]
+      }
       buscar_regra_fiscal_ncm: {
         Args: {
           p_ncm_codigo: string
@@ -7400,6 +7529,18 @@ export type Database = {
           p_uf_origem: string
         }
         Returns: Json
+      }
+      calcular_custo_entrada: {
+        Args: {
+          p_outras_despesas?: number
+          p_valor_desconto?: number
+          p_valor_frete?: number
+          p_valor_icms_st?: number
+          p_valor_ipi?: number
+          p_valor_produto: number
+          p_valor_seguro?: number
+        }
+        Returns: number
       }
       calcular_custo_medio_fifo: {
         Args: { p_produto_id: string; p_quantidade_saida: number }
@@ -7420,6 +7561,10 @@ export type Database = {
       consume_budget_credit: {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined
+      }
+      gerar_creditos_tributarios: {
+        Args: { p_item_nf_id: string }
+        Returns: Json
       }
       get_conversion_funnel: {
         Args: never
