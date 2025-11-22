@@ -6,30 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Regras fiscais para determinação automática
-function isICMSST(cst: string | null): boolean {
-  if (!cst) return false;
-  const cstNumber = cst.replace(/\D/g, '');
-  return ['10', '30', '60', '70'].includes(cstNumber);
+// Função helper para extrair valor do XML
+function getTagValue(xml: string, tag: string): string {
+  const regex = new RegExp(`<${tag}>(.*?)</${tag}>`, 's');
+  const match = xml.match(regex);
+  return match ? match[1].trim() : '';
 }
 
-function geraCredIcms(cst: string | null): boolean {
-  if (!cst) return false;
-  const cstNumber = cst.replace(/\D/g, '');
-  
-  if (isICMSST(cst)) return false;
-  if (['00', '20', '90'].includes(cstNumber)) return true;
-  
-  return false;
-}
-
-function geraCredPisCofins(cst: string | null): boolean {
-  if (!cst) return false;
-  const cstNumber = cst.replace(/\D/g, '');
-  const creditCodes = ['01', '02', '50', '51', '52', '53', '54', '55', '56'];
-  return creditCodes.includes(cstNumber);
-}
-
+// Interface completa de produto XML (TODOS OS IMPOSTOS)
 interface XMLProduct {
   codigo: string;
   descricao: string;
@@ -40,15 +24,34 @@ interface XMLProduct {
   valor_unitario: number;
   valor_total: number;
   numero_item: number;
+  
+  // ICMS
   cst_icms?: string;
   aliquota_icms?: number;
   valor_icms?: number;
+  base_icms?: number;
+  
+  // ICMS ST
+  valor_icms_st?: number;
+  base_icms_st?: number;
+  aliquota_icms_st?: number;
+  
+  // IPI
+  cst_ipi?: string;
+  aliquota_ipi?: number;
+  valor_ipi?: number;
+  
+  // PIS
   cst_pis?: string;
   aliquota_pis?: number;
   valor_pis?: number;
+  base_pis?: number;
+  
+  // COFINS
   cst_cofins?: string;
   aliquota_cofins?: number;
   valor_cofins?: number;
+  base_cofins?: number;
 }
 
 interface XMLData {
@@ -75,7 +78,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Obter usuário autenticado
     const authHeader = req.headers.get('Authorization')!;
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', '')
@@ -86,10 +88,8 @@ serve(async (req) => {
     }
 
     const { xml } = await req.json();
-
     console.log('[process-nfe-xml] Iniciando processamento do XML');
 
-    // Parsear XML
     const xmlData = parseXML(xml);
     console.log('[process-nfe-xml] XML parseado:', xmlData.chave_acesso);
 
@@ -101,7 +101,6 @@ serve(async (req) => {
       .single();
 
     if (existing) {
-      console.log('[process-nfe-xml] Nota duplicada:', xmlData.chave_acesso);
       return new Response(
         JSON.stringify({ 
           error: 'Nota fiscal já foi importada anteriormente',
@@ -115,7 +114,6 @@ serve(async (req) => {
       );
     }
 
-    // Buscar ou criar fornecedor
     let fornecedorId = await buscarOuCriarFornecedor(supabase, xmlData.fornecedor);
     console.log('[process-nfe-xml] Fornecedor:', fornecedorId);
 
@@ -136,13 +134,11 @@ serve(async (req) => {
       .single();
 
     if (notaError) throw notaError;
-
     console.log('[process-nfe-xml] Nota criada:', nota.id);
 
-    // Processar itens
+    // Processar itens com TODOS os impostos
     const itensProcessados = await processarItens(supabase, nota.id, fornecedorId, xmlData.produtos);
 
-    // Registrar log
     await supabase.from('fabrica_processamento_logs').insert({
       nota_id: nota.id,
       tipo: 'success',
@@ -176,15 +172,6 @@ serve(async (req) => {
 });
 
 function parseXML(xmlText: string): XMLData {
-  // Parser XML simplificado (em produção, usar biblioteca robusta)
-  // Esta implementação é básica para demonstração
-  
-  const getTagValue = (xml: string, tag: string): string => {
-    const regex = new RegExp(`<${tag}>(.*?)</${tag}>`, 's');
-    const match = xml.match(regex);
-    return match ? match[1].trim() : '';
-  };
-
   const chaveAcesso = getTagValue(xmlText, 'chNFe');
   
   return {
@@ -211,13 +198,7 @@ function extractProducts(xmlText: string): XMLProduct[] {
     const nItem = parseInt(match[1]);
     const detContent = match[2];
 
-    const getTagValue = (content: string, tag: string): string => {
-      const regex = new RegExp(`<${tag}>(.*?)</${tag}>`, 's');
-      const m = content.match(regex);
-      return m ? m[1].trim() : '';
-    };
-
-    products.push({
+    const produto: XMLProduct = {
       numero_item: nItem,
       codigo: getTagValue(detContent, 'cProd'),
       descricao: getTagValue(detContent, 'xProd'),
@@ -227,25 +208,69 @@ function extractProducts(xmlText: string): XMLProduct[] {
       quantidade: parseFloat(getTagValue(detContent, 'qCom')),
       valor_unitario: parseFloat(getTagValue(detContent, 'vUnCom')),
       valor_total: parseFloat(getTagValue(detContent, 'vProd')),
-    });
+    };
+
+    // ICMS
+    const icmsSection = detContent.match(/<ICMS>(.*?)<\/ICMS>/s)?.[1] || '';
+    produto.cst_icms = getTagValue(icmsSection, 'CST') || getTagValue(icmsSection, 'CSOSN');
+    const vICMS = getTagValue(icmsSection, 'vICMS');
+    const pICMS = getTagValue(icmsSection, 'pICMS');
+    const vBC = getTagValue(icmsSection, 'vBC');
+    if (vICMS) produto.valor_icms = parseFloat(vICMS);
+    if (pICMS) produto.aliquota_icms = parseFloat(pICMS);
+    if (vBC) produto.base_icms = parseFloat(vBC);
+
+    // ICMS ST
+    const vICMSST = getTagValue(icmsSection, 'vICMSST');
+    const pICMSST = getTagValue(icmsSection, 'pICMSST');
+    const vBCST = getTagValue(icmsSection, 'vBCST');
+    if (vICMSST) produto.valor_icms_st = parseFloat(vICMSST);
+    if (pICMSST) produto.aliquota_icms_st = parseFloat(pICMSST);
+    if (vBCST) produto.base_icms_st = parseFloat(vBCST);
+
+    // IPI
+    const ipiSection = detContent.match(/<IPI>(.*?)<\/IPI>/s)?.[1] || '';
+    produto.cst_ipi = getTagValue(ipiSection, 'CST');
+    const vIPI = getTagValue(ipiSection, 'vIPI');
+    const pIPI = getTagValue(ipiSection, 'pIPI');
+    if (vIPI) produto.valor_ipi = parseFloat(vIPI);
+    if (pIPI) produto.aliquota_ipi = parseFloat(pIPI);
+
+    // PIS
+    const pisSection = detContent.match(/<PIS>(.*?)<\/PIS>/s)?.[1] || '';
+    produto.cst_pis = getTagValue(pisSection, 'CST');
+    const vPIS = getTagValue(pisSection, 'vPIS');
+    const pPIS = getTagValue(pisSection, 'pPIS');
+    const vBCPIS = getTagValue(pisSection, 'vBC');
+    if (vPIS) produto.valor_pis = parseFloat(vPIS);
+    if (pPIS) produto.aliquota_pis = parseFloat(pPIS);
+    if (vBCPIS) produto.base_pis = parseFloat(vBCPIS);
+
+    // COFINS
+    const cofinsSection = detContent.match(/<COFINS>(.*?)<\/COFINS>/s)?.[1] || '';
+    produto.cst_cofins = getTagValue(cofinsSection, 'CST');
+    const vCOFINS = getTagValue(cofinsSection, 'vCOFINS');
+    const pCOFINS = getTagValue(cofinsSection, 'pCOFINS');
+    const vBCCOFINS = getTagValue(cofinsSection, 'vBC');
+    if (vCOFINS) produto.valor_cofins = parseFloat(vCOFINS);
+    if (pCOFINS) produto.aliquota_cofins = parseFloat(pCOFINS);
+    if (vBCCOFINS) produto.base_cofins = parseFloat(vBCCOFINS);
+
+    products.push(produto);
   }
 
   return products;
 }
 
 async function buscarOuCriarFornecedor(supabase: any, fornecedor: any): Promise<string> {
-  // Buscar fornecedor existente por CNPJ
   const { data: existing } = await supabase
     .from('fabrica_fornecedores')
     .select('id')
     .eq('cnpj', fornecedor.cnpj)
     .single();
 
-  if (existing) {
-    return existing.id;
-  }
+  if (existing) return existing.id;
 
-  // Criar novo fornecedor
   const { data: novo, error } = await supabase
     .from('fabrica_fornecedores')
     .insert({
@@ -257,8 +282,33 @@ async function buscarOuCriarFornecedor(supabase: any, fornecedor: any): Promise<
     .single();
 
   if (error) throw error;
-
   return novo.id;
+}
+
+// Regras fiscais inline (usar as mesmas do frontend)
+function isICMSST(cst: string | null): boolean {
+  if (!cst) return false;
+  const cstNumber = cst.replace(/\D/g, '');
+  return ['10', '30', '60', '70'].includes(cstNumber);
+}
+
+function geraCredIcms(cst: string | null): boolean {
+  if (!cst) return false;
+  const cstNumber = cst.replace(/\D/g, '');
+  if (isICMSST(cst)) return false;
+  return ['00', '20', '90'].includes(cstNumber);
+}
+
+function geraCredPisCofins(cst: string | null): boolean {
+  if (!cst) return false;
+  const cstNumber = cst.replace(/\D/g, '');
+  return ['01', '02', '50', '51', '52', '53', '54', '55', '56'].includes(cstNumber);
+}
+
+function geraCredIPI(cst: string | null): boolean {
+  if (!cst) return false;
+  const cstNumber = cst.replace(/\D/g, '');
+  return ['00', '01', '02', '03', '04', '05', '49', '50', '51', '52', '53', '54', '55'].includes(cstNumber);
 }
 
 async function processarItens(
@@ -283,7 +333,6 @@ async function processarItens(
     let produtoInternoId = null;
     let codigoMapeadoId = null;
     let statusMapeamento = 'pending';
-    let scoreSimilaridade = null;
     let quantidadeConvertida = null;
     let unidadeConvertida = null;
 
@@ -295,29 +344,23 @@ async function processarItens(
       unidadeConvertida = codigoMapeado.produto_interno?.unidade_medida_id || produto.unidade;
       mapeados++;
     } else {
-      // Tentar mapeamento por NCM (simplificado)
-      const { data: porNCM } = await supabase
-        .from('fabrica_materias_primas')
-        .select('id')
-        .ilike('codigo', `%${produto.ncm}%`)
-        .limit(1)
-        .single();
-
-      if (porNCM) {
-        produtoInternoId = porNCM.id;
-        statusMapeamento = 'manual_review';
-        scoreSimilaridade = 0.5; // Score baixo, requer revisão
-      }
-      
       naoMapeados++;
     }
 
-    // Inserir item com validação fiscal automática
+    // Determinar flags de crédito
     const temIcmsST = isICMSST(produto.cst_icms || null);
     const geraCreditoIcms = geraCredIcms(produto.cst_icms || null);
     const geraCreditoPis = geraCredPisCofins(produto.cst_pis || null);
     const geraCreditoCofins = geraCredPisCofins(produto.cst_cofins || null);
+    const geraCreditoIPI = geraCredIPI(produto.cst_ipi || null);
 
+    // Calcular custo de entrada (Valor + IPI + ICMS ST)
+    const custoTotal = produto.valor_total + 
+                      (produto.valor_ipi || 0) + 
+                      (produto.valor_icms_st || 0);
+    const custoUnitario = custoTotal / produto.quantidade;
+
+    // Inserir item COM TODOS OS IMPOSTOS
     await supabase.from('fabrica_itens_nf').insert({
       nota_id: notaId,
       numero_item: produto.numero_item,
@@ -329,25 +372,53 @@ async function processarItens(
       quantidade: produto.quantidade,
       valor_unitario: produto.valor_unitario,
       valor_total: produto.valor_total,
+      
+      // ICMS
       cst_icms: produto.cst_icms || null,
       aliquota_icms: produto.aliquota_icms || null,
       valor_icms: produto.valor_icms || null,
+      base_icms: produto.base_icms || null,
       tem_icms_st: temIcmsST,
       gera_credito_icms: geraCreditoIcms,
+      
+      // ICMS ST
+      valor_icms_st: produto.valor_icms_st || null,
+      base_icms_st: produto.base_icms_st || null,
+      aliquota_icms_st: produto.aliquota_icms_st || null,
+      
+      // IPI
+      cst_ipi: produto.cst_ipi || null,
+      aliquota_ipi: produto.aliquota_ipi || null,
+      valor_ipi: produto.valor_ipi || null,
+      gera_credito_ipi: geraCreditoIPI,
+      
+      // PIS
       cst_pis: produto.cst_pis || null,
       aliquota_pis: produto.aliquota_pis || null,
       valor_pis: produto.valor_pis || null,
+      base_pis: produto.base_pis || null,
       gera_credito_pis: geraCreditoPis,
+      
+      // COFINS
       cst_cofins: produto.cst_cofins || null,
       aliquota_cofins: produto.aliquota_cofins || null,
       valor_cofins: produto.valor_cofins || null,
+      base_cofins: produto.base_cofins || null,
       gera_credito_cofins: geraCreditoCofins,
+      
+      // Custo calculado
+      custo_unitario_entrada: custoUnitario,
+      custo_total_entrada: custoTotal,
+      
+      // Mapeamento
       produto_interno_id: produtoInternoId,
       codigo_mapeado_id: codigoMapeadoId,
       status_mapeamento: statusMapeamento,
-      score_similaridade: scoreSimilaridade,
       quantidade_convertida: quantidadeConvertida,
       unidade_convertida: unidadeConvertida,
+      
+      // Validação pendente
+      validado_fiscalmente: false,
     });
   }
 
