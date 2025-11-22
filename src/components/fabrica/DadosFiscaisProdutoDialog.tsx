@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, Receipt, FileText } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FiscalFieldWithOptions } from "./FiscalFieldWithOptions";
+import { ValidacaoFiscalRecebimento } from "./ValidacaoFiscalRecebimento";
 
 interface DadosFiscaisProdutoDialogProps {
   open: boolean;
@@ -82,6 +83,19 @@ export const DadosFiscaisProdutoDialog = ({
 
   // Outros
   const [observacoes, setObservacoes] = useState("");
+  
+  // Valores da nota para validação
+  const [valorUnitarioNota, setValorUnitarioNota] = useState(0);
+  const [quantidadeNota, setQuantidadeNota] = useState(0);
+  const [valorIcmsNota, setValorIcmsNota] = useState(0);
+  const [valorIpiNota, setValorIpiNota] = useState(0);
+  const [valorPisNota, setValorPisNota] = useState(0);
+  const [valorCofinsNota, setValorCofinsNota] = useState(0);
+  const [valorIcmsStNota, setValorIcmsStNota] = useState(0);
+  const [cfopNota, setCfopNota] = useState("");
+  
+  // Controle da validação
+  const [mostrarValidacao, setMostrarValidacao] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -142,6 +156,16 @@ export const DadosFiscaisProdutoDialog = ({
         setUnidadeCompra(data.unidade_compra || "");
         setUnidadeVenda(data.unidade_venda || "");
         setObservacoes(data.observacoes || "");
+        
+        // Valores da nota para validação
+        setValorUnitarioNota(data.preco_custo || 0);
+        setQuantidadeNota(1);
+        setValorIcmsNota(data.preco_custo ? (data.preco_custo * (data.aliquota_icms || 0) / 100) : 0);
+        setValorIpiNota(data.preco_custo ? (data.preco_custo * (data.aliquota_ipi || 0) / 100) : 0);
+        setValorPisNota(data.preco_custo ? (data.preco_custo * (data.aliquota_pis || 0) / 100) : 0);
+        setValorCofinsNota(data.preco_custo ? (data.preco_custo * (data.aliquota_cofins || 0) / 100) : 0);
+        setValorIcmsStNota(0); // Será carregado do XML se houver
+        setCfopNota(data.cfop_padrao || "");
 
         // Guardar valores originais como XML values
         setXmlValues({
@@ -176,8 +200,19 @@ export const DadosFiscaisProdutoDialog = ({
     }
   };
 
+  const handlePreview = () => {
+    setMostrarValidacao(true);
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Se ainda não mostrou a validação, mostrar primeiro
+    if (!mostrarValidacao) {
+      handlePreview();
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -573,25 +608,61 @@ export const DadosFiscaisProdutoDialog = ({
               </TabsContent>
             </Tabs>
 
+            {/* Validação Fiscal */}
+            {mostrarValidacao && ncm && cfopNota && cstIcms && (
+              <div className="mt-6">
+                <ValidacaoFiscalRecebimento
+                  valorUnitario={valorUnitarioNota || parseFloat(precoCusto) || 0}
+                  quantidade={quantidadeNota || 1}
+                  valorIcms={valorIcmsNota}
+                  valorIpi={valorIpiNota}
+                  valorPis={valorPisNota}
+                  valorCofins={valorCofinsNota}
+                  valorIcmsSt={valorIcmsStNota}
+                  cstIcms={cstIcms}
+                  cstIpi={cstIpi || "99"}
+                  cstPis={cstPis || "99"}
+                  cstCofins={cstCofins || "99"}
+                  cfop={cfopNota || cfopPadrao}
+                  ncm={ncm}
+                  aliquotaIcms={parseFloat(aliquotaIcms) || undefined}
+                  aliquotaIpi={parseFloat(aliquotaIpi) || undefined}
+                  aliquotaPis={parseFloat(aliquotaPis) || undefined}
+                  aliquotaCofins={parseFloat(aliquotaCofins) || undefined}
+                />
+              </div>
+            )}
+
             <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={loading}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  "Salvar Dados Fiscais"
-                )}
-              </Button>
+              {!mostrarValidacao ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    disabled={loading}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="button" onClick={handlePreview}>
+                    Validar Dados Fiscais
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={() => setMostrarValidacao(false)}
+                  >
+                    Ajustar Dados
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Confirmar e Salvar
+                  </Button>
+                </>
+              )}
             </div>
           </form>
         )}
