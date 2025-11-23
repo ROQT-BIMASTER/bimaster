@@ -926,6 +926,171 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_acoes_corretivas: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          custos_acao: number | null
+          data_conclusao: string | null
+          descricao: string
+          eficacia: string | null
+          id: string
+          nao_conformidade_id: string
+          prazo_conclusao: string | null
+          responsavel_id: string | null
+          status: string | null
+          tipo_acao: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          custos_acao?: number | null
+          data_conclusao?: string | null
+          descricao: string
+          eficacia?: string | null
+          id?: string
+          nao_conformidade_id: string
+          prazo_conclusao?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          tipo_acao: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          custos_acao?: number | null
+          data_conclusao?: string | null
+          descricao?: string
+          eficacia?: string | null
+          id?: string
+          nao_conformidade_id?: string
+          prazo_conclusao?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          tipo_acao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_acoes_corretivas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_acoes_corretivas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_acoes_corretivas_nao_conformidade_id_fkey"
+            columns: ["nao_conformidade_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_nao_conformidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_acoes_corretivas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_acoes_corretivas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      fabrica_apontamentos: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          duracao_minutos: number | null
+          id: string
+          localizacao_gps: Json | null
+          observacoes: string | null
+          operador_id: string | null
+          ordem_producao_id: string
+          quantidade_apontada: number | null
+          quantidade_refugo: number | null
+          quantidade_retrabalho: number | null
+          timestamp_evento: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          duracao_minutos?: number | null
+          id?: string
+          localizacao_gps?: Json | null
+          observacoes?: string | null
+          operador_id?: string | null
+          ordem_producao_id: string
+          quantidade_apontada?: number | null
+          quantidade_refugo?: number | null
+          quantidade_retrabalho?: number | null
+          timestamp_evento?: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          duracao_minutos?: number | null
+          id?: string
+          localizacao_gps?: Json | null
+          observacoes?: string | null
+          operador_id?: string | null
+          ordem_producao_id?: string
+          quantidade_apontada?: number | null
+          quantidade_refugo?: number | null
+          quantidade_retrabalho?: number | null
+          timestamp_evento?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_apontamentos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_apontamentos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_apontamentos_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_apontamentos_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_apontamentos_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_apuracao_fiscal: {
         Row: {
           created_at: string | null
@@ -1004,6 +1169,33 @@ export type Database = {
           id?: string
           nome?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      fabrica_causas_refugo: {
+        Row: {
+          ativo: boolean | null
+          codigo: string
+          created_at: string | null
+          descricao: string
+          id: string
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo: string
+          created_at?: string | null
+          descricao: string
+          id?: string
+          tipo: string
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo?: string
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          tipo?: string
         }
         Relationships: []
       }
@@ -2079,6 +2271,116 @@ export type Database = {
           },
         ]
       }
+      fabrica_inspecoes_qualidade: {
+        Row: {
+          aprovado_por: string | null
+          certificado_url: string | null
+          created_at: string | null
+          data_aprovacao: string | null
+          data_inspecao: string
+          id: string
+          indice_conformidade: number | null
+          inspetor_id: string
+          lote_id: string | null
+          observacoes: string | null
+          ordem_producao_id: string | null
+          plano_inspecao_id: string | null
+          quantidade_aprovada: number | null
+          quantidade_inspecionada: number | null
+          quantidade_reprovada: number | null
+          resultado: string
+          resultados_checklist: Json
+        }
+        Insert: {
+          aprovado_por?: string | null
+          certificado_url?: string | null
+          created_at?: string | null
+          data_aprovacao?: string | null
+          data_inspecao?: string
+          id?: string
+          indice_conformidade?: number | null
+          inspetor_id: string
+          lote_id?: string | null
+          observacoes?: string | null
+          ordem_producao_id?: string | null
+          plano_inspecao_id?: string | null
+          quantidade_aprovada?: number | null
+          quantidade_inspecionada?: number | null
+          quantidade_reprovada?: number | null
+          resultado: string
+          resultados_checklist: Json
+        }
+        Update: {
+          aprovado_por?: string | null
+          certificado_url?: string | null
+          created_at?: string | null
+          data_aprovacao?: string | null
+          data_inspecao?: string
+          id?: string
+          indice_conformidade?: number | null
+          inspetor_id?: string
+          lote_id?: string | null
+          observacoes?: string | null
+          ordem_producao_id?: string | null
+          plano_inspecao_id?: string | null
+          quantidade_aprovada?: number | null
+          quantidade_inspecionada?: number | null
+          quantidade_reprovada?: number | null
+          resultado?: string
+          resultados_checklist?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_inspecoes_qualidade_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_inspecoes_qualidade_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_inspecoes_qualidade_inspetor_id_fkey"
+            columns: ["inspetor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_inspecoes_qualidade_inspetor_id_fkey"
+            columns: ["inspetor_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_inspecoes_qualidade_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_inspecoes_qualidade_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_inspecoes_qualidade_plano_inspecao_id_fkey"
+            columns: ["plano_inspecao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_planos_inspecao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_itens_nf: {
         Row: {
           aliquota_icms_st: number | null
@@ -2396,6 +2698,39 @@ export type Database = {
           },
         ]
       }
+      fabrica_motivos_parada: {
+        Row: {
+          ativo: boolean | null
+          codigo: string
+          created_at: string | null
+          descricao: string
+          id: string
+          impacto_oee: boolean | null
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo: string
+          created_at?: string | null
+          descricao: string
+          id?: string
+          impacto_oee?: boolean | null
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo?: string
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          impacto_oee?: boolean | null
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       fabrica_movimentacoes: {
         Row: {
           created_at: string | null
@@ -2560,6 +2895,86 @@ export type Database = {
           },
           {
             foreignKeyName: "fabrica_movimentacoes_estoque_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_nao_conformidades: {
+        Row: {
+          causa_raiz: string | null
+          created_at: string | null
+          custos_estimados: number | null
+          descricao: string
+          detectado_em: string | null
+          detectado_por: string | null
+          fotos: Json | null
+          gravidade: string
+          id: string
+          inspecao_id: string | null
+          ordem_producao_id: string | null
+          quantidade_afetada: number | null
+          status: string | null
+          tipo: string
+        }
+        Insert: {
+          causa_raiz?: string | null
+          created_at?: string | null
+          custos_estimados?: number | null
+          descricao: string
+          detectado_em?: string | null
+          detectado_por?: string | null
+          fotos?: Json | null
+          gravidade: string
+          id?: string
+          inspecao_id?: string | null
+          ordem_producao_id?: string | null
+          quantidade_afetada?: number | null
+          status?: string | null
+          tipo: string
+        }
+        Update: {
+          causa_raiz?: string | null
+          created_at?: string | null
+          custos_estimados?: number | null
+          descricao?: string
+          detectado_em?: string | null
+          detectado_por?: string | null
+          fotos?: Json | null
+          gravidade?: string
+          id?: string
+          inspecao_id?: string | null
+          ordem_producao_id?: string | null
+          quantidade_afetada?: number | null
+          status?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_nao_conformidades_detectado_por_fkey"
+            columns: ["detectado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_nao_conformidades_detectado_por_fkey"
+            columns: ["detectado_por"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_nao_conformidades_inspecao_id_fkey"
+            columns: ["inspecao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_inspecoes_qualidade"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_nao_conformidades_ordem_producao_id_fkey"
             columns: ["ordem_producao_id"]
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
@@ -2752,6 +3167,77 @@ export type Database = {
           },
         ]
       }
+      fabrica_paradas: {
+        Row: {
+          acao_corretiva: string | null
+          created_at: string | null
+          descricao_adicional: string | null
+          duracao_minutos: number | null
+          id: string
+          impacto_financeiro: number | null
+          motivo_parada_id: string | null
+          operador_responsavel_id: string | null
+          ordem_producao_id: string
+          timestamp_fim: string | null
+          timestamp_inicio: string
+        }
+        Insert: {
+          acao_corretiva?: string | null
+          created_at?: string | null
+          descricao_adicional?: string | null
+          duracao_minutos?: number | null
+          id?: string
+          impacto_financeiro?: number | null
+          motivo_parada_id?: string | null
+          operador_responsavel_id?: string | null
+          ordem_producao_id: string
+          timestamp_fim?: string | null
+          timestamp_inicio?: string
+        }
+        Update: {
+          acao_corretiva?: string | null
+          created_at?: string | null
+          descricao_adicional?: string | null
+          duracao_minutos?: number | null
+          id?: string
+          impacto_financeiro?: number | null
+          motivo_parada_id?: string | null
+          operador_responsavel_id?: string | null
+          ordem_producao_id?: string
+          timestamp_fim?: string | null
+          timestamp_inicio?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_paradas_motivo_parada_id_fkey"
+            columns: ["motivo_parada_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_motivos_parada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_paradas_operador_responsavel_id_fkey"
+            columns: ["operador_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_paradas_operador_responsavel_id_fkey"
+            columns: ["operador_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_paradas_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_planejamento_necessidades: {
         Row: {
           compra_realizada_em: string | null
@@ -2808,6 +3294,76 @@ export type Database = {
             columns: ["ordem_producao_id"]
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_planos_inspecao: {
+        Row: {
+          ativo: boolean | null
+          checklist: Json
+          created_at: string | null
+          created_by: string | null
+          criterios_aprovacao: Json | null
+          descricao: string | null
+          frequencia: string | null
+          id: string
+          nome: string
+          produto_id: string
+          tamanho_amostra: number | null
+          tipo_inspecao: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          checklist: Json
+          created_at?: string | null
+          created_by?: string | null
+          criterios_aprovacao?: Json | null
+          descricao?: string | null
+          frequencia?: string | null
+          id?: string
+          nome: string
+          produto_id: string
+          tamanho_amostra?: number | null
+          tipo_inspecao: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          checklist?: Json
+          created_at?: string | null
+          created_by?: string | null
+          criterios_aprovacao?: Json | null
+          descricao?: string | null
+          frequencia?: string | null
+          id?: string
+          nome?: string
+          produto_id?: string
+          tamanho_amostra?: number | null
+          tipo_inspecao?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_planos_inspecao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_planos_inspecao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_planos_inspecao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
           },
         ]
@@ -2902,6 +3458,117 @@ export type Database = {
             columns: ["unidade_medida_id"]
             isOneToOne: false
             referencedRelation: "fabrica_unidades_medida"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_refugos: {
+        Row: {
+          apontamento_id: string | null
+          causa_refugo_id: string | null
+          created_at: string | null
+          created_by: string | null
+          custo_estimado: number | null
+          data_refugo: string | null
+          descricao: string | null
+          disposicao: string | null
+          fotos: Json | null
+          id: string
+          lote_id: string | null
+          operador_id: string | null
+          ordem_producao_id: string
+          quantidade: number
+          unidade: string | null
+        }
+        Insert: {
+          apontamento_id?: string | null
+          causa_refugo_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custo_estimado?: number | null
+          data_refugo?: string | null
+          descricao?: string | null
+          disposicao?: string | null
+          fotos?: Json | null
+          id?: string
+          lote_id?: string | null
+          operador_id?: string | null
+          ordem_producao_id: string
+          quantidade: number
+          unidade?: string | null
+        }
+        Update: {
+          apontamento_id?: string | null
+          causa_refugo_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custo_estimado?: number | null
+          data_refugo?: string | null
+          descricao?: string | null
+          disposicao?: string | null
+          fotos?: Json | null
+          id?: string
+          lote_id?: string | null
+          operador_id?: string | null
+          ordem_producao_id?: string
+          quantidade?: number
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_refugos_apontamento_id_fkey"
+            columns: ["apontamento_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_apontamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_refugos_causa_refugo_id_fkey"
+            columns: ["causa_refugo_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_causas_refugo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_refugos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_refugos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_refugos_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_refugos_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_refugos_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_refugos_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
           },
         ]
@@ -3042,6 +3709,123 @@ export type Database = {
             columns: ["ncm_id"]
             isOneToOne: false
             referencedRelation: "fabrica_ncm"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_retrabalhos: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          custo_adicional: number | null
+          data_conclusao: string | null
+          data_inicio: string | null
+          id: string
+          lote_origem_id: string | null
+          motivo: string
+          nao_conformidade_id: string | null
+          observacoes: string | null
+          operador_responsavel_id: string | null
+          ordem_producao_original_id: string | null
+          ordem_producao_retrabalho_id: string | null
+          quantidade: number
+          resultado: string | null
+          tempo_adicional_minutos: number | null
+          tipo_retrabalho: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_adicional?: number | null
+          data_conclusao?: string | null
+          data_inicio?: string | null
+          id?: string
+          lote_origem_id?: string | null
+          motivo: string
+          nao_conformidade_id?: string | null
+          observacoes?: string | null
+          operador_responsavel_id?: string | null
+          ordem_producao_original_id?: string | null
+          ordem_producao_retrabalho_id?: string | null
+          quantidade: number
+          resultado?: string | null
+          tempo_adicional_minutos?: number | null
+          tipo_retrabalho?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_adicional?: number | null
+          data_conclusao?: string | null
+          data_inicio?: string | null
+          id?: string
+          lote_origem_id?: string | null
+          motivo?: string
+          nao_conformidade_id?: string | null
+          observacoes?: string | null
+          operador_responsavel_id?: string | null
+          ordem_producao_original_id?: string | null
+          ordem_producao_retrabalho_id?: string | null
+          quantidade?: number
+          resultado?: string | null
+          tempo_adicional_minutos?: number | null
+          tipo_retrabalho?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_retrabalhos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_retrabalhos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_retrabalhos_lote_origem_id_fkey"
+            columns: ["lote_origem_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_retrabalhos_nao_conformidade_id_fkey"
+            columns: ["nao_conformidade_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_nao_conformidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_retrabalhos_operador_responsavel_id_fkey"
+            columns: ["operador_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_retrabalhos_operador_responsavel_id_fkey"
+            columns: ["operador_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_retrabalhos_ordem_producao_original_id_fkey"
+            columns: ["ordem_producao_original_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_retrabalhos_ordem_producao_retrabalho_id_fkey"
+            columns: ["ordem_producao_retrabalho_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
           },
         ]
