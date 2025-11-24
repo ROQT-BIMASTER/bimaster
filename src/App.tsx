@@ -70,6 +70,9 @@ const FabricaOrdensProducao = lazy(() => import("@/pages/FabricaOrdensProducao")
 const FabricaRecebimentos = lazy(() => import("@/pages/FabricaRecebimentos"));
 const FabricaFiscal = lazy(() => import("@/pages/FabricaFiscal"));
 const FabricaTabelaImpostos = lazy(() => import("@/pages/FabricaTabelaImpostos"));
+const FabricaApontamentos = lazy(() => import("@/pages/FabricaApontamentos"));
+const FabricaQualidade = lazy(() => import("@/pages/FabricaQualidade"));
+const FabricaParadas = lazy(() => import("@/pages/FabricaParadas"));
 
 // Loading component
 const PageLoader = () => (
@@ -202,6 +205,9 @@ const App = () => {
         <Route path="/dashboard/fabrica/fiscal" element={<ProtectedRoute><FabricaFiscal /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/tabela-impostos" element={<ProtectedRoute><FabricaTabelaImpostos /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/ordens-producao" element={<ProtectedRoute><FabricaOrdensProducao /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/apontamentos" element={<ProtectedRoute><FabricaApontamentos /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/qualidade" element={<ProtectedRoute><FabricaQualidade /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/paradas" element={<ProtectedRoute><FabricaParadas /></ProtectedRoute>} />
         
         <Route path="/404" element={<NotFound />} />
             </Routes>
