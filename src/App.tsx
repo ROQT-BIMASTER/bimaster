@@ -200,6 +200,7 @@ const App = () => {
         <Route path="/dashboard/fabrica/recebimentos" element={<ProtectedRoute><FabricaRecebimentos /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/materias-primas" element={<ProtectedRoute><FabricaMateriasPrimas /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/formulas" element={<ProtectedRoute><FabricaFormulas /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/formulas/nova" element={<ProtectedRoute><FabricaFormulaEditor /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/formulas/:id" element={<ProtectedRoute><FabricaFormulaEditor /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/planejamento" element={<ProtectedRoute><FabricaPlanejamento /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/fiscal" element={<ProtectedRoute><FabricaFiscal /></ProtectedRoute>} />
