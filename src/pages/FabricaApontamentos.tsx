@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PlayCircle, PauseCircle, StopCircle, AlertCircle, Clock } from "lucide-react";
+import { PlayCircle, PauseCircle, StopCircle, AlertCircle, Clock, Settings, UserCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,13 +13,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CronometroProducao } from "@/components/fabrica/CronometroProducao";
 
 export default function FabricaApontamentos() {
   const queryClient = useQueryClient();
   const [selectedOP, setSelectedOP] = useState<string>("");
+  const [selectedMaquina, setSelectedMaquina] = useState<string>("");
+  const [selectedOperador, setSelectedOperador] = useState<string>("");
   const [quantidade, setQuantidade] = useState("");
   const [quantidadeRefugo, setQuantidadeRefugo] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [tempoProducao, setTempoProducao] = useState<number>(0);
 
   // Buscar OPs ativas
   const { data: ops, isLoading: loadingOPs } = useQuery({
@@ -29,10 +33,42 @@ export default function FabricaApontamentos() {
         .from("fabrica_ordens_producao")
         .select(`
           *,
-          fabrica_produtos(nome, codigo)
+          fabrica_produtos(nome, codigo),
+          fabrica_maquinas(nome),
+          fabrica_operadores(nome)
         `)
         .in("status", ["pendente", "em_producao"])
         .order("data_prevista", { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Buscar máquinas ativas
+  const { data: maquinas } = useQuery({
+    queryKey: ["fabrica-maquinas-ativas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fabrica_maquinas")
+        .select("*")
+        .eq("status", "ativo")
+        .order("nome");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Buscar operadores ativos
+  const { data: operadores } = useQuery({
+    queryKey: ["fabrica-operadores-ativos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fabrica_operadores")
+        .select("*")
+        .eq("status", "ativo")
+        .order("nome");
 
       if (error) throw error;
       return data;
@@ -67,6 +103,8 @@ export default function FabricaApontamentos() {
       quantidade_apontada?: number;
       quantidade_refugo?: number;
       observacoes?: string;
+      maquina_id?: string;
+      duracao_minutos?: number;
     }) => {
       const { data: session } = await supabase.auth.getUser();
       
@@ -74,7 +112,7 @@ export default function FabricaApontamentos() {
         .from("fabrica_apontamentos")
         .insert({
           ...dados,
-          operador_id: session.user?.id,
+          operador_id: selectedOperador || null,
           created_by: session.user?.id,
         })
         .select()
@@ -96,18 +134,27 @@ export default function FabricaApontamentos() {
     },
   });
 
-  const handleIniciar = () => {
+  const handleIniciar = useCallback(() => {
     if (!selectedOP) {
       toast.error("Selecione uma ordem de produção");
+      return;
+    }
+    if (!selectedMaquina) {
+      toast.error("Selecione uma máquina");
+      return;
+    }
+    if (!selectedOperador) {
+      toast.error("Selecione um operador");
       return;
     }
     criarApontamento.mutate({
       ordem_producao_id: selectedOP,
       tipo: "inicio",
+      maquina_id: selectedMaquina,
     });
-  };
+  }, [selectedOP, selectedMaquina, selectedOperador]);
 
-  const handlePausar = () => {
+  const handlePausar = useCallback(() => {
     if (!selectedOP) {
       toast.error("Selecione uma ordem de produção");
       return;
@@ -116,10 +163,11 @@ export default function FabricaApontamentos() {
       ordem_producao_id: selectedOP,
       tipo: "pausa",
       observacoes: observacoes || undefined,
+      maquina_id: selectedMaquina || undefined,
     });
-  };
+  }, [selectedOP, selectedMaquina, observacoes]);
 
-  const handleRetomar = () => {
+  const handleRetomar = useCallback(() => {
     if (!selectedOP) {
       toast.error("Selecione uma ordem de produção");
       return;
@@ -127,10 +175,11 @@ export default function FabricaApontamentos() {
     criarApontamento.mutate({
       ordem_producao_id: selectedOP,
       tipo: "retomada",
+      maquina_id: selectedMaquina || undefined,
     });
-  };
+  }, [selectedOP, selectedMaquina]);
 
-  const handleFinalizar = () => {
+  const handleFinalizar = useCallback((tempoTotalMinutos: number) => {
     if (!selectedOP) {
       toast.error("Selecione uma ordem de produção");
       return;
@@ -150,8 +199,12 @@ export default function FabricaApontamentos() {
       quantidade_apontada: qtd,
       quantidade_refugo: qtdRefugo,
       observacoes: observacoes || undefined,
+      maquina_id: selectedMaquina || undefined,
+      duracao_minutos: tempoTotalMinutos,
     });
-  };
+    
+    setTempoProducao(tempoTotalMinutos);
+  }, [selectedOP, selectedMaquina, quantidade, quantidadeRefugo, observacoes]);
 
   const opSelecionada = ops?.find((op) => op.id === selectedOP);
   const emProducao = ultimoApontamento?.tipo === "inicio" || ultimoApontamento?.tipo === "retomada";
@@ -167,27 +220,70 @@ export default function FabricaApontamentos() {
           </p>
         </div>
 
-        {/* Seleção de OP */}
+        {/* Seleção de OP, Máquina e Operador */}
         <Card>
           <CardHeader>
-            <CardTitle>Ordem de Produção</CardTitle>
-            <CardDescription>Selecione a OP para apontar</CardDescription>
+            <CardTitle>Configuração de Produção</CardTitle>
+            <CardDescription>Selecione OP, máquina e operador</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Select value={selectedOP} onValueChange={setSelectedOP}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma OP" />
-              </SelectTrigger>
-              <SelectContent>
-                {loadingOPs && <SelectItem value="loading">Carregando...</SelectItem>}
-                {ops?.map((op) => (
-                  <SelectItem key={op.id} value={op.id}>
-                    OP {op.numero} - {op.fabrica_produtos?.nome} (
-                    {op.quantidade_planejada} un)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label>Ordem de Produção *</Label>
+              <Select value={selectedOP} onValueChange={setSelectedOP}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma OP" />
+                </SelectTrigger>
+                <SelectContent>
+                  {loadingOPs && <SelectItem value="loading">Carregando...</SelectItem>}
+                  {ops?.map((op) => (
+                    <SelectItem key={op.id} value={op.id}>
+                      OP {op.numero} - {op.fabrica_produtos?.nome} (
+                      {op.quantidade_planejada} un)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Máquina *
+                </Label>
+                <Select value={selectedMaquina} onValueChange={setSelectedMaquina}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma máquina" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {maquinas?.map((maq) => (
+                      <SelectItem key={maq.id} value={maq.id}>
+                        {maq.codigo} - {maq.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <UserCircle className="h-4 w-4" />
+                  Operador *
+                </Label>
+                <Select value={selectedOperador} onValueChange={setSelectedOperador}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um operador" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {operadores?.map((op) => (
+                      <SelectItem key={op.id} value={op.id}>
+                        {op.matricula} - {op.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
             {opSelecionada && (
               <div className="rounded-lg border p-4 space-y-2 bg-muted/50">
@@ -222,103 +318,65 @@ export default function FabricaApontamentos() {
           </CardContent>
         </Card>
 
-        {/* Botões de Ação */}
-        {selectedOP && (
+        {/* Cronômetro de Produção */}
+        {selectedOP && selectedMaquina && selectedOperador && (
+          <CronometroProducao
+            opId={selectedOP}
+            onIniciar={handleIniciar}
+            onPausar={handlePausar}
+            onRetomar={handleRetomar}
+            onFinalizar={handleFinalizar}
+            loading={criarApontamento.isPending}
+          />
+        )}
+
+        {/* Formulário de Finalização */}
+        {selectedOP && emProducao && (
           <Card>
             <CardHeader>
-              <CardTitle>Controles</CardTitle>
+              <CardTitle>Registro de Produção</CardTitle>
+              <CardDescription>Informe as quantidades ao finalizar</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  size="lg"
-                  onClick={handleIniciar}
-                  disabled={emProducao || criarApontamento.isPending}
-                  className="h-24 flex-col gap-2"
-                >
-                  <PlayCircle className="h-8 w-8" />
-                  Iniciar
-                </Button>
-
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  onClick={handlePausar}
-                  disabled={!emProducao || criarApontamento.isPending}
-                  className="h-24 flex-col gap-2"
-                >
-                  <PauseCircle className="h-8 w-8" />
-                  Pausar
-                </Button>
+              <div className="space-y-2">
+                <Label htmlFor="quantidade">Quantidade Produzida *</Label>
+                <Input
+                  id="quantidade"
+                  type="number"
+                  step="0.001"
+                  value={quantidade}
+                  onChange={(e) => setQuantidade(e.target.value)}
+                  placeholder="Ex: 100"
+                />
               </div>
 
-              {emPausa && (
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={handleRetomar}
-                  disabled={criarApontamento.isPending}
-                  className="w-full h-16"
-                >
-                  <PlayCircle className="h-6 w-6 mr-2" />
-                  Retomar Produção
-                </Button>
-              )}
-
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="quantidade">Quantidade Produzida *</Label>
-                  <Input
-                    id="quantidade"
-                    type="number"
-                    step="0.001"
-                    value={quantidade}
-                    onChange={(e) => setQuantidade(e.target.value)}
-                    placeholder="Ex: 100"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="refugo">Quantidade Refugo</Label>
-                  <Input
-                    id="refugo"
-                    type="number"
-                    step="0.001"
-                    value={quantidadeRefugo}
-                    onChange={(e) => setQuantidadeRefugo(e.target.value)}
-                    placeholder="Ex: 5"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="obs">Observações</Label>
-                  <Textarea
-                    id="obs"
-                    value={observacoes}
-                    onChange={(e) => setObservacoes(e.target.value)}
-                    placeholder="Observações sobre a produção..."
-                    rows={3}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="refugo">Quantidade Refugo</Label>
+                <Input
+                  id="refugo"
+                  type="number"
+                  step="0.001"
+                  value={quantidadeRefugo}
+                  onChange={(e) => setQuantidadeRefugo(e.target.value)}
+                  placeholder="Ex: 5"
+                />
               </div>
 
-              <Button
-                size="lg"
-                variant="destructive"
-                onClick={handleFinalizar}
-                disabled={!emProducao || criarApontamento.isPending}
-                className="w-full h-16"
-              >
-                <StopCircle className="h-6 w-6 mr-2" />
-                Finalizar Produção
-              </Button>
+              <div className="space-y-2">
+                <Label htmlFor="obs">Observações</Label>
+                <Textarea
+                  id="obs"
+                  value={observacoes}
+                  onChange={(e) => setObservacoes(e.target.value)}
+                  placeholder="Observações sobre a produção..."
+                  rows={3}
+                />
+              </div>
 
-              {emProducao && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-primary/10 p-3 rounded-lg">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>Produção em andamento. Registre a quantidade ao finalizar.</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-primary/10 p-3 rounded-lg">
+                <AlertCircle className="h-4 w-4" />
+                <span>Preencha os dados e clique em "Finalizar" no cronômetro acima.</span>
+              </div>
             </CardContent>
           </Card>
         )}

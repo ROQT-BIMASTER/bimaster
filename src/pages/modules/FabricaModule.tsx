@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, DollarSign, AlertTriangle, Activity, Loader2, Calendar } from "lucide-react";
+import { Package, DollarSign, AlertTriangle, Activity, Loader2, Calendar, Settings, UserCircle, Clock, Layers } from "lucide-react";
 import { Navigate, Link } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { Button } from "@/components/ui/button";
@@ -175,16 +175,18 @@ const FabricaModule = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">MPs em Estoque</CardTitle>
-              <Package className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalMPs}</div>
-              <p className="text-xs text-muted-foreground">Itens cadastrados</p>
-            </CardContent>
-          </Card>
+          <Link to="/dashboard/fabrica/materias-primas">
+            <Card className="hover:border-primary transition-colors cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">MPs em Estoque</CardTitle>
+                <Package className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalMPs}</div>
+                <p className="text-xs text-muted-foreground">Itens cadastrados</p>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -197,16 +199,18 @@ const FabricaModule = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">OPs Ativas</CardTitle>
-              <Activity className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.ordensAtivas}</div>
-              <p className="text-xs text-muted-foreground">Em produção</p>
-            </CardContent>
-          </Card>
+          <Link to="/dashboard/fabrica/ordens-producao">
+            <Card className="hover:border-primary transition-colors cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">OPs Ativas</CardTitle>
+                <Activity className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.ordensAtivas}</div>
+                <p className="text-xs text-muted-foreground">Em produção</p>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -221,6 +225,41 @@ const FabricaModule = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Links Rápidos */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Acesso Rápido</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Link to="/dashboard/fabrica/formulas">
+                <Button variant="outline" className="w-full h-20 flex-col gap-2">
+                  <Layers className="h-6 w-6" />
+                  <span className="text-sm">Fórmulas BOM</span>
+                </Button>
+              </Link>
+              <Link to="/dashboard/fabrica/maquinas">
+                <Button variant="outline" className="w-full h-20 flex-col gap-2">
+                  <Settings className="h-6 w-6" />
+                  <span className="text-sm">Máquinas</span>
+                </Button>
+              </Link>
+              <Link to="/dashboard/fabrica/operadores">
+                <Button variant="outline" className="w-full h-20 flex-col gap-2">
+                  <UserCircle className="h-6 w-6" />
+                  <span className="text-sm">Operadores</span>
+                </Button>
+              </Link>
+              <Link to="/dashboard/fabrica/apontamentos">
+                <Button variant="outline" className="w-full h-20 flex-col gap-2">
+                  <Clock className="h-6 w-6" />
+                  <span className="text-sm">Apontamentos</span>
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
