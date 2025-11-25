@@ -214,6 +214,7 @@ export const DadosFiscaisProdutoDialog = ({
     }
     
     setLoading(true);
+    console.log("🔧 Iniciando salvamento de dados fiscais para produto:", produtoId);
 
     try {
       const dadosFiscais = {
@@ -261,25 +262,37 @@ export const DadosFiscaisProdutoDialog = ({
         updated_at: new Date().toISOString()
       };
 
+      console.log("📦 Dados preparados:", dadosFiscais);
+
       let response;
       if (dadosId) {
+        console.log("✏️ Atualizando dados existentes, ID:", dadosId);
         response = await supabase
           .from("fabrica_dados_fiscais_produto")
           .update(dadosFiscais)
-          .eq("id", dadosId);
+          .eq("id", dadosId)
+          .select();
       } else {
+        console.log("➕ Inserindo novos dados fiscais");
         response = await supabase
           .from("fabrica_dados_fiscais_produto")
-          .insert({ ...dadosFiscais, created_at: new Date().toISOString() });
+          .insert({ ...dadosFiscais, created_at: new Date().toISOString() })
+          .select();
       }
 
-      if (response.error) throw response.error;
+      console.log("📡 Resposta do banco:", response);
 
+      if (response.error) {
+        console.error("❌ Erro do Supabase:", response.error);
+        throw response.error;
+      }
+
+      console.log("✅ Dados fiscais salvos com sucesso!");
       toast.success("Dados fiscais salvos com sucesso!");
       onOpenChange(false);
     } catch (error: any) {
-      console.error("Erro ao salvar dados fiscais:", error);
-      toast.error("Erro ao salvar dados fiscais");
+      console.error("❌ Erro ao salvar dados fiscais:", error);
+      toast.error(`Erro ao salvar: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setLoading(false);
     }
