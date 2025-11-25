@@ -9,13 +9,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Save, ArrowLeft, Play, FileText, Plus, Layers } from "lucide-react";
+import { Save, ArrowLeft, Play, FileText, Plus, Layers, ListOrdered } from "lucide-react";
 import { FormulaItemRow } from "@/components/fabrica/FormulaItemRow";
 import { SimuladorProducao } from "@/components/fabrica/SimuladorProducao";
 import { FormulaTree } from "@/components/fabrica/FormulaTree";
+import { RoteiroProducaoEditor } from "@/components/fabrica/RoteiroProducaoEditor";
 import { validarFormula } from "@/lib/fabrica/formula-validator";
 import { calcularCustoFormula } from "@/lib/fabrica/custo-calculator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -85,6 +87,20 @@ export default function FabricaFormulaEditor() {
     },
   });
 
+  const { data: maquinas } = useQuery({
+    queryKey: ["fabrica-maquinas-ativas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fabrica_maquinas")
+        .select("*")
+        .eq("status", "ativo")
+        .order("nome");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const [produtoId, setProdutoId] = useState("");
   const [rendimento, setRendimento] = useState(100);
   const [tempoProducao, setTempoProducao] = useState(60);
@@ -93,6 +109,7 @@ export default function FabricaFormulaEditor() {
   const [phIdeal, setPhIdeal] = useState<number | undefined>();
   const [observacoesTecnicas, setObservacoesTecnicas] = useState("");
   const [itens, setItens] = useState<any[]>([]);
+  const [roteiro, setRoteiro] = useState<any[]>([]);
 
   // Carregar dados quando fórmula for carregada
   useEffect(() => {
@@ -395,52 +412,76 @@ export default function FabricaFormulaEditor() {
           </CardContent>
         </Card>
 
-        {/* Ingredientes */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Ingredientes</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Soma dos percentuais:{" "}
-                  <span
-                    className={
-                      Math.abs(somaPercentuais - 100) > 0.01
-                        ? "text-destructive font-medium"
-                        : "text-success font-medium"
-                    }
-                  >
-                    {somaPercentuais.toFixed(2)}%
-                  </span>
-                </p>
-              </div>
-              <Button onClick={adicionarItem} variant="outline" size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Ingrediente
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {itens.map((item, index) => (
-                <FormulaItemRow
-                  key={item.id}
-                  item={item}
-                  index={index}
-                  materiasPrimas={materiasPrimas || []}
-                  onUpdate={atualizarItem}
-                  onRemove={removerItem}
-                />
-              ))}
-              {itens.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-4" />
-                  <p>Nenhum ingrediente adicionado ainda</p>
+        {/* Ingredientes e Roteiro */}
+        <Tabs defaultValue="ingredientes" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="ingredientes">
+              <Layers className="h-4 w-4 mr-2" />
+              Ingredientes
+            </TabsTrigger>
+            <TabsTrigger value="roteiro">
+              <ListOrdered className="h-4 w-4 mr-2" />
+              Roteiro de Produção
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="ingredientes">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Ingredientes</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Soma dos percentuais:{" "}
+                      <span
+                        className={
+                          Math.abs(somaPercentuais - 100) > 0.01
+                            ? "text-destructive font-medium"
+                            : "text-success font-medium"
+                        }
+                      >
+                        {somaPercentuais.toFixed(2)}%
+                      </span>
+                    </p>
+                  </div>
+                  <Button onClick={adicionarItem} variant="outline" size="sm">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar Ingrediente
+                  </Button>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {itens.map((item, index) => (
+                    <FormulaItemRow
+                      key={item.id}
+                      item={item}
+                      index={index}
+                      materiasPrimas={materiasPrimas || []}
+                      onUpdate={atualizarItem}
+                      onRemove={removerItem}
+                    />
+                  ))}
+                  {itens.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4" />
+                      <p>Nenhum ingrediente adicionado ainda</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="roteiro">
+            <RoteiroProducaoEditor
+              formulaId={id || ""}
+              maquinas={maquinas || []}
+              onSave={(steps) => setRoteiro(steps)}
+              initialSteps={roteiro}
+            />
+          </TabsContent>
+        </Tabs>
 
         {/* Resumo de Custos */}
         {itens.length > 0 && (

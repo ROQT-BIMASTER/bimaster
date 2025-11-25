@@ -63,16 +63,18 @@ const Marketing = lazy(() => import("./pages/Marketing"));
 const AIAnalytics = lazy(() => import("./pages/AIAnalytics"));
 const FabricaModule = lazy(() => import("./pages/modules/FabricaModule"));
 const FabricaMateriasPrimas = lazy(() => import("./pages/FabricaMateriasPrimas"));
-const FabricaFormulas = lazy(() => import("@/pages/FabricaFormulas"));
-const FabricaFormulaEditor = lazy(() => import("@/pages/FabricaFormulaEditor"));
-const FabricaPlanejamento = lazy(() => import("@/pages/FabricaPlanejamento"));
-const FabricaOrdensProducao = lazy(() => import("@/pages/FabricaOrdensProducao"));
-const FabricaRecebimentos = lazy(() => import("@/pages/FabricaRecebimentos"));
-const FabricaFiscal = lazy(() => import("@/pages/FabricaFiscal"));
-const FabricaTabelaImpostos = lazy(() => import("@/pages/FabricaTabelaImpostos"));
-const FabricaApontamentos = lazy(() => import("@/pages/FabricaApontamentos"));
-const FabricaQualidade = lazy(() => import("@/pages/FabricaQualidade"));
-const FabricaParadas = lazy(() => import("@/pages/FabricaParadas"));
+const FabricaFormulas = lazy(() => import("./pages/FabricaFormulas"));
+const FabricaFormulaEditor = lazy(() => import("./pages/FabricaFormulaEditor"));
+const FabricaPlanejamento = lazy(() => import("./pages/FabricaPlanejamento"));
+const FabricaOrdensProducao = lazy(() => import("./pages/FabricaOrdensProducao"));
+const FabricaRecebimentos = lazy(() => import("./pages/FabricaRecebimentos"));
+const FabricaFiscal = lazy(() => import("./pages/FabricaFiscal"));
+const FabricaTabelaImpostos = lazy(() => import("./pages/FabricaTabelaImpostos"));
+const FabricaApontamentos = lazy(() => import("./pages/FabricaApontamentos"));
+const FabricaQualidade = lazy(() => import("./pages/FabricaQualidade"));
+const FabricaParadas = lazy(() => import("./pages/FabricaParadas"));
+const FabricaMaquinas = lazy(() => import("./pages/FabricaMaquinas"));
+const FabricaOperadores = lazy(() => import("./pages/FabricaOperadores"));
 
 // Loading component
 const PageLoader = () => (
@@ -206,9 +208,12 @@ const App = () => {
         <Route path="/dashboard/fabrica/fiscal" element={<ProtectedRoute><FabricaFiscal /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/tabela-impostos" element={<ProtectedRoute><FabricaTabelaImpostos /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/ordens-producao" element={<ProtectedRoute><FabricaOrdensProducao /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/ordens-producao" element={<ProtectedRoute><FabricaOrdensProducao /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/apontamentos" element={<ProtectedRoute><FabricaApontamentos /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/qualidade" element={<ProtectedRoute><FabricaQualidade /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/paradas" element={<ProtectedRoute><FabricaParadas /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/maquinas" element={<ProtectedRoute><FabricaMaquinas /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/operadores" element={<ProtectedRoute><FabricaOperadores /></ProtectedRoute>} />
         
         <Route path="/404" element={<NotFound />} />
             </Routes>

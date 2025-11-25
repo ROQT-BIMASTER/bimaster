@@ -1014,14 +1014,20 @@ export type Database = {
           duracao_minutos: number | null
           id: string
           localizacao_gps: Json | null
+          maquina_id: string | null
           observacoes: string | null
           operador_id: string | null
           ordem_producao_id: string
+          parametros_processo: Json | null
+          pressao: number | null
           quantidade_apontada: number | null
           quantidade_refugo: number | null
           quantidade_retrabalho: number | null
+          temperatura: number | null
+          tempo_setup_minutos: number | null
           timestamp_evento: string
           tipo: string
+          velocidade_producao: number | null
         }
         Insert: {
           created_at?: string | null
@@ -1029,14 +1035,20 @@ export type Database = {
           duracao_minutos?: number | null
           id?: string
           localizacao_gps?: Json | null
+          maquina_id?: string | null
           observacoes?: string | null
           operador_id?: string | null
           ordem_producao_id: string
+          parametros_processo?: Json | null
+          pressao?: number | null
           quantidade_apontada?: number | null
           quantidade_refugo?: number | null
           quantidade_retrabalho?: number | null
+          temperatura?: number | null
+          tempo_setup_minutos?: number | null
           timestamp_evento?: string
           tipo: string
+          velocidade_producao?: number | null
         }
         Update: {
           created_at?: string | null
@@ -1044,14 +1056,20 @@ export type Database = {
           duracao_minutos?: number | null
           id?: string
           localizacao_gps?: Json | null
+          maquina_id?: string | null
           observacoes?: string | null
           operador_id?: string | null
           ordem_producao_id?: string
+          parametros_processo?: Json | null
+          pressao?: number | null
           quantidade_apontada?: number | null
           quantidade_refugo?: number | null
           quantidade_retrabalho?: number | null
+          temperatura?: number | null
+          tempo_setup_minutos?: number | null
           timestamp_evento?: string
           tipo?: string
+          velocidade_producao?: number | null
         }
         Relationships: [
           {
@@ -1067,6 +1085,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_apontamentos_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_maquinas"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fabrica_apontamentos_operador_id_fkey"
@@ -2595,6 +2620,69 @@ export type Database = {
           },
         ]
       }
+      fabrica_maquinas: {
+        Row: {
+          ano_fabricacao: number | null
+          capacidade_hora: number | null
+          centro_custo: string | null
+          codigo: string
+          created_at: string | null
+          custo_hora: number | null
+          fabricante: string | null
+          id: string
+          localizacao: string | null
+          nome: string
+          numero_serie: string | null
+          observacoes: string | null
+          proxima_manutencao: string | null
+          status: string | null
+          tipo: string | null
+          ultima_manutencao: string | null
+          unidade_capacidade: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ano_fabricacao?: number | null
+          capacidade_hora?: number | null
+          centro_custo?: string | null
+          codigo: string
+          created_at?: string | null
+          custo_hora?: number | null
+          fabricante?: string | null
+          id?: string
+          localizacao?: string | null
+          nome: string
+          numero_serie?: string | null
+          observacoes?: string | null
+          proxima_manutencao?: string | null
+          status?: string | null
+          tipo?: string | null
+          ultima_manutencao?: string | null
+          unidade_capacidade?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ano_fabricacao?: number | null
+          capacidade_hora?: number | null
+          centro_custo?: string | null
+          codigo?: string
+          created_at?: string | null
+          custo_hora?: number | null
+          fabricante?: string | null
+          id?: string
+          localizacao?: string | null
+          nome?: string
+          numero_serie?: string | null
+          observacoes?: string | null
+          proxima_manutencao?: string | null
+          status?: string | null
+          tipo?: string | null
+          ultima_manutencao?: string | null
+          unidade_capacidade?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       fabrica_materias_primas: {
         Row: {
           categoria_id: string | null
@@ -3095,59 +3183,128 @@ export type Database = {
           },
         ]
       }
+      fabrica_operadores: {
+        Row: {
+          centro_custo: string | null
+          created_at: string | null
+          custo_hora: number | null
+          data_admissao: string | null
+          funcao: string | null
+          habilidades: string[] | null
+          id: string
+          matricula: string
+          nivel_experiencia: string | null
+          nome: string
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          centro_custo?: string | null
+          created_at?: string | null
+          custo_hora?: number | null
+          data_admissao?: string | null
+          funcao?: string | null
+          habilidades?: string[] | null
+          id?: string
+          matricula: string
+          nivel_experiencia?: string | null
+          nome: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          centro_custo?: string | null
+          created_at?: string | null
+          custo_hora?: number | null
+          data_admissao?: string | null
+          funcao?: string | null
+          habilidades?: string[] | null
+          id?: string
+          matricula?: string
+          nivel_experiencia?: string | null
+          nome?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       fabrica_ordens_producao: {
         Row: {
           created_at: string | null
           created_by: string | null
+          custo_maquina_total: number | null
+          custo_mod_total: number | null
           data_fim: string | null
           data_inicio: string | null
           data_prevista: string | null
+          eficiencia_percentual: number | null
           formula_id: string | null
           id: string
           lote: string | null
+          maquina_id: string | null
           numero: string
           observacoes: string | null
+          operador_principal_id: string | null
           produto_id: string | null
           quantidade_planejada: number
           quantidade_produzida: number | null
           responsavel_id: string | null
           status: string | null
+          tempo_producao_real_minutos: number | null
+          tempo_setup_minutos: number | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           created_by?: string | null
+          custo_maquina_total?: number | null
+          custo_mod_total?: number | null
           data_fim?: string | null
           data_inicio?: string | null
           data_prevista?: string | null
+          eficiencia_percentual?: number | null
           formula_id?: string | null
           id?: string
           lote?: string | null
+          maquina_id?: string | null
           numero: string
           observacoes?: string | null
+          operador_principal_id?: string | null
           produto_id?: string | null
           quantidade_planejada: number
           quantidade_produzida?: number | null
           responsavel_id?: string | null
           status?: string | null
+          tempo_producao_real_minutos?: number | null
+          tempo_setup_minutos?: number | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           created_by?: string | null
+          custo_maquina_total?: number | null
+          custo_mod_total?: number | null
           data_fim?: string | null
           data_inicio?: string | null
           data_prevista?: string | null
+          eficiencia_percentual?: number | null
           formula_id?: string | null
           id?: string
           lote?: string | null
+          maquina_id?: string | null
           numero?: string
           observacoes?: string | null
+          operador_principal_id?: string | null
           produto_id?: string | null
           quantidade_planejada?: number
           quantidade_produzida?: number | null
           responsavel_id?: string | null
           status?: string | null
+          tempo_producao_real_minutos?: number | null
+          tempo_setup_minutos?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -3156,6 +3313,20 @@ export type Database = {
             columns: ["formula_id"]
             isOneToOne: false
             referencedRelation: "fabrica_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_ordens_producao_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_ordens_producao_operador_principal_id_fkey"
+            columns: ["operador_principal_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_operadores"
             referencedColumns: ["id"]
           },
           {
@@ -3824,6 +3995,185 @@ export type Database = {
           {
             foreignKeyName: "fabrica_retrabalhos_ordem_producao_retrabalho_id_fkey"
             columns: ["ordem_producao_retrabalho_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_roteiros_producao: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          descricao: string
+          formula_id: string
+          id: string
+          instrucoes: string | null
+          maquina_sugerida_id: string | null
+          parametros: Json | null
+          pontos_criticos: string | null
+          pressao_ideal: number | null
+          sequencia: number
+          temperatura_ideal: number | null
+          tempo_estimado_minutos: number | null
+          updated_at: string | null
+          velocidade_ideal: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao: string
+          formula_id: string
+          id?: string
+          instrucoes?: string | null
+          maquina_sugerida_id?: string | null
+          parametros?: Json | null
+          pontos_criticos?: string | null
+          pressao_ideal?: number | null
+          sequencia: number
+          temperatura_ideal?: number | null
+          tempo_estimado_minutos?: number | null
+          updated_at?: string | null
+          velocidade_ideal?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string
+          formula_id?: string
+          id?: string
+          instrucoes?: string | null
+          maquina_sugerida_id?: string | null
+          parametros?: Json | null
+          pontos_criticos?: string | null
+          pressao_ideal?: number | null
+          sequencia?: number
+          temperatura_ideal?: number | null
+          tempo_estimado_minutos?: number | null
+          updated_at?: string | null
+          velocidade_ideal?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_roteiros_producao_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_roteiros_producao_maquina_sugerida_id_fkey"
+            columns: ["maquina_sugerida_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_timesheets: {
+        Row: {
+          aprovado: boolean | null
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string | null
+          created_by: string | null
+          custo_hora_operador: number | null
+          custo_total: number | null
+          data_trabalho: string
+          duracao_minutos: number | null
+          hora_fim: string | null
+          hora_inicio: string
+          id: string
+          maquina_id: string | null
+          observacoes: string | null
+          operador_id: string
+          ordem_producao_id: string | null
+          tipo_atividade: string | null
+        }
+        Insert: {
+          aprovado?: boolean | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custo_hora_operador?: number | null
+          custo_total?: number | null
+          data_trabalho: string
+          duracao_minutos?: number | null
+          hora_fim?: string | null
+          hora_inicio: string
+          id?: string
+          maquina_id?: string | null
+          observacoes?: string | null
+          operador_id: string
+          ordem_producao_id?: string | null
+          tipo_atividade?: string | null
+        }
+        Update: {
+          aprovado?: boolean | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custo_hora_operador?: number | null
+          custo_total?: number | null
+          data_trabalho?: string
+          duracao_minutos?: number | null
+          hora_fim?: string | null
+          hora_inicio?: string
+          id?: string
+          maquina_id?: string | null
+          observacoes?: string | null
+          operador_id?: string
+          ordem_producao_id?: string | null
+          tipo_atividade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_timesheets_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_timesheets_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_timesheets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_timesheets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_timesheets_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_timesheets_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_operadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_timesheets_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
             isOneToOne: false
             referencedRelation: "fabrica_ordens_producao"
             referencedColumns: ["id"]
@@ -8332,6 +8682,10 @@ export type Database = {
       }
       calcular_custo_medio_ponderado: {
         Args: { p_produto_id: string }
+        Returns: number
+      }
+      calcular_custo_mod_op: {
+        Args: { p_ordem_producao_id: string }
         Returns: number
       }
       calculate_user_level: {
