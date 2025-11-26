@@ -2296,6 +2296,54 @@ export type Database = {
           },
         ]
       }
+      fabrica_historico_precos: {
+        Row: {
+          alterado_por: string | null
+          data_alteracao: string | null
+          id: string
+          motivo_alteracao: string | null
+          preco_anterior: number | null
+          preco_novo: number | null
+          produto_id: string
+          tabela_id: string
+        }
+        Insert: {
+          alterado_por?: string | null
+          data_alteracao?: string | null
+          id?: string
+          motivo_alteracao?: string | null
+          preco_anterior?: number | null
+          preco_novo?: number | null
+          produto_id: string
+          tabela_id: string
+        }
+        Update: {
+          alterado_por?: string | null
+          data_alteracao?: string | null
+          id?: string
+          motivo_alteracao?: string | null
+          preco_anterior?: number | null
+          preco_novo?: number | null
+          produto_id?: string
+          tabela_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_historico_precos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_historico_precos_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_inspecoes_qualidade: {
         Row: {
           aprovado_por: string | null
@@ -3539,6 +3587,76 @@ export type Database = {
           },
         ]
       }
+      fabrica_precos_produtos: {
+        Row: {
+          ativo: boolean | null
+          atualizado_por: string | null
+          custo_base: number | null
+          custo_base_origem: string | null
+          data_atualizacao: string | null
+          id: string
+          margem_lucro_percentual: number | null
+          ordem_producao_id: string | null
+          preco_calculado: number | null
+          preco_final: number | null
+          preco_manual: number | null
+          produto_id: string
+          tabela_id: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          atualizado_por?: string | null
+          custo_base?: number | null
+          custo_base_origem?: string | null
+          data_atualizacao?: string | null
+          id?: string
+          margem_lucro_percentual?: number | null
+          ordem_producao_id?: string | null
+          preco_calculado?: number | null
+          preco_final?: number | null
+          preco_manual?: number | null
+          produto_id: string
+          tabela_id: string
+        }
+        Update: {
+          ativo?: boolean | null
+          atualizado_por?: string | null
+          custo_base?: number | null
+          custo_base_origem?: string | null
+          data_atualizacao?: string | null
+          id?: string
+          margem_lucro_percentual?: number | null
+          ordem_producao_id?: string | null
+          preco_calculado?: number | null
+          preco_final?: number | null
+          preco_manual?: number | null
+          produto_id?: string
+          tabela_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_precos_produtos_ordem_producao_id_fkey"
+            columns: ["ordem_producao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ordens_producao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_precos_produtos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_precos_produtos_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_processamento_logs: {
         Row: {
           created_at: string | null
@@ -4066,6 +4184,71 @@ export type Database = {
             columns: ["maquina_sugerida_id"]
             isOneToOne: false
             referencedRelation: "fabrica_maquinas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_tabelas_preco: {
+        Row: {
+          ativo: boolean | null
+          codigo: string
+          created_at: string | null
+          created_by: string | null
+          data_vigencia_fim: string | null
+          data_vigencia_inicio: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          ordem: number | null
+          tabela_base_id: string | null
+          tipo_base: string
+          tipo_markup: string
+          updated_at: string | null
+          valor_markup: number
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo: string
+          created_at?: string | null
+          created_by?: string | null
+          data_vigencia_fim?: string | null
+          data_vigencia_inicio?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          ordem?: number | null
+          tabela_base_id?: string | null
+          tipo_base?: string
+          tipo_markup?: string
+          updated_at?: string | null
+          valor_markup?: number
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo?: string
+          created_at?: string | null
+          created_by?: string | null
+          data_vigencia_fim?: string | null
+          data_vigencia_inicio?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          ordem?: number | null
+          tabela_base_id?: string | null
+          tipo_base?: string
+          tipo_markup?: string
+          updated_at?: string | null
+          valor_markup?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_tabelas_preco_tabela_base_id_fkey"
+            columns: ["tabela_base_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
             referencedColumns: ["id"]
           },
         ]
