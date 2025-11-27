@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, DollarSign, AlertTriangle, Activity, Loader2, Calendar, Settings, UserCircle, Clock, Layers } from "lucide-react";
+import { Package, DollarSign, AlertTriangle, Activity, Loader2, Calendar, Settings, UserCircle, Clock, Layers, Receipt } from "lucide-react";
 import { Navigate, Link } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { Button } from "@/components/ui/button";
@@ -232,11 +232,17 @@ const FabricaModule = () => {
             <CardTitle>Acesso Rápido</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <Link to="/dashboard/fabrica/formulas">
                 <Button variant="outline" className="w-full h-20 flex-col gap-2">
                   <Layers className="h-6 w-6" />
                   <span className="text-sm">Fórmulas BOM</span>
+                </Button>
+              </Link>
+              <Link to="/dashboard/fabrica/tabelas-preco">
+                <Button variant="outline" className="w-full h-20 flex-col gap-2">
+                  <Receipt className="h-6 w-6" />
+                  <span className="text-sm">Tabelas de Preço</span>
                 </Button>
               </Link>
               <Link to="/dashboard/fabrica/maquinas">

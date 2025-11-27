@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -17,6 +17,13 @@ import { toast } from "sonner";
 import { calcularPrecosProdutos, formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import { Loader2 } from "lucide-react";
 
+interface ProdutoData {
+  id: string;
+  codigo: string | null;
+  nome: string;
+  custo_unitario: number | null;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,23 +37,34 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const [custosManual, setCustosManual] = useState<Record<string, string>>({});
   const [precosCalculados, setPrecosCalculados] = useState<any[]>([]);
   const [calculando, setCalculando] = useState(false);
+  const [produtos, setProdutos] = useState<ProdutoData[]>([]);
+  const [loadingProdutos, setLoadingProdutos] = useState(false);
 
-  const { data: produtosData, isLoading: loadingProdutos } = useQuery({
-    queryKey: ["produtos-para-preco"],
-    queryFn: async () => {
-      const { data, error } = await supabase
+  useEffect(() => {
+    if (open && tabela) {
+      loadProdutos();
+    }
+  }, [open, tabela]);
+
+  const loadProdutos = async () => {
+    setLoadingProdutos(true);
+    try {
+      // @ts-ignore - Bypass type inference issue
+      const response = await supabase
         .from("fabrica_materias_primas")
         .select("id, codigo, nome, custo_unitario")
         .eq("ativo", true)
         .order("nome");
 
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: open && !!tabela,
-  });
-
-  const produtos = produtosData || [];
+      if (response.error) throw response.error;
+      setProdutos(response.data || []);
+    } catch (error) {
+      console.error("Erro ao buscar produtos:", error);
+      toast.error("Erro ao carregar produtos");
+    } finally {
+      setLoadingProdutos(false);
+    }
+  };
 
   useEffect(() => {
     if (tabela?.tipo_base === "tabela_anterior") {
