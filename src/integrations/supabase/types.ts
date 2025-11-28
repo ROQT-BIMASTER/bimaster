@@ -4201,6 +4201,7 @@ export type Database = {
           nome: string
           observacoes: string | null
           ordem: number | null
+          status: string
           tabela_base_id: string | null
           tipo_base: string
           tipo_markup: string
@@ -4219,6 +4220,7 @@ export type Database = {
           nome: string
           observacoes?: string | null
           ordem?: number | null
+          status?: string
           tabela_base_id?: string | null
           tipo_base?: string
           tipo_markup?: string
@@ -4237,6 +4239,7 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           ordem?: number | null
+          status?: string
           tabela_base_id?: string | null
           tipo_base?: string
           tipo_markup?: string
@@ -4247,6 +4250,79 @@ export type Database = {
           {
             foreignKeyName: "fabrica_tabelas_preco_tabela_base_id_fkey"
             columns: ["tabela_base_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_tabelas_preco_auditoria: {
+        Row: {
+          acao: string
+          created_at: string | null
+          diff: Json | null
+          id: string
+          mensagem: string | null
+          tabela_id: string
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string | null
+          diff?: Json | null
+          id?: string
+          mensagem?: string | null
+          tabela_id: string
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string | null
+          diff?: Json | null
+          id?: string
+          mensagem?: string | null
+          tabela_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_tabelas_preco_auditoria_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_tabelas_preco_versoes: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          precos_snapshot: Json
+          tabela_id: string
+          versao: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          precos_snapshot: Json
+          tabela_id: string
+          versao: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          precos_snapshot?: Json
+          tabela_id?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_tabelas_preco_versoes_tabela_id_fkey"
+            columns: ["tabela_id"]
             isOneToOne: false
             referencedRelation: "fabrica_tabelas_preco"
             referencedColumns: ["id"]

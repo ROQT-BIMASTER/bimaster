@@ -24,7 +24,7 @@ import { GerenciamentoPremiacoes } from "@/components/configuracoes/Gerenciament
 import { VincularWhatsApp } from "@/components/configuracoes/VincularWhatsApp";
 import { PersonalizarCores } from "@/components/configuracoes/PersonalizarCores";
 import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
-import { Shield, UserCog, User, CheckCircle, Lock } from "lucide-react";
+import { Shield, Users, Bell, Palette, Key, Wrench, Webhook, Database, Activity, UserCog, User, CheckCircle, Lock } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -367,9 +367,23 @@ const Configuracoes = () => {
                     </CardDescription>
                   </CardHeader>
                 </Card>
-                <GerenciamentoIntegracoes />
-                <DocumentacaoAPI />
-              </TabsContent>
+              {activeTab === "integracoes" && <GerenciamentoIntegracoes />}
+              {activeTab === "api" && <DocumentacaoAPI />}
+              {activeTab === "api-health" && (
+                <div>
+                  <p className="text-muted-foreground mb-4">
+                    Acesse a página de verificação de APIs para ver o status completo do sistema.
+                  </p>
+                  <Button 
+                    onClick={() => window.location.href = '/dashboard/configuracoes/api-health'}
+                    className="flex items-center gap-2"
+                  >
+                    <Activity className="h-4 w-4" />
+                    Abrir Verificação de APIs
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
             )}
           </Tabs>
         ) : (

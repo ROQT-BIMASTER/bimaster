@@ -205,6 +205,18 @@ export default function FabricaTabelasPreco() {
                               {tabela.ativo ? "Ativa" : "Inativa"}
                             </Badge>
                             <Badge variant="outline">{tabela.codigo}</Badge>
+                            {tabela.status === 'draft' && (
+                              <Badge variant="secondary">Rascunho</Badge>
+                            )}
+                            {tabela.status === 'pending_approval' && (
+                              <Badge className="bg-yellow-500">Aguardando Aprovação</Badge>
+                            )}
+                            {tabela.status === 'approved' && (
+                              <Badge className="bg-green-600">Aprovada</Badge>
+                            )}
+                            {tabela.status === 'rejected' && (
+                              <Badge variant="destructive">Rejeitada</Badge>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground mb-2">
                             {tabela.descricao || "Sem descrição"}

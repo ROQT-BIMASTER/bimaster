@@ -109,6 +109,7 @@ export function NovaTabelaPrecoDialog({ open, onOpenChange, tabelaEdit, onSucces
         data_vigencia_inicio: formData.data_vigencia_inicio || null,
         data_vigencia_fim: formData.data_vigencia_fim || null,
         observacoes: formData.observacoes || null,
+        status: 'draft', // Sempre começa como draft
       };
 
       if (tabelaEdit) {
