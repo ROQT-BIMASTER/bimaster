@@ -103,6 +103,10 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     mutationFn: async () => {
       const { data: user } = await supabase.auth.getUser();
       
+      if (!precosCalculados || precosCalculados.length === 0) {
+        throw new Error("Nenhum preço calculado para salvar");
+      }
+      
       const registros = precosCalculados.map((preco) => ({
         tabela_id: tabela.id,
         produto_id: preco.produto_id,
@@ -122,9 +126,15 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         });
 
       if (error) throw error;
+
+      // Atualizar status da tabela para pending_approval
+      await supabase
+        .from("fabrica_tabelas_preco")
+        .update({ status: 'pending_approval' })
+        .eq("id", tabela.id);
     },
     onSuccess: () => {
-      toast.success("Preços salvos com sucesso!");
+      toast.success("Preços salvos e enviados para aprovação!");
       onSuccess();
     },
     onError: (error: any) => {
