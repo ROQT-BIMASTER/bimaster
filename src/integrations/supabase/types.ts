@@ -3705,11 +3705,13 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           descricao: string | null
+          formula_id: string | null
           foto_url: string | null
           id: string
           nome: string
           rendimento: number | null
           tempo_producao_minutos: number | null
+          tipo: string | null
           unidade_medida_id: string | null
           updated_at: string | null
         }
@@ -3719,11 +3721,13 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           descricao?: string | null
+          formula_id?: string | null
           foto_url?: string | null
           id?: string
           nome: string
           rendimento?: number | null
           tempo_producao_minutos?: number | null
+          tipo?: string | null
           unidade_medida_id?: string | null
           updated_at?: string | null
         }
@@ -3733,15 +3737,24 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           descricao?: string | null
+          formula_id?: string | null
           foto_url?: string | null
           id?: string
           nome?: string
           rendimento?: number | null
           tempo_producao_minutos?: number | null
+          tipo?: string | null
           unidade_medida_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fabrica_produtos_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_formulas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fabrica_produtos_unidade_medida_id_fkey"
             columns: ["unidade_medida_id"]
@@ -4201,12 +4214,14 @@ export type Database = {
           nome: string
           observacoes: string | null
           ordem: number | null
+          owner_cnpj: string | null
           status: string
           tabela_base_id: string | null
           tipo_base: string
           tipo_markup: string
           updated_at: string | null
           valor_markup: number
+          visivel_para_cnpjs: string[] | null
         }
         Insert: {
           ativo?: boolean | null
@@ -4220,12 +4235,14 @@ export type Database = {
           nome: string
           observacoes?: string | null
           ordem?: number | null
+          owner_cnpj?: string | null
           status?: string
           tabela_base_id?: string | null
           tipo_base?: string
           tipo_markup?: string
           updated_at?: string | null
           valor_markup?: number
+          visivel_para_cnpjs?: string[] | null
         }
         Update: {
           ativo?: boolean | null
@@ -4239,12 +4256,14 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           ordem?: number | null
+          owner_cnpj?: string | null
           status?: string
           tabela_base_id?: string | null
           tipo_base?: string
           tipo_markup?: string
           updated_at?: string | null
           valor_markup?: number
+          visivel_para_cnpjs?: string[] | null
         }
         Relationships: [
           {
@@ -8287,6 +8306,24 @@ export type Database = {
           },
         ]
       }
+      user_cnpj: {
+        Row: {
+          cnpj: string
+          created_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cnpj: string
+          created_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_points_history: {
         Row: {
           action_code: string
@@ -9114,6 +9151,10 @@ export type Database = {
       update_user_ranking: {
         Args: { p_period_key: string; p_period_type: string; p_user_id: string }
         Returns: undefined
+      }
+      user_tem_acesso_cnpj: {
+        Args: { p_cnpj: string; p_user_id: string }
+        Returns: boolean
       }
       usuario_tem_acesso_loja: {
         Args: { _store_id: string; _user_id: string }

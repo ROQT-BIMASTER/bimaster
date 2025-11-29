@@ -43,6 +43,8 @@ export function NovaTabelaPrecoDialog({ open, onOpenChange, tabelaEdit, onSucces
     data_vigencia_inicio: "",
     data_vigencia_fim: "",
     observacoes: "",
+    owner_cnpj: "",
+    visivel_para_cnpjs: [] as string[],
   });
 
   const { data: tabelasDisponiveis } = useQuery({
@@ -75,6 +77,8 @@ export function NovaTabelaPrecoDialog({ open, onOpenChange, tabelaEdit, onSucces
         data_vigencia_inicio: tabelaEdit.data_vigencia_inicio || "",
         data_vigencia_fim: tabelaEdit.data_vigencia_fim || "",
         observacoes: tabelaEdit.observacoes || "",
+        owner_cnpj: tabelaEdit.owner_cnpj || "",
+        visivel_para_cnpjs: tabelaEdit.visivel_para_cnpjs || [],
       });
     } else {
       setFormData({
@@ -90,6 +94,8 @@ export function NovaTabelaPrecoDialog({ open, onOpenChange, tabelaEdit, onSucces
         data_vigencia_inicio: "",
         data_vigencia_fim: "",
         observacoes: "",
+        owner_cnpj: "",
+        visivel_para_cnpjs: [],
       });
     }
   }, [tabelaEdit, open]);
@@ -109,6 +115,8 @@ export function NovaTabelaPrecoDialog({ open, onOpenChange, tabelaEdit, onSucces
         data_vigencia_inicio: formData.data_vigencia_inicio || null,
         data_vigencia_fim: formData.data_vigencia_fim || null,
         observacoes: formData.observacoes || null,
+        owner_cnpj: formData.owner_cnpj.trim() || null,
+        visivel_para_cnpjs: formData.visivel_para_cnpjs.filter(c => c.trim()),
         status: 'draft', // Sempre começa como draft
       };
 
@@ -327,6 +335,25 @@ export function NovaTabelaPrecoDialog({ open, onOpenChange, tabelaEdit, onSucces
               onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
               rows={2}
             />
+          </div>
+
+          {/* CNPJ */}
+          <div className="border-t pt-4">
+            <h4 className="font-semibold mb-3">Controle de Acesso por CNPJ</h4>
+            
+            <div>
+              <Label htmlFor="owner_cnpj">CNPJ Proprietário</Label>
+              <Input
+                id="owner_cnpj"
+                value={formData.owner_cnpj}
+                onChange={(e) => setFormData({ ...formData, owner_cnpj: e.target.value })}
+                placeholder="00.000.000/0000-00"
+                maxLength={18}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Deixe em branco para tornar visível a todos usuários com permissão
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center space-x-2">

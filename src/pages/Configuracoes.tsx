@@ -24,6 +24,7 @@ import { GerenciamentoPremiacoes } from "@/components/configuracoes/Gerenciament
 import { VincularWhatsApp } from "@/components/configuracoes/VincularWhatsApp";
 import { PersonalizarCores } from "@/components/configuracoes/PersonalizarCores";
 import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
+import { GerenciamentoCNPJ } from "@/components/configuracoes/GerenciamentoCNPJ";
 import { Shield, Users, Bell, Palette, Key, Wrench, Webhook, Database, Activity, UserCog, User, CheckCircle, Lock } from "lucide-react";
 
 interface Profile {
@@ -261,6 +262,7 @@ const Configuracoes = () => {
               <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
               <TabsTrigger value="personalizacao">Personalização</TabsTrigger>
               {isAdmin && <TabsTrigger value="permissoes">Permissões</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="cnpj">Gerenciar CNPJs</TabsTrigger>}
               {isAdmin && <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>}
               {isAdmin && <TabsTrigger value="premiacoes">Premiações</TabsTrigger>}
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
@@ -333,6 +335,12 @@ const Configuracoes = () => {
                 <GerenciamentoPermissoesModulos />
                 <GerenciamentoPermissoesTelas />
                 <VinculacaoUsuarioProspects />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="cnpj">
+                <GerenciamentoCNPJ />
               </TabsContent>
             )}
 
