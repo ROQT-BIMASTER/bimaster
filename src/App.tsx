@@ -78,6 +78,8 @@ const FabricaOperadores = lazy(() => import("./pages/FabricaOperadores"));
 const FabricaTabelasPreco = lazy(() => import("./pages/FabricaTabelasPreco"));
 const PriceTableApproval = lazy(() => import("./pages/PriceTableApproval"));
 const APIHealthCheck = lazy(() => import("./pages/APIHealthCheck"));
+const FabricaProdutosAcabados = lazy(() => import("./pages/FabricaProdutosAcabados"));
+const PortalCliente = lazy(() => import("./pages/PortalCliente"));
 
 // Loading component
 const PageLoader = () => (
@@ -219,6 +221,8 @@ const App = () => {
         <Route path="/dashboard/fabrica/operadores" element={<ProtectedRoute><FabricaOperadores /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/tabelas-preco" element={<ProtectedRoute><FabricaTabelasPreco /></ProtectedRoute>} />
         <Route path="/dashboard/fabrica/tabelas-preco/aprovacao" element={<ProtectedRoute><PriceTableApproval /></ProtectedRoute>} />
+        <Route path="/dashboard/fabrica/produtos-acabados" element={<ProtectedRoute><FabricaProdutosAcabados /></ProtectedRoute>} />
+        <Route path="/dashboard/portal-cliente" element={<ProtectedRoute><PortalCliente /></ProtectedRoute>} />
         <Route path="/dashboard/configuracoes/api-health" element={<ProtectedRoute><APIHealthCheck /></ProtectedRoute>} />
         
         <Route path="/404" element={<NotFound />} />

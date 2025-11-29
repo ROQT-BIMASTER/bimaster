@@ -65,18 +65,30 @@ export function NovaMateriaPrimaDialog({ open, onOpenChange, onSuccess }: NovaMa
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      const { error } = await supabase.from("fabrica_materias_primas").insert({
-        ...formData,
-        estoque_atual: parseFloat(formData.estoque_atual),
-        estoque_minimo: parseFloat(formData.estoque_minimo),
-        custo_unitario: parseFloat(formData.custo_unitario),
+      const payload = {
+        codigo: formData.codigo.trim(),
+        nome: formData.nome.trim(),
+        categoria_id: formData.categoria_id || null,
+        fornecedor_id: formData.fornecedor_id || null,
+        unidade_medida_id: formData.unidade_medida_id || null,
+        estoque_atual: parseFloat(formData.estoque_atual) || 0,
+        estoque_minimo: parseFloat(formData.estoque_minimo) || 0,
+        custo_unitario: parseFloat(formData.custo_unitario) || 0,
+        status: formData.status,
         data_validade: formData.data_validade || null,
         lote: formData.lote || null,
         observacoes: formData.observacoes || null,
         created_by: user.id,
-      });
+      };
 
-      if (error) throw error;
+      const { error } = await supabase
+        .from("fabrica_materias_primas")
+        .insert([payload]);
+
+      if (error) {
+        console.error("Erro Supabase:", error);
+        throw new Error(error.message || "Erro ao salvar");
+      }
 
       toast.success("Matéria-prima cadastrada com sucesso!");
       onSuccess();
