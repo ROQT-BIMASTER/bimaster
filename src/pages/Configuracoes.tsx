@@ -355,35 +355,44 @@ const Configuracoes = () => {
             )}
 
             {isAdmin && outrasOpcoesUnlocked && (
-              <TabsContent value="outras-opcoes" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield className="h-5 w-5" />
-                      Configurações Avançadas
-                    </CardTitle>
-                    <CardDescription>
-                      Área restrita para configurações avançadas do sistema
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              {activeTab === "integracoes" && <GerenciamentoIntegracoes />}
-              {activeTab === "api" && <DocumentacaoAPI />}
-              {activeTab === "api-health" && (
-                <div>
-                  <p className="text-muted-foreground mb-4">
-                    Acesse a página de verificação de APIs para ver o status completo do sistema.
-                  </p>
-                  <Button 
-                    onClick={() => window.location.href = '/dashboard/configuracoes/api-health'}
-                    className="flex items-center gap-2"
-                  >
-                    <Activity className="h-4 w-4" />
-                    Abrir Verificação de APIs
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
+              <>
+                <TabsContent value="outras-opcoes" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Shield className="h-5 w-5" />
+                        Configurações Avançadas
+                      </CardTitle>
+                      <CardDescription>
+                        Área restrita para configurações avançadas do sistema
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="integracoes">
+                  <GerenciamentoIntegracoes />
+                </TabsContent>
+                
+                <TabsContent value="api">
+                  <DocumentacaoAPI />
+                </TabsContent>
+                
+                <TabsContent value="api-health">
+                  <div>
+                    <p className="text-muted-foreground mb-4">
+                      Acesse a página de verificação de APIs para ver o status completo do sistema.
+                    </p>
+                    <Button 
+                      onClick={() => window.location.href = '/dashboard/configuracoes/api-health'}
+                      className="flex items-center gap-2"
+                    >
+                      <Activity className="h-4 w-4" />
+                      Abrir Verificação de APIs
+                    </Button>
+                  </div>
+                </TabsContent>
+              </>
             )}
           </Tabs>
         ) : (
