@@ -245,14 +245,14 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
           <div>
             <Label htmlFor="formula">Fórmula (BOM) {formData.tipo === "ACABADO" ? "(opcional - pode ser vinculada depois)" : ""}</Label>
             <Select
-              value={formData.formula_id}
-              onValueChange={(value) => setFormData({ ...formData, formula_id: value })}
+              value={formData.formula_id || "SEM_FORMULA"}
+              onValueChange={(value) => setFormData({ ...formData, formula_id: value === "SEM_FORMULA" ? "" : value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Nenhuma fórmula vinculada" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma fórmula</SelectItem>
+                <SelectItem value="SEM_FORMULA">Nenhuma fórmula</SelectItem>
                 {formulas?.map((formula: any) => (
                   <SelectItem key={formula.id} value={formula.id}>
                     {formula.fabrica_produtos?.nome} (v{formula.versao})

@@ -6,12 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Search, Package, FileText, History } from "lucide-react";
+import { Plus, Search, Package, FileText, History, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function FabricaFormulas() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
 
   const { data: formulas, isLoading } = useQuery({
@@ -43,6 +46,32 @@ export default function FabricaFormulas() {
       produto?.codigo?.toLowerCase().includes(searchTerm)
     );
   });
+
+  const excluirMutation = useMutation({
+    mutationFn: async (formulaId: string) => {
+      const { error } = await supabase
+        .from("fabrica_formulas")
+        .delete()
+        .eq("id", formulaId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Fórmula excluída com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["fabrica-formulas"] });
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao excluir: " + error.message);
+    }
+  });
+
+  const handleExcluir = (e: React.MouseEvent, formula: any) => {
+    e.stopPropagation();
+    if (!confirm(`Tem certeza que deseja excluir a fórmula do produto "${formula.fabrica_produtos?.nome}"?`)) {
+      return;
+    }
+    excluirMutation.mutate(formula.id);
+  };
 
   return (
     <DashboardLayout>
@@ -116,9 +145,19 @@ export default function FabricaFormulas() {
                           {produto?.codigo}
                         </p>
                       </div>
-                      <Badge variant={formula.ativa ? "default" : "secondary"}>
-                        {formula.ativa ? "Ativa" : "Inativa"}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={formula.ativa ? "default" : "secondary"}>
+                          {formula.ativa ? "Ativa" : "Inativa"}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleExcluir(e, formula)}
+                          className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
