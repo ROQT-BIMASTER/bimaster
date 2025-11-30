@@ -14,9 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Package, Edit } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2 } from "lucide-react";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovoProdutoAcabadoDialog } from "@/components/fabrica/NovoProdutoAcabadoDialog";
+import { toast } from "sonner";
 
 export default function FabricaProdutosAcabados() {
   const { hasPermission, loading: permLoading } = useScreenPermissions();
@@ -73,6 +74,27 @@ export default function FabricaProdutosAcabados() {
   const handleEditar = (produto: any) => {
     setProdutoEdit(produto);
     setDialogNovo(true);
+  };
+
+  const handleExcluir = async (produto: any) => {
+    if (!confirm(`Tem certeza que deseja excluir o produto "${produto.nome}"?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("fabrica_produtos")
+        .delete()
+        .eq("id", produto.id);
+
+      if (error) throw error;
+
+      toast.success("Produto excluído com sucesso!");
+      refetch();
+    } catch (error: any) {
+      console.error("Erro ao excluir produto:", error);
+      toast.error("Erro ao excluir: " + error.message);
+    }
   };
 
   const tipoLabels = {
@@ -206,13 +228,23 @@ export default function FabricaProdutosAcabados() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditar(produto)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditar(produto)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleExcluir(produto)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

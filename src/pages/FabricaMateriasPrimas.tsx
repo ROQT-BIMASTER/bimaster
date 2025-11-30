@@ -112,6 +112,27 @@ export default function FabricaMateriasPrimas() {
     setDadosFiscaisDialogOpen(true);
   };
 
+  const handleExcluir = async (mp: MateriaPrima) => {
+    if (!confirm(`Tem certeza que deseja excluir a matéria-prima "${mp.nome}"?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("fabrica_materias_primas")
+        .delete()
+        .eq("id", mp.id);
+
+      if (error) throw error;
+
+      toast.success("Matéria-prima excluída com sucesso!");
+      fetchMateriasPrimas();
+    } catch (error: any) {
+      console.error("Erro ao excluir matéria-prima:", error);
+      toast.error("Erro ao excluir: " + error.message);
+    }
+  };
+
   if (loading || permissionsLoading) {
     return (
       <DashboardLayout>
@@ -233,6 +254,17 @@ export default function FabricaMateriasPrimas() {
                             }}
                           >
                             Editar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleExcluir(mp);
+                            }}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            Excluir
                           </Button>
                         </div>
                       </TableCell>
