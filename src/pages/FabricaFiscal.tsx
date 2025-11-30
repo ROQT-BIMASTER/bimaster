@@ -47,31 +47,84 @@ export default function FabricaFiscal() {
   const { data: produtos, isLoading } = useQuery({
     queryKey: ["produtos-fiscal", searchTerm],
     queryFn: async () => {
-      let query = supabase
+      // Buscar PRODUTOS ACABADOS
+      let queryProdutos = supabase
+        .from("fabrica_produtos")
+        .select(`
+          id,
+          codigo,
+          nome,
+          tipo,
+          ativo
+        `)
+        .order("nome");
+
+      if (searchTerm) {
+        queryProdutos = queryProdutos.or(`codigo.ilike.%${searchTerm}%,nome.ilike.%${searchTerm}%`);
+      }
+
+      // Buscar MATÉRIAS-PRIMAS
+      let queryMPs = supabase
         .from("fabrica_materias_primas")
         .select(`
           id,
           codigo,
           nome,
-          status,
-          categoria:fabrica_categorias_mp(nome),
-          unidade_medida:fabrica_unidades_medida(sigla),
-          dados_fiscais:fabrica_dados_fiscais_produto(
-            ncm,
-            cfop_padrao,
-            cst_icms
-          )
+          status
         `)
         .order("nome");
 
       if (searchTerm) {
-        query = query.or(`codigo.ilike.%${searchTerm}%,nome.ilike.%${searchTerm}%`);
+        queryMPs = queryMPs.or(`codigo.ilike.%${searchTerm}%,nome.ilike.%${searchTerm}%`);
       }
 
-      const { data, error } = await query;
+      const [resProdutos, resMPs] = await Promise.all([
+        queryProdutos,
+        queryMPs
+      ]);
 
-      if (error) throw error;
-      return data as unknown as Produto[];
+      if (resProdutos.error) throw resProdutos.error;
+      if (resMPs.error) throw resMPs.error;
+
+      // Buscar dados fiscais para todos
+      const todosProdutoIds = [
+        ...(resProdutos.data || []).map(p => p.id),
+        ...(resMPs.data || []).map(m => m.id)
+      ];
+
+      const { data: dadosFiscais } = await supabase
+        .from("fabrica_dados_fiscais_produto")
+        .select("produto_id, ncm, cfop_padrao, cst_icms")
+        .in("produto_id", todosProdutoIds);
+
+      const dadosFiscaisMap = new Map(
+        (dadosFiscais || []).map(d => [d.produto_id, d])
+      );
+
+      // Combinar produtos e MPs
+      const produtosFormatados = (resProdutos.data || []).map(p => ({
+        id: p.id,
+        codigo: p.codigo,
+        nome: p.nome,
+        status: p.ativo ? "ativo" : "inativo",
+        tipo: p.tipo || "ACABADO",
+        categoria: { nome: p.tipo || "Produto" },
+        unidade_medida: { sigla: "-" },
+        dados_fiscais: dadosFiscaisMap.get(p.id) || null
+      }));
+
+      const mpsFormatadas = (resMPs.data || []).map(m => ({
+        id: m.id,
+        codigo: m.codigo,
+        nome: m.nome,
+        status: m.status || "disponivel",
+        tipo: "MP",
+        categoria: { nome: "Matéria-Prima" },
+        unidade_medida: { sigla: "-" },
+        dados_fiscais: dadosFiscaisMap.get(m.id) || null
+      }));
+
+      return [...produtosFormatados, ...mpsFormatadas] as unknown as Produto[];
     },
   });
 
