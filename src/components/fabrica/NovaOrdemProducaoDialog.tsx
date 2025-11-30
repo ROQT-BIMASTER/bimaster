@@ -67,23 +67,41 @@ export function NovaOrdemProducaoDialog({
         .eq("ativa", true);
 
       if (error) throw error;
+      
+      console.log(`📋 Fórmulas encontradas para produto ${produtoId}:`, data);
       return data;
     },
     enabled: !!produtoId,
   });
+
+  // Verificar se o produto tem fórmula vinculada
+  const produtoSelecionado = produtos?.find(p => p.id === produtoId);
+  const produtoTemFormula = produtoSelecionado?.formula_id;
 
   const criarMutation = useMutation({
     mutationFn: async () => {
       const { data: session } = await supabase.auth.getSession();
       const userId = session?.session?.user?.id;
 
+      console.log("🏭 Criando ordem de produção...");
+      console.log("📦 Produto:", produtoId);
+      console.log("🧪 Fórmula:", formulaId);
+      console.log("🔢 Quantidade:", quantidade);
+
       if (!userId) throw new Error("Usuário não autenticado");
       if (!produtoId) throw new Error("Selecione um produto");
-      if (!formulaId) throw new Error("Selecione uma fórmula");
+      if (!formulaId) throw new Error("Selecione uma fórmula. Se o produto não tem fórmula, crie uma primeiro em 'Fórmulas BOM'.");
       if (quantidade <= 0) throw new Error("Quantidade deve ser maior que zero");
 
       // Gerar número sequencial
       const numero = `OP-${Date.now()}`;
+
+      console.log("💾 Criando OP com dados:", {
+        numero,
+        produto_id: produtoId,
+        formula_id: formulaId,
+        quantidade_planejada: quantidade,
+      });
 
       const { data, error } = await supabase
         .from("fabrica_ordens_producao")
@@ -101,7 +119,12 @@ export function NovaOrdemProducaoDialog({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Erro ao criar OP:", error);
+        throw error;
+      }
+      
+      console.log("✅ OP criada com sucesso:", data);
       return data;
     },
     onSuccess: () => {
@@ -150,13 +173,24 @@ export function NovaOrdemProducaoDialog({
                   <SelectValue placeholder="Selecione o produto primeiro" />
                 </SelectTrigger>
                 <SelectContent>
-                  {formulas?.map((formula) => (
-                    <SelectItem key={formula.id} value={formula.id}>
-                      Versão {formula.versao || 1}
-                    </SelectItem>
-                  ))}
+                  {formulas && formulas.length > 0 ? (
+                    formulas.map((formula) => (
+                      <SelectItem key={formula.id} value={formula.id}>
+                        Versão {formula.versao || 1}
+                      </SelectItem>
+                    ))
+                  ) : produtoId ? (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      Nenhuma fórmula ativa para este produto
+                    </div>
+                  ) : null}
                 </SelectContent>
               </Select>
+              {produtoId && formulas?.length === 0 && (
+                <p className="text-xs text-destructive mt-1">
+                  ⚠️ Este produto não possui fórmula. Crie uma fórmula primeiro em <strong>Fórmulas BOM</strong>.
+                </p>
+              )}
             </div>
           </div>
 

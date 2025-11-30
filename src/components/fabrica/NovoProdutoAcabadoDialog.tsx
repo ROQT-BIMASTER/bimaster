@@ -121,19 +121,33 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         created_by: user.id,
       };
 
+      console.log("💾 Salvando produto:", payload);
+
       if (produtoEdit) {
-        const { error } = await supabase
+        console.log("✏️ Atualizando produto existente:", produtoEdit.id);
+        const { data, error } = await supabase
           .from("fabrica_produtos")
           .update(payload)
-          .eq("id", produtoEdit.id);
+          .eq("id", produtoEdit.id)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error("❌ Erro ao atualizar:", error);
+          throw error;
+        }
+        console.log("✅ Produto atualizado:", data);
       } else {
-        const { error } = await supabase
+        console.log("➕ Inserindo novo produto");
+        const { data, error } = await supabase
           .from("fabrica_produtos")
-          .insert([payload]);
+          .insert([payload])
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error("❌ Erro ao inserir:", error);
+          throw error;
+        }
+        console.log("✅ Produto inserido:", data);
       }
     },
     onSuccess: () => {
@@ -160,11 +174,9 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
       return;
     }
 
-    if (formData.tipo === "ACABADO" && !formData.formula_id) {
-      toast.error("Produto acabado deve ter uma fórmula vinculada");
-      return;
-    }
-
+    // Produto pode ser salvo SEM fórmula inicialmente
+    // A fórmula será vinculada depois, quando for criada
+    console.log("🚀 Iniciando salvamento do produto");
     salvarMutation.mutate();
   };
 
@@ -230,26 +242,30 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
             />
           </div>
 
-          {formData.tipo === "ACABADO" && (
-            <div>
-              <Label htmlFor="formula">Fórmula (BOM) *</Label>
-              <Select
-                value={formData.formula_id}
-                onValueChange={(value) => setFormData({ ...formData, formula_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a fórmula..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {formulas?.map((formula: any) => (
-                    <SelectItem key={formula.id} value={formula.id}>
-                      {formula.fabrica_produtos?.nome} (v{formula.versao})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div>
+            <Label htmlFor="formula">Fórmula (BOM) {formData.tipo === "ACABADO" ? "(opcional - pode ser vinculada depois)" : ""}</Label>
+            <Select
+              value={formData.formula_id}
+              onValueChange={(value) => setFormData({ ...formData, formula_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Nenhuma fórmula vinculada" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhuma fórmula</SelectItem>
+                {formulas?.map((formula: any) => (
+                  <SelectItem key={formula.id} value={formula.id}>
+                    {formula.fabrica_produtos?.nome} (v{formula.versao})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {formData.tipo === "ACABADO" && !formData.formula_id && (
+              <p className="text-xs text-muted-foreground mt-1">
+                ℹ️ Você pode criar a fórmula depois e vinculá-la ao produto
+              </p>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>

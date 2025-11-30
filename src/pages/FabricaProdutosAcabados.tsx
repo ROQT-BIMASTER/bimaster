@@ -31,8 +31,8 @@ export default function FabricaProdutosAcabados() {
         .from("fabrica_produtos")
         .select(`
           *,
-          formula:formula_id(id, versao),
-          unidade:unidade_medida_id(sigla, nome)
+          formula:fabrica_formulas(id, versao),
+          unidade:fabrica_unidades_medida(sigla, nome)
         `)
         .in("tipo", ["ACABADO", "INTER"])
         .order("nome");
