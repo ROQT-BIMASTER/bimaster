@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_category_mapping: {
+        Row: {
+          account_id: string | null
+          categoria_codigo: string | null
+          categoria_nome: string | null
+          confidence_score: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          account_id?: string | null
+          categoria_codigo?: string | null
+          categoria_nome?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          account_id?: string | null
+          categoria_codigo?: string | null
+          categoria_nome?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_category_mapping_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agg_daily_kpis: {
         Row: {
           created_at: string | null
@@ -8193,8 +8231,13 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean | null
+          is_group: boolean | null
           name: string
+          natureza: string | null
+          nivel: number | null
+          ordem: number | null
           parent_account_id: string | null
+          permite_lancamento: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -8206,8 +8249,13 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          is_group?: boolean | null
           name: string
+          natureza?: string | null
+          nivel?: number | null
+          ordem?: number | null
           parent_account_id?: string | null
+          permite_lancamento?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -8219,8 +8267,13 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          is_group?: boolean | null
           name?: string
+          natureza?: string | null
+          nivel?: number | null
+          ordem?: number | null
           parent_account_id?: string | null
+          permite_lancamento?: boolean | null
           updated_at?: string | null
         }
         Relationships: [
