@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, ArrowLeft, Brain } from "lucide-react";
+import { Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, ArrowLeft, Brain, Bot } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
@@ -41,9 +41,14 @@ interface ContaPagar {
   portador: string;
   conta: string;
   departamento_id: string | null;
+  departamento_nome: string | null;
   plano_contas_id: string | null;
+  plano_contas_codigo: string | null;
+  plano_contas_nome: string | null;
   confianca_classificacao: number | null;
+  classificacao_justificativa: string | null;
   classificado_automaticamente: boolean | null;
+  classificado_em: string | null;
 }
 
 export default function ContasAPagar() {
@@ -831,6 +836,7 @@ export default function ContasAPagar() {
                                 <TableHead>Departamento</TableHead>
                                 <TableHead>Plano de Contas</TableHead>
                                 <TableHead className="text-center">Confiança</TableHead>
+                                <TableHead>Classificado Em</TableHead>
                                 <TableHead className="text-center">Status</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -857,29 +863,50 @@ export default function ContasAPagar() {
                                     }).format(conta.valor_original || 0)}
                                   </TableCell>
                                   <TableCell>
-                                    {conta.departamento_id ? (
+                                    {conta.departamento_nome ? (
                                       <Badge variant="secondary">
-                                        {/* Buscar nome do departamento via query seria ideal */}
-                                        Classificado
+                                        {conta.departamento_nome}
                                       </Badge>
                                     ) : (
                                       <span className="text-xs text-muted-foreground">-</span>
                                     )}
                                   </TableCell>
                                   <TableCell>
-                                    {conta.plano_contas_id ? (
-                                      <Badge variant="outline">
-                                        Classificado
-                                      </Badge>
+                                    {conta.plano_contas_codigo && conta.plano_contas_nome ? (
+                                      <div className="flex flex-col gap-1">
+                                        <Badge variant="outline" className="w-fit text-xs">
+                                          {conta.plano_contas_codigo}
+                                        </Badge>
+                                        <span className="text-xs text-muted-foreground">
+                                          {conta.plano_contas_nome}
+                                        </span>
+                                      </div>
                                     ) : (
                                       <span className="text-xs text-muted-foreground">-</span>
                                     )}
                                   </TableCell>
                                   <TableCell className="text-center">
                                     {conta.confianca_classificacao ? (
-                                      <Badge variant="default">
+                                      <Badge 
+                                        variant={
+                                          conta.confianca_classificacao >= 0.8
+                                            ? "default"
+                                            : conta.confianca_classificacao >= 0.6
+                                            ? "secondary"
+                                            : "destructive"
+                                        }
+                                      >
                                         {(conta.confianca_classificacao * 100).toFixed(0)}%
                                       </Badge>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {conta.classificado_em ? (
+                                      <span className="text-xs text-muted-foreground">
+                                        {format(new Date(conta.classificado_em), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                                      </span>
                                     ) : (
                                       <span className="text-xs text-muted-foreground">-</span>
                                     )}

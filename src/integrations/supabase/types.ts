@@ -982,7 +982,9 @@ export type Database = {
         Row: {
           categoria_codigo: string | null
           categoria_nome: string | null
+          classificacao_justificativa: string | null
           classificado_automaticamente: boolean | null
+          classificado_em: string | null
           confianca_classificacao: number | null
           conta: string | null
           created_at: string | null
@@ -991,6 +993,7 @@ export type Database = {
           data_pagamento: string | null
           data_vencimento: string | null
           departamento_id: string | null
+          departamento_nome: string | null
           empresa_id: number
           empresa_nome: string | null
           erp_id: string
@@ -999,7 +1002,9 @@ export type Database = {
           id: string
           numero_documento: string | null
           parcela: number | null
+          plano_contas_codigo: string | null
           plano_contas_id: string | null
+          plano_contas_nome: string | null
           portador: string | null
           sincronizado_em: string | null
           status: string | null
@@ -1015,7 +1020,9 @@ export type Database = {
         Insert: {
           categoria_codigo?: string | null
           categoria_nome?: string | null
+          classificacao_justificativa?: string | null
           classificado_automaticamente?: boolean | null
+          classificado_em?: string | null
           confianca_classificacao?: number | null
           conta?: string | null
           created_at?: string | null
@@ -1024,6 +1031,7 @@ export type Database = {
           data_pagamento?: string | null
           data_vencimento?: string | null
           departamento_id?: string | null
+          departamento_nome?: string | null
           empresa_id: number
           empresa_nome?: string | null
           erp_id: string
@@ -1032,7 +1040,9 @@ export type Database = {
           id?: string
           numero_documento?: string | null
           parcela?: number | null
+          plano_contas_codigo?: string | null
           plano_contas_id?: string | null
+          plano_contas_nome?: string | null
           portador?: string | null
           sincronizado_em?: string | null
           status?: string | null
@@ -1048,7 +1058,9 @@ export type Database = {
         Update: {
           categoria_codigo?: string | null
           categoria_nome?: string | null
+          classificacao_justificativa?: string | null
           classificado_automaticamente?: boolean | null
+          classificado_em?: string | null
           confianca_classificacao?: number | null
           conta?: string | null
           created_at?: string | null
@@ -1057,6 +1069,7 @@ export type Database = {
           data_pagamento?: string | null
           data_vencimento?: string | null
           departamento_id?: string | null
+          departamento_nome?: string | null
           empresa_id?: number
           empresa_nome?: string | null
           erp_id?: string
@@ -1065,7 +1078,9 @@ export type Database = {
           id?: string
           numero_documento?: string | null
           parcela?: number | null
+          plano_contas_codigo?: string | null
           plano_contas_id?: string | null
+          plano_contas_nome?: string | null
           portador?: string | null
           sincronizado_em?: string | null
           status?: string | null
