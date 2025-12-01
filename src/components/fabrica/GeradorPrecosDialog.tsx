@@ -181,7 +181,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         .eq("ativo", true);
 
       // Criar nova versão com snapshot
-      const { error: versionError } = await supabase
+      await supabase
         .from("fabrica_tabelas_preco_versoes")
         .insert({
           tabela_id: tabela.id,
@@ -190,24 +190,28 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
           created_by: user.user?.id,
         });
 
-      if (versionError) {
-        console.error("Erro ao criar versão:", versionError);
-      }
-
-      // Atualizar status da tabela para pending_approval
-      const { error: updateError } = await supabase
+      // SEMPRE atualizar para pending_approval e ativar
+      await supabase
         .from("fabrica_tabelas_preco")
-        .update({ status: 'pending_approval' })
+        .update({ 
+          status: 'pending_approval',
+          ativo: true // Ativar automaticamente ao enviar para aprovação
+        })
         .eq("id", tabela.id);
 
-      if (updateError) {
-        console.error("Erro ao atualizar status da tabela:", updateError);
-        // Não bloqueia o sucesso, apenas loga o erro
-      }
+      // Registrar na auditoria
+      await supabase.from("fabrica_tabelas_preco_auditoria").insert({
+        tabela_id: tabela.id,
+        user_id: user.user?.id,
+        acao: "price_generation",
+        mensagem: `Preços gerados - Versão ${novaVersao} enviada para aprovação`,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tabelas-preco"] });
       queryClient.invalidateQueries({ queryKey: ["visualizacao-precos"] });
+      queryClient.invalidateQueries({ queryKey: ["tabelas-pendentes-aprovacao"] });
+      queryClient.invalidateQueries({ queryKey: ["fabrica-tabelas-preco"] });
       toast.success("Preços salvos e enviados para aprovação!");
       onSuccess();
     },

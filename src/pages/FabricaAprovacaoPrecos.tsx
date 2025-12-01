@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -37,6 +37,28 @@ export default function FabricaAprovacaoPrecos() {
   const [showAprovar, setShowAprovar] = useState(false);
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
 
+  // Realtime: escutar mudanças nas tabelas de preço
+  useEffect(() => {
+    const channel = supabase
+      .channel('tabelas-preco-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'fabrica_tabelas_preco',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["tabelas-pendentes-aprovacao"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   // Buscar tabelas pendentes de aprovação
   const { data: tabelasPendentes, isLoading } = useQuery({
     queryKey: ["tabelas-pendentes-aprovacao"],
@@ -45,7 +67,8 @@ export default function FabricaAprovacaoPrecos() {
         .from("fabrica_tabelas_preco")
         .select(`
           *,
-          tabela_base:tabela_base_id(nome)
+          tabela_base:tabela_base_id(nome),
+          criador:created_by(nome)
         `)
         .eq("status", "pending_approval")
         .order("created_at", { ascending: false });
@@ -53,6 +76,7 @@ export default function FabricaAprovacaoPrecos() {
       if (error) throw error;
       return data;
     },
+    refetchInterval: 10000, // Refetch a cada 10 segundos
   });
 
   // Buscar histórico de versões de uma tabela
@@ -134,6 +158,7 @@ export default function FabricaAprovacaoPrecos() {
       toast.success("Tabela aprovada com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["tabelas-pendentes-aprovacao"] });
       queryClient.invalidateQueries({ queryKey: ["tabelas-preco"] });
+      queryClient.invalidateQueries({ queryKey: ["fabrica-tabelas-preco"] });
       setShowAprovar(false);
       setTabelaSelecionada(null);
     },
@@ -169,6 +194,7 @@ export default function FabricaAprovacaoPrecos() {
       toast.success("Tabela rejeitada. Retornou para rascunho.");
       queryClient.invalidateQueries({ queryKey: ["tabelas-pendentes-aprovacao"] });
       queryClient.invalidateQueries({ queryKey: ["tabelas-preco"] });
+      queryClient.invalidateQueries({ queryKey: ["fabrica-tabelas-preco"] });
       setShowRejeitar(false);
       setTabelaSelecionada(null);
       setMotivoRejeicao("");
@@ -201,6 +227,19 @@ export default function FabricaAprovacaoPrecos() {
           </p>
         </div>
 
+        {/* KPI de Pendentes */}
+        <Card className="border-l-4 border-l-yellow-500">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-yellow-500" />
+              Aguardando Aprovação
+            </CardTitle>
+            <CardDescription>
+              {tabelasPendentes?.length || 0} tabela(s) pendente(s)
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
         {isLoading ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
@@ -216,20 +255,26 @@ export default function FabricaAprovacaoPrecos() {
         ) : (
           <div className="grid gap-4">
             {tabelasPendentes?.map((tabela) => (
-              <Card key={tabela.id}>
+              <Card key={tabela.id} className="border-l-4 border-l-yellow-500">
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <CardTitle className="flex items-center gap-2 mb-2">
                         {tabela.nome}
                         {getStatusBadge(tabela.status)}
+                        <Badge variant="outline">{tabela.codigo}</Badge>
                       </CardTitle>
-                      <CardDescription className="mt-2">
+                      <CardDescription className="mb-2">
                         {tabela.descricao}
                       </CardDescription>
                       {tabela.tabela_base && (
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <p className="text-sm text-muted-foreground">
                           Baseada em: <span className="font-medium">{tabela.tabela_base.nome}</span>
+                        </p>
+                      )}
+                      {(tabela as any).criador && (
+                        <p className="text-sm text-muted-foreground">
+                          Criada por: <span className="font-medium">{(tabela as any).criador.nome}</span>
                         </p>
                       )}
                       <p className="text-sm text-muted-foreground mt-1">

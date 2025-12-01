@@ -6,7 +6,7 @@ import {
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import logoUnion from "@/assets/logo-union.png";
 import {
   Sidebar,
@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const iconMap: Record<string, any> = {
   LayoutDashboard: Home,
@@ -67,8 +68,41 @@ export function AppSidebar() {
   const [marketingOpen, setMarketingOpen] = useState(true);
   const [fabricaOpen, setFabricaOpen] = useState(true);
   const [precosOpen, setPrecosOpen] = useState(true);
+  const [tabelasPendentes, setTabelasPendentes] = useState(0);
 
   const loading = permissionsLoading || modulesLoading;
+
+  // Buscar tabelas pendentes
+  useEffect(() => {
+    const fetchPendentes = async () => {
+      const { count } = await supabase
+        .from("fabrica_tabelas_preco")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending_approval");
+      
+      setTabelasPendentes(count || 0);
+    };
+
+    fetchPendentes();
+
+    // Realtime
+    const channel = supabase
+      .channel('sidebar-tabelas-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'fabrica_tabelas_preco',
+        },
+        () => fetchPendentes()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -602,6 +636,11 @@ export function AppSidebar() {
                       <NavLink to="/dashboard/precos/aprovacao" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
                         <CheckSquare className="h-4 w-4" />
                         <span>Aprovação</span>
+                        {tabelasPendentes > 0 && (
+                          <Badge className="ml-auto bg-yellow-500 hover:bg-yellow-600 text-xs">
+                            {tabelasPendentes}
+                          </Badge>
+                        )}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
