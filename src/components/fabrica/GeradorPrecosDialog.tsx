@@ -152,7 +152,6 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         preco_final: preco.preco_final,
         margem_lucro_percentual: preco.margem_lucro_percentual,
         ativo: true,
-        atualizado_por: user?.user?.id,
       }));
 
       const { error } = await supabase
