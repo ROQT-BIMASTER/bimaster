@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,9 +71,9 @@ export default function DREAnalitico() {
   });
 
   // Buscar lançamentos do período
-  const { data: lancamentos, isLoading } = useQuery({
-    queryKey: ['lancamentos-dre', dataInicio, dataFim],
-    queryFn: async () => {
+  const { data: lancamentos, isLoading } = useSupabaseQuery(
+    ['lancamentos-dre', dataInicio, dataFim],
+    async () => {
       const { data, error } = await supabase
         .from('contas_pagar')
         .select(`
@@ -84,8 +85,12 @@ export default function DREAnalitico() {
       
       if (error) throw error;
       return data;
+    },
+    {
+      staleTime: 0, // Sempre buscar dados frescos
+      refetchOnMount: true // Refetch quando montar a página
     }
-  });
+  );
 
   // Buscar departamentos
   const { data: departamentos } = useQuery({
