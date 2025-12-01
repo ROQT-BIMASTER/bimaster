@@ -51,6 +51,49 @@ export default function FabricaTabelasPreco() {
     },
   });
 
+  const excluirTabelaMutation = useMutation({
+    mutationFn: async (tabelaId: string) => {
+      // Verificar se existem tabelas dependentes
+      const { data: dependentes, error: errorDep } = await supabase
+        .from("fabrica_tabelas_preco")
+        .select("id, nome")
+        .eq("tabela_base_id", tabelaId);
+
+      if (errorDep) throw errorDep;
+
+      if (dependentes && dependentes.length > 0) {
+        throw new Error(
+          `Não é possível excluir esta tabela pois existem ${dependentes.length} tabela(s) dependente(s): ${dependentes.map(d => d.nome).join(", ")}`
+        );
+      }
+
+      // Excluir preços primeiro (cascade já deve fazer isso, mas garantimos)
+      const { error: errorPrecos } = await supabase
+        .from("fabrica_precos_produtos")
+        .delete()
+        .eq("tabela_id", tabelaId);
+
+      if (errorPrecos) throw errorPrecos;
+
+      // Excluir a tabela
+      const { error } = await supabase
+        .from("fabrica_tabelas_preco")
+        .delete()
+        .eq("id", tabelaId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Tabela excluída com sucesso!");
+      refetch();
+      setDialogExcluir(false);
+      setTabelaSelecionada(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao excluir tabela");
+    },
+  });
+
   if (permLoading) {
     return (
       <DashboardLayout>
@@ -98,49 +141,6 @@ export default function FabricaTabelasPreco() {
     setTabelaSelecionada(tabela);
     setDialogExcluir(true);
   };
-
-  const excluirTabelaMutation = useMutation({
-    mutationFn: async (tabelaId: string) => {
-      // Verificar se existem tabelas dependentes
-      const { data: dependentes, error: errorDep } = await supabase
-        .from("fabrica_tabelas_preco")
-        .select("id, nome")
-        .eq("tabela_base_id", tabelaId);
-
-      if (errorDep) throw errorDep;
-
-      if (dependentes && dependentes.length > 0) {
-        throw new Error(
-          `Não é possível excluir esta tabela pois existem ${dependentes.length} tabela(s) dependente(s): ${dependentes.map(d => d.nome).join(", ")}`
-        );
-      }
-
-      // Excluir preços primeiro (cascade já deve fazer isso, mas garantimos)
-      const { error: errorPrecos } = await supabase
-        .from("fabrica_precos_produtos")
-        .delete()
-        .eq("tabela_id", tabelaId);
-
-      if (errorPrecos) throw errorPrecos;
-
-      // Excluir a tabela
-      const { error } = await supabase
-        .from("fabrica_tabelas_preco")
-        .delete()
-        .eq("id", tabelaId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Tabela excluída com sucesso!");
-      refetch();
-      setDialogExcluir(false);
-      setTabelaSelecionada(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "Erro ao excluir tabela");
-    },
-  });
 
   const getTipoMarkupLabel = (tipo: string, valor: number) => {
     switch (tipo) {
