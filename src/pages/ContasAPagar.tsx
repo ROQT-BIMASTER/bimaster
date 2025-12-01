@@ -10,13 +10,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, ArrowLeft } from "lucide-react";
+import { Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, ArrowLeft, Brain } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
 import { toast } from "sonner";
 import { SolicitarOrcamentoDialog } from "@/components/trade/SolicitarOrcamentoDialog";
 import { AprovarOrcamentoDialog } from "@/components/trade/AprovarOrcamentoDialog";
+import { ClassificarContasPagarDialog } from "@/components/configuracoes/ClassificarContasPagarDialog";
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface ContaPagar {
@@ -39,6 +40,10 @@ interface ContaPagar {
   status: string;
   portador: string;
   conta: string;
+  departamento_id: string | null;
+  plano_contas_id: string | null;
+  confianca_classificacao: number | null;
+  classificado_automaticamente: boolean | null;
 }
 
 export default function ContasAPagar() {
@@ -53,9 +58,12 @@ export default function ContasAPagar() {
   const [aprovarOrcamentoOpen, setAprovarOrcamentoOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
   const [budgetFilter, setBudgetFilter] = useState<string>("all");
+  const [classificarIAOpen, setClassificarIAOpen] = useState(false);
+  const [filterAnoClassificacao, setFilterAnoClassificacao] = useState<string>(new Date().getFullYear().toString());
+  const [filterMesClassificacao, setFilterMesClassificacao] = useState<string>("all");
 
   // Query contas a pagar
-  const { data: contas, isLoading } = useQuery({
+  const { data: contas, isLoading, refetch: refetchContas } = useQuery({
     queryKey: ['contas-pagar', searchFornecedor, filterStatus, filterEmpresa, filterAno, filterMes],
     queryFn: async () => {
       let query = supabase
@@ -421,6 +429,10 @@ export default function ContasAPagar() {
                 <Badge variant="destructive" className="ml-1">{pendingBudgetsCount}</Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="classificacao" className="gap-2">
+              <Brain className="h-4 w-4" />
+              Classificação IA
+            </TabsTrigger>
           </TabsList>
 
           {/* Aba de Contas a Pagar */}
@@ -658,9 +670,261 @@ export default function ContasAPagar() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Aba de Classificação IA */}
+          <TabsContent value="classificacao" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Brain className="h-5 w-5" />
+                      Classificação Automática com IA
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Visualize e gerencie as classificações automáticas de departamento e plano de contas
+                    </p>
+                  </div>
+                  <Button onClick={() => setClassificarIAOpen(true)} className="gap-2">
+                    <Brain className="h-4 w-4" />
+                    Classificar Todas
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Filtros de Classificação */}
+                <div className="grid gap-4 md:grid-cols-3 mb-6">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Ano</label>
+                    <Select value={filterAnoClassificacao} onValueChange={(value) => {
+                      setFilterAnoClassificacao(value);
+                      if (value === 'all') setFilterMesClassificacao('all');
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Ano" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="2024">2024</SelectItem>
+                        <SelectItem value="2025">2025</SelectItem>
+                        <SelectItem value="2026">2026</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Mês</label>
+                    <Select 
+                      value={filterMesClassificacao} 
+                      onValueChange={setFilterMesClassificacao}
+                      disabled={filterAnoClassificacao === 'all'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Mês" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="1">Janeiro</SelectItem>
+                        <SelectItem value="2">Fevereiro</SelectItem>
+                        <SelectItem value="3">Março</SelectItem>
+                        <SelectItem value="4">Abril</SelectItem>
+                        <SelectItem value="5">Maio</SelectItem>
+                        <SelectItem value="6">Junho</SelectItem>
+                        <SelectItem value="7">Julho</SelectItem>
+                        <SelectItem value="8">Agosto</SelectItem>
+                        <SelectItem value="9">Setembro</SelectItem>
+                        <SelectItem value="10">Outubro</SelectItem>
+                        <SelectItem value="11">Novembro</SelectItem>
+                        <SelectItem value="12">Dezembro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Empresa</label>
+                    <Select value={filterEmpresa} onValueChange={setFilterEmpresa}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        {empresas.map(emp => (
+                          <SelectItem key={emp.id} value={emp.id.toString()}>
+                            {emp.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Tabela de Contas Classificadas */}
+                {isLoading ? (
+                  <div className="text-center py-8">Carregando classificações...</div>
+                ) : (() => {
+                  // Filtrar contas por ano/mês de classificação
+                  const contasFiltradas = contas?.filter(c => {
+                    if (!c.data_vencimento) return false;
+                    
+                    const dataVencimento = new Date(c.data_vencimento);
+                    const ano = dataVencimento.getFullYear().toString();
+                    const mes = (dataVencimento.getMonth() + 1).toString();
+                    
+                    // Filtro de ano
+                    if (filterAnoClassificacao !== 'all' && ano !== filterAnoClassificacao) {
+                      return false;
+                    }
+                    
+                    // Filtro de mês (só aplica se ano estiver selecionado)
+                    if (filterMesClassificacao !== 'all' && filterAnoClassificacao !== 'all' && mes !== filterMesClassificacao) {
+                      return false;
+                    }
+                    
+                    return true;
+                  });
+
+                  const totalContas = contasFiltradas?.length || 0;
+                  const classificadas = contasFiltradas?.filter(c => c.departamento_id && c.plano_contas_id).length || 0;
+                  const pendentes = totalContas - classificadas;
+                  const percentual = totalContas > 0 ? ((classificadas / totalContas) * 100).toFixed(1) : "0";
+
+                  return (
+                    <>
+                      {/* KPIs de Classificação */}
+                      <div className="grid gap-4 md:grid-cols-4 mb-6">
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="text-2xl font-bold">{totalContas}</div>
+                            <p className="text-xs text-muted-foreground">Total de Contas</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="text-2xl font-bold text-green-600">{classificadas}</div>
+                            <p className="text-xs text-muted-foreground">Classificadas</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="text-2xl font-bold text-orange-600">{pendentes}</div>
+                            <p className="text-xs text-muted-foreground">Pendentes</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="text-2xl font-bold text-primary">{percentual}%</div>
+                            <p className="text-xs text-muted-foreground">Taxa de Classificação</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Tabela */}
+                      {contasFiltradas && contasFiltradas.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Fornecedor</TableHead>
+                                <TableHead>Documento</TableHead>
+                                <TableHead>Vencimento</TableHead>
+                                <TableHead className="text-right">Valor</TableHead>
+                                <TableHead>Departamento</TableHead>
+                                <TableHead>Plano de Contas</TableHead>
+                                <TableHead className="text-center">Confiança</TableHead>
+                                <TableHead className="text-center">Status</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {contasFiltradas.map((conta) => (
+                                <TableRow key={conta.id}>
+                                  <TableCell className="font-medium">
+                                    {conta.fornecedor_nome || 'N/A'}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline">
+                                      {conta.numero_documento}/{conta.parcela}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    {conta.data_vencimento 
+                                      ? format(new Date(conta.data_vencimento), 'dd/MM/yyyy', { locale: ptBR })
+                                      : 'N/A'}
+                                  </TableCell>
+                                  <TableCell className="text-right font-medium">
+                                    {new Intl.NumberFormat('pt-BR', {
+                                      style: 'currency',
+                                      currency: 'BRL'
+                                    }).format(conta.valor_original || 0)}
+                                  </TableCell>
+                                  <TableCell>
+                                    {conta.departamento_id ? (
+                                      <Badge variant="secondary">
+                                        {/* Buscar nome do departamento via query seria ideal */}
+                                        Classificado
+                                      </Badge>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {conta.plano_contas_id ? (
+                                      <Badge variant="outline">
+                                        Classificado
+                                      </Badge>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {conta.confianca_classificacao ? (
+                                      <Badge variant="default">
+                                        {(conta.confianca_classificacao * 100).toFixed(0)}%
+                                      </Badge>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {conta.departamento_id && conta.plano_contas_id ? (
+                                      <Badge variant="default" className="gap-1">
+                                        <CheckCircle className="h-3 w-3" />
+                                        Completa
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        Pendente
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          Nenhuma conta encontrada para o período selecionado
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Dialogs */}
+        <ClassificarContasPagarDialog
+          open={classificarIAOpen}
+          onOpenChange={setClassificarIAOpen}
+          onComplete={() => {
+            refetchContas();
+            toast.success("Classificação concluída! Atualizando lista...");
+          }}
+        />
+
         <SolicitarOrcamentoDialog
           open={solicitarOrcamentoOpen}
           onOpenChange={setSolicitarOrcamentoOpen}

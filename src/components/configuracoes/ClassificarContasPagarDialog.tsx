@@ -52,19 +52,20 @@ export function ClassificarContasPagarDialog({
       setErros(0);
       setClassificationLogs([]);
 
-      // Buscar contas sem classificação completa
+      // Buscar TODAS as contas para classificar (sem limite)
       const { data: contas, error: fetchError } = await supabase
         .from("contas_pagar")
         .select("*")
-        .or("departamento_id.is.null,plano_contas_id.is.null")
-        .limit(50); // Processar em lotes menores
+        .order('data_vencimento', { ascending: false });
 
       if (fetchError) throw fetchError;
       if (!contas || contas.length === 0) {
-        toast.info("Nenhuma conta para classificar");
+        toast.info("Nenhuma conta encontrada no banco de dados");
         setIsClassifying(false);
         return;
       }
+
+      toast.info(`Processando ${contas.length} contas...`);
 
       setTotalContas(contas.length);
       let classificadas = 0;
@@ -183,17 +184,23 @@ export function ClassificarContasPagarDialog({
         setErros(errosCount);
         setClassificationLogs([...logs]);
 
-        // Delay entre requisições
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Delay entre requisições para evitar rate limit
+        await new Promise(resolve => setTimeout(resolve, 800));
       }
 
       // Mostrar resultado final
+      const taxaSucesso = totalContas > 0 ? ((classificadas / totalContas) * 100).toFixed(1) : "0";
+      
       if (classificadas > 0) {
-        toast.success(`✅ ${classificadas} contas classificadas com sucesso!`);
+        toast.success(`✅ ${classificadas} de ${totalContas} contas classificadas (${taxaSucesso}% de sucesso)!`);
       }
       
       if (errosCount > 0) {
         toast.error(`❌ ${errosCount} contas com erro na classificação`);
+      }
+
+      if (classificadas === 0 && errosCount === 0) {
+        toast.info("Nenhuma conta foi processada");
       }
 
       // Chamar callback de conclusão
@@ -228,7 +235,8 @@ export function ClassificarContasPagarDialog({
             <div className="text-center py-8">
               <Brain className="h-12 w-12 mx-auto mb-4 text-primary/60" />
               <p className="text-sm text-muted-foreground mb-4">
-                Classificação automática de contas a pagar usando Inteligência Artificial
+                Classificação automática de TODAS as contas a pagar usando Inteligência Artificial.
+                O sistema aprende com cada classificação para melhorar a precisão.
               </p>
               <div className="flex gap-2 justify-center">
                 <Badge variant="outline" className="gap-1">
