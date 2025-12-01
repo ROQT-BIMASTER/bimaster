@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     // POST /sync - Sincronizar dados do n8n
     if (path.endsWith('/sync') && req.method === 'POST') {
       const apiKey = req.headers.get('x-api-key');
-      const expectedKey = Deno.env.get('EXPORT_API_KEY');
+      const expectedKey = Deno.env.get('N8N_API_KEY');
       
       if (!apiKey || apiKey !== expectedKey) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
