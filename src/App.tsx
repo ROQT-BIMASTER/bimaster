@@ -85,6 +85,7 @@ const ContasAPagar = lazy(() => import("./pages/ContasAPagar"));
 const PlanoContas = lazy(() => import("./pages/PlanoContas"));
 const Financeiro = lazy(() => import("./pages/Financeiro"));
 const VisaoDepartamentos = lazy(() => import("./pages/VisaoDepartamentos"));
+const DREAnalitico = lazy(() => import("./pages/DREAnalitico"));
 
 // Loading component
 const PageLoader = () => (
@@ -235,6 +236,7 @@ const App = () => {
         {/* Módulo Financeiro */}
         <Route path="/dashboard/financeiro" element={<ProtectedRoute><Financeiro /></ProtectedRoute>} />
         <Route path="/dashboard/financeiro/visao-departamentos" element={<ProtectedRoute><VisaoDepartamentos /></ProtectedRoute>} />
+        <Route path="/dashboard/financeiro/dre-analitico" element={<ProtectedRoute><DREAnalitico /></ProtectedRoute>} />
         <Route path="/dashboard/financeiro/trade" element={<ProtectedRoute><TradeFinanceiro /></ProtectedRoute>} />
         <Route path="/dashboard/financeiro/contas-a-pagar" element={<ProtectedRoute><ContasAPagar /></ProtectedRoute>} />
         <Route path="/dashboard/financeiro/plano-contas" element={<ProtectedRoute><PlanoContas /></ProtectedRoute>} />
