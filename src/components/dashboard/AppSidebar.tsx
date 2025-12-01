@@ -658,6 +658,33 @@ export function AppSidebar() {
           </Collapsible>
         </SidebarGroup>
 
+        {/* Módulo Financeiro */}
+        <SidebarGroup>
+          <Collapsible defaultOpen={false}>
+            <SidebarGroupLabel asChild>
+              <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                <ChevronRight className="h-4 w-4" />
+                <Receipt className="h-4 w-4" />
+                Financeiro
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink to="/dashboard/contas-a-pagar" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                        <Receipt className="h-4 w-4" />
+                        <span>Contas a Pagar</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
+
       </SidebarContent>
       
       <SidebarFooter>

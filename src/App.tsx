@@ -81,6 +81,7 @@ const FabricaTabelasPreco = lazy(() => import("./pages/FabricaTabelasPreco"));
 const FabricaAprovacaoPrecos = lazy(() => import("./pages/FabricaAprovacaoPrecos"));
 const PortalCliente = lazy(() => import("./pages/PortalCliente"));
 const APIHealthCheck = lazy(() => import("./pages/APIHealthCheck"));
+const ContasAPagar = lazy(() => import("./pages/ContasAPagar"));
 
 // Loading component
 const PageLoader = () => (
@@ -228,6 +229,8 @@ const App = () => {
         <Route path="/dashboard/precos/aprovacao" element={<ProtectedRoute><FabricaAprovacaoPrecos /></ProtectedRoute>} />
         <Route path="/dashboard/precos/portal-cliente" element={<ProtectedRoute><PortalCliente /></ProtectedRoute>} />
         
+        {/* Módulo Financeiro */}
+        <Route path="/dashboard/contas-a-pagar" element={<ProtectedRoute><ContasAPagar /></ProtectedRoute>} />
         <Route path="/dashboard/configuracoes/api-health" element={<ProtectedRoute><APIHealthCheck /></ProtectedRoute>} />
         
         <Route path="/404" element={<NotFound />} />
