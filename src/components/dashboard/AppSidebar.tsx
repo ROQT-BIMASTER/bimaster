@@ -135,10 +135,12 @@ export function AppSidebar() {
 
   const financeiroSubMenus = [
     { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home },
+    { title: "DRE Analítico", url: "/dashboard/financeiro/dre-analitico", icon: FileText },
     { title: "Visão por Departamento", url: "/dashboard/financeiro/visao-departamentos", icon: Building2 },
     { title: "Trade Marketing", url: "/dashboard/financeiro/trade", icon: Store },
     { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt },
     { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: List },
+    { title: "Classificar Banco", url: "/dashboard/financeiro/classificar-banco", icon: ClipboardCheck },
   ];
 
   const tradeSubMenus = [
@@ -371,9 +373,13 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Módulo Financeiro */}
+        {/* Módulo Financeiro - Sempre visível */}
         <SidebarGroup>
-          <Collapsible open={financeiroOpen} onOpenChange={setFinanceiroOpen}>
+          <Collapsible 
+            open={financeiroOpen} 
+            onOpenChange={setFinanceiroOpen}
+            defaultOpen={true}
+          >
             <SidebarGroupLabel asChild>
               <CollapsibleTrigger className="flex items-center gap-2 w-full">
                 {financeiroOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
