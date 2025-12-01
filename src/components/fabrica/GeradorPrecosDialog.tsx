@@ -13,9 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { calcularPrecosProdutos, formatarMoeda } from "@/lib/fabrica/pricing-calculator";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 
 interface ProdutoData {
   id: string;
@@ -34,6 +35,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const queryClient = useQueryClient();
   const [fonteCusto, setFonteCusto] = useState<"ordem_producao" | "custo_medio" | "manual" | "tabela_anterior">("ordem_producao");
   const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
+  const [produtosNaTabelaBase, setProdutosNaTabelaBase] = useState<string[]>([]);
   const [custosManual, setCustosManual] = useState<Record<string, string>>({});
   const [precosCalculados, setPrecosCalculados] = useState<any[]>([]);
   const [calculando, setCalculando] = useState(false);
@@ -44,6 +46,14 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   useEffect(() => {
     if (open && tabela) {
       loadProdutos();
+      loadProdutosTabela();
+    } else if (!open) {
+      // Reset state quando fechar o dialog
+      setProdutosSelecionados([]);
+      setProdutosNaTabelaBase([]);
+      setPrecosCalculados([]);
+      setCustosManual({});
+      setBuscaProduto("");
     }
   }, [open, tabela]);
 
@@ -65,6 +75,30 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       toast.error("Erro ao carregar produtos");
     } finally {
       setLoadingProdutos(false);
+    }
+  };
+
+  const loadProdutosTabela = async () => {
+    try {
+      // Se usar tabela anterior como base, carregar produtos da tabela base
+      if (tabela?.tipo_base === "tabela_anterior" && tabela?.tabela_base_id) {
+        const { data, error } = await supabase
+          .from("fabrica_precos_produtos")
+          .select("produto_id")
+          .eq("tabela_id", tabela.tabela_base_id)
+          .eq("ativo", true);
+
+        if (error) throw error;
+        
+        // Pré-selecionar produtos que já existem na tabela base
+        if (data && data.length > 0) {
+          const produtosIds = data.map(p => p.produto_id);
+          setProdutosSelecionados(produtosIds);
+          setProdutosNaTabelaBase(produtosIds);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao buscar produtos da tabela:", error);
     }
   };
 
@@ -272,6 +306,15 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
               </div>
             </div>
 
+            {produtosNaTabelaBase.length > 0 && (
+              <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  <strong>{produtosNaTabelaBase.length} produto(s)</strong> já existem na tabela base e foram pré-selecionados. 
+                  Você pode adicionar ou remover produtos conforme necessário.
+                </p>
+              </div>
+            )}
+
             {loadingProdutos ? (
               <div className="text-center py-4 text-muted-foreground">Carregando produtos...</div>
             ) : (
@@ -296,9 +339,17 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                           />
                         </td>
                         <td className="p-2">
-                          <div>
-                            <div className="font-medium">{produto.nome}</div>
-                            <div className="text-sm text-muted-foreground">{produto.codigo}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1">
+                              <div className="font-medium">{produto.nome}</div>
+                              <div className="text-sm text-muted-foreground">{produto.codigo}</div>
+                            </div>
+                            {produtosNaTabelaBase.includes(produto.id) && (
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Na tabela base
+                              </Badge>
+                            )}
                           </div>
                         </td>
                         {fonteCusto === "manual" && (
