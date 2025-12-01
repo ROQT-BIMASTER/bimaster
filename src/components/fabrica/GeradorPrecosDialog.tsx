@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -31,6 +31,7 @@ interface Props {
 }
 
 export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: Props) {
+  const queryClient = useQueryClient();
   const [fonteCusto, setFonteCusto] = useState<"ordem_producao" | "custo_medio" | "manual" | "tabela_anterior">("ordem_producao");
   const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
   const [custosManual, setCustosManual] = useState<Record<string, string>>({});
@@ -129,12 +130,19 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       if (error) throw error;
 
       // Atualizar status da tabela para pending_approval
-      await supabase
+      const { error: updateError } = await supabase
         .from("fabrica_tabelas_preco")
         .update({ status: 'pending_approval' })
         .eq("id", tabela.id);
+
+      if (updateError) {
+        console.error("Erro ao atualizar status da tabela:", updateError);
+        // Não bloqueia o sucesso, apenas loga o erro
+      }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tabelas-preco"] });
+      queryClient.invalidateQueries({ queryKey: ["visualizacao-precos"] });
       toast.success("Preços salvos e enviados para aprovação!");
       onSuccess();
     },

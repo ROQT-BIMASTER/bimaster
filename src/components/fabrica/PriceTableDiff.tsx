@@ -32,7 +32,7 @@ export function PriceTableDiff({ tabelaId }: Props) {
         .from("fabrica_precos_produtos")
         .select(`
           *,
-          produto:fabrica_materias_primas(codigo, nome)
+          produto:fabrica_produtos(codigo, nome)
         `)
         .eq("tabela_id", tabelaId);
 
