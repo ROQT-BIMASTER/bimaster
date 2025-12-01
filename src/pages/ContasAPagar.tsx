@@ -942,7 +942,7 @@ export default function ContasAPagar() {
                                           {conta.departamento_nome || "Selecione..."}
                                         </SelectValue>
                                       </SelectTrigger>
-                                      <SelectContent className="bg-background z-50">
+                                      <SelectContent className="bg-background z-[100]">
                                         {departamentos?.map((dept) => (
                                           <SelectItem key={dept.id} value={dept.id}>
                                             {dept.nome}
@@ -965,7 +965,7 @@ export default function ContasAPagar() {
                                             : "Selecione..."}
                                         </SelectValue>
                                       </SelectTrigger>
-                                      <SelectContent className="bg-background z-50">
+                                      <SelectContent className="bg-background z-[100]">
                                         {planosContas?.map((plano) => (
                                           <SelectItem key={plano.id} value={plano.id}>
                                             <div className="flex flex-col">
