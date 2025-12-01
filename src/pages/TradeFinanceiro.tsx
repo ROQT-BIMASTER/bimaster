@@ -256,11 +256,19 @@ export default function TradeFinanceiro() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Financeiro Trade Marketing</h1>
-          <p className="text-muted-foreground mt-1">
-            Gestão de verbas, investimentos e plano de contas
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Financeiro Trade Marketing</h1>
+            <p className="text-muted-foreground mt-1">
+              Gestão de verbas, investimentos e plano de contas
+            </p>
+          </div>
+          <Link to="/dashboard/financeiro">
+            <Button variant="outline">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Módulo Financeiro Completo
+            </Button>
+          </Link>
         </div>
         
         <div className="grid gap-4 md:grid-cols-4">

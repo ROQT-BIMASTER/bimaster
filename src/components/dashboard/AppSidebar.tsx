@@ -64,6 +64,7 @@ export function AppSidebar() {
   const { hasModulePermission, loading: modulesLoading } = useModulePermissions();
   
   const [prospectsOpen, setProspectsOpen] = useState(true);
+  const [financeiroOpen, setFinanceiroOpen] = useState(true);
   const [tradeOpen, setTradeOpen] = useState(true);
   const [marketingOpen, setMarketingOpen] = useState(true);
   const [fabricaOpen, setFabricaOpen] = useState(true);
@@ -132,6 +133,13 @@ export function AppSidebar() {
     { title: "Mapa", url: "/dashboard/prospects/mapa", icon: MapPin },
   ];
 
+  const financeiroSubMenus = [
+    { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home },
+    { title: "Trade Marketing", url: "/dashboard/financeiro/trade", icon: Store },
+    { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt },
+    { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: FileText },
+  ];
+
   const tradeSubMenus = [
     { title: "PDVs", url: "/dashboard/trade/stores", icon: Store },
     { title: "Visitas", url: "/dashboard/trade/visits", icon: Calendar },
@@ -142,7 +150,6 @@ export function AppSidebar() {
     { title: "Fotos Ideais", url: "/dashboard/trade/ideal-photos", icon: Image },
     { title: "Auditoria Gôndola", url: "/dashboard/trade/auditorias", icon: ClipboardCheck },
     { title: "Análise Competitiva", url: "/dashboard/trade/relatorio-competitivo", icon: BarChart3 },
-    { title: "Financeiro", url: "/dashboard/trade/financeiro", icon: FileText },
     { title: "Premiações", url: "/dashboard/trade/rewards", icon: Trophy },
     { title: "WhatsApp", url: "/dashboard/trade/whatsapp", icon: MessageSquare },
     { title: "Insights IA", url: "/dashboard/trade/insights", icon: Sparkles },
@@ -362,6 +369,42 @@ export function AppSidebar() {
             </Collapsible>
           </SidebarGroup>
         )}
+
+        {/* Módulo Financeiro */}
+        <SidebarGroup>
+          <Collapsible open={financeiroOpen} onOpenChange={setFinanceiroOpen}>
+            <SidebarGroupLabel asChild>
+              <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                {financeiroOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                <DollarSign className="h-4 w-4" />
+                Módulo Financeiro
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {financeiroSubMenus.map((item) => (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to={item.url}
+                          className={({ isActive }) =>
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "hover:bg-sidebar-accent/50"
+                          }
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
 
         {/* Módulo de Marketing */}
         <SidebarGroup>
