@@ -1,11 +1,21 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, DollarSign, Package, TrendingUp, Edit, Download, Eye } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, DollarSign, Package, TrendingUp, Edit, Download, Eye, Trash2 } from "lucide-react";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovaTabelaPrecoDialog } from "@/components/fabrica/NovaTabelaPrecoDialog";
 import { CadeiaPrecificacaoVisual } from "@/components/fabrica/CadeiaPrecificacaoVisual";
@@ -21,6 +31,7 @@ export default function FabricaTabelasPreco() {
   const [dialogNovaTabela, setDialogNovaTabela] = useState(false);
   const [dialogGerarPrecos, setDialogGerarPrecos] = useState(false);
   const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
+  const [dialogExcluir, setDialogExcluir] = useState(false);
   const [tabelaSelecionada, setTabelaSelecionada] = useState<any>(null);
 
   const { data: tabelas, isLoading, refetch } = useQuery({
@@ -82,6 +93,54 @@ export default function FabricaTabelasPreco() {
     setTabelaSelecionada(tabela);
     setDialogVisualizacao(true);
   };
+
+  const handleExcluirTabela = (tabela: any) => {
+    setTabelaSelecionada(tabela);
+    setDialogExcluir(true);
+  };
+
+  const excluirTabelaMutation = useMutation({
+    mutationFn: async (tabelaId: string) => {
+      // Verificar se existem tabelas dependentes
+      const { data: dependentes, error: errorDep } = await supabase
+        .from("fabrica_tabelas_preco")
+        .select("id, nome")
+        .eq("tabela_base_id", tabelaId);
+
+      if (errorDep) throw errorDep;
+
+      if (dependentes && dependentes.length > 0) {
+        throw new Error(
+          `Não é possível excluir esta tabela pois existem ${dependentes.length} tabela(s) dependente(s): ${dependentes.map(d => d.nome).join(", ")}`
+        );
+      }
+
+      // Excluir preços primeiro (cascade já deve fazer isso, mas garantimos)
+      const { error: errorPrecos } = await supabase
+        .from("fabrica_precos_produtos")
+        .delete()
+        .eq("tabela_id", tabelaId);
+
+      if (errorPrecos) throw errorPrecos;
+
+      // Excluir a tabela
+      const { error } = await supabase
+        .from("fabrica_tabelas_preco")
+        .delete()
+        .eq("id", tabelaId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Tabela excluída com sucesso!");
+      refetch();
+      setDialogExcluir(false);
+      setTabelaSelecionada(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao excluir tabela");
+    },
+  });
 
   const getTipoMarkupLabel = (tipo: string, valor: number) => {
     switch (tipo) {
@@ -270,6 +329,15 @@ export default function FabricaTabelasPreco() {
                             <Edit className="h-4 w-4 mr-1" />
                             Editar
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleExcluirTabela(tabela)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Excluir
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -318,6 +386,37 @@ export default function FabricaTabelasPreco() {
         }}
         tabela={tabelaSelecionada}
       />
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={dialogExcluir} onOpenChange={setDialogExcluir}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a tabela de preços <strong>{tabelaSelecionada?.nome}</strong>?
+              <br /><br />
+              Esta ação não pode ser desfeita e todos os preços associados serão removidos.
+              {tabelaSelecionada && (
+                <div className="mt-2 text-sm">
+                  <strong>Produtos precificados:</strong> {tabelaSelecionada.precos_count?.[0]?.count || 0}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setTabelaSelecionada(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => tabelaSelecionada && excluirTabelaMutation.mutate(tabelaSelecionada.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={excluirTabelaMutation.isPending}
+            >
+              {excluirTabelaMutation.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
