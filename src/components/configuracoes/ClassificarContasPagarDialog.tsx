@@ -21,14 +21,13 @@ interface ClassificarContasPagarDialogProps {
 }
 
 interface ClassificationLog {
-  conta_id: string;
+  conta: string;
   fornecedor: string;
-  valor: number;
-  plano_contas?: string;
-  departamento?: string;
-  confianca?: number;
   status: 'success' | 'error';
-  message?: string;
+  departamento?: string;
+  planoConta?: string;
+  confianca?: number;
+  mensagem?: string;
 }
 
 export function ClassificarContasPagarDialog({
@@ -40,184 +39,183 @@ export function ClassificarContasPagarDialog({
   const [progress, setProgress] = useState(0);
   const [totalContas, setTotalContas] = useState(0);
   const [contasClassificadas, setContasClassificadas] = useState(0);
-  const [erros, setErros] = useState(0);
+  const [contasComErro, setContasComErro] = useState(0);
   const [currentConta, setCurrentConta] = useState<string>("");
-  const [classificationLogs, setClassificationLogs] = useState<ClassificationLog[]>([]);
+  const [logs, setLogs] = useState<ClassificationLog[]>([]);
 
   const classificarContas = async () => {
     try {
       setIsClassifying(true);
       setProgress(0);
+      setTotalContas(0);
       setContasClassificadas(0);
-      setErros(0);
-      setClassificationLogs([]);
+      setContasComErro(0);
+      setLogs([]);
 
-      // Buscar TODAS as contas para classificar (sem limite)
-      const { data: contas, error: fetchError } = await supabase
+      // PASSO 1: Buscar grupos únicos não classificados
+      console.log("Buscando grupos únicos para classificação...");
+      
+      const { data: grupos, error: gruposError } = await supabase
         .from("contas_pagar")
-        .select("*")
-        .order('data_vencimento', { ascending: false });
+        .select("categoria_nome, fornecedor_nome, tipo_documento")
+        .is("classificado_automaticamente", null);
 
-      if (fetchError) throw fetchError;
-      if (!contas || contas.length === 0) {
-        toast.info("Nenhuma conta encontrada no banco de dados");
-        setIsClassifying(false);
+      if (gruposError) {
+        throw gruposError;
+      }
+
+      if (!grupos || grupos.length === 0) {
+        toast.success("Todas as contas já foram classificadas!");
         return;
       }
 
-      toast.info(`Processando ${contas.length} contas...`);
-
-      setTotalContas(contas.length);
-      let classificadas = 0;
-      let errosCount = 0;
-      const logs: ClassificationLog[] = [];
-
-      // Processar cada conta
-      for (const conta of contas) {
-        try {
-          setCurrentConta(`${conta.fornecedor_nome || "N/A"} - R$ ${conta.valor_original?.toFixed(2) || "0.00"}`);
-
-          console.log("Classificando conta:", conta.id);
-
-          // Chamar nova função de classificação IA
-          const { data: result, error: classifyError } = await supabase.functions.invoke(
-            "classificar-contas-pagar-ia",
-            {
-              body: { conta },
-            }
-          );
-
-          if (classifyError) {
-            console.error("Erro ao classificar:", classifyError);
-            
-            // Se for erro de rate limit, pausar por 3 segundos
-            if (classifyError.message?.includes("429") || classifyError.message?.includes("rate_limit")) {
-              console.log("Rate limit detectado, pausando...");
-              toast.warning("Limite de requisições atingido, pausando 3s...");
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              errosCount++;
-              logs.push({
-                conta_id: conta.id,
-                fornecedor: conta.fornecedor_nome || "N/A",
-                valor: conta.valor_original || 0,
-                status: 'error',
-                message: "Rate limit - tentando novamente",
-              });
-              continue;
-            }
-            
-            throw classifyError;
-          }
-
-          if (result?.departamento_id || result?.plano_contas_id) {
-            // Atualizar conta com classificação + cache
-            const updateData: any = {
-              classificado_automaticamente: true,
-              classificado_em: new Date().toISOString(),
-            };
-
-            if (result.departamento_id) {
-              updateData.departamento_id = result.departamento_id;
-              updateData.departamento_nome = result.departamento_nome;
-            }
-
-            if (result.plano_contas_id) {
-              updateData.plano_contas_id = result.plano_contas_id;
-              updateData.plano_contas_codigo = result.plano_contas_codigo;
-              updateData.plano_contas_nome = result.plano_contas_nome;
-            }
-
-            if (result.confianca) {
-              updateData.confianca_classificacao = result.confianca;
-            }
-
-            if (result.justificativa) {
-              updateData.classificacao_justificativa = result.justificativa;
-            }
-
-            const { error: updateError } = await supabase
-              .from("contas_pagar")
-              .update(updateData)
-              .eq("id", conta.id);
-
-            if (updateError) {
-              console.error("Erro ao atualizar conta:", updateError);
-              errosCount++;
-              logs.push({
-                conta_id: conta.id,
-                fornecedor: conta.fornecedor_nome || "N/A",
-                valor: conta.valor_original || 0,
-                status: 'error',
-                message: updateError.message,
-              });
-            } else {
-              classificadas++;
-              logs.push({
-                conta_id: conta.id,
-                fornecedor: conta.fornecedor_nome || "N/A",
-                valor: conta.valor_original || 0,
-                plano_contas: result.plano_contas_nome,
-                departamento: result.departamento_nome,
-                confianca: result.confianca,
-                status: 'success',
-                message: result.justificativa,
-              });
-            }
-          } else {
-            errosCount++;
-            logs.push({
-              conta_id: conta.id,
-              fornecedor: conta.fornecedor_nome || "N/A",
-              valor: conta.valor_original || 0,
-              status: 'error',
-              message: "IA não retornou classificação válida",
-            });
-          }
-        } catch (error: any) {
-          console.error("Erro ao processar conta:", error);
-          errosCount++;
-          logs.push({
-            conta_id: conta.id,
-            fornecedor: conta.fornecedor_nome || "N/A",
-            valor: conta.valor_original || 0,
-            status: 'error',
-            message: error.message || "Erro desconhecido",
+      // Agrupar e contar
+      const gruposMap = new Map<string, { categoria_nome: string; fornecedor_nome: string | null; tipo_documento: string | null; count: number }>();
+      
+      grupos.forEach(g => {
+        const key = `${g.categoria_nome}|${g.fornecedor_nome}|${g.tipo_documento}`;
+        const existing = gruposMap.get(key);
+        if (existing) {
+          existing.count++;
+        } else {
+          gruposMap.set(key, {
+            categoria_nome: g.categoria_nome,
+            fornecedor_nome: g.fornecedor_nome,
+            tipo_documento: g.tipo_documento,
+            count: 1
           });
         }
+      });
 
-        // Atualizar progresso
-        const progressoAtual = Math.round(((classificadas + errosCount) / contas.length) * 100);
-        setProgress(progressoAtual);
-        setContasClassificadas(classificadas);
-        setErros(errosCount);
-        setClassificationLogs([...logs]);
+      const gruposUnicos = Array.from(gruposMap.values());
+      console.log(`${gruposUnicos.length} grupos únicos encontrados, representando ${grupos.length} contas`);
 
-        // Delay entre requisições para evitar rate limit
-        await new Promise(resolve => setTimeout(resolve, 800));
+      setTotalContas(gruposUnicos.length);
+      const totalGrupos = gruposUnicos.length;
+      let gruposClassificados = 0;
+      let gruposComErro = 0;
+      const tempLogs: ClassificationLog[] = [];
+
+      // PASSO 2: Processar em lotes de 10 grupos por vez, com 3 lotes paralelos
+      const BATCH_SIZE = 10;
+      const PARALLEL_BATCHES = 3;
+
+      for (let i = 0; i < gruposUnicos.length; i += BATCH_SIZE * PARALLEL_BATCHES) {
+        const batches: Promise<any>[] = [];
+
+        // Criar até 3 lotes paralelos
+        for (let j = 0; j < PARALLEL_BATCHES; j++) {
+          const startIdx = i + (j * BATCH_SIZE);
+          const batch = gruposUnicos.slice(startIdx, startIdx + BATCH_SIZE);
+          
+          if (batch.length === 0) break;
+
+          batches.push(
+            supabase.functions.invoke("classificar-contas-batch", {
+              body: { groups: batch }
+            })
+          );
+        }
+
+        // Executar lotes em paralelo
+        const batchResults = await Promise.all(batches);
+
+        // Processar resultados
+        for (const { data, error } of batchResults) {
+          if (error) {
+            console.error("Erro no lote:", error);
+            toast.error(`Erro ao processar lote: ${error.message}`);
+            continue;
+          }
+
+          if (!data?.results) {
+            console.error("Resposta inválida:", data);
+            continue;
+          }
+
+          // PASSO 3: Atualizar contas em batch
+          for (const result of data.results) {
+            const contasAfetadas = gruposMap.get(
+              `${result.categoria_nome}|${result.fornecedor_nome}|${result.tipo_documento}`
+            )?.count || 0;
+
+            setCurrentConta(`${result.categoria_nome} - ${result.fornecedor_nome || 'N/A'} (${contasAfetadas} contas)`);
+
+            if (result.success && result.departamento_id) {
+              // Atualizar todas as contas deste grupo em uma única query
+              const { error: updateError } = await supabase
+                .from("contas_pagar")
+                .update({
+                  departamento_id: result.departamento_id,
+                  departamento_nome: result.departamento_nome,
+                  plano_contas_id: result.plano_contas_id,
+                  plano_contas_codigo: result.plano_contas_codigo,
+                  plano_contas_nome: result.plano_contas_nome,
+                  confianca_classificacao: result.confianca_classificacao,
+                  classificacao_justificativa: result.classificacao_justificativa,
+                  classificado_automaticamente: true,
+                  classificado_em: new Date().toISOString(),
+                })
+                .eq("categoria_nome", result.categoria_nome)
+                .eq("fornecedor_nome", result.fornecedor_nome || "")
+                .eq("tipo_documento", result.tipo_documento || "")
+                .is("classificado_automaticamente", null);
+
+              if (updateError) {
+                console.error("Erro ao atualizar contas:", updateError);
+                gruposComErro++;
+                setContasComErro(gruposComErro);
+                tempLogs.push({
+                  conta: result.categoria_nome,
+                  fornecedor: result.fornecedor_nome || "",
+                  status: "error",
+                  mensagem: updateError.message,
+                });
+              } else {
+                gruposClassificados++;
+                setContasClassificadas(gruposClassificados);
+                tempLogs.push({
+                  conta: result.categoria_nome,
+                  fornecedor: result.fornecedor_nome || "",
+                  status: "success",
+                  departamento: result.departamento_nome || "",
+                  planoConta: result.plano_contas_nome || "",
+                  confianca: result.confianca_classificacao,
+                  mensagem: `${contasAfetadas} contas atualizadas: ${result.classificacao_justificativa}`,
+                });
+              }
+            } else {
+              gruposComErro++;
+              setContasComErro(gruposComErro);
+              tempLogs.push({
+                conta: result.categoria_nome,
+                fornecedor: result.fornecedor_nome || "",
+                status: "error",
+                mensagem: result.error || "Classificação falhou",
+              });
+            }
+
+            setProgress(Math.round(((gruposClassificados + gruposComErro) / totalGrupos) * 100));
+            setLogs([...tempLogs].slice(-10));
+          }
+        }
+
+        // Pequeno delay entre super-lotes
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
 
-      // Mostrar resultado final
-      const taxaSucesso = totalContas > 0 ? ((classificadas / totalContas) * 100).toFixed(1) : "0";
-      
-      if (classificadas > 0) {
-        toast.success(`✅ ${classificadas} de ${totalContas} contas classificadas (${taxaSucesso}% de sucesso)!`);
-      }
-      
-      if (errosCount > 0) {
-        toast.error(`❌ ${errosCount} contas com erro na classificação`);
+      // Resultado final
+      toast.success(`✅ ${gruposClassificados} grupos classificados (${grupos.length} contas atualizadas)`);
+      if (gruposComErro > 0) {
+        toast.warning(`⚠️ ${gruposComErro} grupos com erro`);
       }
 
-      if (classificadas === 0 && errosCount === 0) {
-        toast.info("Nenhuma conta foi processada");
-      }
-
-      // Chamar callback de conclusão
       if (onComplete) {
         onComplete();
       }
 
     } catch (error) {
-      console.error("Erro geral na classificação:", error);
+      console.error("Erro na classificação:", error);
       toast.error("Erro ao classificar contas. Tente novamente.");
     } finally {
       setIsClassifying(false);
@@ -291,18 +289,18 @@ export function ClassificarContasPagarDialog({
                 <div className="text-center p-3 rounded-lg bg-red-50 dark:bg-red-950">
                   <div className="text-2xl font-bold text-red-600 flex items-center justify-center gap-1">
                     <XCircle className="h-5 w-5" />
-                    {erros}
+                    {contasComErro}
                   </div>
                   <div className="text-xs text-muted-foreground">Erros</div>
                 </div>
               </div>
 
-              {classificationLogs.length > 0 && (
+              {logs.length > 0 && (
                 <div className="mt-4">
                   <h4 className="text-sm font-semibold mb-2">Log de Classificações</h4>
                   <ScrollArea className="h-[200px] rounded-md border">
                     <div className="p-3 space-y-2">
-                      {classificationLogs.slice(-10).reverse().map((log, idx) => (
+                      {logs.slice(-10).reverse().map((log, idx) => (
                         <div 
                           key={idx} 
                           className={`text-xs p-2 rounded ${
@@ -312,9 +310,9 @@ export function ClassificarContasPagarDialog({
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium">{log.fornecedor}</span>
-                            <span className="text-muted-foreground">
-                              R$ {log.valor.toFixed(2)}
+                            <span className="font-medium">{log.conta}</span>
+                            <span className="text-muted-foreground text-[10px]">
+                              {log.fornecedor}
                             </span>
                           </div>
                           {log.status === 'success' && (
@@ -325,27 +323,27 @@ export function ClassificarContasPagarDialog({
                                     {log.departamento}
                                   </Badge>
                                 )}
-                                {log.plano_contas && (
+                                {log.planoConta && (
                                   <Badge variant="outline" className="text-xs">
-                                    {log.plano_contas}
+                                    {log.planoConta}
                                   </Badge>
                                 )}
                                 {log.confianca && (
                                   <Badge variant="default" className="text-xs">
-                                    {(log.confianca * 100).toFixed(0)}% confiança
+                                    {(log.confianca * 100).toFixed(0)}%
                                   </Badge>
                                 )}
                               </div>
-                              {log.message && (
+                              {log.mensagem && (
                                 <div className="text-[10px] text-muted-foreground mt-1 italic">
-                                  {log.message}
+                                  {log.mensagem}
                                 </div>
                               )}
                             </>
                           )}
                           {log.status === 'error' && (
                             <div className="text-[10px] text-red-600 mt-1">
-                              Erro: {log.message}
+                              Erro: {log.mensagem}
                             </div>
                           )}
                         </div>
@@ -374,18 +372,18 @@ export function ClassificarContasPagarDialog({
                     <div className="text-xs text-muted-foreground">Sucesso</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-red-600">{erros}</div>
+                    <div className="text-2xl font-bold text-red-600">{contasComErro}</div>
                     <div className="text-xs text-muted-foreground">Erros</div>
                   </div>
                 </div>
               </div>
 
-              {classificationLogs.length > 0 && (
+              {logs.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold mb-2">Resumo das Últimas Classificações</h4>
+                  <h4 className="text-sm font-semibold mb-2">Resumo das Classificações</h4>
                   <ScrollArea className="h-[200px] rounded-md border">
                     <div className="p-3 space-y-2">
-                      {classificationLogs.map((log, idx) => (
+                      {logs.map((log, idx) => (
                         <div 
                           key={idx} 
                           className={`text-xs p-2 rounded ${
@@ -395,16 +393,16 @@ export function ClassificarContasPagarDialog({
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-medium">{log.fornecedor}</span>
-                            <span className="text-muted-foreground">R$ {log.valor.toFixed(2)}</span>
+                            <span className="font-medium">{log.conta}</span>
+                            <span className="text-muted-foreground text-[10px]">{log.fornecedor}</span>
                           </div>
-                          {log.status === 'success' && log.departamento && log.plano_contas && (
+                          {log.status === 'success' && log.departamento && log.planoConta && (
                             <div className="flex gap-1 mt-1">
                               <Badge variant="secondary" className="text-[10px]">
                                 {log.departamento}
                               </Badge>
                               <Badge variant="outline" className="text-[10px]">
-                                {log.plano_contas}
+                                {log.planoConta}
                               </Badge>
                             </div>
                           )}
@@ -418,7 +416,7 @@ export function ClassificarContasPagarDialog({
               <Button
                 onClick={() => {
                   setTotalContas(0);
-                  setClassificationLogs([]);
+                  setLogs([]);
                   classificarContas();
                 }}
                 className="w-full"
