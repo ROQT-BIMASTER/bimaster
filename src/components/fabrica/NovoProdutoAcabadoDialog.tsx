@@ -154,6 +154,23 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
       toast.success(produtoEdit ? "Produto atualizado!" : "Produto cadastrado com sucesso!");
       onSuccess();
       onOpenChange(false);
+      // Limpar form ao fechar
+      setTimeout(() => {
+        if (!produtoEdit) {
+          setFormData({
+            codigo: "",
+            nome: "",
+            descricao: "",
+            formula_id: "",
+            unidade_medida_id: "",
+            tipo: "ACABADO",
+            tempo_producao_minutos: "",
+            rendimento: "",
+            foto_url: "",
+            ativo: true,
+          });
+        }
+      }, 300);
     },
     onError: (error: any) => {
       console.error("Erro ao salvar produto:", error);
