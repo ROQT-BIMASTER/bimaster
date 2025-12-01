@@ -485,6 +485,35 @@ export type Database = {
         }
         Relationships: []
       }
+      categoria_departamento: {
+        Row: {
+          categoria_nome: string
+          created_at: string | null
+          departamento_id: string
+          id: string
+        }
+        Insert: {
+          categoria_nome: string
+          created_at?: string | null
+          departamento_id: string
+          id?: string
+        }
+        Update: {
+          categoria_nome?: string
+          created_at?: string | null
+          departamento_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categoria_departamento_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cnpjbiz_audit: {
         Row: {
           created_at: string | null
@@ -985,6 +1014,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      departamentos: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          responsavel_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          responsavel_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          responsavel_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       etl_changelog: {
         Row: {
@@ -8862,6 +8921,50 @@ export type Database = {
           vendedor_id?: string | null
         }
         Relationships: []
+      }
+      verbas_orcamentarias: {
+        Row: {
+          ano: number
+          created_at: string | null
+          departamento_id: string
+          id: string
+          mes: number
+          observacoes: string | null
+          updated_at: string | null
+          valor_orcado: number
+          valor_realizado: number | null
+        }
+        Insert: {
+          ano: number
+          created_at?: string | null
+          departamento_id: string
+          id?: string
+          mes: number
+          observacoes?: string | null
+          updated_at?: string | null
+          valor_orcado?: number
+          valor_realizado?: number | null
+        }
+        Update: {
+          ano?: number
+          created_at?: string | null
+          departamento_id?: string
+          id?: string
+          mes?: number
+          observacoes?: string | null
+          updated_at?: string | null
+          valor_orcado?: number
+          valor_realizado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verbas_orcamentarias_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       visits: {
         Row: {
