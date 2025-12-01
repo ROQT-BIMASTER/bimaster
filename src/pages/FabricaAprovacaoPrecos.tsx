@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Clock, Eye, FileText } from "lucide-react";
-import { formatarMoeda } from "@/lib/formatters";
+import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import {
   Dialog,
   DialogContent,
@@ -64,8 +64,7 @@ export default function FabricaAprovacaoPrecos() {
       const { data, error } = await supabase
         .from("fabrica_tabelas_preco_versoes")
         .select(`
-          *,
-          aprovador:aprovado_por(nome)
+          *
         `)
         .eq("tabela_id", tabelaSelecionada.id)
         .order("versao", { ascending: false });
@@ -103,19 +102,25 @@ export default function FabricaAprovacaoPrecos() {
 
       if (updateError) throw updateError;
 
-      // Atualizar versão como aprovada
-      const { error: versaoError } = await supabase
+      // Buscar última versão e atualizar como aprovada
+      const { data: ultimaVersao } = await supabase
         .from("fabrica_tabelas_preco_versoes")
-        .update({
-          aprovado_por: user.user?.id,
-          aprovado_em: new Date().toISOString(),
-        })
+        .select("id")
         .eq("tabela_id", tabelaSelecionada.id)
         .is("aprovado_em", null)
         .order("versao", { ascending: false })
-        .limit(1);
+        .limit(1)
+        .single();
 
-      if (versaoError) throw versaoError;
+      if (ultimaVersao) {
+        await supabase
+          .from("fabrica_tabelas_preco_versoes")
+          .update({
+            aprovado_por: user.user?.id,
+            aprovado_em: new Date().toISOString(),
+          } as any)
+          .eq("id", ultimaVersao.id);
+      }
 
       // Registrar na auditoria
       await supabase.from("fabrica_tabelas_preco_auditoria").insert({
@@ -296,10 +301,9 @@ export default function FabricaAprovacaoPrecos() {
                       <CardDescription>
                         Criada em {new Date(versao.created_at).toLocaleString("pt-BR")}
                       </CardDescription>
-                      {versao.aprovado_em && (
+                      {(versao as any).aprovado_em && (
                         <p className="text-sm text-green-600 mt-1">
-                          Aprovada em {new Date(versao.aprovado_em).toLocaleString("pt-BR")}
-                          {versao.aprovador && ` por ${versao.aprovador.nome}`}
+                          Aprovada em {new Date((versao as any).aprovado_em).toLocaleString("pt-BR")}
                         </p>
                       )}
                     </div>
