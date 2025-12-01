@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, DollarSign, TrendingUp, AlertCircle, Calendar, Pencil, Trash2 } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, AlertCircle, Calendar, Pencil, Trash2, BookOpen, Receipt, Wallet, CheckCircle, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { EditarInvestimentoDialog } from "@/components/trade/EditarInvestimentoDialog";
 import { NovaLojaDialog } from "@/components/trade/NovaLojaDialog";
@@ -340,6 +340,32 @@ export default function TradeFinanceiro() {
               <CardContent>
                 <p className="text-xs text-muted-foreground">
                   Revisar e aprovar lançamentos pendentes
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/dashboard/contas-a-pagar">
+            <Card className="hover:border-primary cursor-pointer transition-colors">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Contas a Pagar</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Gestão de contas e orçamentos
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/dashboard/plano-contas">
+            <Card className="hover:border-primary cursor-pointer transition-colors">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Plano de Contas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Estrutura contábil hierárquica
                 </p>
               </CardContent>
             </Card>
