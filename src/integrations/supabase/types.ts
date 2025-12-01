@@ -9701,23 +9701,35 @@ export type Database = {
           valor_total: number
         }[]
       }
-      get_analise_departamentos_completa: {
-        Args: {
-          p_departamento_id?: string
-          p_periodo_fim: string
-          p_periodo_inicio: string
-        }
-        Returns: {
-          classificacoes_automaticas: number
-          classificacoes_manuais: number
-          departamento_id: string
-          departamento_nome: string
-          periodo_mes: string
-          tipo: string
-          total_transacoes: number
-          valor_total: number
-        }[]
-      }
+      get_analise_departamentos_completa:
+        | {
+            Args: {
+              p_departamento_id?: string
+              p_periodo_fim: string
+              p_periodo_inicio: string
+            }
+            Returns: {
+              classificacoes_automaticas: number
+              classificacoes_manuais: number
+              departamento_id: string
+              departamento_nome: string
+              periodo_mes: string
+              tipo: string
+              total_transacoes: number
+              valor_total: number
+            }[]
+          }
+        | {
+            Args: { p_periodo_fim: string; p_periodo_inicio: string }
+            Returns: {
+              departamento_id: string
+              departamento_nome: string
+              periodo_mes: string
+              tipo: string
+              total_transacoes: number
+              valor_total: number
+            }[]
+          }
       get_conversion_funnel: {
         Args: never
         Returns: {
