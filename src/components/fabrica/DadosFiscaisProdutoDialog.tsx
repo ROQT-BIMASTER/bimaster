@@ -217,6 +217,12 @@ export const DadosFiscaisProdutoDialog = ({
     console.log("🔧 Iniciando salvamento de dados fiscais para produto:", produtoId);
 
     try {
+      // Pegar user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Usuário não autenticado");
+      }
+
       const dadosFiscais = {
         produto_id: produtoId,
         ncm: ncm || null,
@@ -275,7 +281,11 @@ export const DadosFiscaisProdutoDialog = ({
         console.log("➕ Inserindo novos dados fiscais");
         response = await supabase
           .from("fabrica_dados_fiscais_produto")
-          .insert({ ...dadosFiscais, created_at: new Date().toISOString() })
+          .insert({ 
+            ...dadosFiscais, 
+            created_at: new Date().toISOString(),
+            created_by: user.id 
+          })
           .select();
       }
 
@@ -283,7 +293,14 @@ export const DadosFiscaisProdutoDialog = ({
 
       if (response.error) {
         console.error("❌ Erro do Supabase:", response.error);
+        toast.error(`Erro ao salvar: ${response.error.message}`);
         throw response.error;
+      }
+
+      if (!response.data || response.data.length === 0) {
+        console.error("❌ Nenhum dado retornado após inserção");
+        toast.error("Erro: Nenhum dado foi salvo");
+        throw new Error("Nenhum dado retornado");
       }
 
       console.log("✅ Dados fiscais salvos com sucesso!");
