@@ -253,7 +253,6 @@ export const DadosFiscaisProdutoDialog = ({
         altura: altura ? parseFloat(altura) : null,
         largura: largura ? parseFloat(largura) : null,
         comprimento: comprimento ? parseFloat(comprimento) : null,
-        volume_m3: volumeM3 ? parseFloat(volumeM3) : null,
         
         unidade_compra: unidadeCompra || null,
         unidade_venda: unidadeVenda || null,
