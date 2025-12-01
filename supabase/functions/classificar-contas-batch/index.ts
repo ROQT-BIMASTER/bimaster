@@ -66,7 +66,6 @@ serve(async (req) => {
     const { data: planoContas, error: planoError } = await supabase
       .from("trade_chart_of_accounts")
       .select("id, code, name, account_type")
-      .eq("active", true)
       .order("code");
 
     if (planoError) {
