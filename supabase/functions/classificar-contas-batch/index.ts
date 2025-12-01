@@ -137,14 +137,27 @@ DEPARTAMENTOS DISPONÍVEIS:
 ${departamentos.map(d => `- ID: ${d.id} | ${d.nome}${d.descricao ? ` (${d.descricao})` : ''}`).join('\n')}
 
 PLANO DE CONTAS DISPONÍVEL:
-${planoContas.map(p => `- ID: ${p.id} | ${p.code} - ${p.name} [${p.account_type}]`).join('\n')}
+${planoContas.map(p => `- ID: ${p.id} | ${p.code} - ${p.name} [Tipo: ${p.account_type}]`).join('\n')}
 
-IMPORTANTE:
-- Use EXATAMENTE o nome da conta conforme listado acima
-- Se não encontrar uma conta específica, escolha a conta de GRUPO mais genérica relacionada
-- Para comissões de vendas: use "DESPESAS COMERCIAIS/TRADE" (código 6.1)
-- Para despesas administrativas gerais: use contas do grupo 6.2
-- Para materiais e insumos: use contas do grupo 5
+INSTRUÇÕES CRÍTICAS:
+1. Use EXATAMENTE o nome da conta conforme listado acima no campo "plano_contas_nome"
+2. Se não encontrar conta específica, escolha a conta de GRUPO (nível superior) mais relacionada
+3. NUNCA invente nomes de contas que não existem na lista
+
+GUIA DE CLASSIFICAÇÃO POR TIPO:
+- revenue: Receitas de vendas, serviços prestados
+- expense: Despesas operacionais gerais (administrativas, comerciais)
+- cost_center: Custos de produção, centros de custo
+- budget: Orçamentos e previsões
+- asset: Investimentos em ativos, imobilizado
+- liability: Obrigações, empréstimos, financiamentos
+
+MAPEAMENTOS ESPECÍFICOS:
+- Comissões → "6.1.07 - Comissão de Vendedores" [expense]
+- Salários → Departamento RH + conta adequada do grupo 6.2
+- Materiais de produção → grupo 5 [cost_center]
+- Aluguel, água, luz → "6.2 - DESPESAS ADMINISTRATIVAS" [expense]
+- Impostos → conta específica de impostos do grupo adequado
 
 Retorne SEMPRE um JSON válido com esta estrutura:
 {

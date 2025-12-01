@@ -55,18 +55,33 @@ export default function DREAnalitico() {
     }
   };
 
-  // Buscar estrutura do plano de contas
+  // Buscar estrutura do plano de contas (TODOS OS TIPOS)
   const { data: planoContas } = useQuery({
     queryKey: ['plano-contas-dre'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('trade_chart_of_accounts')
         .select('*')
-        .in('account_type', ['revenue', 'expense'])
+        .in('account_type', ['revenue', 'expense', 'cost_center', 'budget', 'asset', 'liability'])
         .order('code');
       
       if (error) throw error;
       return data;
+    }
+  });
+
+  // Buscar total de contas no banco
+  const { data: totalContas } = useQuery({
+    queryKey: ['total-contas'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('contas_pagar')
+        .select('*', { count: 'exact', head: true })
+        .gte('data_vencimento', dataInicio)
+        .lte('data_vencimento', dataFim);
+      
+      if (error) throw error;
+      return count || 0;
     }
   });
 
@@ -113,7 +128,7 @@ export default function DREAnalitico() {
     const arvore: DRENode[] = [];
     const contasMap = new Map(planoContas.map(c => [c.id, c]));
 
-    // Agrupar por tipo (receita/despesa)
+    // Agrupar por tipo (receita/despesa/custo/ativo/passivo)
     const receitas: DRENode = {
       id: 'receitas',
       codigo: '4',
@@ -129,12 +144,36 @@ export default function DREAnalitico() {
     const despesas: DRENode = {
       id: 'despesas',
       codigo: '5',
-      nome: 'DESPESAS',
+      nome: 'DESPESAS OPERACIONAIS',
       tipo: 'grupo',
       nivel: 1,
       valor: 0,
       natureza: 'D',
       accountType: 'expense',
+      children: []
+    };
+
+    const custos: DRENode = {
+      id: 'custos',
+      codigo: '6',
+      nome: 'CUSTOS E CENTROS DE CUSTO',
+      tipo: 'grupo',
+      nivel: 1,
+      valor: 0,
+      natureza: 'D',
+      accountType: 'cost_center',
+      children: []
+    };
+
+    const patrimoniais: DRENode = {
+      id: 'patrimoniais',
+      codigo: '7',
+      nome: 'MOVIMENTAÇÕES PATRIMONIAIS',
+      tipo: 'grupo',
+      nivel: 1,
+      valor: 0,
+      natureza: 'D',
+      accountType: 'asset',
       children: []
     };
 
@@ -200,7 +239,17 @@ export default function DREAnalitico() {
       const conta = contasMap.get(lancamento.plano_contas_id);
       if (!conta) return;
 
-      const grupoRaiz = conta.account_type === 'revenue' ? receitas : despesas;
+      // Determinar grupo raiz baseado no tipo de conta
+      let grupoRaiz: DRENode;
+      if (conta.account_type === 'revenue') {
+        grupoRaiz = receitas;
+      } else if (conta.account_type === 'cost_center' || conta.account_type === 'budget') {
+        grupoRaiz = custos;
+      } else if (conta.account_type === 'asset' || conta.account_type === 'liability') {
+        grupoRaiz = patrimoniais;
+      } else {
+        grupoRaiz = despesas; // expense e outros
+      }
 
       // Encontrar ou criar nó da conta
       let nodoConta = grupoRaiz.children?.find(c => c.id === conta.id);
@@ -283,17 +332,24 @@ export default function DREAnalitico() {
 
     if (receitas.children) ordenarNos(receitas.children);
     if (despesas.children) ordenarNos(despesas.children);
+    if (custos.children) ordenarNos(custos.children);
+    if (patrimoniais.children) ordenarNos(patrimoniais.children);
     if (naoClassificados.children) ordenarNos(naoClassificados.children);
 
-    arvore.push(receitas, despesas);
+    // Montar árvore na ordem correta
+    arvore.push(receitas);
+    
+    if (despesas.valor > 0) arvore.push(despesas);
+    if (custos.valor > 0) arvore.push(custos);
+    if (patrimoniais.valor > 0) arvore.push(patrimoniais);
     
     // Adicionar não classificados se houver
     if (naoClassificados.valor > 0) {
       arvore.push(naoClassificados);
     }
 
-    // Adicionar linha de resultado (incluir não classificados no cálculo)
-    const totalDespesasCompleto = despesas.valor + naoClassificados.valor;
+    // Adicionar linha de resultado (incluir todos os débitos no cálculo)
+    const totalDespesasCompleto = despesas.valor + custos.valor + patrimoniais.valor + naoClassificados.valor;
     arvore.push({
       id: 'resultado',
       codigo: '',
@@ -390,8 +446,12 @@ export default function DREAnalitico() {
               <span className="font-mono text-green-600 font-semibold">
                 {formatarValor(node.valor)}
               </span>
-            ) : node.accountType === 'expense' ? (
+            ) : node.accountType === 'expense' || node.accountType === 'cost_center' || node.accountType === 'budget' ? (
               <span className="font-mono text-red-600 font-semibold">
+                ({formatarValor(node.valor)})
+              </span>
+            ) : node.accountType === 'asset' || node.accountType === 'liability' ? (
+              <span className="font-mono text-blue-600 font-semibold">
                 ({formatarValor(node.valor)})
               </span>
             ) : (
@@ -421,7 +481,12 @@ export default function DREAnalitico() {
           'Descrição': node.nome,
           'Tipo': node.tipo,
           'Valor': node.valor,
-          'Natureza': node.accountType === 'revenue' ? 'Receita' : node.accountType === 'expense' ? 'Despesa' : 'Resultado'
+          'Natureza': node.accountType === 'revenue' ? 'Receita' : 
+                     node.accountType === 'expense' ? 'Despesa' :
+                     node.accountType === 'cost_center' ? 'Custo' :
+                     node.accountType === 'budget' ? 'Orçamento' :
+                     node.accountType === 'asset' ? 'Ativo' :
+                     node.accountType === 'liability' ? 'Passivo' : 'Resultado'
         });
 
         if (node.children) {
@@ -445,8 +510,13 @@ export default function DREAnalitico() {
 
   const totalReceitas = hierarquia.find(h => h.id === 'receitas')?.valor || 0;
   const totalDespesas = hierarquia.find(h => h.id === 'despesas')?.valor || 0;
+  const totalCustos = hierarquia.find(h => h.id === 'custos')?.valor || 0;
+  const totalPatrimoniais = hierarquia.find(h => h.id === 'patrimoniais')?.valor || 0;
   const totalNaoClassificados = hierarquia.find(h => h.id === 'nao-classificados')?.valor || 0;
-  const resultado = totalReceitas - totalDespesas - totalNaoClassificados;
+  const resultado = totalReceitas - totalDespesas - totalCustos - totalPatrimoniais - totalNaoClassificados;
+
+  const totalContasNaDRE = lancamentos?.length || 0;
+  const percentualClassificado = totalContas ? ((totalContasNaDRE - (hierarquia.find(h => h.id === 'nao-classificados')?.children?.length || 0)) / totalContas * 100) : 0;
 
   return (
     <DashboardLayout>
@@ -462,6 +532,71 @@ export default function DREAnalitico() {
             <FileDown className="h-4 w-4 mr-2" />
             Exportar Excel
           </Button>
+        </div>
+
+        {/* Indicadores de Classificação */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total de Contas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalContas || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Contas no período
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Contas Classificadas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {totalContasNaDRE - (hierarquia.find(h => h.id === 'nao-classificados')?.children?.length || 0)}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {percentualClassificado.toFixed(1)}% do total
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Não Classificadas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">
+                {hierarquia.find(h => h.id === 'nao-classificados')?.children?.length || 0}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Pendentes de classificação
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Resultado
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${resultado >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(resultado)}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {resultado >= 0 ? 'Lucro' : 'Prejuízo'} do período
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filtros */}
@@ -509,7 +644,7 @@ export default function DREAnalitico() {
               <div className="flex items-end">
                 <Button 
                   onClick={() => {
-                    setExpandedNodes(new Set(['receitas', 'despesas']));
+                    setExpandedNodes(new Set(['receitas', 'despesas', 'custos', 'patrimoniais']));
                   }}
                   variant="outline"
                   className="w-full"
@@ -521,17 +656,17 @@ export default function DREAnalitico() {
           </CardContent>
         </Card>
 
-        {/* Cards de Resumo */}
-        <div className="grid gap-4 md:grid-cols-4">
+        {/* Cards de Resumo por Categoria */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-green-600" />
-                Total Receitas
+                Receitas
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-xl font-bold text-green-600">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalReceitas)}
               </div>
             </CardContent>
@@ -539,48 +674,54 @@ export default function DREAnalitico() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <TrendingDown className="h-4 w-4 text-red-600" />
-                Total Despesas
+                Despesas
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-xl font-bold text-red-600">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDespesas)}
               </div>
             </CardContent>
           </Card>
 
-          {totalNaoClassificados > 0 && (
-            <Card className="border-destructive">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <TrendingDown className="h-4 w-4 text-orange-600" />
-                  Não Classificados
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-600">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalNaoClassificados)}
-                </div>
-                <Badge variant="destructive" className="mt-2">
-                  Pendente Classificação
-                </Badge>
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Custos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold text-red-600">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalCustos)}
+              </div>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Resultado do Período</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Patrimoniais
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${resultado >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(resultado)}
+              <div className="text-xl font-bold text-blue-600">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPatrimoniais)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Margem: {totalReceitas > 0 ? ((resultado / totalReceitas) * 100).toFixed(2) : 0}%
-              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Não Classificados
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold text-orange-600">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalNaoClassificados)}
+              </div>
             </CardContent>
           </Card>
         </div>
