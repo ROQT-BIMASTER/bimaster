@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye } from "lucide-react";
+import { Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
@@ -229,6 +230,20 @@ export default function ContasAPagar() {
               Contas a Pagar & Orçamentos
             </h1>
             <p className="text-muted-foreground">Gestão de contas, fornecedores e plano orçamentário</p>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/dashboard/trade/financeiro">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Voltar ao Financeiro
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/dashboard/plano-contas">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Plano de Contas
+                </Link>
+              </Button>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button onClick={handleExport} variant="outline" className="gap-2">
