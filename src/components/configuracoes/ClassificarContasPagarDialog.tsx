@@ -143,7 +143,7 @@ export function ClassificarContasPagarDialog({
 
             if (result.success && result.departamento_id) {
               // Atualizar todas as contas deste grupo em uma única query
-              const { error: updateError } = await supabase
+              let updateQuery = supabase
                 .from("contas_pagar")
                 .update({
                   departamento_id: result.departamento_id,
@@ -157,9 +157,22 @@ export function ClassificarContasPagarDialog({
                   classificado_em: new Date().toISOString(),
                 })
                 .eq("categoria_nome", result.categoria_nome)
-                .eq("fornecedor_nome", result.fornecedor_nome || "")
-                .eq("tipo_documento", result.tipo_documento || "")
                 .eq("classificado_automaticamente", false);
+              
+              // Adicionar filtros para fornecedor e tipo_documento
+              if (result.fornecedor_nome) {
+                updateQuery = updateQuery.eq("fornecedor_nome", result.fornecedor_nome);
+              } else {
+                updateQuery = updateQuery.is("fornecedor_nome", null);
+              }
+              
+              if (result.tipo_documento) {
+                updateQuery = updateQuery.eq("tipo_documento", result.tipo_documento);
+              } else {
+                updateQuery = updateQuery.is("tipo_documento", null);
+              }
+
+              const { error: updateError } = await updateQuery;
 
               if (updateError) {
                 console.error("Erro ao atualizar contas:", updateError);
