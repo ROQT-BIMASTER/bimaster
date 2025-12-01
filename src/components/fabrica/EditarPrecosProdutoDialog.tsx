@@ -81,6 +81,9 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
 
   const atualizarPrecosMutation = useMutation({
     mutationFn: async () => {
+      const { data: user } = await supabase.auth.getUser();
+      
+      // Atualizar os preços
       const atualizacoes = Object.entries(precosEditados).map(async ([precoId, novoValor]) => {
         const valor = parseFloat(novoValor);
         if (isNaN(valor) || valor <= 0) return;
@@ -90,7 +93,7 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
           .update({
             preco_manual: valor,
             preco_final: valor,
-            atualizado_por: (await supabase.auth.getUser()).data.user?.id,
+            atualizado_por: user.user?.id,
           })
           .eq("id", precoId);
 
@@ -98,9 +101,64 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
       });
 
       await Promise.all(atualizacoes);
+
+      // Buscar as tabelas afetadas e criar versões + mudar status
+      const precoIdsAlterados = Object.keys(precosEditados);
+      const { data: precosAfetados } = await supabase
+        .from("fabrica_precos_produtos")
+        .select("tabela_id, id, produto_id, custo_base, preco_calculado, preco_final, preco_manual")
+        .in("id", precoIdsAlterados);
+
+      if (precosAfetados && precosAfetados.length > 0) {
+        const tabelasIds = [...new Set(precosAfetados.map(p => p.tabela_id))];
+        
+        for (const tabelaId of tabelasIds) {
+          // Buscar todos os preços da tabela para o snapshot
+          const { data: todosPrecos } = await supabase
+            .from("fabrica_precos_produtos")
+            .select("*")
+            .eq("tabela_id", tabelaId)
+            .eq("ativo", true);
+
+          // Buscar a última versão para incrementar
+          const { data: ultimaVersao } = await supabase
+            .from("fabrica_tabelas_preco_versoes")
+            .select("versao")
+            .eq("tabela_id", tabelaId)
+            .order("versao", { ascending: false })
+            .limit(1)
+            .single();
+
+          const novaVersao = (ultimaVersao?.versao || 0) + 1;
+
+          // Criar nova versão com snapshot dos preços
+          const { error: versionError } = await supabase
+            .from("fabrica_tabelas_preco_versoes")
+            .insert({
+              tabela_id: tabelaId,
+              versao: novaVersao,
+              precos_snapshot: todosPrecos || [],
+              created_by: user.user?.id,
+            });
+
+          if (versionError) {
+            console.error("Erro ao criar versão:", versionError);
+          }
+
+          // Atualizar status da tabela para pending_approval
+          const { error: statusError } = await supabase
+            .from("fabrica_tabelas_preco")
+            .update({ status: 'pending_approval' })
+            .eq("id", tabelaId);
+
+          if (statusError) {
+            console.error("Erro ao atualizar status:", statusError);
+          }
+        }
+      }
     },
     onSuccess: () => {
-      toast.success("Preços atualizados com sucesso!");
+      toast.success("Preços atualizados e enviados para aprovação!");
       refetch();
       setPrecosEditados({});
       onSuccess();
