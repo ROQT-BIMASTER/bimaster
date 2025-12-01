@@ -163,15 +163,14 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       if (error) throw error;
 
       // Buscar a última versão para incrementar
-      const { data: ultimaVersao } = await supabase
+      const { data: versoes } = await supabase
         .from("fabrica_tabelas_preco_versoes")
         .select("versao")
         .eq("tabela_id", tabela.id)
         .order("versao", { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      const novaVersao = (ultimaVersao?.versao || 0) + 1;
+      const novaVersao = (versoes && versoes.length > 0 ? versoes[0].versao : 0) + 1;
 
       // Buscar todos os preços atualizados para o snapshot
       const { data: todosPrecos } = await supabase
@@ -181,7 +180,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         .eq("ativo", true);
 
       // Criar nova versão com snapshot
-      await supabase
+      const { error: versaoError } = await supabase
         .from("fabrica_tabelas_preco_versoes")
         .insert({
           tabela_id: tabela.id,
@@ -190,22 +189,38 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
           created_by: user.user?.id,
         });
 
+      if (versaoError) {
+        console.error("Erro ao criar versão:", versaoError);
+        throw versaoError;
+      }
+
       // SEMPRE atualizar para pending_approval e ativar
-      await supabase
+      const { error: statusError } = await supabase
         .from("fabrica_tabelas_preco")
         .update({ 
           status: 'pending_approval',
-          ativo: true // Ativar automaticamente ao enviar para aprovação
+          ativo: true
         })
         .eq("id", tabela.id);
 
+      if (statusError) {
+        console.error("Erro ao atualizar status:", statusError);
+        throw statusError;
+      }
+
       // Registrar na auditoria
-      await supabase.from("fabrica_tabelas_preco_auditoria").insert({
-        tabela_id: tabela.id,
-        user_id: user.user?.id,
-        acao: "price_generation",
-        mensagem: `Preços gerados - Versão ${novaVersao} enviada para aprovação`,
-      });
+      const { error: auditoriaError } = await supabase
+        .from("fabrica_tabelas_preco_auditoria")
+        .insert({
+          tabela_id: tabela.id,
+          user_id: user.user?.id,
+          acao: "price_generation",
+          mensagem: `Preços gerados - Versão ${novaVersao} enviada para aprovação`,
+        });
+
+      if (auditoriaError) {
+        console.error("Erro na auditoria:", auditoriaError);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tabelas-preco"] });
