@@ -60,8 +60,8 @@ export default function ClassificarTodoBanco() {
       setGruposComErro(0);
       setLogs([]);
 
-      // Buscar grupos únicos não classificados com paginação (limite padrão é 1000 registros)
-      console.log("🔍 Buscando todas as contas não classificadas...");
+      // Buscar TODAS as contas (independente de terem ou não classificação) com paginação
+      console.log("🔍 Buscando TODAS as contas para reclassificação com IA...");
 
       const PAGE_SIZE = 1000;
       let from = 0;
@@ -71,7 +71,6 @@ export default function ClassificarTodoBanco() {
         const { data, error } = await supabase
           .from("contas_pagar")
           .select("categoria_nome, fornecedor_nome, tipo_documento")
-          .is("plano_contas_id", null)
           .range(from, from + PAGE_SIZE - 1);
 
         if (error) throw error;
@@ -86,7 +85,7 @@ export default function ClassificarTodoBanco() {
       const grupos = allGrupos;
 
       if (!grupos || grupos.length === 0) {
-        toast.success("✅ Todas as contas já foram classificadas!");
+        toast.info("⚠️ Nenhuma conta encontrada no banco.");
         setIsClassifying(false);
         await carregarEstatisticas();
         return;
@@ -164,7 +163,7 @@ export default function ClassificarTodoBanco() {
             setCurrentGrupo(`${result.categoria_nome} - ${result.fornecedor_nome || 'N/A'} (${contasAfetadas} contas)`);
 
             if (result.success && result.departamento_id) {
-              // Atualizar todas as contas deste grupo
+              // Atualizar TODAS as contas deste grupo (independente de já terem classificação)
               const { error: updateError } = await supabase
                 .from("contas_pagar")
                 .update({
@@ -182,8 +181,7 @@ export default function ClassificarTodoBanco() {
                 .match({ 
                   fornecedor_nome: result.fornecedor_nome || null,
                   tipo_documento: result.tipo_documento || null
-                })
-                .is("plano_contas_id", null);
+                });
 
               if (updateError) {
                 console.error("❌ Erro ao atualizar:", updateError);
@@ -256,7 +254,7 @@ export default function ClassificarTodoBanco() {
             Classificação Completa do Banco
           </h1>
           <p className="text-muted-foreground mt-2">
-            Classificação automática via IA de TODAS as contas a pagar não classificadas
+            Classificação/Reclassificação automática via IA de TODAS as ~10.000 contas a pagar
           </p>
         </div>
 
