@@ -30,7 +30,7 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
     queryKey: ["produto", produtoId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("fabrica_materias_primas")
+        .from("fabrica_produtos")
         .select("*")
         .eq("id", produtoId)
         .single();

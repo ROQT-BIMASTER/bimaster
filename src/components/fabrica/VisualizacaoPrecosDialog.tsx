@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -7,6 +7,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -20,9 +30,10 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatarMoeda, formatarPercentual } from "@/lib/fabrica/pricing-calculator";
-import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag } from "lucide-react";
+import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { EditarPrecosProdutoDialog } from "./EditarPrecosProdutoDialog";
 
 interface Props {
   open: boolean;
@@ -32,8 +43,10 @@ interface Props {
 
 export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) {
   const [busca, setBusca] = useState("");
+  const [produtoEditando, setProdutoEditando] = useState<string | null>(null);
+  const [precoExcluindo, setPrecoExcluindo] = useState<any>(null);
 
-  const { data: precos, isLoading } = useQuery({
+  const { data: precos, isLoading, refetch } = useQuery({
     queryKey: ["visualizacao-precos", tabela?.id],
     queryFn: async () => {
       if (!tabela?.id) return [];
@@ -105,6 +118,25 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
       return resultado;
     },
     enabled: open && !!tabela?.id,
+  });
+
+  const excluirPrecoMutation = useMutation({
+    mutationFn: async (precoId: string) => {
+      const { error } = await supabase
+        .from("fabrica_precos_produtos")
+        .delete()
+        .eq("id", precoId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Preço excluído com sucesso!");
+      refetch();
+      setPrecoExcluindo(null);
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao excluir preço: " + error.message);
+    },
   });
 
   const precosFiltrados = precos?.filter((preco) => {
@@ -294,6 +326,7 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
                   <TableHead className="w-[110px] text-right">Preço Final</TableHead>
                   <TableHead className="w-[100px] text-center">Margem</TableHead>
                   <TableHead className="w-[120px]">Origem</TableHead>
+                  <TableHead className="w-[120px] text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -353,6 +386,26 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
                         {preco.custo_base_origem === "tabela_anterior" && "Tabela Base"}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setProdutoEditando(preco.produto_id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPrecoExcluindo(preco)}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -371,6 +424,43 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
           </span>
         </div>
       </DialogContent>
+
+      {/* Dialog de Edição */}
+      {produtoEditando && (
+        <EditarPrecosProdutoDialog
+          open={!!produtoEditando}
+          onOpenChange={(open) => !open && setProdutoEditando(null)}
+          produtoId={produtoEditando}
+          onSuccess={() => {
+            refetch();
+            setProdutoEditando(null);
+          }}
+        />
+      )}
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={!!precoExcluindo} onOpenChange={(open) => !open && setPrecoExcluindo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o preço do produto <strong>{precoExcluindo?.produto?.nome}</strong> desta tabela?
+              <br /><br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => precoExcluindo && excluirPrecoMutation.mutate(precoExcluindo.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={excluirPrecoMutation.isPending}
+            >
+              {excluirPrecoMutation.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
