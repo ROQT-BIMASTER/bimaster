@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, Pause, Wrench
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, Pause, Wrench, List
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -135,9 +135,10 @@ export function AppSidebar() {
 
   const financeiroSubMenus = [
     { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home },
+    { title: "Visão por Departamento", url: "/dashboard/financeiro/visao-departamentos", icon: Building2 },
     { title: "Trade Marketing", url: "/dashboard/financeiro/trade", icon: Store },
     { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt },
-    { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: FileText },
+    { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: List },
   ];
 
   const tradeSubMenus = [
