@@ -66,6 +66,7 @@ export function AppSidebar() {
   const [tradeOpen, setTradeOpen] = useState(true);
   const [marketingOpen, setMarketingOpen] = useState(true);
   const [fabricaOpen, setFabricaOpen] = useState(true);
+  const [precosOpen, setPrecosOpen] = useState(true);
 
   const loading = permissionsLoading || modulesLoading;
 
@@ -554,9 +555,9 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/tabelas-preco" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <DollarSign className="h-4 w-4" />
-                          <span>Tabelas de Preço</span>
+                        <NavLink to="/dashboard/fabrica/produtos-acabados" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                          <Package className="h-4 w-4" />
+                          <span>Produtos Acabados</span>
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -566,6 +567,57 @@ export function AppSidebar() {
             </Collapsible>
           </SidebarGroup>
         )}
+
+        {/* Módulo de Tabelas de Preços */}
+        <SidebarGroup>
+          <Collapsible open={precosOpen} onOpenChange={setPrecosOpen}>
+            <SidebarGroupLabel asChild>
+              <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                {precosOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                <DollarSign className="h-4 w-4" />
+                Tabelas de Preços
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink to="/dashboard/precos" end className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                        <Home className="h-4 w-4" />
+                        <span>Dashboard</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink to="/dashboard/precos/tabelas" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                        <Receipt className="h-4 w-4" />
+                        <span>Gerenciar Tabelas</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink to="/dashboard/precos/aprovacao" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                        <CheckSquare className="h-4 w-4" />
+                        <span>Aprovação</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink to="/dashboard/precos/portal-cliente" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                        <Users className="h-4 w-4" />
+                        <span>Portal Cliente</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
 
       </SidebarContent>
       

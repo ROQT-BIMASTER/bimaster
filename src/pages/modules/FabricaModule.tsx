@@ -232,7 +232,7 @@ const FabricaModule = () => {
             <CardTitle>Acesso Rápido</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Link to="/dashboard/fabrica/produtos-acabados">
                 <Button variant="outline" className="w-full h-20 flex-col gap-2">
                   <Package className="h-6 w-6" />
@@ -243,12 +243,6 @@ const FabricaModule = () => {
                 <Button variant="outline" className="w-full h-20 flex-col gap-2">
                   <Layers className="h-6 w-6" />
                   <span className="text-sm">Fórmulas BOM</span>
-                </Button>
-              </Link>
-              <Link to="/dashboard/fabrica/tabelas-preco">
-                <Button variant="outline" className="w-full h-20 flex-col gap-2">
-                  <Receipt className="h-6 w-6" />
-                  <span className="text-sm">Tabelas de Preço</span>
                 </Button>
               </Link>
               <Link to="/dashboard/fabrica/maquinas">
