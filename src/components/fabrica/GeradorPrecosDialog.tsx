@@ -21,7 +21,6 @@ interface ProdutoData {
   id: string;
   codigo: string | null;
   nome: string;
-  custo_unitario: number | null;
 }
 
 interface Props {
@@ -49,10 +48,11 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const loadProdutos = async () => {
     setLoadingProdutos(true);
     try {
-      // @ts-ignore - Bypass type inference issue
+      // Buscar apenas produtos acabados finalizados
       const response = await supabase
-        .from("fabrica_materias_primas")
-        .select("id, codigo, nome, custo_unitario")
+        .from("fabrica_produtos")
+        .select("id, codigo, nome")
+        .eq("tipo", "ACABADO")
         .eq("ativo", true)
         .order("nome");
 
