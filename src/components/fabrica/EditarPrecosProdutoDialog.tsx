@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -24,6 +24,7 @@ interface Props {
 }
 
 export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuccess }: Props) {
+  const queryClient = useQueryClient();
   const [precosEditados, setPrecosEditados] = useState<Record<string, string>>({});
 
   const { data: produto } = useQuery({
@@ -102,11 +103,11 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
 
       await Promise.all(atualizacoes);
 
-      // Buscar as tabelas afetadas e criar versões + mudar status
+      // Buscar as tabelas afetadas
       const precoIdsAlterados = Object.keys(precosEditados);
       const { data: precosAfetados } = await supabase
         .from("fabrica_precos_produtos")
-        .select("tabela_id, id, produto_id, custo_base, preco_calculado, preco_final, preco_manual")
+        .select("tabela_id")
         .in("id", precoIdsAlterados);
 
       if (precosAfetados && precosAfetados.length > 0) {
@@ -131,8 +132,8 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
 
           const novaVersao = (ultimaVersao?.versao || 0) + 1;
 
-          // Criar nova versão com snapshot dos preços
-          const { error: versionError } = await supabase
+          // Criar nova versão com snapshot
+          await supabase
             .from("fabrica_tabelas_preco_versoes")
             .insert({
               tabela_id: tabelaId,
@@ -141,24 +142,30 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
               created_by: user.user?.id,
             });
 
-          if (versionError) {
-            console.error("Erro ao criar versão:", versionError);
-          }
-
-          // Atualizar status da tabela para pending_approval
-          const { error: statusError } = await supabase
+          // SEMPRE atualizar para pending_approval (independente do status anterior)
+          await supabase
             .from("fabrica_tabelas_preco")
-            .update({ status: 'pending_approval' })
+            .update({ 
+              status: 'pending_approval',
+              ativo: true // Ativar automaticamente ao enviar para aprovação
+            })
             .eq("id", tabelaId);
 
-          if (statusError) {
-            console.error("Erro ao atualizar status:", statusError);
-          }
+          // Registrar na auditoria
+          await supabase.from("fabrica_tabelas_preco_auditoria").insert({
+            tabela_id: tabelaId,
+            user_id: user.user?.id,
+            acao: "price_update",
+            mensagem: `Preços atualizados manualmente - Versão ${novaVersao} criada`,
+          });
         }
       }
     },
     onSuccess: () => {
       toast.success("Preços atualizados e enviados para aprovação!");
+      queryClient.invalidateQueries({ queryKey: ["precos-produto"] });
+      queryClient.invalidateQueries({ queryKey: ["fabrica-tabelas-preco"] });
+      queryClient.invalidateQueries({ queryKey: ["tabelas-pendentes-aprovacao"] });
       refetch();
       setPrecosEditados({});
       onSuccess();

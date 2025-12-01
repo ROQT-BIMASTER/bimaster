@@ -7,6 +7,7 @@ import { Navigate, Link } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface TabelaStats {
   totalTabelas: number;
@@ -18,6 +19,7 @@ interface TabelaStats {
 
 const TabelasPrecosModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
+  const queryClient = useQueryClient();
   const [stats, setStats] = useState<TabelaStats>({
     totalTabelas: 0,
     tabelasAtivas: 0,
@@ -33,7 +35,28 @@ const TabelasPrecosModule = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+    
+    // Realtime: escutar mudanças nas tabelas
+    const channel = supabase
+      .channel('tabelas-preco-module-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'fabrica_tabelas_preco',
+        },
+        () => {
+          fetchDashboardData();
+          queryClient.invalidateQueries({ queryKey: ["fabrica-tabelas-preco"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const fetchDashboardData = async () => {
     try {
