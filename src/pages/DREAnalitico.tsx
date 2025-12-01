@@ -80,8 +80,7 @@ export default function DREAnalitico() {
           departamento:departamentos(id, nome)
         `)
         .gte('data_vencimento', dataInicio)
-        .lte('data_vencimento', dataFim)
-        .not('plano_contas_id', 'is', null);
+        .lte('data_vencimento', dataFim);
       
       if (error) throw error;
       return data;
@@ -134,12 +133,68 @@ export default function DREAnalitico() {
       children: []
     };
 
+    // Grupo para lançamentos não classificados
+    const naoClassificados: DRENode = {
+      id: 'nao-classificados',
+      codigo: '9',
+      nome: 'NÃO CLASSIFICADOS',
+      tipo: 'grupo',
+      nivel: 1,
+      valor: 0,
+      natureza: 'D',
+      accountType: 'expense',
+      children: []
+    };
+
     // Processar lançamentos
     lancamentos.forEach(lancamento => {
-      const conta = contasMap.get(lancamento.plano_contas_id!);
+      const valor = parseFloat(String(lancamento.valor_pago || lancamento.valor_original || 0));
+      
+      // Se não tem plano de contas, vai para "Não Classificados"
+      if (!lancamento.plano_contas_id) {
+        naoClassificados.valor += valor;
+        
+        // Agrupar por categoria
+        let nodoCategoria = naoClassificados.children?.find(
+          c => c.nome === (lancamento.categoria_nome || 'Sem Categoria')
+        );
+        
+        if (!nodoCategoria) {
+          nodoCategoria = {
+            id: `cat-${lancamento.categoria_nome || 'sem'}`,
+            codigo: '',
+            nome: lancamento.categoria_nome || 'Sem Categoria',
+            tipo: 'conta',
+            nivel: 2,
+            valor: 0,
+            natureza: 'D',
+            accountType: 'expense',
+            children: []
+          };
+          naoClassificados.children?.push(nodoCategoria);
+        }
+        
+        nodoCategoria.valor += valor;
+
+        // Adicionar lançamento individual
+        nodoCategoria.children?.push({
+          id: lancamento.id,
+          codigo: lancamento.numero_documento || '',
+          nome: `${lancamento.fornecedor_nome || 'N/A'} - ${format(new Date(lancamento.data_vencimento), 'dd/MM/yyyy')}`,
+          tipo: 'lancamento',
+          nivel: 5,
+          valor: valor,
+          natureza: 'D',
+          accountType: 'expense',
+          metadata: lancamento
+        });
+        
+        return; // Próximo lançamento
+      }
+
+      const conta = contasMap.get(lancamento.plano_contas_id);
       if (!conta) return;
 
-      const valor = parseFloat(String(lancamento.valor_pago || lancamento.valor_original || 0));
       const grupoRaiz = conta.account_type === 'revenue' ? receitas : despesas;
 
       // Encontrar ou criar nó da conta
@@ -223,17 +278,24 @@ export default function DREAnalitico() {
 
     if (receitas.children) ordenarNos(receitas.children);
     if (despesas.children) ordenarNos(despesas.children);
+    if (naoClassificados.children) ordenarNos(naoClassificados.children);
 
     arvore.push(receitas, despesas);
+    
+    // Adicionar não classificados se houver
+    if (naoClassificados.valor > 0) {
+      arvore.push(naoClassificados);
+    }
 
-    // Adicionar linha de resultado
+    // Adicionar linha de resultado (incluir não classificados no cálculo)
+    const totalDespesasCompleto = despesas.valor + naoClassificados.valor;
     arvore.push({
       id: 'resultado',
       codigo: '',
       nome: 'RESULTADO DO PERÍODO',
       tipo: 'grupo',
       nivel: 1,
-      valor: receitas.valor - despesas.valor,
+      valor: receitas.valor - totalDespesasCompleto,
       natureza: 'C',
       accountType: 'revenue'
     });
@@ -305,6 +367,12 @@ export default function DREAnalitico() {
               {node.nome}
             </span>
 
+            {node.id === 'nao-classificados' && (
+              <Badge variant="destructive" className="ml-2">
+                Pendente de Classificação
+              </Badge>
+            )}
+
             {node.tipo === 'lancamento' && node.metadata && (
               <Badge variant="outline" className="ml-2 text-xs">
                 {format(new Date(node.metadata.data_vencimento), 'dd/MM/yyyy')}
@@ -372,7 +440,8 @@ export default function DREAnalitico() {
 
   const totalReceitas = hierarquia.find(h => h.id === 'receitas')?.valor || 0;
   const totalDespesas = hierarquia.find(h => h.id === 'despesas')?.valor || 0;
-  const resultado = totalReceitas - totalDespesas;
+  const totalNaoClassificados = hierarquia.find(h => h.id === 'nao-classificados')?.valor || 0;
+  const resultado = totalReceitas - totalDespesas - totalNaoClassificados;
 
   return (
     <DashboardLayout>
@@ -448,7 +517,7 @@ export default function DREAnalitico() {
         </Card>
 
         {/* Cards de Resumo */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
@@ -476,6 +545,25 @@ export default function DREAnalitico() {
               </div>
             </CardContent>
           </Card>
+
+          {totalNaoClassificados > 0 && (
+            <Card className="border-destructive">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <TrendingDown className="h-4 w-4 text-orange-600" />
+                  Não Classificados
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalNaoClassificados)}
+                </div>
+                <Badge variant="destructive" className="mt-2">
+                  Pendente Classificação
+                </Badge>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader className="pb-3">
