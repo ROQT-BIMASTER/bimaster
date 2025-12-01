@@ -114,7 +114,7 @@ export default function Financeiro() {
             <Link to="/dashboard/financeiro/trade">
               <Card className="hover:border-primary cursor-pointer transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Trade Marketing</CardTitle>
+                  <CardTitle className="text-sm font-medium">Gestão de Verbas</CardTitle>
                   <Store className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
