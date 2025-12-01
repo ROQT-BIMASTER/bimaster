@@ -76,12 +76,14 @@ export const TeamPerformanceChart = () => {
       // Buscar informações dos usuários
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select(`
-          id,
-          nome,
-          user_roles (role)
-        `)
-        .in("id", teamMemberIds);
+        .select("id, nome")
+        .in("id", teamMemberIds) as { data: any[] | null; error: any };
+      
+      // Buscar roles separadamente para evitar tipos muito profundos
+      const { data: userRoles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", teamMemberIds);
 
       if (profilesError) throw profilesError;
 
@@ -93,11 +95,14 @@ export const TeamPerformanceChart = () => {
         const em_andamento = userVisits.filter(v => v.status === 'in_progress').length;
         const agendadas = userVisits.filter(v => v.status === 'scheduled').length;
         const canceladas = userVisits.filter(v => v.status === 'cancelled').length;
+        
+        // Buscar role do usuário
+        const userRole = userRoles?.find(r => r.user_id === profile.id);
 
         return {
           id: profile.id,
           nome: profile.nome,
-          role: (profile.user_roles as any)?.[0]?.role || 'vendedor',
+          role: userRole?.role || 'vendedor',
           total_visitas: total,
           concluidas,
           em_andamento,
