@@ -8228,6 +8228,9 @@ export type Database = {
           code: string
           created_at: string | null
           departamento: string | null
+          departamento_confianca: number | null
+          departamento_definido_manualmente: boolean | null
+          departamento_id: string | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -8246,6 +8249,9 @@ export type Database = {
           code: string
           created_at?: string | null
           departamento?: string | null
+          departamento_confianca?: number | null
+          departamento_definido_manualmente?: boolean | null
+          departamento_id?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -8264,6 +8270,9 @@ export type Database = {
           code?: string
           created_at?: string | null
           departamento?: string | null
+          departamento_confianca?: number | null
+          departamento_definido_manualmente?: boolean | null
+          departamento_id?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -8277,6 +8286,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "trade_chart_of_accounts_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trade_chart_of_accounts_parent_account_id_fkey"
             columns: ["parent_account_id"]
