@@ -91,13 +91,24 @@ serve(async (req) => {
         console.log(`Processando grupo: ${group.categoria_nome} | ${group.fornecedor_nome} | ${group.tipo_documento} (${group.count} contas)`);
 
         // Verificar se existe regra aprendida
-        const { data: existingRule } = await supabase
+        let ruleQuery = supabase
           .from("account_classification_rules")
           .select("*")
-          .eq("categoria_nome", group.categoria_nome)
-          .eq("fornecedor_nome", group.fornecedor_nome || "")
-          .eq("tipo_documento", group.tipo_documento || "")
-          .maybeSingle();
+          .eq("categoria_nome", group.categoria_nome);
+        
+        if (group.fornecedor_nome) {
+          ruleQuery = ruleQuery.eq("fornecedor_nome", group.fornecedor_nome);
+        } else {
+          ruleQuery = ruleQuery.is("fornecedor_nome", null);
+        }
+        
+        if (group.tipo_documento) {
+          ruleQuery = ruleQuery.eq("tipo_documento", group.tipo_documento);
+        } else {
+          ruleQuery = ruleQuery.is("tipo_documento", null);
+        }
+        
+        const { data: existingRule } = await ruleQuery.maybeSingle();
 
         if (existingRule) {
           console.log("✓ Regra aprendida encontrada, aplicando...");
@@ -309,8 +320,8 @@ Escolha o departamento e conta contábil mais adequados.`;
             .from("account_classification_rules")
             .insert({
               categoria_nome: group.categoria_nome,
-              fornecedor_nome: group.fornecedor_nome || "",
-              tipo_documento: group.tipo_documento || "",
+              fornecedor_nome: group.fornecedor_nome || null,
+              tipo_documento: group.tipo_documento || null,
               departamento_id: dept.id,
               plano_contas_id: conta?.id || null,
               confidence_score: classification.confianca || 0.8,
