@@ -473,13 +473,35 @@ export default function DREAnalitico() {
 
         nodoConta.valor += valor;
 
-        // Adicionar lançamento individual
-        nodoConta.children?.push({
-          id: `${grupoKey}-${conta.id}-${lanc.id}`,
+        // Agrupar por categoria primeiro
+        const categoriaNome = lanc.categoria_nome || 'Sem Categoria';
+        const categoriaKey = `${nodoConta.id}-cat-${categoriaNome}`;
+        
+        let nodoCategoria = nodoConta.children?.find(c => c.id === categoriaKey);
+        if (!nodoCategoria) {
+          nodoCategoria = {
+            id: categoriaKey,
+            codigo: '',
+            nome: categoriaNome.toUpperCase(),
+            tipo: 'departamento', // Usar tipo departamento para estilo visual
+            nivel: 4,
+            valor: 0,
+            natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
+            accountType: conta.account_type,
+            children: []
+          };
+          nodoConta.children?.push(nodoCategoria);
+        }
+
+        nodoCategoria.valor += valor;
+
+        // Adicionar beneficiário/fornecedor individual dentro da categoria
+        nodoCategoria.children?.push({
+          id: `${categoriaKey}-${lanc.id}`,
           codigo: lanc.numero_documento || '',
-          nome: `${lanc.fornecedor_nome || 'N/A'} - ${lanc.categoria_nome || 'Sem categoria'}`,
+          nome: `${lanc.fornecedor_nome || 'N/A'}${lanc.data_vencimento ? ` - ${format(new Date(lanc.data_vencimento), 'dd/MM/yyyy')}` : ''}`,
           tipo: 'lancamento',
-          nivel: 4,
+          nivel: 5,
           valor: valor,
           natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
           accountType: conta.account_type,
