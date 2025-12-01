@@ -67,6 +67,37 @@ export default function ContasAPagar() {
   const [filterAnoClassificacao, setFilterAnoClassificacao] = useState<string>(new Date().getFullYear().toString());
   const [filterMesClassificacao, setFilterMesClassificacao] = useState<string>("all");
 
+  // Query departamentos
+  const { data: departamentos } = useQuery({
+    queryKey: ['departamentos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('departamentos')
+        .select('*')
+        .eq('ativo', true)
+        .order('nome');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Query planos de contas
+  const { data: planosContas } = useQuery({
+    queryKey: ['planos-contas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('trade_chart_of_accounts')
+        .select('*')
+        .eq('is_active', true)
+        .eq('permite_lancamento', true)
+        .order('code');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   // Query contas a pagar
   const { data: contas, isLoading, refetch: refetchContas } = useQuery({
     queryKey: ['contas-pagar', searchFornecedor, filterStatus, filterEmpresa, filterAno, filterMes],
@@ -219,6 +250,43 @@ export default function ContasAPagar() {
   const handleOpenApproval = (budget: any) => {
     setSelectedBudget(budget);
     setAprovarOrcamentoOpen(true);
+  };
+
+  // Função para atualizar departamento e plano de contas
+  const handleUpdateClassificacao = async (
+    contaId: string, 
+    departamentoId: string | null, 
+    planoContasId: string | null
+  ) => {
+    try {
+      const updates: any = {};
+      
+      if (departamentoId) {
+        const dept = departamentos?.find(d => d.id === departamentoId);
+        updates.departamento_id = departamentoId;
+        updates.departamento_nome = dept?.nome || null;
+      }
+      
+      if (planoContasId) {
+        const plano = planosContas?.find(p => p.id === planoContasId);
+        updates.plano_contas_id = planoContasId;
+        updates.plano_contas_codigo = plano?.code || null;
+        updates.plano_contas_nome = plano?.name || null;
+      }
+
+      const { error } = await supabase
+        .from('contas_pagar')
+        .update(updates)
+        .eq('id', contaId);
+
+      if (error) throw error;
+
+      toast.success('Classificação atualizada com sucesso!');
+      refetchContas();
+    } catch (error) {
+      console.error('Erro ao atualizar classificação:', error);
+      toast.error('Erro ao atualizar classificação');
+    }
   };
 
   const getApprovalStatusBadge = (status: string) => {
@@ -863,27 +931,51 @@ export default function ContasAPagar() {
                                     }).format(conta.valor_original || 0)}
                                   </TableCell>
                                   <TableCell>
-                                    {conta.departamento_nome ? (
-                                      <Badge variant="secondary">
-                                        {conta.departamento_nome}
-                                      </Badge>
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground">-</span>
-                                    )}
+                                    <Select
+                                      value={conta.departamento_id || ""}
+                                      onValueChange={(value) => 
+                                        handleUpdateClassificacao(conta.id, value || null, conta.plano_contas_id)
+                                      }
+                                    >
+                                      <SelectTrigger className="w-[200px] h-8 text-xs">
+                                        <SelectValue placeholder="Selecione...">
+                                          {conta.departamento_nome || "Selecione..."}
+                                        </SelectValue>
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-background z-50">
+                                        {departamentos?.map((dept) => (
+                                          <SelectItem key={dept.id} value={dept.id}>
+                                            {dept.nome}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </TableCell>
                                   <TableCell>
-                                    {conta.plano_contas_codigo && conta.plano_contas_nome ? (
-                                      <div className="flex flex-col gap-1">
-                                        <Badge variant="outline" className="w-fit text-xs">
-                                          {conta.plano_contas_codigo}
-                                        </Badge>
-                                        <span className="text-xs text-muted-foreground">
-                                          {conta.plano_contas_nome}
-                                        </span>
-                                      </div>
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground">-</span>
-                                    )}
+                                    <Select
+                                      value={conta.plano_contas_id || ""}
+                                      onValueChange={(value) => 
+                                        handleUpdateClassificacao(conta.id, conta.departamento_id, value || null)
+                                      }
+                                    >
+                                      <SelectTrigger className="w-[280px] h-8 text-xs">
+                                        <SelectValue placeholder="Selecione...">
+                                          {conta.plano_contas_codigo && conta.plano_contas_nome 
+                                            ? `${conta.plano_contas_codigo} - ${conta.plano_contas_nome}`
+                                            : "Selecione..."}
+                                        </SelectValue>
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-background z-50">
+                                        {planosContas?.map((plano) => (
+                                          <SelectItem key={plano.id} value={plano.id}>
+                                            <div className="flex flex-col">
+                                              <span className="font-medium">{plano.code}</span>
+                                              <span className="text-xs text-muted-foreground">{plano.name}</span>
+                                            </div>
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </TableCell>
                                   <TableCell className="text-center">
                                     {conta.confianca_classificacao ? (
