@@ -35,6 +35,7 @@ export default function DREAnalitico() {
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [visaoAtiva, setVisaoAtiva] = useState<'contas' | 'departamentos'>('contas');
+  const [filterEmpresa, setFilterEmpresa] = useState<string>('todas');
 
   // Atualizar datas quando período mudar
   const handlePeriodoChange = (novoPeriodo: 'mes' | 'trimestre' | 'ano') => {
@@ -72,16 +73,38 @@ export default function DREAnalitico() {
     }
   });
 
+  // Buscar empresas disponíveis
+  const { data: empresas } = useQuery({
+    queryKey: ['empresas-dre'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contas_pagar')
+        .select('empresa_nome')
+        .not('empresa_nome', 'is', null);
+      
+      if (error) throw error;
+      
+      // Obter empresas únicas
+      const uniqueEmpresas = [...new Set(data.map(item => item.empresa_nome))];
+      return uniqueEmpresas.filter(Boolean);
+    }
+  });
+
   // Buscar total de contas no banco
   const { data: totalContas } = useQuery({
-    queryKey: ['total-contas'],
+    queryKey: ['total-contas', dataInicio, dataFim, filterEmpresa],
     queryFn: async () => {
-      const { count, error } = await supabase
+      let query = supabase
         .from('contas_pagar')
         .select('*', { count: 'exact', head: true })
         .gte('data_vencimento', dataInicio)
         .lte('data_vencimento', dataFim);
       
+      if (filterEmpresa !== 'todas') {
+        query = query.eq('empresa_nome', filterEmpresa);
+      }
+      
+      const { count, error } = await query;
       if (error) throw error;
       return count || 0;
     }
@@ -89,9 +112,9 @@ export default function DREAnalitico() {
 
   // Buscar lançamentos do período
   const { data: lancamentos, isLoading } = useSupabaseQuery(
-    ['lancamentos-dre', dataInicio, dataFim],
+    ['lancamentos-dre', dataInicio, dataFim, filterEmpresa],
     async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('contas_pagar')
         .select(`
           *,
@@ -100,6 +123,11 @@ export default function DREAnalitico() {
         .gte('data_vencimento', dataInicio)
         .lte('data_vencimento', dataFim);
       
+      if (filterEmpresa !== 'todas') {
+        query = query.eq('empresa_nome', filterEmpresa);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -803,7 +831,7 @@ export default function DREAnalitico() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <Label>Tipo de Período</Label>
                 <Select value={periodo} onValueChange={(v: any) => handlePeriodoChange(v)}>
@@ -834,6 +862,23 @@ export default function DREAnalitico() {
                   value={dataFim}
                   onChange={(e) => setDataFim(e.target.value)}
                 />
+              </div>
+
+              <div>
+                <Label>Empresa</Label>
+                <Select value={filterEmpresa} onValueChange={setFilterEmpresa}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas as Empresas</SelectItem>
+                    {empresas?.map((empresa) => (
+                      <SelectItem key={empresa} value={empresa}>
+                        {empresa}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex items-end">
