@@ -3701,51 +3701,93 @@ export type Database = {
       fabrica_produtos: {
         Row: {
           ativo: boolean | null
+          categoria: string | null
           codigo: string
+          codigo_barras_ean: string | null
+          codigo_legado: string | null
           created_at: string | null
           created_by: string | null
           descricao: string | null
+          descricao_completa: string | null
+          descricao_curta: string | null
+          fabricante: string | null
           formula_id: string | null
           foto_url: string | null
           id: string
+          linha: string | null
+          marca: string | null
+          modelo: string | null
           nome: string
+          nome_comercial: string | null
           rendimento: number | null
+          sku: string | null
+          status: string | null
+          subcategoria: string | null
           tempo_producao_minutos: number | null
           tipo: string | null
           unidade_medida_id: string | null
           updated_at: string | null
+          versao_variacao: string | null
         }
         Insert: {
           ativo?: boolean | null
+          categoria?: string | null
           codigo: string
+          codigo_barras_ean?: string | null
+          codigo_legado?: string | null
           created_at?: string | null
           created_by?: string | null
           descricao?: string | null
+          descricao_completa?: string | null
+          descricao_curta?: string | null
+          fabricante?: string | null
           formula_id?: string | null
           foto_url?: string | null
           id?: string
+          linha?: string | null
+          marca?: string | null
+          modelo?: string | null
           nome: string
+          nome_comercial?: string | null
           rendimento?: number | null
+          sku?: string | null
+          status?: string | null
+          subcategoria?: string | null
           tempo_producao_minutos?: number | null
           tipo?: string | null
           unidade_medida_id?: string | null
           updated_at?: string | null
+          versao_variacao?: string | null
         }
         Update: {
           ativo?: boolean | null
+          categoria?: string | null
           codigo?: string
+          codigo_barras_ean?: string | null
+          codigo_legado?: string | null
           created_at?: string | null
           created_by?: string | null
           descricao?: string | null
+          descricao_completa?: string | null
+          descricao_curta?: string | null
+          fabricante?: string | null
           formula_id?: string | null
           foto_url?: string | null
           id?: string
+          linha?: string | null
+          marca?: string | null
+          modelo?: string | null
           nome?: string
+          nome_comercial?: string | null
           rendimento?: number | null
+          sku?: string | null
+          status?: string | null
+          subcategoria?: string | null
           tempo_producao_minutos?: number | null
           tipo?: string | null
           unidade_medida_id?: string | null
           updated_at?: string | null
+          versao_variacao?: string | null
         }
         Relationships: [
           {

@@ -38,6 +38,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const [calculando, setCalculando] = useState(false);
   const [produtos, setProdutos] = useState<ProdutoData[]>([]);
   const [loadingProdutos, setLoadingProdutos] = useState(false);
+  const [buscaProduto, setBuscaProduto] = useState("");
 
   useEffect(() => {
     if (open && tabela) {
@@ -144,7 +145,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
 
   const handleSelecionarTodos = (checked: boolean) => {
     if (checked) {
-      setProdutosSelecionados(produtos?.map(p => p.id) || []);
+      setProdutosSelecionados(produtosFiltrados.map(p => p.id));
     } else {
       setProdutosSelecionados([]);
     }
@@ -190,6 +191,15 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     }
   };
 
+  const produtosFiltrados = produtos?.filter(produto => {
+    if (!buscaProduto) return true;
+    const busca = buscaProduto.toLowerCase();
+    return (
+      produto.nome.toLowerCase().includes(busca) ||
+      produto.codigo?.toLowerCase().includes(busca)
+    );
+  }) || [];
+
   if (!tabela) return null;
 
   return (
@@ -234,15 +244,23 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label>Produtos</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="selecionar_todos"
-                  checked={produtosSelecionados.length === produtos?.length}
-                  onCheckedChange={handleSelecionarTodos}
+              <div className="flex items-center gap-3">
+                <Input
+                  placeholder="Buscar produto..."
+                  value={buscaProduto}
+                  onChange={(e) => setBuscaProduto(e.target.value)}
+                  className="w-64"
                 />
-                <Label htmlFor="selecionar_todos" className="font-normal cursor-pointer">
-                  Selecionar todos
-                </Label>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="selecionar_todos"
+                    checked={produtosSelecionados.length === produtosFiltrados.length && produtosFiltrados.length > 0}
+                    onCheckedChange={handleSelecionarTodos}
+                  />
+                  <Label htmlFor="selecionar_todos" className="font-normal cursor-pointer whitespace-nowrap">
+                    Selecionar todos
+                  </Label>
+                </div>
               </div>
             </div>
 
@@ -261,7 +279,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                     </tr>
                   </thead>
                   <tbody>
-                    {produtos?.map((produto) => (
+                    {produtosFiltrados.map((produto) => (
                       <tr key={produto.id} className="border-t">
                         <td className="p-2">
                           <Checkbox
