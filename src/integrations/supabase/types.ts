@@ -7957,6 +7957,9 @@ export type Database = {
         Row: {
           account_id: string | null
           allocated_amount: number | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           available_amount: number | null
           code: string
           created_at: string | null
@@ -7964,8 +7967,11 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          notes: string | null
           period_end: string
           period_start: string
+          rejection_reason: string | null
+          requested_by: string | null
           reserved_amount: number | null
           spent_amount: number | null
           status: string | null
@@ -7975,6 +7981,9 @@ export type Database = {
         Insert: {
           account_id?: string | null
           allocated_amount?: number | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           available_amount?: number | null
           code: string
           created_at?: string | null
@@ -7982,8 +7991,11 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          notes?: string | null
           period_end: string
           period_start: string
+          rejection_reason?: string | null
+          requested_by?: string | null
           reserved_amount?: number | null
           spent_amount?: number | null
           status?: string | null
@@ -7993,6 +8005,9 @@ export type Database = {
         Update: {
           account_id?: string | null
           allocated_amount?: number | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           available_amount?: number | null
           code?: string
           created_at?: string | null
@@ -8000,8 +8015,11 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          notes?: string | null
           period_end?: string
           period_start?: string
+          rejection_reason?: string | null
+          requested_by?: string | null
           reserved_amount?: number | null
           spent_amount?: number | null
           status?: string | null
@@ -8015,6 +8033,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "trade_chart_of_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_budgets_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_budgets_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "trade_budgets_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_budgets_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
           },
         ]
       }
