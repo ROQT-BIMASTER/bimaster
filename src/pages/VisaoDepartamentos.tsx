@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ClassificarContasPagarDialog } from "@/components/configuracoes/ClassificarContasPagarDialog";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -42,12 +43,13 @@ export default function VisaoDepartamentos() {
   const [periodoInicio, setPeriodoInicio] = useState(format(startOfMonth(subMonths(new Date(), 3)), 'yyyy-MM-dd'));
   const [periodoFim, setPeriodoFim] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showClassifyDialog, setShowClassifyDialog] = useState(false);
 
-  // Buscar análises por departamento
+  // Buscar análises por departamento (incluindo contas a pagar)
   const { data: analises, isLoading, refetch } = useQuery({
-    queryKey: ['analises-departamentos', periodoInicio, periodoFim],
+    queryKey: ['analises-departamentos-completa', periodoInicio, periodoFim],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_analise_departamentos', {
+      const { data, error } = await supabase.rpc('get_analise_departamentos_completa', {
         p_periodo_inicio: periodoInicio,
         p_periodo_fim: periodoFim
       });
@@ -57,22 +59,38 @@ export default function VisaoDepartamentos() {
     }
   });
 
-  // Buscar totais gerais
+  // Buscar totais gerais (transações + contas a pagar)
   const { data: totais } = useQuery({
-    queryKey: ['totais-transacoes', periodoInicio, periodoFim],
+    queryKey: ['totais-completos', periodoInicio, periodoFim],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Buscar transações
+      const { data: transacoes, error: transacoesError } = await supabase
         .from('transacoes_financeiras')
         .select('tipo, valor, classificado_automaticamente')
         .gte('data_transacao', periodoInicio)
         .lte('data_transacao', periodoFim);
 
-      if (error) throw error;
+      if (transacoesError) throw transacoesError;
 
-      const totalReceitas = data?.filter(t => t.tipo === 'receita').reduce((sum, t) => sum + parseFloat(t.valor as any), 0) || 0;
-      const totalDespesas = data?.filter(t => t.tipo === 'despesa').reduce((sum, t) => sum + parseFloat(t.valor as any), 0) || 0;
-      const totalTransacoes = data?.length || 0;
-      const classificacoesAutomaticas = data?.filter(t => t.classificado_automaticamente).length || 0;
+      // Buscar contas a pagar
+      const { data: contas, error: contasError } = await supabase
+        .from('contas_pagar')
+        .select('valor_original, classificado_automaticamente')
+        .gte('data_vencimento', periodoInicio)
+        .lte('data_vencimento', periodoFim)
+        .not('departamento_id', 'is', null);
+
+      if (contasError) throw contasError;
+
+      const totalReceitas = transacoes?.filter(t => t.tipo === 'receita').reduce((sum, t) => sum + parseFloat(t.valor as any), 0) || 0;
+      const totalDespesasTransacoes = transacoes?.filter(t => t.tipo === 'despesa').reduce((sum, t) => sum + parseFloat(t.valor as any), 0) || 0;
+      const totalDespesasContas = contas?.reduce((sum, c) => sum + parseFloat(c.valor_original as any), 0) || 0;
+      const totalDespesas = totalDespesasTransacoes + totalDespesasContas;
+      
+      const totalTransacoes = (transacoes?.length || 0) + (contas?.length || 0);
+      const classificacoesAutomaticas = 
+        (transacoes?.filter(t => t.classificado_automaticamente).length || 0) + 
+        (contas?.filter(c => c.classificado_automaticamente).length || 0);
 
       return {
         totalReceitas,
@@ -155,6 +173,14 @@ export default function VisaoDepartamentos() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              onClick={() => setShowClassifyDialog(true)} 
+              variant="outline"
+              className="bg-purple-50 hover:bg-purple-100"
+            >
+              <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
+              Classificar Contas IA
+            </Button>
             <Button onClick={handleRefresh} disabled={isRefreshing} variant="outline">
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Atualizar
@@ -358,6 +384,15 @@ export default function VisaoDepartamentos() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <ClassificarContasPagarDialog
+        open={showClassifyDialog}
+        onOpenChange={setShowClassifyDialog}
+        onComplete={() => {
+          refetch();
+          setShowClassifyDialog(false);
+        }}
+      />
     </DashboardLayout>
   );
 }
