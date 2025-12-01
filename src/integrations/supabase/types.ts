@@ -2332,7 +2332,7 @@ export type Database = {
             foreignKeyName: "fabrica_historico_precos_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
-            referencedRelation: "fabrica_materias_primas"
+            referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
           },
           {
