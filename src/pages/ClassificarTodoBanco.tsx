@@ -62,8 +62,8 @@ export default function ClassificarTodoBanco() {
       setGruposComErro(0);
       setLogs([]);
 
-      // Buscar TODAS as contas (independente de terem ou não classificação) com paginação
-      console.log("🔍 Buscando TODAS as contas para reclassificação com IA...");
+      // Buscar apenas as contas AINDA NÃO CLASSIFICADAS com paginação
+      console.log("🔍 Buscando contas não classificadas para reclassificação com IA...");
 
       const PAGE_SIZE = 1000;
       let from = 0;
@@ -73,6 +73,7 @@ export default function ClassificarTodoBanco() {
         const { data, error } = await supabase
           .from("contas_pagar")
           .select("categoria_nome, fornecedor_nome, tipo_documento")
+          .is("plano_contas_id", null)
           .range(from, from + PAGE_SIZE - 1);
 
         if (error) throw error;
