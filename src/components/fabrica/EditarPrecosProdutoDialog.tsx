@@ -122,18 +122,17 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
             .eq("ativo", true);
 
           // Buscar a última versão para incrementar
-          const { data: ultimaVersao } = await supabase
+          const { data: versoes } = await supabase
             .from("fabrica_tabelas_preco_versoes")
             .select("versao")
             .eq("tabela_id", tabelaId)
             .order("versao", { ascending: false })
-            .limit(1)
-            .single();
+            .limit(1);
 
-          const novaVersao = (ultimaVersao?.versao || 0) + 1;
+          const novaVersao = (versoes && versoes.length > 0 ? versoes[0].versao : 0) + 1;
 
           // Criar nova versão com snapshot
-          await supabase
+          const { error: versaoError } = await supabase
             .from("fabrica_tabelas_preco_versoes")
             .insert({
               tabela_id: tabelaId,
@@ -142,22 +141,38 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
               created_by: user.user?.id,
             });
 
+          if (versaoError) {
+            console.error("Erro ao criar versão:", versaoError);
+            throw versaoError;
+          }
+
           // SEMPRE atualizar para pending_approval (independente do status anterior)
-          await supabase
+          const { error: statusError } = await supabase
             .from("fabrica_tabelas_preco")
             .update({ 
               status: 'pending_approval',
-              ativo: true // Ativar automaticamente ao enviar para aprovação
+              ativo: true
             })
             .eq("id", tabelaId);
 
+          if (statusError) {
+            console.error("Erro ao atualizar status:", statusError);
+            throw statusError;
+          }
+
           // Registrar na auditoria
-          await supabase.from("fabrica_tabelas_preco_auditoria").insert({
-            tabela_id: tabelaId,
-            user_id: user.user?.id,
-            acao: "price_update",
-            mensagem: `Preços atualizados manualmente - Versão ${novaVersao} criada`,
-          });
+          const { error: auditoriaError } = await supabase
+            .from("fabrica_tabelas_preco_auditoria")
+            .insert({
+              tabela_id: tabelaId,
+              user_id: user.user?.id,
+              acao: "price_update",
+              mensagem: `Preços atualizados manualmente - Versão ${novaVersao} criada`,
+            });
+
+          if (auditoriaError) {
+            console.error("Erro na auditoria:", auditoriaError);
+          }
         }
       }
     },
