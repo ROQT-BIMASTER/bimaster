@@ -35,7 +35,7 @@ serve(async (req) => {
 
     // Check for API key authentication (for ERP integrations)
     const apiKey = req.headers.get('X-API-Key');
-    const expectedKey = Deno.env.get('EXPORT_API_KEY');
+    const expectedKey = Deno.env.get('N8N_API_KEY');
     
     let isAuthenticated = false;
     let userId = null;

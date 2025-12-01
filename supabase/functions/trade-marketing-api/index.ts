@@ -32,7 +32,7 @@ serve(async (req) => {
 
     // Validate API key
     const apiKey = req.headers.get('X-API-Key');
-    const expectedKey = Deno.env.get('EXPORT_API_KEY');
+    const expectedKey = Deno.env.get('N8N_API_KEY');
     
     if (!apiKey || apiKey !== expectedKey) {
       console.error(`❌ Invalid API key attempt from ${ipAddress}`);
