@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import ErrorPage from "@/pages/ErrorPage";
 import { memoryManager } from "@/lib/utils/memory-manager";
@@ -138,13 +139,14 @@ const App = () => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              {/* Error route */}
-              <Route path="*" element={<ErrorPage />} />
+        <TooltipProvider delayDuration={0}>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Error route */}
+                <Route path="*" element={<ErrorPage />} />
         <Route path="/" element={<Index />} />
         <Route path="/auth/login" element={<Auth />} />
         <Route path="/auth/signup" element={<Auth />} />
@@ -252,6 +254,7 @@ const App = () => {
             </Routes>
           </Suspense>
         </BrowserRouter>
+        </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
