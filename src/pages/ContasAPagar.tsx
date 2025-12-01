@@ -40,10 +40,12 @@ export default function ContasAPagar() {
   const [searchFornecedor, setSearchFornecedor] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterEmpresa, setFilterEmpresa] = useState<string>("all");
+  const [filterAno, setFilterAno] = useState<string>(new Date().getFullYear().toString());
+  const [filterMes, setFilterMes] = useState<string>("all");
 
   // Query contas a pagar
   const { data: contas, isLoading } = useQuery({
-    queryKey: ['contas-pagar', searchFornecedor, filterStatus, filterEmpresa],
+    queryKey: ['contas-pagar', searchFornecedor, filterStatus, filterEmpresa, filterAno, filterMes],
     queryFn: async () => {
       let query = supabase
         .from('contas_pagar')
@@ -60,6 +62,22 @@ export default function ContasAPagar() {
 
       if (filterEmpresa !== 'all') {
         query = query.eq('empresa_id', parseInt(filterEmpresa));
+      }
+
+      // Filtro por ano
+      if (filterAno !== 'all') {
+        const startDate = `${filterAno}-01-01`;
+        const endDate = `${filterAno}-12-31`;
+        query = query.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+      }
+
+      // Filtro por mês (se ano estiver selecionado)
+      if (filterMes !== 'all' && filterAno !== 'all') {
+        const mes = filterMes.padStart(2, '0');
+        const startDate = `${filterAno}-${mes}-01`;
+        const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
+        const endDate = `${filterAno}-${mes}-${lastDay}`;
+        query = query.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
       }
 
       const { data, error } = await query;
@@ -215,7 +233,53 @@ export default function ContasAPagar() {
         {/* Filtros */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-6">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Ano</label>
+                <Select value={filterAno} onValueChange={(value) => {
+                  setFilterAno(value);
+                  if (value === 'all') setFilterMes('all');
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ano" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="2024">2024</SelectItem>
+                    <SelectItem value="2025">2025</SelectItem>
+                    <SelectItem value="2026">2026</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Mês</label>
+                <Select 
+                  value={filterMes} 
+                  onValueChange={setFilterMes}
+                  disabled={filterAno === 'all'}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="1">Janeiro</SelectItem>
+                    <SelectItem value="2">Fevereiro</SelectItem>
+                    <SelectItem value="3">Março</SelectItem>
+                    <SelectItem value="4">Abril</SelectItem>
+                    <SelectItem value="5">Maio</SelectItem>
+                    <SelectItem value="6">Junho</SelectItem>
+                    <SelectItem value="7">Julho</SelectItem>
+                    <SelectItem value="8">Agosto</SelectItem>
+                    <SelectItem value="9">Setembro</SelectItem>
+                    <SelectItem value="10">Outubro</SelectItem>
+                    <SelectItem value="11">Novembro</SelectItem>
+                    <SelectItem value="12">Dezembro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div>
                 <label className="text-sm font-medium mb-2 block">Empresa</label>
                 <Select value={filterEmpresa} onValueChange={setFilterEmpresa}>
