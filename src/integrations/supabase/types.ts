@@ -550,6 +550,13 @@ export type Database = {
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "categoria_departamento_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
         ]
       }
       cnpjbiz_audit: {
@@ -8294,6 +8301,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "trade_chart_of_accounts_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
             foreignKeyName: "trade_chart_of_accounts_parent_account_id_fkey"
             columns: ["parent_account_id"]
             isOneToOne: false
@@ -8658,6 +8672,85 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      transacoes_financeiras: {
+        Row: {
+          classificado_automaticamente: boolean | null
+          confianca_classificacao: number | null
+          conta_id: string | null
+          created_at: string | null
+          created_by: string | null
+          dados_originais: Json | null
+          data_transacao: string
+          departamento_id: string | null
+          descricao: string
+          id: string
+          observacoes: string | null
+          origem: string
+          origem_id: string | null
+          tipo: string
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          classificado_automaticamente?: boolean | null
+          confianca_classificacao?: number | null
+          conta_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          dados_originais?: Json | null
+          data_transacao: string
+          departamento_id?: string | null
+          descricao: string
+          id?: string
+          observacoes?: string | null
+          origem?: string
+          origem_id?: string | null
+          tipo: string
+          updated_at?: string | null
+          valor: number
+        }
+        Update: {
+          classificado_automaticamente?: boolean | null
+          confianca_classificacao?: number | null
+          conta_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          dados_originais?: Json | null
+          data_transacao?: string
+          departamento_id?: string | null
+          descricao?: string
+          id?: string
+          observacoes?: string | null
+          origem?: string
+          origem_id?: string | null
+          tipo?: string
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transacoes_financeiras_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transacoes_financeiras_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transacoes_financeiras_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
       }
       user_challenge_progress: {
         Row: {
@@ -9079,6 +9172,13 @@ export type Database = {
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "verbas_orcamentarias_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
         ]
       }
       visits: {
@@ -9285,6 +9385,21 @@ export type Database = {
       }
     }
     Views: {
+      mv_analise_departamentos: {
+        Row: {
+          classificacoes_automaticas: number | null
+          classificacoes_manuais: number | null
+          confianca_media: number | null
+          departamento_id: string | null
+          departamento_nome: string | null
+          periodo_mes: string | null
+          tipo: string | null
+          total_transacoes: number | null
+          valor_medio: number | null
+          valor_total: number | null
+        }
+        Relationships: []
+      }
       mv_conversion_funnel: {
         Row: {
           com_vendedor: number | null
@@ -9560,6 +9675,7 @@ export type Database = {
       pis_cofins_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       pis_cofins_tipo_credito: { Args: { p_cst: string }; Returns: string }
       refresh_all_materialized_views: { Args: never; Returns: undefined }
+      refresh_analise_departamentos: { Args: never; Returns: undefined }
       refresh_daily_kpis: { Args: { target_date?: string }; Returns: undefined }
       register_action_points: {
         Args: {
