@@ -58,7 +58,7 @@ export function ClassificarContasPagarDialog({
       const { data: grupos, error: gruposError } = await supabase
         .from("contas_pagar")
         .select("categoria_nome, fornecedor_nome, tipo_documento")
-        .is("classificado_automaticamente", null);
+        .eq("classificado_automaticamente", false);
 
       if (gruposError) {
         throw gruposError;
@@ -159,7 +159,7 @@ export function ClassificarContasPagarDialog({
                 .eq("categoria_nome", result.categoria_nome)
                 .eq("fornecedor_nome", result.fornecedor_nome || "")
                 .eq("tipo_documento", result.tipo_documento || "")
-                .is("classificado_automaticamente", null);
+                .eq("classificado_automaticamente", false);
 
               if (updateError) {
                 console.error("Erro ao atualizar contas:", updateError);
