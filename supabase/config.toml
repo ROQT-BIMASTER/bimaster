@@ -117,5 +117,8 @@ verify_jwt = false
 [functions.classificar-contas-pagar-ia]
 verify_jwt = false
 
+[functions.classificar-contas-batch]
+verify_jwt = false
+
 [functions.processar-transacao-n8n]
 verify_jwt = false
