@@ -18,7 +18,7 @@ serve(async (req) => {
 
     // Validate API key for n8n integration
     const apiKey = req.headers.get('X-API-Key');
-    const expectedKey = Deno.env.get('EXPORT_API_KEY');
+    const expectedKey = Deno.env.get('N8N_API_KEY');
     
     if (!apiKey || apiKey !== expectedKey) {
       throw new Error('Invalid API key');
