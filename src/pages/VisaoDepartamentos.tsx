@@ -118,41 +118,41 @@ export default function VisaoDepartamentos() {
   };
 
   // Preparar dados para gráficos
-  const dadosPorDepartamento = analises?.reduce((acc: any[], analise: any) => {
+  const dadosPorDepartamento: any[] = (analises || []).reduce<any[]>((acc, analise) => {
     const existing = acc.find(d => d.departamento === analise.departamento_nome);
     if (existing) {
       if (analise.tipo === 'receita') {
-        existing.receitas += parseFloat(analise.valor_total);
+        existing.receitas += Number(analise.valor_total || 0);
       } else {
-        existing.despesas += parseFloat(analise.valor_total);
+        existing.despesas += Number(analise.valor_total || 0);
       }
-      existing.total += parseFloat(analise.valor_total);
+      existing.total += Number(analise.valor_total || 0);
     } else {
       acc.push({
         departamento: analise.departamento_nome,
-        receitas: analise.tipo === 'receita' ? parseFloat(analise.valor_total) : 0,
-        despesas: analise.tipo === 'despesa' ? parseFloat(analise.valor_total) : 0,
-        total: parseFloat(analise.valor_total)
+        receitas: analise.tipo === 'receita' ? Number(analise.valor_total || 0) : 0,
+        despesas: analise.tipo === 'despesa' ? Number(analise.valor_total || 0) : 0,
+        total: Number(analise.valor_total || 0)
       });
     }
     return acc;
-  }, []) || [];
+  }, []);
 
-  const dadosEvolucao = analises?.reduce((acc: any[], analise: any) => {
+  const dadosEvolucao: any[] = (analises || []).reduce<any[]>((acc, analise) => {
     const mes = format(new Date(analise.periodo_mes), 'MMM/yy', { locale: ptBR });
     const existing = acc.find(d => d.mes === mes);
     
     if (existing) {
       if (analise.tipo === 'receita') {
-        existing.receitas += parseFloat(analise.valor_total);
+        existing.receitas += Number(analise.valor_total || 0);
       } else {
-        existing.despesas += parseFloat(analise.valor_total);
+        existing.despesas += Number(analise.valor_total || 0);
       }
     } else {
       acc.push({
         mes,
-        receitas: analise.tipo === 'receita' ? parseFloat(analise.valor_total) : 0,
-        despesas: analise.tipo === 'despesa' ? parseFloat(analise.valor_total) : 0
+        receitas: analise.tipo === 'receita' ? Number(analise.valor_total || 0) : 0,
+        despesas: analise.tipo === 'despesa' ? Number(analise.valor_total || 0) : 0
       });
     }
     return acc;
@@ -160,7 +160,7 @@ export default function VisaoDepartamentos() {
     const [mesA, anoA] = a.mes.split('/');
     const [mesB, anoB] = b.mes.split('/');
     return new Date(`20${anoA}-${mesA}`).getTime() - new Date(`20${anoB}-${mesB}`).getTime();
-  }) || [];
+  });
 
   return (
     <DashboardLayout>
