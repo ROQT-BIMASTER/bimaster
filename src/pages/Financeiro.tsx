@@ -229,7 +229,7 @@ export default function Financeiro() {
         {/* Navegação Rápida - Contabilidade */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Contabilidade e Gestão</h2>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <Link to="/dashboard/financeiro/contas-a-pagar">
               <Card className="hover:border-primary cursor-pointer transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -264,17 +264,39 @@ export default function Financeiro() {
               </Card>
             </Link>
 
-            <Card className="border-dashed">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Em Breve</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Novos módulos financeiros em desenvolvimento
-                </p>
-              </CardContent>
-            </Card>
+            <Link to="/dashboard/financeiro/dre-analitico">
+              <Card className="hover:border-primary cursor-pointer transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">DRE Analítico</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    Demonstrativo de resultado com drill-down
+                  </p>
+                  <div className="mt-2 flex items-center text-xs text-primary">
+                    Visualizar <ArrowRight className="h-3 w-3 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link to="/dashboard/financeiro/visao-departamentos">
+              <Card className="hover:border-primary cursor-pointer transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Visão Departamental</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    Análise por departamento com IA
+                  </p>
+                  <div className="mt-2 flex items-center text-xs text-primary">
+                    Ver análise <ArrowRight className="h-3 w-3 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
 
