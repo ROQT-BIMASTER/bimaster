@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,21 +34,31 @@ serve(async (req) => {
   }
 
   try {
+    // Validar variáveis de ambiente primeiro
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Variáveis de ambiente Supabase não configuradas");
+    }
+
+    if (!lovableApiKey) {
+      throw new Error("LOVABLE_API_KEY não configurada");
+    }
+
     const { groups } = await req.json() as { groups: GroupToClassify[] };
 
     if (!groups || !Array.isArray(groups) || groups.length === 0) {
       throw new Error("Lista de grupos inválida ou vazia");
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!lovableApiKey) {
-      throw new Error("LOVABLE_API_KEY não configurada");
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    });
 
     // Buscar contexto UMA VEZ
     console.log("Buscando contexto (departamentos e plano de contas)...");
