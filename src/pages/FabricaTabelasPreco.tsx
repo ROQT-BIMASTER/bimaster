@@ -5,11 +5,12 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, DollarSign, Package, TrendingUp, Edit, Download } from "lucide-react";
+import { Plus, DollarSign, Package, TrendingUp, Edit, Download, Eye } from "lucide-react";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovaTabelaPrecoDialog } from "@/components/fabrica/NovaTabelaPrecoDialog";
 import { CadeiaPrecificacaoVisual } from "@/components/fabrica/CadeiaPrecificacaoVisual";
 import { GeradorPrecosDialog } from "@/components/fabrica/GeradorPrecosDialog";
+import { VisualizacaoPrecosDialog } from "@/components/fabrica/VisualizacaoPrecosDialog";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,6 +20,7 @@ export default function FabricaTabelasPreco() {
   const { hasPermission, loading: permLoading } = useScreenPermissions();
   const [dialogNovaTabela, setDialogNovaTabela] = useState(false);
   const [dialogGerarPrecos, setDialogGerarPrecos] = useState(false);
+  const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
   const [tabelaSelecionada, setTabelaSelecionada] = useState<any>(null);
 
   const { data: tabelas, isLoading, refetch } = useQuery({
@@ -74,6 +76,11 @@ export default function FabricaTabelasPreco() {
   const handleGerarPrecos = (tabela: any) => {
     setTabelaSelecionada(tabela);
     setDialogGerarPrecos(true);
+  };
+
+  const handleVisualizarPrecos = (tabela: any) => {
+    setTabelaSelecionada(tabela);
+    setDialogVisualizacao(true);
   };
 
   const getTipoMarkupLabel = (tipo: string, valor: number) => {
@@ -240,12 +247,20 @@ export default function FabricaTabelasPreco() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleVisualizarPrecos(tabela)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Ver Preços
+                          </Button>
+                          <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleGerarPrecos(tabela)}
                           >
                             <DollarSign className="h-4 w-4 mr-1" />
-                            Preços
+                            Gerar
                           </Button>
                           <Button
                             variant="ghost"
@@ -254,16 +269,6 @@ export default function FabricaTabelasPreco() {
                           >
                             <Edit className="h-4 w-4 mr-1" />
                             Editar
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                              toast.info("Exportação em desenvolvimento");
-                            }}
-                          >
-                            <Download className="h-4 w-4 mr-1" />
-                            Exportar
                           </Button>
                         </div>
                       </div>
@@ -303,6 +308,15 @@ export default function FabricaTabelasPreco() {
           setDialogGerarPrecos(false);
           setTabelaSelecionada(null);
         }}
+      />
+
+      <VisualizacaoPrecosDialog
+        open={dialogVisualizacao}
+        onOpenChange={(open) => {
+          setDialogVisualizacao(open);
+          if (!open) setTabelaSelecionada(null);
+        }}
+        tabela={tabelaSelecionada}
       />
     </DashboardLayout>
   );
