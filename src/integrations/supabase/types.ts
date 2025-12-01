@@ -4245,6 +4245,8 @@ export type Database = {
       }
       fabrica_tabelas_preco: {
         Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
           ativo: boolean | null
           codigo: string
           created_at: string | null
@@ -4266,6 +4268,8 @@ export type Database = {
           visivel_para_cnpjs: string[] | null
         }
         Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           ativo?: boolean | null
           codigo: string
           created_at?: string | null
@@ -4287,6 +4291,8 @@ export type Database = {
           visivel_para_cnpjs?: string[] | null
         }
         Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           ativo?: boolean | null
           codigo?: string
           created_at?: string | null
@@ -4308,6 +4314,20 @@ export type Database = {
           visivel_para_cnpjs?: string[] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fabrica_tabelas_preco_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_tabelas_preco_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "fabrica_tabelas_preco_tabela_base_id_fkey"
             columns: ["tabela_base_id"]
@@ -4357,6 +4377,8 @@ export type Database = {
       }
       fabrica_tabelas_preco_versoes: {
         Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
           created_at: string | null
           created_by: string | null
           id: string
@@ -4365,6 +4387,8 @@ export type Database = {
           versao: number
         }
         Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
@@ -4373,6 +4397,8 @@ export type Database = {
           versao: number
         }
         Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
@@ -4381,6 +4407,20 @@ export type Database = {
           versao?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fabrica_tabelas_preco_versoes_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_tabelas_preco_versoes_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "fabrica_tabelas_preco_versoes_tabela_id_fkey"
             columns: ["tabela_id"]
