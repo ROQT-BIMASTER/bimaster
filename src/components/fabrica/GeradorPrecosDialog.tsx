@@ -162,6 +162,38 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
 
       if (error) throw error;
 
+      // Buscar a última versão para incrementar
+      const { data: ultimaVersao } = await supabase
+        .from("fabrica_tabelas_preco_versoes")
+        .select("versao")
+        .eq("tabela_id", tabela.id)
+        .order("versao", { ascending: false })
+        .limit(1)
+        .single();
+
+      const novaVersao = (ultimaVersao?.versao || 0) + 1;
+
+      // Buscar todos os preços atualizados para o snapshot
+      const { data: todosPrecos } = await supabase
+        .from("fabrica_precos_produtos")
+        .select("*")
+        .eq("tabela_id", tabela.id)
+        .eq("ativo", true);
+
+      // Criar nova versão com snapshot
+      const { error: versionError } = await supabase
+        .from("fabrica_tabelas_preco_versoes")
+        .insert({
+          tabela_id: tabela.id,
+          versao: novaVersao,
+          precos_snapshot: todosPrecos || [],
+          created_by: user.user?.id,
+        });
+
+      if (versionError) {
+        console.error("Erro ao criar versão:", versionError);
+      }
+
       // Atualizar status da tabela para pending_approval
       const { error: updateError } = await supabase
         .from("fabrica_tabelas_preco")
