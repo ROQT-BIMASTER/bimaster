@@ -110,3 +110,6 @@ verify_jwt = true
 
 [functions.contas-pagar-api]
 verify_jwt = false
+
+[functions.classificar-conta-departamento]
+verify_jwt = true

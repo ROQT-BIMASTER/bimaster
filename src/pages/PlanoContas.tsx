@@ -6,11 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, ChevronRight, ChevronDown, Edit, Eye } from "lucide-react";
+import { Plus, Search, ChevronRight, ChevronDown, Edit, Eye, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NovaContaDialog } from "@/components/configuracoes/NovaContaDialog";
 import { EditarContaDialog } from "@/components/configuracoes/EditarContaDialog";
+import { ClassificarContasEmLoteDialog } from "@/components/configuracoes/ClassificarContasEmLoteDialog";
 
 interface Account {
   id: string;
@@ -52,6 +53,7 @@ export default function PlanoContas() {
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isClassifyDialogOpen, setIsClassifyDialogOpen] = useState(false);
 
   const { data: accounts, isLoading, refetch } = useQuery({
     queryKey: ["chart-of-accounts"],
@@ -64,6 +66,20 @@ export default function PlanoContas() {
       if (error) throw error;
       return data as Account[];
     },
+  });
+
+  // Buscar departamentos para exibição
+  const { data: departamentos } = useQuery({
+    queryKey: ['departamentos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('departamentos')
+        .select('*')
+        .eq('ativo', true);
+      
+      if (error) throw error;
+      return data;
+    }
   });
 
   const buildHierarchy = (accounts: Account[]): Account[] => {
@@ -173,6 +189,12 @@ export default function PlanoContas() {
               <Badge variant="destructive">Inativo</Badge>
             )}
             
+            {(account as any).departamento_id && departamentos && (
+              <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
+                {departamentos.find((d: any) => d.id === (account as any).departamento_id)?.nome || 'Dept.'}
+              </Badge>
+            )}
+            
             <Button
               variant="ghost"
               size="sm"
@@ -208,10 +230,20 @@ export default function PlanoContas() {
               Estrutura contábil hierárquica CPC/IFRS
             </p>
           </div>
-          <Button onClick={() => setIsNewDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Conta
-          </Button>
+          <div>
+            <Button onClick={() => setIsNewDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Conta
+            </Button>
+            <Button 
+              onClick={() => setIsClassifyDialogOpen(true)} 
+              variant="outline"
+              className="ml-2"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Classificar com IA
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
@@ -310,6 +342,15 @@ export default function PlanoContas() {
           parentAccounts={accounts?.filter(a => a.id !== selectedAccount.id) || []}
         />
       )}
+
+      <ClassificarContasEmLoteDialog
+        open={isClassifyDialogOpen}
+        onOpenChange={setIsClassifyDialogOpen}
+        onSuccess={() => {
+          refetch();
+        }}
+        accounts={accounts || []}
+      />
     </DashboardLayout>
   );
 }

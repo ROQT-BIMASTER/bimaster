@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -8,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { chartOfAccountsSchema, type ChartOfAccountsFormData } from "@/lib/validations/chart-of-accounts";
+import { Sparkles, Loader2 } from "lucide-react";
 
 interface EditarContaDialogProps {
   open: boolean;
@@ -22,6 +25,24 @@ interface EditarContaDialogProps {
 
 export function EditarContaDialog({ open, onOpenChange, account, onSuccess, parentAccounts }: EditarContaDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [departamentoId, setDepartamentoId] = useState<string>(account.departamento_id || "");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<any>(null);
+
+  // Buscar departamentos
+  const { data: departamentos } = useQuery({
+    queryKey: ['departamentos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('departamentos')
+        .select('*')
+        .eq('ativo', true)
+        .order('nome');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
 
   const form = useForm<ChartOfAccountsFormData>({
     resolver: zodResolver(chartOfAccountsSchema),
@@ -53,15 +74,25 @@ export function EditarContaDialog({ open, onOpenChange, account, onSuccess, pare
         description: account.description || "",
         is_active: account.is_active,
       });
+      setDepartamentoId(account.departamento_id || "");
+      setAiSuggestion(null);
     }
   }, [account, form]);
 
   const onSubmit = async (data: ChartOfAccountsFormData) => {
     setIsSubmitting(true);
     try {
+      const accountData = {
+        ...data,
+        departamento_id: departamentoId || null,
+        // Se o usuário escolheu manualmente, marcar como manual
+        departamento_definido_manualmente: departamentoId !== account.departamento_id,
+        departamento_confianca: aiSuggestion?.confianca || account.departamento_confianca || null,
+      };
+
       const { error } = await supabase
         .from("trade_chart_of_accounts")
-        .update(data as any)
+        .update(accountData as any)
         .eq("id", account.id);
 
       if (error) throw error;
@@ -74,6 +105,51 @@ export function EditarContaDialog({ open, onOpenChange, account, onSuccess, pare
       toast.error(error.message || "Erro ao atualizar conta");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleAnalyzeWithAI = async () => {
+    const formValues = form.getValues();
+    
+    if (!formValues.code || !formValues.name) {
+      toast.error("Preencha código e nome da conta antes de analisar");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('classificar-conta-departamento', {
+        body: {
+          accountCode: formValues.code,
+          accountName: formValues.name,
+          accountDescription: formValues.description || "",
+          accountType: formValues.account_type
+        }
+      });
+
+      if (error) {
+        if (error.message?.includes('429')) {
+          toast.error("Limite de requisições excedido. Aguarde um momento.");
+        } else if (error.message?.includes('402')) {
+          toast.error("Créditos insuficientes. Contate o administrador.");
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      if (data?.success) {
+        setAiSuggestion(data);
+        setDepartamentoId(data.departamento_id);
+        toast.success(
+          `IA sugeriu: ${data.departamento_nome} (${Math.round(data.confianca * 100)}% de confiança)`
+        );
+      }
+    } catch (error: any) {
+      console.error('Erro na análise:', error);
+      toast.error("Erro ao analisar com IA");
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -233,6 +309,74 @@ export function EditarContaDialog({ open, onOpenChange, account, onSuccess, pare
                 </FormItem>
               )}
             />
+
+            {/* Departamento */}
+            <div className="space-y-3 border rounded-lg p-4 bg-accent/20">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Departamento</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAnalyzeWithAI}
+                  disabled={isAnalyzing || !form.watch('code') || !form.watch('name')}
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                      Analisando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3 mr-2" />
+                      Analisar com IA
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <Select value={departamentoId} onValueChange={(value) => {
+                setDepartamentoId(value);
+                if (value && value !== account.departamento_id) {
+                  setAiSuggestion(null); // Limpar sugestão se usuário escolher manualmente
+                }
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o departamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhum</SelectItem>
+                  {departamentos?.map((dept: any) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {account.departamento_definido_manualmente && (
+                <p className="text-xs text-muted-foreground">
+                  ✓ Departamento definido manualmente
+                </p>
+              )}
+
+              {aiSuggestion && (
+                <div className="text-xs bg-primary/10 text-primary p-3 rounded-md border border-primary/20">
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-semibold">{aiSuggestion.departamento_nome}</p>
+                      <p className="text-xs opacity-80 mt-0.5">
+                        Confiança: {Math.round(aiSuggestion.confianca * 100)}%
+                      </p>
+                      <p className="text-xs mt-1.5 leading-relaxed">
+                        {aiSuggestion.justificativa}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-3 gap-4">
               <FormField
