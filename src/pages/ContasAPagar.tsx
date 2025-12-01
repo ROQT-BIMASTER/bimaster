@@ -751,16 +751,16 @@ export default function ContasAPagar() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2">
-                      <Brain className="h-5 w-5" />
+                      <Bot className="h-5 w-5 text-primary" />
                       Classificação Automática com IA
                     </CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Visualize e gerencie as classificações automáticas de departamento e plano de contas
+                      Use IA para classificar automaticamente contas sem departamento ou plano de contas
                     </p>
                   </div>
                   <Button onClick={() => setClassificarIAOpen(true)} className="gap-2">
-                    <Brain className="h-4 w-4" />
-                    Classificar Todas
+                    <Bot className="h-4 w-4" />
+                    Classificar Pendentes
                   </Button>
                 </div>
               </CardHeader>
