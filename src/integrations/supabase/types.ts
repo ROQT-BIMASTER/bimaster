@@ -918,12 +918,15 @@ export type Database = {
         Row: {
           categoria_codigo: string | null
           categoria_nome: string | null
+          classificado_automaticamente: boolean | null
+          confianca_classificacao: number | null
           conta: string | null
           created_at: string | null
           data_emissao: string | null
           data_hash: string | null
           data_pagamento: string | null
           data_vencimento: string | null
+          departamento_id: string | null
           empresa_id: number
           empresa_nome: string | null
           erp_id: string
@@ -947,12 +950,15 @@ export type Database = {
         Insert: {
           categoria_codigo?: string | null
           categoria_nome?: string | null
+          classificado_automaticamente?: boolean | null
+          confianca_classificacao?: number | null
           conta?: string | null
           created_at?: string | null
           data_emissao?: string | null
           data_hash?: string | null
           data_pagamento?: string | null
           data_vencimento?: string | null
+          departamento_id?: string | null
           empresa_id: number
           empresa_nome?: string | null
           erp_id: string
@@ -976,12 +982,15 @@ export type Database = {
         Update: {
           categoria_codigo?: string | null
           categoria_nome?: string | null
+          classificado_automaticamente?: boolean | null
+          confianca_classificacao?: number | null
           conta?: string | null
           created_at?: string | null
           data_emissao?: string | null
           data_hash?: string | null
           data_pagamento?: string | null
           data_vencimento?: string | null
+          departamento_id?: string | null
           empresa_id?: number
           empresa_nome?: string | null
           erp_id?: string
@@ -1002,7 +1011,22 @@ export type Database = {
           valor_original?: number | null
           valor_pago?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
       }
       conversas: {
         Row: {
@@ -9476,6 +9500,19 @@ export type Database = {
           },
         ]
       }
+      vw_analise_departamentos_completa: {
+        Row: {
+          classificacoes_automaticas: number | null
+          classificacoes_manuais: number | null
+          departamento_id: string | null
+          departamento_nome: string | null
+          periodo_mes: string | null
+          tipo: string | null
+          total_transacoes: number | null
+          valor_total: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       buscar_regra_fiscal_item: {
@@ -9572,6 +9609,23 @@ export type Database = {
           tipo: string
           total_transacoes: number
           valor_medio: number
+          valor_total: number
+        }[]
+      }
+      get_analise_departamentos_completa: {
+        Args: {
+          p_departamento_id?: string
+          p_periodo_fim: string
+          p_periodo_inicio: string
+        }
+        Returns: {
+          classificacoes_automaticas: number
+          classificacoes_manuais: number
+          departamento_id: string
+          departamento_nome: string
+          periodo_mes: string
+          tipo: string
+          total_transacoes: number
           valor_total: number
         }[]
       }
