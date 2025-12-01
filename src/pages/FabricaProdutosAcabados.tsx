@@ -36,11 +36,13 @@ export default function FabricaProdutosAcabados() {
           unidade:fabrica_unidades_medida(sigla, nome)
         `)
         .in("tipo", ["ACABADO", "INTER"])
-        .order("nome");
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data;
     },
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   if (permLoading) {
