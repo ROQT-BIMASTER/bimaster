@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ export default function DREAnalitico() {
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [visaoAtiva, setVisaoAtiva] = useState<'contas' | 'departamentos'>('contas');
 
   // Atualizar datas quando período mudar
   const handlePeriodoChange = (novoPeriodo: 'mes' | 'trimestre' | 'ano') => {
@@ -365,6 +367,177 @@ export default function DREAnalitico() {
   };
 
   const hierarquia = construirHierarquiaDRE();
+
+  // Construir hierarquia por departamento
+  const construirHierarquiaPorDepartamento = (): DRENode[] => {
+    if (!planoContas || !lancamentos || !departamentos) return [];
+
+    const arvore: DRENode[] = [];
+    const contasMap = new Map(planoContas.map(c => [c.id, c]));
+    const deptsMap = new Map(departamentos.map(d => [d.id, d]));
+
+    // Agrupar lançamentos por departamento
+    const lancamentosPorDept = new Map<string, any[]>();
+    const lancamentosSemDept: any[] = [];
+
+    lancamentos.forEach(lancamento => {
+      if (lancamento.departamento_id) {
+        if (!lancamentosPorDept.has(lancamento.departamento_id)) {
+          lancamentosPorDept.set(lancamento.departamento_id, []);
+        }
+        lancamentosPorDept.get(lancamento.departamento_id)!.push(lancamento);
+      } else {
+        lancamentosSemDept.push(lancamento);
+      }
+    });
+
+    // Criar nó para cada departamento
+    lancamentosPorDept.forEach((lancsDept, deptId) => {
+      const dept = deptsMap.get(deptId);
+      if (!dept) return;
+
+      const nodoDept: DRENode = {
+        id: deptId,
+        codigo: '',
+        nome: dept.nome,
+        tipo: 'departamento',
+        nivel: 1,
+        valor: 0,
+        natureza: 'D',
+        accountType: 'expense',
+        children: []
+      };
+
+      // Agrupar por tipo de conta dentro do departamento
+      const grupos = new Map<string, DRENode>();
+
+      lancsDept.forEach(lanc => {
+        const valor = parseFloat(String(lanc.valor_pago || lanc.valor_original || 0));
+        nodoDept.valor += valor;
+
+        if (!lanc.plano_contas_id) return;
+
+        const conta = contasMap.get(lanc.plano_contas_id);
+        if (!conta) return;
+
+        // Determinar grupo (Receitas, Despesas, Custos, etc)
+        let grupoNome = 'Despesas';
+        let grupoId = 'despesas';
+        if (conta.account_type === 'revenue') {
+          grupoNome = 'Receitas';
+          grupoId = 'receitas';
+        } else if (conta.account_type === 'cost_center' || conta.account_type === 'budget') {
+          grupoNome = 'Custos';
+          grupoId = 'custos';
+        } else if (conta.account_type === 'asset' || conta.account_type === 'liability') {
+          grupoNome = 'Patrimoniais';
+          grupoId = 'patrimoniais';
+        }
+
+        const grupoKey = `${deptId}-${grupoId}`;
+        
+        if (!grupos.has(grupoKey)) {
+          grupos.set(grupoKey, {
+            id: grupoKey,
+            codigo: '',
+            nome: grupoNome,
+            tipo: 'grupo',
+            nivel: 2,
+            valor: 0,
+            natureza: conta.account_type === 'revenue' ? 'C' : 'D',
+            accountType: conta.account_type,
+            children: []
+          });
+        }
+
+        const grupo = grupos.get(grupoKey)!;
+        grupo.valor += valor;
+
+        // Adicionar conta
+        let nodoConta = grupo.children?.find(c => c.id === conta.id);
+        if (!nodoConta) {
+          nodoConta = {
+            id: `${grupoKey}-${conta.id}`,
+            codigo: conta.code,
+            nome: conta.name,
+            tipo: 'conta',
+            nivel: 3,
+            valor: 0,
+            natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
+            accountType: conta.account_type,
+            children: [],
+            metadata: conta
+          };
+          grupo.children?.push(nodoConta);
+        }
+
+        nodoConta.valor += valor;
+
+        // Adicionar lançamento individual
+        nodoConta.children?.push({
+          id: `${grupoKey}-${conta.id}-${lanc.id}`,
+          codigo: lanc.numero_documento || '',
+          nome: `${lanc.fornecedor_nome || 'N/A'} - ${lanc.categoria_nome || 'Sem categoria'}`,
+          tipo: 'lancamento',
+          nivel: 4,
+          valor: valor,
+          natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
+          accountType: conta.account_type,
+          metadata: lanc
+        });
+      });
+
+      // Adicionar grupos ao departamento
+      nodoDept.children = Array.from(grupos.values());
+      arvore.push(nodoDept);
+    });
+
+    // Adicionar lançamentos sem departamento
+    if (lancamentosSemDept.length > 0) {
+      const nodoSemDept: DRENode = {
+        id: 'sem-departamento',
+        codigo: '',
+        nome: 'SEM DEPARTAMENTO',
+        tipo: 'departamento',
+        nivel: 1,
+        valor: 0,
+        natureza: 'D',
+        accountType: 'expense',
+        children: []
+      };
+
+      lancamentosSemDept.forEach(lanc => {
+        const valor = parseFloat(String(lanc.valor_pago || lanc.valor_original || 0));
+        nodoSemDept.valor += valor;
+
+        if (lanc.plano_contas_id) {
+          const conta = contasMap.get(lanc.plano_contas_id);
+          if (conta) {
+            nodoSemDept.children?.push({
+              id: `sem-dept-${lanc.id}`,
+              codigo: conta.code,
+              nome: `${conta.name} - ${lanc.fornecedor_nome || 'N/A'}`,
+              tipo: 'lancamento',
+              nivel: 2,
+              valor: valor,
+              natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
+              accountType: conta.account_type,
+              metadata: lanc
+            });
+          }
+        }
+      });
+
+      arvore.push(nodoSemDept);
+    }
+
+    // Ordenar departamentos por valor
+    arvore.sort((a, b) => b.valor - a.valor);
+
+    return arvore;
+  };
+
+  const hierarquiaDepartamentos = construirHierarquiaPorDepartamento();
 
   const toggleNode = (id: string) => {
     const newExpanded = new Set(expandedNodes);
@@ -726,25 +899,58 @@ export default function DREAnalitico() {
           </Card>
         </div>
 
-        {/* Tabela DRE */}
+        {/* Tabela DRE com Tabs */}
         <Card>
           <CardHeader>
             <CardTitle>Demonstrativo de Resultado do Exercício</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {isLoading ? (
-              <div className="p-8 text-center text-muted-foreground">
-                Carregando dados...
+            <Tabs value={visaoAtiva} onValueChange={(v) => setVisaoAtiva(v as 'contas' | 'departamentos')}>
+              <div className="border-b px-4 pt-4">
+                <TabsList className="w-full justify-start">
+                  <TabsTrigger value="contas" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Visão por Contas
+                  </TabsTrigger>
+                  <TabsTrigger value="departamentos" className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Visão por Departamentos
+                  </TabsTrigger>
+                </TabsList>
               </div>
-            ) : hierarquia.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                Nenhum lançamento encontrado no período selecionado
-              </div>
-            ) : (
-              <div className="border-t">
-                {hierarquia.map(node => renderNode(node))}
-              </div>
-            )}
+
+              <TabsContent value="contas" className="mt-0">
+                {isLoading ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    Carregando dados...
+                  </div>
+                ) : hierarquia.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    Nenhum lançamento encontrado no período selecionado
+                  </div>
+                ) : (
+                  <div className="border-t">
+                    {hierarquia.map(node => renderNode(node))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="departamentos" className="mt-0">
+                {isLoading ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    Carregando dados...
+                  </div>
+                ) : hierarquiaDepartamentos.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    Nenhum lançamento encontrado no período selecionado
+                  </div>
+                ) : (
+                  <div className="border-t">
+                    {hierarquiaDepartamentos.map(node => renderNode(node))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
