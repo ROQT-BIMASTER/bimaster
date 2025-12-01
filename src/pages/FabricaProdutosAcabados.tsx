@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,25 +25,33 @@ export default function FabricaProdutosAcabados() {
   const [produtoEdit, setProdutoEdit] = useState<any>(null);
   const [busca, setBusca] = useState("");
 
-  const { data: produtos, isLoading, refetch } = useQuery({
-    queryKey: ["fabrica-produtos-acabados"],
-    queryFn: async () => {
+  const { data: produtos, isLoading, refetch } = useSupabaseQuery(
+    ["fabrica-produtos-acabados"],
+    async () => {
+      console.log("🔍 Carregando produtos acabados...");
+      
       const { data, error } = await supabase
         .from("fabrica_produtos")
         .select(`
           *,
-          formula:fabrica_formulas(id, versao),
           unidade:fabrica_unidades_medida(sigla, nome)
         `)
         .in("tipo", ["ACABADO", "INTER"])
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Erro ao carregar produtos:", error);
+        throw error;
+      }
+      
+      console.log("✅ Produtos carregados:", data?.length || 0, data);
       return data;
     },
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
-  });
+    {
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+    }
+  );
 
   if (permLoading) {
     return (
@@ -215,8 +223,8 @@ export default function FabricaProdutosAcabados() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {produto.formula ? (
-                          <Badge variant="secondary">v{produto.formula.versao}</Badge>
+                        {produto.formula_id ? (
+                          <Badge variant="secondary">Fórmula vinculada</Badge>
                         ) : (
                           <span className="text-muted-foreground text-sm">-</span>
                         )}
