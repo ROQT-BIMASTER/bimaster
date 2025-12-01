@@ -121,30 +121,7 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
             .eq("tabela_id", tabelaId)
             .eq("ativo", true);
 
-          // Buscar a última versão para incrementar
-          const { data: versoes } = await supabase
-            .from("fabrica_tabelas_preco_versoes")
-            .select("versao")
-            .eq("tabela_id", tabelaId)
-            .order("versao", { ascending: false })
-            .limit(1);
-
-          const novaVersao = (versoes && versoes.length > 0 ? versoes[0].versao : 0) + 1;
-
-          // Criar nova versão com snapshot
-          const { error: versaoError } = await supabase
-            .from("fabrica_tabelas_preco_versoes")
-            .insert({
-              tabela_id: tabelaId,
-              versao: novaVersao,
-              precos_snapshot: todosPrecos || [],
-              created_by: user.user?.id,
-            });
-
-          if (versaoError) {
-            console.error("Erro ao criar versão:", versaoError);
-            throw versaoError;
-          }
+          // (Versões são criadas automaticamente por trigger ao mudar status para pending_approval)
 
           // SEMPRE atualizar para pending_approval (independente do status anterior)
           const { error: statusError } = await supabase
@@ -167,7 +144,7 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
               tabela_id: tabelaId,
               user_id: user.user?.id,
               acao: "price_update",
-              mensagem: `Preços atualizados manualmente - Versão ${novaVersao} criada`,
+              mensagem: "Preços atualizados manualmente e enviados para aprovação",
             });
 
           if (auditoriaError) {
