@@ -325,6 +325,9 @@ Escolha o departamento e conta contábil mais adequados.`;
           }
         }
 
+        // Só marcar como sucesso se encontrou pelo menos o departamento
+        const hasValidClassification = dept?.id && conta?.id;
+        
         results.push({
           categoria_nome: group.categoria_nome,
           fornecedor_nome: group.fornecedor_nome,
@@ -336,8 +339,13 @@ Escolha o departamento e conta contábil mais adequados.`;
           plano_contas_codigo: conta?.code || null,
           confianca_classificacao: classification.confianca || 0.8,
           classificacao_justificativa: classification.justificativa,
-          success: true
+          success: hasValidClassification,
+          error: !hasValidClassification ? "Não foi possível encontrar departamento ou conta no sistema" : undefined
         });
+        
+        if (!hasValidClassification) {
+          console.warn(`⚠️ Classificação incompleta: dept=${!!dept}, conta=${!!conta}`);
+        }
 
       } catch (error) {
         console.error(`Erro ao processar grupo ${group.categoria_nome}:`, error);

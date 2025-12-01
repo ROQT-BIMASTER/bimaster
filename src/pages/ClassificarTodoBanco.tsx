@@ -164,8 +164,11 @@ export default function ClassificarTodoBanco() {
 
             setCurrentGrupo(`${result.categoria_nome} - ${result.fornecedor_nome || 'N/A'} (${contasAfetadas} contas)`);
 
-            if (result.success && result.departamento_id) {
-              // Atualizar TODAS as contas deste grupo (independente de já terem classificação)
+            // Só atualizar se tiver classificação válida (departamento E conta)
+            if (result.success && result.departamento_id && result.plano_contas_id) {
+              console.log(`✅ Atualizando ${contasAfetadas} contas: ${result.categoria_nome}`);
+              
+              // Atualizar TODAS as contas deste grupo
               const { error: updateError } = await supabase
                 .from("contas_pagar")
                 .update({
