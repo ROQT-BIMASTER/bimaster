@@ -840,6 +840,96 @@ export type Database = {
         }
         Relationships: []
       }
+      contas_pagar: {
+        Row: {
+          categoria_codigo: string | null
+          categoria_nome: string | null
+          conta: string | null
+          created_at: string | null
+          data_emissao: string | null
+          data_hash: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          empresa_id: number
+          empresa_nome: string | null
+          erp_id: string
+          fornecedor_codigo: string | null
+          fornecedor_nome: string | null
+          id: string
+          numero_documento: string | null
+          parcela: number | null
+          portador: string | null
+          sincronizado_em: string | null
+          status: string | null
+          tipo_documento: string | null
+          updated_at: string | null
+          valor_aberto: number | null
+          valor_ajustes: number | null
+          valor_desconto: number | null
+          valor_juros: number | null
+          valor_original: number | null
+          valor_pago: number | null
+        }
+        Insert: {
+          categoria_codigo?: string | null
+          categoria_nome?: string | null
+          conta?: string | null
+          created_at?: string | null
+          data_emissao?: string | null
+          data_hash?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          empresa_id: number
+          empresa_nome?: string | null
+          erp_id: string
+          fornecedor_codigo?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          numero_documento?: string | null
+          parcela?: number | null
+          portador?: string | null
+          sincronizado_em?: string | null
+          status?: string | null
+          tipo_documento?: string | null
+          updated_at?: string | null
+          valor_aberto?: number | null
+          valor_ajustes?: number | null
+          valor_desconto?: number | null
+          valor_juros?: number | null
+          valor_original?: number | null
+          valor_pago?: number | null
+        }
+        Update: {
+          categoria_codigo?: string | null
+          categoria_nome?: string | null
+          conta?: string | null
+          created_at?: string | null
+          data_emissao?: string | null
+          data_hash?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          empresa_id?: number
+          empresa_nome?: string | null
+          erp_id?: string
+          fornecedor_codigo?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          numero_documento?: string | null
+          parcela?: number | null
+          portador?: string | null
+          sincronizado_em?: string | null
+          status?: string | null
+          tipo_documento?: string | null
+          updated_at?: string | null
+          valor_aberto?: number | null
+          valor_ajustes?: number | null
+          valor_desconto?: number | null
+          valor_juros?: number | null
+          valor_original?: number | null
+          valor_pago?: number | null
+        }
+        Relationships: []
+      }
       conversas: {
         Row: {
           created_at: string
@@ -7423,6 +7513,51 @@ export type Database = {
           vendedor_id?: string | null
           visit_frequency?: string | null
           zip_code?: string | null
+        }
+        Relationships: []
+      }
+      sync_control: {
+        Row: {
+          created_at: string | null
+          duracao_ms: number | null
+          empresa_id: number | null
+          entidade: string
+          erro_mensagem: string | null
+          id: string
+          registros_atualizados: number | null
+          registros_ignorados: number | null
+          registros_inseridos: number | null
+          status: string | null
+          total_registros: number | null
+          ultima_sync: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duracao_ms?: number | null
+          empresa_id?: number | null
+          entidade: string
+          erro_mensagem?: string | null
+          id?: string
+          registros_atualizados?: number | null
+          registros_ignorados?: number | null
+          registros_inseridos?: number | null
+          status?: string | null
+          total_registros?: number | null
+          ultima_sync?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duracao_ms?: number | null
+          empresa_id?: number | null
+          entidade?: string
+          erro_mensagem?: string | null
+          id?: string
+          registros_atualizados?: number | null
+          registros_ignorados?: number | null
+          registros_inseridos?: number | null
+          status?: string | null
+          total_registros?: number | null
+          ultima_sync?: string | null
         }
         Relationships: []
       }
