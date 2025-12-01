@@ -60,15 +60,30 @@ export default function ClassificarTodoBanco() {
       setGruposComErro(0);
       setLogs([]);
 
-      // Buscar grupos únicos não classificados
+      // Buscar grupos únicos não classificados com paginação (limite padrão é 1000 registros)
       console.log("🔍 Buscando todas as contas não classificadas...");
-      
-      const { data: grupos, error: gruposError } = await supabase
-        .from("contas_pagar")
-        .select("categoria_nome, fornecedor_nome, tipo_documento")
-        .is("plano_contas_id", null);
 
-      if (gruposError) throw gruposError;
+      const PAGE_SIZE = 1000;
+      let from = 0;
+      let allGrupos: { categoria_nome: string; fornecedor_nome: string | null; tipo_documento: string | null }[] = [];
+
+      while (true) {
+        const { data, error } = await supabase
+          .from("contas_pagar")
+          .select("categoria_nome, fornecedor_nome, tipo_documento")
+          .is("plano_contas_id", null)
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        allGrupos = allGrupos.concat(data as any);
+        from += PAGE_SIZE;
+
+        if (data.length < PAGE_SIZE) break; // última página
+      }
+
+      const grupos = allGrupos;
 
       if (!grupos || grupos.length === 0) {
         toast.success("✅ Todas as contas já foram classificadas!");
