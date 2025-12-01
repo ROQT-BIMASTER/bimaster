@@ -454,7 +454,7 @@ export default function DREAnalitico() {
         grupo.valor += valor;
 
         // Adicionar conta
-        let nodoConta = grupo.children?.find(c => c.id === conta.id);
+        let nodoConta = grupo.children?.find(c => c.id === `${grupoKey}-${conta.id}`);
         if (!nodoConta) {
           nodoConta = {
             id: `${grupoKey}-${conta.id}`,
