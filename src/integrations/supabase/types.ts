@@ -52,6 +52,70 @@ export type Database = {
           },
         ]
       }
+      account_classification_rules: {
+        Row: {
+          categoria_nome: string
+          confidence_score: number | null
+          created_at: string | null
+          created_by: string | null
+          departamento_id: string | null
+          fornecedor_nome: string | null
+          id: string
+          last_used_at: string | null
+          plano_contas_id: string | null
+          times_used: number | null
+          tipo_documento: string | null
+        }
+        Insert: {
+          categoria_nome: string
+          confidence_score?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          departamento_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          last_used_at?: string | null
+          plano_contas_id?: string | null
+          times_used?: number | null
+          tipo_documento?: string | null
+        }
+        Update: {
+          categoria_nome?: string
+          confidence_score?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          departamento_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          last_used_at?: string | null
+          plano_contas_id?: string | null
+          times_used?: number | null
+          tipo_documento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_classification_rules_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_classification_rules_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "account_classification_rules_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agg_daily_kpis: {
         Row: {
           created_at: string | null
@@ -935,6 +999,7 @@ export type Database = {
           id: string
           numero_documento: string | null
           parcela: number | null
+          plano_contas_id: string | null
           portador: string | null
           sincronizado_em: string | null
           status: string | null
@@ -967,6 +1032,7 @@ export type Database = {
           id?: string
           numero_documento?: string | null
           parcela?: number | null
+          plano_contas_id?: string | null
           portador?: string | null
           sincronizado_em?: string | null
           status?: string | null
@@ -999,6 +1065,7 @@ export type Database = {
           id?: string
           numero_documento?: string | null
           parcela?: number | null
+          plano_contas_id?: string | null
           portador?: string | null
           sincronizado_em?: string | null
           status?: string | null
@@ -1025,6 +1092,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "mv_analise_departamentos"
             referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
           },
         ]
       }
