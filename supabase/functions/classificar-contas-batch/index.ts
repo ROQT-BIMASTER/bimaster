@@ -139,10 +139,17 @@ ${departamentos.map(d => `- ID: ${d.id} | ${d.nome}${d.descricao ? ` (${d.descri
 PLANO DE CONTAS DISPONÍVEL:
 ${planoContas.map(p => `- ID: ${p.id} | ${p.code} - ${p.name} [${p.account_type}]`).join('\n')}
 
+IMPORTANTE:
+- Use EXATAMENTE o nome da conta conforme listado acima
+- Se não encontrar uma conta específica, escolha a conta de GRUPO mais genérica relacionada
+- Para comissões de vendas: use "DESPESAS COMERCIAIS/TRADE" (código 6.1)
+- Para despesas administrativas gerais: use contas do grupo 6.2
+- Para materiais e insumos: use contas do grupo 5
+
 Retorne SEMPRE um JSON válido com esta estrutura:
 {
-  "departamento_nome": "nome do departamento escolhido",
-  "plano_contas_nome": "nome da conta escolhida",
+  "departamento_nome": "nome EXATO do departamento da lista",
+  "plano_contas_nome": "nome EXATO da conta da lista",
   "confianca": 0.95,
   "justificativa": "breve explicação"
 }`;
@@ -190,19 +197,97 @@ Escolha o departamento e conta contábil mais adequados.`;
 
         const classification = JSON.parse(jsonMatch[0]);
 
-        // Mapear nomes para IDs
+        // Mapear nomes para IDs com busca flexível
         const dept = departamentos.find(d => 
           d.nome.toLowerCase() === classification.departamento_nome?.toLowerCase()
         );
-        const conta = planoContas.find(p => 
+        
+        // Busca de conta com múltiplas estratégias
+        let conta = null;
+        
+        // 1. Match exato
+        conta = planoContas.find(p => 
           p.name.toLowerCase() === classification.plano_contas_nome?.toLowerCase()
         );
+        
+        // 2. Match parcial (contains)
+        if (!conta && classification.plano_contas_nome) {
+          const searchTerm = classification.plano_contas_nome.toLowerCase();
+          conta = planoContas.find(p => 
+            p.name.toLowerCase().includes(searchTerm) || 
+            searchTerm.includes(p.name.toLowerCase())
+          );
+        }
+        
+        // 3. Match por palavras-chave comuns
+        if (!conta && classification.plano_contas_nome) {
+          const keywords = classification.plano_contas_nome.toLowerCase();
+          
+          // Mapeamentos comuns
+          const commonMappings: { [key: string]: string[] } = {
+            'comissão': ['Comissão de Vendedores', 'DESPESAS COMERCIAIS/TRADE'],
+            'biardini': ['Comissão de Vendedores'],
+            'salário': ['Salários e Ordenados', 'Folha de Pagamento'],
+            'marketing': ['Marketing e Publicidade', 'Propaganda e Marketing'],
+            'aluguel': ['Aluguel'],
+            'água': ['Água e Esgoto'],
+            'energia': ['Energia Elétrica'],
+            'telefone': ['Telefone e Internet'],
+            'internet': ['Telefone e Internet'],
+            'frete': ['Frete sobre Vendas', 'Frete sobre Compras', 'Logística'],
+            'combustível': ['Combustíveis e Lubrificantes'],
+            'manutenção': ['Manutenção e Reparos'],
+            'material': ['Material de Escritório', 'Material POP'],
+            'honorários': ['Honorários Profissionais', 'Serviços Contábeis'],
+            'contábil': ['Serviços Contábeis'],
+            'impostos': ['Impostos e Taxas'],
+            'seguro': ['Seguros'],
+            'eventos': ['Eventos e Ativações'],
+            'promotor': ['Promotores e Degustação']
+          };
+          
+          for (const [keyword, options] of Object.entries(commonMappings)) {
+            if (keywords.includes(keyword)) {
+              conta = planoContas.find(p => 
+                options.some(opt => p.name.toLowerCase().includes(opt.toLowerCase()))
+              );
+              if (conta) {
+                console.log(`✓ Conta encontrada via mapeamento: ${keyword} → ${conta.name}`);
+                break;
+              }
+            }
+          }
+        }
+        
+        // 4. Conta padrão baseada em fornecedor ou categoria
+        if (!conta) {
+          // Para COMISSÃO ou vendedores específicos
+          if (group.fornecedor_nome?.toLowerCase().includes('comissão') || 
+              group.fornecedor_nome?.toLowerCase().includes('biardini') ||
+              group.categoria_nome?.toLowerCase().includes('comissão')) {
+            conta = planoContas.find(p => p.code === '6.1.07'); // Comissão de Vendedores
+            if (conta) {
+              console.log(`✓ Usando conta específica de comissões: ${conta.name}`);
+            }
+          }
+          
+          // Para despesas comerciais gerais
+          if (!conta && group.categoria_nome?.toLowerCase().includes('comercial')) {
+            conta = planoContas.find(p => p.code === '6.1');
+            if (conta) {
+              console.log(`✓ Usando conta padrão de despesas comerciais: ${conta.name}`);
+            }
+          }
+        }
 
         if (!dept) {
-          console.warn(`Departamento não encontrado: ${classification.departamento_nome}`);
+          console.warn(`❌ Departamento não encontrado: ${classification.departamento_nome}`);
         }
         if (!conta) {
-          console.warn(`Conta não encontrada: ${classification.plano_contas_nome}`);
+          console.warn(`❌ Conta não encontrada para: "${classification.plano_contas_nome}"`);
+          console.warn(`   Categoria: ${group.categoria_nome}, Fornecedor: ${group.fornecedor_nome}`);
+        } else {
+          console.log(`✓ Conta encontrada: ${conta.code} - ${conta.name}`);
         }
 
         // Salvar regra aprendida (mesmo sem plano_contas_id)
