@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Brain, Loader2, CheckCircle2, XCircle, TrendingUp, Database, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ClassificationLog {
   conta: string;
@@ -20,6 +21,7 @@ interface ClassificationLog {
 }
 
 export default function ClassificarTodoBanco() {
+  const queryClient = useQueryClient();
   const [isClassifying, setIsClassifying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [totalGrupos, setTotalGrupos] = useState(0);
@@ -230,7 +232,13 @@ export default function ClassificarTodoBanco() {
         toast.warning(`⚠️ ${_gruposComErro} grupos com erro`);
       }
 
+      // Invalidar cache do React Query para atualizar DRE e outras páginas
+      await queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
+      await queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
+      
       await carregarEstatisticas();
+      
+      toast.success(`✅ Classificação concluída! ${_gruposClassificados} grupos classificados. A DRE foi atualizada automaticamente.`);
 
     } catch (error) {
       console.error("❌ Erro geral:", error);
