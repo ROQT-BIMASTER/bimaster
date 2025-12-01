@@ -330,38 +330,20 @@ serve(async (req) => {
       }
     };
 
+    // Limitar histórico para evitar prompts muito longos
+    const MAX_HISTORY = 6; // últimas 3 interações (user + assistant)
+    const recentMessages = messages.slice(-MAX_HISTORY);
+    
     // Primeira chamada à IA com as ferramentas
-    const systemPrompt = `Você é um analista de dados especialista no sistema de CRM, Trade Marketing e Gestão Comercial. 
+    const systemPrompt = `Analista de dados especialista em CRM e Trade Marketing.
 
-Você tem acesso a todas as informações do sistema através de ferramentas especializadas. Você pode:
-- Consultar prospects, lojas, visitas, vendas e KPIs
-- Gerar análises detalhadas com dados reais
-- Criar insights acionáveis baseados nos dados
-- Sugerir relatórios e visualizações
+Use as ferramentas para buscar dados reais. Seja claro e objetivo.
+Datas no formato YYYY-MM-DD. Padrão: últimos 30 dias.
 
-Quando o usuário pedir dados, SEMPRE use as ferramentas disponíveis para buscar informações reais do sistema.
-Ao responder, seja claro, objetivo e forneça números e estatísticas sempre que possível.
-
-Para datas, use o formato YYYY-MM-DD. Se o usuário não especificar datas, use os últimos 30 dias.
-
-Quando retornar dados que podem ser visualizados em gráficos, estruture a resposta em formato JSON dentro de um bloco de código com o tipo "chart", assim:
-
+Para gráficos, use:
 \`\`\`chart
-{
-  "type": "bar|line|pie|area",
-  "title": "Título do Gráfico",
-  "data": [
-    { "name": "Label", "value": 123 },
-    ...
-  ]
-}
-\`\`\`
-
-Tipos de gráficos disponíveis:
-- bar: gráfico de barras
-- line: gráfico de linha
-- pie: gráfico de pizza
-- area: gráfico de área`;
+{"type":"bar|line|pie|area","title":"Título","data":[{"name":"Label","value":123}]}
+\`\`\``;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -373,13 +355,13 @@ Tipos de gráficos disponíveis:
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          ...messages
+          ...recentMessages
         ],
         tools,
         tool_choice: "auto",
         stream: true,
         temperature: 0.7,
-        max_tokens: 2000,
+        max_tokens: 1500,
       }),
     });
 
@@ -497,7 +479,7 @@ Tipos de gráficos disponíveis:
                       model: "google/gemini-2.5-flash",
                       messages: [
                         { role: "system", content: systemPrompt },
-                        ...messages,
+                        ...recentMessages,
                         {
                           role: "assistant",
                           tool_calls: toolCalls.map(tc => ({
@@ -513,7 +495,7 @@ Tipos de gráficos disponíveis:
                       ],
                       stream: true,
                       temperature: 0.7,
-                      max_tokens: 2000,
+                      max_tokens: 1500,
                     }),
                   });
 
