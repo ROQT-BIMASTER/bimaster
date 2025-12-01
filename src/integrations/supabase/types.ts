@@ -9300,10 +9300,16 @@ export type Database = {
         Args: { p_produto_id: string }
         Returns: number
       }
-      calcular_custo_mod_op: {
-        Args: { p_ordem_producao_id: string }
-        Returns: number
-      }
+      calcular_custo_mod_op:
+        | { Args: { p_ordem_producao_id: string }; Returns: number }
+        | {
+            Args: {
+              _custo_hora_mao_obra: number
+              _quantidade_produzida: number
+              _tempo_producao_minutos: number
+            }
+            Returns: number
+          }
       calculate_user_level: {
         Args: { points: number }
         Returns: {
