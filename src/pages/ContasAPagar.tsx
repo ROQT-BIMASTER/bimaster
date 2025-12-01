@@ -232,13 +232,13 @@ export default function ContasAPagar() {
             <p className="text-muted-foreground">Gestão de contas, fornecedores e plano orçamentário</p>
             <div className="flex flex-wrap gap-2 mt-3">
               <Button variant="outline" size="sm" asChild>
-                <Link to="/dashboard/trade/financeiro">
+                <Link to="/dashboard/financeiro">
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Voltar ao Financeiro
+                  Módulo Financeiro
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/dashboard/plano-contas">
+                <Link to="/dashboard/financeiro/plano-contas">
                   <BookOpen className="h-4 w-4 mr-2" />
                   Plano de Contas
                 </Link>

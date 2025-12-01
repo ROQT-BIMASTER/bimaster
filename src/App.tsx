@@ -83,6 +83,7 @@ const PortalCliente = lazy(() => import("./pages/PortalCliente"));
 const APIHealthCheck = lazy(() => import("./pages/APIHealthCheck"));
 const ContasAPagar = lazy(() => import("./pages/ContasAPagar"));
 const PlanoContas = lazy(() => import("./pages/PlanoContas"));
+const Financeiro = lazy(() => import("./pages/Financeiro"));
 
 // Loading component
 const PageLoader = () => (
@@ -231,6 +232,12 @@ const App = () => {
         <Route path="/dashboard/precos/portal-cliente" element={<ProtectedRoute><PortalCliente /></ProtectedRoute>} />
         
         {/* Módulo Financeiro */}
+        <Route path="/dashboard/financeiro" element={<ProtectedRoute><Financeiro /></ProtectedRoute>} />
+        <Route path="/dashboard/financeiro/trade" element={<ProtectedRoute><TradeFinanceiro /></ProtectedRoute>} />
+        <Route path="/dashboard/financeiro/contas-a-pagar" element={<ProtectedRoute><ContasAPagar /></ProtectedRoute>} />
+        <Route path="/dashboard/financeiro/plano-contas" element={<ProtectedRoute><PlanoContas /></ProtectedRoute>} />
+        
+        {/* Rotas antigas mantidas para compatibilidade */}
         <Route path="/dashboard/contas-a-pagar" element={<ProtectedRoute><ContasAPagar /></ProtectedRoute>} />
         <Route path="/dashboard/plano-contas" element={<ProtectedRoute><PlanoContas /></ProtectedRoute>} />
         <Route path="/dashboard/configuracoes/api-health" element={<ProtectedRoute><APIHealthCheck /></ProtectedRoute>} />
