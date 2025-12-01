@@ -9556,6 +9556,25 @@ export type Database = {
         Args: { p_item_nf_id: string }
         Returns: Json
       }
+      get_analise_departamentos: {
+        Args: {
+          p_departamento_id?: string
+          p_periodo_fim?: string
+          p_periodo_inicio?: string
+        }
+        Returns: {
+          classificacoes_automaticas: number
+          classificacoes_manuais: number
+          confianca_media: number
+          departamento_id: string
+          departamento_nome: string
+          periodo_mes: string
+          tipo: string
+          total_transacoes: number
+          valor_medio: number
+          valor_total: number
+        }[]
+      }
       get_conversion_funnel: {
         Args: never
         Returns: {

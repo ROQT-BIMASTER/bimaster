@@ -112,4 +112,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.classificar-conta-departamento]
-verify_jwt = true
+verify_jwt = false
+
+[functions.processar-transacao-n8n]
+verify_jwt = false
