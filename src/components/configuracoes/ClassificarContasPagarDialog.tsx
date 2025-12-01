@@ -110,21 +110,29 @@ export function ClassificarContasPagarDialog({
           }
 
           if (result?.departamento_id || result?.plano_contas_id) {
-            // Atualizar conta com classificação
+            // Atualizar conta com classificação + cache
             const updateData: any = {
               classificado_automaticamente: true,
+              classificado_em: new Date().toISOString(),
             };
 
             if (result.departamento_id) {
               updateData.departamento_id = result.departamento_id;
+              updateData.departamento_nome = result.departamento_nome;
             }
 
             if (result.plano_contas_id) {
               updateData.plano_contas_id = result.plano_contas_id;
+              updateData.plano_contas_codigo = result.plano_contas_codigo;
+              updateData.plano_contas_nome = result.plano_contas_nome;
             }
 
             if (result.confianca) {
               updateData.confianca_classificacao = result.confianca;
+            }
+
+            if (result.justificativa) {
+              updateData.classificacao_justificativa = result.justificativa;
             }
 
             const { error: updateError } = await supabase

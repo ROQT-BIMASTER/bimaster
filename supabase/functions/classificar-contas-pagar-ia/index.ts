@@ -93,12 +93,12 @@ serve(async (req) => {
       console.error("Erro ao buscar departamentos:", deptError);
     }
 
-    // 3. Buscar contexto: plano de contas
-    const { data: planoContas, error: planoError } = await supabase
-      .from("trade_chart_of_accounts")
-      .select("id, code, name, account_type, parent_id")
-      .eq("active", true)
-      .order("code");
+  // 3. Buscar contexto: plano de contas
+  const { data: planoContas, error: planoError } = await supabase
+    .from("trade_chart_of_accounts")
+    .select("id, code, name, account_type, parent_id")
+    .eq("is_active", true)
+    .order("code");
 
     if (planoError) {
       console.error("Erro ao buscar plano de contas:", planoError);
@@ -190,14 +190,22 @@ ${planoContas?.slice(0, 30).map(p => `- ${p.code} ${p.name} (${p.account_type})`
 
     const classification = JSON.parse(jsonMatch[0]);
 
-    // 7. Encontrar IDs correspondentes
-    const planoMatch = planoContas?.find(
-      p => p.code === classification.plano_contas_codigo || 
-           p.name.toLowerCase().includes(classification.plano_contas_codigo?.toLowerCase() || "")
+    // 7. Encontrar IDs correspondentes (melhorado)
+    let planoMatch = planoContas?.find(
+      p => p.code === classification.plano_contas_codigo
     );
+    
+    // Fallback: busca por nome se não encontrar por código
+    if (!planoMatch && classification.plano_contas_codigo) {
+      planoMatch = planoContas?.find(
+        p => p.name.toLowerCase().includes(classification.plano_contas_codigo?.toLowerCase() || "") ||
+             classification.plano_contas_codigo?.toLowerCase().includes(p.name.toLowerCase())
+      );
+    }
 
     const deptMatch = departamentos?.find(
-      d => d.nome.toLowerCase() === classification.departamento_nome?.toLowerCase()
+      d => d.nome.toLowerCase() === classification.departamento_nome?.toLowerCase() ||
+           d.nome.toLowerCase().includes(classification.departamento_nome?.toLowerCase() || "")
     );
 
     const result: ClassificationResult = {
