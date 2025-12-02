@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus } from "lucide-react";
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, subMonths, subYears, parseISO, getMonth, getYear } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, subMonths, subYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import * as XLSX from 'xlsx';
@@ -115,7 +116,7 @@ export default function DREAnalitico() {
     }
   });
 
-  // Buscar total de contas no banco
+  // Buscar total de contas
   const { data: totalContas } = useQuery({
     queryKey: ['total-contas', dataInicio, dataFim, filterEmpresa],
     queryFn: async () => {
@@ -141,10 +142,7 @@ export default function DREAnalitico() {
     async () => {
       let query = supabase
         .from('contas_pagar')
-        .select(`
-          *,
-          departamento:departamentos(id, nome)
-        `)
+        .select(`*, departamento:departamentos(id, nome)`)
         .gte('data_vencimento', dataInicio)
         .lte('data_vencimento', dataFim);
       
@@ -168,7 +166,7 @@ export default function DREAnalitico() {
     async () => {
       let query = supabase
         .from('contas_pagar')
-        .select('*')
+        .select('*, plano_contas_id')
         .gte('data_vencimento', anoAnteriorInicio)
         .lte('data_vencimento', anoAnteriorFim);
       
@@ -197,24 +195,6 @@ export default function DREAnalitico() {
     }
   });
 
-  // Calcular valores por mês para um conjunto de lançamentos
-  const calcularValoresPorMes = (lancs: any[]): { [mes: string]: number } => {
-    const valores: { [mes: string]: number } = {};
-    mesesPeriodo.forEach(m => valores[m.key] = 0);
-    
-    lancs.forEach(l => {
-      const dataVenc = l.data_vencimento;
-      if (dataVenc) {
-        const mesKey = format(parseISO(dataVenc), 'yyyy-MM');
-        if (valores[mesKey] !== undefined) {
-          valores[mesKey] += parseFloat(String(l.valor_pago || l.valor_original || 0));
-        }
-      }
-    });
-    
-    return valores;
-  };
-
   // Calcular MoM (Month over Month) %
   const calcularMoM = (valoresMensais: { [mes: string]: number }): number | null => {
     const keys = Object.keys(valoresMensais).sort();
@@ -227,9 +207,23 @@ export default function DREAnalitico() {
     return ((mesAtual - mesAnterior) / Math.abs(mesAnterior)) * 100;
   };
 
-  // Calcular YoY (Year over Year) %
-  const calcularYoY = (valorAtual: number, valorAnoAnterior: number): number | null => {
-    if (valorAnoAnterior === 0) return valorAtual > 0 ? 100 : 0;
+  // Calcular totais ano anterior por conta
+  const totaisAnoAnteriorPorConta = useMemo(() => {
+    const totais: { [key: string]: number } = {};
+    if (!lancamentosAnoAnterior) return totais;
+    
+    lancamentosAnoAnterior.forEach(l => {
+      const valor = parseFloat(String(l.valor_pago || l.valor_original || 0));
+      const contaId = l.plano_contas_id || 'nao-classificados';
+      totais[contaId] = (totais[contaId] || 0) + valor;
+    });
+    return totais;
+  }, [lancamentosAnoAnterior]);
+
+  // Calcular YoY
+  const calcularYoY = (contaId: string, valorAtual: number): number | null => {
+    const valorAnoAnterior = totaisAnoAnteriorPorConta[contaId] || 0;
+    if (valorAnoAnterior === 0) return valorAtual > 0 ? 100 : null;
     return ((valorAtual - valorAnoAnterior) / Math.abs(valorAnoAnterior)) * 100;
   };
 
@@ -240,57 +234,37 @@ export default function DREAnalitico() {
     const arvore: DRENode[] = [];
     const contasMap = new Map(planoContas.map(c => [c.id, c]));
 
-    // Grupos principais
-    const receitas: DRENode = {
-      id: 'receitas', codigo: '4', nome: 'RECEITAS', tipo: 'grupo', nivel: 1,
-      valor: 0, valoresMensais: {}, natureza: 'C', accountType: 'revenue', children: []
+    const criarGrupo = (id: string, codigo: string, nome: string, natureza: 'D' | 'C', accountType: string): DRENode => {
+      const grupo: DRENode = {
+        id, codigo, nome, tipo: 'grupo', nivel: 1, valor: 0, valoresMensais: {},
+        natureza, accountType, children: []
+      };
+      mesesPeriodo.forEach(m => grupo.valoresMensais![m.key] = 0);
+      return grupo;
     };
-    mesesPeriodo.forEach(m => receitas.valoresMensais![m.key] = 0);
 
-    const despesas: DRENode = {
-      id: 'despesas', codigo: '5', nome: 'DESPESAS OPERACIONAIS', tipo: 'grupo', nivel: 1,
-      valor: 0, valoresMensais: {}, natureza: 'D', accountType: 'expense', children: []
-    };
-    mesesPeriodo.forEach(m => despesas.valoresMensais![m.key] = 0);
+    const receitas = criarGrupo('receitas', '4', 'RECEITAS', 'C', 'revenue');
+    const despesas = criarGrupo('despesas', '5', 'DESPESAS OPERACIONAIS', 'D', 'expense');
+    const custos = criarGrupo('custos', '6', 'CUSTOS E CENTROS DE CUSTO', 'D', 'cost_center');
+    const patrimoniais = criarGrupo('patrimoniais', '7', 'MOVIMENTAÇÕES PATRIMONIAIS', 'D', 'asset');
+    const naoClassificados = criarGrupo('nao-classificados', '9', 'NÃO CLASSIFICADOS', 'D', 'expense');
 
-    const custos: DRENode = {
-      id: 'custos', codigo: '6', nome: 'CUSTOS E CENTROS DE CUSTO', tipo: 'grupo', nivel: 1,
-      valor: 0, valoresMensais: {}, natureza: 'D', accountType: 'cost_center', children: []
-    };
-    mesesPeriodo.forEach(m => custos.valoresMensais![m.key] = 0);
-
-    const patrimoniais: DRENode = {
-      id: 'patrimoniais', codigo: '7', nome: 'MOVIMENTAÇÕES PATRIMONIAIS', tipo: 'grupo', nivel: 1,
-      valor: 0, valoresMensais: {}, natureza: 'D', accountType: 'asset', children: []
-    };
-    mesesPeriodo.forEach(m => patrimoniais.valoresMensais![m.key] = 0);
-
-    const naoClassificados: DRENode = {
-      id: 'nao-classificados', codigo: '9', nome: 'NÃO CLASSIFICADOS', tipo: 'grupo', nivel: 1,
-      valor: 0, valoresMensais: {}, natureza: 'D', accountType: 'expense', children: []
-    };
-    mesesPeriodo.forEach(m => naoClassificados.valoresMensais![m.key] = 0);
-
-    // Processar lançamentos
     lancamentos.forEach(lancamento => {
       const valor = parseFloat(String(lancamento.valor_pago || lancamento.valor_original || 0));
       const mesKey = lancamento.data_vencimento ? format(parseISO(lancamento.data_vencimento), 'yyyy-MM') : null;
       
-      // Se não tem plano de contas
       if (!lancamento.plano_contas_id) {
         naoClassificados.valor += valor;
         if (mesKey && naoClassificados.valoresMensais![mesKey] !== undefined) {
           naoClassificados.valoresMensais![mesKey] += valor;
         }
         
-        let nodoCategoria = naoClassificados.children?.find(
-          c => c.nome === (lancamento.categoria_nome || 'Sem Categoria')
-        );
+        let nodoCategoria = naoClassificados.children?.find(c => c.nome === (lancamento.categoria_nome || 'Sem Categoria'));
         
         if (!nodoCategoria) {
           nodoCategoria = {
-            id: `cat-${lancamento.categoria_nome || 'sem'}`,
-            codigo: '', nome: lancamento.categoria_nome || 'Sem Categoria',
+            id: `cat-${lancamento.categoria_nome || 'sem'}`, codigo: '',
+            nome: lancamento.categoria_nome || 'Sem Categoria',
             tipo: 'conta', nivel: 2, valor: 0, valoresMensais: {},
             natureza: 'D', accountType: 'expense', children: []
           };
@@ -302,6 +276,12 @@ export default function DREAnalitico() {
         if (mesKey && nodoCategoria.valoresMensais![mesKey] !== undefined) {
           nodoCategoria.valoresMensais![mesKey] += valor;
         }
+
+        nodoCategoria.children?.push({
+          id: lancamento.id, codigo: lancamento.numero_documento || '',
+          nome: `${lancamento.fornecedor_nome || 'N/A'} - ${format(new Date(lancamento.data_vencimento), 'dd/MM/yyyy')}`,
+          tipo: 'lancamento', nivel: 5, valor, natureza: 'D', accountType: 'expense', metadata: lancamento
+        });
         return;
       }
 
@@ -333,7 +313,6 @@ export default function DREAnalitico() {
         if (grupoRaiz.valoresMensais![mesKey] !== undefined) grupoRaiz.valoresMensais![mesKey] += valor;
       }
 
-      // Agrupar por departamento
       if (lancamento.departamento_id) {
         let nodoDept = nodoConta.children?.find(d => d.id === lancamento.departamento_id);
         if (!nodoDept) {
@@ -353,10 +332,25 @@ export default function DREAnalitico() {
         if (mesKey && nodoDept.valoresMensais![mesKey] !== undefined) {
           nodoDept.valoresMensais![mesKey] += valor;
         }
+
+        nodoDept.children?.push({
+          id: lancamento.id, codigo: lancamento.numero_documento || '',
+          nome: `${lancamento.fornecedor_nome || 'N/A'} - ${lancamento.categoria_nome || 'Sem categoria'}`,
+          tipo: 'lancamento', nivel: 5, valor,
+          natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
+          accountType: conta.account_type, metadata: lancamento
+        });
+      } else {
+        nodoConta.children?.push({
+          id: lancamento.id, codigo: lancamento.numero_documento || '',
+          nome: `${lancamento.fornecedor_nome || 'N/A'} - ${lancamento.categoria_nome || 'Sem categoria'}`,
+          tipo: 'lancamento', nivel: 5, valor,
+          natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
+          accountType: conta.account_type, metadata: lancamento
+        });
       }
     });
 
-    // Ordenar hierarquia
     const ordenarNos = (nos: DRENode[]) => {
       nos.sort((a, b) => a.codigo.localeCompare(b.codigo));
       nos.forEach(no => { if (no.children) ordenarNos(no.children); });
@@ -372,15 +366,12 @@ export default function DREAnalitico() {
     if (patrimoniais.valor > 0) arvore.push(patrimoniais);
     if (naoClassificados.valor > 0) arvore.push(naoClassificados);
 
-    // Resultado
     const totalDespesasCompleto = despesas.valor + custos.valor + patrimoniais.valor + naoClassificados.valor;
     const resultadoValoresMensais: { [mes: string]: number } = {};
     mesesPeriodo.forEach(m => {
       const recMes = receitas.valoresMensais![m.key] || 0;
-      const despMes = (despesas.valoresMensais![m.key] || 0) + 
-                      (custos.valoresMensais![m.key] || 0) + 
-                      (patrimoniais.valoresMensais![m.key] || 0) + 
-                      (naoClassificados.valoresMensais![m.key] || 0);
+      const despMes = (despesas.valoresMensais![m.key] || 0) + (custos.valoresMensais![m.key] || 0) + 
+                      (patrimoniais.valoresMensais![m.key] || 0) + (naoClassificados.valoresMensais![m.key] || 0);
       resultadoValoresMensais[m.key] = recMes - despMes;
     });
 
@@ -393,20 +384,169 @@ export default function DREAnalitico() {
     return arvore;
   };
 
-  const hierarquia = construirHierarquiaDRE();
+  // Construir hierarquia por departamento
+  const construirHierarquiaPorDepartamento = (): DRENode[] => {
+    if (!planoContas || !lancamentos || !departamentos) return [];
 
-  // Calcular totais ano anterior para YoY
-  const totaisAnoAnterior = useMemo(() => {
-    if (!lancamentosAnoAnterior) return { receitas: 0, despesas: 0, custos: 0, patrimoniais: 0 };
-    
-    const totais = { receitas: 0, despesas: 0, custos: 0, patrimoniais: 0 };
-    lancamentosAnoAnterior.forEach(l => {
-      const valor = parseFloat(String(l.valor_pago || l.valor_original || 0));
-      // Simplificação: consideramos tudo como despesa se não tem plano de contas
-      totais.despesas += valor;
+    const arvore: DRENode[] = [];
+    const contasMap = new Map(planoContas.map(c => [c.id, c]));
+    const deptsMap = new Map(departamentos.map(d => [d.id, d]));
+
+    const lancamentosPorDept = new Map<string, any[]>();
+    const lancamentosSemDept: any[] = [];
+
+    lancamentos.forEach(lancamento => {
+      if (lancamento.departamento_id) {
+        if (!lancamentosPorDept.has(lancamento.departamento_id)) {
+          lancamentosPorDept.set(lancamento.departamento_id, []);
+        }
+        lancamentosPorDept.get(lancamento.departamento_id)!.push(lancamento);
+      } else {
+        lancamentosSemDept.push(lancamento);
+      }
     });
-    return totais;
-  }, [lancamentosAnoAnterior]);
+
+    lancamentosPorDept.forEach((lancsDept, deptId) => {
+      const dept = deptsMap.get(deptId);
+      if (!dept) return;
+
+      const nodoDept: DRENode = {
+        id: deptId, codigo: '', nome: dept.nome,
+        tipo: 'departamento', nivel: 1, valor: 0, valoresMensais: {},
+        natureza: 'D', accountType: 'expense', children: []
+      };
+      mesesPeriodo.forEach(m => nodoDept.valoresMensais![m.key] = 0);
+
+      const grupos = new Map<string, DRENode>();
+
+      lancsDept.forEach(lanc => {
+        const valor = parseFloat(String(lanc.valor_pago || lanc.valor_original || 0));
+        const mesKey = lanc.data_vencimento ? format(parseISO(lanc.data_vencimento), 'yyyy-MM') : null;
+        
+        nodoDept.valor += valor;
+        if (mesKey && nodoDept.valoresMensais![mesKey] !== undefined) {
+          nodoDept.valoresMensais![mesKey] += valor;
+        }
+
+        if (!lanc.plano_contas_id) return;
+
+        const conta = contasMap.get(lanc.plano_contas_id);
+        if (!conta) return;
+
+        let grupoNome = 'Despesas', grupoId = 'despesas';
+        if (conta.account_type === 'revenue') { grupoNome = 'Receitas'; grupoId = 'receitas'; }
+        else if (conta.account_type === 'cost_center' || conta.account_type === 'budget') { grupoNome = 'Custos'; grupoId = 'custos'; }
+        else if (conta.account_type === 'asset' || conta.account_type === 'liability') { grupoNome = 'Patrimoniais'; grupoId = 'patrimoniais'; }
+
+        const grupoKey = `${deptId}-${grupoId}`;
+        
+        if (!grupos.has(grupoKey)) {
+          const novoGrupo: DRENode = {
+            id: grupoKey, codigo: '', nome: grupoNome,
+            tipo: 'grupo', nivel: 2, valor: 0, valoresMensais: {},
+            natureza: conta.account_type === 'revenue' ? 'C' : 'D',
+            accountType: conta.account_type, children: []
+          };
+          mesesPeriodo.forEach(m => novoGrupo.valoresMensais![m.key] = 0);
+          grupos.set(grupoKey, novoGrupo);
+        }
+
+        const grupo = grupos.get(grupoKey)!;
+        grupo.valor += valor;
+        if (mesKey && grupo.valoresMensais![mesKey] !== undefined) {
+          grupo.valoresMensais![mesKey] += valor;
+        }
+
+        let nodoConta = grupo.children?.find(c => c.id === `${grupoKey}-${conta.id}`);
+        if (!nodoConta) {
+          nodoConta = {
+            id: `${grupoKey}-${conta.id}`, codigo: conta.code, nome: conta.name,
+            tipo: 'conta', nivel: 3, valor: 0, valoresMensais: {},
+            natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
+            accountType: conta.account_type, children: [], metadata: conta
+          };
+          mesesPeriodo.forEach(m => nodoConta!.valoresMensais![m.key] = 0);
+          grupo.children?.push(nodoConta);
+        }
+
+        nodoConta.valor += valor;
+        if (mesKey && nodoConta.valoresMensais![mesKey] !== undefined) {
+          nodoConta.valoresMensais![mesKey] += valor;
+        }
+
+        const categoriaNome = lanc.categoria_nome || 'Sem Categoria';
+        const categoriaKey = `${nodoConta.id}-cat-${categoriaNome}`;
+        
+        let nodoCategoria = nodoConta.children?.find(c => c.id === categoriaKey);
+        if (!nodoCategoria) {
+          nodoCategoria = {
+            id: categoriaKey, codigo: '', nome: categoriaNome.toUpperCase(),
+            tipo: 'departamento', nivel: 4, valor: 0, valoresMensais: {},
+            natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
+            accountType: conta.account_type, children: []
+          };
+          mesesPeriodo.forEach(m => nodoCategoria!.valoresMensais![m.key] = 0);
+          nodoConta.children?.push(nodoCategoria);
+        }
+
+        nodoCategoria.valor += valor;
+        if (mesKey && nodoCategoria.valoresMensais![mesKey] !== undefined) {
+          nodoCategoria.valoresMensais![mesKey] += valor;
+        }
+
+        nodoCategoria.children?.push({
+          id: `${categoriaKey}-${lanc.id}`, codigo: lanc.numero_documento || '',
+          nome: `${lanc.fornecedor_nome || 'N/A'}${lanc.data_vencimento ? ` - ${format(new Date(lanc.data_vencimento), 'dd/MM/yyyy')}` : ''}`,
+          tipo: 'lancamento', nivel: 5, valor,
+          natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
+          accountType: conta.account_type, metadata: lanc
+        });
+      });
+
+      nodoDept.children = Array.from(grupos.values());
+      arvore.push(nodoDept);
+    });
+
+    if (lancamentosSemDept.length > 0) {
+      const nodoSemDept: DRENode = {
+        id: 'sem-departamento', codigo: '', nome: 'SEM DEPARTAMENTO',
+        tipo: 'departamento', nivel: 1, valor: 0, valoresMensais: {},
+        natureza: 'D', accountType: 'expense', children: []
+      };
+      mesesPeriodo.forEach(m => nodoSemDept.valoresMensais![m.key] = 0);
+
+      lancamentosSemDept.forEach(lanc => {
+        const valor = parseFloat(String(lanc.valor_pago || lanc.valor_original || 0));
+        const mesKey = lanc.data_vencimento ? format(parseISO(lanc.data_vencimento), 'yyyy-MM') : null;
+        
+        nodoSemDept.valor += valor;
+        if (mesKey && nodoSemDept.valoresMensais![mesKey] !== undefined) {
+          nodoSemDept.valoresMensais![mesKey] += valor;
+        }
+
+        if (lanc.plano_contas_id) {
+          const conta = contasMap.get(lanc.plano_contas_id);
+          if (conta) {
+            nodoSemDept.children?.push({
+              id: `sem-dept-${lanc.id}`, codigo: conta.code,
+              nome: `${conta.name} - ${lanc.fornecedor_nome || 'N/A'}`,
+              tipo: 'lancamento', nivel: 2, valor,
+              natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
+              accountType: conta.account_type, metadata: lanc
+            });
+          }
+        }
+      });
+
+      arvore.push(nodoSemDept);
+    }
+
+    arvore.sort((a, b) => b.valor - a.valor);
+    return arvore;
+  };
+
+  const hierarquia = construirHierarquiaDRE();
+  const hierarquiaDepartamentos = construirHierarquiaPorDepartamento();
 
   const toggleNode = (id: string) => {
     const newExpanded = new Set(expandedNodes);
@@ -415,9 +555,14 @@ export default function DREAnalitico() {
     setExpandedNodes(newExpanded);
   };
 
-  const formatarValor = (valor: number) => {
+  const formatarValor = (valor: number, compacto = false) => {
+    if (compacto && Math.abs(valor) >= 1000) {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 1
+      }).format(Math.abs(valor));
+    }
     return new Intl.NumberFormat('pt-BR', {
-      style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0
+      style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2
     }).format(Math.abs(valor));
   };
 
@@ -427,118 +572,105 @@ export default function DREAnalitico() {
     return `${sinal}${variacao.toFixed(1)}%`;
   };
 
-  const renderVariacaoIcon = (variacao: number | null, isExpense: boolean = false) => {
-    if (variacao === null) return <Minus className="h-3 w-3 text-muted-foreground" />;
+  const renderVariacaoCell = (variacao: number | null, isExpense: boolean = false) => {
+    if (variacao === null) return <span className="text-muted-foreground">-</span>;
     
-    // Para despesas, aumento é ruim (vermelho), diminuição é bom (verde)
-    // Para receitas, aumento é bom (verde), diminuição é ruim (vermelho)
     const isPositive = variacao > 0;
     const isGood = isExpense ? !isPositive : isPositive;
+    const color = Math.abs(variacao) < 1 ? 'text-muted-foreground' : isGood ? 'text-emerald-600' : 'text-red-600';
+    const Icon = isPositive ? ArrowUp : variacao < 0 ? ArrowDown : Minus;
     
-    if (isPositive) {
-      return <ArrowUp className={`h-3 w-3 ${isGood ? 'text-green-600' : 'text-red-600'}`} />;
-    } else if (variacao < 0) {
-      return <ArrowDown className={`h-3 w-3 ${isGood ? 'text-green-600' : 'text-red-600'}`} />;
-    }
-    return <Minus className="h-3 w-3 text-muted-foreground" />;
+    return (
+      <div className={`flex items-center justify-end gap-0.5 ${color}`}>
+        <Icon className="h-3 w-3" />
+        <span className="text-xs font-medium">{formatarVariacao(variacao)}</span>
+      </div>
+    );
   };
 
   const renderNode = (node: DRENode, level: number = 0) => {
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedNodes.has(node.id);
-    const paddingLeft = level * 16;
+    const paddingLeft = level * 20;
+    const isExpense = ['expense', 'cost_center', 'budget', 'asset', 'liability'].includes(node.accountType);
 
     const getRowStyle = () => {
-      if (node.tipo === 'grupo' && level === 0) return 'bg-primary/10 font-bold';
-      if (node.tipo === 'conta') return 'bg-muted/50 font-semibold text-sm';
-      if (node.tipo === 'departamento') return 'bg-accent/30 text-sm';
-      return 'hover:bg-accent/20 text-xs';
+      if (node.id === 'resultado') return 'bg-gradient-to-r from-primary/20 to-primary/5 font-bold border-t-2 border-primary/30';
+      if (node.tipo === 'grupo' && level === 0) return 'bg-slate-100 dark:bg-slate-800 font-bold';
+      if (node.tipo === 'conta') return 'bg-slate-50 dark:bg-slate-800/50 font-semibold';
+      if (node.tipo === 'departamento') return 'bg-blue-50/50 dark:bg-blue-900/20';
+      return 'hover:bg-muted/50';
     };
 
-    const isExpense = ['expense', 'cost_center', 'budget', 'asset', 'liability'].includes(node.accountType);
+    const getValueColor = () => {
+      if (node.id === 'resultado') return node.valor >= 0 ? 'text-emerald-600' : 'text-red-600';
+      if (node.accountType === 'revenue') return 'text-emerald-600';
+      if (isExpense) return 'text-red-600';
+      return node.valor >= 0 ? 'text-emerald-600' : 'text-red-600';
+    };
+
     const mom = node.valoresMensais ? calcularMoM(node.valoresMensais) : null;
-    const yoy = calcularYoY(node.valor, totaisAnoAnterior.despesas * (node.valor / (hierarquia.find(h => h.id === 'despesas')?.valor || 1)));
+    const yoy = calcularYoY(node.id, node.valor);
 
     return (
       <div key={node.id}>
-        <div
-          className={`flex items-center py-1.5 px-2 border-b transition-colors ${getRowStyle()}`}
-          style={{ paddingLeft: `${paddingLeft + 8}px` }}
-        >
-          {/* Nome da conta */}
-          <div className="flex items-center gap-1 min-w-[250px] flex-shrink-0">
-            {hasChildren && (
-              <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => toggleNode(node.id)}>
-                {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        <div className={`flex items-center border-b transition-colors ${getRowStyle()}`}>
+          {/* Coluna fixa: Nome */}
+          <div 
+            className="flex items-center gap-1 min-w-[280px] max-w-[280px] py-2 px-3 sticky left-0 bg-inherit z-10 border-r"
+            style={{ paddingLeft: `${paddingLeft + 12}px` }}
+          >
+            {hasChildren ? (
+              <Button variant="ghost" size="sm" className="h-5 w-5 p-0 hover:bg-transparent" onClick={() => toggleNode(node.id)}>
+                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </Button>
-            )}
-            {!hasChildren && <div className="w-5" />}
+            ) : <div className="w-5" />}
             
             {node.codigo && (
-              <span className="font-mono text-xs text-muted-foreground w-[60px]">{node.codigo}</span>
+              <span className="font-mono text-[11px] text-muted-foreground w-[55px] flex-shrink-0">{node.codigo}</span>
             )}
             
-            <span className="truncate">{node.nome}</span>
+            <span className={`truncate ${node.tipo === 'lancamento' ? 'text-xs text-muted-foreground' : 'text-sm'}`}>
+              {node.nome}
+            </span>
 
             {node.id === 'nao-classificados' && (
-              <Badge variant="destructive" className="ml-1 text-[10px] px-1 py-0">Pendente</Badge>
+              <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0 h-4">Pendente</Badge>
             )}
           </div>
 
-          {/* Valores por mês */}
-          <div className="flex items-center flex-1 overflow-x-auto">
+          {/* Colunas de valores mensais */}
+          <div className="flex items-center flex-1">
             {mesesPeriodo.map(mes => {
               const valorMes = node.valoresMensais?.[mes.key] || 0;
               return (
-                <div key={mes.key} className="min-w-[80px] text-right px-1">
-                  <span className={`font-mono text-xs ${
-                    node.accountType === 'revenue' ? 'text-green-600' :
-                    isExpense ? 'text-red-600' :
-                    node.valor >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {valorMes > 0 ? (isExpense ? `(${formatarValor(valorMes)})` : formatarValor(valorMes)) : '-'}
-                  </span>
+                <div key={mes.key} className="min-w-[90px] text-right px-2 py-2">
+                  {valorMes > 0 ? (
+                    <span className={`font-mono text-xs ${getValueColor()}`}>
+                      {isExpense ? `(${formatarValor(valorMes, true)})` : formatarValor(valorMes, true)}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">-</span>
+                  )}
                 </div>
               );
             })}
 
             {/* Total */}
-            <div className="min-w-[100px] text-right px-2 font-semibold border-l">
-              <span className={`font-mono text-sm ${
-                node.accountType === 'revenue' ? 'text-green-600' :
-                isExpense ? 'text-red-600' :
-                node.valor >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {isExpense ? `(${formatarValor(node.valor)})` : formatarValor(node.valor)}
+            <div className="min-w-[110px] text-right px-3 py-2 border-l-2 bg-slate-50/50 dark:bg-slate-800/30">
+              <span className={`font-mono text-sm font-semibold ${getValueColor()}`}>
+                {isExpense && node.valor > 0 ? `(${formatarValor(node.valor)})` : formatarValor(node.valor)}
               </span>
             </div>
 
             {/* MoM */}
-            <div className="min-w-[70px] text-right px-2 border-l">
-              <div className="flex items-center justify-end gap-1">
-                {renderVariacaoIcon(mom, isExpense)}
-                <span className={`text-xs font-medium ${
-                  mom === null ? 'text-muted-foreground' :
-                  (isExpense ? mom < 0 : mom > 0) ? 'text-green-600' : 
-                  (isExpense ? mom > 0 : mom < 0) ? 'text-red-600' : 'text-muted-foreground'
-                }`}>
-                  {formatarVariacao(mom)}
-                </span>
-              </div>
+            <div className="min-w-[80px] text-right px-2 py-2 border-l">
+              {renderVariacaoCell(mom, isExpense)}
             </div>
 
             {/* YoY */}
-            <div className="min-w-[70px] text-right px-2 border-l">
-              <div className="flex items-center justify-end gap-1">
-                {renderVariacaoIcon(yoy, isExpense)}
-                <span className={`text-xs font-medium ${
-                  yoy === null ? 'text-muted-foreground' :
-                  (isExpense ? yoy < 0 : yoy > 0) ? 'text-green-600' : 
-                  (isExpense ? yoy > 0 : yoy < 0) ? 'text-red-600' : 'text-muted-foreground'
-                }`}>
-                  {formatarVariacao(yoy)}
-                </span>
-              </div>
+            <div className="min-w-[80px] text-right px-2 py-2 border-l">
+              {renderVariacaoCell(yoy, isExpense)}
             </div>
           </div>
         </div>
@@ -551,42 +683,28 @@ export default function DREAnalitico() {
   };
 
   const exportarExcel = () => {
-    const flattenData = (nodes: DRENode[], parentCode: string = ''): any[] => {
+    const flattenData = (nodes: DRENode[]): any[] => {
       const result: any[] = [];
       
       nodes.forEach(node => {
-        const row: any = {
-          'Código': node.codigo,
-          'Descrição': node.nome,
-          'Tipo': node.tipo,
-        };
-        
-        mesesPeriodo.forEach(m => {
-          row[m.label] = node.valoresMensais?.[m.key] || 0;
-        });
-        
+        const row: any = { 'Código': node.codigo, 'Descrição': node.nome, 'Tipo': node.tipo };
+        mesesPeriodo.forEach(m => { row[m.label] = node.valoresMensais?.[m.key] || 0; });
         row['Total'] = node.valor;
         row['MoM %'] = calcularMoM(node.valoresMensais || {});
-        row['YoY %'] = calcularYoY(node.valor, 0);
-        
+        row['YoY %'] = calcularYoY(node.id, node.valor);
         result.push(row);
-
-        if (node.children) {
-          result.push(...flattenData(node.children, node.codigo));
-        }
+        if (node.children) result.push(...flattenData(node.children));
       });
 
       return result;
     };
 
-    const data = flattenData(hierarquia);
+    const data = flattenData(visaoAtiva === 'contas' ? hierarquia : hierarquiaDepartamentos);
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "DRE");
     
-    const fileName = `DRE_${format(new Date(dataInicio), 'dd-MM-yyyy')}_a_${format(new Date(dataFim), 'dd-MM-yyyy')}.xlsx`;
-    XLSX.writeFile(wb, fileName);
-
+    XLSX.writeFile(wb, `DRE_${format(new Date(dataInicio), 'dd-MM-yyyy')}_a_${format(new Date(dataFim), 'dd-MM-yyyy')}.xlsx`);
     toast.success("Relatório exportado com sucesso!");
   };
 
@@ -597,61 +715,54 @@ export default function DREAnalitico() {
   const totalNaoClassificados = hierarquia.find(h => h.id === 'nao-classificados')?.valor || 0;
   const resultado = totalReceitas - totalDespesas - totalCustos - totalPatrimoniais - totalNaoClassificados;
 
-  const totalContasNaDRE = lancamentos?.length || 0;
-
   return (
     <DashboardLayout>
-      <div className="space-y-4">
+      <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">DRE Analítico</h1>
-            <p className="text-muted-foreground text-sm">Demonstrativo com análise MoM e YoY</p>
+            <h1 className="text-3xl font-bold tracking-tight">Demonstrativo de Resultado do Exercício</h1>
+            <p className="text-muted-foreground">Análise financeira com comparativos MoM e YoY</p>
           </div>
-          <Button onClick={exportarExcel} variant="outline" size="sm">
-            <FileDown className="h-4 w-4 mr-2" />
-            Exportar
+          <Button onClick={exportarExcel} className="gap-2">
+            <FileDown className="h-4 w-4" />
+            Exportar Excel
           </Button>
         </div>
 
-        {/* Filtros compactos */}
+        {/* Filtros */}
         <Card>
-          <CardContent className="py-3">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div>
-                <Label className="text-xs">Período</Label>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="space-y-2">
+                <Label>Período</Label>
                 <Select value={periodo} onValueChange={(v: any) => handlePeriodoChange(v)}>
-                  <SelectTrigger className="h-8">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="mes">Mês</SelectItem>
-                    <SelectItem value="trimestre">Trimestre</SelectItem>
-                    <SelectItem value="ano">Ano</SelectItem>
+                    <SelectItem value="mes">Mensal</SelectItem>
+                    <SelectItem value="trimestre">Trimestral</SelectItem>
+                    <SelectItem value="ano">Anual</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div>
-                <Label className="text-xs">Início</Label>
-                <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="h-8" />
+              <div className="space-y-2">
+                <Label>Data Início</Label>
+                <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
               </div>
 
-              <div>
-                <Label className="text-xs">Fim</Label>
-                <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="h-8" />
+              <div className="space-y-2">
+                <Label>Data Fim</Label>
+                <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
               </div>
 
-              <div>
-                <Label className="text-xs">Empresa</Label>
+              <div className="space-y-2">
+                <Label>Empresa</Label>
                 <Select value={filterEmpresa} onValueChange={setFilterEmpresa}>
-                  <SelectTrigger className="h-8">
-                    <SelectValue placeholder="Todas" />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todas">Todas</SelectItem>
-                    {empresas?.map((empresa) => (
-                      <SelectItem key={empresa} value={empresa}>{empresa}</SelectItem>
-                    ))}
+                    <SelectItem value="todas">Todas as Empresas</SelectItem>
+                    {empresas?.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -659,9 +770,9 @@ export default function DREAnalitico() {
               <div className="flex items-end">
                 <Button 
                   onClick={() => setExpandedNodes(new Set(['receitas', 'despesas', 'custos', 'patrimoniais']))}
-                  variant="outline" size="sm" className="w-full h-8"
+                  variant="outline" className="w-full"
                 >
-                  Expandir
+                  Expandir Grupos
                 </Button>
               </div>
             </div>
@@ -669,69 +780,115 @@ export default function DREAnalitico() {
         </Card>
 
         {/* Cards de Resumo */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <Card className="p-3">
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-green-600" />
-              Receitas
-            </div>
-            <div className="text-lg font-bold text-green-600">{formatarValor(totalReceitas)}</div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Card className="border-l-4 border-l-emerald-500">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                Receitas
+              </div>
+              <div className="text-2xl font-bold text-emerald-600">{formatarValor(totalReceitas)}</div>
+            </CardContent>
           </Card>
 
-          <Card className="p-3">
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <TrendingDown className="h-3 w-3 text-red-600" />
-              Despesas
-            </div>
-            <div className="text-lg font-bold text-red-600">{formatarValor(totalDespesas)}</div>
+          <Card className="border-l-4 border-l-red-500">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <TrendingDown className="h-4 w-4 text-red-500" />
+                Despesas
+              </div>
+              <div className="text-2xl font-bold text-red-600">{formatarValor(totalDespesas)}</div>
+            </CardContent>
           </Card>
 
-          <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Custos</div>
-            <div className="text-lg font-bold text-red-600">{formatarValor(totalCustos)}</div>
+          <Card className="border-l-4 border-l-orange-500">
+            <CardContent className="pt-4 pb-3">
+              <div className="text-sm text-muted-foreground mb-1">Custos</div>
+              <div className="text-2xl font-bold text-orange-600">{formatarValor(totalCustos)}</div>
+            </CardContent>
           </Card>
 
-          <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Patrimoniais</div>
-            <div className="text-lg font-bold text-blue-600">{formatarValor(totalPatrimoniais)}</div>
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="pt-4 pb-3">
+              <div className="text-sm text-muted-foreground mb-1">Patrimoniais</div>
+              <div className="text-2xl font-bold text-blue-600">{formatarValor(totalPatrimoniais)}</div>
+            </CardContent>
           </Card>
 
-          <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Resultado</div>
-            <div className={`text-lg font-bold ${resultado >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(resultado)}
-            </div>
+          <Card className={`border-l-4 ${resultado >= 0 ? 'border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20' : 'border-l-red-500 bg-red-50/50 dark:bg-red-950/20'}`}>
+            <CardContent className="pt-4 pb-3">
+              <div className="text-sm text-muted-foreground mb-1">Resultado</div>
+              <div className={`text-2xl font-bold ${resultado >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(resultado)}
+              </div>
+            </CardContent>
           </Card>
         </div>
 
-        {/* Tabela DRE */}
+        {/* Tabela DRE com Tabs */}
         <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-base">Demonstrativo de Resultado do Exercício</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {/* Header da tabela */}
-            <div className="flex items-center py-2 px-2 bg-muted/50 border-b text-xs font-semibold sticky top-0">
-              <div className="min-w-[250px] flex-shrink-0">Conta</div>
-              <div className="flex items-center flex-1 overflow-x-auto">
-                {mesesPeriodo.map(mes => (
-                  <div key={mes.key} className="min-w-[80px] text-right px-1">{mes.label}</div>
-                ))}
-                <div className="min-w-[100px] text-right px-2 border-l">Total</div>
-                <div className="min-w-[70px] text-right px-2 border-l">MoM</div>
-                <div className="min-w-[70px] text-right px-2 border-l">YoY</div>
+          <Tabs value={visaoAtiva} onValueChange={(v) => setVisaoAtiva(v as 'contas' | 'departamentos')}>
+            <CardHeader className="pb-0">
+              <div className="flex items-center justify-between">
+                <CardTitle>Análise Detalhada</CardTitle>
+                <TabsList>
+                  <TabsTrigger value="contas" className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    Por Contas
+                  </TabsTrigger>
+                  <TabsTrigger value="departamentos" className="gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Por Departamentos
+                  </TabsTrigger>
+                </TabsList>
               </div>
-            </div>
+            </CardHeader>
 
-            {/* Conteúdo */}
-            <div className="max-h-[600px] overflow-y-auto">
-              {isLoading ? (
-                <div className="p-8 text-center text-muted-foreground">Carregando dados...</div>
-              ) : (
-                hierarquia.map(node => renderNode(node, 0))
-              )}
-            </div>
-          </CardContent>
+            <CardContent className="p-0 mt-4">
+              {/* Header da tabela */}
+              <div className="flex items-center bg-muted/80 border-y text-xs font-semibold text-muted-foreground sticky top-0 z-20">
+                <div className="min-w-[280px] max-w-[280px] py-3 px-3 sticky left-0 bg-muted/80 z-10 border-r">
+                  Conta / Descrição
+                </div>
+                <div className="flex items-center flex-1">
+                  {mesesPeriodo.map(mes => (
+                    <div key={mes.key} className="min-w-[90px] text-right px-2 py-3 uppercase">{mes.label}</div>
+                  ))}
+                  <div className="min-w-[110px] text-right px-3 py-3 border-l-2 bg-muted/50 font-bold">Total</div>
+                  <div className="min-w-[80px] text-right px-2 py-3 border-l">MoM</div>
+                  <div className="min-w-[80px] text-right px-2 py-3 border-l">YoY</div>
+                </div>
+              </div>
+
+              <TabsContent value="contas" className="m-0">
+                <ScrollArea className="h-[600px]">
+                  {isLoading ? (
+                    <div className="p-12 text-center text-muted-foreground">
+                      <div className="animate-pulse">Carregando dados financeiros...</div>
+                    </div>
+                  ) : (
+                    hierarquia.map(node => renderNode(node, 0))
+                  )}
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="departamentos" className="m-0">
+                <ScrollArea className="h-[600px]">
+                  {isLoading ? (
+                    <div className="p-12 text-center text-muted-foreground">
+                      <div className="animate-pulse">Carregando dados financeiros...</div>
+                    </div>
+                  ) : hierarquiaDepartamentos.length === 0 ? (
+                    <div className="p-12 text-center text-muted-foreground">
+                      Nenhum lançamento com departamento no período
+                    </div>
+                  ) : (
+                    hierarquiaDepartamentos.map(node => renderNode(node, 0))
+                  )}
+                </ScrollArea>
+              </TabsContent>
+            </CardContent>
+          </Tabs>
         </Card>
       </div>
     </DashboardLayout>
