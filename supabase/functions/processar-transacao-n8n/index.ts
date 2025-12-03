@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
 serve(async (req) => {
@@ -12,6 +12,28 @@ serve(async (req) => {
   }
 
   try {
+    // Verify API key for n8n integration security
+    const apiKey = req.headers.get('x-api-key');
+    const expectedKey = Deno.env.get('N8N_API_KEY');
+
+    if (!expectedKey) {
+      console.error('❌ N8N_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ error: 'API key not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!apiKey || apiKey !== expectedKey) {
+      console.error('❌ Invalid or missing API key');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ N8N API key verified');
+
     const { transacoes } = await req.json();
     
     if (!Array.isArray(transacoes) || transacoes.length === 0) {
@@ -181,7 +203,6 @@ Em qual conta contábil e departamento esta transação se encaixa melhor?`;
         // Determinar tipo da transação
         let tipo = transacao.tipo?.toLowerCase();
         if (!tipo || (tipo !== 'receita' && tipo !== 'despesa')) {
-          // Inferir baseado na conta
           tipo = contaSelecionada.account_type === 'revenue' ? 'receita' : 'despesa';
         }
 
