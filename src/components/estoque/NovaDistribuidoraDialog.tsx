@@ -36,13 +36,12 @@ export function NovaDistribuidoraDialog({ open, onOpenChange, editingItem }: Pro
 
   const mutation = useMutation({
     mutationFn: async (data: DistribuidoraInput) => {
-      const payload = { ...data, cnpj: cleanCNPJ(data.cnpj) };
+      const payload = { nome: data.nome, cnpj: cleanCNPJ(data.cnpj), endereco: data.endereco || null, cidade: data.cidade || null, uf: data.uf || null, telefone: data.telefone || null, email: data.email || null, ativo: data.ativo };
       if (editingItem) {
         const { error } = await supabase.from('estoque_distribuidoras').update(payload).eq('id', editingItem.id);
         if (error) throw error;
       } else {
-        const { data: user } = await supabase.auth.getUser();
-        const { error } = await supabase.from('estoque_distribuidoras').insert({ ...payload, created_by: user.user?.id });
+        const { error } = await supabase.from('estoque_distribuidoras').insert([payload]);
         if (error) throw error;
       }
     },

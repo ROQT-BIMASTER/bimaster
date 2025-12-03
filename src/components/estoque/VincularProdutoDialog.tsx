@@ -39,12 +39,12 @@ export function VincularProdutoDialog({ open, onOpenChange, editingItem }: Props
 
   const mutation = useMutation({
     mutationFn: async (data: VinculacaoInput) => {
+      const payload = { produto_master_id: data.produto_master_id, distribuidora_id: data.distribuidora_id, codigo_produto_distribuidora: data.codigo_produto_distribuidora, nome_exibicao: data.nome_exibicao || null, fator_conversao: data.fator_conversao || 1, ativo: data.ativo };
       if (editingItem) {
-        const { error } = await supabase.from('estoque_produtos_distribuidora').update(data).eq('id', editingItem.id);
+        const { error } = await supabase.from('estoque_produtos_distribuidora').update(payload).eq('id', editingItem.id);
         if (error) throw error;
       } else {
-        const { data: user } = await supabase.auth.getUser();
-        const { error } = await supabase.from('estoque_produtos_distribuidora').insert({ ...data, created_by: user.user?.id });
+        const { error } = await supabase.from('estoque_produtos_distribuidora').insert([payload]);
         if (error) throw error;
       }
     },

@@ -34,12 +34,12 @@ export function NovoProdutoMasterDialog({ open, onOpenChange, editingItem }: Pro
 
   const mutation = useMutation({
     mutationFn: async (data: ProdutoMasterInput) => {
+      const payload = { nome: data.nome, sku_master: data.sku_master, unidade_medida: data.unidade_medida || 'UN', categoria: data.categoria || null, ativo: data.ativo };
       if (editingItem) {
-        const { error } = await supabase.from('estoque_produtos_master').update(data).eq('id', editingItem.id);
+        const { error } = await supabase.from('estoque_produtos_master').update(payload).eq('id', editingItem.id);
         if (error) throw error;
       } else {
-        const { data: user } = await supabase.auth.getUser();
-        const { error } = await supabase.from('estoque_produtos_master').insert({ ...data, created_by: user.user?.id });
+        const { error } = await supabase.from('estoque_produtos_master').insert([payload]);
         if (error) throw error;
       }
     },
