@@ -729,11 +729,15 @@ export default function DREAnalitico() {
           <div className="flex items-center flex-nowrap">
             {mesesPeriodo.map(mes => {
               const valorMes = node.valoresMensais?.[mes.key] || 0;
+              const isResultado = node.id === 'resultado';
+              const temValor = isResultado ? valorMes !== 0 : valorMes > 0;
               return (
                 <div key={mes.key} className={`${formatConfig.monthColWidth} flex-shrink-0 text-right ${formatConfig.padding}`}>
-                  {valorMes > 0 ? (
-                    <span className={`font-mono ${formatConfig.fontSizeValue} ${getValueColor()}`}>
-                      {isExpense ? `(${formatarValor(valorMes, true)})` : formatarValor(valorMes, true)}
+                  {temValor ? (
+                    <span className={`font-mono ${formatConfig.fontSizeValue} ${isResultado ? (valorMes >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : getValueColor()}`}>
+                      {isResultado 
+                        ? (valorMes < 0 ? `(${formatarValor(Math.abs(valorMes), true)})` : formatarValor(valorMes, true))
+                        : (isExpense ? `(${formatarValor(valorMes, true)})` : formatarValor(valorMes, true))}
                     </span>
                   ) : (
                     <span className={`text-muted-foreground ${formatConfig.fontSizeValue}`}>-</span>
@@ -744,8 +748,10 @@ export default function DREAnalitico() {
 
             {/* Total */}
             <div className={`${formatConfig.totalColWidth} flex-shrink-0 text-right ${formatConfig.padding} border-l-2 bg-slate-50/50 dark:bg-slate-800/30`}>
-              <span className={`font-mono ${formatConfig.fontSizeValue} font-semibold ${getValueColor()}`}>
-                {isExpense && node.valor > 0 ? `(${formatarValor(node.valor)})` : formatarValor(node.valor)}
+              <span className={`font-mono ${formatConfig.fontSizeValue} font-semibold ${node.id === 'resultado' ? (node.valor >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : getValueColor()}`}>
+                {node.id === 'resultado' 
+                  ? (node.valor < 0 ? `(${formatarValor(Math.abs(node.valor))})` : formatarValor(node.valor))
+                  : (isExpense && node.valor > 0 ? `(${formatarValor(node.valor)})` : formatarValor(node.valor))}
               </span>
             </div>
 
