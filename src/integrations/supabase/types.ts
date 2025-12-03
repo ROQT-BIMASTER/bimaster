@@ -1314,6 +1314,72 @@ export type Database = {
           },
         ]
       }
+      fabrica_alertas_precos: {
+        Row: {
+          created_at: string
+          dados_alerta: Json | null
+          expires_at: string | null
+          id: string
+          lido: boolean | null
+          mensagem: string | null
+          produto_id: string | null
+          resolvido: boolean | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          severidade: string
+          tabela_id: string | null
+          tipo_alerta: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          dados_alerta?: Json | null
+          expires_at?: string | null
+          id?: string
+          lido?: boolean | null
+          mensagem?: string | null
+          produto_id?: string | null
+          resolvido?: boolean | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          severidade?: string
+          tabela_id?: string | null
+          tipo_alerta: string
+          titulo: string
+        }
+        Update: {
+          created_at?: string
+          dados_alerta?: Json | null
+          expires_at?: string | null
+          id?: string
+          lido?: boolean | null
+          mensagem?: string | null
+          produto_id?: string | null
+          resolvido?: boolean | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          severidade?: string
+          tabela_id?: string | null
+          tipo_alerta?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_alertas_precos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_alertas_precos_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_apontamentos: {
         Row: {
           created_at: string | null

@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent } from "lucide-react";
+import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell } from "lucide-react";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovaTabelaPrecoDialog } from "@/components/fabrica/NovaTabelaPrecoDialog";
 import { CadeiaPrecificacaoVisual } from "@/components/fabrica/CadeiaPrecificacaoVisual";
@@ -24,6 +24,7 @@ import { GeradorPrecosDialog } from "@/components/fabrica/GeradorPrecosDialog";
 import { VisualizacaoPrecosDialog } from "@/components/fabrica/VisualizacaoPrecosDialog";
 import { DashboardPrecosAnalytics } from "@/components/fabrica/DashboardPrecosAnalytics";
 import { ReajusteEmLoteDialog } from "@/components/fabrica/ReajusteEmLoteDialog";
+import { AlertasPrecos } from "@/components/fabrica/AlertasPrecos";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -205,10 +206,18 @@ export default function FabricaTabelasPreco() {
               <BarChart3 className="h-4 w-4" />
               Analytics
             </TabsTrigger>
+            <TabsTrigger value="alertas" className="gap-2">
+              <Bell className="h-4 w-4" />
+              Alertas
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="analytics" className="mt-6">
             <DashboardPrecosAnalytics tabelas={tabelas || []} precos={todosPrecos || []} />
+          </TabsContent>
+
+          <TabsContent value="alertas" className="mt-6">
+            <AlertasPrecos />
           </TabsContent>
 
           <TabsContent value="lista" className="mt-6 space-y-6">

@@ -30,11 +30,12 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatarMoeda, formatarPercentual } from "@/lib/fabrica/pricing-calculator";
-import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag, Edit, Trash2, FileText } from "lucide-react";
+import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag, Edit, Trash2, FileText, History } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { EditarPrecosProdutoDialog } from "./EditarPrecosProdutoDialog";
 import { ExportarTabelaPDF } from "./ExportarTabelaPDF";
+import { HistoricoPrecoProduto } from "./HistoricoPrecoProduto";
 
 interface Props {
   open: boolean;
@@ -47,6 +48,8 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
   const [produtoEditando, setProdutoEditando] = useState<string | null>(null);
   const [precoExcluindo, setPrecoExcluindo] = useState<any>(null);
   const [showExportPDF, setShowExportPDF] = useState(false);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [produtoHistorico, setProdutoHistorico] = useState<{id: string, nome: string} | null>(null);
 
   const { data: precos, isLoading, refetch } = useQuery({
     queryKey: ["visualizacao-precos", tabela?.id],
@@ -395,12 +398,28 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setProdutoHistorico({
+                              id: preco.produto_id,
+                              nome: preco.produto?.nome || "Produto"
+                            });
+                            setHistoricoOpen(true);
+                          }}
+                          className="h-8 w-8 p-0"
+                          title="Ver histórico"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setProdutoEditando(preco.produto_id)}
                           className="h-8 w-8 p-0"
+                          title="Editar"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -409,6 +428,7 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
                           size="sm"
                           onClick={() => setPrecoExcluindo(preco)}
                           className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          title="Excluir"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -477,6 +497,19 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
         tabela={tabela}
         precos={precosFiltrados || []}
       />
+
+      {/* Dialog de Histórico */}
+      {produtoHistorico && (
+        <HistoricoPrecoProduto
+          open={historicoOpen}
+          onOpenChange={(open) => {
+            setHistoricoOpen(open);
+            if (!open) setProdutoHistorico(null);
+          }}
+          produtoId={produtoHistorico.id}
+          produtoNome={produtoHistorico.nome}
+        />
+      )}
     </Dialog>
   );
 }
