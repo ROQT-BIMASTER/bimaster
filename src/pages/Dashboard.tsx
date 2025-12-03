@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Users, Building2, Sparkles, DollarSign, Factory } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { format, subDays, startOfDay } from "date-fns";
+import { format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MetricasDistribuicao } from "@/components/admin/MetricasDistribuicao";
 import { FunilProspeccao } from "@/components/dashboard/FunilProspeccao";
@@ -37,6 +37,22 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
+  // Memoizar verificação de permissões para evitar recálculos
+  const hasProspectsPermission = useMemo(() => 
+    !modulesLoading && hasModulePermission("prospects"), 
+    [modulesLoading, hasModulePermission]
+  );
+  
+  const hasTradePermission = useMemo(() => 
+    !modulesLoading && hasModulePermission("trade"), 
+    [modulesLoading, hasModulePermission]
+  );
+  
+  const hasFinanceiroPermission = useMemo(() => 
+    !modulesLoading && hasModulePermission("financeiro"), 
+    [modulesLoading, hasModulePermission]
+  );
+
   // Verificar role do usuário uma única vez
   useEffect(() => {
     const checkAdmin = async () => {
@@ -55,65 +71,71 @@ const Dashboard = () => {
     checkAdmin();
   }, []);
 
-  // Carregar dados do pipeline e atividades - apenas se tiver módulo de prospects
+  // Carregar dados do pipeline e atividades - otimizado com query agregada
   useEffect(() => {
-    if (modulesLoading) return;
+    if (modulesLoading || !hasProspectsPermission) {
+      setLoading(false);
+      return;
+    }
     
     const fetchData = async () => {
       try {
-        // Só carrega dados de prospects se tiver permissão
-        if (hasModulePermission("prospects")) {
-          // Fetch pipeline data
-          const stages = ["novo", "em_contato", "proposta_enviada", "negociacao", "ganho"] as const;
-          const stageLabels = ["Novo", "Contato", "Proposta", "Negociação", "Ganho"];
-          const stageColors = [
-            "hsl(217, 91%, 60%)",
-            "hsl(199, 89%, 48%)",
-            "hsl(173, 58%, 39%)",
-            "hsl(142, 71%, 45%)",
-            "hsl(120, 100%, 40%)",
-          ];
+        // Fetch pipeline data
+        const stages = ["novo", "em_contato", "proposta_enviada", "negociacao", "ganho"] as const;
+        const stageLabels = ["Novo", "Contato", "Proposta", "Negociação", "Ganho"];
+        const stageColors = [
+          "hsl(217, 91%, 60%)",
+          "hsl(199, 89%, 48%)",
+          "hsl(173, 58%, 39%)",
+          "hsl(142, 71%, 45%)",
+          "hsl(120, 100%, 40%)",
+        ];
 
-          const pipelineCounts = await Promise.all(
-            stages.map((stage) =>
-              supabase.from("prospects").select("*", { count: "exact", head: true }).eq("status", stage),
-            ),
-          );
+        const pipelineCounts = await Promise.all(
+          stages.map((stage) =>
+            supabase.from("prospects").select("*", { count: "exact", head: true }).eq("status", stage),
+          ),
+        );
 
-          const total = pipelineCounts.reduce((sum, result) => sum + (result.count || 0), 0);
+        const total = pipelineCounts.reduce((sum, result) => sum + (result.count || 0), 0);
 
-          const pipeline = stages.map((stage, index) => ({
-            stage: stageLabels[index],
-            count: pipelineCounts[index].count || 0,
-            percentage: total > 0 ? Math.round(((pipelineCounts[index].count || 0) / total) * 100) : 0,
-            fill: stageColors[index],
-          }));
+        const pipeline = stages.map((stage, index) => ({
+          stage: stageLabels[index],
+          count: pipelineCounts[index].count || 0,
+          percentage: total > 0 ? Math.round(((pipelineCounts[index].count || 0) / total) * 100) : 0,
+          fill: stageColors[index],
+        }));
 
-          setPipelineData(pipeline);
+        setPipelineData(pipeline);
 
-          // Fetch activity data for last 30 days
-          const dates = Array.from({ length: 30 }, (_, i) => {
-            const date = subDays(new Date(), 29 - i);
-            return format(startOfDay(date), "yyyy-MM-dd");
-          });
+        // Fetch activity data usando função agregada (1 query em vez de 30)
+        const startDate = format(subDays(new Date(), 29), "yyyy-MM-dd");
+        const endDate = format(new Date(), "yyyy-MM-dd");
+        
+        const { data: activityCounts } = await supabase.rpc("get_activity_counts_by_date", {
+          p_start_date: startDate,
+          p_end_date: endDate,
+        });
 
-          const activityCounts = await Promise.all(
-            dates.map((date) =>
-              supabase
-                .from("atividades")
-                .select("*", { count: "exact", head: true })
-                .gte("data_atividade", date)
-                .lt("data_atividade", format(subDays(new Date(date), -1), "yyyy-MM-dd")),
-            ),
-          );
+        // Criar mapa de contagens
+        const countsMap = new Map(
+          (activityCounts || []).map((item: { activity_date: string; activity_count: number }) => [
+            item.activity_date,
+            Number(item.activity_count),
+          ])
+        );
 
-          const activities = dates.map((date, index) => ({
-            date: format(new Date(date), "dd/MM", { locale: ptBR }),
-            count: activityCounts[index].count || 0,
-          }));
+        // Gerar array com todos os 30 dias
+        const activities = Array.from({ length: 30 }, (_, i) => {
+          const date = subDays(new Date(), 29 - i);
+          const dateStr = format(date, "yyyy-MM-dd");
+          return {
+            date: format(date, "dd/MM", { locale: ptBR }),
+            count: countsMap.get(dateStr) || 0,
+          };
+        });
 
-          setActivityData(activities);
-        }
+        setActivityData(activities);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
       } finally {
@@ -122,39 +144,65 @@ const Dashboard = () => {
     };
 
     fetchData();
+  }, [modulesLoading, hasProspectsPermission]);
+
+  // Memoizar módulos rápidos
+  const quickModules = useMemo(() => {
+    if (modulesLoading) return [];
+    
+    return [
+      {
+        moduleCode: "prospects",
+        title: "Módulo de Prospects",
+        description: "Gestão completa de prospects e pipeline",
+        icon: Users,
+        link: "/dashboard/prospects",
+      },
+      {
+        moduleCode: "trade",
+        title: "Módulo de Trade Marketing",
+        description: "Monitoramento de PDVs e performance",
+        icon: Building2,
+        link: "/dashboard/trade",
+      },
+      {
+        moduleCode: "financeiro",
+        title: "Módulo Financeiro",
+        description: "Gestão de contas e fluxo de caixa",
+        icon: DollarSign,
+        link: "/dashboard/financeiro",
+      },
+      {
+        moduleCode: "fabrica",
+        title: "Módulo Fábrica",
+        description: "Produção, fórmulas e qualidade",
+        icon: Factory,
+        link: "/dashboard/fabrica",
+      },
+    ].filter((mod) => hasModulePermission(mod.moduleCode));
   }, [modulesLoading, hasModulePermission]);
 
-  // Determinar quais módulos rápidos mostrar
-  const quickModules = [
-    {
-      moduleCode: "prospects",
-      title: "Módulo de Prospects",
-      description: "Gestão completa de prospects e pipeline",
-      icon: Users,
-      link: "/dashboard/prospects",
-    },
-    {
-      moduleCode: "trade",
-      title: "Módulo de Trade Marketing",
-      description: "Monitoramento de PDVs e performance",
-      icon: Building2,
-      link: "/dashboard/trade",
-    },
-    {
-      moduleCode: "financeiro",
-      title: "Módulo Financeiro",
-      description: "Gestão de contas e fluxo de caixa",
-      icon: DollarSign,
-      link: "/dashboard/financeiro",
-    },
-    {
-      moduleCode: "fabrica",
-      title: "Módulo Fábrica",
-      description: "Produção, fórmulas e qualidade",
-      icon: Factory,
-      link: "/dashboard/fabrica",
-    },
-  ].filter((mod) => hasModulePermission(mod.moduleCode));
+  // Memoizar tooltip do gráfico
+  const ActivityTooltip = useCallback(({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-card border rounded-lg p-3 shadow-lg">
+          <p className="font-semibold">{payload[0].payload.date}</p>
+          <p className="text-sm">Atividades: {payload[0].payload.count}</p>
+        </div>
+      );
+    }
+    return null;
+  }, []);
+
+  // Memoizar grid class
+  const quickModulesGridClass = useMemo(() => {
+    const count = quickModules.length;
+    if (count === 1) return "md:grid-cols-1";
+    if (count === 2) return "md:grid-cols-2";
+    if (count === 3) return "md:grid-cols-3";
+    return "md:grid-cols-4";
+  }, [quickModules.length]);
 
   return (
     <DashboardLayout>
@@ -181,7 +229,7 @@ const Dashboard = () => {
         ) : (
           <div className="space-y-6">
             {/* Widget de Prospects - apenas se tiver permissão */}
-            {hasModulePermission("prospects") && (
+            {hasProspectsPermission && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Prospects</h3>
                 <ProspectsDashboardWidget />
@@ -189,7 +237,7 @@ const Dashboard = () => {
             )}
 
             {/* Widget de Trade - apenas se tiver permissão */}
-            {hasModulePermission("trade") && (
+            {hasTradePermission && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Trade Marketing</h3>
                 <TradeDashboardWidget />
@@ -197,7 +245,7 @@ const Dashboard = () => {
             )}
 
             {/* Widget Financeiro - apenas se tiver permissão */}
-            {hasModulePermission("financeiro") && (
+            {hasFinanceiroPermission && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Financeiro</h3>
                 <FinanceiroDashboardWidget />
@@ -207,7 +255,7 @@ const Dashboard = () => {
         )}
 
         {/* Pipeline e Atividades - apenas se tiver módulo de prospects */}
-        {hasModulePermission("prospects") && (
+        {hasProspectsPermission && (
           <div className="grid gap-6">
             <FunilProspeccao data={pipelineData} />
 
@@ -225,25 +273,14 @@ const Dashboard = () => {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" />
                       <YAxis />
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="bg-card border rounded-lg p-3 shadow-lg">
-                                <p className="font-semibold">{payload[0].payload.date}</p>
-                                <p className="text-sm">Atividades: {payload[0].payload.count}</p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
+                      <Tooltip content={ActivityTooltip} />
                       <Line
                         type="monotone"
                         dataKey="count"
                         stroke="hsl(var(--primary))"
                         strokeWidth={2}
                         dot={{ fill: "hsl(var(--primary))" }}
+                        isAnimationActive={false}
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -255,7 +292,7 @@ const Dashboard = () => {
 
         {/* Módulos Rápidos - apenas os que tem permissão */}
         {quickModules.length > 0 && (
-          <div className={`grid gap-4 ${quickModules.length === 1 ? 'md:grid-cols-1' : quickModules.length === 2 ? 'md:grid-cols-2' : quickModules.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4'}`}>
+          <div className={`grid gap-4 ${quickModulesGridClass}`}>
             {quickModules.map((mod) => (
               <Card key={mod.moduleCode} className="hover:shadow-lg transition-shadow">
                 <CardHeader>

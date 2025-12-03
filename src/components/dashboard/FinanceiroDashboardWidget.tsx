@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Receipt, AlertCircle, Clock, TrendingDown } from "lucide-react";
@@ -11,7 +11,7 @@ interface FinanceiroStats {
   totalVencido: number;
 }
 
-export const FinanceiroDashboardWidget = () => {
+export const FinanceiroDashboardWidget = memo(() => {
   const [stats, setStats] = useState<FinanceiroStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -62,6 +62,41 @@ export const FinanceiroDashboardWidget = () => {
     fetchStats();
   }, []);
 
+  const statCards = useMemo(() => [
+    {
+      title: "Contas Pendentes",
+      value: stats?.contasPendentes || 0,
+      icon: Clock,
+      description: "A vencer",
+      format: "number" as const,
+      color: "text-blue-600",
+    },
+    {
+      title: "Contas Vencidas",
+      value: stats?.contasVencidas || 0,
+      icon: AlertCircle,
+      description: "Atenção necessária",
+      format: "number" as const,
+      color: "text-red-600",
+    },
+    {
+      title: "Total a Pagar",
+      value: stats?.totalAPagar || 0,
+      icon: Receipt,
+      description: "Valor pendente",
+      format: "currency" as const,
+      color: "text-amber-600",
+    },
+    {
+      title: "Total Vencido",
+      value: stats?.totalVencido || 0,
+      icon: TrendingDown,
+      description: "Valor em atraso",
+      format: "currency" as const,
+      color: "text-red-600",
+    },
+  ], [stats]);
+
   if (loading) {
     return (
       <div className="grid gap-4 md:grid-cols-4">
@@ -78,41 +113,6 @@ export const FinanceiroDashboardWidget = () => {
       </div>
     );
   }
-
-  const statCards = [
-    {
-      title: "Contas Pendentes",
-      value: stats?.contasPendentes || 0,
-      icon: Clock,
-      description: "A vencer",
-      format: "number",
-      color: "text-blue-600",
-    },
-    {
-      title: "Contas Vencidas",
-      value: stats?.contasVencidas || 0,
-      icon: AlertCircle,
-      description: "Atenção necessária",
-      format: "number",
-      color: "text-red-600",
-    },
-    {
-      title: "Total a Pagar",
-      value: stats?.totalAPagar || 0,
-      icon: Receipt,
-      description: "Valor pendente",
-      format: "currency",
-      color: "text-amber-600",
-    },
-    {
-      title: "Total Vencido",
-      value: stats?.totalVencido || 0,
-      icon: TrendingDown,
-      description: "Valor em atraso",
-      format: "currency",
-      color: "text-red-600",
-    },
-  ];
 
   return (
     <div className="grid gap-4 md:grid-cols-4">
@@ -134,4 +134,6 @@ export const FinanceiroDashboardWidget = () => {
       ))}
     </div>
   );
-};
+});
+
+FinanceiroDashboardWidget.displayName = "FinanceiroDashboardWidget";

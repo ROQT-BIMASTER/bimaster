@@ -10447,6 +10447,13 @@ export type Database = {
         Args: { p_item_nf_id: string }
         Returns: Json
       }
+      get_activity_counts_by_date: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          activity_count: number
+          activity_date: string
+        }[]
+      }
       get_analise_departamentos: {
         Args: {
           p_departamento_id?: string

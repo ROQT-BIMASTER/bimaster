@@ -1,3 +1,4 @@
+import { memo, useMemo, useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FunnelChart, Funnel, LabelList, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -12,22 +13,32 @@ interface FunilProspeccaoProps {
   data: FunnelData[];
 }
 
-export const FunilProspeccao = ({ data }: FunilProspeccaoProps) => {
-  const CustomTooltip = ({ active, payload }: any) => {
+export const FunilProspeccao = memo(({ data }: FunilProspeccaoProps) => {
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  // Desativar animação após primeira renderização
+  useEffect(() => {
+    const timer = setTimeout(() => setHasAnimated(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Memoizar CustomTooltip
+  const CustomTooltip = useCallback(({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
+      const tooltipData = payload[0].payload;
       return (
         <div className="bg-card border rounded-lg p-3 shadow-lg">
-          <p className="font-semibold">{data.stage}</p>
-          <p className="text-sm">Prospects: {data.count}</p>
-          <p className="text-sm">Percentual: {data.percentage}%</p>
+          <p className="font-semibold">{tooltipData.stage}</p>
+          <p className="text-sm">Prospects: {tooltipData.count}</p>
+          <p className="text-sm">Percentual: {tooltipData.percentage}%</p>
         </div>
       );
     }
     return null;
-  };
+  }, []);
 
-  const CustomLabel = (props: any) => {
+  // Memoizar CustomLabel
+  const CustomLabel = useCallback((props: any) => {
     const { x, y, width, value, stage, count } = props;
     return (
       <g>
@@ -53,7 +64,26 @@ export const FunilProspeccao = ({ data }: FunilProspeccaoProps) => {
         </text>
       </g>
     );
-  };
+  }, []);
+
+  // Memoizar cards de stages
+  const stageCards = useMemo(() => (
+    data.map((stage, index) => (
+      <div
+        key={index}
+        className="flex flex-col items-center p-3 rounded-lg border"
+        style={{ borderColor: stage.fill }}
+      >
+        <div
+          className="w-3 h-3 rounded-full mb-2"
+          style={{ backgroundColor: stage.fill }}
+        />
+        <p className="text-xs font-medium text-center">{stage.stage}</p>
+        <p className="text-lg font-bold">{stage.count}</p>
+        <p className="text-xs text-muted-foreground">{stage.percentage}%</p>
+      </div>
+    ))
+  ), [data]);
 
   return (
     <Card>
@@ -64,38 +94,26 @@ export const FunilProspeccao = ({ data }: FunilProspeccaoProps) => {
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           <FunnelChart>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={CustomTooltip} />
             <Funnel
               dataKey="percentage"
               data={data}
-              isAnimationActive
+              isAnimationActive={!hasAnimated}
             >
               <LabelList
                 position="center"
-                content={<CustomLabel />}
+                content={CustomLabel}
               />
             </Funnel>
           </FunnelChart>
         </ResponsiveContainer>
         
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {data.map((stage, index) => (
-            <div
-              key={index}
-              className="flex flex-col items-center p-3 rounded-lg border"
-              style={{ borderColor: stage.fill }}
-            >
-              <div
-                className="w-3 h-3 rounded-full mb-2"
-                style={{ backgroundColor: stage.fill }}
-              />
-              <p className="text-xs font-medium text-center">{stage.stage}</p>
-              <p className="text-lg font-bold">{stage.count}</p>
-              <p className="text-xs text-muted-foreground">{stage.percentage}%</p>
-            </div>
-          ))}
+          {stageCards}
         </div>
       </CardContent>
     </Card>
   );
-};
+});
+
+FunilProspeccao.displayName = "FunilProspeccao";

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Store, Calendar, Camera, DollarSign } from "lucide-react";
@@ -11,7 +11,7 @@ interface TradeStats {
   totalInvestments: number;
 }
 
-export const TradeDashboardWidget = () => {
+export const TradeDashboardWidget = memo(() => {
   const [stats, setStats] = useState<TradeStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -61,6 +61,37 @@ export const TradeDashboardWidget = () => {
     fetchStats();
   }, []);
 
+  const statCards = useMemo(() => [
+    {
+      title: "PDVs Ativos",
+      value: stats?.totalStores || 0,
+      icon: Store,
+      description: "Pontos de venda",
+      format: "number" as const,
+    },
+    {
+      title: "Visitas do Mês",
+      value: stats?.visitsThisMonth || 0,
+      icon: Calendar,
+      description: "Visitas realizadas",
+      format: "number" as const,
+    },
+    {
+      title: "Fotos do Mês",
+      value: stats?.photosThisMonth || 0,
+      icon: Camera,
+      description: "Fotos enviadas",
+      format: "number" as const,
+    },
+    {
+      title: "Investimentos",
+      value: stats?.totalInvestments || 0,
+      icon: DollarSign,
+      description: "Total do mês",
+      format: "currency" as const,
+    },
+  ], [stats]);
+
   if (loading) {
     return (
       <div className="grid gap-4 md:grid-cols-4">
@@ -77,37 +108,6 @@ export const TradeDashboardWidget = () => {
       </div>
     );
   }
-
-  const statCards = [
-    {
-      title: "PDVs Ativos",
-      value: stats?.totalStores || 0,
-      icon: Store,
-      description: "Pontos de venda",
-      format: "number",
-    },
-    {
-      title: "Visitas do Mês",
-      value: stats?.visitsThisMonth || 0,
-      icon: Calendar,
-      description: "Visitas realizadas",
-      format: "number",
-    },
-    {
-      title: "Fotos do Mês",
-      value: stats?.photosThisMonth || 0,
-      icon: Camera,
-      description: "Fotos enviadas",
-      format: "number",
-    },
-    {
-      title: "Investimentos",
-      value: stats?.totalInvestments || 0,
-      icon: DollarSign,
-      description: "Total do mês",
-      format: "currency",
-    },
-  ];
 
   return (
     <div className="grid gap-4 md:grid-cols-4">
@@ -129,4 +129,6 @@ export const TradeDashboardWidget = () => {
       ))}
     </div>
   );
-};
+});
+
+TradeDashboardWidget.displayName = "TradeDashboardWidget";
