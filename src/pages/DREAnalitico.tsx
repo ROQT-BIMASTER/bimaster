@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid, Eye } from "lucide-react";
+import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid, Eye, GripVertical } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, subMonths, subYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -97,7 +97,59 @@ export default function DREAnalitico() {
   const [selectedLancamento, setSelectedLancamento] = useState<any | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   
+  // Estado para larguras das colunas (em pixels)
+  const [columnWidths, setColumnWidths] = useState({
+    name: 280,
+    month: 100,
+    total: 120,
+    variation: 80
+  });
+  const resizingColumn = useRef<string | null>(null);
+  const startX = useRef<number>(0);
+  const startWidth = useRef<number>(0);
+  
   const formatConfig = tableFormatConfig[tableFormat];
+
+  // Handlers para redimensionar colunas
+  const handleMouseDown = useCallback((e: React.MouseEvent, column: string) => {
+    e.preventDefault();
+    resizingColumn.current = column;
+    startX.current = e.clientX;
+    startWidth.current = columnWidths[column as keyof typeof columnWidths];
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [columnWidths]);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!resizingColumn.current) return;
+    
+    const diff = e.clientX - startX.current;
+    const newWidth = Math.max(50, startWidth.current + diff);
+    
+    setColumnWidths(prev => ({
+      ...prev,
+      [resizingColumn.current!]: newWidth
+    }));
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    resizingColumn.current = null;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  }, [handleMouseMove]);
+
+  // Cleanup event listeners on unmount
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
+  const resetColumnWidths = useCallback(() => {
+    setColumnWidths({ name: 280, month: 100, total: 120, variation: 80 });
+  }, []);
 
   // Gerar meses para o período selecionado
   const mesesPeriodo = useMemo((): MonthData[] => {
@@ -691,8 +743,8 @@ export default function DREAnalitico() {
         >
           {/* Coluna fixa: Nome */}
           <div 
-            className={`flex items-center ${formatConfig.rowGap} ${formatConfig.nameColWidth} ${formatConfig.padding} sticky left-0 bg-inherit z-10 border-r`}
-            style={{ paddingLeft: `${paddingLeft + 12}px` }}
+            className={`flex items-center ${formatConfig.rowGap} ${formatConfig.padding} sticky left-0 bg-inherit z-10 border-r`}
+            style={{ paddingLeft: `${paddingLeft + 12}px`, width: columnWidths.name, minWidth: columnWidths.name }}
           >
             {hasChildren ? (
               <Button variant="ghost" size="sm" className={`${formatConfig.expandBtnSize} hover:bg-transparent`} onClick={(e) => { e.stopPropagation(); toggleNode(node.id); }}>
@@ -732,7 +784,11 @@ export default function DREAnalitico() {
               const isResultado = node.id === 'resultado';
               const temValor = isResultado ? valorMes !== 0 : valorMes > 0;
               return (
-                <div key={mes.key} className={`${formatConfig.monthColWidth} flex-shrink-0 text-right ${formatConfig.padding}`}>
+                <div 
+                  key={mes.key} 
+                  className={`flex-shrink-0 text-right ${formatConfig.padding}`}
+                  style={{ width: columnWidths.month }}
+                >
                   {temValor ? (
                     <span className={`font-mono ${formatConfig.fontSizeValue} ${isResultado ? (valorMes >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : getValueColor()}`}>
                       {isResultado 
@@ -747,7 +803,10 @@ export default function DREAnalitico() {
             })}
 
             {/* Total */}
-            <div className={`${formatConfig.totalColWidth} flex-shrink-0 text-right ${formatConfig.padding} border-l-2 bg-slate-50/50 dark:bg-slate-800/30`}>
+            <div 
+              className={`flex-shrink-0 text-right ${formatConfig.padding} border-l-2 bg-slate-50/50 dark:bg-slate-800/30`}
+              style={{ width: columnWidths.total }}
+            >
               <span className={`font-mono ${formatConfig.fontSizeValue} font-semibold ${node.id === 'resultado' ? (node.valor >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : getValueColor()}`}>
                 {node.id === 'resultado' 
                   ? (node.valor < 0 ? `(${formatarValor(Math.abs(node.valor))})` : formatarValor(node.valor))
@@ -756,12 +815,18 @@ export default function DREAnalitico() {
             </div>
 
             {/* MoM */}
-            <div className={`${formatConfig.variationColWidth} flex-shrink-0 text-right ${formatConfig.padding} border-l`}>
+            <div 
+              className={`flex-shrink-0 text-right ${formatConfig.padding} border-l`}
+              style={{ width: columnWidths.variation }}
+            >
               {renderVariacaoCell(mom, isExpense)}
             </div>
 
             {/* YoY */}
-            <div className={`${formatConfig.variationColWidth} flex-shrink-0 text-right ${formatConfig.padding} border-l`}>
+            <div 
+              className={`flex-shrink-0 text-right ${formatConfig.padding} border-l`}
+              style={{ width: columnWidths.variation }}
+            >
               {renderVariacaoCell(yoy, isExpense)}
             </div>
           </div>
@@ -891,6 +956,15 @@ export default function DREAnalitico() {
                 >
                   Expandir Grupos
                 </Button>
+                <Button 
+                  onClick={resetColumnWidths}
+                  variant="ghost" 
+                  size="sm"
+                  className="text-xs text-muted-foreground"
+                  title="Resetar largura das colunas"
+                >
+                  Resetar Colunas
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -964,16 +1038,60 @@ export default function DREAnalitico() {
             <CardContent className="p-0 mt-4">
               {/* Header da tabela */}
               <div className={`flex items-center bg-muted/80 border-y ${formatConfig.fontSize} font-semibold text-muted-foreground sticky top-0 z-20`}>
-                <div className={`${formatConfig.nameColWidth} ${formatConfig.headerPadding} sticky left-0 bg-muted/80 z-10 border-r`}>
-                  Conta / Descrição
+                <div 
+                  className={`${formatConfig.headerPadding} sticky left-0 bg-muted/80 z-10 border-r flex items-center justify-between group`}
+                  style={{ width: columnWidths.name, minWidth: columnWidths.name }}
+                >
+                  <span>Conta / Descrição</span>
+                  <div 
+                    className="w-1 h-full cursor-col-resize hover:bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-0 bottom-0"
+                    onMouseDown={(e) => handleMouseDown(e, 'name')}
+                  />
                 </div>
                 <div className="flex items-center flex-nowrap">
-                  {mesesPeriodo.map(mes => (
-                    <div key={mes.key} className={`${formatConfig.monthColWidth} flex-shrink-0 text-right ${formatConfig.headerPadding} uppercase`}>{mes.label}</div>
+                  {mesesPeriodo.map((mes, idx) => (
+                    <div 
+                      key={mes.key} 
+                      className={`flex-shrink-0 text-right ${formatConfig.headerPadding} uppercase relative group`}
+                      style={{ width: columnWidths.month }}
+                    >
+                      {mes.label}
+                      {idx === 0 && (
+                        <div 
+                          className="w-1 h-full cursor-col-resize hover:bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-0 bottom-0"
+                          onMouseDown={(e) => handleMouseDown(e, 'month')}
+                          title="Arraste para redimensionar todas as colunas de meses"
+                        />
+                      )}
+                    </div>
                   ))}
-                  <div className={`${formatConfig.totalColWidth} flex-shrink-0 text-right ${formatConfig.headerPadding} border-l-2 bg-muted/50 font-bold`}>Total</div>
-                  <div className={`${formatConfig.variationColWidth} flex-shrink-0 text-right ${formatConfig.headerPadding} border-l`}>MoM</div>
-                  <div className={`${formatConfig.variationColWidth} flex-shrink-0 text-right ${formatConfig.headerPadding} border-l`}>YoY</div>
+                  <div 
+                    className={`flex-shrink-0 text-right ${formatConfig.headerPadding} border-l-2 bg-muted/50 font-bold relative group`}
+                    style={{ width: columnWidths.total }}
+                  >
+                    Total
+                    <div 
+                      className="w-1 h-full cursor-col-resize hover:bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-0 bottom-0"
+                      onMouseDown={(e) => handleMouseDown(e, 'total')}
+                    />
+                  </div>
+                  <div 
+                    className={`flex-shrink-0 text-right ${formatConfig.headerPadding} border-l relative group`}
+                    style={{ width: columnWidths.variation }}
+                  >
+                    MoM
+                    <div 
+                      className="w-1 h-full cursor-col-resize hover:bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-0 bottom-0"
+                      onMouseDown={(e) => handleMouseDown(e, 'variation')}
+                      title="Arraste para redimensionar colunas de variação"
+                    />
+                  </div>
+                  <div 
+                    className={`flex-shrink-0 text-right ${formatConfig.headerPadding} border-l`}
+                    style={{ width: columnWidths.variation }}
+                  >
+                    YoY
+                  </div>
                 </div>
               </div>
 
