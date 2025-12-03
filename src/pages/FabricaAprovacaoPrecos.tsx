@@ -129,12 +129,37 @@ export default function FabricaAprovacaoPrecos() {
     enabled: !!tabelaSelecionada,
   });
 
-  // Buscar preços da versão selecionada
+  // Buscar preços da versão selecionada com nomes dos produtos
   const { data: precosVersao } = useQuery({
     queryKey: ["precos-versao", versaoSelecionada?.id],
     queryFn: async () => {
       if (!versaoSelecionada?.precos_snapshot) return [];
-      return versaoSelecionada.precos_snapshot;
+      
+      const snapshot = versaoSelecionada.precos_snapshot as any[];
+      if (!snapshot.length) return snapshot;
+      
+      // Buscar IDs dos produtos do snapshot
+      const produtoIds = snapshot.map((p: any) => p.produto_id).filter(Boolean);
+      
+      if (produtoIds.length === 0) return snapshot;
+      
+      // Buscar nomes dos produtos
+      const { data: produtos } = await supabase
+        .from("fabrica_produtos")
+        .select("id, nome, codigo")
+        .in("id", produtoIds);
+      
+      // Criar mapa de produtos
+      const produtosMap = new Map(
+        (produtos || []).map((p: any) => [p.id, { nome: p.nome, codigo: p.codigo }])
+      );
+      
+      // Enriquecer snapshot com nomes
+      return snapshot.map((preco: any) => ({
+        ...preco,
+        produto_nome: produtosMap.get(preco.produto_id)?.nome || preco.produto_id,
+        produto_codigo: produtosMap.get(preco.produto_id)?.codigo || '-'
+      }));
     },
     enabled: !!versaoSelecionada && showPrecos,
   });
@@ -423,11 +448,20 @@ export default function FabricaAprovacaoPrecos() {
               <tbody>
                 {precosVersao?.map((preco: any) => (
                   <tr key={preco.produto_id} className="border-t">
-                    <td className="p-3">{preco.produto_nome || preco.produto_id}</td>
+                    <td className="p-3">
+                      <div>
+                        <span className="font-medium">{preco.produto_nome}</span>
+                        {preco.produto_codigo && preco.produto_codigo !== '-' && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            ({preco.produto_codigo})
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="p-3 text-right">{formatarMoeda(preco.custo_base)}</td>
                     <td className="p-3 text-right font-semibold">{formatarMoeda(preco.preco_final)}</td>
                     <td className="p-3 text-right text-green-600">
-                      {preco.margem_lucro?.toFixed(2)}%
+                      {(preco.margem_lucro_percentual ?? preco.margem_lucro ?? 0).toFixed(2)}%
                     </td>
                   </tr>
                 ))}
