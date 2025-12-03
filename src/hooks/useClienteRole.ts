@@ -1,20 +1,24 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-type UserType = "admin" | "supervisor" | "vendedor" | "promotor" | "cliente" | null;
+type UserRole = "admin" | "supervisor" | "vendedor" | "promotor" | "cliente" | null;
 
-export const useUserRole = () => {
-  const [userType, setUserType] = useState<UserType>(null);
+export const useClienteRole = () => {
+  const [userRole, setUserRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserRole = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-          setUserType(null);
+          setUserRole(null);
+          setUserId(null);
           return;
         }
+
+        setUserId(user.id);
 
         const { data: roles, error } = await supabase
           .from("user_roles")
@@ -24,16 +28,14 @@ export const useUserRole = () => {
 
         if (error) {
           console.error("Erro ao buscar role do usuário:", error);
-          setUserType(null);
+          setUserRole(null);
           return;
         }
 
-        // Normalizar "promotora" antigo para "promotor"
-        const normalizedRole = roles?.role === 'promotora' ? 'promotor' : roles?.role;
-        setUserType(normalizedRole as UserType || null);
+        setUserRole(roles?.role as UserRole || null);
       } catch (error) {
         console.error("Erro ao buscar tipo de usuário:", error);
-        setUserType(null);
+        setUserRole(null);
       } finally {
         setLoading(false);
       }
@@ -49,15 +51,12 @@ export const useUserRole = () => {
   }, []);
 
   return {
-    userType,
+    userRole,
+    userId,
     loading,
-    isAdmin: userType === "admin",
-    isSupervisor: userType === "supervisor",
-    isVendedor: userType === "vendedor",
-    isPromotor: userType === "promotor",
-    isCliente: userType === "cliente",
-    isAdminOrSupervisor: userType === "admin" || userType === "supervisor",
-    isSalesTeam: userType === "vendedor" || userType === "promotor",
-    isInternal: userType !== null && userType !== "cliente",
+    isCliente: userRole === "cliente",
+    isInternal: userRole !== null && userRole !== "cliente",
+    isAdmin: userRole === "admin",
+    isSupervisor: userRole === "supervisor",
   };
 };

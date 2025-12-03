@@ -13,6 +13,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [approved, setApproved] = useState(false);
+  const [isCliente, setIsCliente] = useState(false);
   const isOnline = useOnlineStatus();
 
   useEffect(() => {
@@ -22,6 +23,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         if (!isOnline && offlineManager.hasCachedSession()) {
           setAuthenticated(true);
           setApproved(true); // Assumir aprovado quando offline com cache válido
+          setIsCliente(localStorage.getItem('user_role_cache') === 'cliente');
           setLoading(false);
           return;
         }
@@ -36,12 +38,26 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
             .eq("id", session.user.id)
             .single();
 
+          // Verificar role do usuário
+          const { data: roles } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+
+          const userRole = roles?.role;
+          const isClienteUser = userRole === "cliente";
+
           setAuthenticated(true);
           setApproved(profile?.aprovado || false);
+          setIsCliente(isClienteUser);
           
-          // Salvar estado de aprovação em cache para uso offline
+          // Salvar em cache para uso offline
           if (profile?.aprovado) {
             localStorage.setItem('user_approved_cache', 'true');
+          }
+          if (userRole) {
+            localStorage.setItem('user_role_cache', userRole);
           }
         } else {
           setAuthenticated(false);
@@ -53,6 +69,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         if (!isOnline && offlineManager.hasCachedSession()) {
           setAuthenticated(true);
           setApproved(localStorage.getItem('user_approved_cache') === 'true');
+          setIsCliente(localStorage.getItem('user_role_cache') === 'cliente');
         } else {
           setAuthenticated(false);
         }
@@ -77,16 +94,25 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
                 .select("aprovado")
                 .eq("id", session.user.id)
                 .single();
+
+              const { data: roles } = await supabase
+                .from("user_roles")
+                .select("role")
+                .eq("user_id", session.user.id)
+                .maybeSingle();
               
               setApproved(profile?.aprovado || false);
+              setIsCliente(roles?.role === "cliente");
             } catch (error) {
               setApproved(false);
+              setIsCliente(false);
             } finally {
               setLoading(false);
             }
           }, 0);
         } else {
           setApproved(false);
+          setIsCliente(false);
           setLoading(false);
         }
       }
@@ -109,6 +135,11 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   if (!approved) {
     return <Navigate to="/aguardando-aprovacao" replace />;
+  }
+
+  // Clientes não podem acessar o dashboard - redirecionar para portal
+  if (isCliente) {
+    return <Navigate to="/portal/precos" replace />;
   }
 
   return <>{children}</>;
