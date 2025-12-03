@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, Eye, FileText } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Eye, FileText, BarChart3 } from "lucide-react";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import {
   Dialog,
@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { SimuladorImpactoPrecos } from "@/components/fabrica/SimuladorImpactoPrecos";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function FabricaAprovacaoPrecos() {
   const queryClient = useQueryClient();
@@ -36,6 +38,7 @@ export default function FabricaAprovacaoPrecos() {
   const [showRejeitar, setShowRejeitar] = useState(false);
   const [showAprovar, setShowAprovar] = useState(false);
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
+  const [showImpacto, setShowImpacto] = useState(false);
 
   // Realtime: escutar mudanças nas tabelas de preço
   useEffect(() => {
@@ -129,6 +132,13 @@ export default function FabricaAprovacaoPrecos() {
     enabled: !!tabelaSelecionada,
   });
 
+  // Auto-selecionar última versão quando abrir análise de impacto
+  useEffect(() => {
+    if (showImpacto && versoes && versoes.length > 0 && !versaoSelecionada) {
+      setVersaoSelecionada(versoes[0]);
+    }
+  }, [showImpacto, versoes, versaoSelecionada]);
+
   // Buscar preços da versão selecionada com nomes dos produtos
   const { data: precosVersao } = useQuery({
     queryKey: ["precos-versao", versaoSelecionada?.id],
@@ -161,7 +171,25 @@ export default function FabricaAprovacaoPrecos() {
         produto_codigo: produtosMap.get(preco.produto_id)?.codigo || '-'
       }));
     },
-    enabled: !!versaoSelecionada && showPrecos,
+    enabled: !!versaoSelecionada && (showPrecos || showImpacto),
+  });
+
+  // Buscar preços atuais para comparação
+  const { data: precosAtuais } = useQuery({
+    queryKey: ["precos-atuais-tabela", tabelaSelecionada?.id],
+    queryFn: async () => {
+      if (!tabelaSelecionada?.id) return [];
+
+      const { data, error } = await supabase
+        .from("fabrica_precos_produtos")
+        .select("*")
+        .eq("tabela_id", tabelaSelecionada.id)
+        .eq("ativo", true);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!tabelaSelecionada && showImpacto,
   });
 
   // Aprovar tabela
@@ -344,6 +372,17 @@ export default function FabricaAprovacaoPrecos() {
                         size="sm"
                         onClick={() => {
                           setTabelaSelecionada(tabela);
+                          setShowImpacto(true);
+                        }}
+                      >
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Ver Impacto
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setTabelaSelecionada(tabela);
                         }}
                       >
                         <FileText className="h-4 w-4 mr-2" />
@@ -467,6 +506,106 @@ export default function FabricaAprovacaoPrecos() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Análise de Impacto */}
+      <Dialog open={showImpacto} onOpenChange={(open) => {
+        setShowImpacto(open);
+        if (!open) {
+          setVersaoSelecionada(null);
+        }
+      }}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Análise de Impacto - {tabelaSelecionada?.nome}
+            </DialogTitle>
+            <DialogDescription>
+              Comparação detalhada das variações de preços
+            </DialogDescription>
+          </DialogHeader>
+
+          <Tabs defaultValue="impacto" className="w-full">
+            <TabsList>
+              <TabsTrigger value="impacto">Simulador de Impacto</TabsTrigger>
+              <TabsTrigger value="detalhes">Detalhes dos Preços</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="impacto" className="mt-4">
+              <SimuladorImpactoPrecos
+                precosAtuais={precosAtuais || []}
+                precosNovos={precosVersao || []}
+                tabela={tabelaSelecionada}
+              />
+            </TabsContent>
+
+            <TabsContent value="detalhes" className="mt-4">
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="p-3 text-left">Produto</th>
+                      <th className="p-3 text-right">Custo Base</th>
+                      <th className="p-3 text-right">Preço Final</th>
+                      <th className="p-3 text-right">Margem</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {precosVersao?.map((preco: any) => (
+                      <tr key={preco.produto_id} className="border-t">
+                        <td className="p-3">
+                          <div>
+                            <span className="font-medium">{preco.produto_nome}</span>
+                            {preco.produto_codigo && preco.produto_codigo !== '-' && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                ({preco.produto_codigo})
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3 text-right">{formatarMoeda(preco.custo_base)}</td>
+                        <td className="p-3 text-right font-semibold">{formatarMoeda(preco.preco_final)}</td>
+                        <td className="p-3 text-right text-green-600">
+                          {(preco.margem_lucro_percentual ?? preco.margem_lucro ?? 0).toFixed(2)}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setShowImpacto(false)}
+            >
+              Fechar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setShowImpacto(false);
+                setShowRejeitar(true);
+              }}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Rejeitar
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              onClick={() => {
+                setShowImpacto(false);
+                setShowAprovar(true);
+              }}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Aprovar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
