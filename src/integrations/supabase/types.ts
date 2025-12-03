@@ -1325,6 +1325,320 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_distribuidoras: {
+        Row: {
+          ativo: boolean | null
+          cidade: string | null
+          cnpj: string
+          created_at: string | null
+          created_by: string | null
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          uf: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cidade?: string | null
+          cnpj: string
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cidade?: string | null
+          cnpj?: string
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      estoque_movimentacoes: {
+        Row: {
+          created_at: string | null
+          custo_unitario: number | null
+          data_movimento: string | null
+          destino: string | null
+          documento_referencia: string | null
+          estoque_id: string
+          id: string
+          n8n_transaction_id: string | null
+          observacao: string | null
+          origem: string | null
+          quantidade: number
+          quantidade_anterior: number
+          quantidade_nova: number
+          tipo_movimento: string
+          usuario_id: string | null
+          valor_total: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          custo_unitario?: number | null
+          data_movimento?: string | null
+          destino?: string | null
+          documento_referencia?: string | null
+          estoque_id: string
+          id?: string
+          n8n_transaction_id?: string | null
+          observacao?: string | null
+          origem?: string | null
+          quantidade: number
+          quantidade_anterior: number
+          quantidade_nova: number
+          tipo_movimento: string
+          usuario_id?: string | null
+          valor_total?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          custo_unitario?: number | null
+          data_movimento?: string | null
+          destino?: string | null
+          documento_referencia?: string | null
+          estoque_id?: string
+          id?: string
+          n8n_transaction_id?: string | null
+          observacao?: string | null
+          origem?: string | null
+          quantidade?: number
+          quantidade_anterior?: number
+          quantidade_nova?: number
+          tipo_movimento?: string
+          usuario_id?: string | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_movimentacoes_estoque_id_fkey"
+            columns: ["estoque_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_saldos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_produtos_distribuidora: {
+        Row: {
+          ativo: boolean | null
+          codigo_produto_distribuidora: string
+          created_at: string | null
+          created_by: string | null
+          distribuidora_id: string
+          fator_conversao: number | null
+          id: string
+          nome_exibicao: string | null
+          produto_master_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo_produto_distribuidora: string
+          created_at?: string | null
+          created_by?: string | null
+          distribuidora_id: string
+          fator_conversao?: number | null
+          id?: string
+          nome_exibicao?: string | null
+          produto_master_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo_produto_distribuidora?: string
+          created_at?: string | null
+          created_by?: string | null
+          distribuidora_id?: string
+          fator_conversao?: number | null
+          id?: string
+          nome_exibicao?: string | null
+          produto_master_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_produtos_distribuidora_distribuidora_id_fkey"
+            columns: ["distribuidora_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_distribuidoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_produtos_distribuidora_produto_master_id_fkey"
+            columns: ["produto_master_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_produtos_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_produtos_master: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          peso_bruto: number | null
+          peso_liquido: number | null
+          sku_master: string
+          subcategoria: string | null
+          unidade_medida: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          peso_bruto?: number | null
+          peso_liquido?: number | null
+          sku_master: string
+          subcategoria?: string | null
+          unidade_medida?: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          peso_bruto?: number | null
+          peso_liquido?: number | null
+          sku_master?: string
+          subcategoria?: string | null
+          unidade_medida?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      estoque_saldos: {
+        Row: {
+          created_at: string | null
+          custo_medio: number | null
+          data_validade: string | null
+          distribuidora_id: string
+          id: string
+          localizacao: string | null
+          lote: string | null
+          produto_distribuidora_id: string
+          quantidade_disponivel: number
+          quantidade_reservada: number | null
+          ultimo_movimento: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custo_medio?: number | null
+          data_validade?: string | null
+          distribuidora_id: string
+          id?: string
+          localizacao?: string | null
+          lote?: string | null
+          produto_distribuidora_id: string
+          quantidade_disponivel?: number
+          quantidade_reservada?: number | null
+          ultimo_movimento?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custo_medio?: number | null
+          data_validade?: string | null
+          distribuidora_id?: string
+          id?: string
+          localizacao?: string | null
+          lote?: string | null
+          produto_distribuidora_id?: string
+          quantidade_disponivel?: number
+          quantidade_reservada?: number | null
+          ultimo_movimento?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_saldos_distribuidora_id_fkey"
+            columns: ["distribuidora_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_distribuidoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_saldos_produto_distribuidora_id_fkey"
+            columns: ["produto_distribuidora_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_produtos_distribuidora"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_sync_logs: {
+        Row: {
+          created_at: string | null
+          detalhes: Json | null
+          duracao_ms: number | null
+          erros: Json | null
+          id: string
+          ip_origem: string | null
+          registros_enviados: number | null
+          registros_erro: number | null
+          registros_processados: number | null
+          status: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string | null
+          detalhes?: Json | null
+          duracao_ms?: number | null
+          erros?: Json | null
+          id?: string
+          ip_origem?: string | null
+          registros_enviados?: number | null
+          registros_erro?: number | null
+          registros_processados?: number | null
+          status?: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string | null
+          detalhes?: Json | null
+          duracao_ms?: number | null
+          erros?: Json | null
+          id?: string
+          ip_origem?: string | null
+          registros_enviados?: number | null
+          registros_erro?: number | null
+          registros_processados?: number | null
+          status?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       etl_changelog: {
         Row: {
           changed_at: string | null
@@ -9981,6 +10295,34 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_estoque_consolidado_por_produto_master: {
+        Args: never
+        Returns: {
+          categoria: string
+          distribuidoras: Json
+          nome_produto: string
+          produto_master_id: string
+          sku_master: string
+          total_distribuidoras: number
+          total_quantidade: number
+          unidade_medida: string
+        }[]
+      }
+      get_estoque_por_codigo_distribuidora: {
+        Args: { p_codigo: string; p_distribuidora_id: string }
+        Returns: {
+          codigo_distribuidora: string
+          data_validade: string
+          estoque_id: string
+          localizacao: string
+          lote: string
+          nome_produto: string
+          produto_master_id: string
+          quantidade_disponivel: number
+          quantidade_reservada: number
+          sku_master: string
+        }[]
+      }
       get_sales_performance: {
         Args: never
         Returns: {
@@ -10133,6 +10475,10 @@ export type Database = {
       }
       user_tem_acesso_cnpj: {
         Args: { p_cnpj: string; p_user_id: string }
+        Returns: boolean
+      }
+      usuario_tem_acesso_estoque: {
+        Args: { _user_id: string }
         Returns: boolean
       }
       usuario_tem_acesso_loja: {
