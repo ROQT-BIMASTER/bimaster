@@ -1218,10 +1218,15 @@ export type Database = {
           conta_id: string | null
           created_at: string | null
           criado_por: string | null
+          data_vencimento: string | null
           departamento_id: string | null
+          empresa_nome: string | null
+          fornecedor_codigo: string | null
+          fornecedor_nome: string | null
           id: string
           meta_reducao_percentual: number | null
           meta_reducao_valor: number | null
+          numero_documento: string | null
           observacoes: string | null
           plano_contas_id: string | null
           prazo_revisao: string | null
@@ -1229,6 +1234,7 @@ export type Database = {
           responsavel_id: string | null
           resultado_obtido: number | null
           status: string | null
+          tipo_documento: string | null
           tipo_revisao: string
           updated_at: string | null
           valor_atual: number | null
@@ -1238,10 +1244,15 @@ export type Database = {
           conta_id?: string | null
           created_at?: string | null
           criado_por?: string | null
+          data_vencimento?: string | null
           departamento_id?: string | null
+          empresa_nome?: string | null
+          fornecedor_codigo?: string | null
+          fornecedor_nome?: string | null
           id?: string
           meta_reducao_percentual?: number | null
           meta_reducao_valor?: number | null
+          numero_documento?: string | null
           observacoes?: string | null
           plano_contas_id?: string | null
           prazo_revisao?: string | null
@@ -1249,6 +1260,7 @@ export type Database = {
           responsavel_id?: string | null
           resultado_obtido?: number | null
           status?: string | null
+          tipo_documento?: string | null
           tipo_revisao: string
           updated_at?: string | null
           valor_atual?: number | null
@@ -1258,10 +1270,15 @@ export type Database = {
           conta_id?: string | null
           created_at?: string | null
           criado_por?: string | null
+          data_vencimento?: string | null
           departamento_id?: string | null
+          empresa_nome?: string | null
+          fornecedor_codigo?: string | null
+          fornecedor_nome?: string | null
           id?: string
           meta_reducao_percentual?: number | null
           meta_reducao_valor?: number | null
+          numero_documento?: string | null
           observacoes?: string | null
           plano_contas_id?: string | null
           prazo_revisao?: string | null
@@ -1269,6 +1286,7 @@ export type Database = {
           responsavel_id?: string | null
           resultado_obtido?: number | null
           status?: string | null
+          tipo_documento?: string | null
           tipo_revisao?: string
           updated_at?: string | null
           valor_atual?: number | null

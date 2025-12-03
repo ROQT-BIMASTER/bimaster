@@ -131,7 +131,9 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
       const search = searchTerm.toLowerCase();
       const nome = r.plano_contas?.name?.toLowerCase() || r.categoria_nome?.toLowerCase() || '';
       const depto = r.departamento?.nome?.toLowerCase() || '';
-      return nome.includes(search) || depto.includes(search);
+      const fornecedor = r.fornecedor_nome?.toLowerCase() || '';
+      const documento = r.numero_documento?.toLowerCase() || '';
+      return nome.includes(search) || depto.includes(search) || fornecedor.includes(search) || documento.includes(search);
     }
     return true;
   });
@@ -186,6 +188,11 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
 
     const data = revisoes.map(r => ({
       'Item': r.plano_contas?.name || r.categoria_nome || 'N/A',
+      'Fornecedor': r.fornecedor_nome || 'N/A',
+      'Documento': r.numero_documento || 'N/A',
+      'Tipo Documento': r.tipo_documento || 'N/A',
+      'Vencimento': r.data_vencimento ? format(parseISO(r.data_vencimento), 'dd/MM/yyyy') : 'N/A',
+      'Empresa': r.empresa_nome || 'N/A',
       'Departamento': r.departamento?.nome || 'N/A',
       'Tipo': tipoConfig[r.tipo_revisao as keyof typeof tipoConfig]?.label || r.tipo_revisao,
       'Prioridade': prioridadeConfig[r.prioridade as keyof typeof prioridadeConfig]?.label || r.prioridade,
@@ -286,7 +293,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             <div className="space-y-1">
               <Label className="text-xs">Buscar</Label>
               <Input
-                placeholder="Nome, departamento..."
+                placeholder="Fornecedor, nome, documento..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />

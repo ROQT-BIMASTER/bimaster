@@ -806,6 +806,7 @@ export default function DREAnalitico() {
               <Badge variant="outline" className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'}`}>Manual</Badge>
             )}
 
+            {/* Botão para marcar revisão - grupos, contas e departamentos */}
             {(node.tipo === 'conta' || node.tipo === 'grupo' || node.tipo === 'departamento') && node.valor > 0 && (
               <Button
                 variant="ghost"
@@ -823,6 +824,38 @@ export default function DREAnalitico() {
                   setMarcarRevisaoOpen(true);
                 }}
                 title="Marcar para revisão de gastos"
+              >
+                <Flag className="h-3 w-3 text-amber-500" />
+              </Button>
+            )}
+
+            {/* Botão para marcar revisão - lançamentos individuais (com detalhes do fornecedor) */}
+            {node.tipo === 'lancamento' && node.valor > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 ml-1 opacity-50 hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const lancamento = node.metadata;
+                  setItemParaRevisao({
+                    contaId: lancamento?.id || null,
+                    planoContasId: lancamento?.plano_contas_id || null,
+                    departamentoId: lancamento?.departamento_id || null,
+                    categoriaNome: lancamento?.categoria_nome || node.nome,
+                    valor: node.valor,
+                    nome: `${lancamento?.fornecedor_nome || 'N/A'} - ${lancamento?.categoria_nome || node.nome}`,
+                    // Campos de detalhamento
+                    fornecedorNome: lancamento?.fornecedor_nome || null,
+                    fornecedorCodigo: lancamento?.fornecedor_codigo || null,
+                    numeroDocumento: lancamento?.numero_documento || null,
+                    dataVencimento: lancamento?.data_vencimento || null,
+                    empresaNome: lancamento?.empresa_nome || null,
+                    tipoDocumento: lancamento?.tipo_documento || null,
+                  });
+                  setMarcarRevisaoOpen(true);
+                }}
+                title="Marcar lançamento para revisão"
               >
                 <Flag className="h-3 w-3 text-amber-500" />
               </Button>
@@ -1269,11 +1302,18 @@ export default function DREAnalitico() {
           <MarcarRevisaoDialog
             open={marcarRevisaoOpen}
             onOpenChange={setMarcarRevisaoOpen}
+            contaId={itemParaRevisao.contaId}
             planoContasId={itemParaRevisao.planoContasId}
             departamentoId={itemParaRevisao.departamentoId}
             categoriaNome={itemParaRevisao.categoriaNome}
             valorAtual={itemParaRevisao.valor}
             nomeItem={itemParaRevisao.nome}
+            fornecedorNome={itemParaRevisao.fornecedorNome}
+            fornecedorCodigo={itemParaRevisao.fornecedorCodigo}
+            numeroDocumento={itemParaRevisao.numeroDocumento}
+            dataVencimento={itemParaRevisao.dataVencimento}
+            empresaNome={itemParaRevisao.empresaNome}
+            tipoDocumento={itemParaRevisao.tipoDocumento}
             onSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ['contas-revisao'] });
             }}

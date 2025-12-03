@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
   Ban, TrendingDown, RefreshCw, Eye, Clock, CheckCircle2,
-  Trash2, Edit, Check, X, Calendar, User, Building2
+  Trash2, Edit, Check, X, Calendar, User, Building2, FileText, Briefcase
 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -15,6 +15,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface RevisaoGastosCardProps {
   revisao: any;
@@ -46,6 +52,7 @@ const prioridadeConfig = {
 export function RevisaoGastosCard({ revisao, onUpdateStatus, onDelete, compact = false }: RevisaoGastosCardProps) {
   const [isEditingResult, setIsEditingResult] = useState(false);
   const [resultadoObtido, setResultadoObtido] = useState(revisao.resultado_obtido?.toString() || '');
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const tipo = tipoConfig[revisao.tipo_revisao as keyof typeof tipoConfig] || tipoConfig.monitorar;
   const status = statusConfig[revisao.status as keyof typeof statusConfig] || statusConfig.pendente;
@@ -56,6 +63,15 @@ export function RevisaoGastosCard({ revisao, onUpdateStatus, onDelete, compact =
   const nome = revisao.plano_contas?.name || revisao.categoria_nome || 'Item não identificado';
   const departamento = revisao.departamento?.nome;
   const responsavel = revisao.responsavel?.nome || revisao.responsavel?.email;
+  
+  // Novos campos de detalhamento
+  const fornecedor = revisao.fornecedor_nome;
+  const documento = revisao.numero_documento;
+  const dataVencimento = revisao.data_vencimento;
+  const empresa = revisao.empresa_nome;
+  const tipoDocumento = revisao.tipo_documento;
+  
+  const temDetalhes = fornecedor || documento || dataVencimento || empresa;
   
   const diasRestantes = revisao.prazo_revisao 
     ? differenceInDays(new Date(revisao.prazo_revisao), new Date())
@@ -78,7 +94,8 @@ export function RevisaoGastosCard({ revisao, onUpdateStatus, onDelete, compact =
               <div className="min-w-0">
                 <p className="font-medium truncate text-sm">{nome}</p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {departamento && <span>{departamento}</span>}
+                  {fornecedor && <span className="font-medium text-foreground">{fornecedor}</span>}
+                  {departamento && <span>• {departamento}</span>}
                   {responsavel && <span>• {responsavel}</span>}
                 </div>
               </div>
@@ -120,10 +137,19 @@ export function RevisaoGastosCard({ revisao, onUpdateStatus, onDelete, compact =
 
             <div>
               <h4 className="font-semibold text-base">{nome}</h4>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+              
+              {/* Fornecedor em destaque */}
+              {fornecedor && (
+                <div className="flex items-center gap-2 mt-1">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <span className="font-medium text-primary">{fornecedor}</span>
+                </div>
+              )}
+              
+              <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
                 {departamento && (
                   <span className="flex items-center gap-1">
-                    <Building2 className="h-3.5 w-3.5" />
+                    <Briefcase className="h-3.5 w-3.5" />
                     {departamento}
                   </span>
                 )}
@@ -146,6 +172,44 @@ export function RevisaoGastosCard({ revisao, onUpdateStatus, onDelete, compact =
                 )}
               </div>
             </div>
+
+            {/* Detalhes expandíveis */}
+            {temDetalhes && (
+              <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                    {isDetailsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    {isDetailsOpen ? 'Ocultar detalhes' : 'Ver detalhes'}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 p-3 bg-muted/50 rounded-md space-y-1.5 text-sm">
+                    {documento && (
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-muted-foreground">Documento:</span>
+                        <span className="font-medium">{documento}</span>
+                        {tipoDocumento && <span className="text-xs text-muted-foreground">({tipoDocumento})</span>}
+                      </div>
+                    )}
+                    {dataVencimento && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-muted-foreground">Vencimento:</span>
+                        <span className="font-medium">{format(parseISO(dataVencimento), 'dd/MM/yyyy')}</span>
+                      </div>
+                    )}
+                    {empresa && (
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-muted-foreground">Empresa:</span>
+                        <span className="font-medium">{empresa}</span>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
 
             {revisao.observacoes && (
               <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded-md">
