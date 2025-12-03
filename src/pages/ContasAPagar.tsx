@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, ArrowLeft, Brain, Bot } from "lucide-react";
+import { Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, ArrowLeft, Brain, Bot, Pencil, User, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { SolicitarOrcamentoDialog } from "@/components/trade/SolicitarOrcamentoDialog";
 import { AprovarOrcamentoDialog } from "@/components/trade/AprovarOrcamentoDialog";
 import { ClassificarContasPagarDialog } from "@/components/configuracoes/ClassificarContasPagarDialog";
+import { EditarClassificacaoRapidaDialog } from "@/components/financeiro/EditarClassificacaoRapidaDialog";
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface ContaPagar {
@@ -49,6 +50,9 @@ interface ContaPagar {
   classificacao_justificativa: string | null;
   classificado_automaticamente: boolean | null;
   classificado_em: string | null;
+  classificacao_manual: boolean | null;
+  classificacao_corrigida_por: string | null;
+  classificacao_corrigida_em: string | null;
 }
 
 export default function ContasAPagar() {
@@ -67,6 +71,8 @@ export default function ContasAPagar() {
   const [classificarIAOpen, setClassificarIAOpen] = useState(false);
   const [filterAnoClassificacao, setFilterAnoClassificacao] = useState<string>(new Date().getFullYear().toString());
   const [filterMesClassificacao, setFilterMesClassificacao] = useState<string>("all");
+  const [editarClassificacaoOpen, setEditarClassificacaoOpen] = useState(false);
+  const [selectedContaClassificacao, setSelectedContaClassificacao] = useState<ContaPagar | null>(null);
 
   // Query departamentos
   const { data: departamentos } = useQuery({
@@ -824,59 +830,81 @@ export default function ContasAPagar() {
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Fornecedor</TableHead>
-                                <TableHead>Documento</TableHead>
-                                <TableHead>Vencimento</TableHead>
-                                <TableHead className="text-right">Valor</TableHead>
-                                <TableHead>Departamento</TableHead>
-                                <TableHead>Plano de Contas</TableHead>
-                                <TableHead className="text-center">Confiança</TableHead>
-                                <TableHead>Classificado Em</TableHead>
-                                <TableHead className="text-center">Status</TableHead>
+                                <TableHead className="w-[180px]">Fornecedor</TableHead>
+                                <TableHead className="w-[100px]">Documento</TableHead>
+                                <TableHead className="w-[90px]">Vencimento</TableHead>
+                                <TableHead className="w-[100px] text-right">Valor</TableHead>
+                                <TableHead className="w-[80px] text-center">Origem</TableHead>
+                                <TableHead className="w-[180px]">Departamento</TableHead>
+                                <TableHead className="w-[240px]">Plano de Contas</TableHead>
+                                <TableHead className="w-[80px] text-center">Status</TableHead>
+                                <TableHead className="w-[60px] text-center">Ações</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {contasFiltradas.map((conta) => (
                                 <TableRow key={conta.id}>
-                                  <TableCell className="font-medium">
+                                  <TableCell className="font-medium truncate max-w-[180px]" title={conta.fornecedor_nome || 'N/A'}>
                                     {conta.fornecedor_nome || 'N/A'}
                                   </TableCell>
                                   <TableCell>
-                                    <Badge variant="outline">
+                                    <Badge variant="outline" className="text-xs">
                                       {conta.numero_documento}/{conta.parcela}
                                     </Badge>
                                   </TableCell>
-                                  <TableCell>
+                                  <TableCell className="text-xs">
                                     {conta.data_vencimento 
-                                      ? format(new Date(conta.data_vencimento), 'dd/MM/yyyy', { locale: ptBR })
+                                      ? format(new Date(conta.data_vencimento), 'dd/MM/yy', { locale: ptBR })
                                       : 'N/A'}
                                   </TableCell>
-                                  <TableCell className="text-right font-medium">
+                                  <TableCell className="text-right font-medium text-xs">
                                     {new Intl.NumberFormat('pt-BR', {
                                       style: 'currency',
                                       currency: 'BRL'
                                     }).format(conta.valor_original || 0)}
                                   </TableCell>
+                                  <TableCell className="text-center">
+                                    {conta.classificacao_manual ? (
+                                      <Badge variant="default" className="gap-1 text-xs">
+                                        <User className="h-3 w-3" />
+                                        Manual
+                                      </Badge>
+                                    ) : conta.classificado_automaticamente ? (
+                                      <Badge variant="secondary" className="gap-1 text-xs">
+                                        <Bot className="h-3 w-3" />
+                                        {conta.confianca_classificacao 
+                                          ? `${(conta.confianca_classificacao * 100).toFixed(0)}%` 
+                                          : 'IA'}
+                                      </Badge>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
                                   <TableCell>
-                                    <Select
-                                      value={conta.departamento_id || ""}
-                                      onValueChange={(value) => 
-                                        handleUpdateClassificacao(conta.id, value || null, conta.plano_contas_id)
-                                      }
-                                    >
-                                      <SelectTrigger className="w-[200px] h-8 text-xs">
-                                        <SelectValue placeholder="Selecione...">
-                                          {conta.departamento_nome || "Selecione..."}
-                                        </SelectValue>
-                                      </SelectTrigger>
-                                      <SelectContent className="bg-background z-[100]">
-                                        {departamentos?.map((dept) => (
-                                          <SelectItem key={dept.id} value={dept.id}>
-                                            {dept.nome}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <div className="flex items-center gap-1">
+                                      {conta.classificacao_manual && (
+                                        <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                      )}
+                                      <Select
+                                        value={conta.departamento_id || ""}
+                                        onValueChange={(value) => 
+                                          handleUpdateClassificacao(conta.id, value || null, conta.plano_contas_id)
+                                        }
+                                      >
+                                        <SelectTrigger className="w-full h-8 text-xs">
+                                          <SelectValue placeholder="Selecione...">
+                                            {conta.departamento_nome || "Selecione..."}
+                                          </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-background z-[100]">
+                                          {departamentos?.map((dept) => (
+                                            <SelectItem key={dept.id} value={dept.id}>
+                                              {dept.nome}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
                                   </TableCell>
                                   <TableCell>
                                     <Select
@@ -885,7 +913,7 @@ export default function ContasAPagar() {
                                         handleUpdateClassificacao(conta.id, conta.departamento_id, value || null)
                                       }
                                     >
-                                      <SelectTrigger className="w-[280px] h-8 text-xs">
+                                      <SelectTrigger className="w-full h-8 text-xs">
                                         <SelectValue placeholder="Selecione...">
                                           {conta.plano_contas_codigo && conta.plano_contas_nome 
                                             ? `${conta.plano_contas_codigo} - ${conta.plano_contas_nome}`
@@ -905,43 +933,30 @@ export default function ContasAPagar() {
                                     </Select>
                                   </TableCell>
                                   <TableCell className="text-center">
-                                    {conta.confianca_classificacao ? (
-                                      <Badge 
-                                        variant={
-                                          conta.confianca_classificacao >= 0.8
-                                            ? "default"
-                                            : conta.confianca_classificacao >= 0.6
-                                            ? "secondary"
-                                            : "destructive"
-                                        }
-                                      >
-                                        {(conta.confianca_classificacao * 100).toFixed(0)}%
+                                    {conta.departamento_id && conta.plano_contas_id ? (
+                                      <Badge variant="default" className="gap-1 text-xs">
+                                        <CheckCircle className="h-3 w-3" />
+                                        OK
                                       </Badge>
                                     ) : (
-                                      <span className="text-xs text-muted-foreground">-</span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell>
-                                    {conta.classificado_em ? (
-                                      <span className="text-xs text-muted-foreground">
-                                        {format(new Date(conta.classificado_em), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground">-</span>
+                                      <Badge variant="secondary" className="gap-1 text-xs">
+                                        <Clock className="h-3 w-3" />
+                                        Pend
+                                      </Badge>
                                     )}
                                   </TableCell>
                                   <TableCell className="text-center">
-                                    {conta.departamento_id && conta.plano_contas_id ? (
-                                      <Badge variant="default" className="gap-1">
-                                        <CheckCircle className="h-3 w-3" />
-                                        Completa
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="secondary" className="gap-1">
-                                        <Clock className="h-3 w-3" />
-                                        Pendente
-                                      </Badge>
-                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0"
+                                      onClick={() => {
+                                        setSelectedContaClassificacao(conta);
+                                        setEditarClassificacaoOpen(true);
+                                      }}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
                                   </TableCell>
                                 </TableRow>
                               ))}
@@ -969,6 +984,13 @@ export default function ContasAPagar() {
             refetchContas();
             toast.success("Classificação concluída! Atualizando lista...");
           }}
+        />
+
+        <EditarClassificacaoRapidaDialog
+          open={editarClassificacaoOpen}
+          onOpenChange={setEditarClassificacaoOpen}
+          conta={selectedContaClassificacao}
+          onSuccess={refetchContas}
         />
 
         <SolicitarOrcamentoDialog

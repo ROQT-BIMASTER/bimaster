@@ -52,13 +52,14 @@ export function ClassificarContasPagarDialog({
       setContasComErro(0);
       setLogs([]);
 
-      // PASSO 1: Buscar grupos únicos não classificados
+      // PASSO 1: Buscar grupos únicos não classificados (excluindo classificações manuais)
       console.log("Buscando grupos únicos para classificação...");
       
       const { data: grupos, error: gruposError } = await supabase
         .from("contas_pagar")
         .select("categoria_nome, fornecedor_nome, tipo_documento")
-        .eq("classificado_automaticamente", false);
+        .eq("classificado_automaticamente", false)
+        .or("classificacao_manual.is.null,classificacao_manual.eq.false");
 
       if (gruposError) {
         throw gruposError;
@@ -142,7 +143,7 @@ export function ClassificarContasPagarDialog({
             setCurrentConta(`${result.categoria_nome} - ${result.fornecedor_nome || 'N/A'} (${contasAfetadas} contas)`);
 
             if (result.success && result.departamento_id) {
-              // Atualizar todas as contas deste grupo em uma única query
+              // Atualizar todas as contas deste grupo em uma única query (exceto classificações manuais)
               let updateQuery = supabase
                 .from("contas_pagar")
                 .update({
@@ -157,7 +158,8 @@ export function ClassificarContasPagarDialog({
                   classificado_em: new Date().toISOString(),
                 })
                 .eq("categoria_nome", result.categoria_nome)
-                .eq("classificado_automaticamente", false);
+                .eq("classificado_automaticamente", false)
+                .or("classificacao_manual.is.null,classificacao_manual.eq.false");
               
               // Adicionar filtros para fornecedor e tipo_documento
               if (result.fornecedor_nome) {
