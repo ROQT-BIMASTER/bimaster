@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, subMonths, subYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -38,6 +38,50 @@ interface MonthData {
   endDate: string;
 }
 
+type TableFormat = 'compacto' | 'padrao' | 'expandido';
+
+const tableFormatConfig = {
+  compacto: {
+    nameColWidth: 'min-w-[220px] max-w-[220px]',
+    monthColWidth: 'w-[70px]',
+    totalColWidth: 'w-[90px]',
+    variationColWidth: 'w-[60px]',
+    fontSize: 'text-[10px]',
+    fontSizeValue: 'text-[10px]',
+    padding: 'py-1 px-2',
+    headerPadding: 'py-2 px-2',
+    rowGap: 'gap-0.5',
+    iconSize: 'h-3 w-3',
+    expandBtnSize: 'h-4 w-4 p-0',
+  },
+  padrao: {
+    nameColWidth: 'min-w-[280px] max-w-[280px]',
+    monthColWidth: 'w-[100px]',
+    totalColWidth: 'w-[120px]',
+    variationColWidth: 'w-[80px]',
+    fontSize: 'text-xs',
+    fontSizeValue: 'text-xs',
+    padding: 'py-2 px-2',
+    headerPadding: 'py-3 px-2',
+    rowGap: 'gap-1',
+    iconSize: 'h-4 w-4',
+    expandBtnSize: 'h-5 w-5 p-0',
+  },
+  expandido: {
+    nameColWidth: 'min-w-[350px] max-w-[350px]',
+    monthColWidth: 'w-[130px]',
+    totalColWidth: 'w-[150px]',
+    variationColWidth: 'w-[100px]',
+    fontSize: 'text-sm',
+    fontSizeValue: 'text-sm',
+    padding: 'py-3 px-3',
+    headerPadding: 'py-4 px-3',
+    rowGap: 'gap-2',
+    iconSize: 'h-5 w-5',
+    expandBtnSize: 'h-6 w-6 p-0',
+  },
+};
+
 export default function DREAnalitico() {
   const [periodo, setPeriodo] = useState<'mes' | 'trimestre' | 'ano'>('ano');
   const [dataInicio, setDataInicio] = useState(format(startOfYear(new Date()), 'yyyy-MM-dd'));
@@ -45,6 +89,9 @@ export default function DREAnalitico() {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [visaoAtiva, setVisaoAtiva] = useState<'contas' | 'departamentos'>('contas');
   const [filterEmpresa, setFilterEmpresa] = useState<string>('todas');
+  const [tableFormat, setTableFormat] = useState<TableFormat>('padrao');
+  
+  const formatConfig = tableFormatConfig[tableFormat];
 
   // Gerar meses para o período selecionado
   const mesesPeriodo = useMemo((): MonthData[] => {
@@ -591,7 +638,8 @@ export default function DREAnalitico() {
   const renderNode = (node: DRENode, level: number = 0) => {
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedNodes.has(node.id);
-    const paddingLeft = level * 20;
+    const indentMultiplier = tableFormat === 'compacto' ? 14 : tableFormat === 'expandido' ? 24 : 20;
+    const paddingLeft = level * indentMultiplier;
     const isExpense = ['expense', 'cost_center', 'budget', 'asset', 'liability'].includes(node.accountType);
 
     const getRowStyle = () => {
@@ -617,25 +665,25 @@ export default function DREAnalitico() {
         <div className={`flex items-center border-b transition-colors ${getRowStyle()}`}>
           {/* Coluna fixa: Nome */}
           <div 
-            className="flex items-center gap-1 min-w-[280px] max-w-[280px] py-2 px-3 sticky left-0 bg-inherit z-10 border-r"
+            className={`flex items-center ${formatConfig.rowGap} ${formatConfig.nameColWidth} ${formatConfig.padding} sticky left-0 bg-inherit z-10 border-r`}
             style={{ paddingLeft: `${paddingLeft + 12}px` }}
           >
             {hasChildren ? (
-              <Button variant="ghost" size="sm" className="h-5 w-5 p-0 hover:bg-transparent" onClick={() => toggleNode(node.id)}>
-                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <Button variant="ghost" size="sm" className={`${formatConfig.expandBtnSize} hover:bg-transparent`} onClick={() => toggleNode(node.id)}>
+                {isExpanded ? <ChevronDown className={formatConfig.iconSize} /> : <ChevronRight className={formatConfig.iconSize} />}
               </Button>
-            ) : <div className="w-5" />}
+            ) : <div className={tableFormat === 'compacto' ? 'w-4' : tableFormat === 'expandido' ? 'w-6' : 'w-5'} />}
             
             {node.codigo && (
-              <span className="font-mono text-[11px] text-muted-foreground w-[55px] flex-shrink-0">{node.codigo}</span>
+              <span className={`font-mono ${formatConfig.fontSize} text-muted-foreground ${tableFormat === 'compacto' ? 'w-[45px]' : tableFormat === 'expandido' ? 'w-[65px]' : 'w-[55px]'} flex-shrink-0`}>{node.codigo}</span>
             )}
             
-            <span className={`truncate ${node.tipo === 'lancamento' ? 'text-xs text-muted-foreground' : 'text-sm'}`}>
+            <span className={`truncate ${node.tipo === 'lancamento' ? `${formatConfig.fontSize} text-muted-foreground` : formatConfig.fontSize}`}>
               {node.nome}
             </span>
 
             {node.id === 'nao-classificados' && (
-              <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0 h-4">Pendente</Badge>
+              <Badge variant="destructive" className={`ml-1 ${tableFormat === 'compacto' ? 'text-[8px] px-0.5 py-0 h-3' : tableFormat === 'expandido' ? 'text-[10px] px-1.5 py-0.5 h-5' : 'text-[9px] px-1 py-0 h-4'}`}>Pendente</Badge>
             )}
           </div>
 
@@ -644,32 +692,32 @@ export default function DREAnalitico() {
             {mesesPeriodo.map(mes => {
               const valorMes = node.valoresMensais?.[mes.key] || 0;
               return (
-                <div key={mes.key} className="w-[100px] flex-shrink-0 text-right px-2 py-2">
+                <div key={mes.key} className={`${formatConfig.monthColWidth} flex-shrink-0 text-right ${formatConfig.padding}`}>
                   {valorMes > 0 ? (
-                    <span className={`font-mono text-xs ${getValueColor()}`}>
+                    <span className={`font-mono ${formatConfig.fontSizeValue} ${getValueColor()}`}>
                       {isExpense ? `(${formatarValor(valorMes, true)})` : formatarValor(valorMes, true)}
                     </span>
                   ) : (
-                    <span className="text-muted-foreground text-xs">-</span>
+                    <span className={`text-muted-foreground ${formatConfig.fontSizeValue}`}>-</span>
                   )}
                 </div>
               );
             })}
 
             {/* Total */}
-            <div className="w-[120px] flex-shrink-0 text-right px-3 py-2 border-l-2 bg-slate-50/50 dark:bg-slate-800/30">
-              <span className={`font-mono text-sm font-semibold ${getValueColor()}`}>
+            <div className={`${formatConfig.totalColWidth} flex-shrink-0 text-right ${formatConfig.padding} border-l-2 bg-slate-50/50 dark:bg-slate-800/30`}>
+              <span className={`font-mono ${formatConfig.fontSizeValue} font-semibold ${getValueColor()}`}>
                 {isExpense && node.valor > 0 ? `(${formatarValor(node.valor)})` : formatarValor(node.valor)}
               </span>
             </div>
 
             {/* MoM */}
-            <div className="w-[80px] flex-shrink-0 text-right px-2 py-2 border-l">
+            <div className={`${formatConfig.variationColWidth} flex-shrink-0 text-right ${formatConfig.padding} border-l`}>
               {renderVariacaoCell(mom, isExpense)}
             </div>
 
             {/* YoY */}
-            <div className="w-[80px] flex-shrink-0 text-right px-2 py-2 border-l">
+            <div className={`${formatConfig.variationColWidth} flex-shrink-0 text-right ${formatConfig.padding} border-l`}>
               {renderVariacaoCell(yoy, isExpense)}
             </div>
           </div>
@@ -733,7 +781,7 @@ export default function DREAnalitico() {
         {/* Filtros */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               <div className="space-y-2">
                 <Label>Período</Label>
                 <Select value={periodo} onValueChange={(v: any) => handlePeriodoChange(v)}>
@@ -763,6 +811,21 @@ export default function DREAnalitico() {
                   <SelectContent>
                     <SelectItem value="todas">Todas as Empresas</SelectItem>
                     {empresas?.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <LayoutGrid className="h-3 w-3" />
+                  Formato Tabela
+                </Label>
+                <Select value={tableFormat} onValueChange={(v) => setTableFormat(v as TableFormat)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="compacto">Compacto</SelectItem>
+                    <SelectItem value="padrao">Padrão</SelectItem>
+                    <SelectItem value="expandido">Expandido</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -846,17 +909,17 @@ export default function DREAnalitico() {
 
             <CardContent className="p-0 mt-4">
               {/* Header da tabela */}
-              <div className="flex items-center bg-muted/80 border-y text-xs font-semibold text-muted-foreground sticky top-0 z-20">
-                <div className="min-w-[280px] max-w-[280px] py-3 px-3 sticky left-0 bg-muted/80 z-10 border-r">
+              <div className={`flex items-center bg-muted/80 border-y ${formatConfig.fontSize} font-semibold text-muted-foreground sticky top-0 z-20`}>
+                <div className={`${formatConfig.nameColWidth} ${formatConfig.headerPadding} sticky left-0 bg-muted/80 z-10 border-r`}>
                   Conta / Descrição
                 </div>
                 <div className="flex items-center flex-nowrap">
                   {mesesPeriodo.map(mes => (
-                    <div key={mes.key} className="w-[100px] flex-shrink-0 text-right px-2 py-3 uppercase">{mes.label}</div>
+                    <div key={mes.key} className={`${formatConfig.monthColWidth} flex-shrink-0 text-right ${formatConfig.headerPadding} uppercase`}>{mes.label}</div>
                   ))}
-                  <div className="w-[120px] flex-shrink-0 text-right px-3 py-3 border-l-2 bg-muted/50 font-bold">Total</div>
-                  <div className="w-[80px] flex-shrink-0 text-right px-2 py-3 border-l">MoM</div>
-                  <div className="w-[80px] flex-shrink-0 text-right px-2 py-3 border-l">YoY</div>
+                  <div className={`${formatConfig.totalColWidth} flex-shrink-0 text-right ${formatConfig.headerPadding} border-l-2 bg-muted/50 font-bold`}>Total</div>
+                  <div className={`${formatConfig.variationColWidth} flex-shrink-0 text-right ${formatConfig.headerPadding} border-l`}>MoM</div>
+                  <div className={`${formatConfig.variationColWidth} flex-shrink-0 text-right ${formatConfig.headerPadding} border-l`}>YoY</div>
                 </div>
               </div>
 
