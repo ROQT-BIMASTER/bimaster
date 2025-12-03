@@ -251,9 +251,9 @@ export default function DREAnalitico() {
     }
   });
 
-  // Buscar lançamentos do período
-  const { data: lancamentos, isLoading } = useSupabaseQuery(
-    ['lancamentos-dre', dataInicio, dataFim, filterEmpresa, mostrarInativos, filterDepartamento, filterConta, filterDescricao],
+  // Buscar lançamentos do período (sem filtro de descrição para cachear dados base)
+  const { data: lancamentosBase, isLoading } = useSupabaseQuery(
+    ['lancamentos-dre', dataInicio, dataFim, filterEmpresa, mostrarInativos, filterDepartamento, filterConta],
     async () => {
       let query = supabase
         .from('contas_pagar')
@@ -281,21 +281,27 @@ export default function DREAnalitico() {
       const { data, error } = await query;
       if (error) throw error;
       
-      // Filtrar por descrição/fornecedor no frontend (busca mais flexível)
-      if (filterDescricao.trim()) {
-        const searchTerm = filterDescricao.toLowerCase().trim();
-        return data.filter(item => 
-          (item.fornecedor_nome && item.fornecedor_nome.toLowerCase().includes(searchTerm)) ||
-          (item.categoria_nome && item.categoria_nome.toLowerCase().includes(searchTerm)) ||
-          (item.numero_documento && item.numero_documento.toLowerCase().includes(searchTerm)) ||
-          (item.plano_contas_nome && item.plano_contas_nome.toLowerCase().includes(searchTerm))
-        );
-      }
-      
       return data;
     },
     { staleTime: 0, refetchOnMount: true }
   );
+
+  // Aplicar filtro de descrição/fornecedor via useMemo (filtragem instantânea)
+  const lancamentos = useMemo(() => {
+    if (!lancamentosBase) return null;
+    
+    if (!filterDescricao.trim()) {
+      return lancamentosBase;
+    }
+    
+    const searchTerm = filterDescricao.toLowerCase().trim();
+    return lancamentosBase.filter(item => 
+      (item.fornecedor_nome && item.fornecedor_nome.toLowerCase().includes(searchTerm)) ||
+      (item.categoria_nome && item.categoria_nome.toLowerCase().includes(searchTerm)) ||
+      (item.numero_documento && item.numero_documento.toLowerCase().includes(searchTerm)) ||
+      (item.plano_contas_nome && item.plano_contas_nome.toLowerCase().includes(searchTerm))
+    );
+  }, [lancamentosBase, filterDescricao]);
 
   // Buscar lançamentos do ano anterior para YoY
   const anoAnteriorInicio = format(subYears(parseISO(dataInicio), 1), 'yyyy-MM-dd');
