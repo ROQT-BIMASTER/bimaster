@@ -25,7 +25,10 @@ import { VincularWhatsApp } from "@/components/configuracoes/VincularWhatsApp";
 import { PersonalizarCores } from "@/components/configuracoes/PersonalizarCores";
 import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
 import { GerenciamentoCNPJ } from "@/components/configuracoes/GerenciamentoCNPJ";
-import { Shield, Users, Bell, Palette, Key, Wrench, Webhook, Database, Activity, UserCog, User, CheckCircle, Lock } from "lucide-react";
+import { GerenciamentoDepartamentos } from "@/components/configuracoes/GerenciamentoDepartamentos";
+import { GerenciamentoPermissoesDepartamentos } from "@/components/configuracoes/GerenciamentoPermissoesDepartamentos";
+import { AtribuirDepartamentoUsuario } from "@/components/configuracoes/AtribuirDepartamentoUsuario";
+import { Shield, Users, Bell, Palette, Key, Wrench, Webhook, Database, Activity, UserCog, User, CheckCircle, Lock, Building2 } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -265,6 +268,7 @@ const Configuracoes = () => {
               {isAdmin && <TabsTrigger value="cnpj">Gerenciar CNPJs</TabsTrigger>}
               {isAdmin && <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>}
               {isAdmin && <TabsTrigger value="premiacoes">Premiações</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="departamentos">Departamentos</TabsTrigger>}
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
               {isAdmin && (
                 <TabsTrigger 
@@ -353,6 +357,14 @@ const Configuracoes = () => {
             {isAdmin && (
               <TabsContent value="premiacoes">
                 <GerenciamentoPremiacoes />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="departamentos" className="space-y-6">
+                <GerenciamentoDepartamentos />
+                <GerenciamentoPermissoesDepartamentos />
+                <AtribuirDepartamentoUsuario />
               </TabsContent>
             )}
 
