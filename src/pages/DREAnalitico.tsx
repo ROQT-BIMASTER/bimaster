@@ -354,6 +354,29 @@ export default function DREAnalitico() {
   const planosContasEmRevisao = useMemo(() => new Set(contasEmRevisao?.filter(c => c.plano_contas_id).map(c => c.plano_contas_id) || []), [contasEmRevisao]);
   const departamentosEmRevisao = useMemo(() => new Set(contasEmRevisao?.filter(c => c.departamento_id).map(c => c.departamento_id) || []), [contasEmRevisao]);
 
+  // Auto-expandir nós quando filtro de descrição está ativo
+  useEffect(() => {
+    if (filterDescricao.trim() && lancamentos && lancamentos.length > 0) {
+      const nodosParaExpandir = new Set<string>();
+      
+      // Expandir grupos raiz
+      nodosParaExpandir.add('despesas');
+      nodosParaExpandir.add('custos');
+      nodosParaExpandir.add('receitas');
+      nodosParaExpandir.add('patrimoniais');
+      nodosParaExpandir.add('nao-classificados');
+      
+      // Expandir todas as contas e departamentos relacionados aos lançamentos filtrados
+      lancamentos.forEach(l => {
+        if (l.plano_contas_id) nodosParaExpandir.add(l.plano_contas_id);
+        if (l.departamento_id) nodosParaExpandir.add(l.departamento_id);
+        if (l.categoria_nome) nodosParaExpandir.add(`cat-${l.categoria_nome}`);
+      });
+      
+      setExpandedNodes(nodosParaExpandir);
+    }
+  }, [filterDescricao, lancamentos]);
+
   // Calcular MoM (Month over Month) %
   const calcularMoM = (valoresMensais: { [mes: string]: number }): number | null => {
     const keys = Object.keys(valoresMensais).sort();
