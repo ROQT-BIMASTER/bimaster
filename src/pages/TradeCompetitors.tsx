@@ -34,13 +34,11 @@ const TradeCompetitors = () => {
   const [selectedCompetitor, setSelectedCompetitor] = useState<string | null>(null);
   const [showNovoCompetitor, setShowNovoCompetitor] = useState(false);
 
-  if (!permissionsLoading && !hasPermission("trade_competitors")) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   useEffect(() => {
-    fetchCompetitors();
-  }, []);
+    if (!permissionsLoading && hasPermission("trade_competitors")) {
+      fetchCompetitors();
+    }
+  }, [permissionsLoading]);
 
   const fetchCompetitors = async () => {
     try {
@@ -93,6 +91,18 @@ const TradeCompetitors = () => {
   useEffect(() => {
     applyFilters();
   }, [aiCriteria, allCompetitors]);
+
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">Carregando permissões...</div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!hasPermission("trade_competitors")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <DashboardLayout>

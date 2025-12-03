@@ -33,7 +33,7 @@ const TradeImportStores = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!permissionsLoading) {
+    if (!permissionsLoading && hasPermission("trade_import_stores")) {
       fetchUsuarios();
       fetchCurrentUser();
     }
@@ -102,7 +102,15 @@ const TradeImportStores = () => {
     }
   };
 
-  if (!permissionsLoading && !hasPermission("trade_import_stores")) {
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">Carregando permissões...</div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!hasPermission("trade_import_stores")) {
     return <Navigate to="/dashboard" replace />;
   }
 

@@ -38,13 +38,11 @@ const TradeInsights = () => {
   const [selectedInsightId, setSelectedInsightId] = useState<string | null>(null);
   const [insightDetailOpen, setInsightDetailOpen] = useState(false);
 
-  if (!permissionsLoading && !hasPermission("trade_insights")) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   useEffect(() => {
-    fetchInsights();
-  }, []);
+    if (!permissionsLoading && hasPermission("trade_insights")) {
+      fetchInsights();
+    }
+  }, [permissionsLoading]);
 
   const fetchInsights = async () => {
     try {
@@ -149,6 +147,18 @@ const TradeInsights = () => {
     trends: insights.filter(i => i.insight_type === "trend" && i.status === "new").length,
     recommendations: insights.filter(i => i.insight_type === "recommendation" && i.status === "new").length,
   };
+
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">Carregando permissões...</div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!hasPermission("trade_insights")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleGenerateInsights = async () => {
     setGenerating(true);

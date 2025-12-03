@@ -36,9 +36,11 @@ const TradePhotos = () => {
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [photoDetailOpen, setPhotoDetailOpen] = useState(false);
 
-  if (!permissionsLoading && !hasPermission("trade_photos")) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  useEffect(() => {
+    if (!permissionsLoading && hasPermission("trade_photos")) {
+      fetchPhotos();
+    }
+  }, [permissionsLoading]);
 
   useEffect(() => {
     fetchPhotos();
@@ -151,6 +153,18 @@ const TradePhotos = () => {
   useEffect(() => {
     applyFilters();
   }, [selectedStore, aiCriteria, allPhotos]);
+
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">Carregando permissões...</div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!hasPermission("trade_photos")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <DashboardLayout>

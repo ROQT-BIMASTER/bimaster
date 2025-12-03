@@ -39,13 +39,15 @@ const FabricaModule = () => {
   const [ordensRecentes, setOrdensRecentes] = useState<OrdemProducao[]>([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (!permissionsLoading && hasPermission("fabrica_dashboard")) {
+      fetchDashboardData();
+    }
+  }, [permissionsLoading]);
+
   if (!permissionsLoading && !hasPermission("fabrica_dashboard")) {
     return <Navigate to="/dashboard" replace />;
   }
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
 
   const fetchDashboardData = async () => {
     try {

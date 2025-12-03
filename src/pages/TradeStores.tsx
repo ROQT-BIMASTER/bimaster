@@ -44,13 +44,11 @@ const TradeStores = () => {
   const [editStoreId, setEditStoreId] = useState<string | null>(null);
   const [deleteStoreId, setDeleteStoreId] = useState<string | null>(null);
 
-  if (!permissionsLoading && !hasPermission("trade_stores")) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   useEffect(() => {
-    fetchStores();
-  }, []);
+    if (!permissionsLoading && hasPermission("trade_stores")) {
+      fetchStores();
+    }
+  }, [permissionsLoading]);
 
   const fetchStores = async () => {
     try {
@@ -95,6 +93,18 @@ const TradeStores = () => {
   useEffect(() => {
     applyFilters();
   }, [selectedStore, aiCriteria, allStores]);
+
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">Carregando permissões...</div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!hasPermission("trade_stores")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const getPriorityColor = (priority: string | null) => {
     switch (priority) {
