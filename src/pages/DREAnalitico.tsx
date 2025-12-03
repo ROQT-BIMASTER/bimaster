@@ -278,7 +278,8 @@ export default function DREAnalitico() {
         query = query.neq('ativo_dre', false);
       }
       
-      const { data, error } = await query;
+      // Buscar todos os registros (sem limite padrão de 1000)
+      const { data, error } = await query.limit(50000);
       if (error) throw error;
       
       return data;
