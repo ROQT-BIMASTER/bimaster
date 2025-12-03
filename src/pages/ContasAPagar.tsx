@@ -14,9 +14,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, 
   ArrowLeft, Brain, Bot, Pencil, User, Lock, ArrowUpDown, ArrowUp, ArrowDown, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard 
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays
 } from "lucide-react";
 import { DashboardContasPagar } from "@/components/financeiro/DashboardContasPagar";
+import { CalendarioVencimentos } from "@/components/financeiro/CalendarioVencimentos";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
@@ -697,6 +698,10 @@ export default function ContasAPagar() {
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
             </TabsTrigger>
+            <TabsTrigger value="calendario" className="gap-2">
+              <CalendarDays className="h-4 w-4" />
+              Calendário
+            </TabsTrigger>
             <TabsTrigger value="contas" className="gap-2">
               <Receipt className="h-4 w-4" />
               Contas a Pagar
@@ -717,6 +722,11 @@ export default function ContasAPagar() {
           {/* Aba Dashboard Analítico */}
           <TabsContent value="dashboard" className="space-y-6">
             <DashboardContasPagar contas={contas} isLoading={isLoading} />
+          </TabsContent>
+
+          {/* Aba Calendário de Vencimentos */}
+          <TabsContent value="calendario" className="space-y-6">
+            <CalendarioVencimentos contas={contas} isLoading={isLoading} />
           </TabsContent>
 
           {/* Aba de Contas a Pagar */}
