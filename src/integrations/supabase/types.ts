@@ -5875,6 +5875,33 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_cliente_logs: {
+        Row: {
+          acao: string
+          created_at: string | null
+          detalhes: Json | null
+          id: string
+          ip_address: string | null
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string | null
+          detalhes?: Json | null
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string | null
+          detalhes?: Json | null
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       product_comparisons: {
         Row: {
           comparison_notes: string | null
@@ -9936,6 +9963,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: number
+      }
+      registrar_acesso_portal: {
+        Args: { p_acao: string; p_detalhes?: Json }
+        Returns: string
       }
       similarity_score: {
         Args: { str1: string; str2: string }

@@ -9,6 +9,7 @@ import ErrorPage from "@/pages/ErrorPage";
 import { memoryManager } from "@/lib/utils/memory-manager";
 import { memoryMonitor } from "@/lib/utils/memory-monitor";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ClienteProtectedRoute } from "@/components/auth/ClienteProtectedRoute";
 
 // Lazy load das páginas para otimizar bundle
 const Index = lazy(() => import("./pages/Index"));
@@ -88,6 +89,10 @@ const Financeiro = lazy(() => import("./pages/Financeiro"));
 const VisaoDepartamentos = lazy(() => import("./pages/VisaoDepartamentos"));
 const DREAnalitico = lazy(() => import("./pages/DREAnalitico"));
 const ClassificarTodoBanco = lazy(() => import("./pages/ClassificarTodoBanco"));
+
+// Portal do Cliente (isolado)
+const PortalPrecos = lazy(() => import("./pages/portal/PortalPrecos"));
+const PortalPerfil = lazy(() => import("./pages/portal/PortalPerfil"));
 
 // Loading component
 const PageLoader = () => (
@@ -249,6 +254,11 @@ const App = () => {
         <Route path="/dashboard/contas-a-pagar" element={<ProtectedRoute><ContasAPagar /></ProtectedRoute>} />
         <Route path="/dashboard/plano-contas" element={<ProtectedRoute><PlanoContas /></ProtectedRoute>} />
         <Route path="/dashboard/configuracoes/api-health" element={<ProtectedRoute><APIHealthCheck /></ProtectedRoute>} />
+        
+        {/* Portal do Cliente - Rotas isoladas */}
+        <Route path="/portal" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
+        <Route path="/portal/precos" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
+        <Route path="/portal/perfil" element={<ClienteProtectedRoute><PortalPerfil /></ClienteProtectedRoute>} />
         
         <Route path="/404" element={<NotFound />} />
             </Routes>
