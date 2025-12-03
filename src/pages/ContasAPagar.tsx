@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, ArrowLeft, Brain, Bot, Pencil, User, Lock } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, 
+  ArrowLeft, Brain, Bot, Pencil, User, Lock, ArrowUpDown, ArrowUp, ArrowDown, 
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2 
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
@@ -55,15 +60,32 @@ interface ContaPagar {
   classificacao_corrigida_em: string | null;
 }
 
+type SortColumn = 'empresa_nome' | 'numero_documento' | 'fornecedor_nome' | 'categoria_nome' | 'data_vencimento' | 'valor_original' | 'valor_aberto' | 'status';
+type SortDirection = 'asc' | 'desc';
+
 export default function ContasAPagar() {
   const { userType, isAdmin } = useUserRole();
   
+  // Filtros
   const [searchFornecedor, setSearchFornecedor] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterEmpresa, setFilterEmpresa] = useState<string>("all");
   const [filterAno, setFilterAno] = useState<string>(new Date().getFullYear().toString());
   const [filterMes, setFilterMes] = useState<string>("all");
   const [filterDepartamento, setFilterDepartamento] = useState<string>("all");
+  
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  
+  // Ordenação
+  const [sortColumn, setSortColumn] = useState<SortColumn>('data_vencimento');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  
+  // Seleção em lote
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
+  // Dialogs
   const [solicitarOrcamentoOpen, setSolicitarOrcamentoOpen] = useState(false);
   const [aprovarOrcamentoOpen, setAprovarOrcamentoOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
@@ -73,6 +95,9 @@ export default function ContasAPagar() {
   const [filterMesClassificacao, setFilterMesClassificacao] = useState<string>("all");
   const [editarClassificacaoOpen, setEditarClassificacaoOpen] = useState(false);
   const [selectedContaClassificacao, setSelectedContaClassificacao] = useState<ContaPagar | null>(null);
+  
+  // Ação em lote - departamento
+  const [batchDepartamento, setBatchDepartamento] = useState<string>("");
 
   // Query departamentos
   const { data: departamentos } = useQuery({
@@ -130,14 +155,12 @@ export default function ContasAPagar() {
         query = query.eq('departamento_id', filterDepartamento);
       }
 
-      // Filtro por ano
       if (filterAno !== 'all') {
         const startDate = `${filterAno}-01-01`;
         const endDate = `${filterAno}-12-31`;
         query = query.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
       }
 
-      // Filtro por mês (se ano estiver selecionado)
       if (filterMes !== 'all' && filterAno !== 'all') {
         const mes = filterMes.padStart(2, '0');
         const startDate = `${filterAno}-${mes}-01`;
@@ -151,6 +174,44 @@ export default function ContasAPagar() {
       return data as ContaPagar[];
     }
   });
+
+  // Ordenação e Paginação aplicadas
+  const sortedAndPaginatedData = useMemo(() => {
+    if (!contas) return { data: [], totalPages: 0, totalItems: 0 };
+    
+    // Ordenar
+    const sorted = [...contas].sort((a, b) => {
+      let aVal: any = a[sortColumn];
+      let bVal: any = b[sortColumn];
+      
+      // Tratamento de valores nulos
+      if (aVal === null || aVal === undefined) aVal = '';
+      if (bVal === null || bVal === undefined) bVal = '';
+      
+      // Ordenação numérica para valores
+      if (sortColumn === 'valor_original' || sortColumn === 'valor_aberto') {
+        aVal = Number(aVal) || 0;
+        bVal = Number(bVal) || 0;
+      }
+      
+      // Ordenação de datas
+      if (sortColumn === 'data_vencimento') {
+        aVal = aVal ? new Date(aVal).getTime() : 0;
+        bVal = bVal ? new Date(bVal).getTime() : 0;
+      }
+      
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    const totalItems = sorted.length;
+    const totalPages = Math.ceil(totalItems / pageSize);
+    const startIndex = (currentPage - 1) * pageSize;
+    const data = sorted.slice(startIndex, startIndex + pageSize);
+    
+    return { data, totalPages, totalItems };
+  }, [contas, sortColumn, sortDirection, currentPage, pageSize]);
 
   // Calcular KPIs
   const kpis = {
@@ -190,12 +251,10 @@ export default function ContasAPagar() {
         `)
         .order('created_at', { ascending: false });
 
-      // Filtrar por status de aprovação
       if (budgetFilter !== "all") {
         query = query.eq('approval_status', budgetFilter);
       }
 
-      // Não-admins só veem seus próprios orçamentos
       if (userType !== 'admin') {
         query = query.eq('requested_by', user.id);
       }
@@ -207,10 +266,123 @@ export default function ContasAPagar() {
     enabled: !!userType,
   });
 
-  // Contar orçamentos pendentes (só para admins)
   const pendingBudgetsCount = budgets?.filter(b => b.approval_status === 'pending').length || 0;
 
-  // Exportar para Excel
+  // Funções de ordenação
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1); // Reset para primeira página ao ordenar
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-4 w-4 ml-1" /> 
+      : <ArrowDown className="h-4 w-4 ml-1" />;
+  };
+
+  // Funções de seleção
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(sortedAndPaginatedData.data.map(c => c.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedIds);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const isAllSelected = sortedAndPaginatedData.data.length > 0 && 
+    sortedAndPaginatedData.data.every(c => selectedIds.has(c.id));
+  const isSomeSelected = sortedAndPaginatedData.data.some(c => selectedIds.has(c.id)) && !isAllSelected;
+
+  // Ações em lote
+  const handleBatchExport = () => {
+    const selectedContas = contas?.filter(c => selectedIds.has(c.id));
+    if (!selectedContas || selectedContas.length === 0) {
+      toast.error("Selecione ao menos uma conta para exportar");
+      return;
+    }
+
+    const dataToExport = selectedContas.map(c => ({
+      'Empresa': c.empresa_nome,
+      'Documento': `${c.numero_documento}/${c.parcela}`,
+      'Fornecedor': c.fornecedor_nome,
+      'Categoria': c.categoria_nome,
+      'Emissão': c.data_emissao ? format(new Date(c.data_emissao), 'dd/MM/yyyy', { locale: ptBR }) : '',
+      'Vencimento': c.data_vencimento ? format(new Date(c.data_vencimento), 'dd/MM/yyyy', { locale: ptBR }) : '',
+      'Valor Original': c.valor_original,
+      'Valor Aberto': c.valor_aberto,
+      'Valor Pago': c.valor_pago,
+      'Status': c.status,
+      'Departamento': c.departamento_nome || '',
+      'Plano de Contas': c.plano_contas_nome || ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Contas Selecionadas");
+    XLSX.writeFile(wb, `contas-selecionadas-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    toast.success(`${selectedContas.length} contas exportadas!`);
+    setSelectedIds(new Set());
+  };
+
+  const handleBatchUpdateDepartamento = async () => {
+    if (!batchDepartamento) {
+      toast.error("Selecione um departamento");
+      return;
+    }
+
+    if (selectedIds.size === 0) {
+      toast.error("Selecione ao menos uma conta");
+      return;
+    }
+
+    try {
+      const dept = departamentos?.find(d => d.id === batchDepartamento);
+      
+      const { error } = await supabase
+        .from('contas_pagar')
+        .update({ 
+          departamento_id: batchDepartamento,
+          departamento_nome: dept?.nome || null 
+        })
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast.success(`${selectedIds.size} contas atualizadas!`);
+      setSelectedIds(new Set());
+      setBatchDepartamento("");
+      refetchContas();
+    } catch (error) {
+      console.error('Erro ao atualizar em lote:', error);
+      toast.error('Erro ao atualizar contas');
+    }
+  };
+
+  const handleBatchClassificar = () => {
+    if (selectedIds.size === 0) {
+      toast.error("Selecione ao menos uma conta");
+      return;
+    }
+    setClassificarIAOpen(true);
+  };
+
+  // Exportar para Excel (todas)
   const handleExport = () => {
     if (!contas || contas.length === 0) {
       toast.error("Não há dados para exportar");
@@ -263,7 +435,6 @@ export default function ContasAPagar() {
     setAprovarOrcamentoOpen(true);
   };
 
-  // Função para atualizar departamento e plano de contas
   const handleUpdateClassificacao = async (
     contaId: string, 
     departamentoId: string | null, 
@@ -309,6 +480,13 @@ export default function ContasAPagar() {
 
     const config = variants[status] || variants.pending;
     return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  // Resetar página ao mudar filtros
+  const handleFilterChange = (setter: (value: string) => void) => (value: string) => {
+    setter(value);
+    setCurrentPage(1);
+    setSelectedIds(new Set());
   };
 
   return (
@@ -433,7 +611,7 @@ export default function ContasAPagar() {
                   <div>
                     <label className="text-sm font-medium mb-2 block">Ano</label>
                     <Select value={filterAno} onValueChange={(value) => {
-                      setFilterAno(value);
+                      handleFilterChange(setFilterAno)(value);
                       if (value === 'all') setFilterMes('all');
                     }}>
                       <SelectTrigger>
@@ -452,7 +630,7 @@ export default function ContasAPagar() {
                     <label className="text-sm font-medium mb-2 block">Mês</label>
                     <Select 
                       value={filterMes} 
-                      onValueChange={setFilterMes}
+                      onValueChange={handleFilterChange(setFilterMes)}
                       disabled={filterAno === 'all'}
                     >
                       <SelectTrigger>
@@ -478,7 +656,7 @@ export default function ContasAPagar() {
 
                   <div>
                     <label className="text-sm font-medium mb-2 block">Empresa</label>
-                    <Select value={filterEmpresa} onValueChange={setFilterEmpresa}>
+                    <Select value={filterEmpresa} onValueChange={handleFilterChange(setFilterEmpresa)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Todas" />
                       </SelectTrigger>
@@ -495,7 +673,7 @@ export default function ContasAPagar() {
 
                   <div>
                     <label className="text-sm font-medium mb-2 block">Departamento</label>
-                    <Select value={filterDepartamento} onValueChange={setFilterDepartamento}>
+                    <Select value={filterDepartamento} onValueChange={handleFilterChange(setFilterDepartamento)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Todos" />
                       </SelectTrigger>
@@ -512,7 +690,7 @@ export default function ContasAPagar() {
 
                   <div>
                     <label className="text-sm font-medium mb-2 block">Status</label>
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <Select value={filterStatus} onValueChange={handleFilterChange(setFilterStatus)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Todos" />
                       </SelectTrigger>
@@ -531,12 +709,88 @@ export default function ContasAPagar() {
                     <Input
                       placeholder="Digite o nome do fornecedor..."
                       value={searchFornecedor}
-                      onChange={(e) => setSearchFornecedor(e.target.value)}
+                      onChange={(e) => {
+                        setSearchFornecedor(e.target.value);
+                        setCurrentPage(1);
+                      }}
                     />
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Barra de Ações em Lote */}
+            {selectedIds.size > 0 && (
+              <Card className="border-primary/50 bg-primary/5">
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-sm">
+                        {selectedIds.size} {selectedIds.size === 1 ? 'conta selecionada' : 'contas selecionadas'}
+                      </Badge>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setSelectedIds(new Set())}
+                      >
+                        Limpar seleção
+                      </Button>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      {/* Alterar Departamento em Lote */}
+                      <div className="flex items-center gap-2">
+                        <Select value={batchDepartamento} onValueChange={setBatchDepartamento}>
+                          <SelectTrigger className="w-[180px] h-9">
+                            <Building2 className="h-4 w-4 mr-2" />
+                            <SelectValue placeholder="Departamento..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {departamentos?.map(dept => (
+                              <SelectItem key={dept.id} value={dept.id}>
+                                {dept.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          size="sm" 
+                          variant="secondary"
+                          onClick={handleBatchUpdateDepartamento}
+                          disabled={!batchDepartamento}
+                        >
+                          Aplicar
+                        </Button>
+                      </div>
+
+                      <div className="h-6 w-px bg-border" />
+
+                      {/* Classificar IA */}
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={handleBatchClassificar}
+                        className="gap-2"
+                      >
+                        <Bot className="h-4 w-4" />
+                        Classificar IA
+                      </Button>
+
+                      {/* Exportar Selecionadas */}
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={handleBatchExport}
+                        className="gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Exportar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Tabela de Contas */}
             <Card>
@@ -544,42 +798,191 @@ export default function ContasAPagar() {
                 {isLoading ? (
                   <div className="text-center py-8">Carregando...</div>
                 ) : contas && contas.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Empresa</TableHead>
-                          <TableHead>Documento</TableHead>
-                          <TableHead>Fornecedor</TableHead>
-                          <TableHead>Categoria</TableHead>
-                          <TableHead>Vencimento</TableHead>
-                          <TableHead className="text-right">Valor Original</TableHead>
-                          <TableHead className="text-right">Valor Aberto</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {contas.map((conta) => (
-                          <TableRow key={conta.id}>
-                            <TableCell className="font-medium">{conta.empresa_nome}</TableCell>
-                            <TableCell>{conta.numero_documento}/{conta.parcela}</TableCell>
-                            <TableCell>{conta.fornecedor_nome}</TableCell>
-                            <TableCell>{conta.categoria_nome}</TableCell>
-                            <TableCell>
-                              {conta.data_vencimento ? format(new Date(conta.data_vencimento), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_original)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_aberto)}
-                            </TableCell>
-                            <TableCell>{getStatusBadge(conta.status)}</TableCell>
+                  <>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[50px]">
+                              <Checkbox
+                                checked={isAllSelected}
+                                onCheckedChange={handleSelectAll}
+                                aria-label="Selecionar todos"
+                                className={isSomeSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                              />
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => handleSort('empresa_nome')}
+                            >
+                              <div className="flex items-center">
+                                Empresa
+                                <SortIcon column="empresa_nome" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => handleSort('numero_documento')}
+                            >
+                              <div className="flex items-center">
+                                Documento
+                                <SortIcon column="numero_documento" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => handleSort('fornecedor_nome')}
+                            >
+                              <div className="flex items-center">
+                                Fornecedor
+                                <SortIcon column="fornecedor_nome" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => handleSort('categoria_nome')}
+                            >
+                              <div className="flex items-center">
+                                Categoria
+                                <SortIcon column="categoria_nome" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => handleSort('data_vencimento')}
+                            >
+                              <div className="flex items-center">
+                                Vencimento
+                                <SortIcon column="data_vencimento" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50 transition-colors text-right"
+                              onClick={() => handleSort('valor_original')}
+                            >
+                              <div className="flex items-center justify-end">
+                                Valor Original
+                                <SortIcon column="valor_original" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50 transition-colors text-right"
+                              onClick={() => handleSort('valor_aberto')}
+                            >
+                              <div className="flex items-center justify-end">
+                                Valor Aberto
+                                <SortIcon column="valor_aberto" />
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => handleSort('status')}
+                            >
+                              <div className="flex items-center">
+                                Status
+                                <SortIcon column="status" />
+                              </div>
+                            </TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {sortedAndPaginatedData.data.map((conta) => (
+                            <TableRow 
+                              key={conta.id}
+                              className={selectedIds.has(conta.id) ? "bg-primary/5" : ""}
+                            >
+                              <TableCell>
+                                <Checkbox
+                                  checked={selectedIds.has(conta.id)}
+                                  onCheckedChange={(checked) => handleSelectOne(conta.id, !!checked)}
+                                  aria-label={`Selecionar ${conta.fornecedor_nome}`}
+                                />
+                              </TableCell>
+                              <TableCell className="font-medium">{conta.empresa_nome}</TableCell>
+                              <TableCell>{conta.numero_documento}/{conta.parcela}</TableCell>
+                              <TableCell>{conta.fornecedor_nome}</TableCell>
+                              <TableCell>{conta.categoria_nome}</TableCell>
+                              <TableCell>
+                                {conta.data_vencimento ? format(new Date(conta.data_vencimento), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_original)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_aberto)}
+                              </TableCell>
+                              <TableCell>{getStatusBadge(conta.status)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Paginação */}
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>Mostrando</span>
+                        <Select 
+                          value={pageSize.toString()} 
+                          onValueChange={(value) => {
+                            setPageSize(Number(value));
+                            setCurrentPage(1);
+                          }}
+                        >
+                          <SelectTrigger className="w-[70px] h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="25">25</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                            <SelectItem value="100">100</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <span>de {sortedAndPaginatedData.totalItems} registros</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(1)}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronsLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        
+                        <span className="text-sm px-2">
+                          Página {currentPage} de {sortedAndPaginatedData.totalPages || 1}
+                        </span>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(sortedAndPaginatedData.totalPages, prev + 1))}
+                          disabled={currentPage >= sortedAndPaginatedData.totalPages}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(sortedAndPaginatedData.totalPages)}
+                          disabled={currentPage >= sortedAndPaginatedData.totalPages}
+                        >
+                          <ChevronsRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     Nenhuma conta encontrada
@@ -768,7 +1171,6 @@ export default function ContasAPagar() {
                 {isLoading ? (
                   <div className="text-center py-8">Carregando classificações...</div>
                 ) : (() => {
-                  // Filtrar contas por ano/mês de classificação
                   const contasFiltradas = contas?.filter(c => {
                     if (!c.data_vencimento) return false;
                     
@@ -776,12 +1178,10 @@ export default function ContasAPagar() {
                     const ano = dataVencimento.getFullYear().toString();
                     const mes = (dataVencimento.getMonth() + 1).toString();
                     
-                    // Filtro de ano
                     if (filterAnoClassificacao !== 'all' && ano !== filterAnoClassificacao) {
                       return false;
                     }
                     
-                    // Filtro de mês (só aplica se ano estiver selecionado)
                     if (filterMesClassificacao !== 'all' && filterAnoClassificacao !== 'all' && mes !== filterMesClassificacao) {
                       return false;
                     }
@@ -982,6 +1382,7 @@ export default function ContasAPagar() {
           onOpenChange={setClassificarIAOpen}
           onComplete={() => {
             refetchContas();
+            setSelectedIds(new Set());
             toast.success("Classificação concluída! Atualizando lista...");
           }}
         />
