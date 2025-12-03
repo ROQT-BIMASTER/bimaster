@@ -1,68 +1,32 @@
-import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Smartphone, Wifi, WifiOff, CheckCircle2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Download, Smartphone, Wifi, WifiOff, CheckCircle2, Zap, Shield, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { usePWA } from "@/hooks/usePWA";
 
 export default function InstalarApp() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  useEffect(() => {
-    // Detectar se já está instalado (modo standalone)
-    const checkInstalled = () => {
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                          (window.navigator as any).standalone ||
-                          document.referrer.includes('android-app://');
-      setIsInstalled(isStandalone);
-    };
-    
-    checkInstalled();
-
-    // Capturar o evento de instalação
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      console.log('beforeinstallprompt event captured');
-      setDeferredPrompt(e);
-    };
-
-    // Detectar quando o app foi instalado
-    const handleAppInstalled = () => {
-      console.log('App foi instalado');
-      setIsInstalled(true);
-      setDeferredPrompt(null);
-      toast.success("App instalado! Agora você pode acessá-lo pela tela inicial");
-    };
-
-    // Monitorar status online/offline
-    const handleOnline = () => {
-      setIsOnline(true);
-      toast.success("Conexão restabelecida!");
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      toast.info("Modo offline ativado");
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
+  const { 
+    isInstalled, 
+    isOnline, 
+    canInstall, 
+    offlineReady,
+    installProgress, 
+    installStatus,
+    promptInstall 
+  } = usePWA();
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
+    if (canInstall) {
+      const accepted = await promptInstall();
+      if (accepted) {
+        toast.success("App instalado com sucesso! Abra-o pela tela inicial");
+      } else {
+        toast.info("Instalação cancelada. Você pode instalar mais tarde pelo menu do navegador.");
+      }
+    } else {
       // Instruções para iOS
       if (/(iPhone|iPad|iPod)/.test(navigator.userAgent)) {
         toast.info("No Safari: toque em 'Compartilhar' e depois em 'Adicionar à Tela de Início'");
@@ -70,79 +34,135 @@ export default function InstalarApp() {
       }
       // Instruções para Android
       toast.info("No Chrome: toque no menu (⋮) e depois em 'Instalar app' ou 'Adicionar à tela inicial'");
-      return;
-    }
-
-    try {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      
-      if (outcome === 'accepted') {
-        toast.success("App instalado com sucesso! Abra-o pela tela inicial");
-        setIsInstalled(true);
-      } else {
-        toast.info("Instalação cancelada. Você pode instalar mais tarde pelo menu do navegador.");
-      }
-      
-      setDeferredPrompt(null);
-    } catch (error) {
-      console.error('Erro ao instalar:', error);
-      toast.error("Erro ao instalar. Tente pelo menu do navegador.");
     }
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl mx-auto">
-        <div>
+        <div className="text-center">
           <h1 className="text-3xl font-bold">Instalar Aplicativo</h1>
           <p className="text-muted-foreground mt-2">
             Instale o BiMaster no seu dispositivo para acesso rápido e modo offline
           </p>
         </div>
 
-        {/* Status de Conexão */}
-        <Alert className={isOnline ? "border-green-500 bg-green-50" : "border-orange-500 bg-orange-50"}>
-          <div className="flex items-center gap-3">
-            {isOnline ? (
-              <Wifi className="h-5 w-5 text-green-600" />
-            ) : (
-              <WifiOff className="h-5 w-5 text-orange-600" />
-            )}
-            <AlertDescription className={isOnline ? "text-green-700" : "text-orange-700"}>
-              {isOnline 
-                ? "Você está online - todos os dados serão sincronizados"
-                : "Modo offline ativo - você ainda pode acessar dados carregados anteriormente"
-              }
-            </AlertDescription>
-          </div>
-        </Alert>
+        {/* Status Cards */}
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Status de Conexão */}
+          <Card className={`border-2 ${isOnline ? 'border-green-500/50 bg-green-50/50 dark:bg-green-950/20' : 'border-orange-500/50 bg-orange-50/50 dark:bg-orange-950/20'}`}>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-full ${isOnline ? 'bg-green-500/20' : 'bg-orange-500/20'}`}>
+                  {isOnline ? (
+                    <Wifi className="h-6 w-6 text-green-600" />
+                  ) : (
+                    <WifiOff className="h-6 w-6 text-orange-600" />
+                  )}
+                </div>
+                <div>
+                  <p className={`font-semibold ${isOnline ? 'text-green-700 dark:text-green-400' : 'text-orange-700 dark:text-orange-400'}`}>
+                    {isOnline ? 'Online' : 'Offline'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {isOnline 
+                      ? "Todos os dados serão sincronizados"
+                      : "Dados carregados anteriormente disponíveis"
+                    }
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Status de Instalação */}
-        {isInstalled && (
-          <Alert className="border-green-500 bg-green-50">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <AlertDescription className="text-green-700">
-              ✓ Aplicativo já está instalado no seu dispositivo!
-            </AlertDescription>
-          </Alert>
+          {/* Status de Instalação */}
+          <Card className={`border-2 ${isInstalled ? 'border-green-500/50 bg-green-50/50 dark:bg-green-950/20' : 'border-primary/50'}`}>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-full ${isInstalled ? 'bg-green-500/20' : 'bg-primary/20'}`}>
+                  {isInstalled ? (
+                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                  ) : (
+                    <Smartphone className="h-6 w-6 text-primary" />
+                  )}
+                </div>
+                <div>
+                  <p className={`font-semibold ${isInstalled ? 'text-green-700 dark:text-green-400' : 'text-foreground'}`}>
+                    {isInstalled ? 'Instalado' : 'Não instalado'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {isInstalled 
+                      ? "App disponível na tela inicial"
+                      : "Instale para acesso rápido"
+                    }
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Progresso de Cache/Instalação */}
+        {!offlineReady && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <RefreshCw className="h-5 w-5 animate-spin" />
+                Preparando App Offline
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <Progress value={installProgress} className="h-3" />
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>{installStatus}</span>
+                  <span className="font-medium tabular-nums">{Math.round(installProgress)}%</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Botão de Instalação Principal */}
+        {!isInstalled && (
+          <Card className="border-primary/50 bg-gradient-to-br from-primary/5 to-primary/10">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <div className="inline-flex p-4 rounded-full bg-primary/20 mb-2">
+                  <Download className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Instale o BiMaster</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Tenha acesso rápido direto da tela inicial do seu dispositivo
+                  </p>
+                </div>
+                <Button size="lg" onClick={handleInstallClick} className="gap-2 px-8">
+                  <Download className="h-5 w-5" />
+                  {canInstall ? 'Instalar Agora' : 'Como Instalar'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Benefícios */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Smartphone className="h-5 w-5" />
+              <Zap className="h-5 w-5 text-primary" />
               Por que instalar?
             </CardTitle>
             <CardDescription>
               Aproveite todos os recursos do aplicativo instalado
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="flex gap-3 p-4 rounded-lg border">
-                <Download className="h-5 w-5 text-primary shrink-0 mt-1" />
+              <div className="flex gap-4 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors">
+                <div className="p-2 rounded-lg bg-primary/10 h-fit">
+                  <Download className="h-5 w-5 text-primary" />
+                </div>
                 <div>
                   <h3 className="font-semibold mb-1">Acesso Rápido</h3>
                   <p className="text-sm text-muted-foreground">
@@ -151,8 +171,10 @@ export default function InstalarApp() {
                 </div>
               </div>
 
-              <div className="flex gap-3 p-4 rounded-lg border">
-                <WifiOff className="h-5 w-5 text-primary shrink-0 mt-1" />
+              <div className="flex gap-4 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors">
+                <div className="p-2 rounded-lg bg-primary/10 h-fit">
+                  <WifiOff className="h-5 w-5 text-primary" />
+                </div>
                 <div>
                   <h3 className="font-semibold mb-1">Modo Offline</h3>
                   <p className="text-sm text-muted-foreground">
@@ -161,8 +183,10 @@ export default function InstalarApp() {
                 </div>
               </div>
 
-              <div className="flex gap-3 p-4 rounded-lg border">
-                <Smartphone className="h-5 w-5 text-primary shrink-0 mt-1" />
+              <div className="flex gap-4 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors">
+                <div className="p-2 rounded-lg bg-primary/10 h-fit">
+                  <Smartphone className="h-5 w-5 text-primary" />
+                </div>
                 <div>
                   <h3 className="font-semibold mb-1">Experiência Nativa</h3>
                   <p className="text-sm text-muted-foreground">
@@ -171,12 +195,14 @@ export default function InstalarApp() {
                 </div>
               </div>
 
-              <div className="flex gap-3 p-4 rounded-lg border">
-                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-1" />
+              <div className="flex gap-4 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors">
+                <div className="p-2 rounded-lg bg-primary/10 h-fit">
+                  <Shield className="h-5 w-5 text-primary" />
+                </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Sincronização</h3>
+                  <h3 className="font-semibold mb-1">Atualizações Automáticas</h3>
                   <p className="text-sm text-muted-foreground">
-                    Dados sincronizados automaticamente quando online
+                    Sempre na versão mais recente com notificação
                   </p>
                 </div>
               </div>
@@ -184,63 +210,74 @@ export default function InstalarApp() {
           </CardContent>
         </Card>
 
-        {/* Instruções de Instalação */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Como Instalar</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {!isInstalled && deferredPrompt && (
-              <div className="text-center py-6 space-y-4">
-                <p className="text-muted-foreground mb-4">
-                  Clique no botão abaixo para instalar o app no seu celular
-                </p>
-                <Button size="lg" onClick={handleInstallClick} className="gap-2">
-                  <Download className="h-5 w-5" />
-                  Instalar Aplicativo Agora
-                </Button>
+        {/* Instruções de Instalação Manual */}
+        {!isInstalled && !canInstall && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Instruções de Instalação</CardTitle>
+              <CardDescription>
+                Siga os passos abaixo de acordo com seu dispositivo
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Android Chrome */}
+              <div className="p-4 rounded-xl border bg-card">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-green-500 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">A</span>
+                  </div>
+                  Android (Chrome)
+                </h3>
+                <ol className="space-y-2 text-sm text-muted-foreground ml-8">
+                  <li className="flex gap-2">
+                    <span className="text-primary font-medium">1.</span>
+                    Abra o menu do Chrome (⋮ no canto superior direito)
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-primary font-medium">2.</span>
+                    Toque em "Adicionar à tela inicial" ou "Instalar app"
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-primary font-medium">3.</span>
+                    Confirme a instalação
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-primary font-medium">4.</span>
+                    O ícone aparecerá na sua tela inicial
+                  </li>
+                </ol>
               </div>
-            )}
-            
-            {!isInstalled && !deferredPrompt && (
-              <div className="space-y-6">
-                <div className="bg-muted p-4 rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground">
-                    O botão de instalação automática não está disponível. Use as instruções abaixo para instalar manualmente.
-                  </p>
-                </div>
-                
-                {/* Android Chrome */}
-                <div>
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Smartphone className="h-4 w-4" />
-                    Android (Chrome)
-                  </h3>
-                  <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                    <li>Abra o menu do Chrome (⋮ no canto superior direito)</li>
-                    <li>Toque em "Adicionar à tela inicial" ou "Instalar app"</li>
-                    <li>Confirme a instalação</li>
-                    <li>O ícone aparecerá na sua tela inicial</li>
-                  </ol>
-                </div>
 
-                {/* iOS Safari */}
-                <div>
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Smartphone className="h-4 w-4" />
-                    iPhone/iPad (Safari)
-                  </h3>
-                  <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                    <li>Toque no ícone de compartilhar (□↑)</li>
-                    <li>Role para baixo e toque em "Adicionar à Tela de Início"</li>
-                    <li>Edite o nome se desejar e toque em "Adicionar"</li>
-                    <li>O app aparecerá na sua tela inicial</li>
-                  </ol>
-                </div>
+              {/* iOS Safari */}
+              <div className="p-4 rounded-xl border bg-card">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-gray-800 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">iOS</span>
+                  </div>
+                  iPhone/iPad (Safari)
+                </h3>
+                <ol className="space-y-2 text-sm text-muted-foreground ml-8">
+                  <li className="flex gap-2">
+                    <span className="text-primary font-medium">1.</span>
+                    Toque no ícone de compartilhar (□↑)
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-primary font-medium">2.</span>
+                    Role para baixo e toque em "Adicionar à Tela de Início"
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-primary font-medium">3.</span>
+                    Edite o nome se desejar e toque em "Adicionar"
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-primary font-medium">4.</span>
+                    O app aparecerá na sua tela inicial
+                  </li>
+                </ol>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Dicas para Uso Offline */}
         <Card>
@@ -249,22 +286,28 @@ export default function InstalarApp() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <span>
                   Acesse as páginas que você precisa enquanto estiver online para garantir que fiquem disponíveis offline
                 </span>
               </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <span>
                   Alterações feitas offline serão sincronizadas automaticamente quando a conexão for restabelecida
                 </span>
               </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <span>
                   Imagens e documentos já visualizados ficam disponíveis no cache para acesso offline
+                </span>
+              </li>
+              <li className="flex gap-3 items-start">
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <span>
+                  Você receberá uma notificação quando houver uma nova versão do app disponível
                 </span>
               </li>
             </ul>
