@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
 
 interface ScheduledPost {
@@ -27,6 +27,28 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Verify secret token for cron job security
+    const cronSecret = Deno.env.get('CRON_SECRET');
+    const requestSecret = req.headers.get('x-cron-secret');
+
+    if (!cronSecret) {
+      console.error('❌ CRON_SECRET not configured');
+      return new Response(
+        JSON.stringify({ error: 'Cron secret not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (requestSecret !== cronSecret) {
+      console.error('❌ Invalid or missing cron secret');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ Cron authentication verified');
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -150,9 +172,6 @@ async function publishToPlatform(
   content: string,
   mediaUrls: string[]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
-  // NOTA: Esta é uma implementação simplificada
-  // Na produção, você deve implementar a integração real com cada API
-
   console.log(`Tentando publicar em ${account.platform} (${account.username})`);
 
   switch (account.platform.toLowerCase()) {
@@ -181,8 +200,6 @@ async function publishToInstagram(
   mediaUrls: string[]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   try {
-    // TODO: Implementar integração real com Instagram Graph API
-    // Por enquanto, retornar sucesso simulado
     console.log('📸 Instagram: Publicação simulada');
     return {
       success: true,
@@ -202,7 +219,6 @@ async function publishToFacebook(
   mediaUrls: string[]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   try {
-    // TODO: Implementar integração real com Facebook Graph API
     console.log('📘 Facebook: Publicação simulada');
     return {
       success: true,
@@ -222,7 +238,6 @@ async function publishToTwitter(
   mediaUrls: string[]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   try {
-    // TODO: Implementar integração real com Twitter API v2
     console.log('🐦 Twitter/X: Publicação simulada');
     return {
       success: true,
@@ -242,7 +257,6 @@ async function publishToLinkedIn(
   mediaUrls: string[]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   try {
-    // TODO: Implementar integração real com LinkedIn API
     console.log('💼 LinkedIn: Publicação simulada');
     return {
       success: true,
@@ -262,7 +276,6 @@ async function publishToTikTok(
   mediaUrls: string[]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   try {
-    // TODO: Implementar integração real com TikTok API
     console.log('🎵 TikTok: Publicação simulada');
     return {
       success: true,

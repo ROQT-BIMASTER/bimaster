@@ -111,14 +111,46 @@ verify_jwt = true
 [functions.contas-pagar-api]
 verify_jwt = false
 
-[functions.classificar-conta-departamento]
+[functions.contas-receber-api]
 verify_jwt = false
+
+[functions.datawarehouse-api]
+verify_jwt = false
+
+[functions.produtos-api]
+verify_jwt = true
+
+# Funções de classificação IA - requerem JWT para acesso autenticado
+[functions.classificar-conta-departamento]
+verify_jwt = true
 
 [functions.classificar-contas-pagar-ia]
-verify_jwt = false
+verify_jwt = true
 
 [functions.classificar-contas-batch]
-verify_jwt = false
+verify_jwt = true
 
+# N8N integration - usa x-api-key ao invés de JWT
 [functions.processar-transacao-n8n]
 verify_jwt = false
+
+[functions.trigger-photo-queue]
+verify_jwt = true
+
+[functions.price-table-approval]
+verify_jwt = true
+
+[functions.process-nfe-xml]
+verify_jwt = true
+
+[functions.ai-analytics]
+verify_jwt = true
+
+[functions.api-health-check]
+verify_jwt = true
+
+[functions.export-datawarehouse]
+verify_jwt = true
+
+[functions.sync-all-accounts]
+verify_jwt = true
