@@ -20,15 +20,17 @@ export const useModulePermissions = () => {
   useEffect(() => {
     fetchModules();
 
-    // Listener para atualização de módulos
     const handleModulesUpdate = () => {
+      permissionsCache.clear();
       fetchModules();
     };
 
     window.addEventListener('modules-updated', handleModulesUpdate);
+    window.addEventListener('permissions-updated', handleModulesUpdate);
 
     return () => {
       window.removeEventListener('modules-updated', handleModulesUpdate);
+      window.removeEventListener('permissions-updated', handleModulesUpdate);
     };
   }, []);
 
@@ -42,7 +44,7 @@ export const useModulePermissions = () => {
       }
 
       // Verificar cache primeiro
-      const cacheKey = `modules_${user.id}`;
+      const cacheKey = `combined_modules_${user.id}`;
       const cached = permissionsCache.get<{ modules: Module[]; codes: string[] }>(cacheKey);
       
       if (cached) {
@@ -52,18 +54,17 @@ export const useModulePermissions = () => {
         return;
       }
 
-      // Buscar permissões do usuário em UMA query otimizada
+      // Usar a nova função que combina role + departamento + individual
       const { data: permissions, error: permError } = await supabase
-        .rpc("get_user_module_permissions", { _user_id: user.id });
+        .rpc("get_user_combined_module_permissions", { _user_id: user.id });
 
       if (permError) {
-        console.error("Erro ao buscar permissões:", permError);
+        console.error("Erro ao buscar permissões combinadas:", permError);
         setModules([]);
         setLoading(false);
         return;
       }
 
-      // A função RPC retorna array de objetos { modulo_codigo: string }
       const codes = permissions?.map((p: { modulo_codigo: string }) => p.modulo_codigo) || [];
       const allowedCodesSet = new Set(codes);
       setAllowedCodes(allowedCodesSet);
@@ -82,11 +83,9 @@ export const useModulePermissions = () => {
         return;
       }
 
-      // Filtrar módulos baseado nas permissões
       const filteredModules = allModules?.filter(m => allowedCodesSet.has(m.codigo)) || [];
       setModules(filteredModules);
       
-      // Salvar no cache (usando array para serialização)
       permissionsCache.set(cacheKey, { modules: filteredModules, codes });
     } catch (error) {
       console.error("Erro ao buscar módulos:", error);
@@ -100,9 +99,15 @@ export const useModulePermissions = () => {
     return allowedCodes.has(moduleCode);
   };
 
+  const refreshPermissions = () => {
+    permissionsCache.clear();
+    fetchModules();
+  };
+
   return {
     modules,
     loading,
     hasModulePermission,
+    refreshPermissions,
   };
 };

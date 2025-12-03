@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: unknown
+          modulo_codigo: string | null
+          success: boolean
+          tela_codigo: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          modulo_codigo?: string | null
+          success?: boolean
+          tela_codigo?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          modulo_codigo?: string | null
+          success?: boolean
+          tela_codigo?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       account_category_mapping: {
         Row: {
           account_id: string | null
@@ -1169,6 +1205,92 @@ export type Database = {
             columns: ["conversa_id"]
             isOneToOne: false
             referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      departamento_permissoes_modulos: {
+        Row: {
+          created_at: string | null
+          departamento_id: string
+          id: string
+          modulo_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          departamento_id: string
+          id?: string
+          modulo_id: string
+        }
+        Update: {
+          created_at?: string | null
+          departamento_id?: string
+          id?: string
+          modulo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departamento_permissoes_modulos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departamento_permissoes_modulos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "departamento_permissoes_modulos_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "modulos_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      departamento_permissoes_telas: {
+        Row: {
+          created_at: string | null
+          departamento_id: string
+          id: string
+          tela_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          departamento_id: string
+          id?: string
+          tela_id: string
+        }
+        Update: {
+          created_at?: string | null
+          departamento_id?: string
+          id?: string
+          tela_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departamento_permissoes_telas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departamento_permissoes_telas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "departamento_permissoes_telas_tela_id_fkey"
+            columns: ["tela_id"]
+            isOneToOne: false
+            referencedRelation: "telas_sistema"
             referencedColumns: ["id"]
           },
         ]
@@ -6032,6 +6154,7 @@ export type Database = {
         Row: {
           aprovado: boolean
           created_at: string | null
+          departamento_id: string | null
           email: string
           id: string
           nome: string
@@ -6042,6 +6165,7 @@ export type Database = {
         Insert: {
           aprovado?: boolean
           created_at?: string | null
+          departamento_id?: string | null
           email: string
           id: string
           nome: string
@@ -6052,6 +6176,7 @@ export type Database = {
         Update: {
           aprovado?: boolean
           created_at?: string | null
+          departamento_id?: string | null
           email?: string
           id?: string
           nome?: string
@@ -6060,6 +6185,20 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
           {
             foreignKeyName: "profiles_supervisor_id_fkey"
             columns: ["supervisor_id"]
@@ -9889,6 +10028,18 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_user_combined_module_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          modulo_codigo: string
+        }[]
+      }
+      get_user_combined_screen_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          tela_codigo: string
+        }[]
       }
       get_user_module_permissions: {
         Args: { _user_id: string }

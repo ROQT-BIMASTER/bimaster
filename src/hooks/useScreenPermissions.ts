@@ -15,9 +15,23 @@ export const useScreenPermissions = () => {
   const [permissions, setPermissions] = useState<ScreenPermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [allowedCodes, setAllowedCodes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchPermissions();
+
+    const handlePermissionsUpdate = () => {
+      permissionsCache.clear();
+      fetchPermissions();
+    };
+
+    window.addEventListener('permissions-updated', handlePermissionsUpdate);
+    window.addEventListener('modules-updated', handlePermissionsUpdate);
+
+    return () => {
+      window.removeEventListener('permissions-updated', handlePermissionsUpdate);
+      window.removeEventListener('modules-updated', handlePermissionsUpdate);
+    };
   }, []);
 
   const fetchPermissions = async () => {
@@ -29,12 +43,13 @@ export const useScreenPermissions = () => {
       }
 
       // Verificar cache primeiro
-      const cacheKey = `screens_${user.id}`;
-      const cached = permissionsCache.get<{ screens: ScreenPermission[]; isAdmin: boolean }>(cacheKey);
+      const cacheKey = `combined_screens_${user.id}`;
+      const cached = permissionsCache.get<{ screens: ScreenPermission[]; isAdmin: boolean; codes: string[] }>(cacheKey);
       
       if (cached) {
         setPermissions(cached.screens);
         setIsAdmin(cached.isAdmin);
+        setAllowedCodes(new Set(cached.codes));
         setLoading(false);
         return;
       }
@@ -50,18 +65,20 @@ export const useScreenPermissions = () => {
       const userIsAdmin = !!roleData;
       setIsAdmin(userIsAdmin);
 
-      // Buscar permissões usando função otimizada
+      // Usar a nova função que combina role + departamento + individual
       const { data: permissionCodes, error: permError } = await supabase
-        .rpc("get_user_screen_permissions", { _user_id: user.id });
+        .rpc("get_user_combined_screen_permissions", { _user_id: user.id });
 
       if (permError) {
-        console.error("Erro ao buscar permissões:", permError);
+        console.error("Erro ao buscar permissões combinadas:", permError);
         setPermissions([]);
         setLoading(false);
         return;
       }
 
-      const allowedCodes = new Set(permissionCodes?.map((p: { tela_codigo: string }) => p.tela_codigo) || []);
+      const codes = permissionCodes?.map((p: { tela_codigo: string }) => p.tela_codigo) || [];
+      const allowedCodesSet = new Set(codes);
+      setAllowedCodes(allowedCodesSet);
 
       // Buscar detalhes das telas
       const { data: allScreens, error: screensError } = await supabase
@@ -77,12 +94,10 @@ export const useScreenPermissions = () => {
         return;
       }
 
-      // Filtrar telas baseado nas permissões
-      const filteredScreens = allScreens?.filter(s => allowedCodes.has(s.codigo)) || [];
+      const filteredScreens = allScreens?.filter(s => allowedCodesSet.has(s.codigo)) || [];
       setPermissions(filteredScreens);
       
-      // Salvar no cache
-      permissionsCache.set(cacheKey, { screens: filteredScreens, isAdmin: userIsAdmin });
+      permissionsCache.set(cacheKey, { screens: filteredScreens, isAdmin: userIsAdmin, codes });
     } catch (error) {
       console.error("Error fetching permissions:", error);
     } finally {
@@ -91,12 +106,14 @@ export const useScreenPermissions = () => {
   };
 
   const hasPermission = (screenCode: string) => {
-    // Admins sempre têm permissão
     if (isAdmin) return true;
-    
-    // Verificar se o código da tela está nas permissões do usuário
-    return permissions.some(p => p.codigo === screenCode);
+    return allowedCodes.has(screenCode);
   };
 
-  return { permissions, loading, hasPermission, isAdmin };
+  const refreshPermissions = () => {
+    permissionsCache.clear();
+    fetchPermissions();
+  };
+
+  return { permissions, loading, hasPermission, isAdmin, refreshPermissions };
 };

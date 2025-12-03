@@ -183,22 +183,24 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/dashboard"
-                    end
-                    className={({ isActive }) =>
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "hover:bg-sidebar-accent/50"
-                    }
-                  >
-                    <Home className="h-4 w-4" />
-                    <span>Dashboard</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {hasPermission("dashboard") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/dashboard"
+                      end
+                      className={({ isActive }) =>
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "hover:bg-sidebar-accent/50"
+                      }
+                    >
+                      <Home className="h-4 w-4" />
+                      <span>Dashboard</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               
               {hasPermission("ranking") && (
                 <SidebarMenuItem>
@@ -218,69 +220,77 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
               
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/dashboard/relatorios"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "hover:bg-sidebar-accent/50"
-                    }
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span>Relatórios</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {hasPermission("relatorios") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/dashboard/relatorios"
+                      className={({ isActive }) =>
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "hover:bg-sidebar-accent/50"
+                      }
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span>Relatórios</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/dashboard/ai-analytics"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "hover:bg-sidebar-accent/50"
-                    }
-                  >
-                    <Brain className="h-4 w-4" />
-                    <span>Painel de IA</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {hasPermission("ai_analytics") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/dashboard/ai-analytics"
+                      className={({ isActive }) =>
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "hover:bg-sidebar-accent/50"
+                      }
+                    >
+                      <Brain className="h-4 w-4" />
+                      <span>Painel de IA</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/dashboard/chat"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "hover:bg-sidebar-accent/50"
-                    }
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    <span>Chat</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {hasPermission("chat") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/dashboard/chat"
+                      className={({ isActive }) =>
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "hover:bg-sidebar-accent/50"
+                      }
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span>Chat</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/dashboard/tarefas"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "hover:bg-sidebar-accent/50"
-                    }
-                  >
-                    <CheckSquare className="h-4 w-4" />
-                    <span>Tarefas</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {hasPermission("tarefas") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/dashboard/tarefas"
+                      className={({ isActive }) =>
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "hover:bg-sidebar-accent/50"
+                      }
+                    >
+                      <CheckSquare className="h-4 w-4" />
+                      <span>Tarefas</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               
               {hasPermission("auditoria") && (
                 <SidebarMenuItem>
@@ -300,21 +310,23 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
               
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/dashboard/instalar-app"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "hover:bg-sidebar-accent/50"
-                    }
-                  >
-                    <Download className="h-4 w-4" />
-                    <span>Instalar App</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {hasPermission("instalar_app") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/dashboard/instalar-app"
+                      className={({ isActive }) =>
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "hover:bg-sidebar-accent/50"
+                      }
+                    >
+                      <Download className="h-4 w-4" />
+                      <span>Instalar App</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
