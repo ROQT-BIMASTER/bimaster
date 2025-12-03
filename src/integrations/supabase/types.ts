@@ -1162,6 +1162,53 @@ export type Database = {
           },
         ]
       }
+      contas_pagar_historico: {
+        Row: {
+          campo_alterado: string
+          conta_id: string
+          created_at: string
+          id: string
+          justificativa: string | null
+          tipo_alteracao: string
+          usuario_id: string | null
+          usuario_nome: string | null
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          campo_alterado: string
+          conta_id: string
+          created_at?: string
+          id?: string
+          justificativa?: string | null
+          tipo_alteracao?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          campo_alterado?: string
+          conta_id?: string
+          created_at?: string
+          id?: string
+          justificativa?: string | null
+          tipo_alteracao?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_historico_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversas: {
         Row: {
           created_at: string
