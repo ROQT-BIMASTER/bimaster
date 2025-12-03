@@ -36,10 +36,18 @@ const COLORS = [
   'hsl(var(--chart-3))',
   'hsl(var(--chart-4))',
   'hsl(var(--chart-5))',
-  'hsl(220, 70%, 50%)',
-  'hsl(340, 75%, 55%)',
-  'hsl(45, 93%, 47%)',
+  'hsl(var(--chart-6))',
+  'hsl(var(--chart-7))',
+  'hsl(var(--chart-8))',
 ];
+
+// Cores específicas para status
+const STATUS_COLORS: { [key: string]: string } = {
+  'Pago': 'hsl(var(--chart-2))',      // Verde
+  'Pendente': 'hsl(var(--chart-3))',  // Amarelo/Laranja
+  'Vencido': 'hsl(var(--chart-5))',   // Vermelho
+  'Parcial': 'hsl(var(--chart-1))',   // Azul
+};
 
 const formatCurrency = (value: number) => 
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -484,9 +492,12 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
                   />
                   <Bar 
                     dataKey="valor" 
-                    fill="hsl(var(--chart-1))" 
                     radius={[0, 4, 4, 0]}
-                  />
+                  >
+                    {topFornecedores.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -562,7 +573,11 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
                     }}
                   />
                   <Legend />
-                  <Bar dataKey="valor" name="Valor" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="valor" name="Valor" radius={[4, 4, 0, 0]}>
+                    {distribuicaoStatus.map((entry) => (
+                      <Cell key={`cell-${entry.nome}`} fill={STATUS_COLORS[entry.nome] || COLORS[0]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
