@@ -14,8 +14,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, 
   ArrowLeft, Brain, Bot, Pencil, User, Lock, ArrowUpDown, ArrowUp, ArrowDown, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2 
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard 
 } from "lucide-react";
+import { DashboardContasPagar } from "@/components/financeiro/DashboardContasPagar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
@@ -690,8 +691,12 @@ export default function ContasAPagar() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="contas" className="space-y-6">
+        <Tabs defaultValue="dashboard" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="dashboard" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </TabsTrigger>
             <TabsTrigger value="contas" className="gap-2">
               <Receipt className="h-4 w-4" />
               Contas a Pagar
@@ -708,6 +713,11 @@ export default function ContasAPagar() {
               Classificação IA
             </TabsTrigger>
           </TabsList>
+
+          {/* Aba Dashboard Analítico */}
+          <TabsContent value="dashboard" className="space-y-6">
+            <DashboardContasPagar contas={contas} isLoading={isLoading} />
+          </TabsContent>
 
           {/* Aba de Contas a Pagar */}
           <TabsContent value="contas" className="space-y-6">
