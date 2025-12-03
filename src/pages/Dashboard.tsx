@@ -14,7 +14,7 @@ import { AIInsightsChat } from "@/components/chat/AIInsightsChat";
 import { ProspectsDashboardWidget } from "@/components/dashboard/ProspectsDashboardWidget";
 import { TradeDashboardWidget } from "@/components/dashboard/TradeDashboardWidget";
 import { FinanceiroDashboardWidget } from "@/components/dashboard/FinanceiroDashboardWidget";
-import { useModulePermissions } from "@/hooks/useModulePermissions";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface PipelineData {
@@ -30,50 +30,32 @@ interface ActivityData {
 }
 
 const Dashboard = () => {
-  const { hasModulePermission, loading: modulesLoading } = useModulePermissions();
+  // Usar contexto centralizado de permissões
+  const { hasModulePermission, isAdmin, loading: permissionsLoading } = usePermissions();
   const [pipelineData, setPipelineData] = useState<PipelineData[]>([]);
   const [activityData, setActivityData] = useState<ActivityData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
   // Memoizar verificação de permissões para evitar recálculos
   const hasProspectsPermission = useMemo(() => 
-    !modulesLoading && hasModulePermission("prospects"), 
-    [modulesLoading, hasModulePermission]
+    !permissionsLoading && hasModulePermission("prospects"), 
+    [permissionsLoading, hasModulePermission]
   );
   
   const hasTradePermission = useMemo(() => 
-    !modulesLoading && hasModulePermission("trade"), 
-    [modulesLoading, hasModulePermission]
+    !permissionsLoading && hasModulePermission("trade"), 
+    [permissionsLoading, hasModulePermission]
   );
   
   const hasFinanceiroPermission = useMemo(() => 
-    !modulesLoading && hasModulePermission("financeiro"), 
-    [modulesLoading, hasModulePermission]
+    !permissionsLoading && hasModulePermission("financeiro"), 
+    [permissionsLoading, hasModulePermission]
   );
-
-  // Verificar role do usuário uma única vez
-  useEffect(() => {
-    const checkAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      setIsAdmin(roleData?.role === "admin");
-    };
-
-    checkAdmin();
-  }, []);
 
   // Carregar dados do pipeline e atividades - otimizado com query agregada
   useEffect(() => {
-    if (modulesLoading || !hasProspectsPermission) {
+    if (permissionsLoading || !hasProspectsPermission) {
       setLoading(false);
       return;
     }
@@ -144,11 +126,11 @@ const Dashboard = () => {
     };
 
     fetchData();
-  }, [modulesLoading, hasProspectsPermission]);
+  }, [permissionsLoading, hasProspectsPermission]);
 
   // Memoizar módulos rápidos
   const quickModules = useMemo(() => {
-    if (modulesLoading) return [];
+    if (permissionsLoading) return [];
     
     return [
       {
@@ -180,7 +162,7 @@ const Dashboard = () => {
         link: "/dashboard/fabrica",
       },
     ].filter((mod) => hasModulePermission(mod.moduleCode));
-  }, [modulesLoading, hasModulePermission]);
+  }, [permissionsLoading, hasModulePermission]);
 
   // Memoizar tooltip do gráfico
   const ActivityTooltip = useCallback(({ active, payload }: any) => {
@@ -221,7 +203,7 @@ const Dashboard = () => {
         {isAdmin && <MetricasDistribuicao />}
 
         {/* Widgets condicionais por módulo */}
-        {modulesLoading ? (
+        {permissionsLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-32 w-full" />

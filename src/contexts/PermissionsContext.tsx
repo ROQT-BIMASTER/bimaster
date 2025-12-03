@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PermissionsContextType {
@@ -62,59 +62,22 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Buscar role do usuário
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      // Usar RPC otimizada - UMA ÚNICA CHAMADA para tudo
+      const { data: permData, error } = await supabase
+        .rpc("get_all_user_permissions", { _user_id: user.id });
 
-      const userRole = roleData?.role || "vendedor";
-      const userIsAdmin = userRole === "admin";
-
-      // Buscar permissões usando a RPC otimizada
-      const { data: permissionsData } = await supabase
-        .rpc("get_user_combined_module_permissions", { _user_id: user.id });
-
-      const modulesList = permissionsData?.map((p: any) => p.codigo) || [];
-      
-      // Para telas, se admin, tem acesso a todas
-      let screensList: string[] = [];
-      if (userIsAdmin) {
-        const { data: allScreens } = await supabase
-          .from("telas_sistema")
-          .select("codigo")
-          .eq("ativo", true);
-        screensList = allScreens?.map(s => s.codigo) || [];
-      } else {
-        const { data: userScreens } = await supabase
-          .from("usuario_permissoes_telas")
-          .select("telas_sistema(codigo)")
-          .eq("usuario_id", user.id);
-        
-        const { data: deptScreens } = await supabase
-          .from("profiles")
-          .select("departamento_id")
-          .eq("id", user.id)
-          .maybeSingle();
-        
-        if (deptScreens?.departamento_id) {
-          const { data: deptPermissions } = await supabase
-            .from("departamento_permissoes_telas")
-            .select("telas_sistema(codigo)")
-            .eq("departamento_id", deptScreens.departamento_id);
-          
-          const deptCodes = deptPermissions
-            ?.map((p: any) => p.telas_sistema?.codigo)
-            .filter(Boolean) || [];
-          screensList = [...new Set([...screensList, ...deptCodes])];
-        }
-        
-        const userCodes = userScreens
-          ?.map((p: any) => p.telas_sistema?.codigo)
-          .filter(Boolean) || [];
-        screensList = [...new Set([...screensList, ...userCodes])];
+      if (error) {
+        console.error("Erro ao buscar permissões:", error);
+        // Fallback para método antigo em caso de erro
+        await fetchPermissionsFallback(user.id);
+        return;
       }
+
+      const result = permData?.[0];
+      const userRole = result?.user_role || "vendedor";
+      const userIsAdmin = userRole === "admin";
+      const modulesList = result?.module_codes || [];
+      const screensList = result?.screen_codes || [];
 
       // Atualizar cache
       globalPermissionsCache = {
@@ -136,6 +99,50 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }
   }, []);
+
+  // Fallback para compatibilidade
+  const fetchPermissionsFallback = async (userId: string) => {
+    try {
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      const userRole = roleData?.role || "vendedor";
+      const userIsAdmin = userRole === "admin";
+
+      const { data: permissionsData } = await supabase
+        .rpc("get_user_combined_module_permissions", { _user_id: userId });
+
+      const modulesList = permissionsData?.map((p: any) => p.modulo_codigo) || [];
+      
+      let screensList: string[] = [];
+      if (userIsAdmin) {
+        const { data: allScreens } = await supabase
+          .from("telas_sistema")
+          .select("codigo")
+          .eq("ativo", true);
+        screensList = allScreens?.map(s => s.codigo) || [];
+      }
+
+      globalPermissionsCache = {
+        userId,
+        modules: modulesList,
+        screens: screensList,
+        role: userRole,
+        isAdmin: userIsAdmin,
+        timestamp: Date.now(),
+      };
+
+      setModules(modulesList);
+      setScreens(screensList);
+      setRole(userRole);
+      setIsAdmin(userIsAdmin);
+    } catch (error) {
+      console.error("Erro no fallback de permissões:", error);
+    }
+  };
 
   useEffect(() => {
     fetchPermissions();
@@ -169,34 +176,38 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [fetchPermissions]);
 
+  // Memoizar Set para lookup O(1)
+  const modulesSet = useMemo(() => new Set(modules), [modules]);
+  const screensSet = useMemo(() => new Set(screens), [screens]);
+
   const hasModulePermission = useCallback((moduleCode: string): boolean => {
     if (isAdmin) return true;
-    return modules.includes(moduleCode);
-  }, [modules, isAdmin]);
+    return modulesSet.has(moduleCode);
+  }, [modulesSet, isAdmin]);
 
   const hasScreenPermission = useCallback((screenCode: string): boolean => {
     if (isAdmin) return true;
-    return screens.includes(screenCode);
-  }, [screens, isAdmin]);
+    return screensSet.has(screenCode);
+  }, [screensSet, isAdmin]);
 
   const refreshPermissions = useCallback(async () => {
     globalPermissionsCache = null;
     await fetchPermissions(true);
   }, [fetchPermissions]);
 
+  const value = useMemo(() => ({
+    modules,
+    screens,
+    role,
+    isAdmin,
+    loading,
+    hasModulePermission,
+    hasScreenPermission,
+    refreshPermissions,
+  }), [modules, screens, role, isAdmin, loading, hasModulePermission, hasScreenPermission, refreshPermissions]);
+
   return (
-    <PermissionsContext.Provider
-      value={{
-        modules,
-        screens,
-        role,
-        isAdmin,
-        loading,
-        hasModulePermission,
-        hasScreenPermission,
-        refreshPermissions,
-      }}
-    >
+    <PermissionsContext.Provider value={value}>
       {children}
     </PermissionsContext.Provider>
   );
