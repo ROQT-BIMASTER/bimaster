@@ -111,7 +111,7 @@ export default function Financeiro() {
         <div>
           <h2 className="text-xl font-semibold mb-4">Gestão de Verbas e Investimentos</h2>
           <div className="grid gap-4 md:grid-cols-3">
-            <Link to="/dashboard/financeiro/trade">
+            <Link to="/dashboard/trade/financeiro">
               <Card className="hover:border-primary cursor-pointer transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Gestão de Verbas</CardTitle>
@@ -128,7 +128,7 @@ export default function Financeiro() {
               </Card>
             </Link>
 
-            <Link to="/dashboard/financeiro/trade/extrato">
+            <Link to="/dashboard/trade/financeiro/extrato">
               <Card className="hover:border-primary cursor-pointer transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Meu Extrato</CardTitle>
@@ -145,7 +145,7 @@ export default function Financeiro() {
               </Card>
             </Link>
 
-            <Link to="/dashboard/financeiro/trade/aprovacoes">
+            <Link to="/dashboard/trade/financeiro/aprovacoes">
               <Card className="hover:border-orange-500 cursor-pointer transition-colors border-orange-500/50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Aprovações</CardTitle>
@@ -168,7 +168,7 @@ export default function Financeiro() {
         <div>
           <h2 className="text-xl font-semibold mb-4">Campanhas e Contas Correntes</h2>
           <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/financeiro/trade/campanhas">
+            <Link to="/dashboard/trade/financeiro/campanhas">
               <Card className="hover:border-primary cursor-pointer transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Campanhas</CardTitle>
@@ -182,7 +182,7 @@ export default function Financeiro() {
               </Card>
             </Link>
 
-            <Link to="/dashboard/financeiro/trade/contas">
+            <Link to="/dashboard/trade/financeiro/contas">
               <Card className="hover:border-primary cursor-pointer transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Contas Correntes</CardTitle>
@@ -196,7 +196,7 @@ export default function Financeiro() {
               </Card>
             </Link>
 
-            <Link to="/dashboard/financeiro/trade/verbas">
+            <Link to="/dashboard/trade/financeiro/verbas">
               <Card className="hover:border-primary cursor-pointer transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Verbas Semestrais</CardTitle>
@@ -210,7 +210,7 @@ export default function Financeiro() {
               </Card>
             </Link>
 
-            <Link to="/dashboard/financeiro/trade/lancamentos">
+            <Link to="/dashboard/trade/financeiro/lancamentos">
               <Card className="hover:border-primary cursor-pointer transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Lançamentos</CardTitle>
