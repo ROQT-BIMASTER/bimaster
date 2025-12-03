@@ -144,14 +144,59 @@ export default function ContasAPagar() {
   // Converte filterEmpresas para string para o queryKey detectar mudanças corretamente
   const filterEmpresasKey = filterEmpresas.length > 0 ? filterEmpresas.sort().join(',') : 'all';
 
-  // Query contas a pagar
-  const { data: contas, isLoading, refetch: refetchContas } = useQuery({
-    queryKey: ['contas-pagar', searchFornecedor, filterStatus, filterEmpresasKey, filterAno, filterMes, filterDepartamento],
+  // Função para construir filtros base (reutilizada em ambas queries)
+  const buildBaseFilters = (query: any) => {
+    let q = query;
+    
+    if (filterEmpresas.length > 0) {
+      q = q.in('empresa_id', filterEmpresas);
+    }
+
+    if (filterDepartamento !== 'all') {
+      q = q.eq('departamento_id', filterDepartamento);
+    }
+
+    if (filterAno !== 'all') {
+      const startDate = `${filterAno}-01-01`;
+      const endDate = `${filterAno}-12-31`;
+      q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+    }
+
+    if (filterMes !== 'all' && filterAno !== 'all') {
+      const mes = filterMes.padStart(2, '0');
+      const startDate = `${filterAno}-${mes}-01`;
+      const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
+      const endDate = `${filterAno}-${mes}-${lastDay}`;
+      q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+    }
+    
+    return q;
+  };
+
+  // Query para DASHBOARD - busca todos os dados do período (sem paginação, limite alto)
+  const { data: contasDashboard, isLoading: isLoadingDashboard } = useQuery({
+    queryKey: ['contas-pagar-dashboard', filterEmpresasKey, filterAno, filterMes, filterDepartamento],
     queryFn: async () => {
       let query = supabase
         .from('contas_pagar')
-        .select('*')
-        .order('data_vencimento', { ascending: false });
+        .select('*');
+      
+      query = buildBaseFilters(query);
+      
+      // Sem ordenação específica e limite maior para garantir todos os dados
+      const { data, error } = await query.limit(100000);
+      if (error) throw error;
+      return data as ContaPagar[];
+    }
+  });
+
+  // Query para TABELA - com paginação no backend
+  const { data: contasTable, isLoading: isLoadingTable, refetch: refetchContas } = useQuery({
+    queryKey: ['contas-pagar-table', searchFornecedor, filterStatus, filterEmpresasKey, filterAno, filterMes, filterDepartamento, sortColumn, sortDirection, currentPage, pageSize],
+    queryFn: async () => {
+      let query = supabase
+        .from('contas_pagar')
+        .select('*', { count: 'exact' });
 
       if (searchFornecedor) {
         query = query.ilike('fornecedor_nome', `%${searchFornecedor}%`);
@@ -161,72 +206,36 @@ export default function ContasAPagar() {
         query = query.eq('status', filterStatus);
       }
 
-      // Quando filterEmpresas está vazio, não aplica filtro (mostra todas)
-      if (filterEmpresas.length > 0) {
-        query = query.in('empresa_id', filterEmpresas);
-      }
+      query = buildBaseFilters(query);
 
-      if (filterDepartamento !== 'all') {
-        query = query.eq('departamento_id', filterDepartamento);
-      }
+      // Ordenação no backend
+      const ascending = sortDirection === 'asc';
+      query = query.order(sortColumn, { ascending });
 
-      if (filterAno !== 'all') {
-        const startDate = `${filterAno}-01-01`;
-        const endDate = `${filterAno}-12-31`;
-        query = query.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
-      }
+      // Paginação no backend
+      const from = (currentPage - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
 
-      if (filterMes !== 'all' && filterAno !== 'all') {
-        const mes = filterMes.padStart(2, '0');
-        const startDate = `${filterAno}-${mes}-01`;
-        const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
-        const endDate = `${filterAno}-${mes}-${lastDay}`;
-        query = query.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
-      }
-
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data as ContaPagar[];
+      return { data: data as ContaPagar[], count: count || 0 };
     }
   });
 
-  // Ordenação e Paginação aplicadas
+  // Dados para compatibilidade (usado em KPIs, exports, etc.)
+  const contas = contasDashboard;
+  const isLoading = isLoadingDashboard || isLoadingTable;
+
+  // Dados paginados da tabela
   const sortedAndPaginatedData = useMemo(() => {
-    if (!contas) return { data: [], totalPages: 0, totalItems: 0 };
+    if (!contasTable) return { data: [], totalPages: 0, totalItems: 0 };
     
-    // Ordenar
-    const sorted = [...contas].sort((a, b) => {
-      let aVal: any = a[sortColumn];
-      let bVal: any = b[sortColumn];
-      
-      // Tratamento de valores nulos
-      if (aVal === null || aVal === undefined) aVal = '';
-      if (bVal === null || bVal === undefined) bVal = '';
-      
-      // Ordenação numérica para valores
-      if (sortColumn === 'valor_original' || sortColumn === 'valor_aberto') {
-        aVal = Number(aVal) || 0;
-        bVal = Number(bVal) || 0;
-      }
-      
-      // Ordenação de datas
-      if (sortColumn === 'data_vencimento') {
-        aVal = aVal ? new Date(aVal).getTime() : 0;
-        bVal = bVal ? new Date(bVal).getTime() : 0;
-      }
-      
-      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-    
-    const totalItems = sorted.length;
+    const totalItems = contasTable.count;
     const totalPages = Math.ceil(totalItems / pageSize);
-    const startIndex = (currentPage - 1) * pageSize;
-    const data = sorted.slice(startIndex, startIndex + pageSize);
     
-    return { data, totalPages, totalItems };
-  }, [contas, sortColumn, sortDirection, currentPage, pageSize]);
+    return { data: contasTable.data, totalPages, totalItems };
+  }, [contasTable, pageSize]);
 
   // Calcular KPIs
   const kpis = {
