@@ -1,44 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, LogOut } from "lucide-react";
 import logoUnion from "@/assets/logo-union.png";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AguardandoAprovacao = () => {
   const navigate = useNavigate();
-  const [userEmail, setUserEmail] = useState<string>("");
+  const { user, approved, refreshAuth } = useAuth();
 
   useEffect(() => {
-    const checkApprovalStatus = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        navigate("/auth/login");
-        return;
-      }
+    if (!user) {
+      navigate("/auth/login");
+      return;
+    }
 
-      setUserEmail(user.email || "");
+    if (approved) {
+      navigate("/dashboard");
+      return;
+    }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("aprovado")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.aprovado) {
-        navigate("/dashboard");
-      }
-    };
-
-    checkApprovalStatus();
-
-    // Verificar status a cada 5 segundos
-    const interval = setInterval(checkApprovalStatus, 5000);
+    // Verificar status a cada 10 segundos (reduzido de 5 para economizar chamadas)
+    const interval = setInterval(() => {
+      refreshAuth();
+    }, 10000);
 
     return () => clearInterval(interval);
-  }, [navigate]);
+  }, [user, approved, navigate, refreshAuth]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -67,7 +57,7 @@ const AguardandoAprovacao = () => {
                 Sua conta está em análise pelo administrador.
               </p>
               <p className="text-sm font-medium">
-                {userEmail}
+                {user?.email || ""}
               </p>
               <p className="text-xs text-muted-foreground">
                 Você receberá acesso assim que sua conta for aprovada.
