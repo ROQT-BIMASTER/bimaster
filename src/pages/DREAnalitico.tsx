@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid, Eye } from "lucide-react";
@@ -91,6 +92,7 @@ export default function DREAnalitico() {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [visaoAtiva, setVisaoAtiva] = useState<'contas' | 'departamentos'>('contas');
   const [filterEmpresa, setFilterEmpresa] = useState<string>('todas');
+  const [mostrarInativos, setMostrarInativos] = useState(false);
   const [tableFormat, setTableFormat] = useState<TableFormat>('padrao');
   const [selectedLancamento, setSelectedLancamento] = useState<any | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -189,7 +191,7 @@ export default function DREAnalitico() {
 
   // Buscar lançamentos do período
   const { data: lancamentos, isLoading } = useSupabaseQuery(
-    ['lancamentos-dre', dataInicio, dataFim, filterEmpresa],
+    ['lancamentos-dre', dataInicio, dataFim, filterEmpresa, mostrarInativos],
     async () => {
       let query = supabase
         .from('contas_pagar')
@@ -199,6 +201,11 @@ export default function DREAnalitico() {
       
       if (filterEmpresa !== 'todas') {
         query = query.eq('empresa_nome', filterEmpresa);
+      }
+      
+      // Filtrar apenas lançamentos ativos se não mostrar inativos
+      if (!mostrarInativos) {
+        query = query.neq('ativo_dre', false);
       }
       
       const { data, error } = await query;
@@ -665,9 +672,7 @@ export default function DREAnalitico() {
     const yoy = calcularYoY(node.id, node.valor);
 
     const handleLancamentoClick = () => {
-      console.log('Lancamento clicked:', node.tipo, node.metadata);
       if (node.tipo === 'lancamento' && node.metadata) {
-        console.log('Opening dialog with:', node.metadata);
         setSelectedLancamento(node.metadata);
         setDetailDialogOpen(true);
       }
@@ -709,6 +714,10 @@ export default function DREAnalitico() {
 
             {node.id === 'nao-classificados' && (
               <Badge variant="destructive" className={`ml-1 ${tableFormat === 'compacto' ? 'text-[8px] px-0.5 py-0 h-3' : tableFormat === 'expandido' ? 'text-[10px] px-1.5 py-0.5 h-5' : 'text-[9px] px-1 py-0 h-4'}`}>Pendente</Badge>
+            )}
+
+            {node.tipo === 'lancamento' && node.metadata?.ativo_dre === false && (
+              <Badge variant="secondary" className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'} bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400`}>Inativo</Badge>
             )}
 
             {node.tipo === 'lancamento' && node.metadata?.classificacao_manual && (
@@ -859,10 +868,20 @@ export default function DREAnalitico() {
                 </Select>
               </div>
 
-              <div className="flex items-end">
+              <div className="flex items-end gap-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="mostrar-inativos"
+                    checked={mostrarInativos}
+                    onCheckedChange={(checked) => setMostrarInativos(checked as boolean)}
+                  />
+                  <Label htmlFor="mostrar-inativos" className="text-xs text-muted-foreground cursor-pointer">
+                    Mostrar inativos
+                  </Label>
+                </div>
                 <Button 
                   onClick={() => setExpandedNodes(new Set(['receitas', 'despesas', 'custos', 'patrimoniais']))}
-                  variant="outline" className="w-full"
+                  variant="outline" className="flex-1"
                 >
                   Expandir Grupos
                 </Button>

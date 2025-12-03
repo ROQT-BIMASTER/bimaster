@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,7 +16,7 @@ import { toast } from "sonner";
 import { 
   Bot, User, Lock, Save, History, FileText, Sparkles, 
   Building2, Calendar, DollarSign, Tag, Clock, AlertCircle,
-  ChevronRight, Loader2
+  ChevronRight, Loader2, EyeOff, Eye
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -45,6 +46,7 @@ interface Lancamento {
   classificacao_manual: boolean | null;
   classificacao_justificativa: string | null;
   status: string | null;
+  ativo_dre: boolean | null;
 }
 
 interface HistoricoItem {
@@ -77,6 +79,7 @@ export function DetalheLancamentoDialog({
   const [planoContasId, setPlanoContasId] = useState<string>("");
   const [justificativa, setJustificativa] = useState("");
   const [bloquearReclassificacao, setBloquearReclassificacao] = useState(false);
+  const [ativoDRE, setAtivoDRE] = useState(true);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [sugestaoIA, setSugestaoIA] = useState<{departamento?: string; planoContas?: string; confianca?: number} | null>(null);
   const [comentarioIA, setComentarioIA] = useState("");
@@ -132,6 +135,7 @@ export function DetalheLancamentoDialog({
       setDepartamentoId(lancamento.departamento_id || "");
       setPlanoContasId(lancamento.plano_contas_id || "");
       setBloquearReclassificacao(lancamento.classificacao_manual || false);
+      setAtivoDRE(lancamento.ativo_dre !== false);
       setJustificativa("");
       setSugestaoIA(null);
       setComentarioIA("");
@@ -199,6 +203,17 @@ export function DetalheLancamentoDialog({
         );
       }
 
+      if (ativoDRE !== (lancamento.ativo_dre !== false)) {
+        await registrarHistorico(
+          lancamento.id,
+          'ativo_dre',
+          lancamento.ativo_dre !== false ? 'Ativo' : 'Inativo',
+          ativoDRE ? 'Ativo' : 'Inativo',
+          'manual',
+          justificativa || (ativoDRE ? 'Lançamento reativado no DRE' : 'Lançamento inativado no DRE')
+        );
+      }
+
       // Atualizar a conta
       const { error } = await supabase
         .from('contas_pagar')
@@ -209,6 +224,7 @@ export function DetalheLancamentoDialog({
           plano_contas_codigo: plano?.code || null,
           plano_contas_nome: plano?.name || null,
           classificacao_manual: bloquearReclassificacao,
+          ativo_dre: ativoDRE,
           classificacao_corrigida_por: user?.id || null,
           classificacao_corrigida_em: new Date().toISOString(),
           classificacao_justificativa: justificativa || null
@@ -334,7 +350,8 @@ export function DetalheLancamentoDialog({
       'departamento': 'Departamento',
       'plano_contas': 'Plano de Contas',
       'categoria': 'Categoria',
-      'fornecedor': 'Fornecedor'
+      'fornecedor': 'Fornecedor',
+      'ativo_dre': 'Status DRE'
     };
     return mapa[campo] || campo;
   };
@@ -600,16 +617,39 @@ export function DetalheLancamentoDialog({
                 />
               </div>
 
-              <div className="flex items-center space-x-2 pt-2 border-t">
-                <Checkbox
-                  id="bloquear-detalhe"
-                  checked={bloquearReclassificacao}
-                  onCheckedChange={(checked) => setBloquearReclassificacao(checked as boolean)}
-                />
-                <Label htmlFor="bloquear-detalhe" className="flex items-center gap-2 cursor-pointer text-sm">
-                  <Lock className="h-4 w-4 text-muted-foreground" />
-                  Bloquear reclassificação automática
-                </Label>
+              <div className="flex items-center justify-between pt-2 border-t">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="bloquear-detalhe"
+                    checked={bloquearReclassificacao}
+                    onCheckedChange={(checked) => setBloquearReclassificacao(checked as boolean)}
+                  />
+                  <Label htmlFor="bloquear-detalhe" className="flex items-center gap-2 cursor-pointer text-sm">
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                    Bloquear reclassificação
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="ativo-dre"
+                    checked={ativoDRE}
+                    onCheckedChange={setAtivoDRE}
+                  />
+                  <Label htmlFor="ativo-dre" className="flex items-center gap-2 cursor-pointer text-sm">
+                    {ativoDRE ? (
+                      <>
+                        <Eye className="h-4 w-4 text-emerald-600" />
+                        <span className="text-emerald-600">Ativo no DRE</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Inativo no DRE</span>
+                      </>
+                    )}
+                  </Label>
+                </div>
               </div>
 
               <Button 
