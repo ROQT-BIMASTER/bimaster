@@ -79,6 +79,7 @@ export function DetalheLancamentoDialog({
   const [bloquearReclassificacao, setBloquearReclassificacao] = useState(false);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [sugestaoIA, setSugestaoIA] = useState<{departamento?: string; planoContas?: string; confianca?: number} | null>(null);
+  const [comentarioIA, setComentarioIA] = useState("");
 
   // Carregar departamentos
   const { data: departamentos } = useQuery({
@@ -133,6 +134,7 @@ export function DetalheLancamentoDialog({
       setBloquearReclassificacao(lancamento.classificacao_manual || false);
       setJustificativa("");
       setSugestaoIA(null);
+      setComentarioIA("");
     }
   }, [lancamento]);
 
@@ -240,7 +242,8 @@ export function DetalheLancamentoDialog({
           fornecedor: lancamento.fornecedor_nome,
           categoria: lancamento.categoria_nome,
           valor: lancamento.valor_original,
-          documento: lancamento.tipo_documento
+          documento: lancamento.tipo_documento,
+          comentario: comentarioIA || undefined
         }
       });
 
@@ -497,6 +500,18 @@ export function DetalheLancamentoDialog({
                     </>
                   )}
                 </Button>
+              </div>
+
+              {/* Campo de comentário para ajudar a IA */}
+              <div className="space-y-2 mb-3">
+                <Label className="text-xs text-muted-foreground">Comentário para ajudar a IA (opcional)</Label>
+                <Textarea
+                  placeholder="Ex: Esta despesa é referente a serviços de TI para o setor comercial..."
+                  value={comentarioIA}
+                  onChange={(e) => setComentarioIA(e.target.value)}
+                  rows={2}
+                  className="text-sm"
+                />
               </div>
 
               {sugestaoIA && (
