@@ -466,10 +466,18 @@ export default function DREAnalitico() {
           nodoCategoria.valoresMensais![mesKey] += valor;
         }
 
+        // Criar valoresMensais para lançamento não classificado
+        const lancamentoValoresMensaisNaoClass: { [key: string]: number } = {};
+        mesesPeriodo.forEach(m => lancamentoValoresMensaisNaoClass[m.key] = 0);
+        if (mesKey && lancamentoValoresMensaisNaoClass[mesKey] !== undefined) {
+          lancamentoValoresMensaisNaoClass[mesKey] = valor;
+        }
+
         nodoCategoria.children?.push({
           id: lancamento.id, codigo: lancamento.numero_documento || '',
           nome: `${lancamento.fornecedor_nome || 'N/A'} - ${format(new Date(lancamento.data_vencimento), 'dd/MM/yyyy')}`,
-          tipo: 'lancamento', nivel: 5, valor, natureza: 'D', accountType: 'expense', metadata: lancamento
+          tipo: 'lancamento', nivel: 5, valor, valoresMensais: lancamentoValoresMensaisNaoClass,
+          natureza: 'D', accountType: 'expense', metadata: lancamento
         });
         return;
       }
@@ -522,18 +530,34 @@ export default function DREAnalitico() {
           nodoDept.valoresMensais![mesKey] += valor;
         }
 
+        // Criar valoresMensais para o lançamento
+        const lancamentoValoresMensais: { [key: string]: number } = {};
+        mesesPeriodo.forEach(m => lancamentoValoresMensais[m.key] = 0);
+        if (mesKey && lancamentoValoresMensais[mesKey] !== undefined) {
+          lancamentoValoresMensais[mesKey] = valor;
+        }
+
         nodoDept.children?.push({
           id: lancamento.id, codigo: lancamento.numero_documento || '',
           nome: `${lancamento.fornecedor_nome || 'N/A'} - ${lancamento.categoria_nome || 'Sem categoria'}`,
           tipo: 'lancamento', nivel: 5, valor,
+          valoresMensais: lancamentoValoresMensais,
           natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
           accountType: conta.account_type, metadata: lancamento
         });
       } else {
+        // Criar valoresMensais para o lançamento sem departamento
+        const lancamentoValoresMensaisSemDept: { [key: string]: number } = {};
+        mesesPeriodo.forEach(m => lancamentoValoresMensaisSemDept[m.key] = 0);
+        if (mesKey && lancamentoValoresMensaisSemDept[mesKey] !== undefined) {
+          lancamentoValoresMensaisSemDept[mesKey] = valor;
+        }
+
         nodoConta.children?.push({
           id: lancamento.id, codigo: lancamento.numero_documento || '',
           nome: `${lancamento.fornecedor_nome || 'N/A'} - ${lancamento.categoria_nome || 'Sem categoria'}`,
           tipo: 'lancamento', nivel: 5, valor,
+          valoresMensais: lancamentoValoresMensaisSemDept,
           natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
           accountType: conta.account_type, metadata: lancamento
         });
