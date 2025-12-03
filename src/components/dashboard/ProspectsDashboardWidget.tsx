@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, TrendingUp, Activity } from "lucide-react";
@@ -10,7 +10,7 @@ interface ProspectsStats {
   atividadesHoje: number;
 }
 
-export const ProspectsDashboardWidget = () => {
+export const ProspectsDashboardWidget = memo(() => {
   const [stats, setStats] = useState<ProspectsStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,24 +41,7 @@ export const ProspectsDashboardWidget = () => {
     fetchStats();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
-              <Skeleton className="h-4 w-32" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-24" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  const statCards = [
+  const statCards = useMemo(() => [
     {
       title: "Total de Prospects",
       value: stats?.totalProspects || 0,
@@ -77,7 +60,24 @@ export const ProspectsDashboardWidget = () => {
       icon: Activity,
       description: "Atividades registradas",
     },
-  ];
+  ], [stats]);
+
+  if (loading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="pb-2">
+              <Skeleton className="h-4 w-32" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-24" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -95,4 +95,6 @@ export const ProspectsDashboardWidget = () => {
       ))}
     </div>
   );
-};
+});
+
+ProspectsDashboardWidget.displayName = "ProspectsDashboardWidget";
