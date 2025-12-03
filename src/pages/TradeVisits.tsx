@@ -61,14 +61,12 @@ const TradeVisits = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [selectedTeamMember, setSelectedTeamMember] = useState<string | null>(null);
 
-  if (!permissionsLoading && !hasPermission("trade_visits")) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   useEffect(() => {
-    fetchCurrentUser();
-    fetchVisits();
-  }, []);
+    if (!permissionsLoading && hasPermission("trade_visits")) {
+      fetchCurrentUser();
+      fetchVisits();
+    }
+  }, [permissionsLoading]);
 
   const fetchCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -211,6 +209,18 @@ const TradeVisits = () => {
       toast.error("Erro ao excluir visita: " + error.message);
     }
   };
+
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">Carregando permissões...</div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!hasPermission("trade_visits")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <DashboardLayout>

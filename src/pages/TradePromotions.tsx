@@ -37,13 +37,11 @@ const TradePromotions = () => {
   const [aiCriteria, setAiCriteria] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  if (!permissionsLoading && !hasPermission("trade_promotions")) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   useEffect(() => {
-    fetchPromotions();
-  }, []);
+    if (!permissionsLoading && hasPermission("trade_promotions")) {
+      fetchPromotions();
+    }
+  }, [permissionsLoading]);
 
   const fetchPromotions = async () => {
     try {
@@ -137,6 +135,18 @@ const TradePromotions = () => {
     planned: promotions.filter(p => p.status === "planned").length,
     completed: promotions.filter(p => p.status === "completed").length,
   };
+
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">Carregando permissões...</div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!hasPermission("trade_promotions")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <DashboardLayout>

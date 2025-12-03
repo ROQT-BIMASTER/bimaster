@@ -27,13 +27,15 @@ const TradeModule = () => {
   const [investmentData, setInvestmentData] = useState<any[]>([]);
   const [complianceTrend, setComplianceTrend] = useState<any[]>([]);
 
+  useEffect(() => {
+    if (!permissionsLoading && hasPermission("trade_marketing")) {
+      fetchAllData();
+    }
+  }, [permissionsLoading]);
+
   if (!permissionsLoading && !hasPermission("trade_marketing")) {
     return <Navigate to="/dashboard" replace />;
   }
-
-  useEffect(() => {
-    fetchAllData();
-  }, []);
 
   const fetchAllData = async () => {
     setLoading(true);

@@ -22,13 +22,23 @@ const TradeIdealPhotos = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
 
-  if (!permissionsLoading && !hasPermission("trade_stores")) {
-    return <Navigate to="/dashboard" replace />;
+  useEffect(() => {
+    if (!permissionsLoading && hasPermission("trade_stores")) {
+      fetchIdealPhotos();
+    }
+  }, [permissionsLoading]);
+
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">Carregando permissões...</div>
+      </DashboardLayout>
+    );
   }
 
-  useEffect(() => {
-    fetchIdealPhotos();
-  }, []);
+  if (!hasPermission("trade_stores")) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const fetchIdealPhotos = async () => {
     try {

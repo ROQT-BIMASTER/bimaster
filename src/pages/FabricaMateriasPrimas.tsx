@@ -60,13 +60,15 @@ export default function FabricaMateriasPrimas() {
   const [dadosFiscaisDialogOpen, setDadosFiscaisDialogOpen] = useState(false);
   const [selectedMP, setSelectedMP] = useState<MateriaPrima | null>(null);
 
+  useEffect(() => {
+    if (!permissionsLoading && hasPermission("fabrica_mps")) {
+      fetchMateriasPrimas();
+    }
+  }, [permissionsLoading]);
+
   if (!permissionsLoading && !hasPermission("fabrica_mps")) {
     return <Navigate to="/dashboard" replace />;
   }
-
-  useEffect(() => {
-    fetchMateriasPrimas();
-  }, []);
 
   const fetchMateriasPrimas = async () => {
     try {
