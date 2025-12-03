@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -11,11 +11,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid } from "lucide-react";
+import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid, Eye } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, subMonths, subYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import * as XLSX from 'xlsx';
+import { DetalheLancamentoDialog } from "@/components/financeiro/DetalheLancamentoDialog";
 
 interface DRENode {
   id: string;
@@ -83,6 +84,7 @@ const tableFormatConfig = {
 };
 
 export default function DREAnalitico() {
+  const queryClient = useQueryClient();
   const [periodo, setPeriodo] = useState<'mes' | 'trimestre' | 'ano'>('ano');
   const [dataInicio, setDataInicio] = useState(format(startOfYear(new Date()), 'yyyy-MM-dd'));
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -90,6 +92,8 @@ export default function DREAnalitico() {
   const [visaoAtiva, setVisaoAtiva] = useState<'contas' | 'departamentos'>('contas');
   const [filterEmpresa, setFilterEmpresa] = useState<string>('todas');
   const [tableFormat, setTableFormat] = useState<TableFormat>('padrao');
+  const [selectedLancamento, setSelectedLancamento] = useState<any | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   
   const formatConfig = tableFormatConfig[tableFormat];
 
@@ -660,30 +664,48 @@ export default function DREAnalitico() {
     const mom = node.valoresMensais ? calcularMoM(node.valoresMensais) : null;
     const yoy = calcularYoY(node.id, node.valor);
 
+    const handleLancamentoClick = () => {
+      if (node.tipo === 'lancamento' && node.metadata) {
+        setSelectedLancamento(node.metadata);
+        setDetailDialogOpen(true);
+      }
+    };
+
     return (
       <div key={node.id}>
-        <div className={`flex items-center border-b transition-colors ${getRowStyle()}`}>
+        <div 
+          className={`flex items-center border-b transition-colors ${getRowStyle()} ${node.tipo === 'lancamento' ? 'cursor-pointer hover:bg-primary/5' : ''}`}
+          onClick={node.tipo === 'lancamento' ? handleLancamentoClick : undefined}
+        >
           {/* Coluna fixa: Nome */}
           <div 
             className={`flex items-center ${formatConfig.rowGap} ${formatConfig.nameColWidth} ${formatConfig.padding} sticky left-0 bg-inherit z-10 border-r`}
             style={{ paddingLeft: `${paddingLeft + 12}px` }}
           >
             {hasChildren ? (
-              <Button variant="ghost" size="sm" className={`${formatConfig.expandBtnSize} hover:bg-transparent`} onClick={() => toggleNode(node.id)}>
+              <Button variant="ghost" size="sm" className={`${formatConfig.expandBtnSize} hover:bg-transparent`} onClick={(e) => { e.stopPropagation(); toggleNode(node.id); }}>
                 {isExpanded ? <ChevronDown className={formatConfig.iconSize} /> : <ChevronRight className={formatConfig.iconSize} />}
               </Button>
-            ) : <div className={tableFormat === 'compacto' ? 'w-4' : tableFormat === 'expandido' ? 'w-6' : 'w-5'} />}
+            ) : node.tipo === 'lancamento' ? (
+              <Eye className={`${formatConfig.iconSize} text-muted-foreground/50`} />
+            ) : (
+              <div className={tableFormat === 'compacto' ? 'w-4' : tableFormat === 'expandido' ? 'w-6' : 'w-5'} />
+            )}
             
             {node.codigo && (
               <span className={`font-mono ${formatConfig.fontSize} text-muted-foreground ${tableFormat === 'compacto' ? 'w-[45px]' : tableFormat === 'expandido' ? 'w-[65px]' : 'w-[55px]'} flex-shrink-0`}>{node.codigo}</span>
             )}
             
-            <span className={`truncate ${node.tipo === 'lancamento' ? `${formatConfig.fontSize} text-muted-foreground` : formatConfig.fontSize}`}>
+            <span className={`truncate ${node.tipo === 'lancamento' ? `${formatConfig.fontSize} text-muted-foreground hover:text-foreground` : formatConfig.fontSize}`}>
               {node.nome}
             </span>
 
             {node.id === 'nao-classificados' && (
               <Badge variant="destructive" className={`ml-1 ${tableFormat === 'compacto' ? 'text-[8px] px-0.5 py-0 h-3' : tableFormat === 'expandido' ? 'text-[10px] px-1.5 py-0.5 h-5' : 'text-[9px] px-1 py-0 h-4'}`}>Pendente</Badge>
+            )}
+
+            {node.tipo === 'lancamento' && node.metadata?.classificacao_manual && (
+              <Badge variant="outline" className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'}`}>Manual</Badge>
             )}
           </div>
 
@@ -953,6 +975,16 @@ export default function DREAnalitico() {
             </CardContent>
           </Tabs>
         </Card>
+
+        {/* Dialog de Detalhes do Lançamento */}
+        <DetalheLancamentoDialog
+          open={detailDialogOpen}
+          onOpenChange={setDetailDialogOpen}
+          lancamento={selectedLancamento}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
+          }}
+        />
       </div>
     </DashboardLayout>
   );
