@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid, Eye, GripVertical } from "lucide-react";
+import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid, Eye, GripVertical, Flag, Target } from "lucide-react";
+import { MarcarRevisaoDialog } from "@/components/financeiro/MarcarRevisaoDialog";
+import { PlanoReducaoGastos } from "@/components/financeiro/PlanoReducaoGastos";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, subMonths, subYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -96,6 +98,9 @@ export default function DREAnalitico() {
   const [tableFormat, setTableFormat] = useState<TableFormat>('padrao');
   const [selectedLancamento, setSelectedLancamento] = useState<any | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [tabAtiva, setTabAtiva] = useState<'dre' | 'reducao'>('dre');
+  const [marcarRevisaoOpen, setMarcarRevisaoOpen] = useState(false);
+  const [itemParaRevisao, setItemParaRevisao] = useState<any>(null);
   
   // Estado para larguras das colunas (em pixels)
   const [columnWidths, setColumnWidths] = useState({
@@ -775,6 +780,28 @@ export default function DREAnalitico() {
             {node.tipo === 'lancamento' && node.metadata?.classificacao_manual && (
               <Badge variant="outline" className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'}`}>Manual</Badge>
             )}
+
+            {(node.tipo === 'conta' || node.tipo === 'grupo' || node.tipo === 'departamento') && node.valor > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 ml-1 opacity-50 hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setItemParaRevisao({
+                    planoContasId: node.metadata?.id || null,
+                    departamentoId: node.tipo === 'departamento' ? node.id : null,
+                    categoriaNome: node.nome,
+                    valor: node.valor,
+                    nome: node.nome
+                  });
+                  setMarcarRevisaoOpen(true);
+                }}
+                title="Marcar para revisão de gastos"
+              >
+                <Flag className="h-3 w-3 text-amber-500" />
+              </Button>
+            )}
           </div>
 
           {/* Colunas de valores mensais */}
@@ -1016,24 +1043,45 @@ export default function DREAnalitico() {
           </Card>
         </div>
 
-        {/* Tabela DRE com Tabs */}
-        <Card>
-          <Tabs value={visaoAtiva} onValueChange={(v) => setVisaoAtiva(v as 'contas' | 'departamentos')}>
-            <CardHeader className="pb-0">
-              <div className="flex items-center justify-between">
-                <CardTitle>Análise Detalhada</CardTitle>
-                <TabsList>
-                  <TabsTrigger value="contas" className="gap-2">
-                    <FileText className="h-4 w-4" />
-                    Por Contas
-                  </TabsTrigger>
-                  <TabsTrigger value="departamentos" className="gap-2">
-                    <Building2 className="h-4 w-4" />
-                    Por Departamentos
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-            </CardHeader>
+        {/* Tabs principais */}
+        <Tabs value={tabAtiva} onValueChange={(v) => setTabAtiva(v as 'dre' | 'reducao')}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="dre" className="gap-2">
+              <FileText className="h-4 w-4" />
+              DRE Analítico
+            </TabsTrigger>
+            <TabsTrigger value="reducao" className="gap-2">
+              <Target className="h-4 w-4" />
+              Plano de Redução de Gastos
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="reducao" className="m-0">
+            <PlanoReducaoGastos 
+              dataInicio={dataInicio}
+              dataFim={dataFim}
+              filterEmpresa={filterEmpresa}
+            />
+          </TabsContent>
+
+          <TabsContent value="dre" className="m-0">
+            <Card>
+              <Tabs value={visaoAtiva} onValueChange={(v) => setVisaoAtiva(v as 'contas' | 'departamentos')}>
+                <CardHeader className="pb-0">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Análise Detalhada</CardTitle>
+                    <TabsList>
+                      <TabsTrigger value="contas" className="gap-2">
+                        <FileText className="h-4 w-4" />
+                        Por Contas
+                      </TabsTrigger>
+                      <TabsTrigger value="departamentos" className="gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Por Departamentos
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+                </CardHeader>
 
             <CardContent className="p-0 mt-4">
               {/* Header da tabela */}
@@ -1125,6 +1173,8 @@ export default function DREAnalitico() {
             </CardContent>
           </Tabs>
         </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* Dialog de Detalhes do Lançamento */}
         <DetalheLancamentoDialog
@@ -1135,6 +1185,22 @@ export default function DREAnalitico() {
             queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
           }}
         />
+
+        {/* Dialog de Marcar para Revisão */}
+        {itemParaRevisao && (
+          <MarcarRevisaoDialog
+            open={marcarRevisaoOpen}
+            onOpenChange={setMarcarRevisaoOpen}
+            planoContasId={itemParaRevisao.planoContasId}
+            departamentoId={itemParaRevisao.departamentoId}
+            categoriaNome={itemParaRevisao.categoriaNome}
+            valorAtual={itemParaRevisao.valor}
+            nomeItem={itemParaRevisao.nome}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['contas-revisao'] });
+            }}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
