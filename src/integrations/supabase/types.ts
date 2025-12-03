@@ -7174,6 +7174,56 @@ export type Database = {
           },
         ]
       }
+      revisao_eventos: {
+        Row: {
+          concluido: boolean | null
+          created_at: string
+          created_by: string | null
+          data_evento: string
+          data_lembrete: string | null
+          descricao: string | null
+          id: string
+          revisao_id: string
+          tipo_evento: string
+          titulo: string
+          valor_referencia: number | null
+        }
+        Insert: {
+          concluido?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          data_evento?: string
+          data_lembrete?: string | null
+          descricao?: string | null
+          id?: string
+          revisao_id: string
+          tipo_evento?: string
+          titulo: string
+          valor_referencia?: number | null
+        }
+        Update: {
+          concluido?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          data_evento?: string
+          data_lembrete?: string | null
+          descricao?: string | null
+          id?: string
+          revisao_id?: string
+          tipo_evento?: string
+          titulo?: string
+          valor_referencia?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revisao_eventos_revisao_id_fkey"
+            columns: ["revisao_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar_revisao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissoes_modulos: {
         Row: {
           created_at: string | null
