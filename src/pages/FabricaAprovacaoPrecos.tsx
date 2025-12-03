@@ -60,24 +60,54 @@ export default function FabricaAprovacaoPrecos() {
   }, [queryClient]);
 
   // Buscar tabelas pendentes de aprovação
-  const { data: tabelasPendentes, isLoading } = useQuery({
+  const { data: tabelasPendentes, isLoading, error: queryError } = useQuery({
     queryKey: ["tabelas-pendentes-aprovacao"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("fabrica_tabelas_preco")
         .select(`
           *,
-          tabela_base:tabela_base_id(nome),
-          criador:created_by(nome)
+          tabela_base:tabela_base_id(nome)
         `)
         .eq("status", "pending_approval")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao buscar tabelas pendentes:", error);
+        throw error;
+      }
+      
+      // Buscar nomes dos criadores separadamente (quando não null)
+      if (data && data.length > 0) {
+        const criadoresIds = data.filter(t => t.created_by).map(t => t.created_by);
+        if (criadoresIds.length > 0) {
+          const { data: perfis } = await supabase
+            .from("profiles")
+            .select("id, nome")
+            .in("id", criadoresIds);
+          
+          if (perfis) {
+            const perfisMap = Object.fromEntries(perfis.map(p => [p.id, p.nome]));
+            return data.map(t => ({
+              ...t,
+              criador: t.created_by ? { nome: perfisMap[t.created_by] || null } : null
+            }));
+          }
+        }
+      }
+      
       return data;
     },
-    refetchInterval: 10000, // Refetch a cada 10 segundos
+    refetchInterval: 10000,
   });
+  
+  // Log error for debugging
+  useEffect(() => {
+    if (queryError) {
+      console.error("Query error:", queryError);
+      toast.error("Erro ao carregar tabelas: " + (queryError as any).message);
+    }
+  }, [queryError]);
 
   // Buscar histórico de versões de uma tabela
   const { data: versoes } = useQuery({
