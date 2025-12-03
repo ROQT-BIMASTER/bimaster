@@ -1212,6 +1212,98 @@ export type Database = {
           },
         ]
       }
+      contas_pagar_revisao: {
+        Row: {
+          categoria_nome: string | null
+          conta_id: string | null
+          created_at: string | null
+          criado_por: string | null
+          departamento_id: string | null
+          id: string
+          meta_reducao_percentual: number | null
+          meta_reducao_valor: number | null
+          observacoes: string | null
+          plano_contas_id: string | null
+          prazo_revisao: string | null
+          prioridade: string | null
+          responsavel_id: string | null
+          resultado_obtido: number | null
+          status: string | null
+          tipo_revisao: string
+          updated_at: string | null
+          valor_atual: number | null
+        }
+        Insert: {
+          categoria_nome?: string | null
+          conta_id?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          departamento_id?: string | null
+          id?: string
+          meta_reducao_percentual?: number | null
+          meta_reducao_valor?: number | null
+          observacoes?: string | null
+          plano_contas_id?: string | null
+          prazo_revisao?: string | null
+          prioridade?: string | null
+          responsavel_id?: string | null
+          resultado_obtido?: number | null
+          status?: string | null
+          tipo_revisao: string
+          updated_at?: string | null
+          valor_atual?: number | null
+        }
+        Update: {
+          categoria_nome?: string | null
+          conta_id?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          departamento_id?: string | null
+          id?: string
+          meta_reducao_percentual?: number | null
+          meta_reducao_valor?: number | null
+          observacoes?: string | null
+          plano_contas_id?: string | null
+          prazo_revisao?: string | null
+          prioridade?: string | null
+          responsavel_id?: string | null
+          resultado_obtido?: number | null
+          status?: string | null
+          tipo_revisao?: string
+          updated_at?: string | null
+          valor_atual?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_revisao_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_revisao_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_revisao_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_revisao_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversas: {
         Row: {
           created_at: string
