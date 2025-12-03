@@ -12,9 +12,19 @@ serve(async (req) => {
   }
 
   try {
-    const { accountCode, accountName, accountDescription, accountType } = await req.json();
+    const body = await req.json();
     
-    console.log("Classificando conta:", { accountCode, accountName, accountType });
+    // Suportar tanto classificação de contas contábeis quanto de lançamentos
+    const { 
+      // Para lançamentos (contas a pagar)
+      fornecedor, categoria, valor, documento, comentario,
+      // Para contas contábeis
+      accountCode, accountName, accountDescription, accountType 
+    } = body;
+    
+    const isLancamento = !!(fornecedor || categoria);
+    
+    console.log("Classificando:", isLancamento ? { fornecedor, categoria, valor, comentario } : { accountCode, accountName, accountType });
 
     // Inicializar Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -36,12 +46,60 @@ serve(async (req) => {
       throw new Error("Nenhum departamento ativo encontrado");
     }
 
+    // Buscar planos de contas disponíveis
+    const { data: planosContas, error: planoError } = await supabase
+      .from('trade_chart_of_accounts')
+      .select('id, code, name, account_type')
+      .eq('is_active', true)
+      .eq('permite_lancamento', true)
+      .order('code');
+
+    if (planoError) {
+      console.error("Erro ao buscar planos de contas:", planoError);
+    }
+
     // Preparar prompt para a IA
     const departamentosInfo = departamentos.map(d => 
-      `- ${d.nome}: ${d.descricao}`
+      `- ${d.nome}${d.descricao ? `: ${d.descricao}` : ''}`
     ).join('\n');
 
-    const systemPrompt = `Você é um especialista em classificação contábil e organizacional. 
+    const planosInfo = planosContas?.slice(0, 50).map(p => 
+      `- ${p.code} - ${p.name} (${p.account_type})`
+    ).join('\n') || 'Não disponível';
+
+    let systemPrompt: string;
+    let userPrompt: string;
+
+    if (isLancamento) {
+      systemPrompt = `Você é um especialista em classificação contábil e financeira.
+Sua tarefa é analisar lançamentos financeiros (contas a pagar) e classificá-los corretamente.
+
+DEPARTAMENTOS DISPONÍVEIS:
+${departamentosInfo}
+
+PLANOS DE CONTAS DISPONÍVEIS:
+${planosInfo}
+
+Considere:
+- O nome do fornecedor pode indicar o tipo de serviço/produto
+- A categoria original pode dar pistas sobre a natureza da despesa
+- O valor pode ajudar a diferenciar despesas recorrentes de investimentos
+- O tipo de documento ajuda na classificação fiscal
+- IMPORTANTE: Se o usuário forneceu um comentário adicional, use-o como PRINCIPAL guia para classificação
+
+Retorne o departamento E o plano de contas mais adequados.`;
+
+      userPrompt = `Classifique este lançamento financeiro:
+- Fornecedor: ${fornecedor || 'Não informado'}
+- Categoria original: ${categoria || 'Não informada'}
+- Valor: R$ ${valor ? Number(valor).toFixed(2) : 'Não informado'}
+- Tipo documento: ${documento || 'Não informado'}
+${comentario ? `\n⭐ COMENTÁRIO DO USUÁRIO (USE COMO GUIA PRINCIPAL):\n"${comentario}"` : ''}
+
+Com base nestas informações, qual departamento e plano de contas são mais adequados?`;
+
+    } else {
+      systemPrompt = `Você é um especialista em classificação contábil e organizacional. 
 Sua tarefa é analisar contas contábeis e classificá-las no departamento mais adequado.
 
 Departamentos disponíveis:
@@ -55,13 +113,14 @@ Considere:
 
 Retorne APENAS o nome exato do departamento mais adequado e um score de confiança (0-1).`;
 
-    const userPrompt = `Classifique esta conta contábil:
+      userPrompt = `Classifique esta conta contábil:
 - Código: ${accountCode}
 - Nome: ${accountName}
 - Tipo: ${accountType}
 ${accountDescription ? `- Descrição: ${accountDescription}` : ''}
 
 Qual departamento é mais adequado para esta conta?`;
+    }
 
     console.log("Chamando IA para classificação...");
 
@@ -70,6 +129,73 @@ Qual departamento é mais adequado para esta conta?`;
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY não configurada");
     }
+
+    // Definir tools baseado no tipo de classificação
+    const tools = isLancamento ? [
+      {
+        type: "function",
+        function: {
+          name: "classificar_lancamento",
+          description: "Classifica o lançamento no departamento e plano de contas mais adequados",
+          parameters: {
+            type: "object",
+            properties: {
+              departamento: {
+                type: "string",
+                description: "Nome exato do departamento escolhido",
+                enum: departamentos.map(d => d.nome)
+              },
+              plano_contas_code: {
+                type: "string",
+                description: "Código do plano de contas escolhido"
+              },
+              confianca: {
+                type: "number",
+                description: "Score de confiança da classificação (0-1)",
+                minimum: 0,
+                maximum: 1
+              },
+              justificativa: {
+                type: "string",
+                description: "Breve explicação da escolha (máximo 200 caracteres)"
+              }
+            },
+            required: ["departamento", "confianca", "justificativa"],
+            additionalProperties: false
+          }
+        }
+      }
+    ] : [
+      {
+        type: "function",
+        function: {
+          name: "classificar_departamento",
+          description: "Classifica a conta no departamento mais adequado",
+          parameters: {
+            type: "object",
+            properties: {
+              departamento: {
+                type: "string",
+                description: "Nome exato do departamento escolhido",
+                enum: departamentos.map(d => d.nome)
+              },
+              confianca: {
+                type: "number",
+                description: "Score de confiança da classificação (0-1)",
+                minimum: 0,
+                maximum: 1
+              },
+              justificativa: {
+                type: "string",
+                description: "Breve explicação da escolha (máximo 200 caracteres)"
+              }
+            },
+            required: ["departamento", "confianca", "justificativa"],
+            additionalProperties: false
+          }
+        }
+      }
+    ];
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -83,38 +209,11 @@ Qual departamento é mais adequado para esta conta?`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "classificar_departamento",
-              description: "Classifica a conta no departamento mais adequado",
-              parameters: {
-                type: "object",
-                properties: {
-                  departamento: {
-                    type: "string",
-                    description: "Nome exato do departamento escolhido",
-                    enum: departamentos.map(d => d.nome)
-                  },
-                  confianca: {
-                    type: "number",
-                    description: "Score de confiança da classificação (0-1)",
-                    minimum: 0,
-                    maximum: 1
-                  },
-                  justificativa: {
-                    type: "string",
-                    description: "Breve explicação da escolha (máximo 200 caracteres)"
-                  }
-                },
-                required: ["departamento", "confianca", "justificativa"],
-                additionalProperties: false
-              }
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "classificar_departamento" } }
+        tools,
+        tool_choice: { 
+          type: "function", 
+          function: { name: isLancamento ? "classificar_lancamento" : "classificar_departamento" } 
+        }
       }),
     });
 
@@ -168,6 +267,32 @@ Qual departamento é mais adequado para esta conta?`;
 
     if (!departamentoSelecionado) {
       throw new Error("Departamento retornado pela IA não encontrado");
+    }
+
+    // Para lançamentos, também retornar o plano de contas
+    if (isLancamento) {
+      let planoContasSelecionado = null;
+      if (resultado.plano_contas_code && planosContas) {
+        planoContasSelecionado = planosContas.find(
+          p => p.code === resultado.plano_contas_code
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          sugestao: {
+            departamento_id: departamentoSelecionado.id,
+            departamento_nome: departamentoSelecionado.nome,
+            plano_contas_id: planoContasSelecionado?.id || null,
+            plano_contas_code: planoContasSelecionado?.code || null,
+            plano_contas_nome: planoContasSelecionado?.name || null,
+            confianca: resultado.confianca,
+            justificativa: resultado.justificativa
+          }
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(
