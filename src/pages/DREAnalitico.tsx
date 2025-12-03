@@ -925,8 +925,8 @@ export default function DREAnalitico() {
               </Badge>
             )}
 
-            {/* Botão para marcar revisão - grupos, contas e departamentos */}
-            {(node.tipo === 'conta' || node.tipo === 'grupo' || node.tipo === 'departamento') && node.valor > 0 && (
+            {/* Botão para marcar revisão - grupos, contas, departamentos e fornecedores */}
+            {(node.tipo === 'conta' || node.tipo === 'grupo' || node.tipo === 'departamento' || node.tipo === 'fornecedor') && node.valor > 0 && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -938,11 +938,16 @@ export default function DREAnalitico() {
                     departamentoId: node.tipo === 'departamento' ? node.id : null,
                     categoriaNome: node.nome,
                     valor: node.valor,
-                    nome: node.nome
+                    nome: node.nome,
+                    // Se for fornecedor, incluir dados do fornecedor
+                    ...(node.tipo === 'fornecedor' && {
+                      fornecedorNome: node.nome,
+                      fornecedorCodigo: node.codigo || null,
+                    })
                   });
                   setMarcarRevisaoOpen(true);
                 }}
-                title="Marcar para revisão de gastos"
+                title={node.tipo === 'fornecedor' ? "Marcar fornecedor para revisão" : "Marcar para revisão de gastos"}
               >
                 <Flag className="h-3 w-3 text-amber-500" />
               </Button>
