@@ -11,10 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, 
   ArrowLeft, Brain, Bot, Pencil, User, Lock, ArrowUpDown, ArrowUp, ArrowDown, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown
 } from "lucide-react";
 import { DashboardContasPagar } from "@/components/financeiro/DashboardContasPagar";
 import { CalendarioVencimentos } from "@/components/financeiro/CalendarioVencimentos";
@@ -72,7 +73,7 @@ export default function ContasAPagar() {
   // Filtros
   const [searchFornecedor, setSearchFornecedor] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterEmpresa, setFilterEmpresa] = useState<string>("all");
+  const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
   const [filterAno, setFilterAno] = useState<string>(new Date().getFullYear().toString());
   const [filterMes, setFilterMes] = useState<string>("all");
   const [filterDepartamento, setFilterDepartamento] = useState<string>("all");
@@ -142,7 +143,7 @@ export default function ContasAPagar() {
 
   // Query contas a pagar
   const { data: contas, isLoading, refetch: refetchContas } = useQuery({
-    queryKey: ['contas-pagar', searchFornecedor, filterStatus, filterEmpresa, filterAno, filterMes, filterDepartamento],
+    queryKey: ['contas-pagar', searchFornecedor, filterStatus, filterEmpresas, filterAno, filterMes, filterDepartamento],
     queryFn: async () => {
       let query = supabase
         .from('contas_pagar')
@@ -157,8 +158,8 @@ export default function ContasAPagar() {
         query = query.eq('status', filterStatus);
       }
 
-      if (filterEmpresa !== 'all') {
-        query = query.eq('empresa_id', parseInt(filterEmpresa));
+      if (filterEmpresas.length > 0) {
+        query = query.in('empresa_id', filterEmpresas);
       }
 
       if (filterDepartamento !== 'all') {
@@ -741,19 +742,55 @@ export default function ContasAPagar() {
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Empresa</label>
-                <Select value={filterEmpresa} onValueChange={handleFilterChange(setFilterEmpresa)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    {empresas.map(emp => (
-                      <SelectItem key={emp.id} value={emp.id.toString()}>
-                        {emp.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      {filterEmpresas.length === 0 
+                        ? "Todas as empresas" 
+                        : filterEmpresas.length === 1 
+                          ? empresas.find(e => e.id === filterEmpresas[0])?.nome || "1 empresa"
+                          : `${filterEmpresas.length} empresas`}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0" align="start">
+                    <div className="p-2 border-b">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setFilterEmpresas([]);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <CheckCircle className={`mr-2 h-4 w-4 ${filterEmpresas.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
+                        Todas as empresas
+                      </Button>
+                    </div>
+                    <div className="max-h-[200px] overflow-auto p-2 space-y-1">
+                      {empresas.map(emp => (
+                        <div key={emp.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                          <Checkbox
+                            id={`emp-${emp.id}`}
+                            checked={filterEmpresas.includes(emp.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFilterEmpresas([...filterEmpresas, emp.id]);
+                              } else {
+                                setFilterEmpresas(filterEmpresas.filter(id => id !== emp.id));
+                              }
+                              setCurrentPage(1);
+                            }}
+                          />
+                          <label htmlFor={`emp-${emp.id}`} className="text-sm cursor-pointer flex-1">
+                            {emp.nome}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div>

@@ -5,7 +5,7 @@ import {
   Receipt, AlertCircle, Clock, TrendingUp, TrendingDown, Calendar, Users, 
   BarChart3, PieChart as PieChartIcon, AlertTriangle, CheckCircle2, Hourglass
 } from "lucide-react";
-import { format, differenceInDays, subDays, startOfMonth, endOfMonth, isWithinInterval, parseISO, addDays } from "date-fns";
+import { format, differenceInDays, subDays, subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, 
@@ -174,33 +174,44 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
     if (!contas || contas.length === 0) return [];
 
     const hoje = new Date();
-    const meses: { [key: string]: { pago: number; pendente: number } } = {};
+    const meses: { mes: string; pago: number; pendente: number; inicio: Date; fim: Date }[] = [];
 
-    // Últimos 6 meses
+    // Últimos 6 meses (usando subMonths para precisão)
     for (let i = 5; i >= 0; i--) {
-      const data = subDays(hoje, i * 30);
-      const key = format(data, 'MMM/yy', { locale: ptBR });
-      meses[key] = { pago: 0, pendente: 0 };
+      const data = subMonths(hoje, i);
+      const inicio = startOfMonth(data);
+      const fim = endOfMonth(data);
+      meses.push({
+        mes: format(data, 'MMM/yy', { locale: ptBR }),
+        pago: 0,
+        pendente: 0,
+        inicio,
+        fim
+      });
     }
 
     contas.forEach(c => {
       if (!c.data_vencimento) return;
       const venc = parseISO(c.data_vencimento);
-      const key = format(venc, 'MMM/yy', { locale: ptBR });
       
-      if (meses[key]) {
+      // Encontrar o mês correspondente
+      const mesIndex = meses.findIndex(m => 
+        isWithinInterval(venc, { start: m.inicio, end: m.fim })
+      );
+      
+      if (mesIndex !== -1) {
         if (c.status === 'pago') {
-          meses[key].pago += c.valor_pago || 0;
+          meses[mesIndex].pago += c.valor_pago || 0;
         } else {
-          meses[key].pendente += c.valor_aberto || 0;
+          meses[mesIndex].pendente += c.valor_aberto || 0;
         }
       }
     });
 
-    return Object.entries(meses).map(([mes, valores]) => ({
-      mes,
-      pago: valores.pago,
-      pendente: valores.pendente,
+    return meses.map(m => ({
+      mes: m.mes,
+      pago: m.pago,
+      pendente: m.pendente,
     }));
   }, [contas]);
 
