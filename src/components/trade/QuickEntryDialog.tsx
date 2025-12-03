@@ -489,16 +489,14 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
             </p>
             
             <div className="space-y-2">
-              {hasPermission("trade-auditorias") && (
-                <Button 
-                  className="w-full" 
-                  onClick={handleGoToAudit}
-                  variant="default"
-                >
-                  <ClipboardCheck className="mr-2 h-4 w-4" />
-                  Ir para Auditoria
-                </Button>
-              )}
+              <Button 
+                className="w-full" 
+                onClick={handleGoToAudit}
+                variant="default"
+              >
+                <ClipboardCheck className="mr-2 h-4 w-4" />
+                Ir para Auditoria
+              </Button>
               
               {hasPermission("trade_shelf_measurements") && (
                 <Button 
