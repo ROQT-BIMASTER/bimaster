@@ -9977,7 +9977,13 @@ export type Database = {
     Enums: {
       activity_result: "positivo" | "neutro" | "negativo"
       activity_type: "ligacao" | "email" | "reuniao" | "visita" | "proposta"
-      app_role: "admin" | "supervisor" | "vendedor" | "promotora" | "promotor"
+      app_role:
+        | "admin"
+        | "supervisor"
+        | "vendedor"
+        | "promotora"
+        | "promotor"
+        | "cliente"
       client_category: "A" | "B" | "C" | "D"
       prospect_status:
         | "novo"
@@ -10127,7 +10133,14 @@ export const Constants = {
     Enums: {
       activity_result: ["positivo", "neutro", "negativo"],
       activity_type: ["ligacao", "email", "reuniao", "visita", "proposta"],
-      app_role: ["admin", "supervisor", "vendedor", "promotora", "promotor"],
+      app_role: [
+        "admin",
+        "supervisor",
+        "vendedor",
+        "promotora",
+        "promotor",
+        "cliente",
+      ],
       client_category: ["A", "B", "C", "D"],
       prospect_status: [
         "novo",
