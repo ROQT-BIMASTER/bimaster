@@ -47,10 +47,15 @@ export function NovaMovimentacaoDialog({ open, onOpenChange, selectedEstoque }: 
       else if (data.tipo_movimento === 'inventario') qtdNova = data.quantidade;
       else if (data.tipo_movimento === 'ajuste') qtdNova = qtdAnterior + data.quantidade;
 
-      const { data: user } = await supabase.auth.getUser();
-      const { error } = await supabase.from('estoque_movimentacoes').insert({
-        ...data, quantidade_anterior: qtdAnterior, quantidade_nova: qtdNova, usuario_id: user.user?.id
-      });
+      const { error } = await supabase.from('estoque_movimentacoes').insert([{
+        estoque_id: data.estoque_id,
+        tipo_movimento: data.tipo_movimento,
+        quantidade: data.quantidade,
+        quantidade_anterior: qtdAnterior,
+        quantidade_nova: qtdNova,
+        documento_referencia: data.documento_referencia || null,
+        observacao: data.observacao || null
+      }]);
       if (error) throw error;
     },
     onSuccess: () => {
