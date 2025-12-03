@@ -141,9 +141,12 @@ export default function ContasAPagar() {
     }
   });
 
+  // Converte filterEmpresas para string para o queryKey detectar mudanças corretamente
+  const filterEmpresasKey = filterEmpresas.length > 0 ? filterEmpresas.sort().join(',') : 'all';
+
   // Query contas a pagar
   const { data: contas, isLoading, refetch: refetchContas } = useQuery({
-    queryKey: ['contas-pagar', searchFornecedor, filterStatus, filterEmpresas, filterAno, filterMes, filterDepartamento],
+    queryKey: ['contas-pagar', searchFornecedor, filterStatus, filterEmpresasKey, filterAno, filterMes, filterDepartamento],
     queryFn: async () => {
       let query = supabase
         .from('contas_pagar')
@@ -158,6 +161,7 @@ export default function ContasAPagar() {
         query = query.eq('status', filterStatus);
       }
 
+      // Quando filterEmpresas está vazio, não aplica filtro (mostra todas)
       if (filterEmpresas.length > 0) {
         query = query.in('empresa_id', filterEmpresas);
       }
