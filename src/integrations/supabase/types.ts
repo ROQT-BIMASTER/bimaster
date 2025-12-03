@@ -1016,6 +1016,7 @@ export type Database = {
       }
       contas_pagar: {
         Row: {
+          ativo_dre: boolean | null
           categoria_codigo: string | null
           categoria_nome: string | null
           classificacao_corrigida_em: string | null
@@ -1057,6 +1058,7 @@ export type Database = {
           valor_pago: number | null
         }
         Insert: {
+          ativo_dre?: boolean | null
           categoria_codigo?: string | null
           categoria_nome?: string | null
           classificacao_corrigida_em?: string | null
@@ -1098,6 +1100,7 @@ export type Database = {
           valor_pago?: number | null
         }
         Update: {
+          ativo_dre?: boolean | null
           categoria_codigo?: string | null
           categoria_nome?: string | null
           classificacao_corrigida_em?: string | null
