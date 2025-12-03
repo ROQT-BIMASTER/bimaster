@@ -59,7 +59,7 @@ export default function FabricaFormulaEditor() {
     enabled: !!id && id !== "nova",
   });
 
-  const { data: produtos } = useQuery({
+  const { data: produtos, isLoading: isLoadingProdutos } = useQuery({
     queryKey: ["fabrica-produtos-ativos"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -284,7 +284,7 @@ export default function FabricaFormulaEditor() {
             </Button>
             <div>
               <h1 className="text-3xl font-bold text-foreground">
-                {id === "nova" ? "Nova Fórmula" : "Editar Fórmula"}
+                {(!id || id === "nova") ? "Nova Fórmula" : "Editar Fórmula"}
               </h1>
               <p className="text-muted-foreground mt-1">
                 {formula?.fabrica_produtos?.nome}
@@ -311,34 +311,41 @@ export default function FabricaFormulaEditor() {
         </div>
 
         {/* Seleção de Produto */}
-        {id === "nova" && (
+        {(!id || id === "nova") && (
           <Card>
             <CardHeader>
               <CardTitle>Produto</CardTitle>
             </CardHeader>
             <CardContent>
-              <div>
-                <Label>Selecione o Produto *</Label>
-                <Select value={produtoId} onValueChange={setProdutoId}>
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Selecione o produto..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {produtos?.map((produto) => (
-                      <SelectItem key={produto.id} value={produto.id}>
-                        {produto.codigo} - {produto.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {isLoadingProdutos ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <div>
+                  <Label>Selecione o Produto *</Label>
+                  <Select value={produtoId} onValueChange={setProdutoId}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Selecione o produto..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {produtos?.map((produto) => (
+                        <SelectItem key={produto.id} value={produto.id}>
+                          {produto.codigo} - {produto.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
         {/* Visualização em Árvore */}
-        {itens.length > 0 && formula && (
-          <FormulaTree formula={formula} itens={itens} />
+        {itens.length > 0 && (formula || produtoId) && (
+          <FormulaTree 
+            formula={formula || { fabrica_produtos: produtos?.find(p => p.id === produtoId) }} 
+            itens={itens} 
+          />
         )}
 
         {/* Informações da Fórmula */}
