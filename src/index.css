@@ -43,6 +43,16 @@ All colors MUST be HSL.
     --ring: 217 91% 60%;
 
     --radius: 0.5rem;
+
+    /* Chart colors - vivid and distinct */
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 0 84% 60%;
+    --chart-6: 173 80% 40%;
+    --chart-7: 45 93% 47%;
+    --chart-8: 330 70% 50%;
     
     --sidebar-background: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
@@ -104,6 +114,16 @@ All colors MUST be HSL.
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 217 91% 60%;
+
+    /* Chart colors - dark mode */
+    --chart-1: 217 91% 65%;
+    --chart-2: 142 70% 45%;
+    --chart-3: 38 92% 55%;
+    --chart-4: 280 70% 65%;
+    --chart-5: 0 84% 65%;
+    --chart-6: 173 80% 50%;
+    --chart-7: 45 93% 55%;
+    --chart-8: 330 70% 55%;
     
     --sidebar-background: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
