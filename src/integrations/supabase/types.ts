@@ -1018,7 +1018,10 @@ export type Database = {
         Row: {
           categoria_codigo: string | null
           categoria_nome: string | null
+          classificacao_corrigida_em: string | null
+          classificacao_corrigida_por: string | null
           classificacao_justificativa: string | null
+          classificacao_manual: boolean | null
           classificado_automaticamente: boolean | null
           classificado_em: string | null
           confianca_classificacao: number | null
@@ -1056,7 +1059,10 @@ export type Database = {
         Insert: {
           categoria_codigo?: string | null
           categoria_nome?: string | null
+          classificacao_corrigida_em?: string | null
+          classificacao_corrigida_por?: string | null
           classificacao_justificativa?: string | null
+          classificacao_manual?: boolean | null
           classificado_automaticamente?: boolean | null
           classificado_em?: string | null
           confianca_classificacao?: number | null
@@ -1094,7 +1100,10 @@ export type Database = {
         Update: {
           categoria_codigo?: string | null
           categoria_nome?: string | null
+          classificacao_corrigida_em?: string | null
+          classificacao_corrigida_por?: string | null
           classificacao_justificativa?: string | null
+          classificacao_manual?: boolean | null
           classificado_automaticamente?: boolean | null
           classificado_em?: string | null
           confianca_classificacao?: number | null

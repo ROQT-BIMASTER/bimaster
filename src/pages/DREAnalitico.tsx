@@ -640,11 +640,11 @@ export default function DREAnalitico() {
           </div>
 
           {/* Colunas de valores mensais */}
-          <div className="flex items-center flex-1">
+          <div className="flex items-center flex-nowrap">
             {mesesPeriodo.map(mes => {
               const valorMes = node.valoresMensais?.[mes.key] || 0;
               return (
-                <div key={mes.key} className="min-w-[90px] text-right px-2 py-2">
+                <div key={mes.key} className="w-[100px] flex-shrink-0 text-right px-2 py-2">
                   {valorMes > 0 ? (
                     <span className={`font-mono text-xs ${getValueColor()}`}>
                       {isExpense ? `(${formatarValor(valorMes, true)})` : formatarValor(valorMes, true)}
@@ -657,19 +657,19 @@ export default function DREAnalitico() {
             })}
 
             {/* Total */}
-            <div className="min-w-[110px] text-right px-3 py-2 border-l-2 bg-slate-50/50 dark:bg-slate-800/30">
+            <div className="w-[120px] flex-shrink-0 text-right px-3 py-2 border-l-2 bg-slate-50/50 dark:bg-slate-800/30">
               <span className={`font-mono text-sm font-semibold ${getValueColor()}`}>
                 {isExpense && node.valor > 0 ? `(${formatarValor(node.valor)})` : formatarValor(node.valor)}
               </span>
             </div>
 
             {/* MoM */}
-            <div className="min-w-[80px] text-right px-2 py-2 border-l">
+            <div className="w-[80px] flex-shrink-0 text-right px-2 py-2 border-l">
               {renderVariacaoCell(mom, isExpense)}
             </div>
 
             {/* YoY */}
-            <div className="min-w-[80px] text-right px-2 py-2 border-l">
+            <div className="w-[80px] flex-shrink-0 text-right px-2 py-2 border-l">
               {renderVariacaoCell(yoy, isExpense)}
             </div>
           </div>
@@ -850,13 +850,13 @@ export default function DREAnalitico() {
                 <div className="min-w-[280px] max-w-[280px] py-3 px-3 sticky left-0 bg-muted/80 z-10 border-r">
                   Conta / Descrição
                 </div>
-                <div className="flex items-center flex-1">
+                <div className="flex items-center flex-nowrap">
                   {mesesPeriodo.map(mes => (
-                    <div key={mes.key} className="min-w-[90px] text-right px-2 py-3 uppercase">{mes.label}</div>
+                    <div key={mes.key} className="w-[100px] flex-shrink-0 text-right px-2 py-3 uppercase">{mes.label}</div>
                   ))}
-                  <div className="min-w-[110px] text-right px-3 py-3 border-l-2 bg-muted/50 font-bold">Total</div>
-                  <div className="min-w-[80px] text-right px-2 py-3 border-l">MoM</div>
-                  <div className="min-w-[80px] text-right px-2 py-3 border-l">YoY</div>
+                  <div className="w-[120px] flex-shrink-0 text-right px-3 py-3 border-l-2 bg-muted/50 font-bold">Total</div>
+                  <div className="w-[80px] flex-shrink-0 text-right px-2 py-3 border-l">MoM</div>
+                  <div className="w-[80px] flex-shrink-0 text-right px-2 py-3 border-l">YoY</div>
                 </div>
               </div>
 
