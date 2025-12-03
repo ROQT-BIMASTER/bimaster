@@ -665,17 +665,24 @@ export default function DREAnalitico() {
     const yoy = calcularYoY(node.id, node.valor);
 
     const handleLancamentoClick = () => {
+      console.log('Lancamento clicked:', node.tipo, node.metadata);
       if (node.tipo === 'lancamento' && node.metadata) {
+        console.log('Opening dialog with:', node.metadata);
         setSelectedLancamento(node.metadata);
         setDetailDialogOpen(true);
       }
     };
 
+    const isClickable = node.tipo === 'lancamento' && node.metadata;
+
     return (
       <div key={node.id}>
         <div 
-          className={`flex items-center border-b transition-colors ${getRowStyle()} ${node.tipo === 'lancamento' ? 'cursor-pointer hover:bg-primary/5' : ''}`}
-          onClick={node.tipo === 'lancamento' ? handleLancamentoClick : undefined}
+          className={`flex items-center border-b transition-colors ${getRowStyle()} ${isClickable ? 'cursor-pointer hover:bg-primary/10' : ''}`}
+          onClick={isClickable ? handleLancamentoClick : undefined}
+          role={isClickable ? "button" : undefined}
+          tabIndex={isClickable ? 0 : undefined}
+          onKeyDown={isClickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') handleLancamentoClick(); } : undefined}
         >
           {/* Coluna fixa: Nome */}
           <div 
