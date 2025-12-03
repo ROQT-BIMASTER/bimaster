@@ -30,10 +30,11 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatarMoeda, formatarPercentual } from "@/lib/fabrica/pricing-calculator";
-import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag, Edit, Trash2 } from "lucide-react";
+import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag, Edit, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { EditarPrecosProdutoDialog } from "./EditarPrecosProdutoDialog";
+import { ExportarTabelaPDF } from "./ExportarTabelaPDF";
 
 interface Props {
   open: boolean;
@@ -45,6 +46,7 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
   const [busca, setBusca] = useState("");
   const [produtoEditando, setProdutoEditando] = useState<string | null>(null);
   const [precoExcluindo, setPrecoExcluindo] = useState<any>(null);
+  const [showExportPDF, setShowExportPDF] = useState(false);
 
   const { data: precos, isLoading, refetch } = useQuery({
     queryKey: ["visualizacao-precos", tabela?.id],
@@ -231,10 +233,16 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
                 {tabela.descricao || "Visualização completa de preços"}
               </p>
             </div>
-            <Button onClick={handleExportar} size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar Excel
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowExportPDF(true)} variant="outline" size="sm">
+                <FileText className="h-4 w-4 mr-2" />
+                Exportar PDF
+              </Button>
+              <Button onClick={handleExportar} size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar Excel
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -461,6 +469,14 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog de Exportar PDF */}
+      <ExportarTabelaPDF
+        open={showExportPDF}
+        onOpenChange={setShowExportPDF}
+        tabela={tabela}
+        precos={precosFiltrados || []}
+      />
     </Dialog>
   );
 }
