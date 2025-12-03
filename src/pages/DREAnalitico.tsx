@@ -102,6 +102,11 @@ export default function DREAnalitico() {
   const [marcarRevisaoOpen, setMarcarRevisaoOpen] = useState(false);
   const [itemParaRevisao, setItemParaRevisao] = useState<any>(null);
   
+  // Novos filtros
+  const [filterDepartamento, setFilterDepartamento] = useState<string>('todos');
+  const [filterConta, setFilterConta] = useState<string>('todas');
+  const [filterDescricao, setFilterDescricao] = useState<string>('');
+  
   // Estado para larguras das colunas (em pixels)
   const [columnWidths, setColumnWidths] = useState({
     name: 280,
@@ -248,7 +253,7 @@ export default function DREAnalitico() {
 
   // Buscar lançamentos do período
   const { data: lancamentos, isLoading } = useSupabaseQuery(
-    ['lancamentos-dre', dataInicio, dataFim, filterEmpresa, mostrarInativos],
+    ['lancamentos-dre', dataInicio, dataFim, filterEmpresa, mostrarInativos, filterDepartamento, filterConta, filterDescricao],
     async () => {
       let query = supabase
         .from('contas_pagar')
@@ -260,6 +265,14 @@ export default function DREAnalitico() {
         query = query.eq('empresa_nome', filterEmpresa);
       }
       
+      if (filterDepartamento !== 'todos') {
+        query = query.eq('departamento_id', filterDepartamento);
+      }
+      
+      if (filterConta !== 'todas') {
+        query = query.eq('plano_contas_id', filterConta);
+      }
+      
       // Filtrar apenas lançamentos ativos se não mostrar inativos
       if (!mostrarInativos) {
         query = query.neq('ativo_dre', false);
@@ -267,6 +280,18 @@ export default function DREAnalitico() {
       
       const { data, error } = await query;
       if (error) throw error;
+      
+      // Filtrar por descrição/fornecedor no frontend (busca mais flexível)
+      if (filterDescricao.trim()) {
+        const searchTerm = filterDescricao.toLowerCase().trim();
+        return data.filter(item => 
+          (item.fornecedor_nome && item.fornecedor_nome.toLowerCase().includes(searchTerm)) ||
+          (item.categoria_nome && item.categoria_nome.toLowerCase().includes(searchTerm)) ||
+          (item.numero_documento && item.numero_documento.toLowerCase().includes(searchTerm)) ||
+          (item.plano_contas_nome && item.plano_contas_nome.toLowerCase().includes(searchTerm))
+        );
+      }
+      
       return data;
     },
     { staleTime: 0, refetchOnMount: true }
@@ -917,7 +942,7 @@ export default function DREAnalitico() {
         {/* Filtros */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-4">
               <div className="space-y-2">
                 <Label>Período</Label>
                 <Select value={periodo} onValueChange={(v: any) => handlePeriodoChange(v)}>
@@ -952,6 +977,41 @@ export default function DREAnalitico() {
               </div>
 
               <div className="space-y-2">
+                <Label>Departamento</Label>
+                <Select value={filterDepartamento} onValueChange={setFilterDepartamento}>
+                  <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os Departamentos</SelectItem>
+                    {departamentos?.map((d) => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Conta</Label>
+                <Select value={filterConta} onValueChange={setFilterConta}>
+                  <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas as Contas</SelectItem>
+                    {planoContas?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <div className="space-y-2 col-span-2">
+                <Label>Buscar por Descrição/Fornecedor</Label>
+                <Input 
+                  placeholder="Digite para filtrar..." 
+                  value={filterDescricao} 
+                  onChange={(e) => setFilterDescricao(e.target.value)} 
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label className="flex items-center gap-1">
                   <LayoutGrid className="h-3 w-3" />
                   Formato Tabela
@@ -977,11 +1037,29 @@ export default function DREAnalitico() {
                     Mostrar inativos
                   </Label>
                 </div>
+              </div>
+
+              <div className="flex items-end gap-2">
                 <Button 
                   onClick={() => setExpandedNodes(new Set(['receitas', 'despesas', 'custos', 'patrimoniais']))}
                   variant="outline" className="flex-1"
                 >
                   Expandir Grupos
+                </Button>
+              </div>
+
+              <div className="flex items-end gap-2">
+                <Button 
+                  onClick={() => {
+                    setFilterDepartamento('todos');
+                    setFilterConta('todas');
+                    setFilterDescricao('');
+                  }}
+                  variant="ghost" 
+                  size="sm"
+                  className="text-xs text-muted-foreground"
+                >
+                  Limpar Filtros
                 </Button>
                 <Button 
                   onClick={resetColumnWidths}
