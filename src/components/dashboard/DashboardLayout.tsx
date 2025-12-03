@@ -1,16 +1,14 @@
 import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { Session } from "@supabase/supabase-js";
 import logoUnion from "@/assets/logo-union.png";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { offlineManager } from "@/lib/utils/offline-manager";
-import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useSyncOfflineData } from "@/hooks/useSyncOfflineData";
 import { WifiOff, Wifi } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -18,9 +16,7 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const isOnline = useOnlineStatus();
+  const { session, approved, loading, isOnline } = useAuth();
   useSyncOfflineData(); // Sincronização automática quando online
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
 
@@ -36,66 +32,23 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     return () => clearInterval(interval);
   }, [isOnline]);
 
+  // Redirecionar se necessário
   useEffect(() => {
-    const checkUserStatus = async (session: Session | null) => {
-      if (!session) {
-        // Se offline e há cache, não redirecionar
-        if (!isOnline && offlineManager.hasCachedSession()) {
-          return;
-        }
-        navigate("/auth/login");
+    if (loading) return;
+
+    if (!session) {
+      // Se offline e há cache, não redirecionar
+      if (!isOnline && offlineManager.hasCachedSession()) {
         return;
       }
+      navigate("/auth/login");
+      return;
+    }
 
-      try {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("aprovado")
-          .eq("id", session.user.id)
-          .maybeSingle();
-
-        if (profile && !profile.aprovado) {
-          navigate("/aguardando-aprovacao");
-        } else if (profile?.aprovado) {
-          localStorage.setItem('user_approved_cache', 'true');
-        }
-      } catch (error) {
-        // Se offline, usar cache de aprovação
-        if (!isOnline && localStorage.getItem('user_approved_cache') !== 'true') {
-          navigate("/aguardando-aprovacao");
-        }
-      }
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      if (session) {
-        await checkUserStatus(session);
-      } else {
-        navigate("/auth/login");
-      }
-    });
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        await checkUserStatus(session);
-      } else {
-        // Se offline e há cache, não redirecionar
-        if (!isOnline && offlineManager.hasCachedSession()) {
-          // Criar sessão mock para modo offline
-          setSession({ user: { id: 'offline' } } as Session);
-        } else {
-          navigate("/auth/login");
-        }
-      }
-      setLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+    if (!approved) {
+      navigate("/aguardando-aprovacao");
+    }
+  }, [session, approved, loading, isOnline, navigate]);
 
   if (loading) {
     return (

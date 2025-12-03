@@ -1,63 +1,35 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
+import { usePermissions } from "@/contexts/PermissionsContext";
 
 type UserType = "admin" | "supervisor" | "vendedor" | "promotor" | "cliente" | null;
 
+/**
+ * Hook para role do usuário - agora usa o contexto centralizado
+ * Elimina chamadas duplicadas ao banco
+ */
 export const useUserRole = () => {
-  const [userType, setUserType] = useState<UserType>(null);
-  const [loading, setLoading] = useState(true);
+  const { role, isAdmin, loading } = usePermissions();
 
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setUserType(null);
-          return;
-        }
+  const derivedValues = useMemo(() => {
+    // Normalizar "promotora" antigo para "promotor"
+    const normalizedRole = role === 'promotora' ? 'promotor' : role;
+    const userType = normalizedRole as UserType;
 
-        const { data: roles, error } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Erro ao buscar role do usuário:", error);
-          setUserType(null);
-          return;
-        }
-
-        // Normalizar "promotora" antigo para "promotor"
-        const normalizedRole = roles?.role === 'promotora' ? 'promotor' : roles?.role;
-        setUserType(normalizedRole as UserType || null);
-      } catch (error) {
-        console.error("Erro ao buscar tipo de usuário:", error);
-        setUserType(null);
-      } finally {
-        setLoading(false);
-      }
+    return {
+      userType,
+      isAdmin: userType === "admin",
+      isSupervisor: userType === "supervisor",
+      isVendedor: userType === "vendedor",
+      isPromotor: userType === "promotor",
+      isCliente: userType === "cliente",
+      isAdminOrSupervisor: userType === "admin" || userType === "supervisor",
+      isSalesTeam: userType === "vendedor" || userType === "promotor",
+      isInternal: userType !== null && userType !== "cliente",
     };
-
-    fetchUserRole();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      fetchUserRole();
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  }, [role]);
 
   return {
-    userType,
+    ...derivedValues,
     loading,
-    isAdmin: userType === "admin",
-    isSupervisor: userType === "supervisor",
-    isVendedor: userType === "vendedor",
-    isPromotor: userType === "promotor",
-    isCliente: userType === "cliente",
-    isAdminOrSupervisor: userType === "admin" || userType === "supervisor",
-    isSalesTeam: userType === "vendedor" || userType === "promotor",
-    isInternal: userType !== null && userType !== "cliente",
   };
 };

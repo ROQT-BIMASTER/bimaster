@@ -10,6 +10,7 @@ import { memoryManager } from "@/lib/utils/memory-manager";
 import { memoryMonitor } from "@/lib/utils/memory-monitor";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ClienteProtectedRoute } from "@/components/auth/ClienteProtectedRoute";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 
 // Lazy load das páginas para otimizar bundle
@@ -145,8 +146,9 @@ const App = () => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <PermissionsProvider>
-          <TooltipProvider delayDuration={0}>
+        <AuthProvider>
+          <PermissionsProvider>
+            <TooltipProvider delayDuration={0}>
             <Toaster />
             <Sonner />
             <BrowserRouter>
@@ -267,7 +269,8 @@ const App = () => {
             </Suspense>
           </BrowserRouter>
           </TooltipProvider>
-        </PermissionsProvider>
+          </PermissionsProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
