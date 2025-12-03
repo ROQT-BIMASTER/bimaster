@@ -94,8 +94,6 @@ export default function ContasAPagar() {
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
   const [budgetFilter, setBudgetFilter] = useState<string>("all");
   const [classificarIAOpen, setClassificarIAOpen] = useState(false);
-  const [filterAnoClassificacao, setFilterAnoClassificacao] = useState<string>(new Date().getFullYear().toString());
-  const [filterMesClassificacao, setFilterMesClassificacao] = useState<string>("all");
   const [editarClassificacaoOpen, setEditarClassificacaoOpen] = useState(false);
   const [selectedContaClassificacao, setSelectedContaClassificacao] = useState<ContaPagar | null>(null);
   
@@ -691,6 +689,93 @@ export default function ContasAPagar() {
           </Card>
         </div>
 
+        {/* Filtros Globais */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid gap-4 md:grid-cols-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Ano</label>
+                <Select value={filterAno} onValueChange={(value) => {
+                  handleFilterChange(setFilterAno)(value);
+                  if (value === 'all') setFilterMes('all');
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ano" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="2024">2024</SelectItem>
+                    <SelectItem value="2025">2025</SelectItem>
+                    <SelectItem value="2026">2026</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Mês</label>
+                <Select 
+                  value={filterMes} 
+                  onValueChange={handleFilterChange(setFilterMes)}
+                  disabled={filterAno === 'all'}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="1">Janeiro</SelectItem>
+                    <SelectItem value="2">Fevereiro</SelectItem>
+                    <SelectItem value="3">Março</SelectItem>
+                    <SelectItem value="4">Abril</SelectItem>
+                    <SelectItem value="5">Maio</SelectItem>
+                    <SelectItem value="6">Junho</SelectItem>
+                    <SelectItem value="7">Julho</SelectItem>
+                    <SelectItem value="8">Agosto</SelectItem>
+                    <SelectItem value="9">Setembro</SelectItem>
+                    <SelectItem value="10">Outubro</SelectItem>
+                    <SelectItem value="11">Novembro</SelectItem>
+                    <SelectItem value="12">Dezembro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Empresa</label>
+                <Select value={filterEmpresa} onValueChange={handleFilterChange(setFilterEmpresa)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {empresas.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id.toString()}>
+                        {emp.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Departamento</label>
+                <Select value={filterDepartamento} onValueChange={handleFilterChange(setFilterDepartamento)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {departamentos?.map(dept => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Tabs */}
         <Tabs defaultValue="dashboard" className="space-y-6">
           <TabsList>
@@ -731,90 +816,10 @@ export default function ContasAPagar() {
 
           {/* Aba de Contas a Pagar */}
           <TabsContent value="contas" className="space-y-6">
-            {/* Filtros */}
+            {/* Filtros específicos da aba */}
             <Card>
               <CardContent className="pt-6">
-                <div className="grid gap-4 md:grid-cols-7">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Ano</label>
-                    <Select value={filterAno} onValueChange={(value) => {
-                      handleFilterChange(setFilterAno)(value);
-                      if (value === 'all') setFilterMes('all');
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Ano" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="2024">2024</SelectItem>
-                        <SelectItem value="2025">2025</SelectItem>
-                        <SelectItem value="2026">2026</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Mês</label>
-                    <Select 
-                      value={filterMes} 
-                      onValueChange={handleFilterChange(setFilterMes)}
-                      disabled={filterAno === 'all'}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Mês" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="1">Janeiro</SelectItem>
-                        <SelectItem value="2">Fevereiro</SelectItem>
-                        <SelectItem value="3">Março</SelectItem>
-                        <SelectItem value="4">Abril</SelectItem>
-                        <SelectItem value="5">Maio</SelectItem>
-                        <SelectItem value="6">Junho</SelectItem>
-                        <SelectItem value="7">Julho</SelectItem>
-                        <SelectItem value="8">Agosto</SelectItem>
-                        <SelectItem value="9">Setembro</SelectItem>
-                        <SelectItem value="10">Outubro</SelectItem>
-                        <SelectItem value="11">Novembro</SelectItem>
-                        <SelectItem value="12">Dezembro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Empresa</label>
-                    <Select value={filterEmpresa} onValueChange={handleFilterChange(setFilterEmpresa)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas</SelectItem>
-                        {empresas.map(emp => (
-                          <SelectItem key={emp.id} value={emp.id.toString()}>
-                            {emp.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Departamento</label>
-                    <Select value={filterDepartamento} onValueChange={handleFilterChange(setFilterDepartamento)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        {departamentos?.map(dept => (
-                          <SelectItem key={dept.id} value={dept.id}>
-                            {dept.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
+                <div className="grid gap-4 md:grid-cols-3">
                   <div>
                     <label className="text-sm font-medium mb-2 block">Status</label>
                     <Select value={filterStatus} onValueChange={handleFilterChange(setFilterStatus)}>
@@ -1228,92 +1233,12 @@ export default function ContasAPagar() {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Filtros de Classificação */}
-                <div className="grid gap-4 md:grid-cols-3 mb-6">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Ano</label>
-                    <Select value={filterAnoClassificacao} onValueChange={(value) => {
-                      setFilterAnoClassificacao(value);
-                      setCurrentPageIA(1);
-                      setSelectedIdsIA(new Set());
-                      if (value === 'all') setFilterMesClassificacao('all');
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Ano" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="2024">2024</SelectItem>
-                        <SelectItem value="2025">2025</SelectItem>
-                        <SelectItem value="2026">2026</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Mês</label>
-                    <Select 
-                      value={filterMesClassificacao} 
-                      onValueChange={(value) => {
-                        setFilterMesClassificacao(value);
-                        setCurrentPageIA(1);
-                        setSelectedIdsIA(new Set());
-                      }}
-                      disabled={filterAnoClassificacao === 'all'}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Mês" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="1">Janeiro</SelectItem>
-                        <SelectItem value="2">Fevereiro</SelectItem>
-                        <SelectItem value="3">Março</SelectItem>
-                        <SelectItem value="4">Abril</SelectItem>
-                        <SelectItem value="5">Maio</SelectItem>
-                        <SelectItem value="6">Junho</SelectItem>
-                        <SelectItem value="7">Julho</SelectItem>
-                        <SelectItem value="8">Agosto</SelectItem>
-                        <SelectItem value="9">Setembro</SelectItem>
-                        <SelectItem value="10">Outubro</SelectItem>
-                        <SelectItem value="11">Novembro</SelectItem>
-                        <SelectItem value="12">Dezembro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Empresa</label>
-                    <Select value={filterEmpresa} onValueChange={setFilterEmpresa}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas</SelectItem>
-                        {empresas.map(emp => (
-                          <SelectItem key={emp.id} value={emp.id.toString()}>
-                            {emp.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
                 {/* Tabela de Contas Classificadas */}
                 {isLoading ? (
                   <div className="text-center py-8">Carregando classificações...</div>
                 ) : (() => {
-                  // Filtrar contas por ano/mês de classificação
-                  const contasFiltradas = contas?.filter(c => {
-                    if (!c.data_vencimento) return false;
-                    const dataVencimento = new Date(c.data_vencimento);
-                    const ano = dataVencimento.getFullYear().toString();
-                    const mes = (dataVencimento.getMonth() + 1).toString();
-                    if (filterAnoClassificacao !== 'all' && ano !== filterAnoClassificacao) return false;
-                    if (filterMesClassificacao !== 'all' && filterAnoClassificacao !== 'all' && mes !== filterMesClassificacao) return false;
-                    return true;
-                  }) || [];
+                  // Usa os dados já filtrados globalmente
+                  const contasFiltradas = contas || [];
 
                   // Ordenar
                   const sortedData = [...contasFiltradas].sort((a, b) => {
