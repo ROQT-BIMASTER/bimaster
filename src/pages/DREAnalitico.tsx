@@ -25,7 +25,7 @@ interface DRENode {
   id: string;
   codigo: string;
   nome: string;
-  tipo: 'grupo' | 'conta' | 'departamento' | 'lancamento';
+  tipo: 'grupo' | 'conta' | 'departamento' | 'fornecedor' | 'lancamento';
   nivel: number;
   valor: number;
   valoresMensais?: { [mes: string]: number };
@@ -510,6 +510,60 @@ export default function DREAnalitico() {
         if (grupoRaiz.valoresMensais![mesKey] !== undefined) grupoRaiz.valoresMensais![mesKey] += valor;
       }
 
+      // Função auxiliar para adicionar lançamento agrupado por fornecedor
+      const adicionarLancamentoAgrupado = (parentNode: DRENode) => {
+        const fornecedorKey = lancamento.fornecedor_codigo || lancamento.fornecedor_nome || 'sem-fornecedor';
+        const fornecedorNome = lancamento.fornecedor_nome || 'N/A';
+        
+        // Buscar ou criar nó do fornecedor
+        let nodoFornecedor = parentNode.children?.find(f => 
+          f.tipo === 'fornecedor' && f.id === `fornecedor-${fornecedorKey}`
+        );
+        
+        if (!nodoFornecedor) {
+          nodoFornecedor = {
+            id: `fornecedor-${fornecedorKey}`,
+            codigo: lancamento.fornecedor_codigo || '',
+            nome: fornecedorNome,
+            tipo: 'fornecedor' as const,
+            nivel: 5,
+            valor: 0,
+            valoresMensais: {},
+            natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
+            accountType: conta.account_type,
+            children: []
+          };
+          mesesPeriodo.forEach(m => nodoFornecedor!.valoresMensais![m.key] = 0);
+          parentNode.children?.push(nodoFornecedor);
+        }
+        
+        // Acumular valores no fornecedor
+        nodoFornecedor.valor += valor;
+        if (mesKey && nodoFornecedor.valoresMensais![mesKey] !== undefined) {
+          nodoFornecedor.valoresMensais![mesKey] += valor;
+        }
+        
+        // Criar nó do documento individual
+        const lancamentoValoresMensais: { [key: string]: number } = {};
+        mesesPeriodo.forEach(m => lancamentoValoresMensais[m.key] = 0);
+        if (mesKey && lancamentoValoresMensais[mesKey] !== undefined) {
+          lancamentoValoresMensais[mesKey] = valor;
+        }
+        
+        nodoFornecedor.children?.push({
+          id: lancamento.id,
+          codigo: lancamento.numero_documento || '',
+          nome: `Doc: ${lancamento.numero_documento || 'S/N'} - ${format(new Date(lancamento.data_vencimento), 'dd/MM/yyyy')}`,
+          tipo: 'lancamento',
+          nivel: 6,
+          valor,
+          valoresMensais: lancamentoValoresMensais,
+          natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
+          accountType: conta.account_type,
+          metadata: lancamento
+        });
+      };
+
       if (lancamento.departamento_id) {
         let nodoDept = nodoConta.children?.find(d => d.id === lancamento.departamento_id);
         if (!nodoDept) {
@@ -530,37 +584,9 @@ export default function DREAnalitico() {
           nodoDept.valoresMensais![mesKey] += valor;
         }
 
-        // Criar valoresMensais para o lançamento
-        const lancamentoValoresMensais: { [key: string]: number } = {};
-        mesesPeriodo.forEach(m => lancamentoValoresMensais[m.key] = 0);
-        if (mesKey && lancamentoValoresMensais[mesKey] !== undefined) {
-          lancamentoValoresMensais[mesKey] = valor;
-        }
-
-        nodoDept.children?.push({
-          id: lancamento.id, codigo: lancamento.numero_documento || '',
-          nome: `${lancamento.fornecedor_nome || 'N/A'} - ${lancamento.categoria_nome || 'Sem categoria'}`,
-          tipo: 'lancamento', nivel: 5, valor,
-          valoresMensais: lancamentoValoresMensais,
-          natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
-          accountType: conta.account_type, metadata: lancamento
-        });
+        adicionarLancamentoAgrupado(nodoDept);
       } else {
-        // Criar valoresMensais para o lançamento sem departamento
-        const lancamentoValoresMensaisSemDept: { [key: string]: number } = {};
-        mesesPeriodo.forEach(m => lancamentoValoresMensaisSemDept[m.key] = 0);
-        if (mesKey && lancamentoValoresMensaisSemDept[mesKey] !== undefined) {
-          lancamentoValoresMensaisSemDept[mesKey] = valor;
-        }
-
-        nodoConta.children?.push({
-          id: lancamento.id, codigo: lancamento.numero_documento || '',
-          nome: `${lancamento.fornecedor_nome || 'N/A'} - ${lancamento.categoria_nome || 'Sem categoria'}`,
-          tipo: 'lancamento', nivel: 5, valor,
-          valoresMensais: lancamentoValoresMensaisSemDept,
-          natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
-          accountType: conta.account_type, metadata: lancamento
-        });
+        adicionarLancamentoAgrupado(nodoConta);
       }
     });
 
