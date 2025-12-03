@@ -373,97 +373,101 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Módulo Financeiro - Sempre visível */}
-        <SidebarGroup>
-          <Collapsible 
-            open={financeiroOpen} 
-            onOpenChange={setFinanceiroOpen}
-            defaultOpen={true}
-          >
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                {financeiroOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                <DollarSign className="h-4 w-4" />
-                Módulo Financeiro
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {financeiroSubMenus.map((item) => (
-                    <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton asChild>
-                        <NavLink
-                          to={item.url}
-                          className={({ isActive }) =>
-                            isActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                              : "hover:bg-sidebar-accent/50"
-                          }
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </SidebarGroup>
+        {/* Módulo Financeiro - Requer permissão */}
+        {hasModulePermission("financeiro") && (
+          <SidebarGroup>
+            <Collapsible 
+              open={financeiroOpen} 
+              onOpenChange={setFinanceiroOpen}
+              defaultOpen={true}
+            >
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                  {financeiroOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <DollarSign className="h-4 w-4" />
+                  Módulo Financeiro
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {financeiroSubMenus.map((item) => (
+                      <SidebarMenuItem key={item.url}>
+                        <SidebarMenuButton asChild>
+                          <NavLink
+                            to={item.url}
+                            className={({ isActive }) =>
+                              isActive
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                : "hover:bg-sidebar-accent/50"
+                            }
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
 
-        {/* Módulo de Marketing */}
-        <SidebarGroup>
-          <Collapsible open={marketingOpen} onOpenChange={setMarketingOpen}>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                {marketingOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                <BarChart3 className="h-4 w-4" />
-                Módulo de Marketing
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/dashboard/marketing"
-                        end
-                        className={({ isActive }) =>
-                          isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "hover:bg-sidebar-accent/50"
-                        }
-                      >
-                        <Home className="h-4 w-4" />
-                        <span>Visão Geral</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  {marketingSubMenus.map((item) => (
-                    <SidebarMenuItem key={item.url}>
+        {/* Módulo de Marketing - Requer permissão */}
+        {hasModulePermission("marketing") && (
+          <SidebarGroup>
+            <Collapsible open={marketingOpen} onOpenChange={setMarketingOpen}>
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                  {marketingOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <BarChart3 className="h-4 w-4" />
+                  Módulo de Marketing
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
                       <SidebarMenuButton asChild>
                         <NavLink
-                          to={item.url}
+                          to="/dashboard/marketing"
+                          end
                           className={({ isActive }) =>
                             isActive
                               ? "bg-sidebar-accent text-sidebar-accent-foreground"
                               : "hover:bg-sidebar-accent/50"
                           }
                         >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
+                          <Home className="h-4 w-4" />
+                          <span>Visão Geral</span>
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </SidebarGroup>
+                    {marketingSubMenus.map((item) => (
+                      <SidebarMenuItem key={item.url}>
+                        <SidebarMenuButton asChild>
+                          <NavLink
+                            to={item.url}
+                            className={({ isActive }) =>
+                              isActive
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                : "hover:bg-sidebar-accent/50"
+                            }
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
 
         {/* Módulo de Trade Marketing */}
         {hasModulePermission("trade") && (
@@ -652,101 +656,78 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Módulo de Tabelas de Preços */}
-        <SidebarGroup>
-          <Collapsible open={precosOpen} onOpenChange={setPrecosOpen}>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                {precosOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                <DollarSign className="h-4 w-4" />
-                Tabelas de Preços
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink to="/dashboard/precos" end className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                        <Home className="h-4 w-4" />
-                        <span>Dashboard</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink to="/dashboard/precos/tabelas" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                        <Receipt className="h-4 w-4" />
-                        <span>Gerenciar Tabelas</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink to="/dashboard/precos/aprovacao" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                        <CheckSquare className="h-4 w-4" />
-                        <span>Aprovação</span>
-                        {tabelasPendentes > 0 && (
-                          <Badge className="ml-auto bg-yellow-500 hover:bg-yellow-600 text-xs">
-                            {tabelasPendentes}
-                          </Badge>
-                        )}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink to="/dashboard/precos/portal-cliente" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                        <Users className="h-4 w-4" />
-                        <span>Portal Cliente</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </SidebarGroup>
-
-        {/* Módulo Financeiro */}
-        <SidebarGroup>
-          <Collapsible defaultOpen={false}>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                <ChevronRight className="h-4 w-4" />
-                <Receipt className="h-4 w-4" />
-                Financeiro
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink to="/dashboard/contas-a-pagar" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                        <Receipt className="h-4 w-4" />
-                        <span>Contas a Pagar</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </SidebarGroup>
+        {/* Módulo de Tabelas de Preços - Requer permissão */}
+        {hasModulePermission("precos") && (
+          <SidebarGroup>
+            <Collapsible open={precosOpen} onOpenChange={setPrecosOpen}>
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full">
+                  {precosOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <DollarSign className="h-4 w-4" />
+                  Tabelas de Preços
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/dashboard/precos" end className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                          <Home className="h-4 w-4" />
+                          <span>Dashboard</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/dashboard/precos/tabelas" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                          <Receipt className="h-4 w-4" />
+                          <span>Gerenciar Tabelas</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/dashboard/precos/aprovacao" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                          <CheckSquare className="h-4 w-4" />
+                          <span>Aprovação</span>
+                          {tabelasPendentes > 0 && (
+                            <Badge className="ml-auto bg-yellow-500 hover:bg-yellow-600 text-xs">
+                              {tabelasPendentes}
+                            </Badge>
+                          )}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/dashboard/precos/portal-cliente" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
+                          <Users className="h-4 w-4" />
+                          <span>Portal Cliente</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
 
       </SidebarContent>
       
       <SidebarFooter>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/dashboard/configuracoes">
-                <Settings className="h-4 w-4" />
-                <span>Configurações</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {hasModulePermission("configuracoes") && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <NavLink to="/dashboard/configuracoes">
+                  <Settings className="h-4 w-4" />
+                  <span>Configurações</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleLogout}>
               <LogOut className="h-4 w-4" />
