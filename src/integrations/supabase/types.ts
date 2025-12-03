@@ -10454,6 +10454,14 @@ export type Database = {
           activity_date: string
         }[]
       }
+      get_all_user_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          module_codes: string[]
+          screen_codes: string[]
+          user_role: string
+        }[]
+      }
       get_analise_departamentos: {
         Args: {
           p_departamento_id?: string
