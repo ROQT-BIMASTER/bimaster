@@ -61,6 +61,7 @@ interface ContaPagar {
 }
 
 type SortColumn = 'empresa_nome' | 'numero_documento' | 'fornecedor_nome' | 'categoria_nome' | 'data_vencimento' | 'valor_original' | 'valor_aberto' | 'status';
+type SortColumnIA = 'fornecedor_nome' | 'numero_documento' | 'data_vencimento' | 'valor_original' | 'departamento_nome' | 'plano_contas_nome';
 type SortDirection = 'asc' | 'desc';
 
 export default function ContasAPagar() {
@@ -98,6 +99,15 @@ export default function ContasAPagar() {
   
   // Ação em lote - departamento
   const [batchDepartamento, setBatchDepartamento] = useState<string>("");
+  
+  // Paginação e Ordenação da aba Classificação IA
+  const [currentPageIA, setCurrentPageIA] = useState(1);
+  const [pageSizeIA, setPageSizeIA] = useState(25);
+  const [sortColumnIA, setSortColumnIA] = useState<SortColumnIA>('data_vencimento');
+  const [sortDirectionIA, setSortDirectionIA] = useState<SortDirection>('desc');
+  const [selectedIdsIA, setSelectedIdsIA] = useState<Set<string>>(new Set());
+  const [batchDepartamentoIA, setBatchDepartamentoIA] = useState<string>("");
+  const [batchPlanoContasIA, setBatchPlanoContasIA] = useState<string>("");
 
   // Query departamentos
   const { data: departamentos } = useQuery({
@@ -380,6 +390,103 @@ export default function ContasAPagar() {
       return;
     }
     setClassificarIAOpen(true);
+  };
+
+  // Funções de ordenação IA tab
+  const handleSortIA = (column: SortColumnIA) => {
+    if (sortColumnIA === column) {
+      setSortDirectionIA(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumnIA(column);
+      setSortDirectionIA('asc');
+    }
+    setCurrentPageIA(1);
+  };
+
+  const SortIconIA = ({ column }: { column: SortColumnIA }) => {
+    if (sortColumnIA !== column) return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+    return sortDirectionIA === 'asc' 
+      ? <ArrowUp className="h-4 w-4 ml-1" /> 
+      : <ArrowDown className="h-4 w-4 ml-1" />;
+  };
+
+  // Seleção em lote IA
+  const handleSelectAllIA = (checked: boolean, data: ContaPagar[]) => {
+    if (checked) {
+      setSelectedIdsIA(new Set(data.map(c => c.id)));
+    } else {
+      setSelectedIdsIA(new Set());
+    }
+  };
+
+  const handleSelectOneIA = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedIdsIA);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedIdsIA(newSelected);
+  };
+
+  // Ações em lote IA
+  const handleBatchUpdateDepartamentoIA = async () => {
+    if (!batchDepartamentoIA) {
+      toast.error("Selecione um departamento");
+      return;
+    }
+    if (selectedIdsIA.size === 0) {
+      toast.error("Selecione ao menos uma conta");
+      return;
+    }
+    try {
+      const dept = departamentos?.find(d => d.id === batchDepartamentoIA);
+      const { error } = await supabase
+        .from('contas_pagar')
+        .update({ 
+          departamento_id: batchDepartamentoIA,
+          departamento_nome: dept?.nome || null 
+        })
+        .in('id', Array.from(selectedIdsIA));
+      if (error) throw error;
+      toast.success(`${selectedIdsIA.size} contas atualizadas!`);
+      setSelectedIdsIA(new Set());
+      setBatchDepartamentoIA("");
+      refetchContas();
+    } catch (error) {
+      console.error('Erro ao atualizar em lote:', error);
+      toast.error('Erro ao atualizar contas');
+    }
+  };
+
+  const handleBatchUpdatePlanoContasIA = async () => {
+    if (!batchPlanoContasIA) {
+      toast.error("Selecione um plano de contas");
+      return;
+    }
+    if (selectedIdsIA.size === 0) {
+      toast.error("Selecione ao menos uma conta");
+      return;
+    }
+    try {
+      const plano = planosContas?.find(p => p.id === batchPlanoContasIA);
+      const { error } = await supabase
+        .from('contas_pagar')
+        .update({ 
+          plano_contas_id: batchPlanoContasIA,
+          plano_contas_codigo: plano?.code || null,
+          plano_contas_nome: plano?.name || null 
+        })
+        .in('id', Array.from(selectedIdsIA));
+      if (error) throw error;
+      toast.success(`${selectedIdsIA.size} contas atualizadas!`);
+      setSelectedIdsIA(new Set());
+      setBatchPlanoContasIA("");
+      refetchContas();
+    } catch (error) {
+      console.error('Erro ao atualizar em lote:', error);
+      toast.error('Erro ao atualizar contas');
+    }
   };
 
   // Exportar para Excel (todas)
@@ -1107,6 +1214,8 @@ export default function ContasAPagar() {
                     <label className="text-sm font-medium mb-2 block">Ano</label>
                     <Select value={filterAnoClassificacao} onValueChange={(value) => {
                       setFilterAnoClassificacao(value);
+                      setCurrentPageIA(1);
+                      setSelectedIdsIA(new Set());
                       if (value === 'all') setFilterMesClassificacao('all');
                     }}>
                       <SelectTrigger>
@@ -1125,7 +1234,11 @@ export default function ContasAPagar() {
                     <label className="text-sm font-medium mb-2 block">Mês</label>
                     <Select 
                       value={filterMesClassificacao} 
-                      onValueChange={setFilterMesClassificacao}
+                      onValueChange={(value) => {
+                        setFilterMesClassificacao(value);
+                        setCurrentPageIA(1);
+                        setSelectedIdsIA(new Set());
+                      }}
                       disabled={filterAnoClassificacao === 'all'}
                     >
                       <SelectTrigger>
@@ -1171,28 +1284,49 @@ export default function ContasAPagar() {
                 {isLoading ? (
                   <div className="text-center py-8">Carregando classificações...</div>
                 ) : (() => {
+                  // Filtrar contas por ano/mês de classificação
                   const contasFiltradas = contas?.filter(c => {
                     if (!c.data_vencimento) return false;
-                    
                     const dataVencimento = new Date(c.data_vencimento);
                     const ano = dataVencimento.getFullYear().toString();
                     const mes = (dataVencimento.getMonth() + 1).toString();
-                    
-                    if (filterAnoClassificacao !== 'all' && ano !== filterAnoClassificacao) {
-                      return false;
-                    }
-                    
-                    if (filterMesClassificacao !== 'all' && filterAnoClassificacao !== 'all' && mes !== filterMesClassificacao) {
-                      return false;
-                    }
-                    
+                    if (filterAnoClassificacao !== 'all' && ano !== filterAnoClassificacao) return false;
+                    if (filterMesClassificacao !== 'all' && filterAnoClassificacao !== 'all' && mes !== filterMesClassificacao) return false;
                     return true;
+                  }) || [];
+
+                  // Ordenar
+                  const sortedData = [...contasFiltradas].sort((a, b) => {
+                    let aVal: any = a[sortColumnIA as keyof ContaPagar];
+                    let bVal: any = b[sortColumnIA as keyof ContaPagar];
+                    if (aVal === null || aVal === undefined) aVal = '';
+                    if (bVal === null || bVal === undefined) bVal = '';
+                    if (sortColumnIA === 'valor_original') {
+                      aVal = Number(aVal) || 0;
+                      bVal = Number(bVal) || 0;
+                    }
+                    if (sortColumnIA === 'data_vencimento') {
+                      aVal = aVal ? new Date(aVal).getTime() : 0;
+                      bVal = bVal ? new Date(bVal).getTime() : 0;
+                    }
+                    if (aVal < bVal) return sortDirectionIA === 'asc' ? -1 : 1;
+                    if (aVal > bVal) return sortDirectionIA === 'asc' ? 1 : -1;
+                    return 0;
                   });
 
-                  const totalContas = contasFiltradas?.length || 0;
-                  const classificadas = contasFiltradas?.filter(c => c.departamento_id && c.plano_contas_id).length || 0;
+                  // Paginar
+                  const totalItemsIA = sortedData.length;
+                  const totalPagesIA = Math.ceil(totalItemsIA / pageSizeIA);
+                  const startIndexIA = (currentPageIA - 1) * pageSizeIA;
+                  const paginatedData = sortedData.slice(startIndexIA, startIndexIA + pageSizeIA);
+
+                  const totalContas = contasFiltradas.length;
+                  const classificadas = contasFiltradas.filter(c => c.departamento_id && c.plano_contas_id).length;
                   const pendentes = totalContas - classificadas;
                   const percentual = totalContas > 0 ? ((classificadas / totalContas) * 100).toFixed(1) : "0";
+
+                  const isAllSelectedIA = paginatedData.length > 0 && paginatedData.every(c => selectedIdsIA.has(c.id));
+                  const isSomeSelectedIA = paginatedData.some(c => selectedIdsIA.has(c.id)) && !isAllSelectedIA;
 
                   return (
                     <>
@@ -1224,145 +1358,248 @@ export default function ContasAPagar() {
                         </Card>
                       </div>
 
+                      {/* Barra de Ações em Lote IA */}
+                      {selectedIdsIA.size > 0 && (
+                        <Card className="border-primary/50 bg-primary/5 mb-4">
+                          <CardContent className="py-4">
+                            <div className="flex items-center justify-between flex-wrap gap-4">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-sm">
+                                  {selectedIdsIA.size} {selectedIdsIA.size === 1 ? 'conta selecionada' : 'contas selecionadas'}
+                                </Badge>
+                                <Button variant="ghost" size="sm" onClick={() => setSelectedIdsIA(new Set())}>
+                                  Limpar seleção
+                                </Button>
+                              </div>
+                              <div className="flex items-center gap-3 flex-wrap">
+                                {/* Alterar Departamento */}
+                                <div className="flex items-center gap-2">
+                                  <Select value={batchDepartamentoIA} onValueChange={setBatchDepartamentoIA}>
+                                    <SelectTrigger className="w-[160px] h-9">
+                                      <Building2 className="h-4 w-4 mr-2" />
+                                      <SelectValue placeholder="Departamento..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {departamentos?.map(dept => (
+                                        <SelectItem key={dept.id} value={dept.id}>{dept.nome}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Button size="sm" variant="secondary" onClick={handleBatchUpdateDepartamentoIA} disabled={!batchDepartamentoIA}>
+                                    Aplicar
+                                  </Button>
+                                </div>
+                                <div className="h-6 w-px bg-border" />
+                                {/* Alterar Plano de Contas */}
+                                <div className="flex items-center gap-2">
+                                  <Select value={batchPlanoContasIA} onValueChange={setBatchPlanoContasIA}>
+                                    <SelectTrigger className="w-[180px] h-9">
+                                      <BookOpen className="h-4 w-4 mr-2" />
+                                      <SelectValue placeholder="Plano de Contas..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {planosContas?.map(plano => (
+                                        <SelectItem key={plano.id} value={plano.id}>
+                                          {plano.code} - {plano.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Button size="sm" variant="secondary" onClick={handleBatchUpdatePlanoContasIA} disabled={!batchPlanoContasIA}>
+                                    Aplicar
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
                       {/* Tabela */}
-                      {contasFiltradas && contasFiltradas.length > 0 ? (
-                        <div className="overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="w-[180px]">Fornecedor</TableHead>
-                                <TableHead className="w-[100px]">Documento</TableHead>
-                                <TableHead className="w-[90px]">Vencimento</TableHead>
-                                <TableHead className="w-[100px] text-right">Valor</TableHead>
-                                <TableHead className="w-[80px] text-center">Origem</TableHead>
-                                <TableHead className="w-[180px]">Departamento</TableHead>
-                                <TableHead className="w-[240px]">Plano de Contas</TableHead>
-                                <TableHead className="w-[80px] text-center">Status</TableHead>
-                                <TableHead className="w-[60px] text-center">Ações</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {contasFiltradas.map((conta) => (
-                                <TableRow key={conta.id}>
-                                  <TableCell className="font-medium truncate max-w-[180px]" title={conta.fornecedor_nome || 'N/A'}>
-                                    {conta.fornecedor_nome || 'N/A'}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge variant="outline" className="text-xs">
-                                      {conta.numero_documento}/{conta.parcela}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-xs">
-                                    {conta.data_vencimento 
-                                      ? format(new Date(conta.data_vencimento), 'dd/MM/yy', { locale: ptBR })
-                                      : 'N/A'}
-                                  </TableCell>
-                                  <TableCell className="text-right font-medium text-xs">
-                                    {new Intl.NumberFormat('pt-BR', {
-                                      style: 'currency',
-                                      currency: 'BRL'
-                                    }).format(conta.valor_original || 0)}
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    {conta.classificacao_manual ? (
-                                      <Badge variant="default" className="gap-1 text-xs">
-                                        <User className="h-3 w-3" />
-                                        Manual
+                      {paginatedData.length > 0 ? (
+                        <>
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="w-[50px]">
+                                    <Checkbox
+                                      checked={isAllSelectedIA}
+                                      onCheckedChange={(checked) => handleSelectAllIA(!!checked, paginatedData)}
+                                      aria-label="Selecionar todos"
+                                      className={isSomeSelectedIA ? "data-[state=checked]:bg-primary/50" : ""}
+                                    />
+                                  </TableHead>
+                                  <TableHead className="w-[180px] cursor-pointer hover:bg-muted/50" onClick={() => handleSortIA('fornecedor_nome')}>
+                                    <div className="flex items-center">Fornecedor<SortIconIA column="fornecedor_nome" /></div>
+                                  </TableHead>
+                                  <TableHead className="w-[100px] cursor-pointer hover:bg-muted/50" onClick={() => handleSortIA('numero_documento')}>
+                                    <div className="flex items-center">Documento<SortIconIA column="numero_documento" /></div>
+                                  </TableHead>
+                                  <TableHead className="w-[90px] cursor-pointer hover:bg-muted/50" onClick={() => handleSortIA('data_vencimento')}>
+                                    <div className="flex items-center">Vencimento<SortIconIA column="data_vencimento" /></div>
+                                  </TableHead>
+                                  <TableHead className="w-[100px] text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSortIA('valor_original')}>
+                                    <div className="flex items-center justify-end">Valor<SortIconIA column="valor_original" /></div>
+                                  </TableHead>
+                                  <TableHead className="w-[80px] text-center">Origem</TableHead>
+                                  <TableHead className="w-[180px] cursor-pointer hover:bg-muted/50" onClick={() => handleSortIA('departamento_nome')}>
+                                    <div className="flex items-center">Departamento<SortIconIA column="departamento_nome" /></div>
+                                  </TableHead>
+                                  <TableHead className="w-[240px] cursor-pointer hover:bg-muted/50" onClick={() => handleSortIA('plano_contas_nome')}>
+                                    <div className="flex items-center">Plano de Contas<SortIconIA column="plano_contas_nome" /></div>
+                                  </TableHead>
+                                  <TableHead className="w-[80px] text-center">Status</TableHead>
+                                  <TableHead className="w-[60px] text-center">Ações</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {paginatedData.map((conta) => (
+                                  <TableRow key={conta.id} className={selectedIdsIA.has(conta.id) ? "bg-primary/5" : ""}>
+                                    <TableCell>
+                                      <Checkbox
+                                        checked={selectedIdsIA.has(conta.id)}
+                                        onCheckedChange={(checked) => handleSelectOneIA(conta.id, !!checked)}
+                                        aria-label={`Selecionar ${conta.fornecedor_nome}`}
+                                      />
+                                    </TableCell>
+                                    <TableCell className="font-medium truncate max-w-[180px]" title={conta.fornecedor_nome || 'N/A'}>
+                                      {conta.fornecedor_nome || 'N/A'}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant="outline" className="text-xs">
+                                        {conta.numero_documento}/{conta.parcela}
                                       </Badge>
-                                    ) : conta.classificado_automaticamente ? (
-                                      <Badge variant="secondary" className="gap-1 text-xs">
-                                        <Bot className="h-3 w-3" />
-                                        {conta.confianca_classificacao 
-                                          ? `${(conta.confianca_classificacao * 100).toFixed(0)}%` 
-                                          : 'IA'}
-                                      </Badge>
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground">-</span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-1">
-                                      {conta.classificacao_manual && (
-                                        <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                    </TableCell>
+                                    <TableCell className="text-xs">
+                                      {conta.data_vencimento 
+                                        ? format(new Date(conta.data_vencimento), 'dd/MM/yy', { locale: ptBR })
+                                        : 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="text-right font-medium text-xs">
+                                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_original || 0)}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      {conta.classificacao_manual ? (
+                                        <Badge variant="default" className="gap-1 text-xs">
+                                          <User className="h-3 w-3" />Manual
+                                        </Badge>
+                                      ) : conta.classificado_automaticamente ? (
+                                        <Badge variant="secondary" className="gap-1 text-xs">
+                                          <Bot className="h-3 w-3" />
+                                          {conta.confianca_classificacao ? `${(conta.confianca_classificacao * 100).toFixed(0)}%` : 'IA'}
+                                        </Badge>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">-</span>
                                       )}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-1">
+                                        {conta.classificacao_manual && <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />}
+                                        <Select
+                                          value={conta.departamento_id || ""}
+                                          onValueChange={(value) => handleUpdateClassificacao(conta.id, value || null, conta.plano_contas_id)}
+                                        >
+                                          <SelectTrigger className="w-full h-8 text-xs">
+                                            <SelectValue placeholder="Selecione...">{conta.departamento_nome || "Selecione..."}</SelectValue>
+                                          </SelectTrigger>
+                                          <SelectContent className="bg-background z-[100]">
+                                            {departamentos?.map((dept) => (
+                                              <SelectItem key={dept.id} value={dept.id}>{dept.nome}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
                                       <Select
-                                        value={conta.departamento_id || ""}
-                                        onValueChange={(value) => 
-                                          handleUpdateClassificacao(conta.id, value || null, conta.plano_contas_id)
-                                        }
+                                        value={conta.plano_contas_id || ""}
+                                        onValueChange={(value) => handleUpdateClassificacao(conta.id, conta.departamento_id, value || null)}
                                       >
                                         <SelectTrigger className="w-full h-8 text-xs">
                                           <SelectValue placeholder="Selecione...">
-                                            {conta.departamento_nome || "Selecione..."}
+                                            {conta.plano_contas_codigo && conta.plano_contas_nome 
+                                              ? `${conta.plano_contas_codigo} - ${conta.plano_contas_nome}` : "Selecione..."}
                                           </SelectValue>
                                         </SelectTrigger>
                                         <SelectContent className="bg-background z-[100]">
-                                          {departamentos?.map((dept) => (
-                                            <SelectItem key={dept.id} value={dept.id}>
-                                              {dept.nome}
+                                          {planosContas?.map((plano) => (
+                                            <SelectItem key={plano.id} value={plano.id}>
+                                              <div className="flex flex-col">
+                                                <span className="font-medium">{plano.code}</span>
+                                                <span className="text-xs text-muted-foreground">{plano.name}</span>
+                                              </div>
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
                                       </Select>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Select
-                                      value={conta.plano_contas_id || ""}
-                                      onValueChange={(value) => 
-                                        handleUpdateClassificacao(conta.id, conta.departamento_id, value || null)
-                                      }
-                                    >
-                                      <SelectTrigger className="w-full h-8 text-xs">
-                                        <SelectValue placeholder="Selecione...">
-                                          {conta.plano_contas_codigo && conta.plano_contas_nome 
-                                            ? `${conta.plano_contas_codigo} - ${conta.plano_contas_nome}`
-                                            : "Selecione..."}
-                                        </SelectValue>
-                                      </SelectTrigger>
-                                      <SelectContent className="bg-background z-[100]">
-                                        {planosContas?.map((plano) => (
-                                          <SelectItem key={plano.id} value={plano.id}>
-                                            <div className="flex flex-col">
-                                              <span className="font-medium">{plano.code}</span>
-                                              <span className="text-xs text-muted-foreground">{plano.name}</span>
-                                            </div>
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    {conta.departamento_id && conta.plano_contas_id ? (
-                                      <Badge variant="default" className="gap-1 text-xs">
-                                        <CheckCircle className="h-3 w-3" />
-                                        OK
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="secondary" className="gap-1 text-xs">
-                                        <Clock className="h-3 w-3" />
-                                        Pend
-                                      </Badge>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 w-7 p-0"
-                                      onClick={() => {
-                                        setSelectedContaClassificacao(conta);
-                                        setEditarClassificacaoOpen(true);
-                                      }}
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      {conta.departamento_id && conta.plano_contas_id ? (
+                                        <Badge variant="default" className="gap-1 text-xs"><CheckCircle className="h-3 w-3" />OK</Badge>
+                                      ) : (
+                                        <Badge variant="secondary" className="gap-1 text-xs"><Clock className="h-3 w-3" />Pend</Badge>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() => {
+                                          setSelectedContaClassificacao(conta);
+                                          setEditarClassificacaoOpen(true);
+                                        }}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+
+                          {/* Paginação IA */}
+                          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <span>Mostrando</span>
+                              <Select 
+                                value={pageSizeIA.toString()} 
+                                onValueChange={(value) => {
+                                  setPageSizeIA(Number(value));
+                                  setCurrentPageIA(1);
+                                }}
+                              >
+                                <SelectTrigger className="w-[70px] h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="10">10</SelectItem>
+                                  <SelectItem value="25">25</SelectItem>
+                                  <SelectItem value="50">50</SelectItem>
+                                  <SelectItem value="100">100</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <span>de {totalItemsIA} registros</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button variant="outline" size="sm" onClick={() => setCurrentPageIA(1)} disabled={currentPageIA === 1}>
+                                <ChevronsLeft className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => setCurrentPageIA(prev => Math.max(1, prev - 1))} disabled={currentPageIA === 1}>
+                                <ChevronLeft className="h-4 w-4" />
+                              </Button>
+                              <span className="text-sm px-2">Página {currentPageIA} de {totalPagesIA || 1}</span>
+                              <Button variant="outline" size="sm" onClick={() => setCurrentPageIA(prev => Math.min(totalPagesIA, prev + 1))} disabled={currentPageIA >= totalPagesIA}>
+                                <ChevronRight className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => setCurrentPageIA(totalPagesIA)} disabled={currentPageIA >= totalPagesIA}>
+                                <ChevronsRight className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </>
                       ) : (
                         <div className="text-center py-8 text-muted-foreground">
                           Nenhuma conta encontrada para o período selecionado
