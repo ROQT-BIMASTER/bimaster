@@ -335,6 +335,25 @@ export default function DREAnalitico() {
     }
   });
 
+  // Buscar contas em revisão para indicar no DRE
+  const { data: contasEmRevisao } = useQuery({
+    queryKey: ['contas-em-revisao-dre'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contas_pagar_revisao')
+        .select('conta_id, plano_contas_id, departamento_id, status, fornecedor_nome, numero_documento')
+        .in('status', ['pendente', 'em_analise']);
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Criar sets para busca rápida de contas em revisão
+  const contasIdEmRevisao = useMemo(() => new Set(contasEmRevisao?.filter(c => c.conta_id).map(c => c.conta_id) || []), [contasEmRevisao]);
+  const planosContasEmRevisao = useMemo(() => new Set(contasEmRevisao?.filter(c => c.plano_contas_id).map(c => c.plano_contas_id) || []), [contasEmRevisao]);
+  const departamentosEmRevisao = useMemo(() => new Set(contasEmRevisao?.filter(c => c.departamento_id).map(c => c.departamento_id) || []), [contasEmRevisao]);
+
   // Calcular MoM (Month over Month) %
   const calcularMoM = (valoresMensais: { [mes: string]: number }): number | null => {
     const keys = Object.keys(valoresMensais).sort();
@@ -804,6 +823,26 @@ export default function DREAnalitico() {
 
             {node.tipo === 'lancamento' && node.metadata?.classificacao_manual && (
               <Badge variant="outline" className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'}`}>Manual</Badge>
+            )}
+
+            {/* Indicador de conta em revisão */}
+            {node.tipo === 'lancamento' && contasIdEmRevisao.has(node.metadata?.id) && (
+              <Badge className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'} bg-amber-500 text-white hover:bg-amber-600`}>
+                <Target className="h-2 w-2 mr-0.5" />
+                Revisão
+              </Badge>
+            )}
+            {node.tipo === 'conta' && planosContasEmRevisao.has(node.metadata?.id) && (
+              <Badge className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'} bg-amber-500 text-white hover:bg-amber-600`}>
+                <Target className="h-2 w-2 mr-0.5" />
+                Em Revisão
+              </Badge>
+            )}
+            {node.tipo === 'departamento' && departamentosEmRevisao.has(node.id) && (
+              <Badge className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'} bg-amber-500 text-white hover:bg-amber-600`}>
+                <Target className="h-2 w-2 mr-0.5" />
+                Em Revisão
+              </Badge>
             )}
 
             {/* Botão para marcar revisão - grupos, contas e departamentos */}
