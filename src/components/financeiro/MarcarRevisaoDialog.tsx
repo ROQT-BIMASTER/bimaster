@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Ban, TrendingDown, RefreshCw, Eye, Flag } from "lucide-react";
+import { Ban, TrendingDown, RefreshCw, Eye, Flag, Building2, FileText, Calendar } from "lucide-react";
+import { format, parseISO } from "date-fns";
 
 interface MarcarRevisaoDialogProps {
   open: boolean;
@@ -19,6 +20,13 @@ interface MarcarRevisaoDialogProps {
   categoriaNome?: string;
   valorAtual: number;
   nomeItem: string;
+  // Novos campos para detalhamento
+  fornecedorNome?: string;
+  fornecedorCodigo?: string;
+  numeroDocumento?: string;
+  dataVencimento?: string;
+  empresaNome?: string;
+  tipoDocumento?: string;
   onSuccess?: () => void;
 }
 
@@ -44,6 +52,12 @@ export function MarcarRevisaoDialog({
   categoriaNome,
   valorAtual,
   nomeItem,
+  fornecedorNome,
+  fornecedorCodigo,
+  numeroDocumento,
+  dataVencimento,
+  empresaNome,
+  tipoDocumento,
   onSuccess
 }: MarcarRevisaoDialogProps) {
   const [tipoRevisao, setTipoRevisao] = useState<string>('reduzir');
@@ -108,7 +122,14 @@ export function MarcarRevisaoDialog({
           prazo_revisao: prazoRevisao || null,
           observacoes: observacoes || null,
           criado_por: user?.id || null,
-          status: 'pendente'
+          status: 'pendente',
+          // Novos campos de detalhamento
+          fornecedor_nome: fornecedorNome || null,
+          fornecedor_codigo: fornecedorCodigo || null,
+          numero_documento: numeroDocumento || null,
+          data_vencimento: dataVencimento || null,
+          empresa_nome: empresaNome || null,
+          tipo_documento: tipoDocumento || null,
         });
 
       if (error) throw error;
@@ -136,7 +157,7 @@ export function MarcarRevisaoDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Flag className="h-5 w-5 text-amber-500" />
@@ -146,12 +167,48 @@ export function MarcarRevisaoDialog({
 
         <div className="space-y-4 py-4">
           {/* Item sendo marcado */}
-          <div className="p-3 bg-muted/50 rounded-lg">
+          <div className="p-3 bg-muted/50 rounded-lg space-y-2">
             <p className="text-sm text-muted-foreground">Item selecionado:</p>
             <p className="font-medium">{nomeItem}</p>
             <p className="text-lg font-bold text-primary">
               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorAtual)}
             </p>
+            
+            {/* Detalhes do lançamento */}
+            {(fornecedorNome || numeroDocumento || dataVencimento || empresaNome) && (
+              <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+                {fornecedorNome && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">Fornecedor:</span>
+                    <span className="font-medium">{fornecedorNome}</span>
+                    {fornecedorCodigo && <span className="text-xs text-muted-foreground">({fornecedorCodigo})</span>}
+                  </div>
+                )}
+                {numeroDocumento && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">Documento:</span>
+                    <span className="font-medium">{numeroDocumento}</span>
+                    {tipoDocumento && <span className="text-xs text-muted-foreground">({tipoDocumento})</span>}
+                  </div>
+                )}
+                {dataVencimento && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">Vencimento:</span>
+                    <span className="font-medium">{format(parseISO(dataVencimento), 'dd/MM/yyyy')}</span>
+                  </div>
+                )}
+                {empresaNome && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">Empresa:</span>
+                    <span className="font-medium">{empresaNome}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Tipo de Revisão */}
