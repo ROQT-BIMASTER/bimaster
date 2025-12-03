@@ -73,8 +73,14 @@ export function AppSidebar() {
 
   const loading = permissionsLoading || modulesLoading;
 
-  // Buscar tabelas pendentes
+  // Buscar tabelas pendentes - APENAS se tiver permissão do módulo de preços
   useEffect(() => {
+    // Não carregar dados se não tiver permissão ou ainda estiver carregando
+    if (loading || !hasModulePermission("precos")) {
+      setTabelasPendentes(0);
+      return;
+    }
+
     const fetchPendentes = async () => {
       const { count } = await supabase
         .from("fabrica_tabelas_preco")
@@ -86,7 +92,7 @@ export function AppSidebar() {
 
     fetchPendentes();
 
-    // Realtime
+    // Realtime - apenas se tiver permissão
     const channel = supabase
       .channel('sidebar-tabelas-changes')
       .on(
@@ -103,7 +109,7 @@ export function AppSidebar() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [loading, hasModulePermission]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

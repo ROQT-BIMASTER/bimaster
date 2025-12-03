@@ -10,6 +10,7 @@ import { memoryManager } from "@/lib/utils/memory-manager";
 import { memoryMonitor } from "@/lib/utils/memory-monitor";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ClienteProtectedRoute } from "@/components/auth/ClienteProtectedRoute";
+import { PermissionsProvider } from "@/contexts/PermissionsContext";
 
 // Lazy load das páginas para otimizar bundle
 const Index = lazy(() => import("./pages/Index"));
@@ -144,14 +145,15 @@ const App = () => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider delayDuration={0}>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                {/* Error route */}
-                <Route path="*" element={<ErrorPage />} />
+        <PermissionsProvider>
+          <TooltipProvider delayDuration={0}>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Error route */}
+                  <Route path="*" element={<ErrorPage />} />
         <Route path="/" element={<Index />} />
         <Route path="/auth/login" element={<Auth />} />
         <Route path="/auth/signup" element={<Auth />} />
@@ -261,10 +263,11 @@ const App = () => {
         <Route path="/portal/perfil" element={<ClienteProtectedRoute><PortalPerfil /></ClienteProtectedRoute>} />
         
         <Route path="/404" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-        </TooltipProvider>
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+          </TooltipProvider>
+        </PermissionsProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
