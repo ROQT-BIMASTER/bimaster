@@ -18,7 +18,8 @@ import {
   Calculator,
   BarChart3,
   CheckCircle,
-  Clock
+  Clock,
+  Rocket
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -394,6 +395,29 @@ const FabricaModule = () => {
                   </p>
                   <div className="mt-2 flex items-center text-xs text-primary">
                     Ver relatórios <ArrowRight className="h-3 w-3 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
+
+        {/* Comercial e Lançamentos */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Comercial e Lançamentos</h2>
+          <div className="grid gap-4 md:grid-cols-4">
+            <Link to="/dashboard/fabrica/lancamentos">
+              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Calendário de Lançamentos</CardTitle>
+                  <Rocket className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    Planejamento de lançamentos de produtos
+                  </p>
+                  <div className="mt-2 flex items-center text-xs text-primary">
+                    Planejar <ArrowRight className="h-3 w-3 ml-1" />
                   </div>
                 </CardContent>
               </Card>
