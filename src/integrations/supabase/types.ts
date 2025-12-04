@@ -6428,6 +6428,50 @@ export type Database = {
           },
         ]
       }
+      marketing_task_checklist: {
+        Row: {
+          concluido: boolean | null
+          concluido_em: string | null
+          concluido_por: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          ordem: number | null
+          tarefa_id: string
+          titulo: string
+        }
+        Insert: {
+          concluido?: boolean | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          ordem?: number | null
+          tarefa_id: string
+          titulo: string
+        }
+        Update: {
+          concluido?: boolean | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          ordem?: number | null
+          tarefa_id?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_task_checklist_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_tarefas_marketing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_task_comments: {
         Row: {
           anexo_url: string | null
@@ -6465,6 +6509,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "marketing_task_comments_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_tarefas_marketing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_task_files: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          nome: string
+          status: string | null
+          tamanho_bytes: number | null
+          tarefa_id: string
+          tipo: string | null
+          url: string
+          versao: number | null
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          nome: string
+          status?: string | null
+          tamanho_bytes?: number | null
+          tarefa_id: string
+          tipo?: string | null
+          url: string
+          versao?: number | null
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          nome?: string
+          status?: string | null
+          tamanho_bytes?: number | null
+          tarefa_id?: string
+          tipo?: string | null
+          url?: string
+          versao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_task_files_tarefa_id_fkey"
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "lancamentos_tarefas_marketing"
@@ -6539,6 +6636,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      marketing_work_sessions: {
+        Row: {
+          created_at: string | null
+          duracao_minutos: number | null
+          fim: string | null
+          id: string
+          inicio: string
+          observacoes: string | null
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duracao_minutos?: number | null
+          fim?: string | null
+          id?: string
+          inicio?: string
+          observacoes?: string | null
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duracao_minutos?: number | null
+          fim?: string | null
+          id?: string
+          inicio?: string
+          observacoes?: string | null
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_work_sessions_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_tarefas_marketing"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       measurement_guide_photos: {
         Row: {
