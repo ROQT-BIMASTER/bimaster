@@ -12,7 +12,8 @@ import {
   CheckCircle,
   ArrowRight,
   Store,
-  BarChart3
+  BarChart3,
+  LineChart
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -303,7 +304,24 @@ export default function Financeiro() {
         {/* Navegação Rápida - Análises */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Análises e Relatórios</h2>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
+            <Link to="/dashboard/financeiro/fluxo-caixa">
+              <Card className="hover:border-primary cursor-pointer transition-colors border-primary/30 bg-primary/5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Fluxo de Caixa</CardTitle>
+                  <LineChart className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    Projeção de entradas e saídas, DSO, DPO
+                  </p>
+                  <div className="mt-2 flex items-center text-xs text-primary">
+                    Visualizar <ArrowRight className="h-3 w-3 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
             <Link to="/dashboard/financeiro/dre-analitico">
               <Card className="hover:border-primary cursor-pointer transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
