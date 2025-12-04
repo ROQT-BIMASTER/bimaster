@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link, Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { 
   Store, 
   Calendar, 
@@ -19,15 +21,18 @@ import {
   Image,
   Ruler,
   Building,
-  Shield
+  Shield,
+  Plus
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { startOfMonth } from "date-fns";
+import { QuickEntryDialog } from "@/components/trade/QuickEntryDialog";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
+  const [quickEntryOpen, setQuickEntryOpen] = useState(false);
 
   const { data: stats } = useQuery({
     queryKey: ['trade-module-stats'],
@@ -59,12 +64,24 @@ const TradeModule = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Trade Marketing</h1>
-          <p className="text-muted-foreground mt-1">
-            Gestão completa de PDVs, visitas, execução e inteligência competitiva
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Trade Marketing</h1>
+            <p className="text-muted-foreground mt-1">
+              Gestão completa de PDVs, visitas, execução e inteligência competitiva
+            </p>
+          </div>
+          <Button onClick={() => setQuickEntryOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Lançamento Rápido
+          </Button>
         </div>
+
+        {/* Quick Entry Dialog */}
+        <QuickEntryDialog 
+          open={quickEntryOpen} 
+          onOpenChange={setQuickEntryOpen}
+        />
 
         {/* KPIs */}
         <div className="grid gap-4 md:grid-cols-4">
@@ -115,7 +132,7 @@ const TradeModule = () => {
         <div>
           <h2 className="text-xl font-semibold mb-4">Gestão de PDVs e Visitas</h2>
           <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/trade/lojas">
+            <Link to="/dashboard/trade/stores">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Lojas</CardTitle>
@@ -132,7 +149,7 @@ const TradeModule = () => {
               </Card>
             </Link>
 
-            <Link to="/dashboard/trade/redes">
+            <Link to="/dashboard/trade/store-chains">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Redes</CardTitle>
@@ -149,7 +166,7 @@ const TradeModule = () => {
               </Card>
             </Link>
 
-            <Link to="/dashboard/trade/visitas">
+            <Link to="/dashboard/trade/visits">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Visitas</CardTitle>
@@ -166,7 +183,7 @@ const TradeModule = () => {
               </Card>
             </Link>
 
-            <Link to="/dashboard/trade/calendario">
+            <Link to="/dashboard/trade/calendar">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Calendário</CardTitle>
@@ -189,7 +206,7 @@ const TradeModule = () => {
         <div>
           <h2 className="text-xl font-semibold mb-4">Execução e Auditoria</h2>
           <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/trade/fotos">
+            <Link to="/dashboard/trade/photos">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Fotos</CardTitle>
@@ -223,7 +240,7 @@ const TradeModule = () => {
               </Card>
             </Link>
 
-            <Link to="/dashboard/trade/medicoes">
+            <Link to="/dashboard/trade/shelf-measurements">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Medições</CardTitle>
@@ -240,7 +257,7 @@ const TradeModule = () => {
               </Card>
             </Link>
 
-            <Link to="/dashboard/trade/fotos-ideais">
+            <Link to="/dashboard/trade/ideal-photos">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Fotos Ideais</CardTitle>
@@ -263,7 +280,7 @@ const TradeModule = () => {
         <div>
           <h2 className="text-xl font-semibold mb-4">Inteligência e Análise</h2>
           <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/trade/concorrentes">
+            <Link to="/dashboard/trade/competitors">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Concorrentes</CardTitle>
@@ -280,7 +297,7 @@ const TradeModule = () => {
               </Card>
             </Link>
 
-            <Link to="/dashboard/trade/nossas-marcas">
+            <Link to="/dashboard/trade/our-brands">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Nossas Marcas</CardTitle>
@@ -297,7 +314,7 @@ const TradeModule = () => {
               </Card>
             </Link>
 
-            <Link to="/dashboard/trade/comparacao">
+            <Link to="/dashboard/trade/comparacao-produtos">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Comparação</CardTitle>
@@ -354,7 +371,7 @@ const TradeModule = () => {
               </Card>
             </Link>
 
-            <Link to="/dashboard/trade/promocoes">
+            <Link to="/dashboard/trade/promotions">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Promoções</CardTitle>
@@ -388,7 +405,7 @@ const TradeModule = () => {
               </Card>
             </Link>
 
-            <Link to="/dashboard/trade/equipe">
+            <Link to="/dashboard/trade/team-performance">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Equipe</CardTitle>
@@ -411,7 +428,7 @@ const TradeModule = () => {
         <div>
           <h2 className="text-xl font-semibold mb-4">Gamificação e Recompensas</h2>
           <div className="grid gap-4 md:grid-cols-2">
-            <Link to="/dashboard/trade/ranking">
+            <Link to="/dashboard/ranking">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Ranking</CardTitle>
@@ -428,7 +445,7 @@ const TradeModule = () => {
               </Card>
             </Link>
 
-            <Link to="/dashboard/trade/recompensas">
+            <Link to="/dashboard/trade/rewards">
               <Card className="hover:border-primary cursor-pointer transition-colors h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Recompensas</CardTitle>
