@@ -7,11 +7,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Plus, Rocket, Clock, CheckCircle, AlertTriangle, List, CalendarDays, Kanban } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { 
+  Calendar, Plus, Rocket, Clock, CheckCircle, AlertTriangle, List, CalendarDays, Kanban,
+  TrendingUp, ChevronLeft, ChevronRight
+} from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import NovoLancamentoDialog from "@/components/fabrica/NovoLancamentoDialog";
 import LancamentoDetailDialog from "@/components/fabrica/LancamentoDetailDialog";
+import LaunchCard from "@/components/fabrica/LaunchCard";
+import CountdownBadge from "@/components/fabrica/CountdownBadge";
+import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
+import { cn } from "@/lib/utils";
 
 type Lancamento = {
   id: string;
@@ -26,28 +34,46 @@ type Lancamento = {
   tabela_preco_id: string | null;
   responsavel_id: string | null;
   observacoes: string | null;
-  fabrica_produtos?: { nome: string; codigo: string } | null;
+  fabrica_produtos?: { nome: string; codigo: string; foto_url?: string | null } | null;
   profiles?: { nome: string } | null;
 };
 
-const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  planejado: { label: "Planejado", color: "text-blue-600", bgColor: "bg-blue-100" },
-  em_preparacao: { label: "Em Preparação", color: "text-yellow-600", bgColor: "bg-yellow-100" },
-  aprovado: { label: "Aprovado", color: "text-green-600", bgColor: "bg-green-100" },
-  lancado: { label: "Lançado", color: "text-purple-600", bgColor: "bg-purple-100" },
-  cancelado: { label: "Cancelado", color: "text-red-600", bgColor: "bg-red-100" },
-};
-
-const tipoConfig: Record<string, string> = {
-  novo_produto: "Novo Produto",
-  reformulacao: "Reformulação",
-  nova_versao: "Nova Versão",
-  promocional: "Promocional",
+const statusConfig: Record<string, { label: string; color: string; bgColor: string; gradient: string }> = {
+  planejado: { 
+    label: "Planejado", 
+    color: "text-blue-700 dark:text-blue-300", 
+    bgColor: "bg-blue-100 dark:bg-blue-900/30",
+    gradient: "from-blue-500 to-blue-600"
+  },
+  em_preparacao: { 
+    label: "Em Preparação", 
+    color: "text-amber-700 dark:text-amber-300", 
+    bgColor: "bg-amber-100 dark:bg-amber-900/30",
+    gradient: "from-amber-500 to-yellow-500"
+  },
+  aprovado: { 
+    label: "Aprovado", 
+    color: "text-green-700 dark:text-green-300", 
+    bgColor: "bg-green-100 dark:bg-green-900/30",
+    gradient: "from-green-500 to-emerald-500"
+  },
+  lancado: { 
+    label: "Lançado", 
+    color: "text-purple-700 dark:text-purple-300", 
+    bgColor: "bg-purple-100 dark:bg-purple-900/30",
+    gradient: "from-purple-500 to-violet-500"
+  },
+  cancelado: { 
+    label: "Cancelado", 
+    color: "text-red-700 dark:text-red-300", 
+    bgColor: "bg-red-100 dark:bg-red-900/30",
+    gradient: "from-red-500 to-red-600"
+  },
 };
 
 const prioridadeConfig: Record<string, { label: string; color: string }> = {
   alta: { label: "Alta", color: "bg-red-500" },
-  media: { label: "Média", color: "bg-yellow-500" },
+  media: { label: "Média", color: "bg-amber-500" },
   baixa: { label: "Baixa", color: "bg-green-500" },
 };
 
@@ -66,7 +92,7 @@ export default function FabricaLancamentos() {
         .from("lancamentos_produtos")
         .select(`
           *,
-          fabrica_produtos(nome, codigo),
+          fabrica_produtos(nome, codigo, foto_url),
           profiles!lancamentos_produtos_responsavel_id_fkey(nome)
         `)
         .order("data_prevista", { ascending: true });
@@ -135,92 +161,112 @@ export default function FabricaLancamentos() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Rocket className="h-6 w-6 text-primary" />
+              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5">
+                <Rocket className="h-6 w-6 text-primary" />
+              </div>
               Calendário de Lançamentos
             </h1>
-            <p className="text-muted-foreground">
-              Gerencie os lançamentos de produtos e coordene com distribuidores e marketing
+            <p className="text-muted-foreground mt-1">
+              Gerencie lançamentos de produtos e coordene com distribuidores e marketing
             </p>
           </div>
-          <Button onClick={() => { setSelectedLancamento(null); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button onClick={() => { setSelectedLancamento(null); setDialogOpen(true); }} className="gap-2">
+            <Plus className="h-4 w-4" />
             Novo Lançamento
           </Button>
         </div>
 
-        {/* KPIs */}
+        {/* KPIs Modernizados */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                </div>
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+            <CardContent className="pt-5">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Próximos Lançamentos</p>
-                  <p className="text-2xl font-bold">{proximosLancamentos}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Próximos Lançamentos</p>
+                  <p className="text-3xl font-bold mt-1">{proximosLancamentos}</p>
                 </div>
+                <div className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/10 rounded-xl">
+                  <Calendar className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+              <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground">
+                <TrendingUp className="h-3 w-3 text-green-500" />
+                <span>Agendados</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-yellow-100 rounded-full">
-                  <Clock className="h-5 w-5 text-yellow-600" />
-                </div>
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-1 bg-gradient-to-r from-amber-500 to-yellow-500" />
+            <CardContent className="pt-5">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Em Preparação</p>
-                  <p className="text-2xl font-bold">{emPreparacao}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Em Preparação</p>
+                  <p className="text-3xl font-bold mt-1">{emPreparacao}</p>
                 </div>
+                <div className="p-3 bg-gradient-to-br from-amber-500/20 to-yellow-500/10 rounded-xl">
+                  <Clock className="h-6 w-6 text-amber-600" />
+                </div>
+              </div>
+              <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground">
+                <span>Aguardando conclusão</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                </div>
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-1 bg-gradient-to-r from-orange-500 to-red-500" />
+            <CardContent className="pt-5">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Tarefas Marketing Pendentes</p>
-                  <p className="text-2xl font-bold">{tarefasPendentes}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Marketing Pendente</p>
+                  <p className="text-3xl font-bold mt-1">{tarefasPendentes}</p>
                 </div>
+                <div className="p-3 bg-gradient-to-br from-orange-500/20 to-red-500/10 rounded-xl">
+                  <AlertTriangle className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+              <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground">
+                <span>Tarefas a concluir</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 rounded-full">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                </div>
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-1 bg-gradient-to-r from-green-500 to-emerald-500" />
+            <CardContent className="pt-5">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Lançados Este Mês</p>
-                  <p className="text-2xl font-bold">{lancadosNoMes}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Lançados Este Mês</p>
+                  <p className="text-3xl font-bold mt-1">{lancadosNoMes}</p>
                 </div>
+                <div className="p-3 bg-gradient-to-br from-green-500/20 to-emerald-500/10 rounded-xl">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+              <div className="flex items-center gap-1 mt-3 text-xs text-green-600">
+                <CheckCircle className="h-3 w-3" />
+                <span>Concluídos</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Content */}
-        <Card>
+        <Card className="border-0 shadow-lg">
           <CardHeader className="pb-2">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList>
-                <TabsTrigger value="calendario" className="flex items-center gap-2">
+              <TabsList className="bg-muted/50">
+                <TabsTrigger value="calendario" className="flex items-center gap-2 data-[state=active]:bg-background">
                   <CalendarDays className="h-4 w-4" />
                   Calendário
                 </TabsTrigger>
-                <TabsTrigger value="lista" className="flex items-center gap-2">
+                <TabsTrigger value="lista" className="flex items-center gap-2 data-[state=active]:bg-background">
                   <List className="h-4 w-4" />
                   Lista
                 </TabsTrigger>
-                <TabsTrigger value="kanban" className="flex items-center gap-2">
+                <TabsTrigger value="kanban" className="flex items-center gap-2 data-[state=active]:bg-background">
                   <Kanban className="h-4 w-4" />
                   Kanban
                 </TabsTrigger>
@@ -233,14 +279,16 @@ export default function FabricaLancamentos() {
               <TabsContent value="calendario" className="mt-0">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                      ← Anterior
+                    <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Anterior
                     </Button>
-                    <h3 className="text-lg font-semibold">
+                    <h3 className="text-lg font-semibold capitalize">
                       {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
                     </h3>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                      Próximo →
+                    <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+                      Próximo
+                      <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
 
@@ -253,7 +301,7 @@ export default function FabricaLancamentos() {
 
                     {/* Empty cells for days before month start */}
                     {Array.from({ length: monthStart.getDay() }).map((_, i) => (
-                      <div key={`empty-start-${i}`} className="min-h-[100px] bg-muted/30 rounded-lg" />
+                      <div key={`empty-start-${i}`} className="min-h-[120px] bg-muted/20 rounded-lg" />
                     ))}
 
                     {daysInMonth.map((day) => {
@@ -261,26 +309,39 @@ export default function FabricaLancamentos() {
                       return (
                         <div
                           key={day.toISOString()}
-                          className={`min-h-[100px] border rounded-lg p-1 ${
-                            isToday(day) ? "border-primary bg-primary/5" : "border-border"
-                          }`}
+                          className={cn(
+                            "min-h-[120px] rounded-lg p-2 transition-all",
+                            isToday(day) 
+                              ? "ring-2 ring-primary bg-primary/5" 
+                              : "border border-border/50 hover:bg-muted/30"
+                          )}
                         >
-                          <div className={`text-sm font-medium mb-1 ${isToday(day) ? "text-primary" : ""}`}>
+                          <div className={cn(
+                            "text-sm font-medium mb-1.5 h-6 w-6 rounded-full flex items-center justify-center",
+                            isToday(day) ? "bg-primary text-primary-foreground" : ""
+                          )}>
                             {format(day, "d")}
                           </div>
                           <div className="space-y-1">
-                            {dayLancamentos.slice(0, 3).map((l) => (
+                            {dayLancamentos.slice(0, 2).map((l) => (
                               <div
                                 key={l.id}
                                 onClick={() => handleLancamentoClick(l)}
-                                className={`text-xs p-1 rounded cursor-pointer truncate ${statusConfig[l.status]?.bgColor} ${statusConfig[l.status]?.color}`}
+                                className={cn(
+                                  "flex items-center gap-1.5 p-1 rounded cursor-pointer transition-all hover:scale-[1.02]",
+                                  statusConfig[l.status]?.bgColor
+                                )}
                               >
-                                {l.nome_lancamento}
+                                <ProductThumbnail src={l.fabrica_produtos?.foto_url} size="sm" className="h-5 w-5" />
+                                <span className={cn("text-xs truncate flex-1", statusConfig[l.status]?.color)}>
+                                  {l.nome_lancamento}
+                                </span>
+                                <div className={cn("h-1.5 w-1.5 rounded-full flex-shrink-0", prioridadeConfig[l.prioridade]?.color)} />
                               </div>
                             ))}
-                            {dayLancamentos.length > 3 && (
-                              <div className="text-xs text-muted-foreground">
-                                +{dayLancamentos.length - 3} mais
+                            {dayLancamentos.length > 2 && (
+                              <div className="text-xs text-primary font-medium cursor-pointer hover:underline">
+                                +{dayLancamentos.length - 2} mais
                               </div>
                             )}
                           </div>
@@ -293,43 +354,38 @@ export default function FabricaLancamentos() {
 
               {/* List View */}
               <TabsContent value="lista" className="mt-0">
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {isLoading ? (
-                    <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                    </div>
                   ) : lancamentos?.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      Nenhum lançamento cadastrado
+                    <div className="text-center py-12">
+                      <Rocket className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                      <p className="text-muted-foreground">Nenhum lançamento cadastrado</p>
+                      <Button 
+                        variant="outline" 
+                        className="mt-4"
+                        onClick={() => { setSelectedLancamento(null); setDialogOpen(true); }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Criar Primeiro Lançamento
+                      </Button>
                     </div>
                   ) : (
                     lancamentos?.map((l) => (
-                      <div
+                      <LaunchCard
                         key={l.id}
+                        id={l.id}
+                        nome={l.nome_lancamento}
+                        produto={l.fabrica_produtos}
+                        responsavel={l.profiles}
+                        data_prevista={l.data_prevista}
+                        status={l.status}
+                        tipo={l.tipo}
+                        prioridade={l.prioridade}
                         onClick={() => handleLancamentoClick(l)}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-2 h-12 rounded-full ${prioridadeConfig[l.prioridade]?.color}`} />
-                          <div>
-                            <h4 className="font-medium">{l.nome_lancamento}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {l.fabrica_produtos?.nome || "Sem produto vinculado"} • {tipoConfig[l.tipo]}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <p className="text-sm font-medium">
-                              {format(new Date(l.data_prevista), "dd/MM/yyyy")}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {l.profiles?.nome || "Sem responsável"}
-                            </p>
-                          </div>
-                          <Badge className={`${statusConfig[l.status]?.bgColor} ${statusConfig[l.status]?.color}`}>
-                            {statusConfig[l.status]?.label}
-                          </Badge>
-                        </div>
-                      </div>
+                      />
                     ))
                   )}
                 </div>
@@ -338,44 +394,46 @@ export default function FabricaLancamentos() {
               {/* Kanban View */}
               <TabsContent value="kanban" className="mt-0">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  {kanbanColumns.map((status) => (
-                    <div key={status} className="space-y-3">
-                      <div className={`p-2 rounded-lg ${statusConfig[status]?.bgColor}`}>
-                        <h4 className={`font-medium text-center ${statusConfig[status]?.color}`}>
-                          {statusConfig[status]?.label}
-                        </h4>
-                      </div>
-                      <div className="space-y-2 min-h-[200px]">
-                        {lancamentos
-                          ?.filter((l) => l.status === status)
-                          .map((l) => (
-                            <Card
+                  {kanbanColumns.map((status) => {
+                    const columnLancamentos = lancamentos?.filter((l) => l.status === status) || [];
+                    return (
+                      <div key={status} className="space-y-3">
+                        <div className={cn(
+                          "p-3 rounded-xl flex items-center justify-between",
+                          statusConfig[status]?.bgColor
+                        )}>
+                          <h4 className={cn("font-semibold", statusConfig[status]?.color)}>
+                            {statusConfig[status]?.label}
+                          </h4>
+                          <Badge variant="secondary" className="text-xs">
+                            {columnLancamentos.length}
+                          </Badge>
+                        </div>
+                        <div className="space-y-3 min-h-[300px]">
+                          {columnLancamentos.map((l) => (
+                            <LaunchCard
                               key={l.id}
+                              id={l.id}
+                              nome={l.nome_lancamento}
+                              produto={l.fabrica_produtos}
+                              responsavel={l.profiles}
+                              data_prevista={l.data_prevista}
+                              status={l.status}
+                              tipo={l.tipo}
+                              prioridade={l.prioridade}
                               onClick={() => handleLancamentoClick(l)}
-                              className="cursor-pointer hover:shadow-md transition-shadow"
-                            >
-                              <CardContent className="p-3">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div>
-                                    <h5 className="font-medium text-sm">{l.nome_lancamento}</h5>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {l.fabrica_produtos?.nome || "Sem produto"}
-                                    </p>
-                                  </div>
-                                  <div className={`w-2 h-2 rounded-full ${prioridadeConfig[l.prioridade]?.color}`} />
-                                </div>
-                                <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                                  <span>{format(new Date(l.data_prevista), "dd/MM")}</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    {tipoConfig[l.tipo]}
-                                  </Badge>
-                                </div>
-                              </CardContent>
-                            </Card>
+                              variant="compact"
+                            />
                           ))}
+                          {columnLancamentos.length === 0 && (
+                            <div className="flex items-center justify-center h-24 border-2 border-dashed rounded-lg text-muted-foreground text-sm">
+                              Nenhum item
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </TabsContent>
             </Tabs>
