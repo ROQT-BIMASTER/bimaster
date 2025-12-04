@@ -5915,6 +5915,273 @@ export type Database = {
           },
         ]
       }
+      lancamentos_distribuidores: {
+        Row: {
+          created_at: string | null
+          data_comunicacao: string | null
+          distribuidora_id: string
+          id: string
+          lancamento_id: string
+          observacoes: string | null
+          status_comunicacao: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_comunicacao?: string | null
+          distribuidora_id: string
+          id?: string
+          lancamento_id: string
+          observacoes?: string | null
+          status_comunicacao?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_comunicacao?: string | null
+          distribuidora_id?: string
+          id?: string
+          lancamento_id?: string
+          observacoes?: string | null
+          status_comunicacao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_distribuidores_distribuidora_id_fkey"
+            columns: ["distribuidora_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_distribuidoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_distribuidores_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lancamentos_materiais: {
+        Row: {
+          aprovado: boolean | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          lancamento_id: string
+          nome: string
+          tipo: string
+          url: string
+          versao: number | null
+        }
+        Insert: {
+          aprovado?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          lancamento_id: string
+          nome: string
+          tipo: string
+          url: string
+          versao?: number | null
+        }
+        Update: {
+          aprovado?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          lancamento_id?: string
+          nome?: string
+          tipo?: string
+          url?: string
+          versao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_materiais_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_materiais_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "lancamentos_materiais_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lancamentos_produtos: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          data_efetiva: string | null
+          data_prevista: string
+          descricao: string | null
+          id: string
+          nome_lancamento: string
+          observacoes: string | null
+          prioridade: string
+          produto_id: string | null
+          responsavel_id: string | null
+          status: string
+          tabela_preco_id: string | null
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          data_efetiva?: string | null
+          data_prevista: string
+          descricao?: string | null
+          id?: string
+          nome_lancamento: string
+          observacoes?: string | null
+          prioridade?: string
+          produto_id?: string | null
+          responsavel_id?: string | null
+          status?: string
+          tabela_preco_id?: string | null
+          tipo?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          data_efetiva?: string | null
+          data_prevista?: string
+          descricao?: string | null
+          id?: string
+          nome_lancamento?: string
+          observacoes?: string | null
+          prioridade?: string
+          produto_id?: string | null
+          responsavel_id?: string | null
+          status?: string
+          tabela_preco_id?: string | null
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_produtos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_produtos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "lancamentos_produtos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_produtos_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_produtos_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "lancamentos_produtos_tabela_preco_id_fkey"
+            columns: ["tabela_preco_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lancamentos_tarefas_marketing: {
+        Row: {
+          arquivos_urls: string[] | null
+          created_at: string | null
+          data_conclusao: string | null
+          data_prazo: string | null
+          descricao: string | null
+          id: string
+          lancamento_id: string
+          responsavel_id: string | null
+          status: string | null
+          tipo: string
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          arquivos_urls?: string[] | null
+          created_at?: string | null
+          data_conclusao?: string | null
+          data_prazo?: string | null
+          descricao?: string | null
+          id?: string
+          lancamento_id: string
+          responsavel_id?: string | null
+          status?: string | null
+          tipo: string
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          arquivos_urls?: string[] | null
+          created_at?: string | null
+          data_conclusao?: string | null
+          data_prazo?: string | null
+          descricao?: string | null
+          id?: string
+          lancamento_id?: string
+          responsavel_id?: string | null
+          status?: string | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_tarefas_marketing_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_tarefas_marketing_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_tarefas_marketing_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       measurement_guide_photos: {
         Row: {
           created_at: string | null

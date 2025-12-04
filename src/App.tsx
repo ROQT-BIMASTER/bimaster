@@ -88,6 +88,7 @@ const ImportarProdutosAcabados = lazy(() => import("./pages/ImportarProdutosAcab
 const TabelasPrecosModule = lazy(() => import("./pages/modules/TabelasPrecosModule"));
 const FabricaTabelasPreco = lazy(() => import("./pages/FabricaTabelasPreco"));
 const FabricaAprovacaoPrecos = lazy(() => import("./pages/FabricaAprovacaoPrecos"));
+const FabricaLancamentos = lazy(() => import("./pages/FabricaLancamentos"));
 const PortalCliente = lazy(() => import("./pages/PortalCliente"));
 const APIHealthCheck = lazy(() => import("./pages/APIHealthCheck"));
 const ContasAPagar = lazy(() => import("./pages/ContasAPagar"));
