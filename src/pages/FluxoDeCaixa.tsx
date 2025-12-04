@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -17,7 +19,10 @@ import {
   ArrowUpCircle,
   Clock,
   BarChart3,
-  RefreshCw
+  RefreshCw,
+  Building2,
+  CheckCircle,
+  ChevronsUpDown
 } from "lucide-react";
 import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -45,9 +50,10 @@ interface AgingBucket {
 const FluxoDeCaixa = () => {
   const [period, setPeriod] = useState<PeriodType>("daily");
   const [activeTab, setActiveTab] = useState("visao-geral");
+  const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
 
   // Fetch contas a receber
-  const { data: contasReceber, isLoading: loadingReceber, refetch: refetchReceber } = useQuery({
+  const { data: contasReceberRaw, isLoading: loadingReceber, refetch: refetchReceber } = useQuery({
     queryKey: ["fluxo-caixa-receber"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -63,7 +69,7 @@ const FluxoDeCaixa = () => {
   });
 
   // Fetch contas a pagar
-  const { data: contasPagar, isLoading: loadingPagar, refetch: refetchPagar } = useQuery({
+  const { data: contasPagarRaw, isLoading: loadingPagar, refetch: refetchPagar } = useQuery({
     queryKey: ["fluxo-caixa-pagar"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -80,6 +86,31 @@ const FluxoDeCaixa = () => {
 
   const isLoading = loadingReceber || loadingPagar;
 
+  // Extrair empresas únicas
+  const empresas = useMemo(() => {
+    const all = [...(contasReceberRaw || []), ...(contasPagarRaw || [])];
+    const seen = new Map<number, string>();
+    all.forEach(c => {
+      if (c.empresa_id && c.empresa_nome && !seen.has(c.empresa_id)) {
+        seen.set(c.empresa_id, c.empresa_nome);
+      }
+    });
+    return Array.from(seen.entries()).map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [contasReceberRaw, contasPagarRaw]);
+
+  // Filtrar dados por empresa
+  const contasReceber = useMemo(() => {
+    if (!contasReceberRaw) return [];
+    if (filterEmpresas.length === 0) return contasReceberRaw;
+    return contasReceberRaw.filter(c => filterEmpresas.includes(c.empresa_id));
+  }, [contasReceberRaw, filterEmpresas]);
+
+  const contasPagar = useMemo(() => {
+    if (!contasPagarRaw) return [];
+    if (filterEmpresas.length === 0) return contasPagarRaw;
+    return contasPagarRaw.filter(c => filterEmpresas.includes(c.empresa_id));
+  }, [contasPagarRaw, filterEmpresas]);
+
   // Calculate cash flow projections
   const projections = useMemo(() => {
     if (!contasReceber || !contasPagar) return [];
@@ -91,8 +122,8 @@ const FluxoDeCaixa = () => {
     const getDays = () => {
       switch (period) {
         case "daily": return 30;
-        case "weekly": return 12; // 12 weeks
-        case "monthly": return 6; // 6 months
+        case "weekly": return 12;
+        case "monthly": return 6;
         default: return 30;
       }
     };
@@ -213,7 +244,7 @@ const FluxoDeCaixa = () => {
 
     const today = new Date();
     
-    // DSO - Days Sales Outstanding (prazo médio de recebimento)
+    // DSO - Days Sales Outstanding
     const receberVencidos = contasReceber.filter(c => new Date(c.data_vencimento!) < today);
     const totalVencidoReceber = receberVencidos.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
     const diasVencidosReceber = receberVencidos.reduce((sum, c) => {
@@ -221,7 +252,7 @@ const FluxoDeCaixa = () => {
     }, 0);
     const dso = totalVencidoReceber > 0 ? Math.round(diasVencidosReceber / totalVencidoReceber) : 0;
 
-    // DPO - Days Payable Outstanding (prazo médio de pagamento)
+    // DPO - Days Payable Outstanding
     const pagarVencidos = contasPagar.filter(c => new Date(c.data_vencimento!) < today);
     const totalVencidoPagar = pagarVencidos.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
     const diasVencidosPagar = pagarVencidos.reduce((sum, c) => {
@@ -290,10 +321,62 @@ const FluxoDeCaixa = () => {
             <h1 className="text-2xl font-bold text-foreground">Fluxo de Caixa</h1>
             <p className="text-muted-foreground">Projeção de entradas e saídas</p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Filtro de Empresas */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="min-w-[180px] justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    {filterEmpresas.length === 0 
+                      ? "Todas empresas" 
+                      : filterEmpresas.length === 1 
+                        ? empresas.find(e => e.id === filterEmpresas[0])?.nome || "1 empresa"
+                        : `${filterEmpresas.length} empresas`}
+                  </div>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[250px] p-0" align="end">
+                <div className="p-2 border-b">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => setFilterEmpresas([])}
+                  >
+                    <CheckCircle className={`mr-2 h-4 w-4 ${filterEmpresas.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
+                    Todas as empresas
+                  </Button>
+                </div>
+                <div className="max-h-[200px] overflow-auto p-2 space-y-1">
+                  {empresas.map(emp => (
+                    <div key={emp.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                      <Checkbox
+                        id={`fluxo-emp-${emp.id}`}
+                        checked={filterEmpresas.includes(emp.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFilterEmpresas([...filterEmpresas, emp.id]);
+                          } else {
+                            setFilterEmpresas(filterEmpresas.filter(id => id !== emp.id));
+                          }
+                        }}
+                      />
+                      <label htmlFor={`fluxo-emp-${emp.id}`} className="text-sm cursor-pointer flex-1">
+                        {emp.nome}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}
@@ -715,6 +798,7 @@ const MovimentacoesTable = ({
               <tr className="border-b text-muted-foreground">
                 <th className="text-left py-2">Vencimento</th>
                 <th className="text-left py-2">Tipo</th>
+                <th className="text-left py-2">Empresa</th>
                 <th className="text-left py-2">Nome</th>
                 <th className="text-left py-2">Documento</th>
                 <th className="text-right py-2">Valor</th>
@@ -740,6 +824,7 @@ const MovimentacoesTable = ({
                       </Badge>
                     )}
                   </td>
+                  <td className="py-2 text-muted-foreground text-xs">{mov.empresa_nome || "-"}</td>
                   <td className="py-2 max-w-[200px] truncate">{mov.nome || "-"}</td>
                   <td className="py-2 text-muted-foreground">{mov.numero_documento || "-"}</td>
                   <td className={cn(

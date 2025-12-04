@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   AlertCircle, 
   ArrowLeft, 
@@ -19,7 +21,10 @@ import {
   Handshake,
   Users,
   DollarSign,
-  Clock
+  Clock,
+  Building2,
+  CheckCircle,
+  ChevronsUpDown
 } from "lucide-react";
 import { InadimplenteDrawer } from "@/components/cobranca/InadimplenteDrawer";
 
@@ -27,6 +32,7 @@ interface ContaVencida {
   id: string;
   cliente_codigo: string;
   cliente_nome: string;
+  empresa_id: number;
   empresa_nome: string;
   numero_documento: string;
   parcela: number;
@@ -54,13 +60,13 @@ interface ClienteAgrupado {
 
 export default function CobrancaInadimplentes() {
   const [searchCliente, setSearchCliente] = useState("");
-  const [filterEmpresa, setFilterEmpresa] = useState<string>("all");
+  const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
   const [filterDiasAtraso, setFilterDiasAtraso] = useState<string>("all");
   const [selectedCliente, setSelectedCliente] = useState<ClienteAgrupado | null>(null);
 
   // Query contas vencidas
   const { data: contasVencidas, isLoading, refetch } = useQuery({
-    queryKey: ['contas-vencidas', filterEmpresa, filterDiasAtraso],
+    queryKey: ['contas-vencidas', filterEmpresas, filterDiasAtraso],
     queryFn: async () => {
       let query = supabase
         .from('contas_receber')
@@ -69,8 +75,8 @@ export default function CobrancaInadimplentes() {
         .gt('valor_aberto', 0)
         .order('dias_atraso', { ascending: false });
 
-      if (filterEmpresa !== 'all') {
-        query = query.eq('empresa_id', parseInt(filterEmpresa));
+      if (filterEmpresas.length > 0) {
+        query = query.in('empresa_id', filterEmpresas);
       }
 
       if (filterDiasAtraso !== 'all') {
@@ -105,6 +111,18 @@ export default function CobrancaInadimplentes() {
       return porCliente;
     }
   });
+
+  // Empresas únicas para filtro
+  const empresas = useMemo(() => {
+    if (!contasVencidas) return [];
+    const seen = new Map<number, string>();
+    contasVencidas.forEach(c => {
+      if (c.empresa_id && c.empresa_nome && !seen.has(c.empresa_id)) {
+        seen.set(c.empresa_id, c.empresa_nome);
+      }
+    });
+    return Array.from(seen.entries()).map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [contasVencidas]);
 
   // Agrupar contas por cliente
   const clientesAgrupados: ClienteAgrupado[] = contasVencidas
@@ -149,11 +167,6 @@ export default function CobrancaInadimplentes() {
     totalTitulos: clientesAgrupados.reduce((sum, c) => sum + c.total_titulos, 0),
     acordosAtivos: 0 // TODO: calcular acordos ativos
   };
-
-  // Empresas únicas
-  const empresas = Array.from(
-    new Set(contasVencidas?.map(c => JSON.stringify({ id: c.empresa_nome, nome: c.empresa_nome })) || [])
-  ).map(e => JSON.parse(e));
 
   const getDiasAtrasoBadge = (dias: number) => {
     if (dias >= 90) return <Badge variant="destructive">+90 dias</Badge>;
@@ -272,17 +285,54 @@ export default function CobrancaInadimplentes() {
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Empresa</label>
-                <Select value={filterEmpresa} onValueChange={setFilterEmpresa}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    {empresas.map((emp, idx) => (
-                      <SelectItem key={idx} value={emp.id}>{emp.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        {filterEmpresas.length === 0 
+                          ? "Todas" 
+                          : filterEmpresas.length === 1 
+                            ? empresas.find(e => e.id === filterEmpresas[0])?.nome || "1 empresa"
+                            : `${filterEmpresas.length} empresas`}
+                      </div>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0" align="start">
+                    <div className="p-2 border-b">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={() => setFilterEmpresas([])}
+                      >
+                        <CheckCircle className={`mr-2 h-4 w-4 ${filterEmpresas.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
+                        Todas as empresas
+                      </Button>
+                    </div>
+                    <div className="max-h-[200px] overflow-auto p-2 space-y-1">
+                      {empresas.map(emp => (
+                        <div key={emp.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                          <Checkbox
+                            id={`cobranca-emp-${emp.id}`}
+                            checked={filterEmpresas.includes(emp.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFilterEmpresas([...filterEmpresas, emp.id]);
+                              } else {
+                                setFilterEmpresas(filterEmpresas.filter(id => id !== emp.id));
+                              }
+                            }}
+                          />
+                          <label htmlFor={`cobranca-emp-${emp.id}`} className="text-sm cursor-pointer flex-1">
+                            {emp.nome}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div>
