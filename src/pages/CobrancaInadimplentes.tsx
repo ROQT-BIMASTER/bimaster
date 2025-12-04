@@ -32,7 +32,7 @@ import {
   Download,
   Filter
 } from "lucide-react";
-import { InadimplenteDrawerPro } from "@/components/cobranca/InadimplenteDrawerPro";
+import { InadimplenteDrawer } from "@/components/cobranca/InadimplenteDrawerPro";
 import { CobrancaDashboard } from "@/components/cobranca/CobrancaDashboard";
 import { FilaCobranca } from "@/components/cobranca/FilaCobranca";
 
@@ -539,7 +539,10 @@ export default function CobrancaInadimplentes() {
                   score: c.score || 0,
                   prioridade: c.prioridade || 'low'
                 }))}
-                onSelectCliente={setSelectedCliente}
+                onSelectCliente={(clienteNaFila) => {
+                  const clienteCompleto = clientesAgrupados.find(c => c.cliente_codigo === clienteNaFila.cliente_codigo);
+                  if (clienteCompleto) setSelectedCliente(clienteCompleto);
+                }}
                 metaDiaria={20}
                 contatosHoje={cobrancasMes?.filter(c => {
                   const hoje = new Date();
@@ -586,7 +589,7 @@ export default function CobrancaInadimplentes() {
       </div>
 
       {/* Drawer de detalhes */}
-      <InadimplenteDrawerPro 
+      <InadimplenteDrawer 
         cliente={selectedCliente}
         open={!!selectedCliente}
         onClose={() => setSelectedCliente(null)}
