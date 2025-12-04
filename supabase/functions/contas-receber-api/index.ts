@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
+const BATCH_SIZE = 50; // Processar 50 registros por vez para não sobrecarregar
+
 // Calcular hash MD5 dos dados para detectar alterações
 async function calculateHash(data: any): Promise<string> {
   const dataToHash = [
@@ -59,10 +61,98 @@ function transformErpData(erpRecord: any) {
     data_recebimento: parseDate(erpRecord['Pigto de dados']),
     tabela_preco: erpRecord['Tabela'] || null,
     vendedor_nome: erpRecord['Vendedor'] || null,
+    vendedor_codigo: erpRecord['Cód Vendedor'] || null,
     portador_id: erpRecord['ID Portador'] || null,
     portador: erpRecord['Nome Portador'] || 'SEM PORTADOR',
     conta: erpRecord['Conta'] || 'SEM CONTA',
   };
+}
+
+// Gerar erp_id único
+function generateErpId(conta: any): string {
+  return `${conta['ID Empresa']}-${conta['Tipo']}-${conta['Nota']}-${conta['Seq']}-${conta['Código']}`;
+}
+
+// Processar um lote de registros usando upsert em batch
+async function processBatch(
+  supabase: any, 
+  batch: any[], 
+  existingHashMap: Map<string, { id: string; hash: string }>
+): Promise<{ inserted: number; updated: number; skipped: number; errors: any[] }> {
+  let inserted = 0;
+  let updated = 0;
+  let skipped = 0;
+  const errors: any[] = [];
+  
+  const toInsert: any[] = [];
+  const toUpdate: { id: string; data: any }[] = [];
+
+  for (const conta of batch) {
+    try {
+      const erpId = generateErpId(conta);
+      const transformed = transformErpData(conta);
+      const dataHash = await calculateHash(transformed);
+      const existing = existingHashMap.get(erpId);
+
+      if (!existing) {
+        toInsert.push({
+          erp_id: erpId,
+          data_hash: dataHash,
+          ...transformed,
+          sincronizado_em: new Date().toISOString()
+        });
+      } else if (existing.hash !== dataHash) {
+        toUpdate.push({
+          id: existing.id,
+          data: {
+            data_hash: dataHash,
+            ...transformed,
+            sincronizado_em: new Date().toISOString()
+          }
+        });
+      } else {
+        skipped++;
+      }
+    } catch (error) {
+      errors.push({
+        record: conta,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  // Batch insert
+  if (toInsert.length > 0) {
+    const { error } = await supabase.from('contas_receber').insert(toInsert);
+    if (error) {
+      console.error('[contas-receber-api] Batch insert error:', error);
+      errors.push({ operation: 'batch_insert', error: error.message });
+    } else {
+      inserted = toInsert.length;
+    }
+  }
+
+  // Batch updates (Supabase não suporta batch update nativo, fazer em paralelo limitado)
+  if (toUpdate.length > 0) {
+    const updatePromises = toUpdate.map(({ id, data }) =>
+      supabase.from('contas_receber').update(data).eq('id', id)
+    );
+    
+    const results = await Promise.allSettled(updatePromises);
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled' && !result.value.error) {
+        updated++;
+      } else {
+        errors.push({
+          operation: 'update',
+          id: toUpdate[index].id,
+          error: result.status === 'rejected' ? result.reason : result.value.error?.message
+        });
+      }
+    });
+  }
+
+  return { inserted, updated, skipped, errors };
 }
 
 Deno.serve(async (req) => {
@@ -81,7 +171,7 @@ Deno.serve(async (req) => {
 
     console.log(`[contas-receber-api] ${req.method} ${path}`);
 
-    // POST /sync - Sincronizar dados do n8n
+    // POST /sync - Sincronizar dados do n8n (otimizado para grandes volumes)
     if (path.endsWith('/sync') && req.method === 'POST') {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
@@ -105,63 +195,55 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`[contas-receber-api] Processing ${contas.length} records`);
+      console.log(`[contas-receber-api] Processing ${contas.length} records in batches of ${BATCH_SIZE}`);
 
-      let inserted = 0;
-      let updated = 0;
-      let skipped = 0;
-      const errors: any[] = [];
+      // Coletar todos os erp_ids para buscar existentes de uma vez
+      const erpIds = contas.map(generateErpId);
+      
+      // Buscar registros existentes em lotes para não sobrecarregar
+      const existingHashMap = new Map<string, { id: string; hash: string }>();
+      
+      for (let i = 0; i < erpIds.length; i += 500) {
+        const batchIds = erpIds.slice(i, i + 500);
+        const { data: existingRecords } = await supabase
+          .from('contas_receber')
+          .select('id, erp_id, data_hash')
+          .in('erp_id', batchIds);
+        
+        existingRecords?.forEach((record: any) => {
+          existingHashMap.set(record.erp_id, { id: record.id, hash: record.data_hash });
+        });
+      }
 
-      for (const conta of contas) {
-        try {
-          // Gerar erp_id único
-          const erpId = `${conta['ID Empresa']}-${conta['Tipo']}-${conta['Nota']}-${conta['Seq']}-${conta['Código']}`;
-          
-          // Transformar dados
-          const transformed = transformErpData(conta);
-          const dataHash = await calculateHash(transformed);
+      console.log(`[contas-receber-api] Found ${existingHashMap.size} existing records`);
 
-          // Buscar registro existente
-          const { data: existing } = await supabase
-            .from('contas_receber')
-            .select('id, data_hash')
-            .eq('erp_id', erpId)
-            .maybeSingle();
+      let totalInserted = 0;
+      let totalUpdated = 0;
+      let totalSkipped = 0;
+      const allErrors: any[] = [];
 
-          if (!existing) {
-            // INSERT - Registro novo
-            const { error } = await supabase.from('contas_receber').insert({
-              erp_id: erpId,
-              data_hash: dataHash,
-              ...transformed,
-              sincronizado_em: new Date().toISOString()
-            });
-            
-            if (error) throw error;
-            inserted++;
-          } else if (existing.data_hash !== dataHash) {
-            // UPDATE - Registro alterado
-            const { error } = await supabase
-              .from('contas_receber')
-              .update({
-                data_hash: dataHash,
-                ...transformed,
-                sincronizado_em: new Date().toISOString()
-              })
-              .eq('id', existing.id);
-            
-            if (error) throw error;
-            updated++;
-          } else {
-            // SKIP - Dados iguais
-            skipped++;
-          }
-        } catch (error) {
-          console.error(`[contas-receber-api] Error processing record:`, error);
-          errors.push({
-            record: conta,
-            error: error instanceof Error ? error.message : String(error)
-          });
+      // Processar em lotes menores
+      for (let i = 0; i < contas.length; i += BATCH_SIZE) {
+        const batch = contas.slice(i, i + BATCH_SIZE);
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(contas.length / BATCH_SIZE);
+        
+        console.log(`[contas-receber-api] Processing batch ${batchNum}/${totalBatches}`);
+        
+        const { inserted, updated, skipped, errors } = await processBatch(
+          supabase, 
+          batch, 
+          existingHashMap
+        );
+        
+        totalInserted += inserted;
+        totalUpdated += updated;
+        totalSkipped += skipped;
+        allErrors.push(...errors);
+        
+        // Pequena pausa entre lotes para liberar memória
+        if (i + BATCH_SIZE < contas.length) {
+          await new Promise(resolve => setTimeout(resolve, 10));
         }
       }
 
@@ -174,18 +256,82 @@ Deno.serve(async (req) => {
         empresa_id: empresaId,
         ultima_sync: new Date().toISOString(),
         total_registros: contas.length,
-        registros_inseridos: inserted,
-        registros_atualizados: updated,
-        registros_ignorados: skipped,
+        registros_inseridos: totalInserted,
+        registros_atualizados: totalUpdated,
+        registros_ignorados: totalSkipped,
         duracao_ms: duration,
-        status: errors.length === 0 ? 'success' : 'partial',
-        erro_mensagem: errors.length > 0 ? JSON.stringify(errors) : null
+        status: allErrors.length === 0 ? 'success' : 'partial',
+        erro_mensagem: allErrors.length > 0 ? JSON.stringify(allErrors.slice(0, 10)) : null
       });
 
-      console.log(`[contas-receber-api] Sync completed: ${inserted} inserted, ${updated} updated, ${skipped} skipped, ${errors.length} errors in ${duration}ms`);
+      console.log(`[contas-receber-api] Sync completed: ${totalInserted} inserted, ${totalUpdated} updated, ${totalSkipped} skipped, ${allErrors.length} errors in ${duration}ms`);
 
       return new Response(JSON.stringify({
         success: true,
+        statistics: {
+          total_received: contas.length,
+          inserted: totalInserted,
+          updated: totalUpdated,
+          skipped: totalSkipped,
+          errors: allErrors.length
+        },
+        duration_ms: duration,
+        message: `Processado: ${totalInserted} novos, ${totalUpdated} atualizados, ${totalSkipped} inalterados`
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // POST /sync-chunk - Sincronização em chunks menores (recomendado para N8N)
+    if (path.endsWith('/sync-chunk') && req.method === 'POST') {
+      const apiKey = req.headers.get('x-api-key');
+      const expectedKey = Deno.env.get('N8N_API_KEY');
+      
+      if (!apiKey || apiKey !== expectedKey) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const startTime = Date.now();
+      const { contas, chunk_id, total_chunks } = await req.json();
+
+      if (!contas || !Array.isArray(contas)) {
+        return new Response(JSON.stringify({ error: 'Invalid payload' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      console.log(`[contas-receber-api] Processing chunk ${chunk_id || '?'}/${total_chunks || '?'} with ${contas.length} records`);
+
+      // Buscar existentes
+      const erpIds = contas.map(generateErpId);
+      const existingHashMap = new Map<string, { id: string; hash: string }>();
+      
+      const { data: existingRecords } = await supabase
+        .from('contas_receber')
+        .select('id, erp_id, data_hash')
+        .in('erp_id', erpIds);
+      
+      existingRecords?.forEach((record: any) => {
+        existingHashMap.set(record.erp_id, { id: record.id, hash: record.data_hash });
+      });
+
+      const { inserted, updated, skipped, errors } = await processBatch(
+        supabase, 
+        contas, 
+        existingHashMap
+      );
+
+      const duration = Date.now() - startTime;
+
+      console.log(`[contas-receber-api] Chunk completed: ${inserted} inserted, ${updated} updated, ${skipped} skipped in ${duration}ms`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        chunk_id,
         statistics: {
           total_received: contas.length,
           inserted,
@@ -193,40 +339,64 @@ Deno.serve(async (req) => {
           skipped,
           errors: errors.length
         },
-        duration_ms: duration,
-        message: `Processado: ${inserted} novos, ${updated} atualizados, ${skipped} inalterados`
+        duration_ms: duration
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // GET / - Listar contas
+    // GET / - Listar contas (com paginação)
     if (path.endsWith('/contas-receber-api') && req.method === 'GET') {
-      const { data, error } = await supabase
+      const page = parseInt(url.searchParams.get('page') || '1');
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
+      const offset = (page - 1) * limit;
+
+      const { data, error, count } = await supabase
         .from('contas_receber')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('data_vencimento', { ascending: false })
-        .limit(100);
+        .range(offset, offset + limit - 1);
 
       if (error) throw error;
 
-      return new Response(JSON.stringify({ data }), {
+      return new Response(JSON.stringify({ 
+        data,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          total_pages: Math.ceil((count || 0) / limit)
+        }
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // GET /vencidos - Listar contas vencidas (inadimplentes)
+    // GET /vencidos - Listar contas vencidas (com paginação)
     if (path.endsWith('/vencidos') && req.method === 'GET') {
-      const { data, error } = await supabase
+      const page = parseInt(url.searchParams.get('page') || '1');
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
+      const offset = (page - 1) * limit;
+
+      const { data, error, count } = await supabase
         .from('contas_receber')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('status', 'vencido')
         .gt('valor_aberto', 0)
-        .order('dias_atraso', { ascending: false });
+        .order('dias_atraso', { ascending: false })
+        .range(offset, offset + limit - 1);
 
       if (error) throw error;
 
-      return new Response(JSON.stringify({ data }), {
+      return new Response(JSON.stringify({ 
+        data,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          total_pages: Math.ceil((count || 0) / limit)
+        }
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -247,30 +417,40 @@ Deno.serve(async (req) => {
       });
     }
 
-    // GET /totais - Totais por status
+    // GET /totais - Totais por status (otimizado com RPC)
     if (path.endsWith('/totais') && req.method === 'GET') {
-      const { data, error } = await supabase
-        .from('contas_receber')
-        .select('status, valor_aberto');
+      // Usar query agregada em vez de buscar todos os registros
+      const { data, error } = await supabase.rpc('get_contas_receber_totais');
+      
+      if (error) {
+        // Fallback se RPC não existir
+        const { data: rawData, error: rawError } = await supabase
+          .from('contas_receber')
+          .select('status, valor_aberto');
 
-      if (error) throw error;
+        if (rawError) throw rawError;
 
-      const totais = {
-        pendente: { count: 0, valor: 0 },
-        vencido: { count: 0, valor: 0 },
-        parcial: { count: 0, valor: 0 },
-        recebido: { count: 0, valor: 0 }
-      };
+        const totais = {
+          pendente: { count: 0, valor: 0 },
+          vencido: { count: 0, valor: 0 },
+          parcial: { count: 0, valor: 0 },
+          recebido: { count: 0, valor: 0 }
+        };
 
-      data?.forEach(conta => {
-        const status = conta.status as keyof typeof totais;
-        if (totais[status]) {
-          totais[status].count++;
-          totais[status].valor += Number(conta.valor_aberto) || 0;
-        }
-      });
+        rawData?.forEach(conta => {
+          const status = conta.status as keyof typeof totais;
+          if (totais[status]) {
+            totais[status].count++;
+            totais[status].valor += Number(conta.valor_aberto) || 0;
+          }
+        });
 
-      return new Response(JSON.stringify({ data: totais }), {
+        return new Response(JSON.stringify({ data: totais }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({ data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
