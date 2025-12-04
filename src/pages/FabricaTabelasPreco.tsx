@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell } from "lucide-react";
+import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3 } from "lucide-react";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovaTabelaPrecoDialog } from "@/components/fabrica/NovaTabelaPrecoDialog";
 import { CadeiaPrecificacaoVisual } from "@/components/fabrica/CadeiaPrecificacaoVisual";
@@ -25,6 +25,7 @@ import { VisualizacaoPrecosDialog } from "@/components/fabrica/VisualizacaoPreco
 import { DashboardPrecosAnalytics } from "@/components/fabrica/DashboardPrecosAnalytics";
 import { ReajusteEmLoteDialog } from "@/components/fabrica/ReajusteEmLoteDialog";
 import { AlertasPrecos } from "@/components/fabrica/AlertasPrecos";
+import { MatrizPrecosComparativa } from "@/components/fabrica/MatrizPrecosComparativa";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -202,6 +203,10 @@ export default function FabricaTabelasPreco() {
               <List className="h-4 w-4" />
               Tabelas
             </TabsTrigger>
+            <TabsTrigger value="matriz" className="gap-2">
+              <Grid3X3 className="h-4 w-4" />
+              Matriz Comparativa
+            </TabsTrigger>
             <TabsTrigger value="analytics" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               Analytics
@@ -211,6 +216,10 @@ export default function FabricaTabelasPreco() {
               Alertas
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="matriz" className="mt-6">
+            <MatrizPrecosComparativa />
+          </TabsContent>
 
           <TabsContent value="analytics" className="mt-6">
             <DashboardPrecosAnalytics tabelas={tabelas || []} precos={todosPrecos || []} />
