@@ -17,20 +17,21 @@ import { toast } from "sonner";
 
 interface Task {
   id: string;
-  tipo_tarefa: string;
-  descricao: string;
+  tipo: string;
+  titulo: string;
+  descricao: string | null;
   status: string;
-  prazo: string;
+  data_prazo: string;
   responsavel_id: string | null;
   pontos_base: number;
   prioridade_ai: number;
   alerta_gargalo: boolean;
   dependencia_tarefa_id: string | null;
   lancamento: {
-    nome: string;
+    nome_lancamento: string;
     produto: { nome: string } | null;
   } | null;
-  responsavel: { nome: string; avatar_url: string | null } | null;
+  responsavel: { nome: string } | null;
 }
 
 const columns = [
@@ -51,7 +52,7 @@ const taskTypeLabels: Record<string, string> = {
 };
 
 function TaskCard({ task, onStatusChange }: { task: Task; onStatusChange: (id: string, status: string) => void }) {
-  const daysUntil = Math.ceil((new Date(task.prazo).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const daysUntil = Math.ceil((new Date(task.data_prazo).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   const isOverdue = daysUntil < 0;
   const isUrgent = daysUntil <= 2 && daysUntil >= 0;
   const currentColumnIndex = columns.findIndex(c => c.id === task.status);
@@ -67,7 +68,7 @@ function TaskCard({ task, onStatusChange }: { task: Task; onStatusChange: (id: s
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <Badge variant="outline" className="text-[10px]">
-          {taskTypeLabels[task.tipo_tarefa] || task.tipo_tarefa}
+          {taskTypeLabels[task.tipo] || task.tipo}
         </Badge>
         <div className="flex items-center gap-1">
           {task.alerta_gargalo && (
@@ -85,13 +86,16 @@ function TaskCard({ task, onStatusChange }: { task: Task; onStatusChange: (id: s
         </div>
       </div>
 
-      {/* Description */}
-      <p className="text-sm font-medium line-clamp-2 mb-2">{task.descricao}</p>
+      {/* Title and Description */}
+      <p className="text-sm font-medium line-clamp-2 mb-1">{task.titulo}</p>
+      {task.descricao && (
+        <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{task.descricao}</p>
+      )}
 
       {/* Launch info */}
       {task.lancamento && (
         <p className="text-[10px] text-muted-foreground mb-2 truncate">
-          🚀 {task.lancamento.nome}
+          🚀 {task.lancamento.nome_lancamento}
         </p>
       )}
 
@@ -100,8 +104,7 @@ function TaskCard({ task, onStatusChange }: { task: Task; onStatusChange: (id: s
         <div className="flex items-center gap-2">
           {task.responsavel ? (
             <Avatar className="h-5 w-5">
-              <AvatarImage src={task.responsavel.avatar_url || undefined} />
-              <AvatarFallback className="text-[8px]">
+              <AvatarFallback className="text-[8px] bg-primary/10">
                 {task.responsavel.nome?.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -116,7 +119,7 @@ function TaskCard({ task, onStatusChange }: { task: Task; onStatusChange: (id: s
             <Calendar className="h-3 w-3" />
             {isOverdue ? `${Math.abs(daysUntil)}d atrasado` : 
              isUrgent ? `${daysUntil}d restantes` :
-             format(new Date(task.prazo), "dd/MM", { locale: ptBR })}
+             format(new Date(task.data_prazo), "dd/MM", { locale: ptBR })}
           </span>
         </div>
 
@@ -186,23 +189,24 @@ export function SmartKanban() {
         .from('lancamentos_tarefas_marketing')
         .select(`
           id,
-          tipo_tarefa,
+          tipo,
+          titulo,
           descricao,
           status,
-          prazo,
+          data_prazo,
           responsavel_id,
           pontos_base,
           prioridade_ai,
           alerta_gargalo,
           dependencia_tarefa_id,
           lancamento:lancamentos_produtos(
-            nome,
+            nome_lancamento,
             produto:fabrica_produtos(nome)
           ),
-          responsavel:profiles!lancamentos_tarefas_marketing_responsavel_id_fkey(nome, avatar_url)
+          responsavel:profiles!lancamentos_tarefas_marketing_responsavel_id_fkey(nome)
         `)
         .order('prioridade_ai', { ascending: false })
-        .order('prazo', { ascending: true });
+        .order('data_prazo', { ascending: true });
 
       if (error) throw error;
       return data as unknown as Task[];
@@ -239,7 +243,7 @@ export function SmartKanban() {
 
   // AI Insights
   const bottleneckCount = tasks?.filter(t => t.alerta_gargalo).length || 0;
-  const overdueCount = tasks?.filter(t => new Date(t.prazo) < new Date() && t.status !== 'concluida').length || 0;
+  const overdueCount = tasks?.filter(t => new Date(t.data_prazo) < new Date() && t.status !== 'concluida').length || 0;
 
   return (
     <Card>
