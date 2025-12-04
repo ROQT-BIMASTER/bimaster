@@ -58,7 +58,7 @@ export function MatrizPrecosComparativa() {
   const [ordenarPor, setOrdenarPor] = useState<string>("produto");
   const [ordenarAsc, setOrdenarAsc] = useState(true);
 
-  // Buscar tabelas ativas
+  // Buscar tabelas ativas ordenadas por código numérico
   const { data: tabelas, isLoading: loadingTabelas } = useQuery({
     queryKey: ["fabrica-tabelas-preco-ativas"],
     queryFn: async () => {
@@ -66,7 +66,7 @@ export function MatrizPrecosComparativa() {
         .from("fabrica_tabelas_preco")
         .select("id, nome, codigo, ordem, ativo")
         .eq("ativo", true)
-        .order("ordem", { ascending: true });
+        .order("codigo", { ascending: true });
 
       if (error) throw error;
       return data as TabelaPreco[];
