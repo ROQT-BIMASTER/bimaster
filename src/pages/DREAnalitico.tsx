@@ -216,20 +216,42 @@ export default function DREAnalitico() {
     }
   });
 
-  // Buscar empresas disponíveis
+  // Buscar empresas disponíveis (de ambas as tabelas)
   const { data: empresas } = useQuery({
     queryKey: ['empresas-dre'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contas_pagar')
-        .select('empresa_nome')
-        .not('empresa_nome', 'is', null);
+      const [pagar, receber] = await Promise.all([
+        supabase.from('contas_pagar').select('empresa_nome').not('empresa_nome', 'is', null),
+        supabase.from('contas_receber').select('empresa_nome').not('empresa_nome', 'is', null)
+      ]);
       
-      if (error) throw error;
-      const uniqueEmpresas = [...new Set(data.map(item => item.empresa_nome))];
+      const empresasPagar = pagar.data?.map(item => item.empresa_nome) || [];
+      const empresasReceber = receber.data?.map(item => item.empresa_nome) || [];
+      const uniqueEmpresas = [...new Set([...empresasPagar, ...empresasReceber])];
       return uniqueEmpresas.filter(Boolean);
     }
   });
+
+  // Buscar contas a receber (receitas)
+  const { data: contasReceber } = useSupabaseQuery(
+    ['contas-receber-dre', dataInicio, dataFim, filterEmpresa],
+    async () => {
+      let query = supabase
+        .from('contas_receber')
+        .select('*')
+        .gte('data_vencimento', dataInicio)
+        .lte('data_vencimento', dataFim);
+      
+      if (filterEmpresa !== 'todas') {
+        query = query.eq('empresa_nome', filterEmpresa);
+      }
+      
+      const { data, error } = await query.limit(50000);
+      if (error) throw error;
+      return data;
+    },
+    { staleTime: 0, refetchOnMount: true }
+  );
 
   // Buscar total de contas
   const { data: totalContas } = useQuery({
@@ -432,12 +454,107 @@ export default function DREAnalitico() {
       return grupo;
     };
 
-    const receitas = criarGrupo('receitas', '4', 'RECEITAS', 'C', 'revenue');
+    const receitas = criarGrupo('receitas', '4', 'RECEITAS OPERACIONAIS', 'C', 'revenue');
     const despesas = criarGrupo('despesas', '5', 'DESPESAS OPERACIONAIS', 'D', 'expense');
     const custos = criarGrupo('custos', '6', 'CUSTOS E CENTROS DE CUSTO', 'D', 'cost_center');
     const patrimoniais = criarGrupo('patrimoniais', '7', 'MOVIMENTAÇÕES PATRIMONIAIS', 'D', 'asset');
     const naoClassificados = criarGrupo('nao-classificados', '9', 'NÃO CLASSIFICADOS', 'D', 'expense');
 
+    // Processar contas a receber (RECEITAS)
+    if (contasReceber && contasReceber.length > 0) {
+      // Agrupar por cliente
+      const receitasPorCliente = new Map<string, { nome: string; valor: number; valoresMensais: { [key: string]: number }; lancamentos: any[] }>();
+      
+      contasReceber.forEach(recebimento => {
+        const valor = parseFloat(String(recebimento.valor_recebido || recebimento.valor_original || 0));
+        const mesKey = recebimento.data_vencimento ? format(parseISO(recebimento.data_vencimento), 'yyyy-MM') : null;
+        const clienteKey = recebimento.cliente_codigo || recebimento.cliente_nome || 'sem-cliente';
+        const clienteNome = recebimento.cliente_nome || 'Cliente não identificado';
+        
+        // Acumular no grupo receitas
+        receitas.valor += valor;
+        if (mesKey && receitas.valoresMensais![mesKey] !== undefined) {
+          receitas.valoresMensais![mesKey] += valor;
+        }
+        
+        // Agrupar por cliente
+        if (!receitasPorCliente.has(clienteKey)) {
+          receitasPorCliente.set(clienteKey, {
+            nome: clienteNome,
+            valor: 0,
+            valoresMensais: {},
+            lancamentos: []
+          });
+          mesesPeriodo.forEach(m => receitasPorCliente.get(clienteKey)!.valoresMensais[m.key] = 0);
+        }
+        
+        const clienteData = receitasPorCliente.get(clienteKey)!;
+        clienteData.valor += valor;
+        if (mesKey) clienteData.valoresMensais[mesKey] += valor;
+        clienteData.lancamentos.push(recebimento);
+      });
+      
+      // Criar subgrupo "Vendas / Faturamento"
+      const vendasGrupo: DRENode = {
+        id: 'vendas-faturamento',
+        codigo: '4.1',
+        nome: 'Vendas / Faturamento',
+        tipo: 'conta',
+        nivel: 2,
+        valor: receitas.valor,
+        valoresMensais: { ...receitas.valoresMensais! },
+        natureza: 'C',
+        accountType: 'revenue',
+        children: []
+      };
+      
+      // Adicionar clientes como filhos
+      receitasPorCliente.forEach((clienteData, clienteKey) => {
+        const nodoCliente: DRENode = {
+          id: `cliente-${clienteKey}`,
+          codigo: clienteKey,
+          nome: clienteData.nome,
+          tipo: 'fornecedor', // Usando 'fornecedor' para representar clientes (mesmo estilo visual)
+          nivel: 3,
+          valor: clienteData.valor,
+          valoresMensais: clienteData.valoresMensais,
+          natureza: 'C',
+          accountType: 'revenue',
+          children: []
+        };
+        
+        // Adicionar lançamentos individuais do cliente
+        clienteData.lancamentos.forEach(lanc => {
+          const lancValor = parseFloat(String(lanc.valor_recebido || lanc.valor_original || 0));
+          const lancMesKey = lanc.data_vencimento ? format(parseISO(lanc.data_vencimento), 'yyyy-MM') : null;
+          
+          const lancValoresMensais: { [key: string]: number } = {};
+          mesesPeriodo.forEach(m => lancValoresMensais[m.key] = 0);
+          if (lancMesKey) lancValoresMensais[lancMesKey] = lancValor;
+          
+          nodoCliente.children?.push({
+            id: lanc.id,
+            codigo: lanc.numero_documento || '',
+            nome: `Doc: ${lanc.numero_documento || 'S/N'} - ${format(new Date(lanc.data_vencimento), 'dd/MM/yyyy')}`,
+            tipo: 'lancamento',
+            nivel: 4,
+            valor: lancValor,
+            valoresMensais: lancValoresMensais,
+            natureza: 'C',
+            accountType: 'revenue',
+            metadata: { ...lanc, tipo_lancamento: 'receita' }
+          });
+        });
+        
+        vendasGrupo.children?.push(nodoCliente);
+      });
+      
+      // Ordenar clientes por valor (maior primeiro)
+      vendasGrupo.children?.sort((a, b) => b.valor - a.valor);
+      receitas.children?.push(vendasGrupo);
+    }
+
+    // Processar contas a pagar (DESPESAS)
     lancamentos.forEach(lancamento => {
       const valor = parseFloat(String(lancamento.valor_pago || lancamento.valor_original || 0));
       const mesKey = lancamento.data_vencimento ? format(parseISO(lancamento.data_vencimento), 'yyyy-MM') : null;
