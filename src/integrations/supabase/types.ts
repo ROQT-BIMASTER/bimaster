@@ -713,6 +713,65 @@ export type Database = {
         }
         Relationships: []
       }
+      cobrancas: {
+        Row: {
+          cliente_codigo: string | null
+          conta_receber_id: string | null
+          created_at: string | null
+          data_acao: string | null
+          data_acordo: string | null
+          data_retorno: string | null
+          id: string
+          observacoes: string | null
+          parcelas_acordo: number | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          status: string | null
+          tipo_acao: string
+          valor_acordo: number | null
+        }
+        Insert: {
+          cliente_codigo?: string | null
+          conta_receber_id?: string | null
+          created_at?: string | null
+          data_acao?: string | null
+          data_acordo?: string | null
+          data_retorno?: string | null
+          id?: string
+          observacoes?: string | null
+          parcelas_acordo?: number | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          status?: string | null
+          tipo_acao: string
+          valor_acordo?: number | null
+        }
+        Update: {
+          cliente_codigo?: string | null
+          conta_receber_id?: string | null
+          created_at?: string | null
+          data_acao?: string | null
+          data_acordo?: string | null
+          data_retorno?: string | null
+          id?: string
+          observacoes?: string | null
+          parcelas_acordo?: number | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          status?: string | null
+          tipo_acao?: string
+          valor_acordo?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competitor_comparison_photos: {
         Row: {
           competitor_id: string | null
@@ -1321,6 +1380,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contas_receber: {
+        Row: {
+          cliente_codigo: string | null
+          cliente_nome: string | null
+          conta: string | null
+          created_at: string | null
+          data_emissao: string | null
+          data_hash: string | null
+          data_recebimento: string | null
+          data_vencimento: string | null
+          dias_atraso: number | null
+          empresa_id: number
+          empresa_nome: string | null
+          erp_id: string
+          id: string
+          numero_documento: string | null
+          parcela: number | null
+          portador: string | null
+          portador_id: string | null
+          sincronizado_em: string | null
+          status: string | null
+          tabela_preco: string | null
+          tipo_documento: string | null
+          updated_at: string | null
+          valor_aberto: number | null
+          valor_ajustes: number | null
+          valor_desconto: number | null
+          valor_juros: number | null
+          valor_original: number | null
+          valor_recebido: number | null
+          vendedor_codigo: string | null
+          vendedor_nome: string | null
+        }
+        Insert: {
+          cliente_codigo?: string | null
+          cliente_nome?: string | null
+          conta?: string | null
+          created_at?: string | null
+          data_emissao?: string | null
+          data_hash?: string | null
+          data_recebimento?: string | null
+          data_vencimento?: string | null
+          dias_atraso?: number | null
+          empresa_id: number
+          empresa_nome?: string | null
+          erp_id: string
+          id?: string
+          numero_documento?: string | null
+          parcela?: number | null
+          portador?: string | null
+          portador_id?: string | null
+          sincronizado_em?: string | null
+          status?: string | null
+          tabela_preco?: string | null
+          tipo_documento?: string | null
+          updated_at?: string | null
+          valor_aberto?: number | null
+          valor_ajustes?: number | null
+          valor_desconto?: number | null
+          valor_juros?: number | null
+          valor_original?: number | null
+          valor_recebido?: number | null
+          vendedor_codigo?: string | null
+          vendedor_nome?: string | null
+        }
+        Update: {
+          cliente_codigo?: string | null
+          cliente_nome?: string | null
+          conta?: string | null
+          created_at?: string | null
+          data_emissao?: string | null
+          data_hash?: string | null
+          data_recebimento?: string | null
+          data_vencimento?: string | null
+          dias_atraso?: number | null
+          empresa_id?: number
+          empresa_nome?: string | null
+          erp_id?: string
+          id?: string
+          numero_documento?: string | null
+          parcela?: number | null
+          portador?: string | null
+          portador_id?: string | null
+          sincronizado_em?: string | null
+          status?: string | null
+          tabela_preco?: string | null
+          tipo_documento?: string | null
+          updated_at?: string | null
+          valor_aberto?: number | null
+          valor_ajustes?: number | null
+          valor_desconto?: number | null
+          valor_juros?: number | null
+          valor_original?: number | null
+          valor_recebido?: number | null
+          vendedor_codigo?: string | null
+          vendedor_nome?: string | null
+        }
+        Relationships: []
       }
       conversas: {
         Row: {
@@ -5809,6 +5967,47 @@ export type Database = {
             columns: ["audit_id"]
             isOneToOne: false
             referencedRelation: "gondola_audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historico_cobrancas: {
+        Row: {
+          cliente_codigo: string | null
+          conta_receber_id: string | null
+          created_at: string | null
+          descricao: string | null
+          id: string
+          tipo_evento: string
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          cliente_codigo?: string | null
+          conta_receber_id?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          tipo_evento: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          cliente_codigo?: string | null
+          conta_receber_id?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          tipo_evento?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_cobrancas_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_receber"
             referencedColumns: ["id"]
           },
         ]

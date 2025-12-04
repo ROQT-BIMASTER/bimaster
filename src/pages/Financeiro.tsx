@@ -226,9 +226,9 @@ export default function Financeiro() {
           </div>
         </div>
 
-        {/* Navegação Rápida - Contabilidade */}
+        {/* Navegação Rápida - Contas a Pagar e Receber */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Contabilidade e Gestão</h2>
+          <h2 className="text-xl font-semibold mb-4">Contas a Pagar e Receber</h2>
           <div className="grid gap-4 md:grid-cols-4">
             <Link to="/dashboard/financeiro/contas-a-pagar">
               <Card className="hover:border-primary cursor-pointer transition-colors">
@@ -242,6 +242,40 @@ export default function Financeiro() {
                   </p>
                   <div className="mt-2 flex items-center text-xs text-primary">
                     Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link to="/dashboard/financeiro/contas-a-receber">
+              <Card className="hover:border-primary cursor-pointer transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Contas a Receber</CardTitle>
+                  <Receipt className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    Gestão de recebimentos e clientes
+                  </p>
+                  <div className="mt-2 flex items-center text-xs text-primary">
+                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link to="/dashboard/financeiro/cobranca">
+              <Card className="hover:border-destructive cursor-pointer transition-colors border-destructive/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Cobrança Inadimplentes</CardTitle>
+                  <Receipt className="h-4 w-4 text-destructive" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    Gestão de cobranças e acordos
+                  </p>
+                  <div className="mt-2 flex items-center text-xs text-destructive">
+                    Cobrar <ArrowRight className="h-3 w-3 ml-1" />
                   </div>
                 </CardContent>
               </Card>
@@ -263,7 +297,13 @@ export default function Financeiro() {
                 </CardContent>
               </Card>
             </Link>
+          </div>
+        </div>
 
+        {/* Navegação Rápida - Análises */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Análises e Relatórios</h2>
+          <div className="grid gap-4 md:grid-cols-3">
             <Link to="/dashboard/financeiro/dre-analitico">
               <Card className="hover:border-primary cursor-pointer transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -293,6 +333,23 @@ export default function Financeiro() {
                   </p>
                   <div className="mt-2 flex items-center text-xs text-primary">
                     Ver análise <ArrowRight className="h-3 w-3 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link to="/dashboard/financeiro/classificar-banco">
+              <Card className="hover:border-primary cursor-pointer transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Classificação IA</CardTitle>
+                  <FileText className="h-4 w-4 text-cyan-600" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    Classificação automática de lançamentos
+                  </p>
+                  <div className="mt-2 flex items-center text-xs text-primary">
+                    Classificar <ArrowRight className="h-3 w-3 ml-1" />
                   </div>
                 </CardContent>
               </Card>

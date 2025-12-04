@@ -26,31 +26,42 @@ async function calculateHash(data: any): Promise<string> {
   return hashHex;
 }
 
-// Transformar dados do ERP para o formato do banco
+// Parse date from various formats
+function parseDate(dateValue: any): string | null {
+  if (!dateValue) return null;
+  try {
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return null;
+    return date.toISOString().split('T')[0];
+  } catch {
+    return null;
+  }
+}
+
+// Transformar dados do ERP/N8N para o formato do banco
 function transformErpData(erpRecord: any) {
   return {
     empresa_id: erpRecord['ID Empresa'],
     empresa_nome: erpRecord['Empresa'],
-    tipo_documento: erpRecord['Tipo'],
+    tipo_documento: String(erpRecord['Tipo'] || ''),
     numero_documento: erpRecord['Nota'],
     parcela: erpRecord['Seq'] || 1,
     cliente_codigo: erpRecord['Código'],
     cliente_nome: erpRecord['Cliente'],
     valor_original: erpRecord['Valor_Trc'] || 0,
     valor_aberto: erpRecord['Valor em Aberto'] || 0,
-    valor_recebido: erpRecord['Valor Recebido'] || 0,
+    valor_recebido: erpRecord['Valor Pago'] || 0,
     valor_juros: erpRecord['Valor Juros'] || 0,
     valor_desconto: erpRecord['Valor Desconto'] || 0,
     valor_ajustes: erpRecord['Valor Ajustes'] || 0,
-    data_emissao: erpRecord['Emissão'] ? new Date(erpRecord['Emissão']).toISOString().split('T')[0] : null,
-    data_vencimento: erpRecord['Vencimento'] ? new Date(erpRecord['Vencimento']).toISOString().split('T')[0] : null,
-    data_recebimento: erpRecord['Data Recebimento'] ? new Date(erpRecord['Data Recebimento']).toISOString().split('T')[0] : null,
-    categoria_codigo: erpRecord['ID Historico'],
-    categoria_nome: erpRecord['Historico'],
-    portador: erpRecord['Portador'] || 'SEM PORTADOR',
+    data_emissao: parseDate(erpRecord['Emissão']),
+    data_vencimento: parseDate(erpRecord['Vencimento']),
+    data_recebimento: parseDate(erpRecord['Pigto de dados']),
+    tabela_preco: erpRecord['Tabela'] || null,
+    vendedor_nome: erpRecord['Vendedor'] || null,
+    portador_id: erpRecord['ID Portador'] || null,
+    portador: erpRecord['Nome Portador'] || 'SEM PORTADOR',
     conta: erpRecord['Conta'] || 'SEM CONTA',
-    vendedor_codigo: erpRecord['Vendedor Codigo'] || null,
-    vendedor_nome: erpRecord['Vendedor'] || null
   };
 }
 
@@ -68,12 +79,15 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const path = url.pathname;
 
+    console.log(`[contas-receber-api] ${req.method} ${path}`);
+
     // POST /sync - Sincronizar dados do n8n
     if (path.endsWith('/sync') && req.method === 'POST') {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
       
       if (!apiKey || apiKey !== expectedKey) {
+        console.error('[contas-receber-api] Unauthorized - Invalid API key');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -84,11 +98,14 @@ Deno.serve(async (req) => {
       const { contas } = await req.json();
 
       if (!contas || !Array.isArray(contas)) {
+        console.error('[contas-receber-api] Invalid payload - contas is not an array');
         return new Response(JSON.stringify({ error: 'Invalid payload' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
+
+      console.log(`[contas-receber-api] Processing ${contas.length} records`);
 
       let inserted = 0;
       let updated = 0;
@@ -140,6 +157,7 @@ Deno.serve(async (req) => {
             skipped++;
           }
         } catch (error) {
+          console.error(`[contas-receber-api] Error processing record:`, error);
           errors.push({
             record: conta,
             error: error instanceof Error ? error.message : String(error)
@@ -163,6 +181,8 @@ Deno.serve(async (req) => {
         status: errors.length === 0 ? 'success' : 'partial',
         erro_mensagem: errors.length > 0 ? JSON.stringify(errors) : null
       });
+
+      console.log(`[contas-receber-api] Sync completed: ${inserted} inserted, ${updated} updated, ${skipped} skipped, ${errors.length} errors in ${duration}ms`);
 
       return new Response(JSON.stringify({
         success: true,
@@ -195,6 +215,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    // GET /vencidos - Listar contas vencidas (inadimplentes)
+    if (path.endsWith('/vencidos') && req.method === 'GET') {
+      const { data, error } = await supabase
+        .from('contas_receber')
+        .select('*')
+        .eq('status', 'vencido')
+        .gt('valor_aberto', 0)
+        .order('dias_atraso', { ascending: false });
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     // GET /stats - Estatísticas de sincronização
     if (path.endsWith('/stats') && req.method === 'GET') {
       const { data, error } = await supabase
@@ -214,11 +250,27 @@ Deno.serve(async (req) => {
     // GET /totais - Totais por status
     if (path.endsWith('/totais') && req.method === 'GET') {
       const { data, error } = await supabase
-        .rpc('calcular_totais_contas_receber');
+        .from('contas_receber')
+        .select('status, valor_aberto');
 
       if (error) throw error;
 
-      return new Response(JSON.stringify({ data }), {
+      const totais = {
+        pendente: { count: 0, valor: 0 },
+        vencido: { count: 0, valor: 0 },
+        parcial: { count: 0, valor: 0 },
+        recebido: { count: 0, valor: 0 }
+      };
+
+      data?.forEach(conta => {
+        const status = conta.status as keyof typeof totais;
+        if (totais[status]) {
+          totais[status].count++;
+          totais[status].valor += Number(conta.valor_aberto) || 0;
+        }
+      });
+
+      return new Response(JSON.stringify({ data: totais }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -229,7 +281,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('[contas-receber-api] Error:', error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
