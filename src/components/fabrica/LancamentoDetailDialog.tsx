@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Dialog,
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -33,7 +34,13 @@ import {
   Clock,
   AlertTriangle,
   Send,
+  User,
+  Rocket,
+  TrendingUp,
 } from "lucide-react";
+import ProductThumbnail from "./ProductThumbnail";
+import CountdownBadge from "./CountdownBadge";
+import { cn } from "@/lib/utils";
 
 type Lancamento = {
   id: string;
@@ -48,7 +55,7 @@ type Lancamento = {
   tabela_preco_id: string | null;
   responsavel_id: string | null;
   observacoes: string | null;
-  fabrica_produtos?: { nome: string; codigo: string } | null;
+  fabrica_produtos?: { nome: string; codigo: string; foto_url?: string | null } | null;
   profiles?: { nome: string } | null;
 };
 
@@ -60,26 +67,50 @@ type Props = {
   onRefresh: () => void;
 };
 
-const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  planejado: { label: "Planejado", color: "text-blue-600", bgColor: "bg-blue-100" },
-  em_preparacao: { label: "Em Preparação", color: "text-yellow-600", bgColor: "bg-yellow-100" },
-  aprovado: { label: "Aprovado", color: "text-green-600", bgColor: "bg-green-100" },
-  lancado: { label: "Lançado", color: "text-purple-600", bgColor: "bg-purple-100" },
-  cancelado: { label: "Cancelado", color: "text-red-600", bgColor: "bg-red-100" },
+const statusConfig: Record<string, { label: string; color: string; bgColor: string; gradient: string }> = {
+  planejado: { 
+    label: "Planejado", 
+    color: "text-blue-700 dark:text-blue-300", 
+    bgColor: "bg-blue-100 dark:bg-blue-900/30",
+    gradient: "from-blue-500 to-cyan-500"
+  },
+  em_preparacao: { 
+    label: "Em Preparação", 
+    color: "text-amber-700 dark:text-amber-300", 
+    bgColor: "bg-amber-100 dark:bg-amber-900/30",
+    gradient: "from-amber-500 to-yellow-500"
+  },
+  aprovado: { 
+    label: "Aprovado", 
+    color: "text-green-700 dark:text-green-300", 
+    bgColor: "bg-green-100 dark:bg-green-900/30",
+    gradient: "from-green-500 to-emerald-500"
+  },
+  lancado: { 
+    label: "Lançado", 
+    color: "text-purple-700 dark:text-purple-300", 
+    bgColor: "bg-purple-100 dark:bg-purple-900/30",
+    gradient: "from-purple-500 to-violet-500"
+  },
+  cancelado: { 
+    label: "Cancelado", 
+    color: "text-red-700 dark:text-red-300", 
+    bgColor: "bg-red-100 dark:bg-red-900/30",
+    gradient: "from-red-500 to-red-600"
+  },
 };
 
-const tipoConfig: Record<string, string> = {
-  novo_produto: "Novo Produto",
-  reformulacao: "Reformulação",
-  nova_versao: "Nova Versão",
-  promocional: "Promocional",
+const tipoConfig: Record<string, { label: string; emoji: string }> = {
+  novo_produto: { label: "Novo Produto", emoji: "✨" },
+  reformulacao: { label: "Reformulação", emoji: "🔄" },
+  nova_versao: { label: "Nova Versão", emoji: "📦" },
+  promocional: { label: "Promocional", emoji: "🎁" },
 };
 
-const tarefaStatusConfig: Record<string, { label: string; icon: any }> = {
-  pendente: { label: "Pendente", icon: Clock },
-  em_andamento: { label: "Em Andamento", icon: AlertTriangle },
-  revisao: { label: "Em Revisão", icon: AlertTriangle },
-  concluido: { label: "Concluído", icon: CheckCircle },
+const prioridadeConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+  alta: { label: "Alta", color: "text-red-700", bgColor: "bg-red-100" },
+  media: { label: "Média", color: "text-amber-700", bgColor: "bg-amber-100" },
+  baixa: { label: "Baixa", color: "text-green-700", bgColor: "bg-green-100" },
 };
 
 export default function LancamentoDetailDialog({
@@ -192,153 +223,236 @@ export default function LancamentoDetailDialog({
 
   const tarefasConcluidas = tarefas?.filter((t) => t.status === "concluido").length || 0;
   const totalTarefas = tarefas?.length || 0;
+  const progressPercent = totalTarefas > 0 ? Math.round((tarefasConcluidas / totalTarefas) * 100) : 0;
+  const isLaunched = lancamento.status === "lancado";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh]">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl">{lancamento.nome_lancamento}</DialogTitle>
-            <div className="flex items-center gap-2">
-              <Badge className={`${statusConfig[lancamento.status]?.bgColor} ${statusConfig[lancamento.status]?.color}`}>
-                {statusConfig[lancamento.status]?.label}
-              </Badge>
-              <Button variant="outline" size="sm" onClick={onEdit}>
-                <Edit className="h-4 w-4 mr-1" />
-                Editar
-              </Button>
+      <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden">
+        {/* Hero Section */}
+        <div className={cn(
+          "relative p-6 bg-gradient-to-br",
+          statusConfig[lancamento.status]?.gradient
+        )}>
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="relative flex items-start gap-4">
+            <ProductThumbnail 
+              src={lancamento.fabrica_produtos?.foto_url} 
+              size="xl" 
+              className="ring-4 ring-white/20 shadow-xl"
+            />
+            <div className="flex-1 text-white">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                  {statusConfig[lancamento.status]?.label}
+                </Badge>
+                <Badge className={cn("backdrop-blur-sm", prioridadeConfig[lancamento.prioridade]?.bgColor, prioridadeConfig[lancamento.prioridade]?.color)}>
+                  {prioridadeConfig[lancamento.prioridade]?.label}
+                </Badge>
+              </div>
+              <h2 className="text-2xl font-bold mb-1">{lancamento.nome_lancamento}</h2>
+              <p className="text-white/80 text-sm">
+                {lancamento.fabrica_produtos?.nome || "Sem produto vinculado"}
+                {lancamento.fabrica_produtos?.codigo && (
+                  <span className="ml-1 opacity-70">({lancamento.fabrica_produtos.codigo})</span>
+                )}
+              </p>
+              <div className="flex items-center gap-4 mt-3">
+                <CountdownBadge date={lancamento.data_prevista} isLaunched={isLaunched} />
+                {lancamento.profiles?.nome && (
+                  <div className="flex items-center gap-1.5 text-sm text-white/80">
+                    <User className="h-4 w-4" />
+                    {lancamento.profiles.nome}
+                  </div>
+                )}
+              </div>
             </div>
+            <Button variant="secondary" size="sm" onClick={onEdit} className="flex-shrink-0">
+              <Edit className="h-4 w-4 mr-1" />
+              Editar
+            </Button>
           </div>
-        </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          {/* Progress Bar */}
+          {totalTarefas > 0 && (
+            <div className="relative mt-4 pt-4 border-t border-white/20">
+              <div className="flex items-center justify-between text-sm text-white/80 mb-2">
+                <span>Progresso Marketing</span>
+                <span className="font-semibold">{progressPercent}%</span>
+              </div>
+              <Progress value={progressPercent} className="h-2 bg-white/20" />
+            </div>
+          )}
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="p-6 pt-0">
+          <TabsList className="w-full grid grid-cols-3 -mt-5 relative z-10 bg-background shadow-lg">
             <TabsTrigger value="info" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              Informações
+              Detalhes
             </TabsTrigger>
             <TabsTrigger value="distribuidores" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Distribuidores ({distribuidores?.length || 0})
+              Distribuidores
+              {(distribuidores?.length || 0) > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  {distribuidores?.length}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="marketing" className="flex items-center gap-2">
               <Megaphone className="h-4 w-4" />
-              Marketing ({tarefasConcluidas}/{totalTarefas})
+              Marketing
+              {totalTarefas > 0 && (
+                <Badge variant="secondary" className="ml-1 text-xs">
+                  {tarefasConcluidas}/{totalTarefas}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="h-[450px] mt-4">
+          <ScrollArea className="h-[350px] mt-4">
             {/* Info Tab */}
-            <TabsContent value="info" className="space-y-4 pr-4">
+            <TabsContent value="info" className="space-y-4 pr-4 mt-0">
               <div className="grid grid-cols-2 gap-4">
-                <Card>
+                <Card className="border-0 shadow-sm bg-muted/30">
                   <CardContent className="pt-4">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <Package className="h-4 w-4" />
-                      <span className="text-sm">Produto</span>
+                      <Calendar className="h-4 w-4" />
+                      <span className="text-sm font-medium">Data Prevista</span>
                     </div>
-                    <p className="font-medium">
-                      {lancamento.fabrica_produtos?.nome || "Não vinculado"}
+                    <p className="font-semibold text-lg">
+                      {format(new Date(lancamento.data_prevista), "dd 'de' MMMM", { locale: ptBR })}
                     </p>
-                    {lancamento.fabrica_produtos?.codigo && (
-                      <p className="text-sm text-muted-foreground">
-                        Código: {lancamento.fabrica_produtos.codigo}
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(lancamento.data_prevista), "yyyy")}
+                    </p>
+                    {lancamento.data_efetiva && (
+                      <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        Lançado em {format(new Date(lancamento.data_efetiva), "dd/MM/yyyy")}
                       </p>
                     )}
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="border-0 shadow-sm bg-muted/30">
                   <CardContent className="pt-4">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <Calendar className="h-4 w-4" />
-                      <span className="text-sm">Data Prevista</span>
+                      <Rocket className="h-4 w-4" />
+                      <span className="text-sm font-medium">Tipo</span>
                     </div>
-                    <p className="font-medium">
-                      {format(new Date(lancamento.data_prevista), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    <p className="font-semibold text-lg flex items-center gap-2">
+                      <span>{tipoConfig[lancamento.tipo]?.emoji}</span>
+                      {tipoConfig[lancamento.tipo]?.label}
                     </p>
-                    {lancamento.data_efetiva && (
-                      <p className="text-sm text-green-600">
-                        Lançado em: {format(new Date(lancamento.data_efetiva), "dd/MM/yyyy")}
-                      </p>
-                    )}
                   </CardContent>
                 </Card>
               </div>
 
-              <Card>
+              <Card className="border-0 shadow-sm">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Alterar Status</CardTitle>
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    Alterar Status
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Select
                     value={lancamento.status}
                     onValueChange={(v) => updateStatusMutation.mutate(v)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="planejado">Planejado</SelectItem>
-                      <SelectItem value="em_preparacao">Em Preparação</SelectItem>
-                      <SelectItem value="aprovado">Aprovado</SelectItem>
-                      <SelectItem value="lancado">Lançado</SelectItem>
-                      <SelectItem value="cancelado">Cancelado</SelectItem>
+                      <SelectItem value="planejado">
+                        <span className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-blue-500" />
+                          Planejado
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="em_preparacao">
+                        <span className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-amber-500" />
+                          Em Preparação
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="aprovado">
+                        <span className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-green-500" />
+                          Aprovado
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="lancado">
+                        <span className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-purple-500" />
+                          Lançado
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="cancelado">
+                        <span className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-red-500" />
+                          Cancelado
+                        </span>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </CardContent>
               </Card>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="p-3 border rounded-lg">
-                  <p className="text-sm text-muted-foreground">Tipo</p>
-                  <p className="font-medium">{tipoConfig[lancamento.tipo]}</p>
-                </div>
-                <div className="p-3 border rounded-lg">
-                  <p className="text-sm text-muted-foreground">Prioridade</p>
-                  <p className="font-medium capitalize">{lancamento.prioridade}</p>
-                </div>
-                <div className="p-3 border rounded-lg">
-                  <p className="text-sm text-muted-foreground">Responsável</p>
-                  <p className="font-medium">{lancamento.profiles?.nome || "-"}</p>
-                </div>
-              </div>
-
               {lancamento.descricao && (
-                <Card>
+                <Card className="border-0 shadow-sm">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Descrição / Briefing</CardTitle>
+                    <CardTitle className="text-sm font-medium">Descrição / Briefing</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{lancamento.descricao}</p>
+                    <p className="text-sm whitespace-pre-wrap text-muted-foreground">{lancamento.descricao}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {lancamento.observacoes && (
+                <Card className="border-0 shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Observações</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm whitespace-pre-wrap text-muted-foreground">{lancamento.observacoes}</p>
                   </CardContent>
                 </Card>
               )}
             </TabsContent>
 
             {/* Distribuidores Tab */}
-            <TabsContent value="distribuidores" className="space-y-3 pr-4">
+            <TabsContent value="distribuidores" className="space-y-3 pr-4 mt-0">
               {distribuidores?.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhuma distribuidora vinculada a este lançamento
-                </p>
+                <div className="text-center py-12">
+                  <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhuma distribuidora vinculada</p>
+                </div>
               ) : (
                 distribuidores?.map((d: any) => (
-                  <Card key={d.id}>
-                    <CardContent className="py-3">
+                  <Card key={d.id} className="border-0 shadow-sm overflow-hidden">
+                    <CardContent className="p-4">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{d.estoque_distribuidoras?.nome}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {d.estoque_distribuidoras?.cidade}/{d.estoque_distribuidoras?.uf}
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-muted rounded-lg">
+                            <Users className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <p className="font-semibold">{d.estoque_distribuidoras?.nome}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {d.estoque_distribuidoras?.cidade}/{d.estoque_distribuidoras?.uf}
+                            </p>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Select
                             value={d.status_comunicacao}
                             onValueChange={(v) => updateDistribuidorMutation.mutate({ id: d.id, status: v })}
                           >
-                            <SelectTrigger className="w-[140px]">
+                            <SelectTrigger className="w-[130px]">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -359,43 +473,59 @@ export default function LancamentoDetailDialog({
             </TabsContent>
 
             {/* Marketing Tab */}
-            <TabsContent value="marketing" className="space-y-3 pr-4">
+            <TabsContent value="marketing" className="space-y-3 pr-4 mt-0">
               {tarefas?.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhuma tarefa de marketing vinculada
-                </p>
+                <div className="text-center py-12">
+                  <Megaphone className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhuma tarefa de marketing</p>
+                </div>
               ) : (
                 tarefas?.map((t: any) => {
-                  const StatusIcon = tarefaStatusConfig[t.status]?.icon || Clock;
+                  const isCompleted = t.status === "concluido";
                   return (
-                    <Card key={t.id}>
-                      <CardContent className="py-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Checkbox
-                              checked={t.status === "concluido"}
-                              onCheckedChange={(checked) =>
-                                updateTarefaMutation.mutate({
-                                  id: t.id,
-                                  status: checked ? "concluido" : "pendente",
-                                })
-                              }
-                            />
-                            <div>
-                              <p className={`font-medium ${t.status === "concluido" ? "line-through text-muted-foreground" : ""}`}>
-                                {t.titulo}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {t.profiles?.nome || "Sem responsável"} •{" "}
-                                {t.data_prazo && `Prazo: ${format(new Date(t.data_prazo), "dd/MM")}`}
-                              </p>
+                    <Card key={t.id} className={cn(
+                      "border-0 shadow-sm overflow-hidden transition-all",
+                      isCompleted && "opacity-60"
+                    )}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-4">
+                          <Checkbox
+                            checked={isCompleted}
+                            onCheckedChange={(checked) =>
+                              updateTarefaMutation.mutate({
+                                id: t.id,
+                                status: checked ? "concluido" : "pendente",
+                              })
+                            }
+                            className="h-5 w-5"
+                          />
+                          <div className="flex-1">
+                            <p className={cn(
+                              "font-medium",
+                              isCompleted && "line-through text-muted-foreground"
+                            )}>
+                              {t.titulo}
+                            </p>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                              {t.profiles?.nome && (
+                                <span className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  {t.profiles.nome}
+                                </span>
+                              )}
+                              {t.data_prazo && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {format(new Date(t.data_prazo), "dd/MM")}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <Select
                             value={t.status}
                             onValueChange={(v) => updateTarefaMutation.mutate({ id: t.id, status: v })}
                           >
-                            <SelectTrigger className="w-[140px]">
+                            <SelectTrigger className="w-[130px]">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
