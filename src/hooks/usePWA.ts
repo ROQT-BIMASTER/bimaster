@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { registerSW } from 'virtual:pwa-register';
 
 interface PWAState {
   needRefresh: boolean;
@@ -24,13 +23,28 @@ export function usePWA(): UsePWAReturn {
     needRefresh: false,
     offlineReady: false,
     isInstalled: false,
-    isOnline: navigator.onLine,
+    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     canInstall: false,
-    installProgress: 0,
-    installStatus: 'Verificando...',
+    installProgress: 10, // Começar em 10% para mostrar progresso imediato
+    installStatus: 'Iniciando...',
   });
 
   useEffect(() => {
+    // Progresso simulado imediato para UX
+    let progressValue = 10;
+    const progressInterval = setInterval(() => {
+      progressValue += 15;
+      if (progressValue >= 100) {
+        progressValue = 100;
+        clearInterval(progressInterval);
+      }
+      setState(prev => ({
+        ...prev,
+        installProgress: progressValue,
+        installStatus: progressValue < 50 ? 'Carregando...' : progressValue < 100 ? 'Preparando...' : 'Pronto!'
+      }));
+    }, 300);
+
     // Verificar se já está instalado
     const checkInstalled = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
@@ -41,47 +55,46 @@ export function usePWA(): UsePWAReturn {
     
     checkInstalled();
 
-    // Registrar Service Worker com callbacks
-    const updateSW = registerSW({
-      immediate: true,
-      onNeedRefresh() {
-        console.log('[PWA] Nova versão disponível');
-        setState(prev => ({ ...prev, needRefresh: true }));
-      },
-      onOfflineReady() {
-        console.log('[PWA] App pronto para uso offline');
-        setState(prev => ({ 
-          ...prev, 
-          offlineReady: true,
-          installProgress: 100,
-          installStatus: 'Pronto para uso offline!'
-        }));
-      },
-      onRegisteredSW(swUrl, registration) {
-        console.log('[PWA] Service Worker registrado:', swUrl);
-        setState(prev => ({ 
-          ...prev, 
-          installProgress: 50,
-          installStatus: 'Baixando recursos...'
-        }));
+    // Tentar registrar Service Worker de forma segura
+    const registerServiceWorker = async () => {
+      try {
+        const { registerSW } = await import('virtual:pwa-register');
         
-        // Verificar atualizações periodicamente (a cada 5 minutos)
-        if (registration) {
-          setInterval(() => {
-            registration.update();
-          }, 5 * 60 * 1000);
-        }
-      },
-      onRegisterError(error) {
-        console.error('[PWA] Erro no registro:', error);
-        setState(prev => ({ 
-          ...prev, 
-          installStatus: 'Erro ao preparar app offline'
-        }));
-      }
-    });
+        const updateSW = registerSW({
+          immediate: true,
+          onNeedRefresh() {
+            console.log('[PWA] Nova versão disponível');
+            setState(prev => ({ ...prev, needRefresh: true }));
+          },
+          onOfflineReady() {
+            console.log('[PWA] App pronto para uso offline');
+            setState(prev => ({ 
+              ...prev, 
+              offlineReady: true,
+            }));
+          },
+          onRegisteredSW(swUrl, registration) {
+            console.log('[PWA] Service Worker registrado:', swUrl);
+            
+            if (registration) {
+              setInterval(() => {
+                registration.update();
+              }, 5 * 60 * 1000);
+            }
+          },
+          onRegisterError(error) {
+            console.error('[PWA] Erro no registro:', error);
+          }
+        });
 
-    updateSWRef = updateSW;
+        updateSWRef = updateSW;
+      } catch (error) {
+        // PWA não disponível (desenvolvimento ou erro)
+        console.log('[PWA] Service Worker não disponível:', error);
+      }
+    };
+
+    registerServiceWorker();
 
     // Capturar evento de instalação
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -101,48 +114,20 @@ export function usePWA(): UsePWAReturn {
     };
 
     // Monitorar status online/offline
-    const handleOnline = () => {
-      setState(prev => ({ ...prev, isOnline: true }));
-    };
-
-    const handleOffline = () => {
-      setState(prev => ({ ...prev, isOnline: false }));
-    };
+    const handleOnline = () => setState(prev => ({ ...prev, isOnline: true }));
+    const handleOffline = () => setState(prev => ({ ...prev, isOnline: false }));
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Simular progresso de instalação
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-      progress += 10;
-      if (progress <= 90) {
-        setState(prev => {
-          if (prev.installProgress < progress && !prev.offlineReady) {
-            const status = progress < 30 
-              ? 'Carregando recursos...' 
-              : progress < 60 
-                ? 'Preparando cache...' 
-                : progress < 90 
-                  ? 'Finalizando...'
-                  : 'Quase pronto...';
-            return { ...prev, installProgress: progress, installStatus: status };
-          }
-          return prev;
-        });
-      } else {
-        clearInterval(progressInterval);
-      }
-    }, 500);
-
     return () => {
+      clearInterval(progressInterval);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      clearInterval(progressInterval);
     };
   }, []);
 
@@ -153,9 +138,7 @@ export function usePWA(): UsePWAReturn {
   }, []);
 
   const promptInstall = useCallback(async (): Promise<boolean> => {
-    if (!deferredPromptRef) {
-      return false;
-    }
+    if (!deferredPromptRef) return false;
 
     try {
       deferredPromptRef.prompt();

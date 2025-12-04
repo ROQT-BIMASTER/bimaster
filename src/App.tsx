@@ -119,7 +119,7 @@ const queryClient = new QueryClient({
 
 // Componente interno que usa o hook PWA
 function AppContent() {
-  const { installProgress, installStatus, offlineReady } = usePWA();
+  const { installProgress, installStatus } = usePWA();
   const [showSplash, setShowSplash] = useState(() => {
     // Mostrar splash apenas na primeira visita da sessão
     const hasShownSplash = sessionStorage.getItem('splashShown');
@@ -130,6 +130,16 @@ function AppContent() {
     setShowSplash(false);
     sessionStorage.setItem('splashShown', 'true');
   };
+
+  // Timeout de segurança - garante que splash sempre fecha
+  useEffect(() => {
+    if (showSplash) {
+      const timeout = setTimeout(() => {
+        handleSplashComplete();
+      }, 3000); // Máximo 3 segundos
+      return () => clearTimeout(timeout);
+    }
+  }, [showSplash]);
 
   return (
     <>
