@@ -14,7 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Package, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovoProdutoAcabadoDialog } from "@/components/fabrica/NovoProdutoAcabadoDialog";
 import { toast } from "sonner";
@@ -124,15 +125,23 @@ export default function FabricaProdutosAcabados() {
               Gerencie o catálogo de produtos fabricados
             </p>
           </div>
-          <Button
-            onClick={() => {
-              setProdutoEdit(null);
-              setDialogNovo(true);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Produto
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/dashboard/fabrica/produtos/importar">
+                <Upload className="h-4 w-4 mr-2" />
+                Importar em Massa
+              </Link>
+            </Button>
+            <Button
+              onClick={() => {
+                setProdutoEdit(null);
+                setDialogNovo(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Produto
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}

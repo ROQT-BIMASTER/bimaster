@@ -10,7 +10,7 @@ const corsHeaders = {
 const requestSchema = z.object({
   planilhaTexto: z.string().max(100000, { message: 'Texto da planilha muito longo (máx 100KB)' }).optional(),
   texto: z.string().max(100000, { message: 'Texto muito longo (máx 100KB)' }).optional(),
-  tipo: z.enum(['stores', 'prospects'], { invalid_type_error: 'Tipo deve ser "stores" ou "prospects"' })
+  tipo: z.enum(['stores', 'prospects', 'produtos'], { invalid_type_error: 'Tipo deve ser "stores", "prospects" ou "produtos"' })
 }).refine(
   (data) => data.planilhaTexto || data.texto,
   { message: 'É necessário fornecer planilhaTexto ou texto' }
@@ -68,7 +68,8 @@ serve(async (req) => {
 
     const { planilhaTexto, texto, tipo } = validation.data;
     const textoAnalise = texto || planilhaTexto;
-    console.log(`📊 Iniciando análise ${tipo === 'stores' ? 'de lojas' : 'de prospects'} com IA...`);
+    const tipoLabels: Record<string, string> = { stores: 'de lojas', prospects: 'de prospects', produtos: 'de produtos' };
+    console.log(`📊 Iniciando análise ${tipoLabels[tipo]} com IA...`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -107,6 +108,41 @@ IMPORTANTE:
 - name é obrigatório
 - Normalize category para: supermercado, farmacia, atacado ou conveniencia
 - Normalize priority para: alta, media ou baixa
+- Se não conseguir identificar um campo, use null
+- Retorne APENAS o JSON, sem texto adicional`;
+    } else if (tipo === "produtos") {
+      systemPrompt = `Você é um assistente especializado em analisar dados de produtos fabricados.
+Analise o texto fornecido e extraia TODOS os produtos possíveis.
+Retorne um JSON válido com o array 'produtos' contendo os dados estruturados.
+
+Formato esperado:
+{
+  "produtos": [
+    {
+      "codigo": "string (obrigatório - gere se não encontrar, ex: PROD001)",
+      "nome": "string (obrigatório)",
+      "tipo": "ACABADO | INTER (padrão: ACABADO, use INTER para produtos intermediários/semiacabados)",
+      "sku": "string ou null",
+      "codigo_barras_ean": "string ou null (código de barras EAN-13)",
+      "categoria": "string ou null (ex: Perfumaria, Corpo, Cabelos, Limpeza)",
+      "subcategoria": "string ou null",
+      "linha": "string ou null (linha de produtos)",
+      "marca": "string ou null",
+      "fabricante": "string ou null",
+      "unidade": "UN | KG | L | ML | G (padrão: UN)",
+      "descricao_curta": "string ou null",
+      "descricao": "string ou null (descrição completa)",
+      "status": "ativo | inativo (padrão: ativo)"
+    }
+  ],
+  "total_encontrados": number,
+  "confianca": "alta | media | baixa"
+}
+
+IMPORTANTE:
+- codigo e nome são obrigatórios
+- Se não encontrar código, gere um único (PROD001, PROD002...)
+- Normalize tipo para: ACABADO ou INTER
 - Se não conseguir identificar um campo, use null
 - Retorne APENAS o JSON, sem texto adicional`;
     } else {
@@ -179,7 +215,12 @@ Retorne um JSON com a seguinte estrutura:
 }`;
     }
 
-    const userPrompt = `Analise os seguintes dados e extraia ${tipo === 'stores' ? 'todas as lojas/PDVs' : 'todas as empresas/prospects'} que encontrar:\n\n${textoAnalise}`;
+    const tipoTextos: Record<string, string> = {
+      stores: 'todas as lojas/PDVs',
+      prospects: 'todas as empresas/prospects',
+      produtos: 'todos os produtos fabricados'
+    };
+    const userPrompt = `Analise os seguintes dados e extraia ${tipoTextos[tipo]} que encontrar:\n\n${textoAnalise}`;
 
     console.log("🤖 Chamando IA para análise...");
     
@@ -239,7 +280,8 @@ Retorne um JSON com a seguinte estrutura:
       throw new Error("Não foi possível processar a resposta da IA. Tente novamente.");
     }
 
-    console.log(`✅ Análise concluída: ${resultado.total_encontrados} ${tipo === 'stores' ? 'lojas' : 'prospects'} encontrados`);
+    const tipoResultLabels: Record<string, string> = { stores: 'lojas', prospects: 'prospects', produtos: 'produtos' };
+    console.log(`✅ Análise concluída: ${resultado.total_encontrados} ${tipoResultLabels[tipo]} encontrados`);
 
     return new Response(
       JSON.stringify(resultado),
