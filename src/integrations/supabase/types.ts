@@ -6255,6 +6255,72 @@ export type Database = {
           },
         ]
       }
+      marketing_assets: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          lancamento_id: string | null
+          mime_type: string | null
+          nome: string
+          storage_path: string
+          tags: string[] | null
+          tamanho_bytes: number | null
+          tarefa_id: string | null
+          tipo: string
+          updated_at: string | null
+          uploaded_by: string | null
+          url_publica: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          lancamento_id?: string | null
+          mime_type?: string | null
+          nome: string
+          storage_path: string
+          tags?: string[] | null
+          tamanho_bytes?: number | null
+          tarefa_id?: string | null
+          tipo: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+          url_publica: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          lancamento_id?: string | null
+          mime_type?: string | null
+          nome?: string
+          storage_path?: string
+          tags?: string[] | null
+          tamanho_bytes?: number | null
+          tarefa_id?: string | null
+          tipo?: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+          url_publica?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_assets_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_assets_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_tarefas_marketing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_badges: {
         Row: {
           codigo: string
