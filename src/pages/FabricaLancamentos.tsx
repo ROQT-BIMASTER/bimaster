@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { 
   Calendar, Plus, Rocket, Clock, CheckCircle, AlertTriangle, List, CalendarDays, Kanban,
-  TrendingUp, ChevronLeft, ChevronRight, GitBranch
+  TrendingUp, ChevronLeft, ChevronRight, GitBranch, Package
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,6 +23,8 @@ import LaunchTimeline from "@/components/fabrica/LaunchTimeline";
 import LaunchFilters, { type LaunchFiltersState } from "@/components/fabrica/LaunchFilters";
 import MilestoneProgress from "@/components/fabrica/MilestoneProgress";
 import QuickActions from "@/components/fabrica/QuickActions";
+import ProdutosPendentesPanel from "@/components/fabrica/ProdutosPendentesPanel";
+import QuickLaunchDialog from "@/components/fabrica/QuickLaunchDialog";
 import { cn } from "@/lib/utils";
 
 type Lancamento = {
@@ -98,6 +100,16 @@ export default function FabricaLancamentos() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [activeTab, setActiveTab] = useState("calendario");
   const [filters, setFilters] = useState<LaunchFiltersState>(initialFilters);
+  
+  // Panel states
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
+  const [quickLaunchOpen, setQuickLaunchOpen] = useState(false);
+  const [selectedProduto, setSelectedProduto] = useState<{
+    id: string;
+    codigo: string;
+    nome: string;
+    foto_url: string | null;
+  } | null>(null);
 
   const { data: lancamentos, isLoading, refetch } = useQuery({
     queryKey: ["lancamentos-produtos"],
@@ -140,6 +152,22 @@ export default function FabricaLancamentos() {
 
       if (error) throw error;
       return data || [];
+    },
+  });
+
+  // Query for produtos pendentes count
+  const { data: produtosPendentes = 0 } = useQuery({
+    queryKey: ["produtos-pendentes-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("fabrica_produtos")
+        .select("id", { count: "exact", head: true })
+        .in("tipo", ["ACABADO", "INTER"])
+        .eq("status_lancamento", "pendente")
+        .eq("ativo", true);
+
+      if (error) throw error;
+      return count || 0;
     },
   });
 
@@ -232,9 +260,16 @@ export default function FabricaLancamentos() {
   // Kanban columns
   const kanbanColumns = ["planejado", "em_preparacao", "aprovado", "lancado"];
 
+  const handleQuickLaunch = (produto: { id: string; codigo: string; nome: string; foto_url: string | null }) => {
+    setSelectedProduto(produto);
+    setQuickLaunchOpen(true);
+  };
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="flex gap-6">
+        {/* Main Content */}
+        <div className="flex-1 space-y-6 min-w-0">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -255,7 +290,7 @@ export default function FabricaLancamentos() {
         </div>
 
         {/* KPIs Modernizados */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card className="overflow-hidden border-0 shadow-lg">
             <div className="h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
             <CardContent className="pt-5">
@@ -307,6 +342,25 @@ export default function FabricaLancamentos() {
               </div>
               <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground">
                 <span>Tarefas a concluir</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+            <CardContent className="pt-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Produtos Pendentes</p>
+                  <p className="text-3xl font-bold mt-1">{produtosPendentes}</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-amber-500/20 to-orange-500/10 rounded-xl">
+                  <Package className="h-6 w-6 text-amber-600" />
+                </div>
+              </div>
+              <div className="flex items-center gap-1 mt-3 text-xs text-amber-600">
+                <AlertTriangle className="h-3 w-3" />
+                <span>Aguardando lançamento</span>
               </div>
             </CardContent>
           </Card>
@@ -553,6 +607,27 @@ export default function FabricaLancamentos() {
             </Tabs>
           </CardContent>
         </Card>
+        </div>
+
+        {/* Pending Products Panel */}
+        <div className="hidden xl:block flex-shrink-0">
+          <ProdutosPendentesPanel
+            onCreateLaunch={handleQuickLaunch}
+            collapsed={panelCollapsed}
+            onToggleCollapse={() => setPanelCollapsed(!panelCollapsed)}
+          />
+        </div>
+      </div>
+
+      {/* Floating button for mobile */}
+      <div className="xl:hidden fixed bottom-20 right-4 z-50">
+        <Button
+          size="lg"
+          className="rounded-full h-14 w-14 shadow-xl bg-amber-500 hover:bg-amber-600 text-white"
+          onClick={() => setPanelCollapsed(false)}
+        >
+          <Package className="h-6 w-6" />
+        </Button>
       </div>
 
       <NovoLancamentoDialog
@@ -574,6 +649,15 @@ export default function FabricaLancamentos() {
           setDialogOpen(true);
         }}
         onRefresh={refetch}
+      />
+
+      <QuickLaunchDialog
+        open={quickLaunchOpen}
+        onOpenChange={setQuickLaunchOpen}
+        produto={selectedProduto}
+        onSuccess={() => {
+          refetch();
+        }}
       />
     </DashboardLayout>
   );

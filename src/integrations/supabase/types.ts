@@ -4700,6 +4700,7 @@ export type Database = {
           rendimento: number | null
           sku: string | null
           status: string | null
+          status_lancamento: string | null
           subcategoria: string | null
           tempo_producao_minutos: number | null
           tipo: string | null
@@ -4730,6 +4731,7 @@ export type Database = {
           rendimento?: number | null
           sku?: string | null
           status?: string | null
+          status_lancamento?: string | null
           subcategoria?: string | null
           tempo_producao_minutos?: number | null
           tipo?: string | null
@@ -4760,6 +4762,7 @@ export type Database = {
           rendimento?: number | null
           sku?: string | null
           status?: string | null
+          status_lancamento?: string | null
           subcategoria?: string | null
           tempo_producao_minutos?: number | null
           tipo?: string | null
@@ -5407,6 +5410,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fabrica_templates_lancamento: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          tarefas: Json
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          tarefas?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          tarefas?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       fabrica_timesheets: {
         Row: {
