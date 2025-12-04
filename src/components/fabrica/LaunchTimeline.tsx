@@ -42,7 +42,7 @@ const prioridadeConfig: Record<string, { color: string }> = {
 
 export default function LaunchTimeline({ lancamentos, onLancamentoClick }: LaunchTimelineProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [zoom, setZoom] = useState(2); // 1 = ano, 2 = trimestre, 3 = mês
+  const [zoom, setZoom] = useState(3); // 1 = ano, 2 = mês, 3 = semana, 4 = dia
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Calculate date range based on zoom
@@ -50,11 +50,13 @@ export default function LaunchTimeline({ lancamentos, onLancamentoClick }: Launc
     switch (zoom) {
       case 1: // Year view
         return { start: startOfYear(currentDate), end: endOfYear(currentDate) };
-      case 2: // Quarter view (3 months)
-        return { start: subMonths(startOfMonth(currentDate), 1), end: addMonths(endOfMonth(currentDate), 1) };
-      case 3: // Month view
-      default:
+      case 2: // Month view
         return { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
+      case 3: // Week view
+        return { start: subMonths(startOfMonth(currentDate), 0), end: addMonths(endOfMonth(currentDate), 0) };
+      case 4: // Day view (show 2 weeks)
+      default:
+        return { start: subMonths(startOfMonth(currentDate), 0), end: endOfMonth(currentDate) };
     }
   };
 
@@ -63,7 +65,7 @@ export default function LaunchTimeline({ lancamentos, onLancamentoClick }: Launc
   const totalDays = differenceInDays(end, start) + 1;
   
   // Calculate pixel width per day based on zoom
-  const dayWidth = zoom === 1 ? 4 : zoom === 2 ? 12 : 24;
+  const dayWidth = zoom === 1 ? 4 : zoom === 2 ? 12 : zoom === 3 ? 24 : 48;
   const timelineWidth = totalDays * dayWidth;
 
   // Position of today marker
@@ -87,7 +89,7 @@ export default function LaunchTimeline({ lancamentos, onLancamentoClick }: Launc
 
   // Simple row assignment for non-overlapping cards
   const assignedRows: { lancamento: typeof positionedLancamentos[0]; row: number }[] = [];
-  const cardWidth = zoom === 1 ? 80 : zoom === 2 ? 160 : 200;
+  const cardWidth = zoom === 1 ? 80 : zoom === 2 ? 140 : zoom === 3 ? 180 : 220;
   
   positionedLancamentos.forEach(l => {
     let row = 0;
@@ -112,7 +114,10 @@ export default function LaunchTimeline({ lancamentos, onLancamentoClick }: Launc
         setCurrentDate(subMonths(currentDate, 12));
         break;
       case 2:
-        setCurrentDate(subMonths(currentDate, 3));
+        setCurrentDate(subMonths(currentDate, 1));
+        break;
+      case 3:
+        setCurrentDate(subMonths(currentDate, 1));
         break;
       default:
         setCurrentDate(subMonths(currentDate, 1));
@@ -125,7 +130,10 @@ export default function LaunchTimeline({ lancamentos, onLancamentoClick }: Launc
         setCurrentDate(addMonths(currentDate, 12));
         break;
       case 2:
-        setCurrentDate(addMonths(currentDate, 3));
+        setCurrentDate(addMonths(currentDate, 1));
+        break;
+      case 3:
+        setCurrentDate(addMonths(currentDate, 1));
         break;
       default:
         setCurrentDate(addMonths(currentDate, 1));
@@ -141,7 +149,7 @@ export default function LaunchTimeline({ lancamentos, onLancamentoClick }: Launc
     }
   };
 
-  const zoomLabels = ["Ano", "Trimestre", "Mês"];
+  const zoomLabels = ["Ano", "Mês", "Semana", "Dia"];
 
   return (
     <div className="space-y-4">
@@ -170,13 +178,13 @@ export default function LaunchTimeline({ lancamentos, onLancamentoClick }: Launc
             <Slider
               value={[zoom]}
               min={1}
-              max={3}
+              max={4}
               step={1}
               onValueChange={(v) => setZoom(v[0])}
-              className="w-24"
+              className="w-28"
             />
             <ZoomIn className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground w-16">{zoomLabels[zoom - 1]}</span>
+            <span className="text-xs text-muted-foreground w-14">{zoomLabels[zoom - 1]}</span>
           </div>
         </div>
       </div>
