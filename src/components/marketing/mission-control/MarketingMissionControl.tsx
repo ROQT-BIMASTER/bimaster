@@ -1,18 +1,23 @@
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   LayoutDashboard, Kanban, Palette, Trophy, 
-  Bell, Settings, Rocket, RefreshCw 
+  Bell, Rocket, RefreshCw, Star, Zap, Flame, 
+  Users, CheckCircle, Sun, Crown, Award, Activity 
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { MissionControlKPIs } from "./MissionControlKPIs";
 import { LaunchTimelineVisual } from "./LaunchTimelineVisual";
 import { TeamRanking } from "./TeamRanking";
 import { SmartKanban } from "./SmartKanban";
 import { CreativeHub } from "./CreativeHub";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 
 export function MarketingMissionControl() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -84,13 +89,8 @@ export function MarketingMissionControl() {
 
         {/* Dashboard Tab */}
         <TabsContent value="dashboard" className="space-y-6 mt-0">
-          {/* KPIs */}
           <MissionControlKPIs />
-
-          {/* Timeline */}
           <LaunchTimelineVisual />
-
-          {/* Grid: Kanban Preview + Ranking */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <SmartKanban />
@@ -116,9 +116,7 @@ export function MarketingMissionControl() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <TeamRanking />
             <div className="space-y-6">
-              {/* Badges Section */}
               <BadgesShowcase />
-              {/* Recent Activity */}
               <RecentActivity />
             </div>
           </div>
@@ -176,28 +174,35 @@ function BadgesShowcase() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-5 gap-3">
-          {badges?.slice(0, 10).map(badge => (
-            <div 
-              key={badge.id}
-              className="flex flex-col items-center p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
-            >
-              <div className={cn(
-                "w-12 h-12 rounded-full flex items-center justify-center text-white mb-1",
-                "bg-gradient-to-br opacity-50 group-hover:opacity-100 transition-opacity",
-                colorMap[badge.cor] || colorMap.gold
-              )}>
-                {iconMap[badge.icone] || <Award className="h-6 w-6" />}
+        {badges && badges.length > 0 ? (
+          <div className="grid grid-cols-5 gap-3">
+            {badges.slice(0, 10).map((badge: any) => (
+              <div 
+                key={badge.id}
+                className="flex flex-col items-center p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+              >
+                <div className={cn(
+                  "w-12 h-12 rounded-full flex items-center justify-center text-white mb-1",
+                  "bg-gradient-to-br opacity-50 group-hover:opacity-100 transition-opacity",
+                  colorMap[badge.cor] || colorMap.gold
+                )}>
+                  {iconMap[badge.icone] || <Award className="h-6 w-6" />}
+                </div>
+                <span className="text-[10px] text-center font-medium line-clamp-1">
+                  {badge.nome}
+                </span>
+                <span className="text-[8px] text-muted-foreground">
+                  {badge.pontos_necessarios}pts
+                </span>
               </div>
-              <span className="text-[10px] text-center font-medium line-clamp-1">
-                {badge.nome}
-              </span>
-              <span className="text-[8px] text-muted-foreground">
-                {badge.pontos_necessarios}pts
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            <Award className="h-10 w-10 mx-auto mb-2 opacity-50" />
+            <p>Nenhuma conquista disponível</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -248,7 +253,8 @@ function RecentActivity() {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground text-sm">
-              Nenhuma atividade recente
+              <Activity className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              <p>Nenhuma atividade recente</p>
             </div>
           )}
         </ScrollArea>
@@ -256,13 +262,3 @@ function RecentActivity() {
     </Card>
   );
 }
-
-// Import missing components
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  Star, Zap, Flame, Users, CheckCircle, Sun, Crown, Award, Activity 
-} from "lucide-react";
-import { cn } from "@/lib/utils";
