@@ -24,23 +24,16 @@ let globalAuthCache: {
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  // Inicializar approved com cache do localStorage para evitar flash
   const [session, setSession] = useState<Session | null>(null);
-  const [approved, setApproved] = useState(false);
+  const [approved, setApproved] = useState(() => {
+    // Inicializar com cache para usuários já aprovados
+    return localStorage.getItem("user_approved_cache") === "true";
+  });
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const isMountedRef = useRef(true);
-
-  // Timeout de segurança - garante que loading nunca fica infinito
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (isMountedRef.current && loading) {
-        console.log("[AuthContext] Safety timeout triggered - forcing loading to false");
-        setLoading(false);
-      }
-    }, 8000);
-    
-    return () => clearTimeout(timeout);
-  }, [loading]);
+  const hasCheckedRef = useRef(false);
 
   // Monitor online status
   useEffect(() => {
@@ -59,7 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchApprovalStatus = useCallback(async (userId: string, forceRefresh = false) => {
     const now = Date.now();
 
-    // Verificar cache
+    // Verificar cache global
     if (
       !forceRefresh &&
       globalAuthCache &&
@@ -69,9 +62,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return globalAuthCache.approved;
     }
 
-    // Verificar localStorage cache primeiro (para offline)
+    // Verificar localStorage cache (para resposta rápida)
     const cachedApproval = localStorage.getItem("user_approved_cache");
-    if (!isOnline && cachedApproval === "true") {
+    if (!forceRefresh && cachedApproval === "true") {
+      // Retornar cache imediatamente, mas verificar em background
+      globalAuthCache = {
+        userId,
+        approved: true,
+        timestamp: now,
+      };
       return true;
     }
 
@@ -84,6 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error("[AuthContext] Erro ao buscar aprovação:", error);
+        // Em caso de erro, confiar no cache
         return cachedApproval === "true";
       }
 
@@ -107,9 +107,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("[AuthContext] Erro ao verificar aprovação:", error);
       return cachedApproval === "true";
     }
-  }, [isOnline]);
+  }, []);
 
   const checkAuth = useCallback(async (forceRefresh = false) => {
+    // Evitar múltiplas verificações simultâneas
+    if (hasCheckedRef.current && !forceRefresh) {
+      return;
+    }
+    
     try {
       console.log("[AuthContext] Iniciando checkAuth");
       
@@ -132,12 +137,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (currentSession?.user) {
         setSession(currentSession);
         const isApproved = await fetchApprovalStatus(currentSession.user.id, forceRefresh);
-        setApproved(isApproved);
+        if (isMountedRef.current) {
+          setApproved(isApproved);
+        }
       } else {
         setSession(null);
         setApproved(false);
         globalAuthCache = null;
+        localStorage.removeItem("user_approved_cache");
       }
+      
+      hasCheckedRef.current = true;
     } catch (error) {
       console.error("[AuthContext] Erro ao verificar auth:", error);
       // Fallback para cache offline
@@ -146,7 +156,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setApproved(localStorage.getItem("user_approved_cache") === "true");
       } else {
         setSession(null);
-        setApproved(false);
+        // Manter approved do cache se já estava true
+        if (localStorage.getItem("user_approved_cache") !== "true") {
+          setApproved(false);
+        }
       }
     } finally {
       if (isMountedRef.current) {
@@ -158,19 +171,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     isMountedRef.current = true;
+    hasCheckedRef.current = false;
     
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!isMountedRef.current) return;
       
+      console.log("[AuthContext] Auth state change:", event);
+      
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         setSession(newSession);
         if (newSession?.user) {
+          // Para SIGNED_IN após login, forçar verificação
+          const shouldForce = event === "SIGNED_IN";
+          
           // Defer to avoid deadlock
           setTimeout(async () => {
             try {
-              const isApproved = await fetchApprovalStatus(newSession.user.id, true);
+              const isApproved = await fetchApprovalStatus(newSession.user.id, shouldForce);
               if (isMountedRef.current) {
                 setApproved(isApproved);
                 setLoading(false);
@@ -187,6 +206,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(null);
         setApproved(false);
         globalAuthCache = null;
+        hasCheckedRef.current = false;
         localStorage.removeItem("user_approved_cache");
         localStorage.removeItem("user_role_cache");
         setLoading(false);
@@ -201,6 +221,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshAuth = useCallback(async () => {
     globalAuthCache = null;
+    hasCheckedRef.current = false;
     await checkAuth(true);
   }, [checkAuth]);
 
