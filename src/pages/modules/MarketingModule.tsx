@@ -1,234 +1,268 @@
-import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { BarChart3, Users, TrendingUp, Activity, Eye } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  BarChart3, 
+  MessageSquare, 
+  Calendar, 
+  Image, 
+  ArrowRight,
+  LineChart,
+  Brain,
+  Users,
+  Activity,
+  Sparkles,
+  Eye,
+  Send
+} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const MarketingModule = () => {
-  const [stats, setStats] = useState({
-    totalCampanhas: 0,
-    campanhasAtivas: 0,
-    totalAlcance: 0,
-    taxaEngajamento: 0,
-  });
-  const [engagementData, setEngagementData] = useState<any[]>([]);
-  const [socialData, setSocialData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: stats } = useQuery({
+    queryKey: ['marketing-module-stats'],
+    queryFn: async () => {
+      const [postsRes, conversasRes] = await Promise.all([
+        supabase.from("social_media_posts").select("*", { count: "exact", head: true }),
+        supabase.from("whatsapp_conversations").select("*", { count: "exact", head: true })
+      ]);
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Estatísticas simuladas (enquanto não há integração completa)
-      setStats({
-        totalCampanhas: 45,
-        campanhasAtivas: 12,
-        totalAlcance: 15420,
-        taxaEngajamento: 7.8,
-      });
-
-      // Dados de engajamento por plataforma (simulado)
-      const platformEngagement = [
-        { name: 'Instagram', value: 4850 },
-        { name: 'Facebook', value: 3220 },
-        { name: 'LinkedIn', value: 2150 },
-        { name: 'Twitter', value: 1680 },
-      ];
-
-      setEngagementData(platformEngagement);
-
-      // Dados de crescimento nos últimos 7 dias (simulado)
-      const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (6 - i));
-        return {
-          name: date.toLocaleDateString('pt-BR', { weekday: 'short' }),
-          alcance: Math.floor(Math.random() * 1000) + 500,
-          engajamento: Math.floor(Math.random() * 200) + 100,
-        };
-      });
-
-      setSocialData(last7Days);
-    } catch (error) {
-      console.error("Erro ao carregar estatísticas:", error);
-    } finally {
-      setLoading(false);
+      return {
+        totalPosts: postsRes.count || 0,
+        conversasWhatsApp: conversasRes.count || 0,
+        campanhasAtivas: 12, // Simulado
+        alcanceTotal: 15420 // Simulado
+      };
     }
-  };
+  });
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <BarChart3 className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-3xl font-bold">Módulo de Marketing</h1>
-            <p className="text-muted-foreground">
-              Gestão completa de campanhas e redes sociais
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold">Marketing Digital</h1>
+          <p className="text-muted-foreground mt-1">
+            Gestão completa de campanhas, redes sociais e comunicação
+          </p>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* KPIs */}
+        <div className="grid gap-4 md:grid-cols-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Campanhas</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Posts Agendados</CardTitle>
+              <Send className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.totalPosts || 0}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Campanhas Ativas</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalCampanhas}</div>
-              <p className="text-xs text-muted-foreground">
-                Publicações criadas
-              </p>
+              <div className="text-2xl font-bold text-blue-600">{stats?.campanhasAtivas || 0}</div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Campanhas Ativas</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Conversas WhatsApp</CardTitle>
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.campanhasAtivas}</div>
-              <p className="text-xs text-muted-foreground">
-                Agendadas e ativas
-              </p>
+              <div className="text-2xl font-bold text-green-600">{stats?.conversasWhatsApp || 0}</div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Alcance Total</CardTitle>
               <Eye className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.totalAlcance.toLocaleString('pt-BR')}
+              <div className="text-2xl font-bold text-purple-600">
+                {(stats?.alcanceTotal || 0).toLocaleString('pt-BR')}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Pessoas alcançadas
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Taxa de Engajamento</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.taxaEngajamento}%</div>
-              <p className="text-xs text-muted-foreground">
-                Média de interação
-              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Gráficos */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Engajamento por Plataforma</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={engagementData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="hsl(var(--primary))" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Crescimento - Últimos 7 Dias</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={socialData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="alcance" stroke="hsl(var(--primary))" strokeWidth={2} />
-                  <Line type="monotone" dataKey="engajamento" stroke="hsl(var(--secondary))" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Acesso Rápido</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Redes Sociais e Conteúdo */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Redes Sociais e Conteúdo</h2>
+          <div className="grid gap-4 md:grid-cols-4">
             <Link to="/dashboard/marketing/social">
-              <Button variant="outline" className="w-full justify-start">
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Dashboards & IA
-              </Button>
+              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Dashboards Social</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    Métricas e relatórios de redes sociais
+                  </p>
+                  <div className="mt-2 flex items-center text-xs text-primary">
+                    Visualizar <ArrowRight className="h-3 w-3 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
             </Link>
-            <Link to="/dashboard/marketing/whatsapp">
-              <Button variant="outline" className="w-full justify-start">
-                <Activity className="mr-2 h-4 w-4" />
-                WhatsApp
-              </Button>
-            </Link>
-            <Button variant="outline" className="w-full justify-start" disabled>
-              <Users className="mr-2 h-4 w-4" />
-              Redes Sociais
-            </Button>
-            <Button variant="outline" className="w-full justify-start" disabled>
-              <TrendingUp className="mr-2 h-4 w-4" />
-              Relatórios
-            </Button>
-          </CardContent>
-        </Card>
 
-        {/* Informações Adicionais */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recursos do Módulo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <h3 className="font-semibold mb-2">Relatórios Integrados</h3>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Instagram Analytics</li>
-                  <li>• DashCortex Reports</li>
-                  <li>• Power BI Dashboards</li>
-                  <li>• Análise de Sentimentos</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">Monitoramento</h3>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• WhatsApp Business</li>
-                  <li>• Conversas em tempo real</li>
-                  <li>• Agente IA conversacional</li>
-                  <li>• Métricas de atendimento</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="opacity-50 cursor-not-allowed h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Calendário Editorial</CardTitle>
+                <Calendar className="h-4 w-4 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Planejamento de conteúdo
+                </p>
+                <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                  Em breve
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="opacity-50 cursor-not-allowed h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Gerador de Imagens</CardTitle>
+                <Image className="h-4 w-4 text-purple-600" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Criação de imagens com IA
+                </p>
+                <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                  Em breve
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="opacity-50 cursor-not-allowed h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Monitoramento</CardTitle>
+                <Users className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Monitoramento de menções
+                </p>
+                <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                  Em breve
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* WhatsApp e Comunicação */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">WhatsApp e Comunicação</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Link to="/dashboard/marketing/whatsapp">
+              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">WhatsApp Business</CardTitle>
+                  <MessageSquare className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    Gestão de conversas e atendimento
+                  </p>
+                  <div className="mt-2 flex items-center text-xs text-primary">
+                    Acessar <ArrowRight className="h-3 w-3 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Card className="opacity-50 cursor-not-allowed h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Agente IA</CardTitle>
+                <Brain className="h-4 w-4 text-purple-600" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Agente conversacional inteligente
+                </p>
+                <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                  Em breve
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="opacity-50 cursor-not-allowed h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Análise de Sentimento</CardTitle>
+                <Sparkles className="h-4 w-4 text-indigo-600" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Análise de sentimento com IA
+                </p>
+                <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                  Em breve
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Analytics e BI */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Analytics e Business Intelligence</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="opacity-50 cursor-not-allowed h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">DashCortex Reports</CardTitle>
+                <LineChart className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Relatórios avançados DashCortex
+                </p>
+                <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                  Em breve
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="opacity-50 cursor-not-allowed h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Power BI</CardTitle>
+                <BarChart3 className="h-4 w-4 text-yellow-600" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Dashboards Power BI integrados
+                </p>
+                <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                  Em breve
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="opacity-50 cursor-not-allowed h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Looker Studio</CardTitle>
+                <Activity className="h-4 w-4 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Relatórios Looker Studio
+                </p>
+                <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                  Em breve
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
       </div>
     </DashboardLayout>
   );
