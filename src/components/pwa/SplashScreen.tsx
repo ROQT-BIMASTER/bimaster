@@ -9,37 +9,26 @@ interface SplashScreenProps {
 }
 
 export function SplashScreen({ progress, status, onComplete }: SplashScreenProps) {
-  const [visible, setVisible] = useState(true);
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
     if (progress >= 100) {
-      // Aguardar um pouco antes de iniciar fade out
-      const fadeTimer = setTimeout(() => {
-        setFadeOut(true);
+      // Iniciar fade out imediato
+      setFadeOut(true);
+      
+      // Chamar onComplete após animação
+      const timer = setTimeout(() => {
+        onComplete?.();
       }, 500);
 
-      // Remover completamente após animação
-      const removeTimer = setTimeout(() => {
-        setVisible(false);
-        onComplete?.();
-      }, 1000);
-
-      return () => {
-        clearTimeout(fadeTimer);
-        clearTimeout(removeTimer);
-      };
+      return () => clearTimeout(timer);
     }
   }, [progress, onComplete]);
-
-  if (!visible) {
-    return null;
-  }
 
   return (
     <div 
       className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background transition-opacity duration-500 ${
-        fadeOut ? 'opacity-0' : 'opacity-100'
+        fadeOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
       {/* Background gradient */}
@@ -47,7 +36,7 @@ export function SplashScreen({ progress, status, onComplete }: SplashScreenProps
       
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center px-8 max-w-md w-full">
-        {/* Logo com animação de pulse */}
+        {/* Logo */}
         <div className="mb-8 relative">
           <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse" />
           <img 
@@ -67,35 +56,20 @@ export function SplashScreen({ progress, status, onComplete }: SplashScreenProps
         
         {/* Progress bar */}
         <div className="w-full space-y-3">
-          <Progress 
-            value={progress} 
-            className="h-2 bg-muted"
-          />
+          <Progress value={progress} className="h-2 bg-muted" />
           
-          {/* Status e percentual */}
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span className="truncate mr-4">{status}</span>
             <span className="font-medium tabular-nums">{Math.round(progress)}%</span>
           </div>
         </div>
         
-        {/* Indicador de loading */}
+        {/* Loading dots */}
         {progress < 100 && (
-          <div className="mt-8 flex items-center gap-2">
-            <div className="flex gap-1">
-              <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
-            </div>
-          </div>
-        )}
-        
-        {/* Mensagem de sucesso */}
-        {progress >= 100 && (
-          <div className="mt-8 text-center animate-fade-in">
-            <p className="text-sm text-primary font-medium">
-              ✓ Pronto!
-            </p>
+          <div className="mt-8 flex gap-1">
+            <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
         )}
       </div>
