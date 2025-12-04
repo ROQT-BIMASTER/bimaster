@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -22,6 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useMutationWithTimeout } from "@/hooks/useMutationWithTimeout";
 
 interface Props {
   open: boolean;
@@ -154,7 +155,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
     }
   }, [produtoEdit, open]);
 
-  const salvarMutation = useMutation({
+  const salvarMutation = useMutationWithTimeout({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
@@ -188,7 +189,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
       };
 
       if (produtoEdit) {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("fabrica_produtos")
           .update(payload)
           .eq("id", produtoEdit.id)
@@ -196,7 +197,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
 
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("fabrica_produtos")
           .insert([payload])
           .select();
@@ -204,14 +205,12 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         if (error) throw error;
       }
     },
+    timeout: 15000,
+    invalidateKeys: [["fabrica-produtos-acabados"], ["fabrica-produtos"]],
+    successMessage: produtoEdit ? "Produto atualizado!" : "Produto cadastrado com sucesso!",
     onSuccess: () => {
-      toast.success(produtoEdit ? "Produto atualizado!" : "Produto cadastrado com sucesso!");
       onSuccess();
       onOpenChange(false);
-    },
-    onError: (error: any) => {
-      console.error("Erro ao salvar produto:", error);
-      toast.error("Erro ao salvar: " + (error.message || "Erro desconhecido"));
     },
   });
 
