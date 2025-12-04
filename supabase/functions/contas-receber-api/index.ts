@@ -6,7 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-const BATCH_SIZE = 50; // Processar 50 registros por vez para não sobrecarregar
+const BATCH_SIZE = 100; // Processar 100 registros por vez (otimizado para n8n com 50 itens)
+const MAX_PAYLOAD_SIZE = 500; // Máximo de registros por chamada para evitar timeout
+const QUERY_BATCH_SIZE = 200; // Lote para consultas de existentes
 
 // Calcular hash MD5 dos dados para detectar alterações
 async function calculateHash(data: any): Promise<string> {
@@ -171,7 +173,7 @@ Deno.serve(async (req) => {
 
     console.log(`[contas-receber-api] ${req.method} ${path}`);
 
-    // POST /sync - Sincronizar dados do n8n (otimizado para grandes volumes)
+    // POST /sync - Sincronizar dados do n8n (otimizado para lotes de ~50 itens do N8N)
     if (path.endsWith('/sync') && req.method === 'POST') {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
@@ -185,30 +187,65 @@ Deno.serve(async (req) => {
       }
 
       const startTime = Date.now();
-      const { contas } = await req.json();
-
-      if (!contas || !Array.isArray(contas)) {
-        console.error('[contas-receber-api] Invalid payload - contas is not an array');
-        return new Response(JSON.stringify({ error: 'Invalid payload' }), {
+      
+      // Parse JSON com limite de tamanho para evitar memory overflow
+      let body;
+      try {
+        const text = await req.text();
+        console.log(`[contas-receber-api] Received payload size: ${text.length} bytes`);
+        body = JSON.parse(text);
+      } catch (parseError) {
+        console.error('[contas-receber-api] JSON parse error:', parseError);
+        return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      console.log(`[contas-receber-api] Processing ${contas.length} records in batches of ${BATCH_SIZE}`);
+      const contas = body.contas;
 
-      // Coletar todos os erp_ids para buscar existentes de uma vez
-      const erpIds = contas.map(generateErpId);
+      if (!contas || !Array.isArray(contas)) {
+        console.error('[contas-receber-api] Invalid payload - contas is not an array');
+        return new Response(JSON.stringify({ error: 'Invalid payload - contas must be array' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Limitar tamanho do payload para evitar timeout/memory issues
+      if (contas.length > MAX_PAYLOAD_SIZE) {
+        console.warn(`[contas-receber-api] Payload too large: ${contas.length} records (max: ${MAX_PAYLOAD_SIZE})`);
+        return new Response(JSON.stringify({ 
+          error: `Payload muito grande. Máximo: ${MAX_PAYLOAD_SIZE} registros. Recebido: ${contas.length}. Use o endpoint /sync-chunk para lotes menores.`,
+          max_allowed: MAX_PAYLOAD_SIZE,
+          received: contas.length
+        }), {
+          status: 413,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      console.log(`[contas-receber-api] Processing ${contas.length} records`);
+
+      // Gerar erp_ids de forma eficiente
+      const erpIds: string[] = [];
+      for (const conta of contas) {
+        erpIds.push(generateErpId(conta));
+      }
       
-      // Buscar registros existentes em lotes para não sobrecarregar
+      // Buscar registros existentes (otimizado para lotes pequenos ~50)
       const existingHashMap = new Map<string, { id: string; hash: string }>();
       
-      for (let i = 0; i < erpIds.length; i += 500) {
-        const batchIds = erpIds.slice(i, i + 500);
-        const { data: existingRecords } = await supabase
+      for (let i = 0; i < erpIds.length; i += QUERY_BATCH_SIZE) {
+        const batchIds = erpIds.slice(i, i + QUERY_BATCH_SIZE);
+        const { data: existingRecords, error: queryError } = await supabase
           .from('contas_receber')
           .select('id, erp_id, data_hash')
           .in('erp_id', batchIds);
+        
+        if (queryError) {
+          console.error('[contas-receber-api] Query error:', queryError);
+        }
         
         existingRecords?.forEach((record: any) => {
           existingHashMap.set(record.erp_id, { id: record.id, hash: record.data_hash });
@@ -217,66 +254,43 @@ Deno.serve(async (req) => {
 
       console.log(`[contas-receber-api] Found ${existingHashMap.size} existing records`);
 
-      let totalInserted = 0;
-      let totalUpdated = 0;
-      let totalSkipped = 0;
-      const allErrors: any[] = [];
-
-      // Processar em lotes menores
-      for (let i = 0; i < contas.length; i += BATCH_SIZE) {
-        const batch = contas.slice(i, i + BATCH_SIZE);
-        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-        const totalBatches = Math.ceil(contas.length / BATCH_SIZE);
-        
-        console.log(`[contas-receber-api] Processing batch ${batchNum}/${totalBatches}`);
-        
-        const { inserted, updated, skipped, errors } = await processBatch(
-          supabase, 
-          batch, 
-          existingHashMap
-        );
-        
-        totalInserted += inserted;
-        totalUpdated += updated;
-        totalSkipped += skipped;
-        allErrors.push(...errors);
-        
-        // Pequena pausa entre lotes para liberar memória
-        if (i + BATCH_SIZE < contas.length) {
-          await new Promise(resolve => setTimeout(resolve, 10));
-        }
-      }
+      // Processar tudo em um único batch (já que n8n envia ~50 por vez)
+      const { inserted, updated, skipped, errors } = await processBatch(
+        supabase, 
+        contas, 
+        existingHashMap
+      );
 
       const duration = Date.now() - startTime;
 
-      // Registrar estatísticas de sincronização
+      // Registrar estatísticas de sincronização (fire and forget)
       const empresaId = contas[0] ? contas[0]['ID Empresa'] : null;
-      await supabase.from('sync_control').insert({
+      void supabase.from('sync_control').insert({
         entidade: 'contas_receber',
         empresa_id: empresaId,
         ultima_sync: new Date().toISOString(),
         total_registros: contas.length,
-        registros_inseridos: totalInserted,
-        registros_atualizados: totalUpdated,
-        registros_ignorados: totalSkipped,
+        registros_inseridos: inserted,
+        registros_atualizados: updated,
+        registros_ignorados: skipped,
         duracao_ms: duration,
-        status: allErrors.length === 0 ? 'success' : 'partial',
-        erro_mensagem: allErrors.length > 0 ? JSON.stringify(allErrors.slice(0, 10)) : null
+        status: errors.length === 0 ? 'success' : 'partial',
+        erro_mensagem: errors.length > 0 ? JSON.stringify(errors.slice(0, 5)) : null
       });
 
-      console.log(`[contas-receber-api] Sync completed: ${totalInserted} inserted, ${totalUpdated} updated, ${totalSkipped} skipped, ${allErrors.length} errors in ${duration}ms`);
+      console.log(`[contas-receber-api] Sync completed: ${inserted} inserted, ${updated} updated, ${skipped} skipped, ${errors.length} errors in ${duration}ms`);
 
       return new Response(JSON.stringify({
         success: true,
         statistics: {
           total_received: contas.length,
-          inserted: totalInserted,
-          updated: totalUpdated,
-          skipped: totalSkipped,
-          errors: allErrors.length
+          inserted,
+          updated,
+          skipped,
+          errors: errors.length
         },
         duration_ms: duration,
-        message: `Processado: ${totalInserted} novos, ${totalUpdated} atualizados, ${totalSkipped} inalterados`
+        message: `OK: ${inserted} novos, ${updated} atualizados, ${skipped} inalterados`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
