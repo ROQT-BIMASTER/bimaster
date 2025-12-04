@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Progress } from '@/components/ui/progress';
 import logoUnion from '@/assets/logo-union.png';
 
@@ -10,24 +10,27 @@ interface SplashScreenProps {
 
 export function SplashScreen({ progress, status, onComplete }: SplashScreenProps) {
   const [fadeOut, setFadeOut] = useState(false);
+  const [shouldRender, setShouldRender] = useState(true);
 
   useEffect(() => {
-    if (progress >= 100) {
-      // Iniciar fade out imediato
+    if (progress >= 100 && !fadeOut) {
       setFadeOut(true);
       
-      // Chamar onComplete após animação
+      // Chamar onComplete após animação mais curta
       const timer = setTimeout(() => {
+        setShouldRender(false);
         onComplete?.();
-      }, 500);
+      }, 300);
 
       return () => clearTimeout(timer);
     }
-  }, [progress, onComplete]);
+  }, [progress, fadeOut, onComplete]);
+
+  if (!shouldRender) return null;
 
   return (
     <div 
-      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background transition-opacity duration-300 ${
         fadeOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >

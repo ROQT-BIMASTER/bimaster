@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, useRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,9 +12,9 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ClienteProtectedRoute } from "@/components/auth/ClienteProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
+import { PWAProvider, usePWA } from "@/contexts/PWAContext";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { SplashScreen } from "@/components/pwa/SplashScreen";
-import { usePWA } from "@/hooks/usePWA";
 
 // Lazy load das páginas para otimizar bundle
 const Index = lazy(() => import("./pages/Index"));
@@ -121,24 +121,38 @@ const queryClient = new QueryClient({
 function AppContent() {
   const { installProgress, installStatus } = usePWA();
   const [showSplash, setShowSplash] = useState(() => {
-    // Mostrar splash apenas na primeira visita da sessão
     const hasShownSplash = sessionStorage.getItem('splashShown');
     return !hasShownSplash;
   });
+  
+  const splashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasCompletedRef = useRef(false);
 
   const handleSplashComplete = () => {
+    if (hasCompletedRef.current) return;
+    hasCompletedRef.current = true;
     setShowSplash(false);
     sessionStorage.setItem('splashShown', 'true');
+    if (splashTimeoutRef.current) {
+      clearTimeout(splashTimeoutRef.current);
+      splashTimeoutRef.current = null;
+    }
   };
 
   // Timeout de segurança - garante que splash sempre fecha
   useEffect(() => {
-    if (showSplash) {
-      const timeout = setTimeout(() => {
+    if (showSplash && !splashTimeoutRef.current && !hasCompletedRef.current) {
+      splashTimeoutRef.current = setTimeout(() => {
         handleSplashComplete();
-      }, 3000); // Máximo 3 segundos
-      return () => clearTimeout(timeout);
+      }, 3000);
     }
+    
+    return () => {
+      if (splashTimeoutRef.current) {
+        clearTimeout(splashTimeoutRef.current);
+        splashTimeoutRef.current = null;
+      }
+    };
   }, [showSplash]);
 
   return (
@@ -309,15 +323,17 @@ const App = () => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <PermissionsProvider>
-            <TooltipProvider delayDuration={0}>
-              <Toaster />
-              <Sonner />
-              <AppContent />
-            </TooltipProvider>
-          </PermissionsProvider>
-        </AuthProvider>
+        <PWAProvider>
+          <AuthProvider>
+            <PermissionsProvider>
+              <TooltipProvider delayDuration={0}>
+                <Toaster />
+                <Sonner />
+                <AppContent />
+              </TooltipProvider>
+            </PermissionsProvider>
+          </AuthProvider>
+        </PWAProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
