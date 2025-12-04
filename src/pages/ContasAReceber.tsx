@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, ArrowLeft } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, ArrowLeft, Building2, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
@@ -44,13 +46,13 @@ interface ContaReceber {
 export default function ContasAReceber() {
   const [searchCliente, setSearchCliente] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterEmpresa, setFilterEmpresa] = useState<string>("all");
+  const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
   const [filterAno, setFilterAno] = useState<string>(new Date().getFullYear().toString());
   const [filterMes, setFilterMes] = useState<string>("all");
 
   // Query contas a receber
   const { data: contas, isLoading } = useQuery<ContaReceber[]>({
-    queryKey: ['contas-receber', searchCliente, filterStatus, filterEmpresa, filterAno, filterMes],
+    queryKey: ['contas-receber', searchCliente, filterStatus, filterEmpresas, filterAno, filterMes],
     queryFn: async () => {
       let query = supabase
         .from('contas_receber' as any)
@@ -65,8 +67,8 @@ export default function ContasAReceber() {
         query = query.eq('status', filterStatus);
       }
 
-      if (filterEmpresa !== 'all') {
-        query = query.eq('empresa_id', parseInt(filterEmpresa));
+      if (filterEmpresas.length > 0) {
+        query = query.in('empresa_id', filterEmpresas);
       }
 
       // Filtro por ano
@@ -297,17 +299,54 @@ export default function ContasAReceber() {
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Empresa</label>
-                <Select value={filterEmpresa} onValueChange={setFilterEmpresa}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Empresa" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    {empresas.map(emp => (
-                      <SelectItem key={emp.id} value={emp.id.toString()}>{emp.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        {filterEmpresas.length === 0 
+                          ? "Todas" 
+                          : filterEmpresas.length === 1 
+                            ? empresas.find(e => e.id === filterEmpresas[0])?.nome || "1 empresa"
+                            : `${filterEmpresas.length} empresas`}
+                      </div>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0" align="start">
+                    <div className="p-2 border-b">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={() => setFilterEmpresas([])}
+                      >
+                        <CheckCircle className={`mr-2 h-4 w-4 ${filterEmpresas.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
+                        Todas as empresas
+                      </Button>
+                    </div>
+                    <div className="max-h-[200px] overflow-auto p-2 space-y-1">
+                      {empresas.map(emp => (
+                        <div key={emp.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                          <Checkbox
+                            id={`receber-emp-${emp.id}`}
+                            checked={filterEmpresas.includes(emp.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFilterEmpresas([...filterEmpresas, emp.id]);
+                              } else {
+                                setFilterEmpresas(filterEmpresas.filter(id => id !== emp.id));
+                              }
+                            }}
+                          />
+                          <label htmlFor={`receber-emp-${emp.id}`} className="text-sm cursor-pointer flex-1">
+                            {emp.nome}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div>
