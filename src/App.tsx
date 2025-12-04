@@ -261,6 +261,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica/operadores" element={<ProtectedRoute><FabricaOperadores /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/produtos-acabados" element={<ProtectedRoute><FabricaProdutosAcabados /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/produtos/importar" element={<ProtectedRoute><ImportarProdutosAcabados /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/lancamentos" element={<ProtectedRoute><FabricaLancamentos /></ProtectedRoute>} />
 
             {/* Módulo de Tabelas de Preços */}
             <Route path="/dashboard/precos" element={<ProtectedRoute><TabelasPrecosModule /></ProtectedRoute>} />
