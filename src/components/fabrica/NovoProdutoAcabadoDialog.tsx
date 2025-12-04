@@ -66,6 +66,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
     foto_url: "",
     status: "ativo",
     ativo: true,
+    origem: "nacional",
   });
 
   const { data: formulas } = useQuery({
@@ -124,6 +125,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         foto_url: produtoEdit.foto_url || "",
         status: produtoEdit.status || "ativo",
         ativo: produtoEdit.ativo ?? true,
+        origem: produtoEdit.origem || "nacional",
       });
     } else if (!produtoEdit && open) {
       setFormData({
@@ -151,6 +153,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         foto_url: "",
         status: "ativo",
         ativo: true,
+        origem: "nacional",
       });
     }
   }, [produtoEdit, open]);
@@ -185,6 +188,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         foto_url: formData.foto_url.trim() || null,
         status: formData.status,
         ativo: formData.ativo,
+        origem: formData.origem,
         created_by: user.id,
       };
 
@@ -342,7 +346,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
 
             {/* Aba Classificação */}
             <TabsContent value="classificacao" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="tipo">Tipo de Produto</Label>
                   <Select
@@ -358,6 +362,25 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                       <SelectItem value="MP">Matéria-Prima</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="origem">Origem *</Label>
+                  <Select
+                    value={formData.origem}
+                    onValueChange={(value) => setFormData({ ...formData, origem: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nacional">Nacional</SelectItem>
+                      <SelectItem value="importado">Importado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Afeta o cálculo de custos e impostos
+                  </p>
                 </div>
 
                 <div>

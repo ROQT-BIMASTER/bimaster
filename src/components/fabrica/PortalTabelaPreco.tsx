@@ -81,7 +81,7 @@ export function PortalTabelaPreco({ cnpj }: Props) {
       const produtoIds = [...new Set(data.map(d => d.produto_id))];
       const { data: produtos, error: produtosError } = await supabase
         .from("fabrica_produtos")
-        .select("id, codigo, nome, tipo")
+        .select("id, codigo, nome, tipo, origem")
         .in("id", produtoIds);
 
       if (produtosError) throw produtosError;
@@ -248,6 +248,7 @@ export function PortalTabelaPreco({ cnpj }: Props) {
                         <TableHead>Código</TableHead>
                         <TableHead>Produto</TableHead>
                         <TableHead>Tipo</TableHead>
+                        <TableHead>Origem</TableHead>
                         <TableHead className="text-right">Custo Base</TableHead>
                         <TableHead className="text-right">Preço Final</TableHead>
                         <TableHead className="text-right">Margem</TableHead>
@@ -266,6 +267,11 @@ export function PortalTabelaPreco({ cnpj }: Props) {
                             <Badge variant="outline">
                               {preco.produto?.tipo === "ACABADO" ? "Acabado" : 
                                preco.produto?.tipo === "INTER" ? "Intermediário" : "MP"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={preco.produto?.origem === 'importado' ? 'destructive' : 'secondary'}>
+                              {preco.produto?.origem === 'importado' ? 'Importado' : 'Nacional'}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">

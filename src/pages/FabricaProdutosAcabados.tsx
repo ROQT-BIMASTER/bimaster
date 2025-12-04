@@ -145,7 +145,7 @@ export default function FabricaProdutosAcabados() {
         </div>
 
         {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
@@ -182,6 +182,30 @@ export default function FabricaProdutosAcabados() {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Nacionais</CardTitle>
+              <Package className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {produtos?.filter((p) => p.origem === "nacional" || !p.origem).length || 0}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Importados</CardTitle>
+              <Package className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">
+                {produtos?.filter((p) => p.origem === "importado").length || 0}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Busca */}
@@ -215,6 +239,7 @@ export default function FabricaProdutosAcabados() {
                     <TableHead>Código</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Tipo</TableHead>
+                    <TableHead>Origem</TableHead>
                     <TableHead>Fórmula</TableHead>
                     <TableHead>Unidade</TableHead>
                     <TableHead>Status</TableHead>
@@ -229,6 +254,11 @@ export default function FabricaProdutosAcabados() {
                       <TableCell>
                         <Badge variant="outline">
                           {tipoLabels[produto.tipo as keyof typeof tipoLabels]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={produto.origem === 'importado' ? 'destructive' : 'secondary'}>
+                          {produto.origem === 'importado' ? 'Importado' : 'Nacional'}
                         </Badge>
                       </TableCell>
                       <TableCell>

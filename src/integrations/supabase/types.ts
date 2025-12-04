@@ -4855,6 +4855,7 @@ export type Database = {
           modelo: string | null
           nome: string
           nome_comercial: string | null
+          origem: string | null
           rendimento: number | null
           sku: string | null
           status: string | null
@@ -4886,6 +4887,7 @@ export type Database = {
           modelo?: string | null
           nome: string
           nome_comercial?: string | null
+          origem?: string | null
           rendimento?: number | null
           sku?: string | null
           status?: string | null
@@ -4917,6 +4919,7 @@ export type Database = {
           modelo?: string | null
           nome?: string
           nome_comercial?: string | null
+          origem?: string | null
           rendimento?: number | null
           sku?: string | null
           status?: string | null
