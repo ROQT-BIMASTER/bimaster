@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -10,15 +10,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { 
   Calendar, Plus, Rocket, Clock, CheckCircle, AlertTriangle, List, CalendarDays, Kanban,
-  TrendingUp, ChevronLeft, ChevronRight
+  TrendingUp, ChevronLeft, ChevronRight, GitBranch
 } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import NovoLancamentoDialog from "@/components/fabrica/NovoLancamentoDialog";
 import LancamentoDetailDialog from "@/components/fabrica/LancamentoDetailDialog";
 import LaunchCard from "@/components/fabrica/LaunchCard";
 import CountdownBadge from "@/components/fabrica/CountdownBadge";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
+import LaunchTimeline from "@/components/fabrica/LaunchTimeline";
+import LaunchFilters, { type LaunchFiltersState } from "@/components/fabrica/LaunchFilters";
+import MilestoneProgress from "@/components/fabrica/MilestoneProgress";
+import QuickActions from "@/components/fabrica/QuickActions";
 import { cn } from "@/lib/utils";
 
 type Lancamento = {
@@ -77,6 +81,15 @@ const prioridadeConfig: Record<string, { label: string; color: string }> = {
   baixa: { label: "Baixa", color: "bg-green-500" },
 };
 
+const initialFilters: LaunchFiltersState = {
+  search: "",
+  status: [],
+  prioridade: [],
+  tipo: [],
+  responsavelId: null,
+  dateRange: undefined,
+};
+
 export default function FabricaLancamentos() {
   const { loading: permLoading } = useScreenPermissions();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -84,6 +97,7 @@ export default function FabricaLancamentos() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [activeTab, setActiveTab] = useState("calendario");
+  const [filters, setFilters] = useState<LaunchFiltersState>(initialFilters);
 
   const { data: lancamentos, isLoading, refetch } = useQuery({
     queryKey: ["lancamentos-produtos"],
@@ -115,6 +129,70 @@ export default function FabricaLancamentos() {
     },
   });
 
+  // Query for responsaveis (for filters)
+  const { data: responsaveis = [] } = useQuery({
+    queryKey: ["lancamentos-responsaveis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, nome")
+        .order("nome");
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Filter lancamentos
+  const filteredLancamentos = useMemo(() => {
+    if (!lancamentos) return [];
+    
+    return lancamentos.filter(l => {
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const matchesSearch = 
+          l.nome_lancamento.toLowerCase().includes(searchLower) ||
+          l.fabrica_produtos?.nome?.toLowerCase().includes(searchLower) ||
+          l.fabrica_produtos?.codigo?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      // Status filter
+      if (filters.status.length > 0 && !filters.status.includes(l.status)) {
+        return false;
+      }
+
+      // Prioridade filter
+      if (filters.prioridade.length > 0 && !filters.prioridade.includes(l.prioridade)) {
+        return false;
+      }
+
+      // Tipo filter
+      if (filters.tipo.length > 0 && !filters.tipo.includes(l.tipo)) {
+        return false;
+      }
+
+      // Responsavel filter
+      if (filters.responsavelId && l.responsavel_id !== filters.responsavelId) {
+        return false;
+      }
+
+      // Date range filter
+      if (filters.dateRange?.from) {
+        const lancamentoDate = new Date(l.data_prevista);
+        const from = filters.dateRange.from;
+        const to = filters.dateRange.to || filters.dateRange.from;
+        
+        if (!isWithinInterval(lancamentoDate, { start: from, end: to })) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [lancamentos, filters]);
+
   if (permLoading) {
     return (
       <DashboardLayout>
@@ -143,7 +221,7 @@ export default function FabricaLancamentos() {
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   const getLancamentosForDay = (day: Date) => {
-    return lancamentos?.filter((l) => isSameDay(new Date(l.data_prevista), day)) || [];
+    return filteredLancamentos.filter((l) => isSameDay(new Date(l.data_prevista), day));
   };
 
   const handleLancamentoClick = (lancamento: Lancamento) => {
@@ -253,6 +331,15 @@ export default function FabricaLancamentos() {
           </Card>
         </div>
 
+        {/* Filters */}
+        <LaunchFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          responsaveis={responsaveis}
+          totalCount={lancamentos?.length || 0}
+          filteredCount={filteredLancamentos.length}
+        />
+
         {/* Main Content */}
         <Card className="border-0 shadow-lg">
           <CardHeader className="pb-2">
@@ -261,6 +348,10 @@ export default function FabricaLancamentos() {
                 <TabsTrigger value="calendario" className="flex items-center gap-2 data-[state=active]:bg-background">
                   <CalendarDays className="h-4 w-4" />
                   Calendário
+                </TabsTrigger>
+                <TabsTrigger value="timeline" className="flex items-center gap-2 data-[state=active]:bg-background">
+                  <GitBranch className="h-4 w-4" />
+                  Timeline
                 </TabsTrigger>
                 <TabsTrigger value="lista" className="flex items-center gap-2 data-[state=active]:bg-background">
                   <List className="h-4 w-4" />
@@ -352,6 +443,14 @@ export default function FabricaLancamentos() {
                 </div>
               </TabsContent>
 
+              {/* Timeline View */}
+              <TabsContent value="timeline" className="mt-0">
+                <LaunchTimeline
+                  lancamentos={filteredLancamentos}
+                  onLancamentoClick={handleLancamentoClick}
+                />
+              </TabsContent>
+
               {/* List View */}
               <TabsContent value="lista" className="mt-0">
                 <div className="space-y-4">
@@ -359,21 +458,27 @@ export default function FabricaLancamentos() {
                     <div className="flex items-center justify-center py-12">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
                     </div>
-                  ) : lancamentos?.length === 0 ? (
+                  ) : filteredLancamentos.length === 0 ? (
                     <div className="text-center py-12">
                       <Rocket className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                      <p className="text-muted-foreground">Nenhum lançamento cadastrado</p>
-                      <Button 
-                        variant="outline" 
-                        className="mt-4"
-                        onClick={() => { setSelectedLancamento(null); setDialogOpen(true); }}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Criar Primeiro Lançamento
-                      </Button>
+                      <p className="text-muted-foreground">
+                        {lancamentos?.length === 0 
+                          ? "Nenhum lançamento cadastrado" 
+                          : "Nenhum lançamento encontrado com os filtros aplicados"}
+                      </p>
+                      {lancamentos?.length === 0 && (
+                        <Button 
+                          variant="outline" 
+                          className="mt-4"
+                          onClick={() => { setSelectedLancamento(null); setDialogOpen(true); }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Criar Primeiro Lançamento
+                        </Button>
+                      )}
                     </div>
                   ) : (
-                    lancamentos?.map((l) => (
+                    filteredLancamentos.map((l) => (
                       <LaunchCard
                         key={l.id}
                         id={l.id}
@@ -385,6 +490,13 @@ export default function FabricaLancamentos() {
                         tipo={l.tipo}
                         prioridade={l.prioridade}
                         onClick={() => handleLancamentoClick(l)}
+                        onEdit={() => {
+                          setSelectedLancamento(l);
+                          setDialogOpen(true);
+                        }}
+                        onStatusChange={refetch}
+                        showMilestones
+                        showQuickActions
                       />
                     ))
                   )}
@@ -395,7 +507,7 @@ export default function FabricaLancamentos() {
               <TabsContent value="kanban" className="mt-0">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   {kanbanColumns.map((status) => {
-                    const columnLancamentos = lancamentos?.filter((l) => l.status === status) || [];
+                    const columnLancamentos = filteredLancamentos.filter((l) => l.status === status);
                     return (
                       <div key={status} className="space-y-3">
                         <div className={cn(
@@ -422,7 +534,9 @@ export default function FabricaLancamentos() {
                               tipo={l.tipo}
                               prioridade={l.prioridade}
                               onClick={() => handleLancamentoClick(l)}
+                              onStatusChange={refetch}
                               variant="compact"
+                              showQuickActions
                             />
                           ))}
                           {columnLancamentos.length === 0 && (
