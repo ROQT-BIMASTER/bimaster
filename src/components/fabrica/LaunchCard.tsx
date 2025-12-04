@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,6 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import ProductThumbnail from "./ProductThumbnail";
 import CountdownBadge from "./CountdownBadge";
+import MilestoneProgress from "./MilestoneProgress";
+import QuickActions from "./QuickActions";
 import { User, Building2 } from "lucide-react";
 
 interface LaunchCardProps {
@@ -21,7 +24,11 @@ interface LaunchCardProps {
   tarefasTotal?: number;
   tarefasConcluidas?: number;
   onClick?: () => void;
+  onEdit?: () => void;
+  onStatusChange?: () => void;
   variant?: "default" | "compact" | "calendar";
+  showMilestones?: boolean;
+  showQuickActions?: boolean;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string; gradient: string }> = {
@@ -71,6 +78,7 @@ const prioridadeConfig: Record<string, { label: string; color: string; ring: str
 };
 
 export default function LaunchCard({
+  id,
   nome,
   produto,
   responsavel,
@@ -82,8 +90,13 @@ export default function LaunchCard({
   tarefasTotal = 0,
   tarefasConcluidas = 0,
   onClick,
+  onEdit,
+  onStatusChange,
   variant = "default",
+  showMilestones = false,
+  showQuickActions = false,
 }: LaunchCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
   const progressPercent = tarefasTotal > 0 ? Math.round((tarefasConcluidas / tarefasTotal) * 100) : 0;
   const isLaunched = status === "lancado";
 
@@ -151,8 +164,10 @@ export default function LaunchCard({
   return (
     <Card
       onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "cursor-pointer transition-all hover:shadow-xl hover:-translate-y-1 overflow-hidden group",
+        "cursor-pointer transition-all hover:shadow-xl hover:-translate-y-1 overflow-hidden group relative",
         prioridadeConfig[prioridade]?.ring
       )}
     >
@@ -176,10 +191,27 @@ export default function LaunchCard({
                   {produto?.codigo && <span className="ml-1 opacity-60">({produto.codigo})</span>}
                 </p>
               </div>
-              <Badge className={cn("flex-shrink-0", statusConfig[status]?.bgColor, statusConfig[status]?.color)}>
-                {statusConfig[status]?.label}
-              </Badge>
+              <div className="flex items-center gap-2">
+                {showQuickActions && isHovered && (
+                  <QuickActions
+                    lancamentoId={id}
+                    currentStatus={status}
+                    onView={() => onClick?.()}
+                    onEdit={onEdit}
+                    onStatusChange={onStatusChange}
+                    variant="dropdown"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
+                )}
+                <Badge className={cn("flex-shrink-0", statusConfig[status]?.bgColor, statusConfig[status]?.color)}>
+                  {statusConfig[status]?.label}
+                </Badge>
+              </div>
             </div>
+            
+            {showMilestones && (
+              <MilestoneProgress currentStatus={status} variant="compact" className="py-1" />
+            )}
             
             <div className="flex flex-wrap items-center gap-3 text-sm">
               <CountdownBadge date={data_prevista} isLaunched={isLaunched} />
