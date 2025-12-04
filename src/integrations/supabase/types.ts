@@ -6153,48 +6153,85 @@ export type Database = {
       }
       lancamentos_tarefas_marketing: {
         Row: {
+          alerta_gargalo: boolean | null
+          aprovado_em: string | null
+          aprovado_por: string | null
           arquivos_urls: string[] | null
           created_at: string | null
           data_conclusao: string | null
           data_prazo: string | null
+          dependencia_tarefa_id: string | null
           descricao: string | null
           id: string
           lancamento_id: string
+          pontos_base: number | null
+          pontos_bonus: number | null
+          prioridade_ai: number | null
           responsavel_id: string | null
           status: string | null
+          tempo_estimado_horas: number | null
+          tempo_real_horas: number | null
           tipo: string
           titulo: string
           updated_at: string | null
+          versao: number | null
         }
         Insert: {
+          alerta_gargalo?: boolean | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           arquivos_urls?: string[] | null
           created_at?: string | null
           data_conclusao?: string | null
           data_prazo?: string | null
+          dependencia_tarefa_id?: string | null
           descricao?: string | null
           id?: string
           lancamento_id: string
+          pontos_base?: number | null
+          pontos_bonus?: number | null
+          prioridade_ai?: number | null
           responsavel_id?: string | null
           status?: string | null
+          tempo_estimado_horas?: number | null
+          tempo_real_horas?: number | null
           tipo: string
           titulo: string
           updated_at?: string | null
+          versao?: number | null
         }
         Update: {
+          alerta_gargalo?: boolean | null
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           arquivos_urls?: string[] | null
           created_at?: string | null
           data_conclusao?: string | null
           data_prazo?: string | null
+          dependencia_tarefa_id?: string | null
           descricao?: string | null
           id?: string
           lancamento_id?: string
+          pontos_base?: number | null
+          pontos_bonus?: number | null
+          prioridade_ai?: number | null
           responsavel_id?: string | null
           status?: string | null
+          tempo_estimado_horas?: number | null
+          tempo_real_horas?: number | null
           tipo?: string
           titulo?: string
           updated_at?: string | null
+          versao?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lancamentos_tarefas_marketing_dependencia_tarefa_id_fkey"
+            columns: ["dependencia_tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_tarefas_marketing"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lancamentos_tarefas_marketing_lancamento_id_fkey"
             columns: ["lancamento_id"]
@@ -6217,6 +6254,225 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      marketing_badges: {
+        Row: {
+          codigo: string
+          cor: string | null
+          created_at: string | null
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          pontos_necessarios: number | null
+          tipo: string | null
+        }
+        Insert: {
+          codigo: string
+          cor?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          pontos_necessarios?: number | null
+          tipo?: string | null
+        }
+        Update: {
+          codigo?: string
+          cor?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          pontos_necessarios?: number | null
+          tipo?: string | null
+        }
+        Relationships: []
+      }
+      marketing_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          lida: boolean | null
+          link: string | null
+          mensagem: string | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lida?: boolean | null
+          link?: string | null
+          mensagem?: string | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lida?: boolean | null
+          link?: string | null
+          mensagem?: string | null
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      marketing_points_history: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          pontos: number
+          tarefa_id: string | null
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          pontos: number
+          tarefa_id?: string | null
+          tipo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          pontos?: number
+          tarefa_id?: string | null
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_points_history_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_tarefas_marketing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_task_comments: {
+        Row: {
+          anexo_url: string | null
+          comentario: string
+          created_at: string | null
+          id: string
+          posicao_x: number | null
+          posicao_y: number | null
+          tarefa_id: string
+          tipo: string | null
+          user_id: string
+        }
+        Insert: {
+          anexo_url?: string | null
+          comentario: string
+          created_at?: string | null
+          id?: string
+          posicao_x?: number | null
+          posicao_y?: number | null
+          tarefa_id: string
+          tipo?: string | null
+          user_id: string
+        }
+        Update: {
+          anexo_url?: string | null
+          comentario?: string
+          created_at?: string | null
+          id?: string
+          posicao_x?: number | null
+          posicao_y?: number | null
+          tarefa_id?: string
+          tipo?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_task_comments_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_tarefas_marketing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_user_stats: {
+        Row: {
+          best_streak: number | null
+          created_at: string | null
+          current_streak: number | null
+          id: string
+          level: number | null
+          tasks_completed: number | null
+          tasks_on_time: number | null
+          total_points: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          best_streak?: number | null
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          level?: number | null
+          tasks_completed?: number | null
+          tasks_on_time?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          best_streak?: number | null
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          level?: number | null
+          tasks_completed?: number | null
+          tasks_on_time?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       measurement_guide_photos: {
         Row: {

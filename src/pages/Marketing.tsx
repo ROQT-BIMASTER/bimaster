@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { LookerStudioReports } from "@/components/marketing/LookerStudioReports";
 import { DashCortexReports } from "@/components/marketing/DashCortexReports";
@@ -7,18 +8,20 @@ import { SocialMediaMonitoring } from "@/components/marketing/SocialMediaMonitor
 import { AIImageGenerator } from "@/components/marketing/AIImageGenerator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Instagram, LineChart, TrendingUp, Share2, Sparkles, Video, ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { BarChart3, Instagram, LineChart, TrendingUp, Share2, Sparkles, Video, ArrowLeft, Rocket } from "lucide-react";
 
-type MenuSection = 
-  | "menu"
-  | "looker"
-  | "dashcortex"
-  | "powerbi"
-  | "social"
-  | "ai-images"
-  | "pollo";
+type MenuSection = "menu" | "looker" | "dashcortex" | "powerbi" | "social" | "ai-images" | "pollo";
 
 const menuItems = [
+  {
+    id: "mission-control" as const,
+    title: "Mission Control",
+    description: "Central de tarefas de marketing para lançamentos",
+    icon: Rocket,
+    isNew: true,
+    navigateTo: "/dashboard/marketing/mission-control"
+  },
   {
     id: "looker" as MenuSection,
     title: "Instagram",
@@ -59,6 +62,7 @@ const menuItems = [
 
 export default function Marketing() {
   const [activeSection, setActiveSection] = useState<MenuSection>("menu");
+  const navigate = useNavigate();
 
   const renderContent = () => {
     switch (activeSection) {
@@ -80,7 +84,6 @@ export default function Marketing() {
                 <CardTitle>Pollo AI - Efeitos de Vídeo</CardTitle>
                 <CardDescription>
                   Para usar o Pollo AI com login do Google, é necessário abrir em uma nova aba.
-                  Iframes têm restrições de segurança que impedem o login social.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -92,19 +95,8 @@ export default function Marketing() {
                   <Video className="h-5 w-5" />
                   Abrir Pollo AI em Nova Aba
                 </Button>
-                <p className="text-sm text-muted-foreground text-center">
-                  O login do Google funcionará normalmente na nova aba
-                </p>
               </CardContent>
             </Card>
-            <div className="w-full h-[calc(100vh-24rem)] rounded-lg overflow-hidden border border-border">
-              <iframe
-                src="https://pollo.ai/pt/app/pro-effects"
-                className="w-full h-full"
-                title="Pollo AI"
-                allow="camera; microphone"
-              />
-            </div>
           </div>
         );
       default:
@@ -119,16 +111,10 @@ export default function Marketing() {
           <BarChart3 className="h-8 w-8 text-primary" />
           <div className="flex-1">
             <h1 className="text-3xl font-bold">Marketing</h1>
-            <p className="text-muted-foreground mt-1">
-              Relatórios e dashboards integrados
-            </p>
+            <p className="text-muted-foreground mt-1">Relatórios e dashboards integrados</p>
           </div>
           {activeSection !== "menu" && (
-            <Button
-              variant="outline"
-              onClick={() => setActiveSection("menu")}
-              className="gap-2"
-            >
+            <Button variant="outline" onClick={() => setActiveSection("menu")} className="gap-2">
               <ArrowLeft className="h-4 w-4" />
               Voltar ao Menu
             </Button>
@@ -139,12 +125,24 @@ export default function Marketing() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {menuItems.map((item) => {
               const Icon = item.icon;
+              const handleClick = () => {
+                if ('navigateTo' in item && item.navigateTo) {
+                  navigate(item.navigateTo);
+                } else if ('id' in item && item.id !== 'mission-control') {
+                  setActiveSection(item.id as MenuSection);
+                }
+              };
               return (
                 <Card
                   key={item.id}
-                  className="cursor-pointer hover:border-primary transition-colors"
-                  onClick={() => setActiveSection(item.id)}
+                  className="cursor-pointer hover:border-primary transition-colors relative"
+                  onClick={handleClick}
                 >
+                  {'isNew' in item && item.isNew && (
+                    <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[10px]">
+                      NOVO
+                    </Badge>
+                  )}
                   <CardHeader>
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-primary/10 rounded-lg">
@@ -152,14 +150,10 @@ export default function Marketing() {
                       </div>
                       <CardTitle className="text-xl">{item.title}</CardTitle>
                     </div>
-                    <CardDescription className="mt-2">
-                      {item.description}
-                    </CardDescription>
+                    <CardDescription className="mt-2">{item.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button variant="secondary" className="w-full">
-                      Acessar
-                    </Button>
+                    <Button variant="secondary" className="w-full">Acessar</Button>
                   </CardContent>
                 </Card>
               );
