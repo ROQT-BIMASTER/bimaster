@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PermissionsContextType {
@@ -32,17 +32,43 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const isMountedRef = useRef(true);
+
+  // Timeout de segurança - garante que loading nunca fica infinito
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isMountedRef.current && loading) {
+        console.log("[PermissionsContext] Safety timeout triggered - forcing loading to false");
+        setLoading(false);
+      }
+    }, 10000);
+    
+    return () => clearTimeout(timeout);
+  }, [loading]);
 
   const fetchPermissions = useCallback(async (forceRefresh = false) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log("[PermissionsContext] Iniciando fetchPermissions");
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error("[PermissionsContext] Erro ao obter usuário:", userError);
+        if (isMountedRef.current) {
+          setModules([]);
+          setScreens([]);
+          setRole(null);
+          setIsAdmin(false);
+        }
+        return;
+      }
       
       if (!user) {
-        setModules([]);
-        setScreens([]);
-        setRole(null);
-        setIsAdmin(false);
-        setLoading(false);
+        if (isMountedRef.current) {
+          setModules([]);
+          setScreens([]);
+          setRole(null);
+          setIsAdmin(false);
+        }
         return;
       }
 
@@ -54,11 +80,12 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         globalPermissionsCache.userId === user.id &&
         now - globalPermissionsCache.timestamp < CACHE_DURATION
       ) {
-        setModules(globalPermissionsCache.modules);
-        setScreens(globalPermissionsCache.screens);
-        setRole(globalPermissionsCache.role);
-        setIsAdmin(globalPermissionsCache.isAdmin);
-        setLoading(false);
+        if (isMountedRef.current) {
+          setModules(globalPermissionsCache.modules);
+          setScreens(globalPermissionsCache.screens);
+          setRole(globalPermissionsCache.role);
+          setIsAdmin(globalPermissionsCache.isAdmin);
+        }
         return;
       }
 
@@ -67,7 +94,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         .rpc("get_all_user_permissions", { _user_id: user.id });
 
       if (error) {
-        console.error("Erro ao buscar permissões:", error);
+        console.error("[PermissionsContext] Erro ao buscar permissões:", error);
         // Fallback para método antigo em caso de erro
         await fetchPermissionsFallback(user.id);
         return;
@@ -89,14 +116,19 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         timestamp: now,
       };
 
-      setModules(modulesList);
-      setScreens(screensList);
-      setRole(userRole);
-      setIsAdmin(userIsAdmin);
+      if (isMountedRef.current) {
+        setModules(modulesList);
+        setScreens(screensList);
+        setRole(userRole);
+        setIsAdmin(userIsAdmin);
+      }
     } catch (error) {
-      console.error("Erro ao carregar permissões:", error);
+      console.error("[PermissionsContext] Erro ao carregar permissões:", error);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        console.log("[PermissionsContext] Finalizando fetchPermissions");
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -135,20 +167,26 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         timestamp: Date.now(),
       };
 
-      setModules(modulesList);
-      setScreens(screensList);
-      setRole(userRole);
-      setIsAdmin(userIsAdmin);
+      if (isMountedRef.current) {
+        setModules(modulesList);
+        setScreens(screensList);
+        setRole(userRole);
+        setIsAdmin(userIsAdmin);
+      }
     } catch (error) {
-      console.error("Erro no fallback de permissões:", error);
+      console.error("[PermissionsContext] Erro no fallback de permissões:", error);
     }
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     fetchPermissions();
 
     // Listener para mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (!isMountedRef.current) return;
+      
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         fetchPermissions(true);
       } else if (event === "SIGNED_OUT") {
@@ -157,6 +195,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         setScreens([]);
         setRole(null);
         setIsAdmin(false);
+        setLoading(false);
       }
     });
 
@@ -170,6 +209,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     window.addEventListener("modules-updated", handlePermissionsUpdate);
 
     return () => {
+      isMountedRef.current = false;
       subscription.unsubscribe();
       window.removeEventListener("permissions-updated", handlePermissionsUpdate);
       window.removeEventListener("modules-updated", handlePermissionsUpdate);

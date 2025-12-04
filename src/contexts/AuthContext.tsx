@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { offlineManager } from "@/lib/utils/offline-manager";
@@ -28,6 +28,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [approved, setApproved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const isMountedRef = useRef(true);
+
+  // Timeout de segurança - garante que loading nunca fica infinito
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isMountedRef.current && loading) {
+        console.log("[AuthContext] Safety timeout triggered - forcing loading to false");
+        setLoading(false);
+      }
+    }, 8000);
+    
+    return () => clearTimeout(timeout);
+  }, [loading]);
 
   // Monitor online status
   useEffect(() => {
@@ -70,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .maybeSingle();
 
       if (error) {
-        console.error("Erro ao buscar aprovação:", error);
+        console.error("[AuthContext] Erro ao buscar aprovação:", error);
         return cachedApproval === "true";
       }
 
@@ -91,22 +104,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       return isApproved;
     } catch (error) {
-      console.error("Erro ao verificar aprovação:", error);
+      console.error("[AuthContext] Erro ao verificar aprovação:", error);
       return cachedApproval === "true";
     }
   }, [isOnline]);
 
   const checkAuth = useCallback(async (forceRefresh = false) => {
     try {
+      console.log("[AuthContext] Iniciando checkAuth");
+      
       // Se offline e há cache, usar cache
       if (!isOnline && offlineManager.hasCachedSession()) {
         setSession({ user: { id: "offline" } } as Session);
         setApproved(localStorage.getItem("user_approved_cache") === "true");
-        setLoading(false);
         return;
       }
 
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("[AuthContext] Erro ao obter sessão:", error);
+        setSession(null);
+        setApproved(false);
+        return;
+      }
 
       if (currentSession?.user) {
         setSession(currentSession);
@@ -118,7 +139,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         globalAuthCache = null;
       }
     } catch (error) {
-      console.error("Erro ao verificar auth:", error);
+      console.error("[AuthContext] Erro ao verificar auth:", error);
       // Fallback para cache offline
       if (!isOnline && offlineManager.hasCachedSession()) {
         setSession({ user: { id: "offline" } } as Session);
@@ -128,19 +149,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setApproved(false);
       }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        console.log("[AuthContext] Finalizando checkAuth");
+        setLoading(false);
+      }
     }
   }, [isOnline, fetchApprovalStatus]);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (!isMountedRef.current) return;
+      
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         setSession(newSession);
         if (newSession?.user) {
-          const isApproved = await fetchApprovalStatus(newSession.user.id, true);
-          setApproved(isApproved);
+          // Defer to avoid deadlock
+          setTimeout(async () => {
+            try {
+              const isApproved = await fetchApprovalStatus(newSession.user.id, true);
+              if (isMountedRef.current) {
+                setApproved(isApproved);
+                setLoading(false);
+              }
+            } catch (error) {
+              console.error("[AuthContext] Erro no auth state change:", error);
+              if (isMountedRef.current) {
+                setLoading(false);
+              }
+            }
+          }, 0);
         }
       } else if (event === "SIGNED_OUT") {
         setSession(null);
@@ -148,11 +189,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         globalAuthCache = null;
         localStorage.removeItem("user_approved_cache");
         localStorage.removeItem("user_role_cache");
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMountedRef.current = false;
+      subscription.unsubscribe();
+    };
   }, [checkAuth, fetchApprovalStatus]);
 
   const refreshAuth = useCallback(async () => {

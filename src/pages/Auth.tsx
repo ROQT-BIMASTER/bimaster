@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthLayout } from "@/components/auth/AuthLayout";
@@ -10,58 +10,102 @@ const Auth = () => {
   const location = useLocation();
   const isSignup = location.pathname === "/auth/signup";
   const [checking, setChecking] = useState(true);
+  const isMountedRef = useRef(true);
+
+  // Timeout de segurança - garante que loading nunca fica infinito
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isMountedRef.current) {
+        console.log("[Auth] Safety timeout triggered - forcing checking to false");
+        setChecking(false);
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timeout);
+  }, []);
 
   const redirectBasedOnRole = async (userId: string) => {
     try {
-      // Verificar a role do usuário
-      const { data: roles } = await supabase
+      const { data: roles, error } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
         .maybeSingle();
 
+      if (error) {
+        console.error("[Auth] Erro ao verificar role:", error);
+        navigate("/dashboard");
+        return;
+      }
+
       const userRole = roles?.role;
 
-      // Clientes vão para o portal isolado
       if (userRole === "cliente") {
-        // Registrar acesso ao portal
-        await supabase.rpc("registrar_acesso_portal", {
-          p_acao: "login",
-          p_detalhes: {}
-        });
+        try {
+          await supabase.rpc("registrar_acesso_portal", {
+            p_acao: "login",
+            p_detalhes: {}
+          });
+        } catch (e) {
+          console.error("[Auth] Erro ao registrar acesso portal:", e);
+        }
         navigate("/portal/precos");
       } else {
-        // Usuários internos vão para o dashboard
         navigate("/dashboard");
       }
     } catch (error) {
-      console.error("Erro ao verificar role:", error);
-      // Fallback para dashboard se houver erro
+      console.error("[Auth] Erro ao redirecionar:", error);
       navigate("/dashboard");
     }
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await redirectBasedOnRole(session.user.id);
+      try {
+        console.log("[Auth] Iniciando checkUser");
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("[Auth] Erro ao obter sessão:", error);
+          return;
+        }
+        
+        if (session?.user) {
+          console.log("[Auth] Sessão encontrada, redirecionando...");
+          await redirectBasedOnRole(session.user.id);
+        } else {
+          console.log("[Auth] Sem sessão ativa");
+        }
+      } catch (error) {
+        console.error("[Auth] Erro no checkUser:", error);
+      } finally {
+        if (isMountedRef.current) {
+          console.log("[Auth] Finalizando checkUser");
+          setChecking(false);
+        }
       }
-      setChecking(false);
     };
     
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        // Defer para evitar deadlock
+      if (session?.user && isMountedRef.current) {
         setTimeout(async () => {
-          await redirectBasedOnRole(session.user.id);
+          try {
+            await redirectBasedOnRole(session.user.id);
+          } catch (error) {
+            console.error("[Auth] Erro ao redirecionar após auth change:", error);
+          }
         }, 0);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMountedRef.current = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   if (checking) {
