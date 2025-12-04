@@ -68,6 +68,7 @@ const Relatorios = lazy(() => import("./pages/Relatorios"));
 const InstalarApp = lazy(() => import("./pages/InstalarApp"));
 const WhatsAppMonitoring = lazy(() => import("./pages/WhatsAppMonitoring"));
 const Marketing = lazy(() => import("./pages/Marketing"));
+const MarketingMissionControlPage = lazy(() => import("./pages/MarketingMissionControlPage"));
 const AIAnalytics = lazy(() => import("./pages/AIAnalytics"));
 const FabricaModule = lazy(() => import("./pages/modules/FabricaModule"));
 const FabricaMateriasPrimas = lazy(() => import("./pages/FabricaMateriasPrimas"));
@@ -277,6 +278,9 @@ function AppContent() {
             <Route path="/dashboard/financeiro/contas-a-pagar" element={<ProtectedRoute><ContasAPagar /></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/plano-contas" element={<ProtectedRoute><PlanoContas /></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/classificar-banco" element={<ProtectedRoute><ClassificarTodoBanco /></ProtectedRoute>} />
+            
+            {/* Marketing Mission Control */}
+            <Route path="/dashboard/marketing/mission-control" element={<ProtectedRoute><MarketingMissionControlPage /></ProtectedRoute>} />
             
             {/* Rotas antigas mantidas para compatibilidade */}
             <Route path="/dashboard/contas-a-pagar" element={<ProtectedRoute><ContasAPagar /></ProtectedRoute>} />
