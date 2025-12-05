@@ -5,8 +5,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { MunicipioAtribuicao } from "@/components/admin/MunicipioAtribuicao";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Shield, 
+  UserCog, 
+  User, 
+  CheckCircle, 
+  Lock, 
+  Activity 
+} from "lucide-react";
+
+// Lazy imports para melhor performance
+import { MunicipioAtribuicao } from "@/components/admin/MunicipioAtribuicao";
 import { EditarPerfil } from "@/components/configuracoes/EditarPerfil";
 import { GerenciamentoUsuarios } from "@/components/configuracoes/GerenciamentoUsuarios";
 import { ConfiguracoesNotificacoes } from "@/components/configuracoes/ConfiguracoesNotificacoes";
@@ -29,7 +39,6 @@ import { GerenciamentoDepartamentos } from "@/components/configuracoes/Gerenciam
 import { GerenciamentoPermissoesDepartamentos } from "@/components/configuracoes/GerenciamentoPermissoesDepartamentos";
 import { AtribuirDepartamentoUsuario } from "@/components/configuracoes/AtribuirDepartamentoUsuario";
 import { ConfiguracoesCobrancaAutomatica } from "@/components/configuracoes/ConfiguracoesCobrancaAutomatica";
-import { Shield, Users, Bell, Palette, Key, Wrench, Webhook, Database, Activity, UserCog, User, CheckCircle, Lock, Building2, Bot } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -67,7 +76,6 @@ const Configuracoes = () => {
       if (error) throw error;
       setProfile(data);
 
-      // Buscar role do usuário
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
@@ -123,6 +131,10 @@ const Configuracoes = () => {
     }
   };
 
+  const handleUpdateProfile = (updatedProfile: Profile) => {
+    setProfile(updatedProfile);
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -131,48 +143,31 @@ const Configuracoes = () => {
     );
   }
 
-  const handleUpdateProfile = (updatedProfile: Profile) => {
-    setProfile(updatedProfile);
-  };
-
   const isAdmin = userRole === 'admin';
   const isSupervisor = userRole === 'supervisor';
-  const isVendedor = userRole === 'vendedor';
 
   const getTipoUsuarioLabel = () => {
     switch (userRole) {
-      case 'admin':
-        return 'Administrador';
-      case 'supervisor':
-        return 'Supervisor';
-      case 'vendedor':
-        return 'Vendedor';
-      default:
-        return 'Usuário';
+      case 'admin': return 'Administrador';
+      case 'supervisor': return 'Supervisor';
+      case 'vendedor': return 'Vendedor';
+      default: return 'Usuário';
     }
   };
 
   const getTipoUsuarioIcon = () => {
     switch (userRole) {
-      case 'admin':
-        return <Shield className="w-4 h-4" />;
-      case 'supervisor':
-        return <UserCog className="w-4 h-4" />;
-      case 'vendedor':
-        return <User className="w-4 h-4" />;
-      default:
-        return <User className="w-4 h-4" />;
+      case 'admin': return <Shield className="w-4 h-4" />;
+      case 'supervisor': return <UserCog className="w-4 h-4" />;
+      default: return <User className="w-4 h-4" />;
     }
   };
 
-  const getTipoUsuarioVariant = () => {
+  const getTipoUsuarioVariant = (): "default" | "secondary" | "outline" => {
     switch (userRole) {
-      case 'admin':
-        return 'default';
-      case 'supervisor':
-        return 'secondary';
-      default:
-        return 'outline';
+      case 'admin': return 'default';
+      case 'supervisor': return 'secondary';
+      default: return 'outline';
     }
   };
 
@@ -192,14 +187,13 @@ const Configuracoes = () => {
         'Visualizar relatórios de vendas',
         'Acompanhar métricas de desempenho'
       ];
-    } else {
-      return [
-        'Gerenciar seus próprios prospects',
-        'Registrar suas atividades',
-        'Visualizar seus relatórios',
-        'Atualizar seu perfil'
-      ];
     }
+    return [
+      'Gerenciar seus próprios prospects',
+      'Registrar suas atividades',
+      'Visualizar seus relatórios',
+      'Atualizar seu perfil'
+    ];
   };
 
   return (
@@ -212,7 +206,7 @@ const Configuracoes = () => {
               {isAdmin ? "Gerencie o sistema e suas informações" : "Gerencie suas informações pessoais"}
             </p>
           </div>
-          <Badge variant={getTipoUsuarioVariant() as any} className="flex items-center gap-2 px-4 py-2">
+          <Badge variant={getTipoUsuarioVariant()} className="flex items-center gap-2 px-4 py-2">
             {getTipoUsuarioIcon()}
             <span className="font-semibold">{getTipoUsuarioLabel()}</span>
           </Badge>
@@ -234,11 +228,9 @@ const Configuracoes = () => {
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Status</p>
-                <div className="flex items-center gap-2">
-                  <Badge variant={profile?.status === 'ativo' ? 'default' : 'secondary'}>
-                    {profile?.status === 'ativo' ? 'Ativo' : 'Inativo'}
-                  </Badge>
-                </div>
+                <Badge variant={profile?.status === 'ativo' ? 'default' : 'secondary'}>
+                  {profile?.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                </Badge>
               </div>
             </div>
             
@@ -293,16 +285,13 @@ const Configuracoes = () => {
 
             <TabsContent value="perfil" className="space-y-4">
               <EditarPerfil profile={profile!} onUpdate={handleUpdateProfile} />
-
               <Card>
                 <CardHeader>
                   <CardTitle>Segurança</CardTitle>
                   <CardDescription>Gerencie sua senha e segurança da conta</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button onClick={handleResetPassword}>
-                    Redefinir Senha
-                  </Button>
+                  <Button onClick={handleResetPassword}>Redefinir Senha</Button>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -433,16 +422,13 @@ const Configuracoes = () => {
 
             <TabsContent value="perfil" className="space-y-4">
               <EditarPerfil profile={profile!} onUpdate={handleUpdateProfile} />
-
               <Card>
                 <CardHeader>
                   <CardTitle>Segurança</CardTitle>
                   <CardDescription>Gerencie sua senha e segurança da conta</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button onClick={handleResetPassword}>
-                    Redefinir Senha
-                  </Button>
+                  <Button onClick={handleResetPassword}>Redefinir Senha</Button>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -469,5 +455,3 @@ const Configuracoes = () => {
 };
 
 export default Configuracoes;
-
-// Force rebuild
