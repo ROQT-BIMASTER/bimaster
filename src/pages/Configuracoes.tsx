@@ -449,4 +449,5 @@ function Configuracoes() {
   );
 }
 
+export { Configuracoes };
 export default Configuracoes;
