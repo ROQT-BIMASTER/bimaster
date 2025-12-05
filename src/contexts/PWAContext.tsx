@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { checkAndUpdateVersion, APP_VERSION } from '@/lib/version';
 
 interface PWAState {
   needRefresh: boolean;
@@ -8,11 +9,14 @@ interface PWAState {
   canInstall: boolean;
   installProgress: number;
   installStatus: string;
+  wasUpdated: boolean; // Nova flag para indicar atualização automática
+  appVersion: string;
 }
 
 interface PWAContextType extends PWAState {
   updateServiceWorker: () => void;
   promptInstall: () => Promise<boolean>;
+  dismissUpdateNotice: () => void;
 }
 
 const PWAContext = createContext<PWAContextType | null>(null);
@@ -31,6 +35,8 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     canInstall: false,
     installProgress: 10,
     installStatus: 'Iniciando...',
+    wasUpdated: false,
+    appVersion: APP_VERSION,
   });
 
   const progressRef = useRef(10);
@@ -40,12 +46,18 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     mountedRef.current = true;
 
-    // Progresso simulado mais rápido - apenas se não houver intervalo ativo
+    // Verificar se houve atualização de versão
+    const hadVersionUpdate = checkAndUpdateVersion();
+    if (hadVersionUpdate) {
+      setState(prev => ({ ...prev, wasUpdated: true }));
+    }
+
+    // Progresso simulado mais rápido
     if (!intervalRef.current) {
       intervalRef.current = setInterval(() => {
         if (!mountedRef.current) return;
         
-        progressRef.current += 25; // Mais rápido: 25% por iteração
+        progressRef.current += 25;
         if (progressRef.current >= 100) {
           progressRef.current = 100;
           if (intervalRef.current) {
@@ -59,7 +71,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
           installStatus: progressRef.current < 50 ? 'Carregando...' : 
                         progressRef.current < 100 ? 'Preparando...' : 'Pronto!'
         }));
-      }, 200); // Mais rápido: 200ms por iteração (total ~800ms)
+      }, 200);
     }
 
     // Verificar se já está instalado
@@ -86,9 +98,10 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         const updateSW = registerSW({
           immediate: true,
           onNeedRefresh() {
-            console.log('[PWA] Nova versão disponível');
-            if (mountedRef.current) {
-              setState(prev => ({ ...prev, needRefresh: true }));
+            console.log('[PWA] Nova versão disponível - aplicando automaticamente');
+            // Com autoUpdate, aplicar imediatamente
+            if (updateSWRef) {
+              updateSWRef(true);
             }
           },
           onOfflineReady() {
@@ -101,9 +114,11 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
             console.log('[PWA] Service Worker registrado:', swUrl);
             
             if (registration) {
+              // Verificar atualizações a cada 1 minuto (era 5 minutos)
               setInterval(() => {
+                console.log('[PWA] Verificando atualizações...');
                 registration.update();
-              }, 5 * 60 * 1000);
+              }, 60 * 1000);
             }
           },
           onRegisterError(error) {
@@ -114,7 +129,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         updateSWRef = updateSW;
       } catch (error) {
         console.log('[PWA] Service Worker não disponível:', error);
-        swRegistered = false; // Reset para tentar novamente
+        swRegistered = false;
       }
     };
 
@@ -152,10 +167,19 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    // Detectar quando o SW foi atualizado
+    const handleControllerChange = () => {
+      console.log('[PWA] Service Worker atualizado automaticamente');
+      if (mountedRef.current) {
+        setState(prev => ({ ...prev, wasUpdated: true }));
+      }
+    };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    navigator.serviceWorker?.addEventListener('controllerchange', handleControllerChange);
 
     return () => {
       mountedRef.current = false;
@@ -167,6 +191,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('appinstalled', handleAppInstalled);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      navigator.serviceWorker?.removeEventListener('controllerchange', handleControllerChange);
     };
   }, []);
 
@@ -191,8 +216,12 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const dismissUpdateNotice = useCallback(() => {
+    setState(prev => ({ ...prev, wasUpdated: false }));
+  }, []);
+
   return (
-    <PWAContext.Provider value={{ ...state, updateServiceWorker, promptInstall }}>
+    <PWAContext.Provider value={{ ...state, updateServiceWorker, promptInstall, dismissUpdateNotice }}>
       {children}
     </PWAContext.Provider>
   );
@@ -201,7 +230,6 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
 export function usePWA(): PWAContextType {
   const context = useContext(PWAContext);
   if (!context) {
-    // Fallback para quando usado fora do provider
     return {
       needRefresh: false,
       offlineReady: false,
@@ -210,8 +238,11 @@ export function usePWA(): PWAContextType {
       canInstall: false,
       installProgress: 100,
       installStatus: 'Pronto!',
+      wasUpdated: false,
+      appVersion: APP_VERSION,
       updateServiceWorker: () => {},
       promptInstall: async () => false,
+      dismissUpdateNotice: () => {},
     };
   }
   return context;

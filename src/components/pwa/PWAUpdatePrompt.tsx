@@ -1,74 +1,54 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, X } from 'lucide-react';
+import { CheckCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { usePWA } from '@/hooks/usePWA';
+import { usePWA } from '@/contexts/PWAContext';
 
 export function PWAUpdatePrompt() {
-  const { needRefresh, updateServiceWorker } = usePWA();
-  const [dismissed, setDismissed] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const { wasUpdated, appVersion, dismissUpdateNotice } = usePWA();
+  const [visible, setVisible] = useState(false);
 
-  // Reset dismissed quando uma nova atualização estiver disponível
+  // Mostrar notificação quando o app foi atualizado
   useEffect(() => {
-    if (needRefresh) {
-      setDismissed(false);
+    if (wasUpdated) {
+      setVisible(true);
+      // Auto-dismiss após 8 segundos
+      const timer = setTimeout(() => {
+        setVisible(false);
+        dismissUpdateNotice();
+      }, 8000);
+      return () => clearTimeout(timer);
     }
-  }, [needRefresh]);
+  }, [wasUpdated, dismissUpdateNotice]);
 
-  if (!needRefresh || dismissed) {
+  if (!visible) {
     return null;
   }
 
-  const handleUpdate = () => {
-    setIsUpdating(true);
-    updateServiceWorker();
+  const handleDismiss = () => {
+    setVisible(false);
+    dismissUpdateNotice();
   };
 
   return (
     <div className="fixed bottom-4 right-4 z-50 animate-fade-in">
-      <Card className="p-4 shadow-xl border-primary/50 bg-card/95 backdrop-blur-sm max-w-sm">
+      <Card className="p-4 shadow-xl border-green-500/50 bg-card/95 backdrop-blur-sm max-w-sm">
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 p-2 rounded-full bg-primary/10">
-            <RefreshCw className={`h-5 w-5 text-primary ${isUpdating ? 'animate-spin' : ''}`} />
+          <div className="flex-shrink-0 p-2 rounded-full bg-green-500/10">
+            <CheckCircle className="h-5 w-5 text-green-500" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm">Nova versão disponível!</p>
+            <p className="font-semibold text-sm">App atualizado!</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Uma atualização foi encontrada. Atualize para obter melhorias e correções.
+              Versão {appVersion} instalada automaticamente. 
+              Você está usando a versão mais recente.
             </p>
-            <div className="flex gap-2 mt-3">
-              <Button 
-                size="sm" 
-                onClick={handleUpdate}
-                disabled={isUpdating}
-                className="gap-1.5"
-              >
-                {isUpdating ? (
-                  <>
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                    Atualizando...
-                  </>
-                ) : (
-                  'Atualizar agora'
-                )}
-              </Button>
-              <Button 
-                size="sm" 
-                variant="ghost"
-                onClick={() => setDismissed(true)}
-                disabled={isUpdating}
-              >
-                Depois
-              </Button>
-            </div>
           </div>
           <Button
             size="icon"
             variant="ghost"
             className="h-6 w-6 flex-shrink-0"
-            onClick={() => setDismissed(true)}
-            disabled={isUpdating}
+            onClick={handleDismiss}
           >
             <X className="h-4 w-4" />
           </Button>
