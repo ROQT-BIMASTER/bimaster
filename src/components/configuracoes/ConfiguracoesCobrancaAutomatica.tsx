@@ -59,22 +59,23 @@ export function ConfiguracoesCobrancaAutomatica() {
   const loadConfig = async () => {
     try {
       const { data, error } = await supabase
-        .from("configuracoes_cobranca")
+        .from("configuracoes_cobranca" as any)
         .select("*")
         .single();
 
       if (error && error.code !== "PGRST116") throw error;
       
       if (data) {
+        const d = data as any;
         setConfig({
-          id: data.id,
-          api_key: data.api_key || "",
-          whatsapp_verify_token: data.whatsapp_verify_token || "",
-          automacao_ativa: data.automacao_ativa || false,
-          hora_inicio_envio: data.hora_inicio_envio || "08:00",
-          hora_fim_envio: data.hora_fim_envio || "18:00",
-          max_envios_hora: data.max_envios_hora || 50,
-          intervalo_minimo_dias: data.intervalo_minimo_dias || 3
+          id: d.id,
+          api_key: d.api_key || "",
+          whatsapp_verify_token: d.whatsapp_verify_token || "",
+          automacao_ativa: d.automacao_ativa || false,
+          hora_inicio_envio: d.hora_inicio_envio || "08:00",
+          hora_fim_envio: d.hora_fim_envio || "18:00",
+          max_envios_hora: d.max_envios_hora || 50,
+          intervalo_minimo_dias: d.intervalo_minimo_dias || 3
         });
       }
     } catch (error) {
@@ -103,18 +104,18 @@ export function ConfiguracoesCobrancaAutomatica() {
 
       if (config.id) {
         const { error } = await supabase
-          .from("configuracoes_cobranca")
+          .from("configuracoes_cobranca" as any)
           .update(configData)
           .eq("id", config.id);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
-          .from("configuracoes_cobranca")
+          .from("configuracoes_cobranca" as any)
           .insert({ ...configData, created_by: user.id })
           .select()
           .single();
         if (error) throw error;
-        setConfig(prev => ({ ...prev, id: data.id }));
+        setConfig(prev => ({ ...prev, id: (data as any).id }));
       }
 
       toast({

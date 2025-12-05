@@ -55,7 +55,7 @@ serve(async (req) => {
       console.log("[Cobrança WhatsApp] Status recebido:", JSON.stringify(body));
       
       // Formato N8N ou integração externa
-      const { fila_id, message_id, status, provider, error_message, delivered_at, read_at } = body;
+      const { fila_id, message_id, status, error_message, delivered_at, read_at } = body;
       
       if (fila_id) {
         // Mapear status externo para status interno
@@ -94,7 +94,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error("[Cobrança WhatsApp] Erro ao processar status:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
@@ -187,7 +188,8 @@ serve(async (req) => {
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error("[Cobrança WhatsApp] Erro ao enviar:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
@@ -242,7 +244,8 @@ serve(async (req) => {
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error("[Cobrança WhatsApp] Erro ao buscar pendentes:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,

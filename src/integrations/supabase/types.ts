@@ -887,6 +887,36 @@ export type Database = {
         }
         Relationships: []
       }
+      cobranca_execucao_log: {
+        Row: {
+          detalhes: Json | null
+          erro_mensagem: string | null
+          executado_em: string | null
+          id: string
+          registros_processados: number | null
+          status: string | null
+          tipo: string
+        }
+        Insert: {
+          detalhes?: Json | null
+          erro_mensagem?: string | null
+          executado_em?: string | null
+          id?: string
+          registros_processados?: number | null
+          status?: string | null
+          tipo: string
+        }
+        Update: {
+          detalhes?: Json | null
+          erro_mensagem?: string | null
+          executado_em?: string | null
+          id?: string
+          registros_processados?: number | null
+          status?: string | null
+          tipo?: string
+        }
+        Relationships: []
+      }
       cobrancas: {
         Row: {
           cliente_codigo: string | null
@@ -1315,6 +1345,51 @@ export type Database = {
           name?: string
           notes?: string | null
           threat_level?: string | null
+        }
+        Relationships: []
+      }
+      configuracoes_cobranca: {
+        Row: {
+          api_key: string | null
+          automacao_ativa: boolean | null
+          created_at: string | null
+          created_by: string | null
+          hora_fim_envio: string | null
+          hora_inicio_envio: string | null
+          id: string
+          intervalo_minimo_dias: number | null
+          max_envios_hora: number | null
+          updated_at: string | null
+          updated_by: string | null
+          whatsapp_verify_token: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          automacao_ativa?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          hora_fim_envio?: string | null
+          hora_inicio_envio?: string | null
+          id?: string
+          intervalo_minimo_dias?: number | null
+          max_envios_hora?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          whatsapp_verify_token?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          automacao_ativa?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          hora_fim_envio?: string | null
+          hora_inicio_envio?: string | null
+          id?: string
+          intervalo_minimo_dias?: number | null
+          max_envios_hora?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          whatsapp_verify_token?: string | null
         }
         Relationships: []
       }
@@ -11867,6 +11942,7 @@ export type Database = {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined
       }
+      enfileirar_cobrancas_automaticas: { Args: never; Returns: number }
       gerar_creditos_tributarios: {
         Args: { p_item_nf_id: string }
         Returns: Json

@@ -3,6 +3,10 @@ project_id = "aokkyrgaqjarhlywhjju"
 # Edge Functions
 [functions.cobranca-automation-api]
 verify_jwt = false
+
+[functions.cobranca-whatsapp-webhook]
+verify_jwt = false
+
 [functions.publish-scheduled-posts]
 verify_jwt = false
 
