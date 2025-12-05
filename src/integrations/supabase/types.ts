@@ -6446,6 +6446,306 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_configs: {
+        Row: {
+          ativo: boolean | null
+          auth_config: Json | null
+          auth_type: string | null
+          batch_size: number | null
+          codigo: string
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          endpoint_url: string | null
+          entidade_destino: string
+          id: string
+          nome: string
+          rate_limit_requests: number | null
+          rate_limit_window_seconds: number | null
+          retry_attempts: number | null
+          retry_delay_ms: number | null
+          sistema_origem: string | null
+          timeout_ms: number | null
+          tipo: string
+          ultima_execucao: string | null
+          ultimo_erro: string | null
+          ultimo_status: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          auth_config?: Json | null
+          auth_type?: string | null
+          batch_size?: number | null
+          codigo: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          endpoint_url?: string | null
+          entidade_destino: string
+          id?: string
+          nome: string
+          rate_limit_requests?: number | null
+          rate_limit_window_seconds?: number | null
+          retry_attempts?: number | null
+          retry_delay_ms?: number | null
+          sistema_origem?: string | null
+          timeout_ms?: number | null
+          tipo?: string
+          ultima_execucao?: string | null
+          ultimo_erro?: string | null
+          ultimo_status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          auth_config?: Json | null
+          auth_type?: string | null
+          batch_size?: number | null
+          codigo?: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          endpoint_url?: string | null
+          entidade_destino?: string
+          id?: string
+          nome?: string
+          rate_limit_requests?: number | null
+          rate_limit_window_seconds?: number | null
+          retry_attempts?: number | null
+          retry_delay_ms?: number | null
+          sistema_origem?: string | null
+          timeout_ms?: number | null
+          tipo?: string
+          ultima_execucao?: string | null
+          ultimo_erro?: string | null
+          ultimo_status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      integration_field_mappings: {
+        Row: {
+          ativo: boolean | null
+          campo_destino: string
+          campo_origem: string
+          config_id: string
+          created_at: string | null
+          formato_destino: string | null
+          formato_origem: string | null
+          funcao_transformacao: string | null
+          id: string
+          obrigatorio: boolean | null
+          ordem: number | null
+          path_origem: string | null
+          tipo_transformacao: string | null
+          validacao_regex: string | null
+          valor_default: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          campo_destino: string
+          campo_origem: string
+          config_id: string
+          created_at?: string | null
+          formato_destino?: string | null
+          formato_origem?: string | null
+          funcao_transformacao?: string | null
+          id?: string
+          obrigatorio?: boolean | null
+          ordem?: number | null
+          path_origem?: string | null
+          tipo_transformacao?: string | null
+          validacao_regex?: string | null
+          valor_default?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          campo_destino?: string
+          campo_origem?: string
+          config_id?: string
+          created_at?: string | null
+          formato_destino?: string | null
+          formato_origem?: string | null
+          funcao_transformacao?: string | null
+          id?: string
+          obrigatorio?: boolean | null
+          ordem?: number | null
+          path_origem?: string | null
+          tipo_transformacao?: string | null
+          validacao_regex?: string | null
+          valor_default?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_field_mappings_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "integration_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_logs: {
+        Row: {
+          codigo_integracao: string | null
+          config_id: string | null
+          direcao: string
+          duracao_ms: number | null
+          endpoint: string | null
+          erro_mensagem: string | null
+          erro_stack: string | null
+          erro_tipo: string | null
+          finalizado_em: string | null
+          headers: Json | null
+          id: string
+          iniciado_em: string | null
+          ip_address: unknown
+          metodo: string | null
+          payload_preview: string | null
+          payload_size_bytes: number | null
+          registros_erro: number | null
+          registros_processados: number | null
+          registros_recebidos: number | null
+          registros_sucesso: number | null
+          request_id: string | null
+          response_preview: string | null
+          status: string
+          status_code: number | null
+          user_agent: string | null
+        }
+        Insert: {
+          codigo_integracao?: string | null
+          config_id?: string | null
+          direcao: string
+          duracao_ms?: number | null
+          endpoint?: string | null
+          erro_mensagem?: string | null
+          erro_stack?: string | null
+          erro_tipo?: string | null
+          finalizado_em?: string | null
+          headers?: Json | null
+          id?: string
+          iniciado_em?: string | null
+          ip_address?: unknown
+          metodo?: string | null
+          payload_preview?: string | null
+          payload_size_bytes?: number | null
+          registros_erro?: number | null
+          registros_processados?: number | null
+          registros_recebidos?: number | null
+          registros_sucesso?: number | null
+          request_id?: string | null
+          response_preview?: string | null
+          status: string
+          status_code?: number | null
+          user_agent?: string | null
+        }
+        Update: {
+          codigo_integracao?: string | null
+          config_id?: string | null
+          direcao?: string
+          duracao_ms?: number | null
+          endpoint?: string | null
+          erro_mensagem?: string | null
+          erro_stack?: string | null
+          erro_tipo?: string | null
+          finalizado_em?: string | null
+          headers?: Json | null
+          id?: string
+          iniciado_em?: string | null
+          ip_address?: unknown
+          metodo?: string | null
+          payload_preview?: string | null
+          payload_size_bytes?: number | null
+          registros_erro?: number | null
+          registros_processados?: number | null
+          registros_recebidos?: number | null
+          registros_sucesso?: number | null
+          request_id?: string | null
+          response_preview?: string | null
+          status?: string
+          status_code?: number | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_logs_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "integration_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_queue: {
+        Row: {
+          agendado_para: string | null
+          config_id: string | null
+          created_at: string | null
+          created_by: string | null
+          entidade: string
+          entidade_id: string | null
+          id: string
+          max_tentativas: number | null
+          operacao: string
+          payload: Json
+          prioridade: number | null
+          processado_em: string | null
+          status: string | null
+          tentativas: number | null
+          ultimo_erro: string | null
+          ultimo_erro_em: string | null
+        }
+        Insert: {
+          agendado_para?: string | null
+          config_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          entidade: string
+          entidade_id?: string | null
+          id?: string
+          max_tentativas?: number | null
+          operacao: string
+          payload: Json
+          prioridade?: number | null
+          processado_em?: string | null
+          status?: string | null
+          tentativas?: number | null
+          ultimo_erro?: string | null
+          ultimo_erro_em?: string | null
+        }
+        Update: {
+          agendado_para?: string | null
+          config_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          entidade?: string
+          entidade_id?: string | null
+          id?: string
+          max_tentativas?: number | null
+          operacao?: string
+          payload?: Json
+          prioridade?: number | null
+          processado_em?: string | null
+          status?: string | null
+          tentativas?: number | null
+          ultimo_erro?: string | null
+          ultimo_erro_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_queue_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "integration_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kpi_snapshots: {
         Row: {
           created_at: string | null
