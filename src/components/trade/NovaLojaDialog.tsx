@@ -10,6 +10,17 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { NovaCategoriaDialog } from "./NovaCategoriaDialog";
 import { NovaRedeDialog } from "./NovaRedeDialog";
+import { z } from "zod";
+
+// Schema de validação para loja
+const storeSchema = z.object({
+  name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(200, "Nome muito longo"),
+  cnpj: z.string().regex(/^(\d{14})?$/, "CNPJ deve ter 14 dígitos").optional().or(z.literal('')),
+  email: z.string().email("Email inválido").optional().or(z.literal('')),
+  phone: z.string().regex(/^(\d{10,15})?$/, "Telefone deve ter 10-15 dígitos").optional().or(z.literal('')),
+  state: z.string().max(2, "UF deve ter 2 caracteres").optional().or(z.literal('')),
+  vendedor_id: z.string().uuid("Vendedor é obrigatório"),
+});
 
 interface NovaLojaDialogProps {
   open: boolean;
@@ -119,13 +130,23 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name) {
-      toast.error("Nome da loja é obrigatório");
-      return;
-    }
-
-    if (!formData.vendedor_id) {
-      toast.error("Vendedor responsável é obrigatório");
+    // Limpar CNPJ e telefone para validação
+    const cleanCnpj = formData.cnpj.replace(/\D/g, '');
+    const cleanPhone = formData.phone.replace(/\D/g, '');
+    
+    // Validar com Zod
+    const validationResult = storeSchema.safeParse({
+      name: formData.name.trim(),
+      cnpj: cleanCnpj,
+      email: formData.email.trim(),
+      phone: cleanPhone,
+      state: formData.state.trim(),
+      vendedor_id: formData.vendedor_id,
+    });
+    
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0];
+      toast.error(firstError.message);
       return;
     }
 
