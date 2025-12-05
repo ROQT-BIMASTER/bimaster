@@ -35,6 +35,7 @@ import {
 import { InadimplenteDrawer } from "@/components/cobranca/InadimplenteDrawerPro";
 import { CobrancaDashboard } from "@/components/cobranca/CobrancaDashboard";
 import { FilaCobranca } from "@/components/cobranca/FilaCobranca";
+import { Cliente360Drawer } from "@/components/financeiro/cliente360";
 
 interface ContaVencida {
   id: string;
@@ -110,6 +111,7 @@ export default function CobrancaInadimplentes() {
   const [filterPrioridade, setFilterPrioridade] = useState<string>("all");
   const [selectedCliente, setSelectedCliente] = useState<ClienteAgrupado | null>(null);
   const [activeView, setActiveView] = useState<"dashboard" | "lista" | "fila">("dashboard");
+  const [cliente360Codigo, setCliente360Codigo] = useState<string | null>(null);
 
   // Query contas vencidas
   const { data: contasVencidas, isLoading, refetch } = useQuery({
@@ -594,6 +596,17 @@ export default function CobrancaInadimplentes() {
         open={!!selectedCliente}
         onClose={() => setSelectedCliente(null)}
         onRefresh={() => refetch()}
+        onOpenCliente360={(codigo) => {
+          setSelectedCliente(null);
+          setCliente360Codigo(codigo);
+        }}
+      />
+
+      {/* Drawer Visão 360° do Cliente */}
+      <Cliente360Drawer
+        clienteCodigo={cliente360Codigo}
+        open={!!cliente360Codigo}
+        onClose={() => setCliente360Codigo(null)}
       />
     </DashboardLayout>
   );
