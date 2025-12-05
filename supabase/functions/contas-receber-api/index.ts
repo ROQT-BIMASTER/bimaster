@@ -6,9 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-const BATCH_SIZE = 100;
-const MAX_PAYLOAD_SIZE = 1500;
-const QUERY_BATCH_SIZE = 200;
+// Configurações otimizadas para upsert
+const UPSERT_BATCH_SIZE = 50; // Batches menores para evitar timeout
+const MAX_PAYLOAD_SIZE = 5000; // Aumentado pois upsert é mais eficiente
+const BATCH_DELAY_MS = 30; // Delay entre batches para não sobrecarregar
+
+// Helper para delay entre batches
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Calcular hash MD5 dos dados para detectar alterações
 async function calculateHash(data: any): Promise<string> {
@@ -72,45 +76,29 @@ function generateErpId(conta: any): string {
   return `${conta['ID Empresa']}-${conta['Tipo']}-${conta['Nota']}-${conta['Seq']}-${conta['Código']}`;
 }
 
-async function processBatch(
+// Nova função usando UPSERT nativo - muito mais eficiente
+async function processWithUpsert(
   supabase: any, 
-  batch: any[], 
-  existingHashMap: Map<string, { id: string; hash: string }>
-): Promise<{ inserted: number; updated: number; skipped: number; errors: any[] }> {
-  let inserted = 0;
-  let updated = 0;
-  let skipped = 0;
+  contas: any[]
+): Promise<{ processed: number; errors: any[] }> {
+  let processed = 0;
   const errors: any[] = [];
   
-  const toInsert: any[] = [];
-  const toUpdate: { id: string; data: any }[] = [];
-
-  for (const conta of batch) {
+  // Preparar todos os registros para upsert
+  const records: any[] = [];
+  
+  for (const conta of contas) {
     try {
       const erpId = generateErpId(conta);
       const transformed = transformErpData(conta);
       const dataHash = await calculateHash(transformed);
-      const existing = existingHashMap.get(erpId);
-
-      if (!existing) {
-        toInsert.push({
-          erp_id: erpId,
-          data_hash: dataHash,
-          ...transformed,
-          sincronizado_em: new Date().toISOString()
-        });
-      } else if (existing.hash !== dataHash) {
-        toUpdate.push({
-          id: existing.id,
-          data: {
-            data_hash: dataHash,
-            ...transformed,
-            sincronizado_em: new Date().toISOString()
-          }
-        });
-      } else {
-        skipped++;
-      }
+      
+      records.push({
+        erp_id: erpId,
+        data_hash: dataHash,
+        ...transformed,
+        sincronizado_em: new Date().toISOString()
+      });
     } catch (error) {
       errors.push({
         record: conta,
@@ -119,36 +107,44 @@ async function processBatch(
     }
   }
 
-  if (toInsert.length > 0) {
-    const { error } = await supabase.from('contas_receber').insert(toInsert);
-    if (error) {
-      console.error('[contas-receber-api] Batch insert error:', error);
-      errors.push({ operation: 'batch_insert', error: error.message });
-    } else {
-      inserted = toInsert.length;
+  // Processar em batches pequenos com delay
+  for (let i = 0; i < records.length; i += UPSERT_BATCH_SIZE) {
+    const batch = records.slice(i, i + UPSERT_BATCH_SIZE);
+    
+    try {
+      const { error } = await supabase
+        .from('contas_receber')
+        .upsert(batch, { 
+          onConflict: 'erp_id',
+          ignoreDuplicates: false 
+        });
+      
+      if (error) {
+        console.error(`[contas-receber-api] Upsert batch ${i / UPSERT_BATCH_SIZE + 1} error:`, error);
+        errors.push({ 
+          operation: 'upsert_batch', 
+          batch_start: i, 
+          error: error.message 
+        });
+      } else {
+        processed += batch.length;
+      }
+    } catch (batchError) {
+      console.error(`[contas-receber-api] Batch ${i / UPSERT_BATCH_SIZE + 1} exception:`, batchError);
+      errors.push({ 
+        operation: 'upsert_batch', 
+        batch_start: i, 
+        error: batchError instanceof Error ? batchError.message : String(batchError)
+      });
+    }
+    
+    // Delay entre batches para não sobrecarregar o banco
+    if (i + UPSERT_BATCH_SIZE < records.length) {
+      await sleep(BATCH_DELAY_MS);
     }
   }
 
-  if (toUpdate.length > 0) {
-    const updatePromises = toUpdate.map(({ id, data }) =>
-      supabase.from('contas_receber').update(data).eq('id', id)
-    );
-    
-    const results = await Promise.allSettled(updatePromises);
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled' && !result.value.error) {
-        updated++;
-      } else {
-        errors.push({
-          operation: 'update',
-          id: toUpdate[index].id,
-          error: result.status === 'rejected' ? result.reason : result.value.error?.message
-        });
-      }
-    });
-  }
-
-  return { inserted, updated, skipped, errors };
+  return { processed, errors };
 }
 
 Deno.serve(async (req) => {
@@ -231,68 +227,39 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`[contas-receber-api] Processing ${contas.length} records`);
+      console.log(`[contas-receber-api] Processing ${contas.length} records with UPSERT`);
 
-      const erpIds: string[] = [];
-      for (const conta of contas) {
-        erpIds.push(generateErpId(conta));
-      }
-      
-      const existingHashMap = new Map<string, { id: string; hash: string }>();
-      
-      for (let i = 0; i < erpIds.length; i += QUERY_BATCH_SIZE) {
-        const batchIds = erpIds.slice(i, i + QUERY_BATCH_SIZE);
-        const { data: existingRecords, error: queryError } = await supabase
-          .from('contas_receber')
-          .select('id, erp_id, data_hash')
-          .in('erp_id', batchIds);
-        
-        if (queryError) {
-          console.error('[contas-receber-api] Query error:', queryError);
-        }
-        
-        existingRecords?.forEach((record: any) => {
-          existingHashMap.set(record.erp_id, { id: record.id, hash: record.data_hash });
-        });
-      }
-
-      console.log(`[contas-receber-api] Found ${existingHashMap.size} existing records`);
-
-      const { inserted, updated, skipped, errors } = await processBatch(
-        supabase, 
-        contas, 
-        existingHashMap
-      );
+      // Usar UPSERT nativo - sem lookup prévio
+      const { processed, errors } = await processWithUpsert(supabase, contas);
 
       const duration = Date.now() - startTime;
 
+      // Log de sincronização
       const empresaId = contas[0] ? contas[0]['ID Empresa'] : null;
       void supabase.from('sync_control').insert({
         entidade: 'contas_receber',
         empresa_id: empresaId,
         ultima_sync: new Date().toISOString(),
         total_registros: contas.length,
-        registros_inseridos: inserted,
-        registros_atualizados: updated,
-        registros_ignorados: skipped,
+        registros_inseridos: processed,
+        registros_atualizados: 0, // Upsert não diferencia
+        registros_ignorados: 0,
         duracao_ms: duration,
         status: errors.length === 0 ? 'success' : 'partial',
         erro_mensagem: errors.length > 0 ? JSON.stringify(errors.slice(0, 5)) : null
       });
 
-      console.log(`[contas-receber-api] Sync completed: ${inserted} inserted, ${updated} updated, ${skipped} skipped, ${errors.length} errors in ${duration}ms`);
+      console.log(`[contas-receber-api] Sync completed: ${processed} processed, ${errors.length} errors in ${duration}ms`);
 
       return new Response(JSON.stringify({
         success: true,
         statistics: {
           total_received: contas.length,
-          inserted,
-          updated,
-          skipped,
+          processed,
           errors: errors.length
         },
         duration_ms: duration,
-        message: `OK: ${inserted} novos, ${updated} atualizados, ${skipped} inalterados`
+        message: `OK: ${processed} registros processados via UPSERT`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -322,36 +289,19 @@ Deno.serve(async (req) => {
 
       console.log(`[contas-receber-api] Processing chunk ${chunk_id || '?'}/${total_chunks || '?'} with ${contas.length} records`);
 
-      const erpIds = contas.map(generateErpId);
-      const existingHashMap = new Map<string, { id: string; hash: string }>();
-      
-      const { data: existingRecords } = await supabase
-        .from('contas_receber')
-        .select('id, erp_id, data_hash')
-        .in('erp_id', erpIds);
-      
-      existingRecords?.forEach((record: any) => {
-        existingHashMap.set(record.erp_id, { id: record.id, hash: record.data_hash });
-      });
-
-      const { inserted, updated, skipped, errors } = await processBatch(
-        supabase, 
-        contas, 
-        existingHashMap
-      );
+      // Usar UPSERT nativo - sem lookup
+      const { processed, errors } = await processWithUpsert(supabase, contas);
 
       const duration = Date.now() - startTime;
 
-      console.log(`[contas-receber-api] Chunk completed: ${inserted} inserted, ${updated} updated, ${skipped} skipped in ${duration}ms`);
+      console.log(`[contas-receber-api] Chunk completed: ${processed} processed in ${duration}ms`);
 
       return new Response(JSON.stringify({
         success: true,
         chunk_id,
         statistics: {
           total_received: contas.length,
-          inserted,
-          updated,
-          skipped,
+          processed,
           errors: errors.length
         },
         duration_ms: duration
