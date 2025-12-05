@@ -262,7 +262,7 @@ export function SmartKanban() {
                 </Badge>
               )}
               {overdueCount > 0 && (
-                <Badge variant="warning" className="text-[10px]">
+                <Badge className="text-[10px] bg-amber-500 text-white border-transparent">
                   <Clock className="h-3 w-3 mr-1" />
                   {overdueCount} atrasadas
                 </Badge>
