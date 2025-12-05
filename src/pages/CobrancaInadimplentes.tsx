@@ -30,12 +30,14 @@ import {
   Target,
   RefreshCw,
   Download,
-  Filter
+  Filter,
+  Zap
 } from "lucide-react";
 import { InadimplenteDrawer } from "@/components/cobranca/InadimplenteDrawerPro";
 import { CobrancaDashboard } from "@/components/cobranca/CobrancaDashboard";
 import { FilaCobranca } from "@/components/cobranca/FilaCobranca";
 import { Cliente360Drawer } from "@/components/financeiro/cliente360";
+import { CobrancaAutomaticaPanel } from "@/components/cobranca/CobrancaAutomaticaPanel";
 
 interface ContaVencida {
   id: string;
@@ -361,6 +363,10 @@ export default function CobrancaInadimplentes() {
                 <Target className="h-4 w-4" />
                 Fila de Trabalho
               </TabsTrigger>
+              <TabsTrigger value="automacao" className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                Automação
+              </TabsTrigger>
             </TabsList>
 
             {/* Filtros Globais */}
@@ -586,6 +592,11 @@ export default function CobrancaInadimplentes() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Automação Tab */}
+          <TabsContent value="automacao">
+            <CobrancaAutomaticaPanel />
           </TabsContent>
         </Tabs>
       </div>

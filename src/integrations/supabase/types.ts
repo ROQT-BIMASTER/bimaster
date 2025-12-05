@@ -946,6 +946,77 @@ export type Database = {
           },
         ]
       }
+      cobrancas_enviadas: {
+        Row: {
+          assunto: string | null
+          canal: string
+          cliente_codigo: string
+          cliente_nome: string | null
+          conta_receber_id: string | null
+          created_at: string | null
+          destinatario: string
+          entregue_em: string | null
+          enviado_em: string | null
+          fila_id: string | null
+          id: string
+          lido_em: string | null
+          mensagem: string
+          provider_id: string | null
+          provider_response: Json | null
+          respondido_em: string | null
+          status_envio: string
+          status_resposta: string | null
+        }
+        Insert: {
+          assunto?: string | null
+          canal: string
+          cliente_codigo: string
+          cliente_nome?: string | null
+          conta_receber_id?: string | null
+          created_at?: string | null
+          destinatario: string
+          entregue_em?: string | null
+          enviado_em?: string | null
+          fila_id?: string | null
+          id?: string
+          lido_em?: string | null
+          mensagem: string
+          provider_id?: string | null
+          provider_response?: Json | null
+          respondido_em?: string | null
+          status_envio?: string
+          status_resposta?: string | null
+        }
+        Update: {
+          assunto?: string | null
+          canal?: string
+          cliente_codigo?: string
+          cliente_nome?: string | null
+          conta_receber_id?: string | null
+          created_at?: string | null
+          destinatario?: string
+          entregue_em?: string | null
+          enviado_em?: string | null
+          fila_id?: string | null
+          id?: string
+          lido_em?: string | null
+          mensagem?: string
+          provider_id?: string | null
+          provider_response?: Json | null
+          respondido_em?: string | null
+          status_envio?: string
+          status_resposta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_enviadas_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "fila_cobrancas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competitor_comparison_photos: {
         Row: {
           competitor_id: string | null
@@ -5973,6 +6044,90 @@ export type Database = {
           },
         ]
       }
+      fila_cobrancas: {
+        Row: {
+          agendado_para: string | null
+          canal: string
+          cliente_codigo: string
+          cliente_email: string | null
+          cliente_nome: string | null
+          cliente_telefone: string | null
+          conta_receber_id: string | null
+          created_at: string | null
+          criado_por: string | null
+          dados_adicionais: Json | null
+          erro_mensagem: string | null
+          id: string
+          max_tentativas: number | null
+          mensagem_personalizada: string | null
+          prioridade: number | null
+          status: string
+          template_id: string | null
+          template_nome: string | null
+          tentativas: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          agendado_para?: string | null
+          canal: string
+          cliente_codigo: string
+          cliente_email?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          conta_receber_id?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          dados_adicionais?: Json | null
+          erro_mensagem?: string | null
+          id?: string
+          max_tentativas?: number | null
+          mensagem_personalizada?: string | null
+          prioridade?: number | null
+          status?: string
+          template_id?: string | null
+          template_nome?: string | null
+          tentativas?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          agendado_para?: string | null
+          canal?: string
+          cliente_codigo?: string
+          cliente_email?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          conta_receber_id?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          dados_adicionais?: Json | null
+          erro_mensagem?: string | null
+          id?: string
+          max_tentativas?: number | null
+          mensagem_personalizada?: string | null
+          prioridade?: number | null
+          status?: string
+          template_id?: string | null
+          template_nome?: string | null
+          tentativas?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fila_cobrancas_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fila_cobrancas_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates_cobranca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string | null
@@ -8272,6 +8427,86 @@ export type Database = {
           },
         ]
       }
+      regras_cobranca: {
+        Row: {
+          ativo: boolean | null
+          canal: string
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          dias_atraso_max: number | null
+          dias_atraso_min: number
+          dias_semana: number[] | null
+          horario_fim: string | null
+          horario_inicio: string | null
+          id: string
+          intervalo_dias: number | null
+          max_tentativas: number | null
+          nome: string
+          prioridade: number | null
+          score_max: number | null
+          score_min: number | null
+          template_id: string | null
+          updated_at: string | null
+          valor_max: number | null
+          valor_min: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          canal: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          dias_atraso_max?: number | null
+          dias_atraso_min: number
+          dias_semana?: number[] | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          intervalo_dias?: number | null
+          max_tentativas?: number | null
+          nome: string
+          prioridade?: number | null
+          score_max?: number | null
+          score_min?: number | null
+          template_id?: string | null
+          updated_at?: string | null
+          valor_max?: number | null
+          valor_min?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          canal?: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          dias_atraso_max?: number | null
+          dias_atraso_min?: number
+          dias_semana?: number[] | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          intervalo_dias?: number | null
+          max_tentativas?: number | null
+          nome?: string
+          prioridade?: number | null
+          score_max?: number | null
+          score_min?: number | null
+          template_id?: string | null
+          updated_at?: string | null
+          valor_max?: number | null
+          valor_min?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regras_cobranca_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates_cobranca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_history: {
         Row: {
           file_url: string | null
@@ -9728,6 +9963,48 @@ export type Database = {
             referencedColumns: ["codigo"]
           },
         ]
+      }
+      templates_cobranca: {
+        Row: {
+          assunto: string | null
+          ativo: boolean | null
+          canal: string
+          conteudo: string
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string | null
+          variaveis: Json | null
+        }
+        Insert: {
+          assunto?: string | null
+          ativo?: boolean | null
+          canal: string
+          conteudo: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string | null
+          variaveis?: Json | null
+        }
+        Update: {
+          assunto?: string | null
+          ativo?: boolean | null
+          canal?: string
+          conteudo?: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string | null
+          variaveis?: Json | null
+        }
+        Relationships: []
       }
       trade_action_points: {
         Row: {
