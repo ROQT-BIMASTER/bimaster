@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const BATCH_SIZE = 100;
-const MAX_PAYLOAD_SIZE = 500;
+const MAX_PAYLOAD_SIZE = 1500;
 const QUERY_BATCH_SIZE = 200;
 
 // Calcular hash MD5 dos dados para detectar alterações
