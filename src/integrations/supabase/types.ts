@@ -659,6 +659,180 @@ export type Database = {
           },
         ]
       }
+      clientes_alertas_credito: {
+        Row: {
+          cliente_codigo: string
+          created_at: string | null
+          dados_alerta: Json | null
+          id: string
+          lido: boolean | null
+          mensagem: string | null
+          resolvido: boolean | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          severidade: string | null
+          tipo_alerta: string
+          titulo: string
+        }
+        Insert: {
+          cliente_codigo: string
+          created_at?: string | null
+          dados_alerta?: Json | null
+          id?: string
+          lido?: boolean | null
+          mensagem?: string | null
+          resolvido?: boolean | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          severidade?: string | null
+          tipo_alerta: string
+          titulo: string
+        }
+        Update: {
+          cliente_codigo?: string
+          created_at?: string | null
+          dados_alerta?: Json | null
+          id?: string
+          lido?: boolean | null
+          mensagem?: string | null
+          resolvido?: boolean | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          severidade?: string | null
+          tipo_alerta?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
+      clientes_perfil_credito: {
+        Row: {
+          bloqueado_em: string | null
+          bloqueado_por: string | null
+          cliente_codigo: string
+          cliente_nome: string | null
+          comportamento_pagamento: string | null
+          created_at: string | null
+          dme: number | null
+          historico_scores: Json | null
+          id: string
+          limite_credito: number | null
+          limite_disponivel: number | null
+          limite_utilizado: number | null
+          maior_atraso_dias: number | null
+          meses_maior_atraso: Json | null
+          motivo_bloqueio: string | null
+          pontualidade_percentual: number | null
+          primeira_compra: string | null
+          score_atual: number | null
+          score_classificacao: string | null
+          status: string | null
+          tendencia_score: string | null
+          titulos_pagos_em_atraso: number | null
+          titulos_pagos_em_dia: number | null
+          total_compras_historico: number | null
+          total_pagamentos_historico: number | null
+          total_titulos_historico: number | null
+          ultima_compra: string | null
+          ultimo_pagamento: string | null
+          updated_at: string | null
+          valor_medio_compra: number | null
+        }
+        Insert: {
+          bloqueado_em?: string | null
+          bloqueado_por?: string | null
+          cliente_codigo: string
+          cliente_nome?: string | null
+          comportamento_pagamento?: string | null
+          created_at?: string | null
+          dme?: number | null
+          historico_scores?: Json | null
+          id?: string
+          limite_credito?: number | null
+          limite_disponivel?: number | null
+          limite_utilizado?: number | null
+          maior_atraso_dias?: number | null
+          meses_maior_atraso?: Json | null
+          motivo_bloqueio?: string | null
+          pontualidade_percentual?: number | null
+          primeira_compra?: string | null
+          score_atual?: number | null
+          score_classificacao?: string | null
+          status?: string | null
+          tendencia_score?: string | null
+          titulos_pagos_em_atraso?: number | null
+          titulos_pagos_em_dia?: number | null
+          total_compras_historico?: number | null
+          total_pagamentos_historico?: number | null
+          total_titulos_historico?: number | null
+          ultima_compra?: string | null
+          ultimo_pagamento?: string | null
+          updated_at?: string | null
+          valor_medio_compra?: number | null
+        }
+        Update: {
+          bloqueado_em?: string | null
+          bloqueado_por?: string | null
+          cliente_codigo?: string
+          cliente_nome?: string | null
+          comportamento_pagamento?: string | null
+          created_at?: string | null
+          dme?: number | null
+          historico_scores?: Json | null
+          id?: string
+          limite_credito?: number | null
+          limite_disponivel?: number | null
+          limite_utilizado?: number | null
+          maior_atraso_dias?: number | null
+          meses_maior_atraso?: Json | null
+          motivo_bloqueio?: string | null
+          pontualidade_percentual?: number | null
+          primeira_compra?: string | null
+          score_atual?: number | null
+          score_classificacao?: string | null
+          status?: string | null
+          tendencia_score?: string | null
+          titulos_pagos_em_atraso?: number | null
+          titulos_pagos_em_dia?: number | null
+          total_compras_historico?: number | null
+          total_pagamentos_historico?: number | null
+          total_titulos_historico?: number | null
+          ultima_compra?: string | null
+          ultimo_pagamento?: string | null
+          updated_at?: string | null
+          valor_medio_compra?: number | null
+        }
+        Relationships: []
+      }
+      clientes_score_historico: {
+        Row: {
+          cliente_codigo: string
+          created_at: string | null
+          detalhes: Json | null
+          id: string
+          motivo: string | null
+          score_anterior: number | null
+          score_novo: number
+        }
+        Insert: {
+          cliente_codigo: string
+          created_at?: string | null
+          detalhes?: Json | null
+          id?: string
+          motivo?: string | null
+          score_anterior?: number | null
+          score_novo: number
+        }
+        Update: {
+          cliente_codigo?: string
+          created_at?: string | null
+          detalhes?: Json | null
+          id?: string
+          motivo?: string | null
+          score_anterior?: number | null
+          score_novo?: number
+        }
+        Relationships: []
+      }
       cnpjbiz_audit: {
         Row: {
           created_at: string | null
@@ -11334,6 +11508,10 @@ export type Database = {
       }
     }
     Functions: {
+      atualizar_perfil_credito_cliente: {
+        Args: { p_cliente_codigo: string }
+        Returns: string
+      }
       buscar_regra_fiscal_item: {
         Args: {
           p_ncm: string
@@ -11396,6 +11574,10 @@ export type Database = {
             }
             Returns: number
           }
+      calcular_score_cliente: {
+        Args: { p_cliente_codigo: string }
+        Returns: number
+      }
       calculate_user_level: {
         Args: { points: number }
         Returns: {

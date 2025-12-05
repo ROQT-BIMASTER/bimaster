@@ -27,7 +27,8 @@ import {
   Building2,
   History,
   Calculator,
-  FileCode
+  FileCode,
+  Target
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -71,9 +72,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onRefresh: () => void;
+  onOpenCliente360?: (clienteCodigo: string) => void;
 }
 
-export function InadimplenteDrawer({ cliente, open, onClose, onRefresh }: Props) {
+export function InadimplenteDrawer({ cliente, open, onClose, onRefresh, onOpenCliente360 }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("resumo");
@@ -226,10 +228,22 @@ export function InadimplenteDrawer({ cliente, open, onClose, onRefresh }: Props)
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-3xl overflow-hidden flex flex-col p-0">
         <SheetHeader className="p-6 pb-4 border-b">
-          <SheetTitle className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${cliente.maior_atraso >= 90 ? 'bg-red-500' : cliente.maior_atraso >= 60 ? 'bg-orange-500' : 'bg-yellow-500'}`} />
-            {cliente.cliente_nome}
-          </SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${cliente.maior_atraso >= 90 ? 'bg-red-500' : cliente.maior_atraso >= 60 ? 'bg-orange-500' : 'bg-yellow-500'}`} />
+              {cliente.cliente_nome}
+            </SheetTitle>
+            {onOpenCliente360 && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => onOpenCliente360(cliente.cliente_codigo)}
+              >
+                <Target className="h-4 w-4 mr-1" />
+                Visão 360°
+              </Button>
+            )}
+          </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <User className="h-4 w-4" />
