@@ -178,8 +178,29 @@ Deno.serve(async (req) => {
       });
     }
 
-    // GET / - Listar contas
+// GET / - Listar contas (REQUIRES AUTH)
     if (path.endsWith('/contas-pagar-api') && req.method === 'GET') {
+      // Validate authentication (API key or JWT)
+      const apiKey = req.headers.get('x-api-key');
+      const expectedKey = Deno.env.get('N8N_API_KEY');
+      const authHeader = req.headers.get('Authorization');
+      
+      let isAuthorized = false;
+      if (apiKey && apiKey === expectedKey) {
+        isAuthorized = true;
+      } else if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && user) isAuthorized = true;
+      }
+      
+      if (!isAuthorized) {
+        return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
       const { data, error } = await supabase
         .from('contas_pagar')
         .select('*')
@@ -193,8 +214,29 @@ Deno.serve(async (req) => {
       });
     }
 
-    // GET /stats - Estatísticas de sincronização
+    // GET /stats - Estatísticas de sincronização (REQUIRES AUTH)
     if (path.endsWith('/stats') && req.method === 'GET') {
+      // Validate authentication (API key or JWT)
+      const apiKey = req.headers.get('x-api-key');
+      const expectedKey = Deno.env.get('N8N_API_KEY');
+      const authHeader = req.headers.get('Authorization');
+      
+      let isAuthorized = false;
+      if (apiKey && apiKey === expectedKey) {
+        isAuthorized = true;
+      } else if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && user) isAuthorized = true;
+      }
+      
+      if (!isAuthorized) {
+        return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
       const { data, error } = await supabase
         .from('sync_control')
         .select('*')
