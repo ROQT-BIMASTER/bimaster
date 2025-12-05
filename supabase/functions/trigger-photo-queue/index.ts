@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,37 +28,60 @@ serve(async (req) => {
 
     console.log("✅ trigger-photo-queue called from frontend");
 
-    // Call the secure queue processor with the secret
+    // Call the secure queue processor with timeout
     const processorUrl = `${supabaseUrl}/functions/v1/process-photo-analysis-queue`;
-    const response = await fetch(processorUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${supabaseAnonKey}`,
-        "x-queue-secret": queueSecret,
-      },
-      body: JSON.stringify({}),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
 
-    const result = await response.json();
+    try {
+      const response = await fetch(processorUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          "x-queue-secret": queueSecret,
+        },
+        body: JSON.stringify({}),
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      console.error("❌ Queue processor error:", result);
-      return new Response(
-        JSON.stringify({ error: result.error || "Failed to process queue" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: response.status,
-        }
-      );
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Queue processor error:", errorText);
+        return new Response(
+          JSON.stringify({ error: "Failed to process queue", details: errorText }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: response.status,
+          }
+        );
+      }
+
+      const result = await response.json();
+      console.log("✅ Queue processing completed:", result);
+
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    } catch (fetchError: unknown) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        console.log("⏱️ Queue processor timeout - returning success (processing continues in background)");
+        return new Response(
+          JSON.stringify({ message: "Processamento iniciado em background", processed: 0 }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          }
+        );
+      }
+      
+      throw fetchError;
     }
-
-    console.log("✅ Queue processing completed:", result);
-
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
   } catch (error) {
     console.error("❌ Error triggering photo queue:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
