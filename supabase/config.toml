@@ -160,3 +160,7 @@ verify_jwt = true
 
 [functions.sync-all-accounts]
 verify_jwt = true
+
+# Integration Hub - Roteador central para integrações
+[functions.integration-router]
+verify_jwt = false
