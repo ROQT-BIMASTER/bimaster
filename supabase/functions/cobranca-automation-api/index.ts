@@ -125,7 +125,7 @@ serve(async (req) => {
     }
 
     // ============ PENDENTES - Get pending items for N8N ============
-    if (path === "pendentes" && req.method === "GET") {
+    if (path === "pendentes" && (req.method === "GET" || req.method === "POST")) {
       const auth = await authenticateRequest(req, supabase);
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
@@ -424,7 +424,7 @@ serve(async (req) => {
     }
 
     // ============ STATS - Get queue statistics ============
-    if (path === "stats" && req.method === "GET") {
+    if (path === "stats" && (req.method === "GET" || req.method === "POST")) {
       const auth = await authenticateRequest(req, supabase);
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
@@ -482,7 +482,7 @@ serve(async (req) => {
     }
 
     // ============ TEMPLATES - List templates ============
-    if (path === "templates" && req.method === "GET") {
+    if (path === "templates" && (req.method === "GET" || req.method === "POST")) {
       const auth = await authenticateRequest(req, supabase);
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
@@ -511,7 +511,7 @@ serve(async (req) => {
     }
 
     // ============ REGRAS - List rules ============
-    if (path === "regras" && req.method === "GET") {
+    if (path === "regras" && (req.method === "GET" || req.method === "POST")) {
       const auth = await authenticateRequest(req, supabase);
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
