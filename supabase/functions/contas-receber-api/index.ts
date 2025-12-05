@@ -6,9 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-const BATCH_SIZE = 100; // Processar 100 registros por vez (otimizado para n8n com 50 itens)
-const MAX_PAYLOAD_SIZE = 500; // Máximo de registros por chamada para evitar timeout
-const QUERY_BATCH_SIZE = 200; // Lote para consultas de existentes
+const BATCH_SIZE = 100;
+const MAX_PAYLOAD_SIZE = 500;
+const QUERY_BATCH_SIZE = 200;
 
 // Calcular hash MD5 dos dados para detectar alterações
 async function calculateHash(data: any): Promise<string> {
@@ -30,7 +30,6 @@ async function calculateHash(data: any): Promise<string> {
   return hashHex;
 }
 
-// Parse date from various formats
 function parseDate(dateValue: any): string | null {
   if (!dateValue) return null;
   try {
@@ -42,7 +41,6 @@ function parseDate(dateValue: any): string | null {
   }
 }
 
-// Transformar dados do ERP/N8N para o formato do banco
 function transformErpData(erpRecord: any) {
   return {
     empresa_id: erpRecord['ID Empresa'],
@@ -70,12 +68,10 @@ function transformErpData(erpRecord: any) {
   };
 }
 
-// Gerar erp_id único
 function generateErpId(conta: any): string {
   return `${conta['ID Empresa']}-${conta['Tipo']}-${conta['Nota']}-${conta['Seq']}-${conta['Código']}`;
 }
 
-// Processar um lote de registros usando upsert em batch
 async function processBatch(
   supabase: any, 
   batch: any[], 
@@ -123,7 +119,6 @@ async function processBatch(
     }
   }
 
-  // Batch insert
   if (toInsert.length > 0) {
     const { error } = await supabase.from('contas_receber').insert(toInsert);
     if (error) {
@@ -134,7 +129,6 @@ async function processBatch(
     }
   }
 
-  // Batch updates (Supabase não suporta batch update nativo, fazer em paralelo limitado)
   if (toUpdate.length > 0) {
     const updatePromises = toUpdate.map(({ id, data }) =>
       supabase.from('contas_receber').update(data).eq('id', id)
@@ -158,7 +152,6 @@ async function processBatch(
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -173,7 +166,22 @@ Deno.serve(async (req) => {
 
     console.log(`[contas-receber-api] ${req.method} ${path}`);
 
-    // POST /sync - Sincronizar dados do n8n (otimizado para lotes de ~50 itens do N8N)
+    // Helper function for auth validation
+    async function validateAuth(): Promise<boolean> {
+      const apiKey = req.headers.get('x-api-key');
+      const expectedKey = Deno.env.get('N8N_API_KEY');
+      if (apiKey && apiKey === expectedKey) return true;
+      
+      const authHeader = req.headers.get('Authorization');
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && user) return true;
+      }
+      return false;
+    }
+
+    // POST /sync - Sincronizar dados do n8n (REQUIRES API KEY)
     if (path.endsWith('/sync') && req.method === 'POST') {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
@@ -188,7 +196,6 @@ Deno.serve(async (req) => {
 
       const startTime = Date.now();
       
-      // Parse JSON com limite de tamanho para evitar memory overflow
       let body;
       try {
         const text = await req.text();
@@ -212,7 +219,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Limitar tamanho do payload para evitar timeout/memory issues
       if (contas.length > MAX_PAYLOAD_SIZE) {
         console.warn(`[contas-receber-api] Payload too large: ${contas.length} records (max: ${MAX_PAYLOAD_SIZE})`);
         return new Response(JSON.stringify({ 
@@ -227,13 +233,11 @@ Deno.serve(async (req) => {
 
       console.log(`[contas-receber-api] Processing ${contas.length} records`);
 
-      // Gerar erp_ids de forma eficiente
       const erpIds: string[] = [];
       for (const conta of contas) {
         erpIds.push(generateErpId(conta));
       }
       
-      // Buscar registros existentes (otimizado para lotes pequenos ~50)
       const existingHashMap = new Map<string, { id: string; hash: string }>();
       
       for (let i = 0; i < erpIds.length; i += QUERY_BATCH_SIZE) {
@@ -254,7 +258,6 @@ Deno.serve(async (req) => {
 
       console.log(`[contas-receber-api] Found ${existingHashMap.size} existing records`);
 
-      // Processar tudo em um único batch (já que n8n envia ~50 por vez)
       const { inserted, updated, skipped, errors } = await processBatch(
         supabase, 
         contas, 
@@ -263,7 +266,6 @@ Deno.serve(async (req) => {
 
       const duration = Date.now() - startTime;
 
-      // Registrar estatísticas de sincronização (fire and forget)
       const empresaId = contas[0] ? contas[0]['ID Empresa'] : null;
       void supabase.from('sync_control').insert({
         entidade: 'contas_receber',
@@ -296,7 +298,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // POST /sync-chunk - Sincronização em chunks menores (recomendado para N8N)
+    // POST /sync-chunk - Sincronização em chunks (REQUIRES API KEY)
     if (path.endsWith('/sync-chunk') && req.method === 'POST') {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
@@ -320,7 +322,6 @@ Deno.serve(async (req) => {
 
       console.log(`[contas-receber-api] Processing chunk ${chunk_id || '?'}/${total_chunks || '?'} with ${contas.length} records`);
 
-      // Buscar existentes
       const erpIds = contas.map(generateErpId);
       const existingHashMap = new Map<string, { id: string; hash: string }>();
       
@@ -359,8 +360,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // GET / - Listar contas (com paginação)
+    // GET / - Listar contas (REQUIRES AUTH)
     if (path.endsWith('/contas-receber-api') && req.method === 'GET') {
+      if (!(await validateAuth())) {
+        return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
       const page = parseInt(url.searchParams.get('page') || '1');
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
       const offset = (page - 1) * limit;
@@ -375,19 +383,21 @@ Deno.serve(async (req) => {
 
       return new Response(JSON.stringify({ 
         data,
-        pagination: {
-          page,
-          limit,
-          total: count,
-          total_pages: Math.ceil((count || 0) / limit)
-        }
+        pagination: { page, limit, total: count, total_pages: Math.ceil((count || 0) / limit) }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // GET /vencidos - Listar contas vencidas (com paginação)
+    // GET /vencidos - Listar contas vencidas (REQUIRES AUTH)
     if (path.endsWith('/vencidos') && req.method === 'GET') {
+      if (!(await validateAuth())) {
+        return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
       const page = parseInt(url.searchParams.get('page') || '1');
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
       const offset = (page - 1) * limit;
@@ -404,19 +414,21 @@ Deno.serve(async (req) => {
 
       return new Response(JSON.stringify({ 
         data,
-        pagination: {
-          page,
-          limit,
-          total: count,
-          total_pages: Math.ceil((count || 0) / limit)
-        }
+        pagination: { page, limit, total: count, total_pages: Math.ceil((count || 0) / limit) }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // GET /stats - Estatísticas de sincronização
+    // GET /stats - Estatísticas de sincronização (REQUIRES AUTH)
     if (path.endsWith('/stats') && req.method === 'GET') {
+      if (!(await validateAuth())) {
+        return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
       const { data, error } = await supabase
         .from('sync_control')
         .select('*')
@@ -431,13 +443,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // GET /totais - Totais por status (otimizado com RPC)
+    // GET /totais - Totais por status (REQUIRES AUTH)
     if (path.endsWith('/totais') && req.method === 'GET') {
-      // Usar query agregada em vez de buscar todos os registros
+      if (!(await validateAuth())) {
+        return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
       const { data, error } = await supabase.rpc('get_contas_receber_totais');
       
       if (error) {
-        // Fallback se RPC não existir
         const { data: rawData, error: rawError } = await supabase
           .from('contas_receber')
           .select('status, valor_aberto');
