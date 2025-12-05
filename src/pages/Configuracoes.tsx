@@ -6,39 +6,39 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Shield, 
-  UserCog, 
-  User, 
-  CheckCircle, 
-  Lock, 
-  Activity 
-} from "lucide-react";
+import { Shield, UserCog, User, CheckCircle, Lock, Activity, Loader2 } from "lucide-react";
+import { lazy, Suspense } from "react";
 
-// Lazy imports para melhor performance
-import { MunicipioAtribuicao } from "@/components/admin/MunicipioAtribuicao";
-import { EditarPerfil } from "@/components/configuracoes/EditarPerfil";
-import { GerenciamentoUsuarios } from "@/components/configuracoes/GerenciamentoUsuarios";
-import { ConfiguracoesNotificacoes } from "@/components/configuracoes/ConfiguracoesNotificacoes";
-import { PermissoesDeAcesso } from "@/components/configuracoes/PermissoesDeAcesso";
-import { GerenciamentoPermissoesTelas } from "@/components/configuracoes/GerenciamentoPermissoesTelas";
-import { GerenciamentoPermissoesModulos } from "@/components/configuracoes/GerenciamentoPermissoesModulos";
-import { GerenciadorOrdemModulos } from "@/components/configuracoes/GerenciadorOrdemModulos";
-import { VinculacaoUsuarioProspects } from "@/components/configuracoes/VinculacaoUsuarioProspects";
-import { GerenciamentoIntegracoes } from "@/components/configuracoes/GerenciamentoIntegracoes";
-import { DocumentacaoAPI } from "@/components/configuracoes/DocumentacaoAPI";
-import { AtribuirVendedorSupervisor } from "@/components/configuracoes/AtribuirVendedorSupervisor";
-import { HierarquiaUsuarios } from "@/components/configuracoes/HierarquiaUsuarios";
-import { GerenciamentoPontuacao } from "@/components/configuracoes/GerenciamentoPontuacao";
-import { GerenciamentoPremiacoes } from "@/components/configuracoes/GerenciamentoPremiacoes";
-import { VincularWhatsApp } from "@/components/configuracoes/VincularWhatsApp";
-import { PersonalizarCores } from "@/components/configuracoes/PersonalizarCores";
-import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
-import { GerenciamentoCNPJ } from "@/components/configuracoes/GerenciamentoCNPJ";
-import { GerenciamentoDepartamentos } from "@/components/configuracoes/GerenciamentoDepartamentos";
-import { GerenciamentoPermissoesDepartamentos } from "@/components/configuracoes/GerenciamentoPermissoesDepartamentos";
-import { AtribuirDepartamentoUsuario } from "@/components/configuracoes/AtribuirDepartamentoUsuario";
-import { ConfiguracoesCobrancaAutomatica } from "@/components/configuracoes/ConfiguracoesCobrancaAutomatica";
+// Lazy load all configuration components
+const MunicipioAtribuicao = lazy(() => import("@/components/admin/MunicipioAtribuicao").then(m => ({ default: m.MunicipioAtribuicao })));
+const EditarPerfil = lazy(() => import("@/components/configuracoes/EditarPerfil").then(m => ({ default: m.EditarPerfil })));
+const GerenciamentoUsuarios = lazy(() => import("@/components/configuracoes/GerenciamentoUsuarios").then(m => ({ default: m.GerenciamentoUsuarios })));
+const ConfiguracoesNotificacoes = lazy(() => import("@/components/configuracoes/ConfiguracoesNotificacoes").then(m => ({ default: m.ConfiguracoesNotificacoes })));
+const PermissoesDeAcesso = lazy(() => import("@/components/configuracoes/PermissoesDeAcesso").then(m => ({ default: m.PermissoesDeAcesso })));
+const GerenciamentoPermissoesTelas = lazy(() => import("@/components/configuracoes/GerenciamentoPermissoesTelas").then(m => ({ default: m.GerenciamentoPermissoesTelas })));
+const GerenciamentoPermissoesModulos = lazy(() => import("@/components/configuracoes/GerenciamentoPermissoesModulos").then(m => ({ default: m.GerenciamentoPermissoesModulos })));
+const GerenciadorOrdemModulos = lazy(() => import("@/components/configuracoes/GerenciadorOrdemModulos").then(m => ({ default: m.GerenciadorOrdemModulos })));
+const VinculacaoUsuarioProspects = lazy(() => import("@/components/configuracoes/VinculacaoUsuarioProspects").then(m => ({ default: m.VinculacaoUsuarioProspects })));
+const GerenciamentoIntegracoes = lazy(() => import("@/components/configuracoes/GerenciamentoIntegracoes").then(m => ({ default: m.GerenciamentoIntegracoes })));
+const DocumentacaoAPI = lazy(() => import("@/components/configuracoes/DocumentacaoAPI").then(m => ({ default: m.DocumentacaoAPI })));
+const AtribuirVendedorSupervisor = lazy(() => import("@/components/configuracoes/AtribuirVendedorSupervisor").then(m => ({ default: m.AtribuirVendedorSupervisor })));
+const HierarquiaUsuarios = lazy(() => import("@/components/configuracoes/HierarquiaUsuarios").then(m => ({ default: m.HierarquiaUsuarios })));
+const GerenciamentoPontuacao = lazy(() => import("@/components/configuracoes/GerenciamentoPontuacao").then(m => ({ default: m.GerenciamentoPontuacao })));
+const GerenciamentoPremiacoes = lazy(() => import("@/components/configuracoes/GerenciamentoPremiacoes").then(m => ({ default: m.GerenciamentoPremiacoes })));
+const VincularWhatsApp = lazy(() => import("@/components/configuracoes/VincularWhatsApp").then(m => ({ default: m.VincularWhatsApp })));
+const PersonalizarCores = lazy(() => import("@/components/configuracoes/PersonalizarCores").then(m => ({ default: m.PersonalizarCores })));
+const AdminPasswordDialog = lazy(() => import("@/components/configuracoes/AdminPasswordDialog").then(m => ({ default: m.AdminPasswordDialog })));
+const GerenciamentoCNPJ = lazy(() => import("@/components/configuracoes/GerenciamentoCNPJ").then(m => ({ default: m.GerenciamentoCNPJ })));
+const GerenciamentoDepartamentos = lazy(() => import("@/components/configuracoes/GerenciamentoDepartamentos").then(m => ({ default: m.GerenciamentoDepartamentos })));
+const GerenciamentoPermissoesDepartamentos = lazy(() => import("@/components/configuracoes/GerenciamentoPermissoesDepartamentos").then(m => ({ default: m.GerenciamentoPermissoesDepartamentos })));
+const AtribuirDepartamentoUsuario = lazy(() => import("@/components/configuracoes/AtribuirDepartamentoUsuario").then(m => ({ default: m.AtribuirDepartamentoUsuario })));
+const ConfiguracoesCobrancaAutomatica = lazy(() => import("@/components/configuracoes/ConfiguracoesCobrancaAutomatica").then(m => ({ default: m.ConfiguracoesCobrancaAutomatica })));
+
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center py-8">
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  </div>
+);
 
 interface Profile {
   id: string;
@@ -138,7 +138,9 @@ const Configuracoes = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="text-center py-8">Carregando...</div>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       </DashboardLayout>
     );
   }
@@ -250,7 +252,7 @@ const Configuracoes = () => {
 
         {isAdmin || isSupervisor ? (
           <Tabs defaultValue="perfil" className="space-y-4">
-            <TabsList>
+            <TabsList className="flex-wrap h-auto gap-1">
               <TabsTrigger value="perfil">Meu Perfil</TabsTrigger>
               {isAdmin && <TabsTrigger value="usuarios">Gerenciar Usuários</TabsTrigger>}
               {isAdmin && <TabsTrigger value="hierarquia">Hierarquia</TabsTrigger>}
@@ -284,7 +286,9 @@ const Configuracoes = () => {
             </TabsList>
 
             <TabsContent value="perfil" className="space-y-4">
-              <EditarPerfil profile={profile!} onUpdate={handleUpdateProfile} />
+              <Suspense fallback={<LoadingFallback />}>
+                <EditarPerfil profile={profile!} onUpdate={handleUpdateProfile} />
+              </Suspense>
               <Card>
                 <CardHeader>
                   <CardTitle>Segurança</CardTitle>
@@ -298,76 +302,100 @@ const Configuracoes = () => {
 
             {isAdmin && (
               <TabsContent value="usuarios">
-                <GerenciamentoUsuarios />
+                <Suspense fallback={<LoadingFallback />}>
+                  <GerenciamentoUsuarios />
+                </Suspense>
               </TabsContent>
             )}
 
             {isAdmin && (
               <TabsContent value="hierarquia">
-                <HierarquiaUsuarios />
+                <Suspense fallback={<LoadingFallback />}>
+                  <HierarquiaUsuarios />
+                </Suspense>
               </TabsContent>
             )}
 
             {isAdmin && (
               <TabsContent value="vendedores">
-                <AtribuirVendedorSupervisor />
+                <Suspense fallback={<LoadingFallback />}>
+                  <AtribuirVendedorSupervisor />
+                </Suspense>
               </TabsContent>
             )}
 
             <TabsContent value="notificacoes" className="space-y-4">
-              <ConfiguracoesNotificacoes />
-              <VincularWhatsApp />
+              <Suspense fallback={<LoadingFallback />}>
+                <ConfiguracoesNotificacoes />
+                <VincularWhatsApp />
+              </Suspense>
             </TabsContent>
 
             <TabsContent value="personalizacao">
-              <PersonalizarCores />
+              <Suspense fallback={<LoadingFallback />}>
+                <PersonalizarCores />
+              </Suspense>
             </TabsContent>
 
             {isAdmin && (
               <TabsContent value="permissoes" className="space-y-6">
-                <PermissoesDeAcesso />
-                <GerenciadorOrdemModulos />
-                <GerenciamentoPermissoesModulos />
-                <GerenciamentoPermissoesTelas />
-                <VinculacaoUsuarioProspects />
+                <Suspense fallback={<LoadingFallback />}>
+                  <PermissoesDeAcesso />
+                  <GerenciadorOrdemModulos />
+                  <GerenciamentoPermissoesModulos />
+                  <GerenciamentoPermissoesTelas />
+                  <VinculacaoUsuarioProspects />
+                </Suspense>
               </TabsContent>
             )}
 
             {isAdmin && (
               <TabsContent value="cnpj">
-                <GerenciamentoCNPJ />
+                <Suspense fallback={<LoadingFallback />}>
+                  <GerenciamentoCNPJ />
+                </Suspense>
               </TabsContent>
             )}
 
             {isAdmin && (
               <TabsContent value="pontuacao">
-                <GerenciamentoPontuacao />
+                <Suspense fallback={<LoadingFallback />}>
+                  <GerenciamentoPontuacao />
+                </Suspense>
               </TabsContent>
             )}
 
             {isAdmin && (
               <TabsContent value="premiacoes">
-                <GerenciamentoPremiacoes />
+                <Suspense fallback={<LoadingFallback />}>
+                  <GerenciamentoPremiacoes />
+                </Suspense>
               </TabsContent>
             )}
 
             {isAdmin && (
               <TabsContent value="departamentos" className="space-y-6">
-                <GerenciamentoDepartamentos />
-                <GerenciamentoPermissoesDepartamentos />
-                <AtribuirDepartamentoUsuario />
+                <Suspense fallback={<LoadingFallback />}>
+                  <GerenciamentoDepartamentos />
+                  <GerenciamentoPermissoesDepartamentos />
+                  <AtribuirDepartamentoUsuario />
+                </Suspense>
               </TabsContent>
             )}
 
             {isAdmin && (
               <TabsContent value="cobranca">
-                <ConfiguracoesCobrancaAutomatica />
+                <Suspense fallback={<LoadingFallback />}>
+                  <ConfiguracoesCobrancaAutomatica />
+                </Suspense>
               </TabsContent>
             )}
 
             {isAdmin && (
               <TabsContent value="municipios">
-                <MunicipioAtribuicao />
+                <Suspense fallback={<LoadingFallback />}>
+                  <MunicipioAtribuicao />
+                </Suspense>
               </TabsContent>
             )}
 
@@ -388,11 +416,15 @@ const Configuracoes = () => {
                 </TabsContent>
 
                 <TabsContent value="integracoes">
-                  <GerenciamentoIntegracoes />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <GerenciamentoIntegracoes />
+                  </Suspense>
                 </TabsContent>
                 
                 <TabsContent value="api">
-                  <DocumentacaoAPI />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <DocumentacaoAPI />
+                  </Suspense>
                 </TabsContent>
                 
                 <TabsContent value="api-health">
@@ -421,7 +453,9 @@ const Configuracoes = () => {
             </TabsList>
 
             <TabsContent value="perfil" className="space-y-4">
-              <EditarPerfil profile={profile!} onUpdate={handleUpdateProfile} />
+              <Suspense fallback={<LoadingFallback />}>
+                <EditarPerfil profile={profile!} onUpdate={handleUpdateProfile} />
+              </Suspense>
               <Card>
                 <CardHeader>
                   <CardTitle>Segurança</CardTitle>
@@ -434,22 +468,28 @@ const Configuracoes = () => {
             </TabsContent>
 
             <TabsContent value="notificacoes" className="space-y-4">
-              <ConfiguracoesNotificacoes />
-              <VincularWhatsApp />
+              <Suspense fallback={<LoadingFallback />}>
+                <ConfiguracoesNotificacoes />
+                <VincularWhatsApp />
+              </Suspense>
             </TabsContent>
 
             <TabsContent value="personalizacao">
-              <PersonalizarCores />
+              <Suspense fallback={<LoadingFallback />}>
+                <PersonalizarCores />
+              </Suspense>
             </TabsContent>
           </Tabs>
         )}
       </div>
 
-      <AdminPasswordDialog
-        open={showPasswordDialog}
-        onOpenChange={setShowPasswordDialog}
-        onSuccess={() => setOutrasOpcoesUnlocked(true)}
-      />
+      <Suspense fallback={null}>
+        <AdminPasswordDialog
+          open={showPasswordDialog}
+          onOpenChange={setShowPasswordDialog}
+          onSuccess={() => setOutrasOpcoesUnlocked(true)}
+        />
+      </Suspense>
     </DashboardLayout>
   );
 };
