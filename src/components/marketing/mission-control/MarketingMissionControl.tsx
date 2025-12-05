@@ -1,17 +1,9 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  LayoutDashboard, Kanban, Palette, Trophy, 
-  Bell, Rocket, RefreshCw, Star, Zap, Flame, 
-  Users, CheckCircle, Sun, Crown, Award, Activity 
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { LayoutDashboard, Kanban, Palette, Trophy, Bell, Rocket, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { MissionControlKPIs } from "./MissionControlKPIs";
 import { LaunchTimelineVisual } from "./LaunchTimelineVisual";
@@ -59,7 +51,7 @@ export function MarketingMissionControl() {
           </Button>
           <Button variant="outline" size="icon" className="relative">
             <Bell className="h-4 w-4" />
-            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] text-white flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] text-destructive-foreground flex items-center justify-center">
               3
             </span>
           </Button>
@@ -113,152 +105,9 @@ export function MarketingMissionControl() {
 
         {/* Ranking Tab */}
         <TabsContent value="ranking" className="mt-0">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TeamRanking />
-            <div className="space-y-6">
-              <BadgesShowcase />
-              <RecentActivity />
-            </div>
-          </div>
+          <TeamRanking />
         </TabsContent>
       </Tabs>
     </div>
-  );
-}
-
-// Badges Showcase Component
-function BadgesShowcase() {
-  const { data: badges } = useQuery({
-    queryKey: ['marketing-badges'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('marketing_badges')
-        .select('*')
-        .order('pontos_necessarios', { ascending: true });
-      return data || [];
-    }
-  });
-
-  const iconMap: Record<string, React.ReactNode> = {
-    Star: <Star className="h-6 w-6" />,
-    Zap: <Zap className="h-6 w-6" />,
-    Palette: <Palette className="h-6 w-6" />,
-    Flame: <Flame className="h-6 w-6" />,
-    Trophy: <Trophy className="h-6 w-6" />,
-    Users: <Users className="h-6 w-6" />,
-    Rocket: <Rocket className="h-6 w-6" />,
-    CheckCircle: <CheckCircle className="h-6 w-6" />,
-    Sun: <Sun className="h-6 w-6" />,
-    Crown: <Crown className="h-6 w-6" />,
-    Award: <Award className="h-6 w-6" />
-  };
-
-  const colorMap: Record<string, string> = {
-    bronze: "from-amber-700 to-amber-900",
-    silver: "from-gray-300 to-gray-500",
-    gold: "from-amber-400 to-amber-600",
-    orange: "from-orange-400 to-orange-600",
-    purple: "from-purple-400 to-purple-600",
-    blue: "from-blue-400 to-blue-600",
-    green: "from-green-400 to-green-600",
-    yellow: "from-yellow-400 to-yellow-600",
-    gradient: "from-pink-500 via-purple-500 to-blue-500"
-  };
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Award className="h-5 w-5 text-amber-500" />
-          Conquistas Disponíveis
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {badges && badges.length > 0 ? (
-          <div className="grid grid-cols-5 gap-3">
-            {badges.slice(0, 10).map((badge: any) => (
-              <div 
-                key={badge.id}
-                className="flex flex-col items-center p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
-              >
-                <div className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center text-white mb-1",
-                  "bg-gradient-to-br opacity-50 group-hover:opacity-100 transition-opacity",
-                  colorMap[badge.cor] || colorMap.gold
-                )}>
-                  {iconMap[badge.icone] || <Award className="h-6 w-6" />}
-                </div>
-                <span className="text-[10px] text-center font-medium line-clamp-1">
-                  {badge.nome}
-                </span>
-                <span className="text-[8px] text-muted-foreground">
-                  {badge.pontos_necessarios}pts
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            <Award className="h-10 w-10 mx-auto mb-2 opacity-50" />
-            <p>Nenhuma conquista disponível</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// Recent Activity Component  
-function RecentActivity() {
-  const { data: activity } = useQuery({
-    queryKey: ['marketing-recent-activity'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('marketing_points_history')
-        .select('*, profiles:user_id(nome)')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      return data || [];
-    }
-  });
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Activity className="h-5 w-5 text-primary" />
-          Atividade Recente
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[200px]">
-          {activity && activity.length > 0 ? (
-            <div className="space-y-3">
-              {activity.map((item: any) => (
-                <div key={item.id} className="flex items-center gap-3 text-sm">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Zap className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate">{item.descricao || item.tipo}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {item.profiles?.nome}
-                    </p>
-                  </div>
-                  <Badge variant="secondary" className="text-[10px]">
-                    +{item.pontos}pts
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              <Activity className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>Nenhuma atividade recente</p>
-            </div>
-          )}
-        </ScrollArea>
-      </CardContent>
-    </Card>
   );
 }
