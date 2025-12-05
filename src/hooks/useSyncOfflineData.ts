@@ -6,9 +6,36 @@ import { toast } from 'sonner';
 
 /**
  * Hook para sincronizar dados offline quando o usuário voltar online
+ * Integrado com criptografia para proteção de dados
  */
 export const useSyncOfflineData = () => {
   const isOnline = useOnlineStatus();
+
+  // Initialize offline storage with user ID for encryption
+  useEffect(() => {
+    const initializeEncryption = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        offlineStorage.setUserId(user.id);
+      }
+    };
+
+    initializeEncryption();
+
+    // Listen for auth changes to update encryption context
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        offlineStorage.setUserId(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        // Clear offline data on logout for security
+        await offlineStorage.clearOnLogout(true);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (isOnline) {
@@ -18,6 +45,15 @@ export const useSyncOfflineData = () => {
 
   const syncOfflineData = async () => {
     try {
+      // Ensure user is set for decryption
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('🔒 No user authenticated, skipping offline sync');
+        return;
+      }
+      
+      offlineStorage.setUserId(user.id);
+      
       const { photos, data } = await offlineStorage.getStorageSize();
       
       if (photos === 0 && data === 0) {
@@ -29,7 +65,7 @@ export const useSyncOfflineData = () => {
       let successCount = 0;
       let failCount = 0;
 
-      // Sincronizar dados primeiro (usando any para evitar problemas de tipo)
+      // Sincronizar dados primeiro
       const pendingData = await offlineStorage.getPendingData();
       for (const item of pendingData) {
         try {
@@ -66,9 +102,6 @@ export const useSyncOfflineData = () => {
       const pendingPhotos = await offlineStorage.getPendingPhotos();
       for (const photo of pendingPhotos) {
         try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error('Usuário não autenticado');
-
           // Upload da foto
           const filePath = `${user.id}/${photo.visitId || 'temp'}/${Date.now()}.jpg`;
           const { error: uploadError } = await supabase.storage
