@@ -43,7 +43,8 @@ import {
   Palette, 
   Filter,
   X,
-  Layers
+  Layers,
+  AlertTriangle
 } from "lucide-react";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import * as XLSX from "xlsx";
@@ -84,6 +85,8 @@ interface TabelaPreco {
   codigo: string;
   ordem: number;
   ativo: boolean;
+  tabela_base_id: string | null;
+  updated_at: string;
 }
 
 interface PrecoItem {
@@ -115,6 +118,8 @@ interface SortableColumnHeaderProps {
   onSort: (id: string) => void;
   ordenarPor: string;
   ordenarAsc: boolean;
+  pendente: boolean;
+  baseNome: string | null;
 }
 
 function SortableColumnHeader({ 
@@ -123,7 +128,9 @@ function SortableColumnHeader({
   onColorChange, 
   onSort,
   ordenarPor,
-  ordenarAsc
+  ordenarAsc,
+  pendente,
+  baseNome
 }: SortableColumnHeaderProps) {
   const {
     attributes,
@@ -185,15 +192,32 @@ function SortableColumnHeader({
               </div>
             </PopoverContent>
           </Popover>
+          {pendente && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="p-1 text-yellow-600 dark:text-yellow-400 animate-pulse">
+                  <AlertTriangle className="h-4 w-4" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[200px]">
+                <p className="text-sm font-medium">Pendência de Atualização</p>
+                <p className="text-xs text-muted-foreground">
+                  A tabela base "{baseNome}" foi alterada. Recalcule os preços desta tabela.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
-        <Badge variant="outline" className="text-xs font-normal">
-          {tabela.codigo}
-        </Badge>
-        {ordenarPor === tabela.id && (
-          <Badge variant="secondary" className="text-xs">
-            {ordenarAsc ? "↑" : "↓"}
+        <div className="flex items-center gap-1">
+          <Badge variant="outline" className="text-xs font-normal">
+            {tabela.codigo}
           </Badge>
-        )}
+          {ordenarPor === tabela.id && (
+            <Badge variant="secondary" className="text-xs">
+              {ordenarAsc ? "↑" : "↓"}
+            </Badge>
+          )}
+        </div>
       </div>
     </TableHead>
   );
@@ -228,7 +252,7 @@ export function MatrizPrecosComparativa() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("fabrica_tabelas_preco")
-        .select("id, nome, codigo, ordem, ativo")
+        .select("id, nome, codigo, ordem, ativo, tabela_base_id, updated_at")
         .eq("ativo", true)
         .order("codigo", { ascending: true });
 
@@ -650,12 +674,13 @@ export function MatrizPrecosComparativa() {
         ) : (
           <ScrollArea className="w-full">
             <div className="min-w-max">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <Table>
+              <TooltipProvider>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead
@@ -679,50 +704,61 @@ export function MatrizPrecosComparativa() {
                         items={tabelasOrdenadas.map(t => t.id)}
                         strategy={horizontalListSortingStrategy}
                       >
-                        {tabelasOrdenadas.map((tabela) => (
-                          <SortableColumnHeader
-                            key={tabela.id}
-                            tabela={tabela}
-                            color={getColumnColor(tabela.id)}
-                            onColorChange={handleColorChange}
-                            onSort={handleOrdenar}
-                            ordenarPor={ordenarPor}
-                            ordenarAsc={ordenarAsc}
-                          />
-                        ))}
+                        {tabelasOrdenadas.map((tabela) => {
+                          // Verificar pendência: tabela tem base e foi atualizada ANTES da base
+                          const tabelaBase = tabela.tabela_base_id
+                            ? tabelas?.find(t => t.id === tabela.tabela_base_id)
+                            : null;
+                          const pendente = tabelaBase
+                            ? new Date(tabela.updated_at) < new Date(tabelaBase.updated_at)
+                            : false;
+                          
+                          return (
+                            <SortableColumnHeader
+                              key={tabela.id}
+                              tabela={tabela}
+                              color={getColumnColor(tabela.id)}
+                              onColorChange={handleColorChange}
+                              onSort={handleOrdenar}
+                              ordenarPor={ordenarPor}
+                              ordenarAsc={ordenarAsc}
+                              pendente={pendente}
+                              baseNome={tabelaBase?.nome || null}
+                            />
+                          );
+                        })}
                       </SortableContext>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TooltipProvider>
-                      {agruparHabilitado && dadosAgrupados ? (
-                        dadosAgrupados.map(([grupo, rows]) => (
-                          <>
-                            <TableRow key={`group-${grupo}`} className="bg-muted/70">
-                              <TableCell
-                                colSpan={2 + tabelasOrdenadas.length}
-                                className="sticky left-0 font-semibold text-primary"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Layers className="h-4 w-4" />
-                                  {agruparPor === "marca" ? "Marca" : "Linha"}: {grupo}
-                                  <Badge variant="secondary" className="ml-2">
-                                    {rows.length} produto(s)
-                                  </Badge>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                            {renderTableRows(rows)}
-                          </>
-                        ))
-                      ) : (
-                        renderTableRows(matrizDados)
-                      )}
-                    </TooltipProvider>
+                    {agruparHabilitado && dadosAgrupados ? (
+                      dadosAgrupados.map(([grupo, rows]) => (
+                        <>
+                          <TableRow key={`group-${grupo}`} className="bg-muted/70">
+                            <TableCell
+                              colSpan={2 + tabelasOrdenadas.length}
+                              className="sticky left-0 font-semibold text-primary"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Layers className="h-4 w-4" />
+                                {agruparPor === "marca" ? "Marca" : "Linha"}: {grupo}
+                                <Badge variant="secondary" className="ml-2">
+                                  {rows.length} produto(s)
+                                </Badge>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          {renderTableRows(rows)}
+                        </>
+                      ))
+                    ) : (
+                      renderTableRows(matrizDados)
+                    )}
                   </TableBody>
                 </Table>
               </DndContext>
-            </div>
+            </TooltipProvider>
+          </div>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
         )}
