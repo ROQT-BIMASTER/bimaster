@@ -1,10 +1,24 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -20,10 +34,49 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Search, Download, ArrowUpDown, Grid3X3 } from "lucide-react";
+import { 
+  Search, 
+  Download, 
+  ArrowUpDown, 
+  Grid3X3, 
+  GripVertical, 
+  Palette, 
+  Filter,
+  X,
+  Layers
+} from "lucide-react";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  horizontalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Cores predefinidas para colunas
+const COLUMN_COLORS = [
+  { name: "Padrão", value: "default", bg: "bg-background", header: "bg-muted/50" },
+  { name: "Azul", value: "blue", bg: "bg-blue-50 dark:bg-blue-950/30", header: "bg-blue-100 dark:bg-blue-900/50" },
+  { name: "Verde", value: "green", bg: "bg-green-50 dark:bg-green-950/30", header: "bg-green-100 dark:bg-green-900/50" },
+  { name: "Amarelo", value: "yellow", bg: "bg-yellow-50 dark:bg-yellow-950/30", header: "bg-yellow-100 dark:bg-yellow-900/50" },
+  { name: "Roxo", value: "purple", bg: "bg-purple-50 dark:bg-purple-950/30", header: "bg-purple-100 dark:bg-purple-900/50" },
+  { name: "Rosa", value: "pink", bg: "bg-pink-50 dark:bg-pink-950/30", header: "bg-pink-100 dark:bg-pink-900/50" },
+  { name: "Laranja", value: "orange", bg: "bg-orange-50 dark:bg-orange-950/30", header: "bg-orange-100 dark:bg-orange-900/50" },
+  { name: "Ciano", value: "cyan", bg: "bg-cyan-50 dark:bg-cyan-950/30", header: "bg-cyan-100 dark:bg-cyan-900/50" },
+];
 
 interface TabelaPreco {
   id: string;
@@ -46,6 +99,8 @@ interface Produto {
   nome: string;
   codigo: string;
   categoria: string | null;
+  marca: string | null;
+  linha: string | null;
 }
 
 interface MatrizRow {
@@ -53,10 +108,119 @@ interface MatrizRow {
   precos: Record<string, { preco: number; custo: number; margem: number } | null>;
 }
 
+interface SortableColumnHeaderProps {
+  tabela: TabelaPreco;
+  color: string;
+  onColorChange: (tabelaId: string, color: string) => void;
+  onSort: (id: string) => void;
+  ordenarPor: string;
+  ordenarAsc: boolean;
+}
+
+function SortableColumnHeader({ 
+  tabela, 
+  color, 
+  onColorChange, 
+  onSort,
+  ordenarPor,
+  ordenarAsc
+}: SortableColumnHeaderProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: tabela.id });
+
+  const colorConfig = COLUMN_COLORS.find(c => c.value === color) || COLUMN_COLORS[0];
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableHead
+      ref={setNodeRef}
+      style={style}
+      className={`text-center min-w-[140px] ${colorConfig.header}`}
+    >
+      <div className="flex flex-col items-center gap-1">
+        <div className="flex items-center gap-1">
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted/50 rounded"
+          >
+            <GripVertical className="h-3 w-3 text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => onSort(tabela.id)}
+            className="flex items-center gap-1 hover:text-primary"
+          >
+            {tabela.nome}
+            <ArrowUpDown className="h-3 w-3" />
+          </button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="p-1 hover:bg-muted/50 rounded">
+                <Palette className="h-3 w-3 text-muted-foreground" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-2" align="center">
+              <div className="grid grid-cols-4 gap-1">
+                {COLUMN_COLORS.map((c) => (
+                  <button
+                    key={c.value}
+                    onClick={() => onColorChange(tabela.id, c.value)}
+                    className={`w-8 h-8 rounded border-2 ${c.header} ${
+                      color === c.value ? "border-primary" : "border-transparent"
+                    }`}
+                    title={c.name}
+                  />
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+        <Badge variant="outline" className="text-xs font-normal">
+          {tabela.codigo}
+        </Badge>
+        {ordenarPor === tabela.id && (
+          <Badge variant="secondary" className="text-xs">
+            {ordenarAsc ? "↑" : "↓"}
+          </Badge>
+        )}
+      </div>
+    </TableHead>
+  );
+}
+
 export function MatrizPrecosComparativa() {
   const [busca, setBusca] = useState("");
   const [ordenarPor, setOrdenarPor] = useState<string>("produto");
   const [ordenarAsc, setOrdenarAsc] = useState(true);
+  const [columnOrder, setColumnOrder] = useState<string[]>([]);
+  const [columnColors, setColumnColors] = useState<Record<string, string>>({});
+  
+  // Filtros avançados
+  const [filtroMarca, setFiltroMarca] = useState<string>("all");
+  const [filtroLinha, setFiltroLinha] = useState<string>("all");
+  const [filtroTabela, setFiltroTabela] = useState<string>("all");
+  
+  // Agrupamento
+  const [agruparHabilitado, setAgruparHabilitado] = useState(false);
+  const [agruparPor, setAgruparPor] = useState<"marca" | "linha">("marca");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Buscar tabelas ativas ordenadas por código numérico
   const { data: tabelas, isLoading: loadingTabelas } = useQuery({
@@ -69,6 +233,12 @@ export function MatrizPrecosComparativa() {
         .order("codigo", { ascending: true });
 
       if (error) throw error;
+      
+      // Inicializar ordem das colunas se não existir
+      if (data && columnOrder.length === 0) {
+        setColumnOrder(data.map(t => t.id));
+      }
+      
       return data as TabelaPreco[];
     },
   });
@@ -85,7 +255,7 @@ export function MatrizPrecosComparativa() {
           preco_final,
           custo_base,
           margem_lucro_percentual,
-          produto:fabrica_produtos!inner(id, nome, codigo, categoria)
+          produto:fabrica_produtos!inner(id, nome, codigo, categoria, marca, linha)
         `)
         .eq("ativo", true);
 
@@ -93,6 +263,34 @@ export function MatrizPrecosComparativa() {
       return data;
     },
   });
+
+  // Extrair marcas e linhas únicas para filtros
+  const { marcas, linhas } = useMemo(() => {
+    if (!precosData) return { marcas: [], linhas: [] };
+    
+    const marcasSet = new Set<string>();
+    const linhasSet = new Set<string>();
+    
+    precosData.forEach((preco: any) => {
+      if (preco.produto?.marca) marcasSet.add(preco.produto.marca);
+      if (preco.produto?.linha) linhasSet.add(preco.produto.linha);
+    });
+    
+    return {
+      marcas: Array.from(marcasSet).sort(),
+      linhas: Array.from(linhasSet).sort(),
+    };
+  }, [precosData]);
+
+  // Tabelas ordenadas conforme drag-and-drop
+  const tabelasOrdenadas = useMemo(() => {
+    if (!tabelas) return [];
+    if (columnOrder.length === 0) return tabelas;
+    
+    return columnOrder
+      .map(id => tabelas.find(t => t.id === id))
+      .filter((t): t is TabelaPreco => t !== undefined);
+  }, [tabelas, columnOrder]);
 
   // Transformar dados em formato matricial
   const matrizDados = useMemo(() => {
@@ -112,6 +310,8 @@ export function MatrizPrecosComparativa() {
             nome: produto.nome,
             codigo: produto.codigo,
             categoria: produto.categoria,
+            marca: produto.marca || null,
+            linha: produto.linha || null,
           },
           precos: {},
         });
@@ -138,6 +338,21 @@ export function MatrizPrecosComparativa() {
       );
     }
 
+    // Filtrar por marca
+    if (filtroMarca !== "all") {
+      resultado = resultado.filter(row => row.produto.marca === filtroMarca);
+    }
+
+    // Filtrar por linha
+    if (filtroLinha !== "all") {
+      resultado = resultado.filter(row => row.produto.linha === filtroLinha);
+    }
+
+    // Filtrar por tabela (mostrar apenas produtos que têm preço na tabela selecionada)
+    if (filtroTabela !== "all") {
+      resultado = resultado.filter(row => row.precos[filtroTabela] !== undefined);
+    }
+
     // Ordenar
     resultado.sort((a, b) => {
       let comparacao = 0;
@@ -155,7 +370,27 @@ export function MatrizPrecosComparativa() {
     });
 
     return resultado;
-  }, [precosData, tabelas, busca, ordenarPor, ordenarAsc]);
+  }, [precosData, tabelas, busca, ordenarPor, ordenarAsc, filtroMarca, filtroLinha, filtroTabela]);
+
+  // Agrupar dados se habilitado
+  const dadosAgrupados = useMemo(() => {
+    if (!agruparHabilitado) return null;
+
+    const grupos = new Map<string, MatrizRow[]>();
+    
+    matrizDados.forEach(row => {
+      const chave = agruparPor === "marca" 
+        ? (row.produto.marca || "Sem Marca")
+        : (row.produto.linha || "Sem Linha");
+      
+      if (!grupos.has(chave)) {
+        grupos.set(chave, []);
+      }
+      grupos.get(chave)!.push(row);
+    });
+
+    return Array.from(grupos.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [matrizDados, agruparHabilitado, agruparPor]);
 
   const handleOrdenar = (coluna: string) => {
     if (ordenarPor === coluna) {
@@ -166,6 +401,26 @@ export function MatrizPrecosComparativa() {
     }
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      setColumnOrder((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over.id as string);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const handleColorChange = (tabelaId: string, color: string) => {
+    setColumnColors(prev => ({ ...prev, [tabelaId]: color }));
+  };
+
+  const getColumnColor = (tabelaId: string) => {
+    return columnColors[tabelaId] || "default";
+  };
+
   const getMargemColor = (margem: number) => {
     if (margem <= 0) return "text-destructive";
     if (margem < 15) return "text-yellow-600 dark:text-yellow-400";
@@ -173,14 +428,23 @@ export function MatrizPrecosComparativa() {
     return "text-green-600 dark:text-green-400";
   };
 
+  const limparFiltros = () => {
+    setBusca("");
+    setFiltroMarca("all");
+    setFiltroLinha("all");
+    setFiltroTabela("all");
+  };
+
+  const temFiltrosAtivos = busca || filtroMarca !== "all" || filtroLinha !== "all" || filtroTabela !== "all";
+
   const exportarExcel = () => {
-    if (!matrizDados.length || !tabelas) {
+    if (!matrizDados.length || !tabelasOrdenadas.length) {
       toast.error("Não há dados para exportar");
       return;
     }
 
-    const headers = ["Código", "Produto", "Categoria"];
-    tabelas.forEach((t) => {
+    const headers = ["Código", "Produto", "Categoria", "Marca", "Linha"];
+    tabelasOrdenadas.forEach((t) => {
       headers.push(`${t.nome} (Preço)`);
       headers.push(`${t.nome} (Margem %)`);
     });
@@ -190,9 +454,11 @@ export function MatrizPrecosComparativa() {
         row.produto.codigo,
         row.produto.nome,
         row.produto.categoria || "-",
+        row.produto.marca || "-",
+        row.produto.linha || "-",
       ];
 
-      tabelas.forEach((t) => {
+      tabelasOrdenadas.forEach((t) => {
         const preco = row.precos[t.id];
         linha.push(preco ? preco.preco : "-");
         linha.push(preco ? `${preco.margem.toFixed(1)}%` : "-");
@@ -215,33 +481,158 @@ export function MatrizPrecosComparativa() {
 
   const isLoading = loadingTabelas || loadingPrecos;
 
+  const renderTableRows = (rows: MatrizRow[]) => {
+    return rows.map((row) => (
+      <TableRow key={row.produto.id} className="hover:bg-muted/30">
+        <TableCell className="sticky left-0 z-10 bg-background font-medium">
+          <div>
+            <span className="block">{row.produto.nome}</span>
+            {row.produto.categoria && (
+              <span className="text-xs text-muted-foreground">
+                {row.produto.categoria}
+              </span>
+            )}
+          </div>
+        </TableCell>
+        <TableCell className="sticky left-[200px] z-10 bg-background font-mono text-sm">
+          {row.produto.codigo}
+        </TableCell>
+        {tabelasOrdenadas.map((tabela) => {
+          const preco = row.precos[tabela.id];
+          const colorConfig = COLUMN_COLORS.find(c => c.value === getColumnColor(tabela.id)) || COLUMN_COLORS[0];
+          return (
+            <TableCell key={tabela.id} className={`text-center ${colorConfig.bg}`}>
+              {preco ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-help">
+                      <div className="font-semibold">
+                        {formatarMoeda(preco.preco)}
+                      </div>
+                      <div className={`text-xs ${getMargemColor(preco.margem)}`}>
+                        {preco.margem.toFixed(1)}%
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="space-y-1 text-sm">
+                      <div><strong>Preço:</strong> {formatarMoeda(preco.preco)}</div>
+                      <div><strong>Custo Base:</strong> {formatarMoeda(preco.custo)}</div>
+                      <div><strong>Margem:</strong> {preco.margem.toFixed(2)}%</div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <span className="text-muted-foreground">-</span>
+              )}
+            </TableCell>
+          );
+        })}
+      </TableRow>
+    ));
+  };
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Grid3X3 className="h-5 w-5 text-primary" />
             <CardTitle>Matriz Comparativa de Preços</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar produto..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="pl-9 w-64"
-              />
-            </div>
-            <Button variant="outline" onClick={exportarExcel}>
-              <Download className="h-4 w-4 mr-2" />
-              Exportar Excel
-            </Button>
-          </div>
+          <Button variant="outline" onClick={exportarExcel}>
+            <Download className="h-4 w-4 mr-2" />
+            Exportar Excel
+          </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Visualize todos os produtos e seus preços em cada tabela. Clique nos cabeçalhos para ordenar.
+          Arraste as colunas para reordenar. Clique no ícone de paleta para mudar a cor da coluna.
         </p>
+
+        {/* Filtros avançados */}
+        <div className="flex flex-wrap items-center gap-3 p-4 bg-muted/30 rounded-lg border">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filtros:</span>
+          </div>
+
+          <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar produto..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          <Select value={filtroMarca} onValueChange={setFiltroMarca}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Marca" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas Marcas</SelectItem>
+              {marcas.map(m => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filtroLinha} onValueChange={setFiltroLinha}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Linha" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas Linhas</SelectItem>
+              {linhas.map(l => (
+                <SelectItem key={l} value={l}>{l}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filtroTabela} onValueChange={setFiltroTabela}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Tabela" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas Tabelas</SelectItem>
+              {tabelas?.map(t => (
+                <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {temFiltrosAtivos && (
+            <Button variant="ghost" size="sm" onClick={limparFiltros}>
+              <X className="h-4 w-4 mr-1" />
+              Limpar
+            </Button>
+          )}
+
+          <div className="ml-auto flex items-center gap-3 pl-4 border-l">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-muted-foreground" />
+              <Switch
+                id="agrupar"
+                checked={agruparHabilitado}
+                onCheckedChange={setAgruparHabilitado}
+              />
+              <Label htmlFor="agrupar" className="text-sm">Agrupar</Label>
+            </div>
+            
+            {agruparHabilitado && (
+              <Select value={agruparPor} onValueChange={(v) => setAgruparPor(v as "marca" | "linha")}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="marca">Por Marca</SelectItem>
+                  <SelectItem value="linha">Por Linha</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -254,102 +645,83 @@ export function MatrizPrecosComparativa() {
           </div>
         ) : !matrizDados.length ? (
           <div className="text-center py-12 text-muted-foreground">
-            {busca ? "Nenhum produto encontrado para a busca" : "Nenhum produto com preços cadastrados"}
+            {temFiltrosAtivos ? "Nenhum produto encontrado com os filtros aplicados" : "Nenhum produto com preços cadastrados"}
           </div>
         ) : (
           <ScrollArea className="w-full">
             <div className="min-w-max">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead
-                      className="sticky left-0 z-20 bg-muted/95 backdrop-blur cursor-pointer hover:bg-muted min-w-[200px]"
-                      onClick={() => handleOrdenar("produto")}
-                    >
-                      <div className="flex items-center gap-1">
-                        Produto
-                        <ArrowUpDown className="h-3 w-3" />
-                        {ordenarPor === "produto" && (
-                          <Badge variant="secondary" className="ml-1 text-xs">
-                            {ordenarAsc ? "A-Z" : "Z-A"}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableHead>
-                    <TableHead className="sticky left-[200px] z-20 bg-muted/95 backdrop-blur min-w-[100px]">
-                      Código
-                    </TableHead>
-                    {tabelas.map((tabela) => (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
                       <TableHead
-                        key={tabela.id}
-                        className="text-center cursor-pointer hover:bg-muted min-w-[140px]"
-                        onClick={() => handleOrdenar(tabela.id)}
+                        className="sticky left-0 z-20 bg-muted/95 backdrop-blur cursor-pointer hover:bg-muted min-w-[200px]"
+                        onClick={() => handleOrdenar("produto")}
                       >
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="flex items-center gap-1">
-                            {tabela.nome}
-                            <ArrowUpDown className="h-3 w-3" />
-                          </div>
-                          <Badge variant="outline" className="text-xs font-normal">
-                            {tabela.codigo}
-                          </Badge>
+                        <div className="flex items-center gap-1">
+                          Produto
+                          <ArrowUpDown className="h-3 w-3" />
+                          {ordenarPor === "produto" && (
+                            <Badge variant="secondary" className="ml-1 text-xs">
+                              {ordenarAsc ? "A-Z" : "Z-A"}
+                            </Badge>
+                          )}
                         </div>
                       </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TooltipProvider>
-                    {matrizDados.map((row) => (
-                      <TableRow key={row.produto.id} className="hover:bg-muted/30">
-                        <TableCell className="sticky left-0 z-10 bg-background font-medium">
-                          <div>
-                            <span className="block">{row.produto.nome}</span>
-                            {row.produto.categoria && (
-                              <span className="text-xs text-muted-foreground">
-                                {row.produto.categoria}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="sticky left-[200px] z-10 bg-background font-mono text-sm">
-                          {row.produto.codigo}
-                        </TableCell>
-                        {tabelas.map((tabela) => {
-                          const preco = row.precos[tabela.id];
-                          return (
-                            <TableCell key={tabela.id} className="text-center">
-                              {preco ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="cursor-help">
-                                      <div className="font-semibold">
-                                        {formatarMoeda(preco.preco)}
-                                      </div>
-                                      <div className={`text-xs ${getMargemColor(preco.margem)}`}>
-                                        {preco.margem.toFixed(1)}%
-                                      </div>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <div className="space-y-1 text-sm">
-                                      <div><strong>Preço:</strong> {formatarMoeda(preco.preco)}</div>
-                                      <div><strong>Custo Base:</strong> {formatarMoeda(preco.custo)}</div>
-                                      <div><strong>Margem:</strong> {preco.margem.toFixed(2)}%</div>
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))}
-                  </TooltipProvider>
-                </TableBody>
-              </Table>
+                      <TableHead className="sticky left-[200px] z-20 bg-muted/95 backdrop-blur min-w-[100px]">
+                        Código
+                      </TableHead>
+                      <SortableContext
+                        items={tabelasOrdenadas.map(t => t.id)}
+                        strategy={horizontalListSortingStrategy}
+                      >
+                        {tabelasOrdenadas.map((tabela) => (
+                          <SortableColumnHeader
+                            key={tabela.id}
+                            tabela={tabela}
+                            color={getColumnColor(tabela.id)}
+                            onColorChange={handleColorChange}
+                            onSort={handleOrdenar}
+                            ordenarPor={ordenarPor}
+                            ordenarAsc={ordenarAsc}
+                          />
+                        ))}
+                      </SortableContext>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TooltipProvider>
+                      {agruparHabilitado && dadosAgrupados ? (
+                        dadosAgrupados.map(([grupo, rows]) => (
+                          <>
+                            <TableRow key={`group-${grupo}`} className="bg-muted/70">
+                              <TableCell
+                                colSpan={2 + tabelasOrdenadas.length}
+                                className="sticky left-0 font-semibold text-primary"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Layers className="h-4 w-4" />
+                                  {agruparPor === "marca" ? "Marca" : "Linha"}: {grupo}
+                                  <Badge variant="secondary" className="ml-2">
+                                    {rows.length} produto(s)
+                                  </Badge>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            {renderTableRows(rows)}
+                          </>
+                        ))
+                      ) : (
+                        renderTableRows(matrizDados)
+                      )}
+                    </TooltipProvider>
+                  </TableBody>
+                </Table>
+              </DndContext>
             </div>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
