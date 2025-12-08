@@ -6,17 +6,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-// Configurações otimizadas para evitar deadlocks
-const UPSERT_BATCH_SIZE = 25; // Batches menores para evitar conflitos
-const MAX_PAYLOAD_SIZE = 5000;
-const BATCH_DELAY_MS = 100; // Delay maior entre batches
-const MAX_RETRIES = 3; // Número de tentativas em caso de deadlock
-const RETRY_BASE_DELAY_MS = 200; // Delay base para retry exponencial
+// Configurações para carga massiva
+const BULK_BATCH_SIZE = 500; // Lotes maiores para bulk
+const MAX_PAYLOAD_SIZE = 10000; // Aumentado para bulk
+const UPSERT_BATCH_SIZE = 25;
+const BATCH_DELAY_MS = 50;
+const MAX_RETRIES = 3;
+const RETRY_BASE_DELAY_MS = 200;
 
-// Helper para delay
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Calcular hash MD5 dos dados para detectar alterações
 async function calculateHash(data: any): Promise<string> {
   const dataToHash = [
     data.valor_original,
@@ -32,8 +31,7 @@ async function calculateHash(data: any): Promise<string> {
   const dataBuffer = encoder.encode(dataToHash);
   const hashBuffer = await crypto.subtle.digest('MD5', dataBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex;
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 function parseDate(dateValue: any): string | null {
@@ -78,77 +76,162 @@ function generateErpId(conta: any): string {
   return `${conta['ID Empresa']}-${conta['Tipo']}-${conta['Nota']}-${conta['Seq']}-${conta['Código']}`;
 }
 
-// Verifica se é erro de deadlock ou timeout
 function isRetryableError(error: any): boolean {
   if (!error) return false;
   const code = error.code || '';
   const message = error.message || '';
   return (
-    code === '40P01' || // deadlock_detected
-    code === '57014' || // query_canceled (statement timeout)
-    code === '40001' || // serialization_failure
-    message.includes('deadlock') ||
-    message.includes('timeout') ||
-    message.includes('could not serialize')
+    code === '40P01' || code === '57014' || code === '40001' ||
+    message.includes('deadlock') || message.includes('timeout') || message.includes('could not serialize')
   );
 }
 
-// Upsert com retry para deadlocks
-async function upsertWithRetry(
+// Escape SQL string value
+function escapeSql(value: any): string {
+  if (value === null || value === undefined) return 'NULL';
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+// ============ BULK INSERT ULTRA-RÁPIDO ============
+async function processBulkInsert(
   supabase: any,
-  batch: any[],
-  batchNumber: number
-): Promise<{ success: boolean; error?: any }> {
-  let lastError: any = null;
-  
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+  contas: any[]
+): Promise<{ processed: number; errors: any[] }> {
+  const errors: any[] = [];
+  let processed = 0;
+  const now = new Date().toISOString();
+
+  // Preparar registros
+  const records: any[] = [];
+  for (const conta of contas) {
     try {
-      const { error } = await supabase
-        .from('contas_receber')
-        .upsert(batch, { 
-          onConflict: 'erp_id',
-          ignoreDuplicates: false 
-        });
+      const erpId = generateErpId(conta);
+      const transformed = transformErpData(conta);
+      const dataHash = await calculateHash(transformed);
+      records.push({ erp_id: erpId, data_hash: dataHash, ...transformed, sincronizado_em: now });
+    } catch (error) {
+      errors.push({ record: conta, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  // Processar em lotes grandes usando SQL direto
+  const totalBatches = Math.ceil(records.length / BULK_BATCH_SIZE);
+  console.log(`[BULK] Processing ${records.length} records in ${totalBatches} batches of ${BULK_BATCH_SIZE}`);
+
+  for (let i = 0; i < records.length; i += BULK_BATCH_SIZE) {
+    const batchNum = Math.floor(i / BULK_BATCH_SIZE) + 1;
+    const batch = records.slice(i, i + BULK_BATCH_SIZE);
+    
+    // Construir VALUES para INSERT em massa
+    const values = batch.map(r => `(
+      ${escapeSql(r.erp_id)},
+      ${escapeSql(r.data_hash)},
+      ${r.empresa_id},
+      ${escapeSql(r.empresa_nome)},
+      ${escapeSql(r.tipo_documento)},
+      ${escapeSql(r.numero_documento)},
+      ${r.parcela || 1},
+      ${escapeSql(r.cliente_codigo)},
+      ${escapeSql(r.cliente_nome)},
+      ${r.valor_original || 0},
+      ${r.valor_aberto || 0},
+      ${r.valor_recebido || 0},
+      ${r.valor_juros || 0},
+      ${r.valor_desconto || 0},
+      ${r.valor_ajustes || 0},
+      ${escapeSql(r.data_emissao)},
+      ${escapeSql(r.data_vencimento)},
+      ${escapeSql(r.data_recebimento)},
+      ${escapeSql(r.tabela_preco)},
+      ${escapeSql(r.vendedor_nome)},
+      ${escapeSql(r.vendedor_codigo)},
+      ${escapeSql(r.portador_id)},
+      ${escapeSql(r.portador)},
+      ${escapeSql(r.conta)},
+      ${escapeSql(r.sincronizado_em)}
+    )`).join(',\n');
+
+    const sql = `
+      INSERT INTO contas_receber (
+        erp_id, data_hash, empresa_id, empresa_nome, tipo_documento, numero_documento,
+        parcela, cliente_codigo, cliente_nome, valor_original, valor_aberto, valor_recebido,
+        valor_juros, valor_desconto, valor_ajustes, data_emissao, data_vencimento,
+        data_recebimento, tabela_preco, vendedor_nome, vendedor_codigo, portador_id,
+        portador, conta, sincronizado_em
+      ) VALUES ${values}
+      ON CONFLICT (erp_id) DO UPDATE SET
+        data_hash = EXCLUDED.data_hash,
+        empresa_nome = EXCLUDED.empresa_nome,
+        valor_original = EXCLUDED.valor_original,
+        valor_aberto = EXCLUDED.valor_aberto,
+        valor_recebido = EXCLUDED.valor_recebido,
+        valor_juros = EXCLUDED.valor_juros,
+        valor_desconto = EXCLUDED.valor_desconto,
+        valor_ajustes = EXCLUDED.valor_ajustes,
+        data_recebimento = EXCLUDED.data_recebimento,
+        sincronizado_em = EXCLUDED.sincronizado_em,
+        updated_at = NOW()
+    `;
+
+    let success = false;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const { error } = await supabase.rpc('exec_sql', { sql_query: sql });
       
       if (!error) {
-        if (attempt > 1) {
-          console.log(`[contas-receber-api] Batch ${batchNumber} succeeded on attempt ${attempt}`);
-        }
-        return { success: true };
+        processed += batch.length;
+        success = true;
+        break;
       }
       
-      if (isRetryableError(error)) {
-        lastError = error;
-        const delayMs = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 100;
-        console.warn(`[contas-receber-api] Batch ${batchNumber} deadlock/timeout (attempt ${attempt}/${MAX_RETRIES}), retrying in ${Math.round(delayMs)}ms...`);
-        await sleep(delayMs);
+      if (isRetryableError(error) && attempt < MAX_RETRIES) {
+        const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 100;
+        console.warn(`[BULK] Batch ${batchNum} retry ${attempt}/${MAX_RETRIES} after ${Math.round(delay)}ms`);
+        await sleep(delay);
         continue;
       }
       
-      // Erro não-retryable
-      return { success: false, error };
-    } catch (err) {
-      lastError = err;
-      if (attempt < MAX_RETRIES) {
-        const delayMs = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 100;
-        console.warn(`[contas-receber-api] Batch ${batchNumber} exception (attempt ${attempt}/${MAX_RETRIES}), retrying in ${Math.round(delayMs)}ms...`);
-        await sleep(delayMs);
-      }
+      console.error(`[BULK] Batch ${batchNum} failed:`, error);
+      errors.push({ batch: batchNum, error: error?.message || String(error) });
+      break;
+    }
+
+    if (batchNum % 5 === 0 || batchNum === totalBatches) {
+      console.log(`[BULK] Progress: ${batchNum}/${totalBatches} (${processed} records)`);
+    }
+    
+    // Delay mínimo entre batches
+    if (i + BULK_BATCH_SIZE < records.length) {
+      await sleep(20);
     }
   }
-  
-  return { success: false, error: lastError };
+
+  return { processed, errors };
 }
 
-// Processar registros SEQUENCIALMENTE para evitar deadlocks
-async function processWithUpsert(
-  supabase: any, 
-  contas: any[]
-): Promise<{ processed: number; errors: any[] }> {
+// ============ UPSERT PADRÃO (fallback) ============
+async function upsertWithRetry(supabase: any, batch: any[], batchNumber: number): Promise<{ success: boolean; error?: any }> {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const { error } = await supabase.from('contas_receber').upsert(batch, { onConflict: 'erp_id', ignoreDuplicates: false });
+      if (!error) return { success: true };
+      if (isRetryableError(error) && attempt < MAX_RETRIES) {
+        await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 100);
+        continue;
+      }
+      return { success: false, error };
+    } catch (err) {
+      if (attempt < MAX_RETRIES) await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1));
+      else return { success: false, error: err };
+    }
+  }
+  return { success: false };
+}
+
+async function processWithUpsert(supabase: any, contas: any[]): Promise<{ processed: number; errors: any[] }> {
   let processed = 0;
   const errors: any[] = [];
-  
-  // Preparar todos os registros para upsert
   const records: any[] = [];
   
   for (const conta of contas) {
@@ -156,55 +239,24 @@ async function processWithUpsert(
       const erpId = generateErpId(conta);
       const transformed = transformErpData(conta);
       const dataHash = await calculateHash(transformed);
-      
-      records.push({
-        erp_id: erpId,
-        data_hash: dataHash,
-        ...transformed,
-        sincronizado_em: new Date().toISOString()
-      });
+      records.push({ erp_id: erpId, data_hash: dataHash, ...transformed, sincronizado_em: new Date().toISOString() });
     } catch (error) {
-      errors.push({
-        record: conta,
-        error: error instanceof Error ? error.message : String(error)
-      });
+      errors.push({ record: conta, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
-  // Ordenar por erp_id para evitar deadlocks (ordem consistente)
   records.sort((a, b) => a.erp_id.localeCompare(b.erp_id));
-
-  // Processar SEQUENCIALMENTE - um batch por vez
   const totalBatches = Math.ceil(records.length / UPSERT_BATCH_SIZE);
-  console.log(`[contas-receber-api] Processing ${records.length} records in ${totalBatches} sequential batches`);
   
   for (let i = 0; i < records.length; i += UPSERT_BATCH_SIZE) {
     const batchNumber = Math.floor(i / UPSERT_BATCH_SIZE) + 1;
     const batch = records.slice(i, i + UPSERT_BATCH_SIZE);
-    
     const result = await upsertWithRetry(supabase, batch, batchNumber);
     
-    if (result.success) {
-      processed += batch.length;
-    } else {
-      console.error(`[contas-receber-api] Batch ${batchNumber} failed after ${MAX_RETRIES} attempts:`, result.error);
-      errors.push({ 
-        operation: 'upsert_batch', 
-        batch_number: batchNumber,
-        batch_start: i, 
-        error: result.error?.message || String(result.error)
-      });
-    }
+    if (result.success) processed += batch.length;
+    else errors.push({ batch_number: batchNumber, error: result.error?.message || String(result.error) });
     
-    // Delay entre batches para dar tempo ao banco processar
-    if (i + UPSERT_BATCH_SIZE < records.length) {
-      await sleep(BATCH_DELAY_MS);
-    }
-    
-    // Log de progresso a cada 10 batches
-    if (batchNumber % 10 === 0) {
-      console.log(`[contas-receber-api] Progress: ${batchNumber}/${totalBatches} batches (${processed} records processed)`);
-    }
+    if (i + UPSERT_BATCH_SIZE < records.length) await sleep(BATCH_DELAY_MS);
   }
 
   return { processed, errors };
