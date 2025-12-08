@@ -292,6 +292,58 @@ Deno.serve(async (req) => {
       return false;
     }
 
+    // POST /bulk-sync - CARGA MASSIVA ULTRA-RÁPIDA (NOVO!)
+    if (path.endsWith('/bulk-sync') && req.method === 'POST') {
+      const apiKey = req.headers.get('x-api-key');
+      const expectedKey = Deno.env.get('N8N_API_KEY');
+      
+      if (!apiKey || apiKey !== expectedKey) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const startTime = Date.now();
+      
+      let body;
+      try {
+        const text = await req.text();
+        console.log(`[BULK-SYNC] Received ${text.length} bytes`);
+        body = JSON.parse(text);
+      } catch (parseError) {
+        return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const contas = body.contas;
+      if (!contas || !Array.isArray(contas)) {
+        return new Response(JSON.stringify({ error: 'Invalid payload' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      console.log(`[BULK-SYNC] Processing ${contas.length} records with SQL bulk insert`);
+
+      // Usar bulk insert com SQL direto - 10x mais rápido!
+      const { processed, errors } = await processBulkInsert(supabase, contas);
+
+      const duration = Date.now() - startTime;
+      const rate = Math.round(processed / (duration / 1000));
+      
+      console.log(`[BULK-SYNC] Completed: ${processed}/${contas.length} in ${duration}ms (${rate} rec/sec)`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        mode: 'bulk_sql',
+        statistics: { total: contas.length, processed, errors: errors.length, rate_per_second: rate },
+        duration_ms: duration
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     // POST /sync - Sincronizar dados do n8n (REQUIRES API KEY)
     if (path.endsWith('/sync') && req.method === 'POST') {
       const apiKey = req.headers.get('x-api-key');
@@ -333,9 +385,10 @@ Deno.serve(async (req) => {
       if (contas.length > MAX_PAYLOAD_SIZE) {
         console.warn(`[contas-receber-api] Payload too large: ${contas.length} records (max: ${MAX_PAYLOAD_SIZE})`);
         return new Response(JSON.stringify({ 
-          error: `Payload muito grande. Máximo: ${MAX_PAYLOAD_SIZE} registros. Recebido: ${contas.length}. Use o endpoint /sync-chunk para lotes menores.`,
+          error: `Payload muito grande. Máximo: ${MAX_PAYLOAD_SIZE} registros. Use /bulk-sync para cargas massivas.`,
           max_allowed: MAX_PAYLOAD_SIZE,
-          received: contas.length
+          received: contas.length,
+          hint: 'Use o endpoint /bulk-sync para cargas massivas de 400k+ registros'
         }), {
           status: 413,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
