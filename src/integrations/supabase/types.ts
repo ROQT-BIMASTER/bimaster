@@ -12243,6 +12243,7 @@ export type Database = {
         Returns: undefined
       }
       enfileirar_cobrancas_automaticas: { Args: never; Returns: number }
+      exec_sql: { Args: { sql_query: string }; Returns: undefined }
       gerar_creditos_tributarios: {
         Args: { p_item_nf_id: string }
         Returns: Json
