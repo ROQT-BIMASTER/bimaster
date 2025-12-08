@@ -6,12 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-// Configurações otimizadas para upsert
-const UPSERT_BATCH_SIZE = 50; // Batches menores para evitar timeout
-const MAX_PAYLOAD_SIZE = 5000; // Aumentado pois upsert é mais eficiente
-const BATCH_DELAY_MS = 30; // Delay entre batches para não sobrecarregar
+// Configurações otimizadas para evitar deadlocks
+const UPSERT_BATCH_SIZE = 25; // Batches menores para evitar conflitos
+const MAX_PAYLOAD_SIZE = 5000;
+const BATCH_DELAY_MS = 100; // Delay maior entre batches
+const MAX_RETRIES = 3; // Número de tentativas em caso de deadlock
+const RETRY_BASE_DELAY_MS = 200; // Delay base para retry exponencial
 
-// Helper para delay entre batches
+// Helper para delay
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Calcular hash MD5 dos dados para detectar alterações
@@ -76,7 +78,69 @@ function generateErpId(conta: any): string {
   return `${conta['ID Empresa']}-${conta['Tipo']}-${conta['Nota']}-${conta['Seq']}-${conta['Código']}`;
 }
 
-// Nova função usando UPSERT nativo - muito mais eficiente
+// Verifica se é erro de deadlock ou timeout
+function isRetryableError(error: any): boolean {
+  if (!error) return false;
+  const code = error.code || '';
+  const message = error.message || '';
+  return (
+    code === '40P01' || // deadlock_detected
+    code === '57014' || // query_canceled (statement timeout)
+    code === '40001' || // serialization_failure
+    message.includes('deadlock') ||
+    message.includes('timeout') ||
+    message.includes('could not serialize')
+  );
+}
+
+// Upsert com retry para deadlocks
+async function upsertWithRetry(
+  supabase: any,
+  batch: any[],
+  batchNumber: number
+): Promise<{ success: boolean; error?: any }> {
+  let lastError: any = null;
+  
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const { error } = await supabase
+        .from('contas_receber')
+        .upsert(batch, { 
+          onConflict: 'erp_id',
+          ignoreDuplicates: false 
+        });
+      
+      if (!error) {
+        if (attempt > 1) {
+          console.log(`[contas-receber-api] Batch ${batchNumber} succeeded on attempt ${attempt}`);
+        }
+        return { success: true };
+      }
+      
+      if (isRetryableError(error)) {
+        lastError = error;
+        const delayMs = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 100;
+        console.warn(`[contas-receber-api] Batch ${batchNumber} deadlock/timeout (attempt ${attempt}/${MAX_RETRIES}), retrying in ${Math.round(delayMs)}ms...`);
+        await sleep(delayMs);
+        continue;
+      }
+      
+      // Erro não-retryable
+      return { success: false, error };
+    } catch (err) {
+      lastError = err;
+      if (attempt < MAX_RETRIES) {
+        const delayMs = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 100;
+        console.warn(`[contas-receber-api] Batch ${batchNumber} exception (attempt ${attempt}/${MAX_RETRIES}), retrying in ${Math.round(delayMs)}ms...`);
+        await sleep(delayMs);
+      }
+    }
+  }
+  
+  return { success: false, error: lastError };
+}
+
+// Processar registros SEQUENCIALMENTE para evitar deadlocks
 async function processWithUpsert(
   supabase: any, 
   contas: any[]
@@ -107,40 +171,39 @@ async function processWithUpsert(
     }
   }
 
-  // Processar em batches pequenos com delay
+  // Ordenar por erp_id para evitar deadlocks (ordem consistente)
+  records.sort((a, b) => a.erp_id.localeCompare(b.erp_id));
+
+  // Processar SEQUENCIALMENTE - um batch por vez
+  const totalBatches = Math.ceil(records.length / UPSERT_BATCH_SIZE);
+  console.log(`[contas-receber-api] Processing ${records.length} records in ${totalBatches} sequential batches`);
+  
   for (let i = 0; i < records.length; i += UPSERT_BATCH_SIZE) {
+    const batchNumber = Math.floor(i / UPSERT_BATCH_SIZE) + 1;
     const batch = records.slice(i, i + UPSERT_BATCH_SIZE);
     
-    try {
-      const { error } = await supabase
-        .from('contas_receber')
-        .upsert(batch, { 
-          onConflict: 'erp_id',
-          ignoreDuplicates: false 
-        });
-      
-      if (error) {
-        console.error(`[contas-receber-api] Upsert batch ${i / UPSERT_BATCH_SIZE + 1} error:`, error);
-        errors.push({ 
-          operation: 'upsert_batch', 
-          batch_start: i, 
-          error: error.message 
-        });
-      } else {
-        processed += batch.length;
-      }
-    } catch (batchError) {
-      console.error(`[contas-receber-api] Batch ${i / UPSERT_BATCH_SIZE + 1} exception:`, batchError);
+    const result = await upsertWithRetry(supabase, batch, batchNumber);
+    
+    if (result.success) {
+      processed += batch.length;
+    } else {
+      console.error(`[contas-receber-api] Batch ${batchNumber} failed after ${MAX_RETRIES} attempts:`, result.error);
       errors.push({ 
         operation: 'upsert_batch', 
+        batch_number: batchNumber,
         batch_start: i, 
-        error: batchError instanceof Error ? batchError.message : String(batchError)
+        error: result.error?.message || String(result.error)
       });
     }
     
-    // Delay entre batches para não sobrecarregar o banco
+    // Delay entre batches para dar tempo ao banco processar
     if (i + UPSERT_BATCH_SIZE < records.length) {
       await sleep(BATCH_DELAY_MS);
+    }
+    
+    // Log de progresso a cada 10 batches
+    if (batchNumber % 10 === 0) {
+      console.log(`[contas-receber-api] Progress: ${batchNumber}/${totalBatches} batches (${processed} records processed)`);
     }
   }
 
@@ -227,9 +290,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`[contas-receber-api] Processing ${contas.length} records with UPSERT`);
+      console.log(`[contas-receber-api] Processing ${contas.length} records with sequential UPSERT`);
 
-      // Usar UPSERT nativo - sem lookup prévio
+      // Usar UPSERT nativo - processamento sequencial
       const { processed, errors } = await processWithUpsert(supabase, contas);
 
       const duration = Date.now() - startTime;
@@ -242,7 +305,7 @@ Deno.serve(async (req) => {
         ultima_sync: new Date().toISOString(),
         total_registros: contas.length,
         registros_inseridos: processed,
-        registros_atualizados: 0, // Upsert não diferencia
+        registros_atualizados: 0,
         registros_ignorados: 0,
         duracao_ms: duration,
         status: errors.length === 0 ? 'success' : 'partial',
@@ -259,7 +322,7 @@ Deno.serve(async (req) => {
           errors: errors.length
         },
         duration_ms: duration,
-        message: `OK: ${processed} registros processados via UPSERT`
+        message: `OK: ${processed} registros processados via UPSERT sequencial`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -287,14 +350,14 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`[contas-receber-api] Processing chunk ${chunk_id || '?'}/${total_chunks || '?'} with ${contas.length} records`);
+      console.log(`[contas-receber-api] Processing chunk ${chunk_id || '?'}/${total_chunks || '?'} with ${contas.length} records (sequential)`);
 
-      // Usar UPSERT nativo - sem lookup
+      // Usar UPSERT nativo - processamento sequencial
       const { processed, errors } = await processWithUpsert(supabase, contas);
 
       const duration = Date.now() - startTime;
 
-      console.log(`[contas-receber-api] Chunk completed: ${processed} processed in ${duration}ms`);
+      console.log(`[contas-receber-api] Chunk ${chunk_id} completed: ${processed} processed in ${duration}ms`);
 
       return new Response(JSON.stringify({
         success: true,
