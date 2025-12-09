@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link, Navigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { 
   Package, 
   Layers, 
@@ -19,14 +21,28 @@ import {
   BarChart3,
   CheckCircle,
   Clock,
-  Rocket
+  Rocket,
+  Plus,
+  ChevronDown,
+  Zap
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 const FabricaModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const { data: stats } = useQuery({
     queryKey: ['fabrica-module-stats'],
@@ -53,376 +69,213 @@ const FabricaModule = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
+  // Módulos secundários agrupados
+  const secondaryModules = {
+    "Cadastros Básicos": [
+      { title: "Máquinas", to: "/dashboard/fabrica/maquinas", icon: Settings, color: "text-gray-600" },
+      { title: "Operadores", to: "/dashboard/fabrica/operadores", icon: UserCircle, color: "text-purple-600" },
+    ],
+    "Produção e Planejamento": [
+      { title: "Apontamentos", to: "/dashboard/fabrica/apontamentos", icon: Clock, color: "text-cyan-600" },
+      { title: "Planejamento MRP", to: "/dashboard/fabrica/planejamento", icon: Calendar, color: "text-orange-600" },
+      { title: "Paradas", to: "/dashboard/fabrica/paradas", icon: AlertTriangle, color: "text-red-600" },
+    ],
+    "Qualidade e Recebimento": [
+      { title: "Qualidade", to: "/dashboard/fabrica/qualidade", icon: CheckCircle, color: "text-green-600" },
+      { title: "Recebimentos", to: "/dashboard/fabrica/recebimentos", icon: Receipt, color: "text-blue-600" },
+      { title: "Fiscal NCM", to: "/dashboard/fabrica/fiscal", icon: Shield, color: "text-gray-600" },
+    ],
+    "Precificação": [
+      { title: "Tabelas de Preço", to: "/dashboard/fabrica/tabelas-preco", icon: DollarSign, color: "text-green-600" },
+      { title: "Aprovação de Preços", to: "/dashboard/fabrica/aprovacao-precos", icon: CheckCircle, color: "text-orange-600" },
+      { title: "Tabela de Impostos", to: "/dashboard/fabrica/tabela-impostos", icon: Calculator, color: "text-red-600" },
+      { title: "Relatórios", to: "/dashboard/relatorios/competitivo", icon: BarChart3, color: "text-purple-600" },
+    ],
+    "Comercial": [
+      { title: "Calendário de Lançamentos", to: "/dashboard/fabrica/lancamentos", icon: Rocket, color: "text-primary" },
+    ],
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Módulo Fábrica</h1>
           <p className="text-muted-foreground mt-1">
-            Gestão completa de produção, matérias-primas, fórmulas e qualidade
+            Gestão de produção, matérias-primas e qualidade
           </p>
         </div>
 
-        {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Matérias-Primas</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalMPs || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Produtos Acabados</CardTitle>
-              <Factory className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats?.totalProdutos || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">OPs Ativas</CardTitle>
-              <ClipboardList className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{stats?.ordensAtivas || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Máquinas</CardTitle>
-              <Settings className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats?.totalMaquinas || 0}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Cadastros Básicos */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Cadastros Básicos</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/fabrica/materias-primas">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Matérias-Primas</CardTitle>
-                  <Package className="h-4 w-4 text-amber-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Cadastro e controle de MPs
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/fabrica/produtos-acabados">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Produtos Acabados</CardTitle>
-                  <Factory className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Cadastro de produtos finalizados
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/fabrica/maquinas">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Máquinas</CardTitle>
-                  <Settings className="h-4 w-4 text-gray-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Cadastro e manutenção de equipamentos
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/fabrica/operadores">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Operadores</CardTitle>
-                  <UserCircle className="h-4 w-4 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Cadastro de operadores de produção
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </div>
-
-        {/* Fórmulas e Produção */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Fórmulas e Produção</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/fabrica/formulas">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Fórmulas BOM</CardTitle>
-                  <Layers className="h-4 w-4 text-indigo-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Estrutura de produtos (Bill of Materials)
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
+        {/* Ações Rápidas */}
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+          <Button 
+            asChild
+            size="lg"
+            className="h-14 gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg"
+          >
             <Link to="/dashboard/fabrica/ordens-producao">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Ordens de Produção</CardTitle>
-                  <ClipboardList className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Gestão de OPs e acompanhamento
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="p-1.5 bg-white/20 rounded-lg">
+                <Plus className="h-5 w-5" />
+              </div>
+              <span className="font-semibold">Nova Ordem de Produção</span>
             </Link>
+          </Button>
 
-            <Link to="/dashboard/fabrica/apontamentos">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Apontamentos</CardTitle>
-                  <Clock className="h-4 w-4 text-cyan-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Registro de produção e horas
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Apontar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
+          <Button 
+            asChild
+            size="lg"
+            variant="outline"
+            className="h-14 gap-3 border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:hover:bg-amber-900 dark:text-amber-400"
+          >
+            <Link to="/dashboard/fabrica/materias-primas">
+              <div className="p-1.5 bg-amber-200 dark:bg-amber-800 rounded-lg">
+                <Package className="h-5 w-5" />
+              </div>
+              <span className="font-semibold">Matérias-Primas</span>
             </Link>
+          </Button>
 
-            <Link to="/dashboard/fabrica/planejamento">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Planejamento MRP</CardTitle>
-                  <Calendar className="h-4 w-4 text-orange-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Planejamento de materiais e recursos
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Planejar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
+          <Button 
+            asChild
+            size="lg"
+            variant="outline"
+            className="h-14 gap-3 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950 dark:hover:bg-indigo-900 dark:text-indigo-400"
+          >
+            <Link to="/dashboard/fabrica/formulas">
+              <div className="p-1.5 bg-indigo-200 dark:bg-indigo-800 rounded-lg">
+                <Layers className="h-5 w-5" />
+              </div>
+              <span className="font-semibold">Fórmulas BOM</span>
             </Link>
-          </div>
+          </Button>
         </div>
 
-        {/* Qualidade e Paradas */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Qualidade e Controle</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/fabrica/qualidade">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Qualidade</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Inspeções e controle de qualidade
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Inspecionar <ArrowRight className="h-3 w-3 ml-1" />
+        {/* Módulos Principais - 4 cards destacados com métricas */}
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          {/* Matérias-Primas */}
+          <Link to="/dashboard/fabrica/materias-primas">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-amber-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-amber-100 dark:bg-amber-900/50 rounded-xl">
+                    <Package className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                    {stats?.totalMPs || 0}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Matérias-Primas</h3>
+                  <p className="text-xs text-muted-foreground">Cadastradas</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
 
-            <Link to="/dashboard/fabrica/paradas">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Paradas</CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Registro de paradas de produção
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Registrar <ArrowRight className="h-3 w-3 ml-1" />
+          {/* Produtos Acabados */}
+          <Link to="/dashboard/fabrica/produtos-acabados">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
+                    <Factory className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {stats?.totalProdutos || 0}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Produtos Acabados</h3>
+                  <p className="text-xs text-muted-foreground">Finalizados</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
 
-            <Link to="/dashboard/fabrica/recebimentos">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Recebimentos</CardTitle>
-                  <Receipt className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Recebimento de notas fiscais
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Receber <ArrowRight className="h-3 w-3 ml-1" />
+          {/* Ordens de Produção */}
+          <Link to="/dashboard/fabrica/ordens-producao">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-orange-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-orange-100 dark:bg-orange-900/50 rounded-xl">
+                    <ClipboardList className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                    {stats?.ordensAtivas || 0}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">OPs Ativas</h3>
+                  <p className="text-xs text-muted-foreground">Em produção</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
 
-            <Link to="/dashboard/fabrica/fiscal">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Fiscal NCM</CardTitle>
-                  <Shield className="h-4 w-4 text-gray-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Regras fiscais e NCM
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Configurar <ArrowRight className="h-3 w-3 ml-1" />
+          {/* Fórmulas */}
+          <Link to="/dashboard/fabrica/formulas">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-indigo-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-xl">
+                    <Layers className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                    {stats?.totalMaquinas || 0}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Fórmulas BOM</h3>
+                  <p className="text-xs text-muted-foreground">Estruturas</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
-        {/* Precificação */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Precificação e Tabelas</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/fabrica/tabelas-preco">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Tabelas de Preço</CardTitle>
-                  <DollarSign className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Gestão de tabelas e preços
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/fabrica/aprovacao-precos">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Aprovação de Preços</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-orange-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Workflow de aprovação de preços
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Aprovar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/fabrica/tabela-impostos">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Tabela de Impostos</CardTitle>
-                  <Calculator className="h-4 w-4 text-red-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Configuração tributária
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Configurar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/relatorios/competitivo">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Relatórios</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Relatórios e análises de produção
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Ver relatórios <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+        {/* Módulos Secundários - Accordion */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+            <Zap className="h-4 w-4" />
+            <span>Mais funcionalidades</span>
           </div>
-        </div>
 
-        {/* Comercial e Lançamentos */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Comercial e Lançamentos</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/fabrica/lancamentos">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Calendário de Lançamentos</CardTitle>
-                  <Rocket className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Planejamento de lançamentos de produtos
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Planejar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
+          {Object.entries(secondaryModules).map(([category, modules]) => (
+            <Collapsible
+              key={category}
+              open={openSections[category]}
+              onOpenChange={() => toggleSection(category)}
+            >
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <span className="font-medium text-sm">{category}</span>
+                <ChevronDown 
+                  className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                    openSections[category] && "rotate-180"
+                  )} 
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <div className="flex flex-wrap gap-2 pl-2">
+                  {modules.map((module) => (
+                    <Link 
+                      key={module.to} 
+                      to={module.to}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-background border hover:bg-muted/50 hover:border-primary/30 transition-colors text-sm"
+                    >
+                      <module.icon className={cn("h-4 w-4", module.color)} />
+                      <span>{module.title}</span>
+                    </Link>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
         </div>
 
       </div>
