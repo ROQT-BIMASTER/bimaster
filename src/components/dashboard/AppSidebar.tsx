@@ -32,28 +32,173 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
-const iconMap: Record<string, any> = {
-  LayoutDashboard: Home,
-  Users: Users,
-  KanbanSquare: LayoutGrid,
-  CheckSquare: CheckSquare,
-  Map: MapPin,
-  MessageSquare: MessageSquare,
-  MapPin: Building2,
-  Activity: Activity,
-  Upload: Upload,
-  Shield: Shield,
-  Clock: Clock,
-  Settings: Settings,
-  Store: Store,
-  Calendar: Calendar,
-  Camera: Camera,
-  Tag: Tag,
-  TrendingUp: TrendingUp,
-  Brain: Brain,
-  Trophy: Trophy,
-  Sparkles: Sparkles,
+// Module color configuration
+const moduleColors = {
+  prospects: {
+    bg: "bg-[hsl(var(--module-prospects))]",
+    bgLight: "bg-[hsl(var(--module-prospects)/0.1)]",
+    text: "text-[hsl(var(--module-prospects))]",
+    border: "border-[hsl(var(--module-prospects))]",
+    hover: "hover:bg-[hsl(var(--module-prospects)/0.15)]",
+  },
+  financeiro: {
+    bg: "bg-[hsl(var(--module-financeiro))]",
+    bgLight: "bg-[hsl(var(--module-financeiro)/0.1)]",
+    text: "text-[hsl(var(--module-financeiro))]",
+    border: "border-[hsl(var(--module-financeiro))]",
+    hover: "hover:bg-[hsl(var(--module-financeiro)/0.15)]",
+  },
+  marketing: {
+    bg: "bg-[hsl(var(--module-marketing))]",
+    bgLight: "bg-[hsl(var(--module-marketing)/0.1)]",
+    text: "text-[hsl(var(--module-marketing))]",
+    border: "border-[hsl(var(--module-marketing))]",
+    hover: "hover:bg-[hsl(var(--module-marketing)/0.15)]",
+  },
+  trade: {
+    bg: "bg-[hsl(var(--module-trade))]",
+    bgLight: "bg-[hsl(var(--module-trade)/0.1)]",
+    text: "text-[hsl(var(--module-trade))]",
+    border: "border-[hsl(var(--module-trade))]",
+    hover: "hover:bg-[hsl(var(--module-trade)/0.15)]",
+  },
+  fabrica: {
+    bg: "bg-[hsl(var(--module-fabrica))]",
+    bgLight: "bg-[hsl(var(--module-fabrica)/0.1)]",
+    text: "text-[hsl(var(--module-fabrica))]",
+    border: "border-[hsl(var(--module-fabrica))]",
+    hover: "hover:bg-[hsl(var(--module-fabrica)/0.15)]",
+  },
+  precos: {
+    bg: "bg-[hsl(var(--module-precos))]",
+    bgLight: "bg-[hsl(var(--module-precos)/0.1)]",
+    text: "text-[hsl(var(--module-precos))]",
+    border: "border-[hsl(var(--module-precos))]",
+    hover: "hover:bg-[hsl(var(--module-precos)/0.15)]",
+  },
+};
+
+// Fábrica module grouped menus
+const fabricaGroups = [
+  {
+    label: "Entrada",
+    items: [
+      { title: "Recebimento NF-e", url: "/dashboard/fabrica/recebimentos", icon: Upload },
+      { title: "Matérias-Primas", url: "/dashboard/fabrica/materias-primas", icon: Package },
+    ]
+  },
+  {
+    label: "Produção",
+    items: [
+      { title: "Fórmulas (BOM)", url: "/dashboard/fabrica/formulas", icon: FileText },
+      { title: "Planejamento MRP", url: "/dashboard/fabrica/planejamento", icon: Calendar },
+      { title: "Ordens de Produção", url: "/dashboard/fabrica/ordens-producao", icon: ClipboardCheck },
+      { title: "Apontamentos", url: "/dashboard/fabrica/apontamentos", icon: Clock },
+    ]
+  },
+  {
+    label: "Qualidade",
+    items: [
+      { title: "Qualidade", url: "/dashboard/fabrica/qualidade", icon: AlertCircle },
+      { title: "Paradas", url: "/dashboard/fabrica/paradas", icon: Pause },
+    ]
+  },
+  {
+    label: "Recursos",
+    items: [
+      { title: "Máquinas", url: "/dashboard/fabrica/maquinas", icon: Wrench },
+      { title: "Operadores", url: "/dashboard/fabrica/operadores", icon: UserCircle },
+    ]
+  },
+  {
+    label: "Fiscal",
+    items: [
+      { title: "Fiscal", url: "/dashboard/fabrica/fiscal", icon: Receipt },
+      { title: "Tabela de Impostos", url: "/dashboard/fabrica/tabela-impostos", icon: FileText },
+    ]
+  },
+  {
+    label: "Saída",
+    items: [
+      { title: "Produtos Acabados", url: "/dashboard/fabrica/produtos-acabados", icon: Package },
+    ]
+  },
+];
+
+interface ModuleHeaderProps {
+  icon: React.ElementType;
+  title: string;
+  isOpen: boolean;
+  colorKey: keyof typeof moduleColors;
+}
+
+const ModuleHeader = ({ icon: Icon, title, isOpen, colorKey }: ModuleHeaderProps) => {
+  const colors = moduleColors[colorKey];
+  
+  return (
+    <div className={cn(
+      "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
+      colors.bgLight,
+      colors.hover
+    )}>
+      <div className={cn(
+        "flex items-center justify-center w-8 h-8 rounded-lg",
+        colors.bg
+      )}>
+        <Icon className="h-4 w-4 text-white" />
+      </div>
+      <span className={cn("font-semibold text-sm flex-1", colors.text)}>
+        {title}
+      </span>
+      <ChevronDown className={cn(
+        "h-4 w-4 transition-transform duration-200",
+        colors.text,
+        !isOpen && "-rotate-90"
+      )} />
+    </div>
+  );
+};
+
+interface MenuItemLinkProps {
+  to: string;
+  icon: React.ElementType;
+  title: string;
+  colorKey?: keyof typeof moduleColors;
+  badge?: React.ReactNode;
+  end?: boolean;
+}
+
+const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemLinkProps) => {
+  const colors = colorKey ? moduleColors[colorKey] : null;
+  
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild>
+        <NavLink
+          to={to}
+          end={end}
+          className={({ isActive }) => cn(
+            "relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200",
+            isActive
+              ? cn(
+                  "font-medium",
+                  colors ? cn(colors.bgLight, colors.text, "border-l-2", colors.border) : "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-primary"
+                )
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+          )}
+        >
+          <Icon className="h-4 w-4" />
+          <span className="flex-1">{title}</span>
+          {badge}
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
 };
 
 export function AppSidebar() {
@@ -62,6 +207,7 @@ export function AppSidebar() {
   const { toast } = useToast();
   const { permissions, loading: permissionsLoading, hasPermission } = useScreenPermissions();
   const { hasModulePermission, loading: modulesLoading } = useModulePermissions();
+  const { user } = useAuth();
   
   const [prospectsOpen, setProspectsOpen] = useState(true);
   const [financeiroOpen, setFinanceiroOpen] = useState(true);
@@ -70,12 +216,31 @@ export function AppSidebar() {
   const [fabricaOpen, setFabricaOpen] = useState(true);
   const [precosOpen, setPrecosOpen] = useState(true);
   const [tabelasPendentes, setTabelasPendentes] = useState(0);
+  const [userName, setUserName] = useState<string>("");
 
   const loading = permissionsLoading || modulesLoading;
 
+  // Fetch user name
+  useEffect(() => {
+    const fetchUserName = async () => {
+      if (!user?.id) return;
+      
+      const { data } = await supabase
+        .from("profiles")
+        .select("nome")
+        .eq("id", user.id)
+        .single();
+      
+      if (data?.nome) {
+        setUserName(data.nome.split(" ")[0]);
+      }
+    };
+    
+    fetchUserName();
+  }, [user?.id]);
+
   // Buscar tabelas pendentes - APENAS se tiver permissão do módulo de preços
   useEffect(() => {
-    // Não carregar dados se não tiver permissão ou ainda estiver carregando
     if (loading || !hasModulePermission("precos")) {
       setTabelasPendentes(0);
       return;
@@ -92,7 +257,6 @@ export function AppSidebar() {
 
     fetchPendentes();
 
-    // Realtime - apenas se tiver permissão
     const channel = supabase
       .channel('sidebar-tabelas-changes')
       .on(
@@ -140,7 +304,7 @@ export function AppSidebar() {
   ];
 
   const financeiroSubMenus = [
-    { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home },
+    { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home, end: true },
     { title: "DRE Analítico", url: "/dashboard/financeiro/dre-analitico", icon: FileText },
     { title: "Visão por Departamento", url: "/dashboard/financeiro/visao-departamentos", icon: Building2 },
     { title: "Gestão de Verbas", url: "/dashboard/financeiro/trade", icon: Store },
@@ -168,221 +332,92 @@ export function AppSidebar() {
     { title: "Dashboards & IA", url: "/dashboard/marketing/social", icon: BarChart3 },
   ];
 
-  const otherMenus = permissions.filter(screen => 
-    !['prospects', 'kanban', 'atividades', 'mapa', 
-      'marketing', 'marketing_dashboards', 'marketing_whatsapp',
-      'trade', 'trade_stores', 'trade_visits', 'trade_sellout', 'trade_shelf_measurements',
-      'trade_our_brands', 'trade_photos', 'trade_ideal_photos', 'trade_auditorias',
-      'trade_relatorio_competitivo', 'trade_financeiro', 'trade_rewards', 'trade_whatsapp', 'trade_insights',
-      'relatorios', 'ai_analytics', 'instalar_app',
-      'configuracoes', 'dashboard', 'ranking'].includes(screen.codigo)
-  );
+  const precosSubMenus = [
+    { title: "Dashboard", url: "/dashboard/precos", icon: Home, end: true },
+    { title: "Gerenciar Tabelas", url: "/dashboard/precos/tabelas", icon: Receipt },
+    { title: "Aprovação", url: "/dashboard/precos/aprovacao", icon: CheckSquare },
+    { title: "Portal Cliente", url: "/dashboard/precos/portal-cliente", icon: Users },
+  ];
 
   return (
-    <Sidebar>
-      <SidebarContent>
-        <div className="p-4 border-b">
-          <img src={logoUnion} alt="Logo Union - Sistema BiMaster" className="w-32 mx-auto" />
-        </div>
+    <Sidebar className="border-r border-sidebar-border">
+      {/* Header with logo */}
+      <div className="p-4 border-b border-sidebar-border bg-gradient-to-b from-sidebar-background to-sidebar-accent/30">
+        <img src={logoUnion} alt="Logo Union - Sistema BiMaster" className="w-28 mx-auto" />
+      </div>
 
+      <SidebarContent className="scrollbar-thin">
         {/* Dashboard Principal */}
-        <SidebarGroup>
+        <SidebarGroup className="py-2">
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1 px-2">
               {hasPermission("dashboard") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/dashboard"
-                      end
-                      className={({ isActive }) =>
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "hover:bg-sidebar-accent/50"
-                      }
-                    >
-                      <Home className="h-4 w-4" />
-                      <span>Dashboard</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <MenuItemLink to="/dashboard" icon={Home} title="Dashboard" end />
               )}
               
               {hasPermission("ranking") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/dashboard/ranking"
-                      className={({ isActive }) =>
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "hover:bg-sidebar-accent/50"
-                      }
-                    >
-                      <TrendingUp className="h-4 w-4" />
-                      <span>Ranking</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <MenuItemLink to="/dashboard/ranking" icon={TrendingUp} title="Ranking" />
               )}
               
               {hasPermission("relatorios") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/dashboard/relatorios"
-                      className={({ isActive }) =>
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "hover:bg-sidebar-accent/50"
-                      }
-                    >
-                      <FileText className="h-4 w-4" />
-                      <span>Relatórios</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <MenuItemLink to="/dashboard/relatorios" icon={FileText} title="Relatórios" />
               )}
               
               {hasPermission("ai_analytics") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/dashboard/ai-analytics"
-                      className={({ isActive }) =>
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "hover:bg-sidebar-accent/50"
-                      }
-                    >
-                      <Brain className="h-4 w-4" />
-                      <span>Painel de IA</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <MenuItemLink to="/dashboard/ai-analytics" icon={Brain} title="Painel de IA" />
               )}
               
               {hasPermission("chat") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/dashboard/chat"
-                      className={({ isActive }) =>
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "hover:bg-sidebar-accent/50"
-                      }
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      <span>Chat</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <MenuItemLink to="/dashboard/chat" icon={MessageSquare} title="Chat" />
               )}
               
               {hasPermission("tarefas") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/dashboard/tarefas"
-                      className={({ isActive }) =>
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "hover:bg-sidebar-accent/50"
-                      }
-                    >
-                      <CheckSquare className="h-4 w-4" />
-                      <span>Tarefas</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <MenuItemLink to="/dashboard/tarefas" icon={CheckSquare} title="Tarefas" />
               )}
               
               {hasPermission("auditoria") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/dashboard/auditoria"
-                      className={({ isActive }) =>
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "hover:bg-sidebar-accent/50"
-                      }
-                    >
-                      <Shield className="h-4 w-4" />
-                      <span>Auditoria</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <MenuItemLink to="/dashboard/auditoria" icon={Shield} title="Auditoria" />
               )}
               
               {hasPermission("instalar_app") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/dashboard/instalar-app"
-                      className={({ isActive }) =>
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "hover:bg-sidebar-accent/50"
-                      }
-                    >
-                      <Download className="h-4 w-4" />
-                      <span>Instalar App</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <MenuItemLink to="/dashboard/instalar-app" icon={Download} title="Instalar App" />
               )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
+        <Separator className="mx-4 w-auto" />
+
         {/* Módulo de Prospects */}
         {hasModulePermission("prospects") && (
-          <SidebarGroup>
+          <SidebarGroup className="py-2 px-2">
             <Collapsible open={prospectsOpen} onOpenChange={setProspectsOpen}>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                  {prospectsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  <Users className="h-4 w-4" />
-                  Módulo de Prospects
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
+              <CollapsibleTrigger className="w-full">
+                <ModuleHeader 
+                  icon={Users} 
+                  title="Prospects" 
+                  isOpen={prospectsOpen} 
+                  colorKey="prospects" 
+                />
+              </CollapsibleTrigger>
               <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink
-                          to="/dashboard/prospects"
-                          end
-                          className={({ isActive }) =>
-                            isActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                              : "hover:bg-sidebar-accent/50"
-                          }
-                        >
-                          <Home className="h-4 w-4" />
-                          <span>Visão Geral</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 pl-2">
+                    <MenuItemLink 
+                      to="/dashboard/prospects" 
+                      icon={Home} 
+                      title="Visão Geral" 
+                      colorKey="prospects"
+                      end 
+                    />
                     {prospectsSubMenus.map((item) => (
-                      <SidebarMenuItem key={item.url}>
-                        <SidebarMenuButton asChild>
-                          <NavLink
-                            to={item.url}
-                            className={({ isActive }) =>
-                              isActive
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                : "hover:bg-sidebar-accent/50"
-                            }
-                          >
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      <MenuItemLink 
+                        key={item.url}
+                        to={item.url} 
+                        icon={item.icon} 
+                        title={item.title} 
+                        colorKey="prospects"
+                      />
                     ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
@@ -391,40 +426,30 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Módulo Financeiro - Requer permissão */}
+        {/* Módulo Financeiro */}
         {hasModulePermission("financeiro") && (
-          <SidebarGroup>
-            <Collapsible 
-              open={financeiroOpen} 
-              onOpenChange={setFinanceiroOpen}
-              defaultOpen={true}
-            >
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                  {financeiroOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  <DollarSign className="h-4 w-4" />
-                  Módulo Financeiro
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible open={financeiroOpen} onOpenChange={setFinanceiroOpen} defaultOpen>
+              <CollapsibleTrigger className="w-full">
+                <ModuleHeader 
+                  icon={DollarSign} 
+                  title="Financeiro" 
+                  isOpen={financeiroOpen} 
+                  colorKey="financeiro" 
+                />
+              </CollapsibleTrigger>
               <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 pl-2">
                     {financeiroSubMenus.map((item) => (
-                      <SidebarMenuItem key={item.url}>
-                        <SidebarMenuButton asChild>
-                          <NavLink
-                            to={item.url}
-                            className={({ isActive }) =>
-                              isActive
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                : "hover:bg-sidebar-accent/50"
-                            }
-                          >
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      <MenuItemLink 
+                        key={item.url}
+                        to={item.url} 
+                        icon={item.icon} 
+                        title={item.title} 
+                        colorKey="financeiro"
+                        end={item.end}
+                      />
                     ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
@@ -433,52 +458,36 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Módulo de Marketing - Requer permissão */}
+        {/* Módulo de Marketing */}
         {hasModulePermission("marketing") && (
-          <SidebarGroup>
+          <SidebarGroup className="py-2 px-2">
             <Collapsible open={marketingOpen} onOpenChange={setMarketingOpen}>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                  {marketingOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  <BarChart3 className="h-4 w-4" />
-                  Módulo de Marketing
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
+              <CollapsibleTrigger className="w-full">
+                <ModuleHeader 
+                  icon={BarChart3} 
+                  title="Marketing" 
+                  isOpen={marketingOpen} 
+                  colorKey="marketing" 
+                />
+              </CollapsibleTrigger>
               <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink
-                          to="/dashboard/marketing"
-                          end
-                          className={({ isActive }) =>
-                            isActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                              : "hover:bg-sidebar-accent/50"
-                          }
-                        >
-                          <Home className="h-4 w-4" />
-                          <span>Visão Geral</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 pl-2">
+                    <MenuItemLink 
+                      to="/dashboard/marketing" 
+                      icon={Home} 
+                      title="Visão Geral" 
+                      colorKey="marketing"
+                      end 
+                    />
                     {marketingSubMenus.map((item) => (
-                      <SidebarMenuItem key={item.url}>
-                        <SidebarMenuButton asChild>
-                          <NavLink
-                            to={item.url}
-                            className={({ isActive }) =>
-                              isActive
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                : "hover:bg-sidebar-accent/50"
-                            }
-                          >
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      <MenuItemLink 
+                        key={item.url}
+                        to={item.url} 
+                        icon={item.icon} 
+                        title={item.title} 
+                        colorKey="marketing"
+                      />
                     ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
@@ -489,50 +498,123 @@ export function AppSidebar() {
 
         {/* Módulo de Trade Marketing */}
         {hasModulePermission("trade") && (
-          <SidebarGroup>
+          <SidebarGroup className="py-2 px-2">
             <Collapsible open={tradeOpen} onOpenChange={setTradeOpen}>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                  {tradeOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  <Store className="h-4 w-4" />
-                  Trade Marketing
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
+              <CollapsibleTrigger className="w-full">
+                <ModuleHeader 
+                  icon={Store} 
+                  title="Trade Marketing" 
+                  isOpen={tradeOpen} 
+                  colorKey="trade" 
+                />
+              </CollapsibleTrigger>
               <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink
-                          to="/dashboard/trade"
-                          end
-                          className={({ isActive }) =>
-                            isActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                              : "hover:bg-sidebar-accent/50"
-                          }
-                        >
-                          <Home className="h-4 w-4" />
-                          <span>Visão Geral</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    {tradeSubMenus.map((item) => (
-                      <SidebarMenuItem key={item.url}>
-                        <SidebarMenuButton asChild>
-                          <NavLink
-                            to={item.url}
-                            className={({ isActive }) =>
-                              isActive
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                : "hover:bg-sidebar-accent/50"
-                            }
-                          >
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                <SidebarGroupContent className="mt-1">
+                  <ScrollArea className="max-h-64">
+                    <SidebarMenu className="space-y-0.5 pl-2">
+                      <MenuItemLink 
+                        to="/dashboard/trade" 
+                        icon={Home} 
+                        title="Visão Geral" 
+                        colorKey="trade"
+                        end 
+                      />
+                      {tradeSubMenus.map((item) => (
+                        <MenuItemLink 
+                          key={item.url}
+                          to={item.url} 
+                          icon={item.icon} 
+                          title={item.title} 
+                          colorKey="trade"
+                        />
+                      ))}
+                    </SidebarMenu>
+                  </ScrollArea>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+        {/* Módulo de Fábrica - Com grupos */}
+        {hasModulePermission("fabrica") && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible open={fabricaOpen} onOpenChange={setFabricaOpen}>
+              <CollapsibleTrigger className="w-full">
+                <ModuleHeader 
+                  icon={Factory} 
+                  title="Fábrica" 
+                  isOpen={fabricaOpen} 
+                  colorKey="fabrica" 
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <ScrollArea className="max-h-72">
+                    <SidebarMenu className="space-y-0.5 pl-2">
+                      <MenuItemLink 
+                        to="/dashboard/fabrica" 
+                        icon={Home} 
+                        title="Dashboard" 
+                        colorKey="fabrica"
+                        end 
+                      />
+                      
+                      {fabricaGroups.map((group, groupIndex) => (
+                        <div key={group.label} className="mt-2 first:mt-0">
+                          <span className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                            {group.label}
+                          </span>
+                          {group.items.map((item) => (
+                            <MenuItemLink 
+                              key={item.url}
+                              to={item.url} 
+                              icon={item.icon} 
+                              title={item.title} 
+                              colorKey="fabrica"
+                            />
+                          ))}
+                        </div>
+                      ))}
+                    </SidebarMenu>
+                  </ScrollArea>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+        {/* Módulo de Tabelas de Preços */}
+        {hasModulePermission("precos") && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible open={precosOpen} onOpenChange={setPrecosOpen}>
+              <CollapsibleTrigger className="w-full">
+                <ModuleHeader 
+                  icon={DollarSign} 
+                  title="Tabelas de Preços" 
+                  isOpen={precosOpen} 
+                  colorKey="precos" 
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 pl-2">
+                    {precosSubMenus.map((item) => (
+                      <MenuItemLink 
+                        key={item.url}
+                        to={item.url} 
+                        icon={item.icon} 
+                        title={item.title} 
+                        colorKey="precos"
+                        end={item.end}
+                        badge={
+                          item.title === "Aprovação" && tabelasPendentes > 0 ? (
+                            <Badge className="ml-auto bg-yellow-500 hover:bg-yellow-600 text-xs h-5 min-w-5 flex items-center justify-center">
+                              {tabelasPendentes}
+                            </Badge>
+                          ) : undefined
+                        }
+                      />
                     ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
@@ -540,206 +622,40 @@ export function AppSidebar() {
             </Collapsible>
           </SidebarGroup>
         )}
-
-        {/* Módulo de Fábrica */}
-        {hasModulePermission("fabrica") && (
-          <SidebarGroup>
-            <Collapsible open={fabricaOpen} onOpenChange={setFabricaOpen}>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                  {fabricaOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  <Factory className="h-4 w-4" />
-                  Módulo Fábrica
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica" end className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <Home className="h-4 w-4" />
-                          <span>Dashboard</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/recebimentos" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <Upload className="h-4 w-4" />
-                          <span>Recebimento NF-e</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/materias-primas" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <Package className="h-4 w-4" />
-                          <span>Matérias-Primas</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/formulas" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <FileText className="h-4 w-4" />
-                          <span>Fórmulas (BOM)</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/planejamento" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <Calendar className="h-4 w-4" />
-                          <span>Planejamento MRP</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/fiscal" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <Receipt className="h-4 w-4" />
-                          <span>Fiscal</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/tabela-impostos" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <FileText className="h-4 w-4" />
-                          <span>Tabela de Impostos</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/ordens-producao" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <ClipboardCheck className="h-4 w-4" />
-                          <span>Ordens de Produção</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/apontamentos" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <Clock className="h-4 w-4" />
-                          <span>Apontamentos</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/qualidade" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <AlertCircle className="h-4 w-4" />
-                          <span>Qualidade</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/paradas" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <Pause className="h-4 w-4" />
-                          <span>Paradas</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/maquinas" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <Wrench className="h-4 w-4" />
-                          <span>Máquinas</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/operadores" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <UserCircle className="h-4 w-4" />
-                          <span>Operadores</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/fabrica/produtos-acabados" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <Package className="h-4 w-4" />
-                          <span>Produtos Acabados</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Módulo de Tabelas de Preços - Requer permissão */}
-        {hasModulePermission("precos") && (
-          <SidebarGroup>
-            <Collapsible open={precosOpen} onOpenChange={setPrecosOpen}>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                  {precosOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  <DollarSign className="h-4 w-4" />
-                  Tabelas de Preços
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/precos" end className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <Home className="h-4 w-4" />
-                          <span>Dashboard</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/precos/tabelas" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <Receipt className="h-4 w-4" />
-                          <span>Gerenciar Tabelas</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/precos/aprovacao" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <CheckSquare className="h-4 w-4" />
-                          <span>Aprovação</span>
-                          {tabelasPendentes > 0 && (
-                            <Badge className="ml-auto bg-yellow-500 hover:bg-yellow-600 text-xs">
-                              {tabelasPendentes}
-                            </Badge>
-                          )}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/dashboard/precos/portal-cliente" className={({ isActive }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50"}>
-                          <Users className="h-4 w-4" />
-                          <span>Portal Cliente</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
       </SidebarContent>
       
-      <SidebarFooter>
-        <SidebarMenu>
+      {/* Footer profissional */}
+      <SidebarFooter className="border-t border-sidebar-border bg-gradient-to-t from-sidebar-background to-sidebar-accent/20">
+        {/* User info */}
+        {userName && (
+          <div className="px-4 py-2 border-b border-sidebar-border/50">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <span className="text-xs font-bold text-white">
+                  {userName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{userName}</p>
+                <p className="text-xs text-muted-foreground">Conectado</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <SidebarMenu className="px-2 py-2">
           {hasModulePermission("configuracoes") && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <NavLink to="/dashboard/configuracoes">
+                <NavLink 
+                  to="/dashboard/configuracoes"
+                  className={({ isActive }) => cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
+                    isActive 
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground" 
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  )}
+                >
                   <Settings className="h-4 w-4" />
                   <span>Configurações</span>
                 </NavLink>
@@ -747,7 +663,10 @@ export function AppSidebar() {
             </SidebarMenuItem>
           )}
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout}>
+            <SidebarMenuButton 
+              onClick={handleLogout}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive transition-all"
+            >
               <LogOut className="h-4 w-4" />
               <span>Sair</span>
             </SidebarMenuButton>
