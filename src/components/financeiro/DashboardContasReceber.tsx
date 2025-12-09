@@ -233,31 +233,44 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
       }));
   }, [contas]);
 
-  // Aging Report
+  // Aging Report - A Receber (futuro) com faixas de dias
   const agingReport = useMemo(() => {
     if (!contas || contas.length === 0) return [];
 
     const hoje = new Date();
-    const faixas = [
-      { nome: 'A Vencer', min: -999, max: 0, valor: 0, qtd: 0 },
-      { nome: '1-30 dias', min: 1, max: 30, valor: 0, qtd: 0 },
-      { nome: '31-60 dias', min: 31, max: 60, valor: 0, qtd: 0 },
-      { nome: '61-90 dias', min: 61, max: 90, valor: 0, qtd: 0 },
-      { nome: '+90 dias', min: 91, max: 9999, valor: 0, qtd: 0 },
+    // Faixas de dias à frente (A Vencer)
+    const faixasFuturo = [
+      { nome: 'Vencido', tipo: 'vencido', min: 1, max: 9999, valor: 0, qtd: 0 },
+      { nome: 'Hoje', tipo: 'hoje', min: 0, max: 0, valor: 0, qtd: 0 },
+      { nome: '1-30 dias', tipo: 'futuro', min: 1, max: 30, valor: 0, qtd: 0 },
+      { nome: '31-60 dias', tipo: 'futuro', min: 31, max: 60, valor: 0, qtd: 0 },
+      { nome: '61-90 dias', tipo: 'futuro', min: 61, max: 90, valor: 0, qtd: 0 },
+      { nome: '+90 dias', tipo: 'futuro', min: 91, max: 9999, valor: 0, qtd: 0 },
     ];
 
     contas.filter(c => c.status !== 'recebido' && c.data_vencimento).forEach(c => {
       const venc = parseISO(c.data_vencimento);
-      const diasAtraso = differenceInDays(hoje, venc);
+      const diasAteFuturo = differenceInDays(venc, hoje); // positivo = futuro, negativo = passado
       
-      const faixa = faixas.find(f => diasAtraso >= f.min && diasAtraso <= f.max);
-      if (faixa) {
-        faixa.valor += c.valor_aberto || 0;
-        faixa.qtd += 1;
+      if (diasAteFuturo < 0) {
+        // Vencido
+        faixasFuturo[0].valor += c.valor_aberto || 0;
+        faixasFuturo[0].qtd += 1;
+      } else if (diasAteFuturo === 0) {
+        // Hoje
+        faixasFuturo[1].valor += c.valor_aberto || 0;
+        faixasFuturo[1].qtd += 1;
+      } else {
+        // Futuro - encontrar faixa correta
+        const faixa = faixasFuturo.find(f => f.tipo === 'futuro' && diasAteFuturo >= f.min && diasAteFuturo <= f.max);
+        if (faixa) {
+          faixa.valor += c.valor_aberto || 0;
+          faixa.qtd += 1;
+        }
       }
     });
 
-    return faixas;
+    return faixasFuturo;
   }, [contas]);
 
   // Distribuição por status
@@ -516,9 +529,9 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
-              Aging Report
+              A Receber por Prazo
             </CardTitle>
-            <CardDescription>Distribuição por faixa de atraso</CardDescription>
+            <CardDescription>Distribuição por faixa de vencimento</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -540,7 +553,7 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
                     {agingReport.map((entry, index) => (
                       <Cell 
                         key={`cell-${index}`} 
-                        fill={index === 0 ? 'hsl(var(--chart-2))' : index < 2 ? 'hsl(var(--chart-3))' : index < 4 ? 'hsl(var(--chart-4))' : 'hsl(var(--chart-5))'}
+                        fill={index === 0 ? 'hsl(var(--chart-5))' : 'hsl(var(--chart-2))'}
                       />
                     ))}
                   </Bar>
