@@ -12217,7 +12217,6 @@ export type Database = {
         Returns: number
       }
       calcular_custo_mod_op:
-        | { Args: { p_ordem_producao_id: string }; Returns: number }
         | {
             Args: {
               _custo_hora_mao_obra: number
@@ -12226,6 +12225,7 @@ export type Database = {
             }
             Returns: number
           }
+        | { Args: { p_ordem_producao_id: string }; Returns: number }
       calcular_score_cliente: {
         Args: { p_cliente_codigo: string }
         Returns: number
@@ -12284,14 +12284,8 @@ export type Database = {
       }
       get_analise_departamentos_completa:
         | {
-            Args: {
-              p_departamento_id?: string
-              p_periodo_fim: string
-              p_periodo_inicio: string
-            }
+            Args: { p_periodo_fim: string; p_periodo_inicio: string }
             Returns: {
-              classificacoes_automaticas: number
-              classificacoes_manuais: number
               departamento_id: string
               departamento_nome: string
               periodo_mes: string
@@ -12301,8 +12295,14 @@ export type Database = {
             }[]
           }
         | {
-            Args: { p_periodo_fim: string; p_periodo_inicio: string }
+            Args: {
+              p_departamento_id?: string
+              p_periodo_fim: string
+              p_periodo_inicio: string
+            }
             Returns: {
+              classificacoes_automaticas: number
+              classificacoes_manuais: number
               departamento_id: string
               departamento_nome: string
               periodo_mes: string

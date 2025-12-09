@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +44,8 @@ import {
   Filter,
   X,
   Layers,
-  AlertTriangle
+  AlertTriangle,
+  History
 } from "lucide-react";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import * as XLSX from "xlsx";
@@ -66,6 +67,11 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { HistoricoPrecoProduto } from "./HistoricoPrecoProduto";
+
+// Keys para localStorage
+const STORAGE_KEY_COLUMN_ORDER = "fabrica-matriz-column-order";
+const STORAGE_KEY_COLUMN_COLORS = "fabrica-matriz-column-colors";
 
 // Cores predefinidas para colunas
 const COLUMN_COLORS = [
@@ -229,6 +235,16 @@ export function MatrizPrecosComparativa() {
   const [ordenarAsc, setOrdenarAsc] = useState(true);
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
   const [columnColors, setColumnColors] = useState<Record<string, string>>({});
+  const [initialized, setInitialized] = useState(false);
+  
+  // Estado do histórico
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [historicoData, setHistoricoData] = useState<{
+    produtoId: string;
+    produtoNome: string;
+    tabelaId: string;
+    tabelaNome: string;
+  } | null>(null);
   
   // Filtros avançados
   const [filtroMarca, setFiltroMarca] = useState<string>("all");
@@ -246,6 +262,38 @@ export function MatrizPrecosComparativa() {
     })
   );
 
+  // Carregar configurações do localStorage
+  useEffect(() => {
+    try {
+      const savedOrder = localStorage.getItem(STORAGE_KEY_COLUMN_ORDER);
+      const savedColors = localStorage.getItem(STORAGE_KEY_COLUMN_COLORS);
+      
+      if (savedOrder) {
+        setColumnOrder(JSON.parse(savedOrder));
+      }
+      if (savedColors) {
+        setColumnColors(JSON.parse(savedColors));
+      }
+    } catch (e) {
+      console.error("Erro ao carregar configurações da matriz:", e);
+    }
+    setInitialized(true);
+  }, []);
+
+  // Salvar ordem das colunas no localStorage
+  useEffect(() => {
+    if (initialized && columnOrder.length > 0) {
+      localStorage.setItem(STORAGE_KEY_COLUMN_ORDER, JSON.stringify(columnOrder));
+    }
+  }, [columnOrder, initialized]);
+
+  // Salvar cores das colunas no localStorage
+  useEffect(() => {
+    if (initialized && Object.keys(columnColors).length > 0) {
+      localStorage.setItem(STORAGE_KEY_COLUMN_COLORS, JSON.stringify(columnColors));
+    }
+  }, [columnColors, initialized]);
+
   // Buscar tabelas ativas ordenadas por código numérico
   const { data: tabelas, isLoading: loadingTabelas } = useQuery({
     queryKey: ["fabrica-tabelas-preco-ativas"],
@@ -257,15 +305,16 @@ export function MatrizPrecosComparativa() {
         .order("codigo", { ascending: true });
 
       if (error) throw error;
-      
-      // Inicializar ordem das colunas se não existir
-      if (data && columnOrder.length === 0) {
-        setColumnOrder(data.map(t => t.id));
-      }
-      
       return data as TabelaPreco[];
     },
   });
+
+  // Inicializar ordem das colunas quando tabelas carregam (se não houver ordem salva)
+  useEffect(() => {
+    if (tabelas && initialized && columnOrder.length === 0) {
+      setColumnOrder(tabelas.map(t => t.id));
+    }
+  }, [tabelas, initialized, columnOrder.length]);
 
   // Buscar todos os preços com produtos
   const { data: precosData, isLoading: loadingPrecos } = useQuery({
@@ -306,14 +355,21 @@ export function MatrizPrecosComparativa() {
     };
   }, [precosData]);
 
-  // Tabelas ordenadas conforme drag-and-drop
+  // Tabelas ordenadas conforme drag-and-drop (filtrando IDs inexistentes)
   const tabelasOrdenadas = useMemo(() => {
     if (!tabelas) return [];
     if (columnOrder.length === 0) return tabelas;
     
-    return columnOrder
+    // Usar ordem salva, filtrando IDs que não existem mais
+    const ordenadas = columnOrder
       .map(id => tabelas.find(t => t.id === id))
       .filter((t): t is TabelaPreco => t !== undefined);
+    
+    // Adicionar novas tabelas que não estão na ordem salva
+    const idsNaOrdem = new Set(columnOrder);
+    const novasTabelas = tabelas.filter(t => !idsNaOrdem.has(t.id));
+    
+    return [...ordenadas, ...novasTabelas];
   }, [tabelas, columnOrder]);
 
   // Transformar dados em formato matricial
@@ -430,15 +486,22 @@ export function MatrizPrecosComparativa() {
     
     if (over && active.id !== over.id) {
       setColumnOrder((items) => {
-        const oldIndex = items.indexOf(active.id as string);
-        const newIndex = items.indexOf(over.id as string);
-        return arrayMove(items, oldIndex, newIndex);
+        const currentItems = items.length > 0 ? items : tabelasOrdenadas.map(t => t.id);
+        const oldIndex = currentItems.indexOf(active.id as string);
+        const newIndex = currentItems.indexOf(over.id as string);
+        const newOrder = arrayMove(currentItems, oldIndex, newIndex);
+        return newOrder;
       });
+      toast.success("Ordem das colunas atualizada");
     }
   };
 
   const handleColorChange = (tabelaId: string, color: string) => {
-    setColumnColors(prev => ({ ...prev, [tabelaId]: color }));
+    setColumnColors(prev => {
+      const newColors = { ...prev, [tabelaId]: color };
+      return newColors;
+    });
+    toast.success("Cor da coluna atualizada");
   };
 
   const getColumnColor = (tabelaId: string) => {
@@ -460,6 +523,11 @@ export function MatrizPrecosComparativa() {
   };
 
   const temFiltrosAtivos = busca || filtroMarca !== "all" || filtroLinha !== "all" || filtroTabela !== "all";
+
+  const handlePrecoClick = (produtoId: string, produtoNome: string, tabelaId: string, tabelaNome: string) => {
+    setHistoricoData({ produtoId, produtoNome, tabelaId, tabelaNome });
+    setHistoricoOpen(true);
+  };
 
   const exportarExcel = () => {
     if (!matrizDados.length || !tabelasOrdenadas.length) {
@@ -527,25 +595,18 @@ export function MatrizPrecosComparativa() {
           return (
             <TableCell key={tabela.id} className={`text-center ${colorConfig.bg}`}>
               {preco ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="cursor-help">
-                      <div className="font-semibold">
-                        {formatarMoeda(preco.preco)}
-                      </div>
-                      <div className={`text-xs ${getMargemColor(preco.margem)}`}>
-                        {preco.margem.toFixed(1)}%
-                      </div>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div className="space-y-1 text-sm">
-                      <div><strong>Preço:</strong> {formatarMoeda(preco.preco)}</div>
-                      <div><strong>Custo Base:</strong> {formatarMoeda(preco.custo)}</div>
-                      <div><strong>Margem:</strong> {preco.margem.toFixed(2)}%</div>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
+                <button
+                  onClick={() => handlePrecoClick(row.produto.id, row.produto.nome, tabela.id, tabela.nome)}
+                  className="w-full cursor-pointer hover:bg-muted/50 rounded p-1 transition-colors group"
+                >
+                  <div className="font-semibold group-hover:text-primary">
+                    {formatarMoeda(preco.preco)}
+                  </div>
+                  <div className={`text-xs ${getMargemColor(preco.margem)} flex items-center justify-center gap-1`}>
+                    {preco.margem.toFixed(1)}%
+                    <History className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </button>
               ) : (
                 <span className="text-muted-foreground">-</span>
               )}
@@ -557,229 +618,241 @@ export function MatrizPrecosComparativa() {
   };
 
   return (
-    <Card>
-      <CardHeader className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Grid3X3 className="h-5 w-5 text-primary" />
-            <CardTitle>Matriz Comparativa de Preços</CardTitle>
-          </div>
-          <Button variant="outline" onClick={exportarExcel}>
-            <Download className="h-4 w-4 mr-2" />
-            Exportar Excel
-          </Button>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Arraste as colunas para reordenar. Clique no ícone de paleta para mudar a cor da coluna.
-        </p>
-
-        {/* Filtros avançados */}
-        <div className="flex flex-wrap items-center gap-3 p-4 bg-muted/30 rounded-lg border">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Filtros:</span>
-          </div>
-
-          <div className="relative flex-1 min-w-[200px] max-w-[300px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar produto..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-
-          <Select value={filtroMarca} onValueChange={setFiltroMarca}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Marca" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas Marcas</SelectItem>
-              {marcas.map(m => (
-                <SelectItem key={m} value={m}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={filtroLinha} onValueChange={setFiltroLinha}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Linha" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas Linhas</SelectItem>
-              {linhas.map(l => (
-                <SelectItem key={l} value={l}>{l}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={filtroTabela} onValueChange={setFiltroTabela}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Tabela" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas Tabelas</SelectItem>
-              {tabelas?.map(t => (
-                <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {temFiltrosAtivos && (
-            <Button variant="ghost" size="sm" onClick={limparFiltros}>
-              <X className="h-4 w-4 mr-1" />
-              Limpar
+    <>
+      <Card>
+        <CardHeader className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Grid3X3 className="h-5 w-5 text-primary" />
+              <CardTitle>Matriz Comparativa de Preços</CardTitle>
+            </div>
+            <Button variant="outline" onClick={exportarExcel}>
+              <Download className="h-4 w-4 mr-2" />
+              Exportar Excel
             </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Arraste as colunas para reordenar. Clique no ícone de paleta para mudar a cor. Clique em um preço para ver o histórico.
+          </p>
+
+          {/* Filtros avançados */}
+          <div className="flex flex-wrap items-center gap-3 p-4 bg-muted/30 rounded-lg border">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filtros:</span>
+            </div>
+
+            <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar produto..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            <Select value={filtroMarca} onValueChange={setFiltroMarca}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Marca" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Marcas</SelectItem>
+                {marcas.map(m => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filtroLinha} onValueChange={setFiltroLinha}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Linha" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Linhas</SelectItem>
+                {linhas.map(l => (
+                  <SelectItem key={l} value={l}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filtroTabela} onValueChange={setFiltroTabela}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Tabela" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Tabelas</SelectItem>
+                {tabelas?.map(t => (
+                  <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {temFiltrosAtivos && (
+              <Button variant="ghost" size="sm" onClick={limparFiltros}>
+                <X className="h-4 w-4 mr-1" />
+                Limpar
+              </Button>
+            )}
+
+            <div className="ml-auto flex items-center gap-3 pl-4 border-l">
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-muted-foreground" />
+                <Switch
+                  id="agrupar"
+                  checked={agruparHabilitado}
+                  onCheckedChange={setAgruparHabilitado}
+                />
+                <Label htmlFor="agrupar" className="text-sm">Agrupar</Label>
+              </div>
+              
+              {agruparHabilitado && (
+                <Select value={agruparPor} onValueChange={(v) => setAgruparPor(v as "marca" | "linha")}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="marca">Por Marca</SelectItem>
+                    <SelectItem value="linha">Por Linha</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">Carregando matriz de preços...</p>
+            </div>
+          ) : !tabelas?.length ? (
+            <div className="text-center py-12 text-muted-foreground">
+              Nenhuma tabela de preços ativa encontrada
+            </div>
+          ) : !matrizDados.length ? (
+            <div className="text-center py-12 text-muted-foreground">
+              {temFiltrosAtivos ? "Nenhum produto encontrado com os filtros aplicados" : "Nenhum produto com preços cadastrados"}
+            </div>
+          ) : (
+            <ScrollArea className="w-full">
+              <div className="min-w-max">
+                <TooltipProvider>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead
+                          className="sticky left-0 z-20 bg-muted/95 backdrop-blur cursor-pointer hover:bg-muted min-w-[200px]"
+                          onClick={() => handleOrdenar("produto")}
+                        >
+                          <div className="flex items-center gap-1">
+                            Produto
+                            <ArrowUpDown className="h-3 w-3" />
+                            {ordenarPor === "produto" && (
+                              <Badge variant="secondary" className="ml-1 text-xs">
+                                {ordenarAsc ? "A-Z" : "Z-A"}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableHead>
+                        <TableHead className="sticky left-[200px] z-20 bg-muted/95 backdrop-blur min-w-[100px]">
+                          Código
+                        </TableHead>
+                        <SortableContext
+                          items={tabelasOrdenadas.map(t => t.id)}
+                          strategy={horizontalListSortingStrategy}
+                        >
+                          {tabelasOrdenadas.map((tabela) => {
+                            // Verificar pendência: tabela tem base e foi atualizada ANTES da base
+                            const tabelaBase = tabela.tabela_base_id
+                              ? tabelas?.find(t => t.id === tabela.tabela_base_id)
+                              : null;
+                            const pendente = tabelaBase
+                              ? new Date(tabela.updated_at) < new Date(tabelaBase.updated_at)
+                              : false;
+                            
+                            return (
+                              <SortableColumnHeader
+                                key={tabela.id}
+                                tabela={tabela}
+                                color={getColumnColor(tabela.id)}
+                                onColorChange={handleColorChange}
+                                onSort={handleOrdenar}
+                                ordenarPor={ordenarPor}
+                                ordenarAsc={ordenarAsc}
+                                pendente={pendente}
+                                baseNome={tabelaBase?.nome || null}
+                              />
+                            );
+                          })}
+                        </SortableContext>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {agruparHabilitado && dadosAgrupados ? (
+                        dadosAgrupados.map(([grupo, rows]) => (
+                          <>
+                            <TableRow key={`group-${grupo}`} className="bg-muted/70">
+                              <TableCell
+                                colSpan={2 + tabelasOrdenadas.length}
+                                className="sticky left-0 font-semibold text-primary"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Layers className="h-4 w-4" />
+                                  {agruparPor === "marca" ? "Marca" : "Linha"}: {grupo}
+                                  <Badge variant="secondary" className="ml-2">
+                                    {rows.length} produto(s)
+                                  </Badge>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            {renderTableRows(rows)}
+                          </>
+                        ))
+                      ) : (
+                        renderTableRows(matrizDados)
+                      )}
+                    </TableBody>
+                  </Table>
+                </DndContext>
+              </TooltipProvider>
+            </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           )}
 
-          <div className="ml-auto flex items-center gap-3 pl-4 border-l">
-            <div className="flex items-center gap-2">
-              <Layers className="h-4 w-4 text-muted-foreground" />
-              <Switch
-                id="agrupar"
-                checked={agruparHabilitado}
-                onCheckedChange={setAgruparHabilitado}
-              />
-              <Label htmlFor="agrupar" className="text-sm">Agrupar</Label>
+          {matrizDados.length > 0 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+              <span>{matrizDados.length} produto(s) encontrado(s)</span>
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-destructive" /> Margem ≤ 0%
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-yellow-500" /> Margem &lt; 15%
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-green-500" /> Margem ≥ 30%
+                </span>
+              </div>
             </div>
-            
-            {agruparHabilitado && (
-              <Select value={agruparPor} onValueChange={(v) => setAgruparPor(v as "marca" | "linha")}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="marca">Por Marca</SelectItem>
-                  <SelectItem value="linha">Por Linha</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-muted-foreground">Carregando matriz de preços...</p>
-          </div>
-        ) : !tabelas?.length ? (
-          <div className="text-center py-12 text-muted-foreground">
-            Nenhuma tabela de preços ativa encontrada
-          </div>
-        ) : !matrizDados.length ? (
-          <div className="text-center py-12 text-muted-foreground">
-            {temFiltrosAtivos ? "Nenhum produto encontrado com os filtros aplicados" : "Nenhum produto com preços cadastrados"}
-          </div>
-        ) : (
-          <ScrollArea className="w-full">
-            <div className="min-w-max">
-              <TooltipProvider>
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead
-                        className="sticky left-0 z-20 bg-muted/95 backdrop-blur cursor-pointer hover:bg-muted min-w-[200px]"
-                        onClick={() => handleOrdenar("produto")}
-                      >
-                        <div className="flex items-center gap-1">
-                          Produto
-                          <ArrowUpDown className="h-3 w-3" />
-                          {ordenarPor === "produto" && (
-                            <Badge variant="secondary" className="ml-1 text-xs">
-                              {ordenarAsc ? "A-Z" : "Z-A"}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableHead>
-                      <TableHead className="sticky left-[200px] z-20 bg-muted/95 backdrop-blur min-w-[100px]">
-                        Código
-                      </TableHead>
-                      <SortableContext
-                        items={tabelasOrdenadas.map(t => t.id)}
-                        strategy={horizontalListSortingStrategy}
-                      >
-                        {tabelasOrdenadas.map((tabela) => {
-                          // Verificar pendência: tabela tem base e foi atualizada ANTES da base
-                          const tabelaBase = tabela.tabela_base_id
-                            ? tabelas?.find(t => t.id === tabela.tabela_base_id)
-                            : null;
-                          const pendente = tabelaBase
-                            ? new Date(tabela.updated_at) < new Date(tabelaBase.updated_at)
-                            : false;
-                          
-                          return (
-                            <SortableColumnHeader
-                              key={tabela.id}
-                              tabela={tabela}
-                              color={getColumnColor(tabela.id)}
-                              onColorChange={handleColorChange}
-                              onSort={handleOrdenar}
-                              ordenarPor={ordenarPor}
-                              ordenarAsc={ordenarAsc}
-                              pendente={pendente}
-                              baseNome={tabelaBase?.nome || null}
-                            />
-                          );
-                        })}
-                      </SortableContext>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {agruparHabilitado && dadosAgrupados ? (
-                      dadosAgrupados.map(([grupo, rows]) => (
-                        <>
-                          <TableRow key={`group-${grupo}`} className="bg-muted/70">
-                            <TableCell
-                              colSpan={2 + tabelasOrdenadas.length}
-                              className="sticky left-0 font-semibold text-primary"
-                            >
-                              <div className="flex items-center gap-2">
-                                <Layers className="h-4 w-4" />
-                                {agruparPor === "marca" ? "Marca" : "Linha"}: {grupo}
-                                <Badge variant="secondary" className="ml-2">
-                                  {rows.length} produto(s)
-                                </Badge>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                          {renderTableRows(rows)}
-                        </>
-                      ))
-                    ) : (
-                      renderTableRows(matrizDados)
-                    )}
-                  </TableBody>
-                </Table>
-              </DndContext>
-            </TooltipProvider>
-          </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        )}
+          )}
+        </CardContent>
+      </Card>
 
-        {matrizDados.length > 0 && (
-          <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-            <span>{matrizDados.length} produto(s) encontrado(s)</span>
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-destructive" /> Margem ≤ 0%
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-yellow-500" /> Margem &lt; 15%
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-green-500" /> Margem ≥ 30%
-              </span>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {/* Dialog de Histórico */}
+      {historicoData && (
+        <HistoricoPrecoProduto
+          open={historicoOpen}
+          onOpenChange={setHistoricoOpen}
+          produtoId={historicoData.produtoId}
+          produtoNome={`${historicoData.produtoNome} - ${historicoData.tabelaNome}`}
+        />
+      )}
+    </>
   );
 }
