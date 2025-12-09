@@ -851,6 +851,7 @@ export function MatrizPrecosComparativa() {
           onOpenChange={setHistoricoOpen}
           produtoId={historicoData.produtoId}
           produtoNome={`${historicoData.produtoNome} - ${historicoData.tabelaNome}`}
+          tabelaId={historicoData.tabelaId}
         />
       )}
     </>
