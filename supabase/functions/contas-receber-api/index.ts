@@ -94,7 +94,8 @@ function escapeSql(value: any): string {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
 
-// ============ BULK INSERT ULTRA-RÁPIDO ============
+// ============ BULK INSERT SEGURO ============
+// Usa função de banco segura em vez de exec_sql
 async function processBulkInsert(
   supabase: any,
   contas: any[]
@@ -116,7 +117,7 @@ async function processBulkInsert(
     }
   }
 
-  // Processar em lotes grandes usando SQL direto
+  // Processar em lotes usando função segura de banco
   const totalBatches = Math.ceil(records.length / BULK_BATCH_SIZE);
   console.log(`[BULK] Processing ${records.length} records in ${totalBatches} batches of ${BULK_BATCH_SIZE}`);
 
@@ -124,63 +125,16 @@ async function processBulkInsert(
     const batchNum = Math.floor(i / BULK_BATCH_SIZE) + 1;
     const batch = records.slice(i, i + BULK_BATCH_SIZE);
     
-    // Construir VALUES para INSERT em massa
-    const values = batch.map(r => `(
-      ${escapeSql(r.erp_id)},
-      ${escapeSql(r.data_hash)},
-      ${r.empresa_id},
-      ${escapeSql(r.empresa_nome)},
-      ${escapeSql(r.tipo_documento)},
-      ${escapeSql(r.numero_documento)},
-      ${r.parcela || 1},
-      ${escapeSql(r.cliente_codigo)},
-      ${escapeSql(r.cliente_nome)},
-      ${r.valor_original || 0},
-      ${r.valor_aberto || 0},
-      ${r.valor_recebido || 0},
-      ${r.valor_juros || 0},
-      ${r.valor_desconto || 0},
-      ${r.valor_ajustes || 0},
-      ${escapeSql(r.data_emissao)},
-      ${escapeSql(r.data_vencimento)},
-      ${escapeSql(r.data_recebimento)},
-      ${escapeSql(r.tabela_preco)},
-      ${escapeSql(r.vendedor_nome)},
-      ${escapeSql(r.vendedor_codigo)},
-      ${escapeSql(r.portador_id)},
-      ${escapeSql(r.portador)},
-      ${escapeSql(r.conta)},
-      ${escapeSql(r.sincronizado_em)}
-    )`).join(',\n');
-
-    const sql = `
-      INSERT INTO contas_receber (
-        erp_id, data_hash, empresa_id, empresa_nome, tipo_documento, numero_documento,
-        parcela, cliente_codigo, cliente_nome, valor_original, valor_aberto, valor_recebido,
-        valor_juros, valor_desconto, valor_ajustes, data_emissao, data_vencimento,
-        data_recebimento, tabela_preco, vendedor_nome, vendedor_codigo, portador_id,
-        portador, conta, sincronizado_em
-      ) VALUES ${values}
-      ON CONFLICT (erp_id) DO UPDATE SET
-        data_hash = EXCLUDED.data_hash,
-        empresa_nome = EXCLUDED.empresa_nome,
-        valor_original = EXCLUDED.valor_original,
-        valor_aberto = EXCLUDED.valor_aberto,
-        valor_recebido = EXCLUDED.valor_recebido,
-        valor_juros = EXCLUDED.valor_juros,
-        valor_desconto = EXCLUDED.valor_desconto,
-        valor_ajustes = EXCLUDED.valor_ajustes,
-        data_recebimento = EXCLUDED.data_recebimento,
-        sincronizado_em = EXCLUDED.sincronizado_em,
-        updated_at = NOW()
-    `;
-
     let success = false;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      const { error } = await supabase.rpc('exec_sql', { sql_query: sql });
+      // Usar função segura em vez de exec_sql
+      const { data, error } = await supabase.rpc('bulk_upsert_contas_receber', { 
+        p_records: batch 
+      });
       
       if (!error) {
-        processed += batch.length;
+        const result = data || { processed: batch.length, errors: 0 };
+        processed += result.processed;
         success = true;
         break;
       }
