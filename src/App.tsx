@@ -280,7 +280,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/contas-a-pagar" element={<ProtectedRoute><ContasAPagar /></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber" element={<ProtectedRoute><ContasAReceber /></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/cobranca" element={<ProtectedRoute><CobrancaInadimplentes /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/fluxo-caixa" element={<ProtectedRoute><FluxoDeCaixa /></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ProtectedRoute><FluxoDeCaixa /></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/plano-contas" element={<ProtectedRoute><PlanoContas /></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/classificar-banco" element={<ProtectedRoute><ClassificarTodoBanco /></ProtectedRoute>} />
             
