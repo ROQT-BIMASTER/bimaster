@@ -6,12 +6,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-// Configurações para carga massiva
-const BULK_BATCH_SIZE = 500; // Lotes maiores para bulk
-const MAX_PAYLOAD_SIZE = 10000; // Aumentado para bulk
-const UPSERT_BATCH_SIZE = 25;
-const BATCH_DELAY_MS = 50;
-const MAX_RETRIES = 3;
+// Configurações para carga massiva - OTIMIZADO PARA 30K LINHAS
+const BULK_BATCH_SIZE = 1000; // Lotes maiores para bulk (1000 por vez)
+const MAX_PAYLOAD_SIZE = 35000; // 35k para suportar 30k+ registros
+const UPSERT_BATCH_SIZE = 50; // Aumentado para upsert padrão
+const BATCH_DELAY_MS = 30; // Delay reduzido
+const MAX_RETRIES = 5; // Mais retries para cargas grandes
 const RETRY_BASE_DELAY_MS = 200;
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

@@ -9,6 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -22,9 +25,13 @@ import {
   RefreshCw,
   Building2,
   CheckCircle,
-  ChevronsUpDown
+  ChevronsUpDown,
+  Filter,
+  X,
+  User,
+  FileText
 } from "lucide-react";
-import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, subMonths } from "date-fns";
+import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, Cell } from "recharts";
 import { cn } from "@/lib/utils";
@@ -50,19 +57,33 @@ interface AgingBucket {
 const FluxoDeCaixa = () => {
   const [period, setPeriod] = useState<PeriodType>("daily");
   const [activeTab, setActiveTab] = useState("visao-geral");
+  
+  // Filtros profissionais
   const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
+  const [filterDataInicio, setFilterDataInicio] = useState<string>(format(subMonths(new Date(), 3), "yyyy-MM-dd"));
+  const [filterDataFim, setFilterDataFim] = useState<string>(format(addDays(new Date(), 90), "yyyy-MM-dd"));
+  const [filterStatus, setFilterStatus] = useState<string>("todos");
+  const [filterVendedor, setFilterVendedor] = useState<string>("todos");
+  const [filterCliente, setFilterCliente] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
 
   // Fetch contas a receber
   const { data: contasReceberRaw, isLoading: loadingReceber, refetch: refetchReceber } = useQuery({
-    queryKey: ["fluxo-caixa-receber"],
+    queryKey: ["fluxo-caixa-receber", filterDataInicio, filterDataFim, filterStatus],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("contas_receber")
         .select("*")
-        .in("status", ["pendente", "parcial", "vencido"])
-        .gte("data_vencimento", format(subMonths(new Date(), 3), "yyyy-MM-dd"))
-        .lte("data_vencimento", format(addDays(new Date(), 90), "yyyy-MM-dd"));
+        .gte("data_vencimento", filterDataInicio)
+        .lte("data_vencimento", filterDataFim);
       
+      if (filterStatus !== "todos") {
+        query = query.eq("status", filterStatus);
+      } else {
+        query = query.in("status", ["pendente", "parcial", "vencido"]);
+      }
+      
+      const { data, error } = await query.limit(50000);
       if (error) throw error;
       return data || [];
     }
@@ -70,15 +91,21 @@ const FluxoDeCaixa = () => {
 
   // Fetch contas a pagar
   const { data: contasPagarRaw, isLoading: loadingPagar, refetch: refetchPagar } = useQuery({
-    queryKey: ["fluxo-caixa-pagar"],
+    queryKey: ["fluxo-caixa-pagar", filterDataInicio, filterDataFim, filterStatus],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("contas_pagar")
         .select("*")
-        .in("status", ["pendente", "parcial", "vencido"])
-        .gte("data_vencimento", format(subMonths(new Date(), 3), "yyyy-MM-dd"))
-        .lte("data_vencimento", format(addDays(new Date(), 90), "yyyy-MM-dd"));
+        .gte("data_vencimento", filterDataInicio)
+        .lte("data_vencimento", filterDataFim);
       
+      if (filterStatus !== "todos") {
+        query = query.eq("status", filterStatus);
+      } else {
+        query = query.in("status", ["pendente", "parcial", "vencido"]);
+      }
+      
+      const { data, error } = await query.limit(50000);
       if (error) throw error;
       return data || [];
     }
@@ -98,18 +125,64 @@ const FluxoDeCaixa = () => {
     return Array.from(seen.entries()).map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [contasReceberRaw, contasPagarRaw]);
 
-  // Filtrar dados por empresa
+  // Extrair vendedores únicos
+  const vendedores = useMemo(() => {
+    const all = contasReceberRaw || [];
+    const seen = new Set<string>();
+    all.forEach(c => {
+      if (c.vendedor_nome) seen.add(c.vendedor_nome);
+    });
+    return Array.from(seen).sort();
+  }, [contasReceberRaw]);
+
+  // Filtrar dados
   const contasReceber = useMemo(() => {
     if (!contasReceberRaw) return [];
-    if (filterEmpresas.length === 0) return contasReceberRaw;
-    return contasReceberRaw.filter(c => filterEmpresas.includes(c.empresa_id));
-  }, [contasReceberRaw, filterEmpresas]);
+    let filtered = contasReceberRaw;
+    
+    if (filterEmpresas.length > 0) {
+      filtered = filtered.filter(c => filterEmpresas.includes(c.empresa_id));
+    }
+    if (filterVendedor !== "todos") {
+      filtered = filtered.filter(c => c.vendedor_nome === filterVendedor);
+    }
+    if (filterCliente.trim()) {
+      const search = filterCliente.toLowerCase();
+      filtered = filtered.filter(c => 
+        c.cliente_nome?.toLowerCase().includes(search) ||
+        c.cliente_codigo?.toLowerCase().includes(search)
+      );
+    }
+    return filtered;
+  }, [contasReceberRaw, filterEmpresas, filterVendedor, filterCliente]);
 
   const contasPagar = useMemo(() => {
     if (!contasPagarRaw) return [];
-    if (filterEmpresas.length === 0) return contasPagarRaw;
-    return contasPagarRaw.filter(c => filterEmpresas.includes(c.empresa_id));
+    let filtered = contasPagarRaw;
+    
+    if (filterEmpresas.length > 0) {
+      filtered = filtered.filter(c => filterEmpresas.includes(c.empresa_id));
+    }
+    return filtered;
   }, [contasPagarRaw, filterEmpresas]);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filterEmpresas.length > 0) count++;
+    if (filterVendedor !== "todos") count++;
+    if (filterCliente.trim()) count++;
+    if (filterStatus !== "todos") count++;
+    return count;
+  }, [filterEmpresas, filterVendedor, filterCliente, filterStatus]);
+
+  const clearFilters = () => {
+    setFilterEmpresas([]);
+    setFilterVendedor("todos");
+    setFilterCliente("");
+    setFilterStatus("todos");
+    setFilterDataInicio(format(subMonths(new Date(), 3), "yyyy-MM-dd"));
+    setFilterDataFim(format(addDays(new Date(), 90), "yyyy-MM-dd"));
+  };
 
   // Calculate cash flow projections
   const projections = useMemo(() => {
@@ -322,62 +395,180 @@ const FluxoDeCaixa = () => {
             <p className="text-muted-foreground">Projeção de entradas e saídas</p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Filtro de Empresas */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="min-w-[180px] justify-between">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    {filterEmpresas.length === 0 
-                      ? "Todas empresas" 
-                      : filterEmpresas.length === 1 
-                        ? empresas.find(e => e.id === filterEmpresas[0])?.nome || "1 empresa"
-                        : `${filterEmpresas.length} empresas`}
-                  </div>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[250px] p-0" align="end">
-                <div className="p-2 border-b">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="w-full justify-start"
-                    onClick={() => setFilterEmpresas([])}
-                  >
-                    <CheckCircle className={`mr-2 h-4 w-4 ${filterEmpresas.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
-                    Todas as empresas
-                  </Button>
-                </div>
-                <div className="max-h-[200px] overflow-auto p-2 space-y-1">
-                  {empresas.map(emp => (
-                    <div key={emp.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
-                      <Checkbox
-                        id={`fluxo-emp-${emp.id}`}
-                        checked={filterEmpresas.includes(emp.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setFilterEmpresas([...filterEmpresas, emp.id]);
-                          } else {
-                            setFilterEmpresas(filterEmpresas.filter(id => id !== emp.id));
-                          }
-                        }}
-                      />
-                      <label htmlFor={`fluxo-emp-${emp.id}`} className="text-sm cursor-pointer flex-1">
-                        {emp.nome}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-
+            <Button 
+              variant={showFilters ? "secondary" : "outline"} 
+              size="sm" 
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros
+              {activeFiltersCount > 0 && (
+                <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-[10px]">
+                  {activeFiltersCount}
+                </Badge>
+              )}
+            </Button>
             <Button variant="outline" size="sm" onClick={handleRefresh}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Atualizar
             </Button>
           </div>
         </div>
+
+        {/* Painel de Filtros Profissional */}
+        {showFilters && (
+          <Card className="border-primary/20 bg-muted/30">
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {/* Data Início */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Data Início</Label>
+                  <Input
+                    type="date"
+                    value={filterDataInicio}
+                    onChange={(e) => setFilterDataInicio(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+
+                {/* Data Fim */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Data Fim</Label>
+                  <Input
+                    type="date"
+                    value={filterDataFim}
+                    onChange={(e) => setFilterDataFim(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+
+                {/* Empresa */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Empresa</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between h-9 text-sm">
+                        <div className="flex items-center gap-2 truncate">
+                          <Building2 className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">
+                            {filterEmpresas.length === 0 
+                              ? "Todas" 
+                              : `${filterEmpresas.length} selecionada(s)`}
+                          </span>
+                        </div>
+                        <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[280px] p-0" align="start">
+                      <div className="p-2 border-b">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="w-full justify-start text-sm"
+                          onClick={() => setFilterEmpresas([])}
+                        >
+                          <CheckCircle className={`mr-2 h-4 w-4 ${filterEmpresas.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
+                          Todas as empresas
+                        </Button>
+                      </div>
+                      <div className="max-h-[200px] overflow-auto p-2 space-y-1">
+                        {empresas.map(emp => (
+                          <div key={emp.id} className="flex items-center space-x-2 p-1.5 hover:bg-muted rounded">
+                            <Checkbox
+                              id={`filter-emp-${emp.id}`}
+                              checked={filterEmpresas.includes(emp.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) setFilterEmpresas([...filterEmpresas, emp.id]);
+                                else setFilterEmpresas(filterEmpresas.filter(id => id !== emp.id));
+                              }}
+                            />
+                            <label htmlFor={`filter-emp-${emp.id}`} className="text-sm cursor-pointer flex-1 truncate">
+                              {emp.nome}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Status */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="parcial">Parcial</SelectItem>
+                      <SelectItem value="vencido">Vencido</SelectItem>
+                      <SelectItem value="pago">Pago</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Vendedor */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Vendedor</Label>
+                  <Select value={filterVendedor} onValueChange={setFilterVendedor}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      {vendedores.map(v => (
+                        <SelectItem key={v} value={v}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Cliente/Fornecedor */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Cliente/Fornecedor</Label>
+                  <div className="relative">
+                    <Input
+                      placeholder="Buscar..."
+                      value={filterCliente}
+                      onChange={(e) => setFilterCliente(e.target.value)}
+                      className="h-9 pr-8"
+                    />
+                    {filterCliente && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-9 w-8"
+                        onClick={() => setFilterCliente("")}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="flex items-center justify-between mt-4 pt-3 border-t">
+                <div className="text-xs text-muted-foreground">
+                  {contasReceber.length} entradas • {contasPagar.length} saídas
+                </div>
+                <div className="flex gap-2">
+                  {activeFiltersCount > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      <X className="h-4 w-4 mr-1" />
+                      Limpar filtros
+                    </Button>
+                  )}
+                  <Button size="sm" onClick={() => { refetchReceber(); refetchPagar(); }}>
+                    Aplicar
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
