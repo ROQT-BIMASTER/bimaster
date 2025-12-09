@@ -14,6 +14,7 @@ import { EditarLojaDialog } from "@/components/trade/EditarLojaDialog";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { StoreDetailDialog } from "@/components/trade/StoreDetailDialog";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 
 interface Store {
   id: string;
@@ -175,6 +176,11 @@ const TradeStores = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <ModuleBreadcrumb 
+          moduleName="Trade Marketing" 
+          moduleHref="/dashboard/trade" 
+          currentPage="Pontos de Venda" 
+        />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Pontos de Venda</h1>
