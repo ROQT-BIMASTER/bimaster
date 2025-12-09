@@ -437,6 +437,51 @@ export type Database = {
         }
         Relationships: []
       }
+      api_security_log: {
+        Row: {
+          api_key_used: boolean | null
+          created_at: string | null
+          endpoint: string
+          error_message: string | null
+          id: string
+          ip_address: unknown
+          method: string
+          request_size_bytes: number | null
+          response_time_ms: number | null
+          success: boolean | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          api_key_used?: boolean | null
+          created_at?: string | null
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown
+          method: string
+          request_size_bytes?: number | null
+          response_time_ms?: number | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          api_key_used?: boolean | null
+          created_at?: string | null
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown
+          method?: string
+          request_size_bytes?: number | null
+          response_time_ms?: number | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       assinaturas: {
         Row: {
           cancelado_em: string | null
@@ -12164,6 +12209,7 @@ export type Database = {
         Args: { p_cliente_codigo: string }
         Returns: string
       }
+      bulk_upsert_contas_receber: { Args: { p_records: Json }; Returns: Json }
       buscar_regra_fiscal_item: {
         Args: {
           p_ncm: string
