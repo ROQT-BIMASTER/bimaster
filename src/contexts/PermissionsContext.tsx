@@ -144,19 +144,14 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       const userRole = roleData?.role || "vendedor";
       const userIsAdmin = userRole === "admin";
 
-      const { data: permissionsData } = await supabase
-        .rpc("get_user_combined_module_permissions", { _user_id: userId });
+      // Buscar módulos e telas em paralelo
+      const [modulesResult, screensResult] = await Promise.all([
+        supabase.rpc("get_user_combined_module_permissions", { _user_id: userId }),
+        supabase.rpc("get_user_combined_screen_permissions", { _user_id: userId })
+      ]);
 
-      const modulesList = permissionsData?.map((p: any) => p.modulo_codigo) || [];
-      
-      let screensList: string[] = [];
-      if (userIsAdmin) {
-        const { data: allScreens } = await supabase
-          .from("telas_sistema")
-          .select("codigo")
-          .eq("ativo", true);
-        screensList = allScreens?.map(s => s.codigo) || [];
-      }
+      const modulesList = modulesResult.data?.map((p: any) => p.modulo_codigo) || [];
+      const screensList = screensResult.data?.map((s: any) => s.tela_codigo) || [];
 
       globalPermissionsCache = {
         userId,
