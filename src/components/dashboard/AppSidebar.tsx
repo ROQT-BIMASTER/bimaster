@@ -310,6 +310,7 @@ export function AppSidebar() {
     { title: "Gestão de Verbas", url: "/dashboard/financeiro/trade", icon: Store },
     { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt },
     { title: "Contas a Receber", url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign },
+    { title: "Fluxo de Caixa", url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp },
     { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: List },
     { title: "Classificar Banco", url: "/dashboard/financeiro/classificar-banco", icon: ClipboardCheck },
   ];
