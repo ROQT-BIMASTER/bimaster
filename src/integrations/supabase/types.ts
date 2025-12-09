@@ -10292,6 +10292,51 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_chunks_log: {
+        Row: {
+          chunk_id: number
+          created_at: string | null
+          duracao_ms: number | null
+          empresa_id: number | null
+          entidade: string
+          error_details: Json | null
+          erros: number | null
+          id: string
+          registros_processados: number
+          registros_recebidos: number
+          status: string | null
+          total_chunks: number | null
+        }
+        Insert: {
+          chunk_id: number
+          created_at?: string | null
+          duracao_ms?: number | null
+          empresa_id?: number | null
+          entidade: string
+          error_details?: Json | null
+          erros?: number | null
+          id?: string
+          registros_processados: number
+          registros_recebidos: number
+          status?: string | null
+          total_chunks?: number | null
+        }
+        Update: {
+          chunk_id?: number
+          created_at?: string | null
+          duracao_ms?: number | null
+          empresa_id?: number | null
+          entidade?: string
+          error_details?: Json | null
+          erros?: number | null
+          id?: string
+          registros_processados?: number
+          registros_recebidos?: number
+          status?: string | null
+          total_chunks?: number | null
+        }
+        Relationships: []
+      }
       sync_control: {
         Row: {
           created_at: string | null

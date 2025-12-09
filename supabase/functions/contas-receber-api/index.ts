@@ -6,13 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-// Configurações para carga massiva - OTIMIZADO PARA 30K LINHAS
-const BULK_BATCH_SIZE = 1000; // Lotes maiores para bulk (1000 por vez)
-const MAX_PAYLOAD_SIZE = 35000; // 35k para suportar 30k+ registros
-const UPSERT_BATCH_SIZE = 50; // Aumentado para upsert padrão
-const BATCH_DELAY_MS = 30; // Delay reduzido
-const MAX_RETRIES = 5; // Mais retries para cargas grandes
+// Configurações para carga massiva - OTIMIZADO PARA CHUNKING INTELIGENTE
+const BULK_BATCH_SIZE = 1000;
+const MAX_PAYLOAD_SIZE = 35000;
+const UPSERT_BATCH_SIZE = 50;
+const BATCH_DELAY_MS = 30;
+const MAX_RETRIES = 5;
 const RETRY_BASE_DELAY_MS = 200;
+const RECOMMENDED_CHUNK_SIZE = 5000; // Tamanho recomendado por chunk N8N
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -86,7 +87,6 @@ function isRetryableError(error: any): boolean {
   );
 }
 
-// Escape SQL string value
 function escapeSql(value: any): string {
   if (value === null || value === undefined) return 'NULL';
   if (typeof value === 'number') return String(value);
@@ -95,7 +95,6 @@ function escapeSql(value: any): string {
 }
 
 // ============ BULK INSERT SEGURO ============
-// Usa função de banco segura em vez de exec_sql
 async function processBulkInsert(
   supabase: any,
   contas: any[]
@@ -104,7 +103,6 @@ async function processBulkInsert(
   let processed = 0;
   const now = new Date().toISOString();
 
-  // Preparar registros
   const records: any[] = [];
   for (const conta of contas) {
     try {
@@ -117,7 +115,6 @@ async function processBulkInsert(
     }
   }
 
-  // Processar em lotes usando função segura de banco
   const totalBatches = Math.ceil(records.length / BULK_BATCH_SIZE);
   console.log(`[BULK] Processing ${records.length} records in ${totalBatches} batches of ${BULK_BATCH_SIZE}`);
 
@@ -127,7 +124,6 @@ async function processBulkInsert(
     
     let success = false;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      // Usar função segura em vez de exec_sql
       const { data, error } = await supabase.rpc('bulk_upsert_contas_receber', { 
         p_records: batch 
       });
@@ -155,7 +151,6 @@ async function processBulkInsert(
       console.log(`[BULK] Progress: ${batchNum}/${totalBatches} (${processed} records)`);
     }
     
-    // Delay mínimo entre batches
     if (i + BULK_BATCH_SIZE < records.length) {
       await sleep(20);
     }
@@ -216,6 +211,37 @@ async function processWithUpsert(supabase: any, contas: any[]): Promise<{ proces
   return { processed, errors };
 }
 
+// ============ CHUNK LOGGING ============
+async function logChunkProgress(
+  supabase: any,
+  entidade: string,
+  empresaId: number | null,
+  chunkId: number,
+  totalChunks: number | null,
+  received: number,
+  processed: number,
+  errorsCount: number,
+  durationMs: number,
+  errorDetails?: any[]
+): Promise<void> {
+  try {
+    await supabase.from('sync_chunks_log').insert({
+      entidade,
+      empresa_id: empresaId,
+      chunk_id: chunkId,
+      total_chunks: totalChunks,
+      registros_recebidos: received,
+      registros_processados: processed,
+      erros: errorsCount,
+      duracao_ms: durationMs,
+      status: errorsCount === 0 ? 'success' : 'partial',
+      error_details: errorDetails && errorDetails.length > 0 ? errorDetails.slice(0, 10) : null
+    });
+  } catch (err) {
+    console.error('[CHUNK-LOG] Failed to log chunk progress:', err);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -246,15 +272,148 @@ Deno.serve(async (req) => {
       return false;
     }
 
-    // POST /bulk-sync - CARGA MASSIVA ULTRA-RÁPIDA (NOVO!)
-    if (path.endsWith('/bulk-sync') && req.method === 'POST') {
+    // Helper for API key validation only
+    function validateApiKey(): boolean {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
-      
-      if (!apiKey || apiKey !== expectedKey) {
+      return !!(apiKey && apiKey === expectedKey);
+    }
+
+    // ============ GET /sync-status - Status da última sync ============
+    if (path.endsWith('/sync-status') && req.method === 'GET') {
+      if (!validateApiKey()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const empresaId = url.searchParams.get('empresa_id');
+      
+      let query = supabase
+        .from('sync_control')
+        .select('ultima_sync, total_registros, status, duracao_ms, created_at')
+        .eq('entidade', 'contas_receber')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (empresaId) {
+        query = query.eq('empresa_id', parseInt(empresaId));
+      }
+
+      const { data, error } = await query.single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('[sync-status] Error:', error);
+      }
+
+      // Buscar progresso de chunks em andamento
+      const { data: chunksProgress } = await supabase
+        .from('sync_chunks_log')
+        .select('chunk_id, total_chunks, registros_processados, status, created_at')
+        .eq('entidade', 'contas_receber')
+        .gte('created_at', new Date(Date.now() - 3600000).toISOString()) // última hora
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      return new Response(JSON.stringify({ 
+        last_sync: data || null,
+        recent_chunks: chunksProgress || [],
+        recommended_chunk_size: RECOMMENDED_CHUNK_SIZE
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ============ POST /sync-start - Iniciar nova sincronização ============
+    if (path.endsWith('/sync-start') && req.method === 'POST') {
+      if (!validateApiKey()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { empresa_id, total_records, total_chunks } = await req.json();
+      const syncId = crypto.randomUUID();
+      
+      console.log(`[sync-start] Starting sync ${syncId}: ${total_records} records in ${total_chunks} chunks`);
+
+      await supabase.from('sync_control').insert({
+        entidade: 'contas_receber',
+        empresa_id,
+        ultima_sync: new Date().toISOString(),
+        total_registros: total_records,
+        status: 'in_progress',
+        metadata: { sync_id: syncId, total_chunks, started_at: new Date().toISOString() }
+      });
+
+      return new Response(JSON.stringify({ 
+        success: true,
+        sync_id: syncId,
+        message: `Sync iniciada: ${total_records} registros em ${total_chunks} chunks`,
+        recommended_delay_between_chunks_ms: 3000
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ============ POST /sync-complete - Marcar sync como completa ============
+    if (path.endsWith('/sync-complete') && req.method === 'POST') {
+      if (!validateApiKey()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { empresa_id, sync_id, total_chunks, total_registros, duracao_total_ms, errors_count } = await req.json();
+      
+      console.log(`[sync-complete] Sync ${sync_id} completed: ${total_registros} records, ${total_chunks} chunks, ${errors_count || 0} errors`);
+
+      // Resumo dos chunks processados
+      const { data: chunksSummary } = await supabase
+        .from('sync_chunks_log')
+        .select('registros_processados, erros, duracao_ms')
+        .eq('entidade', 'contas_receber')
+        .gte('created_at', new Date(Date.now() - 7200000).toISOString()); // últimas 2 horas
+
+      const totalProcessed = chunksSummary?.reduce((sum, c) => sum + (c.registros_processados || 0), 0) || 0;
+      const totalErrors = chunksSummary?.reduce((sum, c) => sum + (c.erros || 0), 0) || 0;
+
+      await supabase.from('sync_control').insert({
+        entidade: 'contas_receber',
+        empresa_id,
+        ultima_sync: new Date().toISOString(),
+        total_registros: total_registros,
+        registros_inseridos: totalProcessed,
+        duracao_ms: duracao_total_ms,
+        status: totalErrors === 0 ? 'complete' : 'partial',
+        metadata: { 
+          sync_id, 
+          total_chunks, 
+          total_errors: totalErrors,
+          completed_at: new Date().toISOString() 
+        }
+      });
+
+      return new Response(JSON.stringify({ 
+        success: true,
+        summary: {
+          total_chunks,
+          total_records: total_registros,
+          total_processed: totalProcessed,
+          total_errors: totalErrors,
+          duration_ms: duracao_total_ms,
+          rate_per_second: Math.round(totalProcessed / (duracao_total_ms / 1000))
+        }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ============ POST /bulk-sync - CARGA MASSIVA ULTRA-RÁPIDA ============
+    if (path.endsWith('/bulk-sync') && req.method === 'POST') {
+      if (!validateApiKey()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
@@ -280,7 +439,6 @@ Deno.serve(async (req) => {
 
       console.log(`[BULK-SYNC] Processing ${contas.length} records with SQL bulk insert`);
 
-      // Usar bulk insert com SQL direto - 10x mais rápido!
       const { processed, errors } = await processBulkInsert(supabase, contas);
 
       const duration = Date.now() - startTime;
@@ -298,16 +456,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // POST /sync - Sincronizar dados do n8n (REQUIRES API KEY)
+    // ============ POST /sync - Sincronizar dados do n8n ============
     if (path.endsWith('/sync') && req.method === 'POST') {
-      const apiKey = req.headers.get('x-api-key');
-      const expectedKey = Deno.env.get('N8N_API_KEY');
-      
-      if (!apiKey || apiKey !== expectedKey) {
+      if (!validateApiKey()) {
         console.error('[contas-receber-api] Unauthorized - Invalid API key');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
@@ -321,8 +475,7 @@ Deno.serve(async (req) => {
       } catch (parseError) {
         console.error('[contas-receber-api] JSON parse error:', parseError);
         return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
@@ -331,32 +484,28 @@ Deno.serve(async (req) => {
       if (!contas || !Array.isArray(contas)) {
         console.error('[contas-receber-api] Invalid payload - contas is not an array');
         return new Response(JSON.stringify({ error: 'Invalid payload - contas must be array' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
       if (contas.length > MAX_PAYLOAD_SIZE) {
         console.warn(`[contas-receber-api] Payload too large: ${contas.length} records (max: ${MAX_PAYLOAD_SIZE})`);
         return new Response(JSON.stringify({ 
-          error: `Payload muito grande. Máximo: ${MAX_PAYLOAD_SIZE} registros. Use /bulk-sync para cargas massivas.`,
+          error: `Payload muito grande. Máximo: ${MAX_PAYLOAD_SIZE} registros. Use chunking com /sync-chunk.`,
           max_allowed: MAX_PAYLOAD_SIZE,
           received: contas.length,
-          hint: 'Use o endpoint /bulk-sync para cargas massivas de 400k+ registros'
+          hint: 'Configure N8N para dividir em chunks de 5000 registros com delay de 3s entre chunks'
         }), {
-          status: 413,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
       console.log(`[contas-receber-api] Processing ${contas.length} records with sequential UPSERT`);
 
-      // Usar UPSERT nativo - processamento sequencial
       const { processed, errors } = await processWithUpsert(supabase, contas);
 
       const duration = Date.now() - startTime;
 
-      // Log de sincronização
       const empresaId = contas[0] ? contas[0]['ID Empresa'] : null;
       void supabase.from('sync_control').insert({
         entidade: 'contas_receber',
@@ -375,11 +524,7 @@ Deno.serve(async (req) => {
 
       return new Response(JSON.stringify({
         success: true,
-        statistics: {
-          total_received: contas.length,
-          processed,
-          errors: errors.length
-        },
+        statistics: { total_received: contas.length, processed, errors: errors.length },
         duration_ms: duration,
         message: `OK: ${processed} registros processados via UPSERT sequencial`
       }), {
@@ -387,57 +532,135 @@ Deno.serve(async (req) => {
       });
     }
 
-    // POST /sync-chunk - Sincronização em chunks (REQUIRES API KEY)
+    // ============ POST /sync-chunk - Sincronização em chunks (APRIMORADO) ============
     if (path.endsWith('/sync-chunk') && req.method === 'POST') {
-      const apiKey = req.headers.get('x-api-key');
-      const expectedKey = Deno.env.get('N8N_API_KEY');
-      
-      if (!apiKey || apiKey !== expectedKey) {
+      if (!validateApiKey()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
       const startTime = Date.now();
-      const { contas, chunk_id, total_chunks } = await req.json();
-
-      if (!contas || !Array.isArray(contas)) {
-        return new Response(JSON.stringify({ error: 'Invalid payload' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      
+      let body;
+      try {
+        body = await req.json();
+      } catch (parseError) {
+        return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      console.log(`[contas-receber-api] Processing chunk ${chunk_id || '?'}/${total_chunks || '?'} with ${contas.length} records (sequential)`);
+      const { contas, chunk_id, total_chunks, sync_id, empresa_id } = body;
 
-      // Usar UPSERT nativo - processamento sequencial
+      // Validações
+      if (!contas || !Array.isArray(contas)) {
+        return new Response(JSON.stringify({ error: 'Invalid payload - contas must be array' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (chunk_id === undefined || typeof chunk_id !== 'number') {
+        return new Response(JSON.stringify({ 
+          error: 'chunk_id é obrigatório e deve ser um número',
+          hint: 'Envie chunk_id (1-indexed) para rastrear progresso'
+        }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const chunkInfo = `${chunk_id}/${total_chunks || '?'}`;
+      console.log(`[CHUNK ${chunkInfo}] Iniciando processamento de ${contas.length} registros`);
+
+      // Processar o chunk
       const { processed, errors } = await processWithUpsert(supabase, contas);
 
       const duration = Date.now() - startTime;
+      const rate = duration > 0 ? Math.round(processed / (duration / 1000)) : 0;
 
-      console.log(`[contas-receber-api] Chunk ${chunk_id} completed: ${processed} processed in ${duration}ms`);
+      // Registrar progresso do chunk
+      const empresaIdValue = empresa_id || (contas[0] ? contas[0]['ID Empresa'] : null);
+      await logChunkProgress(
+        supabase,
+        'contas_receber',
+        empresaIdValue,
+        chunk_id,
+        total_chunks,
+        contas.length,
+        processed,
+        errors.length,
+        duration,
+        errors
+      );
+
+      console.log(`[CHUNK ${chunkInfo}] Concluído: ${processed}/${contas.length} em ${duration}ms (${rate} rec/sec)`);
+
+      // Determinar próxima ação
+      const isLastChunk = total_chunks && chunk_id >= total_chunks;
+      const nextAction = isLastChunk ? 'complete' : 'continue';
 
       return new Response(JSON.stringify({
-        success: true,
+        success: errors.length === 0,
         chunk_id,
+        total_chunks: total_chunks || null,
+        sync_id: sync_id || null,
         statistics: {
-          total_received: contas.length,
+          received: contas.length,
           processed,
-          errors: errors.length
+          errors: errors.length,
+          rate_per_second: rate
         },
-        duration_ms: duration
+        duration_ms: duration,
+        next_action: nextAction,
+        message: isLastChunk 
+          ? `Último chunk processado. Chame /sync-complete para finalizar.`
+          : `Chunk ${chunk_id} OK. Aguarde 3s antes do próximo chunk.`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // GET / - Listar contas (REQUIRES AUTH)
+    // ============ GET /chunks-progress - Progresso dos chunks ============
+    if (path.endsWith('/chunks-progress') && req.method === 'GET') {
+      if (!(await validateAuth())) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const hoursAgo = parseInt(url.searchParams.get('hours') || '24');
+      const since = new Date(Date.now() - hoursAgo * 3600000).toISOString();
+
+      const { data, error } = await supabase
+        .from('sync_chunks_log')
+        .select('*')
+        .eq('entidade', 'contas_receber')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      // Calcular resumo
+      const summary = {
+        total_chunks: data?.length || 0,
+        total_processed: data?.reduce((sum, c) => sum + (c.registros_processados || 0), 0) || 0,
+        total_errors: data?.reduce((sum, c) => sum + (c.erros || 0), 0) || 0,
+        avg_duration_ms: data?.length 
+          ? Math.round(data.reduce((sum, c) => sum + (c.duracao_ms || 0), 0) / data.length) 
+          : 0
+      };
+
+      return new Response(JSON.stringify({ data, summary }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ============ GET / - Listar contas ============
     if (path.endsWith('/contas-receber-api') && req.method === 'GET') {
       if (!(await validateAuth())) {
         return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
@@ -461,12 +684,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // GET /vencidos - Listar contas vencidas (REQUIRES AUTH)
+    // ============ GET /vencidos - Listar contas vencidas ============
     if (path.endsWith('/vencidos') && req.method === 'GET') {
       if (!(await validateAuth())) {
         return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
@@ -492,12 +714,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // GET /stats - Estatísticas de sincronização (REQUIRES AUTH)
+    // ============ GET /stats - Estatísticas de sincronização ============
     if (path.endsWith('/stats') && req.method === 'GET') {
       if (!(await validateAuth())) {
         return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
@@ -515,12 +736,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // GET /totais - Totais por status (REQUIRES AUTH)
+    // ============ GET /totais - Totais por status ============
     if (path.endsWith('/totais') && req.method === 'GET') {
       if (!(await validateAuth())) {
         return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
@@ -559,15 +779,13 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), {
-      status: 404,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
     console.error('[contas-receber-api] Error:', error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
