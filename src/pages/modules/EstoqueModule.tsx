@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { 
   Building2, 
   Package, 
@@ -10,15 +12,30 @@ import {
   ArrowRight,
   RefreshCw,
   ArrowUpDown,
-  Warehouse
+  Warehouse,
+  ChevronDown,
+  Zap,
+  Plus
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 export default function EstoqueModule() {
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
   const { data: stats } = useQuery({
     queryKey: ['estoque-module-stats'],
     queryFn: async () => {
@@ -42,68 +59,162 @@ export default function EstoqueModule() {
     }
   });
 
+  // Módulos secundários agrupados
+  const secondaryModules = {
+    "Configurações": [
+      { title: "Vinculações", to: "/dashboard/estoque/vinculacoes", icon: LinkIcon, color: "text-purple-600" },
+      { title: "Inventário", to: "#", icon: Warehouse, color: "text-gray-400", disabled: true },
+    ],
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Gestão de Estoque</h1>
           <p className="text-muted-foreground mt-1">
-            Controle centralizado de estoque com integração multidistribuidoras
+            Controle centralizado com integração multidistribuidoras
           </p>
         </div>
 
-        {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Distribuidoras</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.distribuidoras || 0}</div>
-              <p className="text-xs text-muted-foreground">Ativas no sistema</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Produtos Master</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats?.produtos || 0}</div>
-              <p className="text-xs text-muted-foreground">Cadastrados</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Vinculações</CardTitle>
-              <LinkIcon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{stats?.vinculacoes || 0}</div>
-              <p className="text-xs text-muted-foreground">Produtos vinculados</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Estoque Total</CardTitle>
-              <Archive className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {stats?.totalEstoque?.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) || 0}
+        {/* Ações Rápidas */}
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+          <Button 
+            asChild
+            size="lg"
+            className="h-14 gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg"
+          >
+            <Link to="/dashboard/estoque/produtos-master">
+              <div className="p-1.5 bg-white/20 rounded-lg">
+                <Plus className="h-5 w-5" />
               </div>
-              <p className="text-xs text-muted-foreground">Unidades</p>
-            </CardContent>
-          </Card>
+              <span className="font-semibold">Novo Produto</span>
+            </Link>
+          </Button>
+
+          <Button 
+            asChild
+            size="lg"
+            variant="outline"
+            className="h-14 gap-3 border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:hover:bg-blue-900 dark:text-blue-400"
+          >
+            <Link to="/dashboard/estoque/distribuidoras">
+              <div className="p-1.5 bg-blue-200 dark:bg-blue-800 rounded-lg">
+                <Building2 className="h-5 w-5" />
+              </div>
+              <span className="font-semibold">Distribuidoras</span>
+            </Link>
+          </Button>
+
+          <Button 
+            asChild
+            size="lg"
+            variant="outline"
+            className="h-14 gap-3 border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-700 dark:border-orange-800 dark:bg-orange-950 dark:hover:bg-orange-900 dark:text-orange-400"
+          >
+            <Link to="/dashboard/estoque/saldos">
+              <div className="p-1.5 bg-orange-200 dark:bg-orange-800 rounded-lg">
+                <ArrowUpDown className="h-5 w-5" />
+              </div>
+              <span className="font-semibold">Movimentações</span>
+            </Link>
+          </Button>
+        </div>
+
+        {/* Módulos Principais - 4 cards destacados com métricas */}
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          {/* Distribuidoras */}
+          <Link to="/dashboard/estoque/distribuidoras">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
+                    <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {stats?.distribuidoras || 0}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Distribuidoras</h3>
+                  <p className="text-xs text-muted-foreground">Ativas</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Produtos Master */}
+          <Link to="/dashboard/estoque/produtos-master">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-green-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-green-100 dark:bg-green-900/50 rounded-xl">
+                    <Package className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                    {stats?.produtos || 0}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Produtos Master</h3>
+                  <p className="text-xs text-muted-foreground">Cadastrados</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Visão Consolidada */}
+          <Link to="/dashboard/estoque/consolidado">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-indigo-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-xl">
+                    <BarChart3 className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                    {stats?.vinculacoes || 0}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Vinculações</h3>
+                  <p className="text-xs text-muted-foreground">Ativas</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Estoque Total */}
+          <Link to="/dashboard/estoque/saldos">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-amber-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-amber-100 dark:bg-amber-900/50 rounded-xl">
+                    <Archive className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                    {((stats?.totalEstoque || 0) / 1000).toFixed(1)}k
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Estoque Total</h3>
+                  <p className="text-xs text-muted-foreground">Unidades</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Status de Sincronização */}
         {stats?.ultimaSync && (
-          <Card className={stats.ultimaSync.status === 'erro' ? 'border-destructive' : ''}>
+          <Card className={cn(
+            "border-l-4",
+            stats.ultimaSync.status === 'erro' ? 'border-l-destructive' : 'border-l-green-500'
+          )}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <RefreshCw className="h-4 w-4" />
@@ -124,116 +235,55 @@ export default function EstoqueModule() {
           </Card>
         )}
 
-        {/* Cadastros */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Cadastros</h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Link to="/dashboard/estoque/distribuidoras">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Distribuidoras</CardTitle>
-                  <Building2 className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Cadastro e gestão de distribuidoras
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/estoque/produtos-master">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Produtos Master</CardTitle>
-                  <Package className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Cadastro centralizado de produtos
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/estoque/vinculacoes">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Vinculações</CardTitle>
-                  <LinkIcon className="h-4 w-4 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Vincular produtos às distribuidoras
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Vincular <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+        {/* Módulos Secundários - Accordion */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+            <Zap className="h-4 w-4" />
+            <span>Mais funcionalidades</span>
           </div>
-        </div>
 
-        {/* Movimentações e Saldos */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Movimentações e Saldos</h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Link to="/dashboard/estoque/saldos">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Saldos e Movimentações</CardTitle>
-                  <ArrowUpDown className="h-4 w-4 text-orange-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Controle de estoque e movimentações
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Acessar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/estoque/consolidado">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Visão Consolidada</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-indigo-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Estoque total por produto master
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Visualizar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Card className="opacity-50 cursor-not-allowed h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Inventário</CardTitle>
-                <Warehouse className="h-4 w-4 text-gray-400" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Contagem e ajustes de inventário
-                </p>
-                <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                  Em breve
+          {Object.entries(secondaryModules).map(([category, modules]) => (
+            <Collapsible
+              key={category}
+              open={openSections[category]}
+              onOpenChange={() => toggleSection(category)}
+            >
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <span className="font-medium text-sm">{category}</span>
+                <ChevronDown 
+                  className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                    openSections[category] && "rotate-180"
+                  )} 
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <div className="flex flex-wrap gap-2 pl-2">
+                  {modules.map((module) => (
+                    module.disabled ? (
+                      <span 
+                        key={module.title}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-dashed text-muted-foreground text-sm cursor-not-allowed"
+                      >
+                        <module.icon className="h-4 w-4" />
+                        <span>{module.title}</span>
+                        <span className="text-xs bg-muted px-1.5 py-0.5 rounded">Em breve</span>
+                      </span>
+                    ) : (
+                      <Link 
+                        key={module.to} 
+                        to={module.to}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-background border hover:bg-muted/50 hover:border-primary/30 transition-colors text-sm"
+                      >
+                        <module.icon className={cn("h-4 w-4", module.color)} />
+                        <span>{module.title}</span>
+                      </Link>
+                    )
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
         </div>
 
       </div>

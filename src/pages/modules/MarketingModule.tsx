@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { 
   BarChart3, 
   MessageSquare, 
@@ -13,12 +15,27 @@ import {
   Activity,
   Sparkles,
   Eye,
-  Send
+  Send,
+  ChevronDown,
+  Zap,
+  Plus
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 const MarketingModule = () => {
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
   const { data: stats } = useQuery({
     queryKey: ['marketing-module-stats'],
     queryFn: async () => {
@@ -36,231 +53,215 @@ const MarketingModule = () => {
     }
   });
 
+  // Módulos secundários agrupados
+  const secondaryModules = {
+    "Conteúdo e Planejamento": [
+      { title: "Calendário Editorial", to: "#", icon: Calendar, color: "text-orange-600", disabled: true },
+      { title: "Gerador de Imagens", to: "#", icon: Image, color: "text-purple-600", disabled: true },
+      { title: "Monitoramento", to: "#", icon: Users, color: "text-green-600", disabled: true },
+    ],
+    "Inteligência Artificial": [
+      { title: "Agente IA", to: "#", icon: Brain, color: "text-purple-600", disabled: true },
+      { title: "Análise de Sentimento", to: "#", icon: Sparkles, color: "text-indigo-600", disabled: true },
+    ],
+    "Analytics e BI": [
+      { title: "DashCortex Reports", to: "#", icon: LineChart, color: "text-blue-600", disabled: true },
+      { title: "Power BI", to: "#", icon: BarChart3, color: "text-yellow-600", disabled: true },
+      { title: "Looker Studio", to: "#", icon: Activity, color: "text-orange-600", disabled: true },
+    ],
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Marketing Digital</h1>
           <p className="text-muted-foreground mt-1">
-            Gestão completa de campanhas, redes sociais e comunicação
+            Campanhas, redes sociais e comunicação
           </p>
         </div>
 
-        {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Posts Agendados</CardTitle>
-              <Send className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalPosts || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Campanhas Ativas</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats?.campanhasAtivas || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Conversas WhatsApp</CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats?.conversasWhatsApp || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Alcance Total</CardTitle>
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                {(stats?.alcanceTotal || 0).toLocaleString('pt-BR')}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Redes Sociais e Conteúdo */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Redes Sociais e Conteúdo</h2>
-          <div className="grid gap-4 md:grid-cols-4">
+        {/* Ações Rápidas */}
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+          <Button 
+            asChild
+            size="lg"
+            className="h-14 gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg"
+          >
             <Link to="/dashboard/marketing/social">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Dashboards Social</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Métricas e relatórios de redes sociais
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Visualizar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="p-1.5 bg-white/20 rounded-lg">
+                <Plus className="h-5 w-5" />
+              </div>
+              <span className="font-semibold">Nova Campanha</span>
             </Link>
+          </Button>
 
-            <Card className="opacity-50 cursor-not-allowed h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Calendário Editorial</CardTitle>
-                <Calendar className="h-4 w-4 text-orange-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Planejamento de conteúdo
-                </p>
-                <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                  Em breve
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="opacity-50 cursor-not-allowed h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Gerador de Imagens</CardTitle>
-                <Image className="h-4 w-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Criação de imagens com IA
-                </p>
-                <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                  Em breve
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="opacity-50 cursor-not-allowed h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Monitoramento</CardTitle>
-                <Users className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Monitoramento de menções
-                </p>
-                <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                  Em breve
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* WhatsApp e Comunicação */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">WhatsApp e Comunicação</h2>
-          <div className="grid gap-4 md:grid-cols-3">
+          <Button 
+            asChild
+            size="lg"
+            variant="outline"
+            className="h-14 gap-3 border-green-200 bg-green-50 hover:bg-green-100 text-green-700 dark:border-green-800 dark:bg-green-950 dark:hover:bg-green-900 dark:text-green-400"
+          >
             <Link to="/dashboard/marketing/whatsapp">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">WhatsApp Business</CardTitle>
-                  <MessageSquare className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Gestão de conversas e atendimento
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Acessar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="p-1.5 bg-green-200 dark:bg-green-800 rounded-lg">
+                <MessageSquare className="h-5 w-5" />
+              </div>
+              <span className="font-semibold">WhatsApp</span>
             </Link>
+          </Button>
 
-            <Card className="opacity-50 cursor-not-allowed h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Agente IA</CardTitle>
-                <Brain className="h-4 w-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Agente conversacional inteligente
-                </p>
-                <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                  Em breve
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="opacity-50 cursor-not-allowed h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Análise de Sentimento</CardTitle>
-                <Sparkles className="h-4 w-4 text-indigo-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Análise de sentimento com IA
-                </p>
-                <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                  Em breve
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <Button 
+            asChild
+            size="lg"
+            variant="outline"
+            className="h-14 gap-3 border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:hover:bg-blue-900 dark:text-blue-400"
+          >
+            <Link to="/dashboard/marketing/social">
+              <div className="p-1.5 bg-blue-200 dark:bg-blue-800 rounded-lg">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+              <span className="font-semibold">Dashboard Social</span>
+            </Link>
+          </Button>
         </div>
 
-        {/* Analytics e BI */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Analytics e Business Intelligence</h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="opacity-50 cursor-not-allowed h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">DashCortex Reports</CardTitle>
-                <LineChart className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Relatórios avançados DashCortex
-                </p>
-                <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                  Em breve
+        {/* Módulos Principais - 4 cards destacados com métricas */}
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          {/* Posts Agendados */}
+          <Link to="/dashboard/marketing/social">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
+                    <Send className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {stats?.totalPosts || 0}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Posts Agendados</h3>
+                  <p className="text-xs text-muted-foreground">Programados</p>
                 </div>
               </CardContent>
             </Card>
+          </Link>
 
-            <Card className="opacity-50 cursor-not-allowed h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Power BI</CardTitle>
-                <BarChart3 className="h-4 w-4 text-yellow-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Dashboards Power BI integrados
-                </p>
-                <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                  Em breve
+          {/* Campanhas Ativas */}
+          <Link to="/dashboard/marketing/social">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-purple-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+                    <Activity className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                    {stats?.campanhasAtivas || 0}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Campanhas Ativas</h3>
+                  <p className="text-xs text-muted-foreground">Em execução</p>
                 </div>
               </CardContent>
             </Card>
+          </Link>
 
-            <Card className="opacity-50 cursor-not-allowed h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Looker Studio</CardTitle>
-                <Activity className="h-4 w-4 text-orange-600" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Relatórios Looker Studio
-                </p>
-                <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                  Em breve
+          {/* WhatsApp */}
+          <Link to="/dashboard/marketing/whatsapp">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-green-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-green-100 dark:bg-green-900/50 rounded-xl">
+                    <MessageSquare className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                    {stats?.conversasWhatsApp || 0}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Conversas</h3>
+                  <p className="text-xs text-muted-foreground">WhatsApp</p>
                 </div>
               </CardContent>
             </Card>
+          </Link>
+
+          {/* Alcance Total */}
+          <Link to="/dashboard/marketing/social">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-orange-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-orange-100 dark:bg-orange-900/50 rounded-xl">
+                    <Eye className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                    {((stats?.alcanceTotal || 0) / 1000).toFixed(1)}k
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Alcance Total</h3>
+                  <p className="text-xs text-muted-foreground">Impressões</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
+        {/* Módulos Secundários - Accordion */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+            <Zap className="h-4 w-4" />
+            <span>Mais funcionalidades</span>
           </div>
+
+          {Object.entries(secondaryModules).map(([category, modules]) => (
+            <Collapsible
+              key={category}
+              open={openSections[category]}
+              onOpenChange={() => toggleSection(category)}
+            >
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <span className="font-medium text-sm">{category}</span>
+                <ChevronDown 
+                  className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                    openSections[category] && "rotate-180"
+                  )} 
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <div className="flex flex-wrap gap-2 pl-2">
+                  {modules.map((module) => (
+                    module.disabled ? (
+                      <span 
+                        key={module.title}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-dashed text-muted-foreground text-sm cursor-not-allowed"
+                      >
+                        <module.icon className="h-4 w-4" />
+                        <span>{module.title}</span>
+                        <span className="text-xs bg-muted px-1.5 py-0.5 rounded">Em breve</span>
+                      </span>
+                    ) : (
+                      <Link 
+                        key={module.to} 
+                        to={module.to}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-background border hover:bg-muted/50 hover:border-primary/30 transition-colors text-sm"
+                      >
+                        <module.icon className={cn("h-4 w-4", module.color)} />
+                        <span>{module.title}</span>
+                      </Link>
+                    )
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
         </div>
 
       </div>
