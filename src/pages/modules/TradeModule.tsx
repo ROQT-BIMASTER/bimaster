@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link, Navigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Store, 
@@ -22,17 +22,30 @@ import {
   Ruler,
   Building,
   Shield,
-  Plus
+  Plus,
+  ChevronDown,
+  Zap
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { startOfMonth } from "date-fns";
 import { QuickEntryDialog } from "@/components/trade/QuickEntryDialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const { data: stats } = useQuery({
     queryKey: ['trade-module-stats'],
@@ -61,20 +74,43 @@ const TradeModule = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
+  // Módulos secundários agrupados
+  const secondaryModules = {
+    "Cadastros e Configurações": [
+      { title: "Redes", to: "/dashboard/trade/store-chains", icon: Building, color: "text-blue-600" },
+      { title: "Nossas Marcas", to: "/dashboard/trade/our-brands", icon: Award, color: "text-amber-600" },
+      { title: "Fotos Ideais", to: "/dashboard/trade/ideal-photos", icon: Image, color: "text-indigo-600" },
+    ],
+    "Execução e Auditoria": [
+      { title: "Auditorias", to: "/dashboard/trade/auditorias", icon: Shield, color: "text-red-600" },
+      { title: "Medições", to: "/dashboard/trade/shelf-measurements", icon: Ruler, color: "text-cyan-600" },
+      { title: "Calendário", to: "/dashboard/trade/calendar", icon: MapPin, color: "text-orange-600" },
+    ],
+    "Inteligência Competitiva": [
+      { title: "Concorrentes", to: "/dashboard/trade/competitors", icon: Target, color: "text-red-600" },
+      { title: "Comparação", to: "/dashboard/trade/comparacao-produtos", icon: BarChart3, color: "text-blue-600" },
+      { title: "Insights IA", to: "/dashboard/trade/insights", icon: TrendingUp, color: "text-green-600" },
+    ],
+    "Performance e Vendas": [
+      { title: "Promoções", to: "/dashboard/trade/promotions", icon: FileText, color: "text-orange-600" },
+      { title: "Performance", to: "/dashboard/trade/performance", icon: TrendingUp, color: "text-blue-600" },
+      { title: "Equipe", to: "/dashboard/trade/team-performance", icon: Users, color: "text-purple-600" },
+    ],
+    "Gamificação": [
+      { title: "Ranking", to: "/dashboard/ranking", icon: Trophy, color: "text-amber-500" },
+      { title: "Recompensas", to: "/dashboard/trade/rewards", icon: Award, color: "text-green-600" },
+    ],
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Trade Marketing</h1>
-            <p className="text-muted-foreground mt-1">
-              Gestão completa de PDVs, visitas, execução e inteligência competitiva
-            </p>
-          </div>
-          <Button onClick={() => setQuickEntryOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Lançamento Rápido
-          </Button>
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold">Trade Marketing</h1>
+          <p className="text-muted-foreground mt-1">
+            Gestão completa de PDVs, visitas e execução
+          </p>
         </div>
 
         {/* Quick Entry Dialog */}
@@ -83,385 +119,173 @@ const TradeModule = () => {
           onOpenChange={setQuickEntryOpen}
         />
 
-        {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">PDVs Ativos</CardTitle>
-              <Store className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalStores || 0}</div>
-            </CardContent>
-          </Card>
+        {/* Ações Rápidas */}
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+          <Button 
+            onClick={() => setQuickEntryOpen(true)} 
+            size="lg"
+            className="h-14 gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg"
+          >
+            <div className="p-1.5 bg-white/20 rounded-lg">
+              <Plus className="h-5 w-5" />
+            </div>
+            <span className="font-semibold">Lançamento Rápido</span>
+          </Button>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Visitas no Mês</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats?.visitsMonth || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Fotos Capturadas</CardTitle>
-              <Camera className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{stats?.totalPhotos || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Investimentos</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                R$ {(stats?.totalInvestments || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Gestão de PDVs e Visitas */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Gestão de PDVs e Visitas</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/trade/stores">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Lojas</CardTitle>
-                  <Store className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Cadastro e gestão de pontos de venda
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/trade/store-chains">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Redes</CardTitle>
-                  <Building className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Gestão de redes e bandeiras
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
+          <Button 
+            asChild
+            size="lg"
+            variant="outline"
+            className="h-14 gap-3 border-green-200 bg-green-50 hover:bg-green-100 text-green-700 dark:border-green-800 dark:bg-green-950 dark:hover:bg-green-900 dark:text-green-400"
+          >
             <Link to="/dashboard/trade/visits">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Visitas</CardTitle>
-                  <Calendar className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Agenda e histórico de visitas
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Acessar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="p-1.5 bg-green-200 dark:bg-green-800 rounded-lg">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <span className="font-semibold">Nova Visita</span>
             </Link>
+          </Button>
 
-            <Link to="/dashboard/trade/calendar">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Calendário</CardTitle>
-                  <MapPin className="h-4 w-4 text-orange-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Planejamento de rotas e visitas
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Visualizar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </div>
-
-        {/* Execução e Auditoria */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Execução e Auditoria</h2>
-          <div className="grid gap-4 md:grid-cols-4">
+          <Button 
+            asChild
+            size="lg"
+            variant="outline"
+            className="h-14 gap-3 border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:hover:bg-purple-900 dark:text-purple-400"
+          >
             <Link to="/dashboard/trade/photos">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Fotos</CardTitle>
-                  <Camera className="h-4 w-4 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Galeria e análise de fotos
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Ver fotos <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="p-1.5 bg-purple-200 dark:bg-purple-800 rounded-lg">
+                <Camera className="h-5 w-5" />
+              </div>
+              <span className="font-semibold">Capturar Foto</span>
             </Link>
-
-            <Link to="/dashboard/trade/auditorias">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Auditorias</CardTitle>
-                  <Shield className="h-4 w-4 text-red-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Auditorias de gôndola e execução
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Auditar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/trade/shelf-measurements">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Medições</CardTitle>
-                  <Ruler className="h-4 w-4 text-cyan-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Medições de share de prateleira
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Medir <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/trade/ideal-photos">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Fotos Ideais</CardTitle>
-                  <Image className="h-4 w-4 text-indigo-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Padrões de execução visual
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Configurar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
+          </Button>
         </div>
 
-        {/* Inteligência e Análise */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Inteligência e Análise</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/trade/competitors">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Concorrentes</CardTitle>
-                  <Target className="h-4 w-4 text-red-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Monitoramento da concorrência
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Analisar <ArrowRight className="h-3 w-3 ml-1" />
+        {/* Módulos Principais - 4 cards destacados com métricas */}
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          {/* PDVs */}
+          <Link to="/dashboard/trade/stores">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
+                    <Store className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {stats?.totalStores || 0}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">PDVs Ativos</h3>
+                  <p className="text-xs text-muted-foreground">Pontos de venda</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
 
-            <Link to="/dashboard/trade/our-brands">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Nossas Marcas</CardTitle>
-                  <Award className="h-4 w-4 text-amber-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Gestão de marcas e produtos
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
+          {/* Visitas */}
+          <Link to="/dashboard/trade/visits">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-green-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-green-100 dark:bg-green-900/50 rounded-xl">
+                    <Calendar className="h-6 w-6 text-green-600 dark:text-green-400" />
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                    {stats?.visitsMonth || 0}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Visitas no Mês</h3>
+                  <p className="text-xs text-muted-foreground">Realizadas</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
 
-            <Link to="/dashboard/trade/comparacao-produtos">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Comparação</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Análise comparativa de produtos
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Comparar <ArrowRight className="h-3 w-3 ml-1" />
+          {/* Fotos */}
+          <Link to="/dashboard/trade/photos">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-purple-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+                    <Camera className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                    {(stats?.totalPhotos || 0).toLocaleString("pt-BR")}
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Fotos</h3>
+                  <p className="text-xs text-muted-foreground">Capturadas</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
 
-            <Link to="/dashboard/trade/insights">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Insights IA</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Recomendações por inteligência artificial
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Ver insights <ArrowRight className="h-3 w-3 ml-1" />
+          {/* Sell Out */}
+          <Link to="/dashboard/trade/sellout">
+            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-emerald-500 h-full">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-xl">
+                    <ShoppingBag className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                    R$ {((stats?.totalInvestments || 0) / 1000).toFixed(0)}k
+                  </p>
+                  <h3 className="text-sm font-medium text-foreground mt-1">Sell Out</h3>
+                  <p className="text-xs text-muted-foreground">Vendas registradas</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
-        {/* Sell Out e Performance */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Sell Out e Performance</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/trade/sellout">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Sell Out</CardTitle>
-                  <ShoppingBag className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Registro de vendas nos PDVs
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Registrar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/trade/promotions">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Promoções</CardTitle>
-                  <FileText className="h-4 w-4 text-orange-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Gestão de promoções e ofertas
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/trade/performance">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Performance</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Dashboard de desempenho
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Visualizar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/trade/team-performance">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Equipe</CardTitle>
-                  <Users className="h-4 w-4 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Performance da equipe de campo
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Ver equipe <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+        {/* Módulos Secundários - Accordion */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+            <Zap className="h-4 w-4" />
+            <span>Mais funcionalidades</span>
           </div>
-        </div>
 
-        {/* Gamificação */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Gamificação e Recompensas</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Link to="/dashboard/ranking">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Ranking</CardTitle>
-                  <Trophy className="h-4 w-4 text-amber-500" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Ranking de desempenho e pontuação
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Ver ranking <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link to="/dashboard/trade/rewards">
-              <Card className="hover:border-primary cursor-pointer transition-colors h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Recompensas</CardTitle>
-                  <Award className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Catálogo de prêmios e resgates
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Ver recompensas <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
+          {Object.entries(secondaryModules).map(([category, modules]) => (
+            <Collapsible
+              key={category}
+              open={openSections[category]}
+              onOpenChange={() => toggleSection(category)}
+            >
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <span className="font-medium text-sm">{category}</span>
+                <ChevronDown 
+                  className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                    openSections[category] && "rotate-180"
+                  )} 
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <div className="flex flex-wrap gap-2 pl-2">
+                  {modules.map((module) => (
+                    <Link 
+                      key={module.to} 
+                      to={module.to}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-background border hover:bg-muted/50 hover:border-primary/30 transition-colors text-sm"
+                    >
+                      <module.icon className={cn("h-4 w-4", module.color)} />
+                      <span>{module.title}</span>
+                    </Link>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
         </div>
 
       </div>
