@@ -107,14 +107,15 @@ export function PortalTabelaPreco({ cnpj }: Props) {
       return;
     }
 
+    // Portal do cliente: exportar apenas código, produto e preço (sem custo e margem)
     const csv = [
-      ["Código", "Produto", "Custo Base", "Preço Final", "Margem (%)"],
+      ["Código", "Produto", "Tipo", "Origem", "Preço"],
       ...precos.map((p) => [
         p.produto?.codigo || "",
         p.produto?.nome || "",
-        p.custo_base?.toFixed(2) || "0.00",
+        p.produto?.tipo === "ACABADO" ? "Acabado" : p.produto?.tipo === "INTER" ? "Intermediário" : "MP",
+        p.produto?.origem === "importado" ? "Importado" : "Nacional",
         p.preco_final?.toFixed(2) || "0.00",
-        p.margem_lucro_percentual?.toFixed(2) || "0.00",
       ]),
     ]
       .map((row) => row.join(";"))
@@ -249,9 +250,7 @@ export function PortalTabelaPreco({ cnpj }: Props) {
                         <TableHead>Produto</TableHead>
                         <TableHead>Tipo</TableHead>
                         <TableHead>Origem</TableHead>
-                        <TableHead className="text-right">Custo Base</TableHead>
-                        <TableHead className="text-right">Preço Final</TableHead>
-                        <TableHead className="text-right">Margem</TableHead>
+                        <TableHead className="text-right">Preço</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -274,14 +273,8 @@ export function PortalTabelaPreco({ cnpj }: Props) {
                               {preco.produto?.origem === 'importado' ? 'Importado' : 'Nacional'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            {formatarMoeda(preco.custo_base || 0)}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
+                          <TableCell className="text-right font-semibold text-lg">
                             {formatarMoeda(preco.preco_final || 0)}
-                          </TableCell>
-                          <TableCell className="text-right text-green-600">
-                            {preco.margem_lucro_percentual?.toFixed(2)}%
                           </TableCell>
                         </TableRow>
                       ))}
