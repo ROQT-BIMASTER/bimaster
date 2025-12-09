@@ -234,7 +234,7 @@ export default function DREAnalitico() {
 
   // Buscar contas a receber (receitas) - usar data_emissao para regime de competência
   const { data: contasReceber } = useSupabaseQuery(
-    ['contas-receber-dre', dataInicio, dataFim, filterEmpresa],
+    ['contas-receber-dre-v2', dataInicio, dataFim, filterEmpresa],
     async () => {
       let query = supabase
         .from('contas_receber')
@@ -248,9 +248,10 @@ export default function DREAnalitico() {
       
       const { data, error } = await query.limit(50000);
       if (error) throw error;
+      console.log('Contas receber carregadas:', data?.length, 'registros');
       return data;
     },
-    { staleTime: 0, refetchOnMount: true }
+    { staleTime: 0, refetchOnMount: 'always', gcTime: 0 }
   );
 
   // Buscar total de contas
