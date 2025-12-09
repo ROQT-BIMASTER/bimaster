@@ -232,15 +232,15 @@ export default function DREAnalitico() {
     }
   });
 
-  // Buscar contas a receber (receitas)
+  // Buscar contas a receber (receitas) - usar data_emissao para regime de competência
   const { data: contasReceber } = useSupabaseQuery(
     ['contas-receber-dre', dataInicio, dataFim, filterEmpresa],
     async () => {
       let query = supabase
         .from('contas_receber')
         .select('*')
-        .gte('data_vencimento', dataInicio)
-        .lte('data_vencimento', dataFim);
+        .gte('data_emissao', dataInicio)
+        .lte('data_emissao', dataFim);
       
       if (filterEmpresa !== 'todas') {
         query = query.eq('empresa_nome', filterEmpresa);
@@ -461,13 +461,17 @@ export default function DREAnalitico() {
     const naoClassificados = criarGrupo('nao-classificados', '9', 'NÃO CLASSIFICADOS', 'D', 'expense');
 
     // Processar contas a receber (RECEITAS)
+    // Usar data_emissao para alocação mensal correta (data da venda/faturamento)
     if (contasReceber && contasReceber.length > 0) {
       // Agrupar por cliente
       const receitasPorCliente = new Map<string, { nome: string; valor: number; valoresMensais: { [key: string]: number }; lancamentos: any[] }>();
       
       contasReceber.forEach(recebimento => {
         const valor = parseFloat(String(recebimento.valor_recebido || recebimento.valor_original || 0));
-        const mesKey = recebimento.data_vencimento ? format(parseISO(recebimento.data_vencimento), 'yyyy-MM') : null;
+        // Usar data_emissao para alocar a receita no mês correto (competência)
+        // Fallback para data_vencimento se data_emissao não existir
+        const dataRef = recebimento.data_emissao || recebimento.data_vencimento;
+        const mesKey = dataRef ? format(parseISO(dataRef), 'yyyy-MM') : null;
         const clienteKey = recebimento.cliente_codigo || recebimento.cliente_nome || 'sem-cliente';
         const clienteNome = recebimento.cliente_nome || 'Cliente não identificado';
         
@@ -490,7 +494,9 @@ export default function DREAnalitico() {
         
         const clienteData = receitasPorCliente.get(clienteKey)!;
         clienteData.valor += valor;
-        if (mesKey) clienteData.valoresMensais[mesKey] += valor;
+        if (mesKey && clienteData.valoresMensais[mesKey] !== undefined) {
+          clienteData.valoresMensais[mesKey] += valor;
+        }
         clienteData.lancamentos.push(recebimento);
       });
       
@@ -526,11 +532,15 @@ export default function DREAnalitico() {
         // Adicionar lançamentos individuais do cliente
         clienteData.lancamentos.forEach(lanc => {
           const lancValor = parseFloat(String(lanc.valor_recebido || lanc.valor_original || 0));
-          const lancMesKey = lanc.data_vencimento ? format(parseISO(lanc.data_vencimento), 'yyyy-MM') : null;
+          // Usar data_emissao para alocar no mês correto
+          const lancDataRef = lanc.data_emissao || lanc.data_vencimento;
+          const lancMesKey = lancDataRef ? format(parseISO(lancDataRef), 'yyyy-MM') : null;
           
           const lancValoresMensais: { [key: string]: number } = {};
           mesesPeriodo.forEach(m => lancValoresMensais[m.key] = 0);
-          if (lancMesKey) lancValoresMensais[lancMesKey] = lancValor;
+          if (lancMesKey && lancValoresMensais[lancMesKey] !== undefined) {
+            lancValoresMensais[lancMesKey] = lancValor;
+          }
           
           nodoCliente.children?.push({
             id: lanc.id,
