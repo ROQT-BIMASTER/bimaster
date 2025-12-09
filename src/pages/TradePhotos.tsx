@@ -11,6 +11,7 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { PhotoDetailDialog } from "@/components/trade/PhotoDetailDialog";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 
 interface Photo {
   id: string;
@@ -169,6 +170,11 @@ const TradePhotos = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <ModuleBreadcrumb 
+          moduleName="Trade Marketing" 
+          moduleHref="/dashboard/trade" 
+          currentPage="Análise de Fotos" 
+        />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Análise de Fotos</h1>

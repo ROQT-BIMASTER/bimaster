@@ -24,6 +24,7 @@ import { TradeFilters } from "@/components/trade/TradeFilters";
 import { TeamHierarchyFilter } from "@/components/trade/TeamHierarchyFilter";
 import { TeamPerformanceChart } from "@/components/trade/TeamPerformanceChart";
 import { PhotoAnalysisStatus } from "@/components/trade/PhotoAnalysisStatus";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 
 interface Visit {
   id: string;
@@ -225,6 +226,11 @@ const TradeVisits = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <ModuleBreadcrumb 
+          moduleName="Trade Marketing" 
+          moduleHref="/dashboard/trade" 
+          currentPage="Visitas de Campo" 
+        />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Visitas de Campo</h1>
