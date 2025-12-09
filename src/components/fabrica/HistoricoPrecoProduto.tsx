@@ -387,15 +387,26 @@ export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNo
                       </div>
                     </div>
 
-                    {/* Margem Final */}
-                    <div className="mt-4 flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                      <span className="text-sm font-medium">Margem de Lucro Total</span>
-                      <span className="text-lg font-bold text-green-600">
-                        {cadeia[0]?.custoBase && cadeia[cadeia.length - 1]?.precoFinal 
-                          ? formatarPercentual(((cadeia[cadeia.length - 1].precoFinal - cadeia[0].custoBase) / cadeia[0].custoBase) * 100)
-                          : "-"
-                        }
-                      </span>
+                    {/* Margem Final e Markup */}
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                        <span className="text-sm font-medium">Margem de Lucro</span>
+                        <span className="text-lg font-bold text-green-600">
+                          {cadeia[0]?.custoBase && cadeia[cadeia.length - 1]?.precoFinal 
+                            ? formatarPercentual(((cadeia[cadeia.length - 1].precoFinal - cadeia[0].custoBase) / cadeia[cadeia.length - 1].precoFinal) * 100)
+                            : "-"
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <span className="text-sm font-medium">Markup Total</span>
+                        <span className="text-lg font-bold text-blue-600">
+                          {cadeia[0]?.custoBase && cadeia[cadeia.length - 1]?.precoFinal 
+                            ? formatarPercentual(((cadeia[cadeia.length - 1].precoFinal - cadeia[0].custoBase) / cadeia[0].custoBase) * 100)
+                            : "-"
+                          }
+                        </span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
