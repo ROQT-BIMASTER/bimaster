@@ -88,6 +88,8 @@ All colors MUST be HSL.
     --module-financeiro: 152 76% 36%;
     --module-marketing: 330 81% 60%;
     --module-trade: 25 95% 53%;
+    --module-trade-light: 25 95% 95%;
+    --module-trade-dark: 25 80% 45%;
     --module-fabrica: 262 83% 58%;
     --module-precos: 45 93% 47%;
   }
@@ -165,6 +167,8 @@ All colors MUST be HSL.
     --module-financeiro: 152 70% 45%;
     --module-marketing: 330 81% 65%;
     --module-trade: 25 95% 58%;
+    --module-trade-light: 25 80% 20%;
+    --module-trade-dark: 25 90% 50%;
     --module-fabrica: 262 80% 65%;
     --module-precos: 45 93% 55%;
   }

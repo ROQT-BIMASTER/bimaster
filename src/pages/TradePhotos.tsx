@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { Image as ImageIcon, Upload, Trash2, ExternalLink, RefreshCw } from "lucide-react";
+import { Image as ImageIcon, Upload, Trash2, ExternalLink, RefreshCw, Camera } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { PhotoDetailDialog } from "@/components/trade/PhotoDetailDialog";
-import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
+import { TradePageHeader } from "@/components/trade/TradePageHeader";
 
 interface Photo {
   id: string;
@@ -46,20 +46,12 @@ const TradePhotos = () => {
   useEffect(() => {
     fetchPhotos();
 
-    // Realtime subscription para novos uploads
     const channel = supabase
       .channel('photos-changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'photos'
-        },
-        (payload) => {
-          console.log('Photo change detected:', payload);
-          fetchPhotos();
-        }
+        { event: '*', schema: 'public', table: 'photos' },
+        () => fetchPhotos()
       )
       .subscribe();
 
@@ -72,10 +64,7 @@ const TradePhotos = () => {
     try {
       const { data, error } = await supabase
         .from("photos")
-        .select(`
-          *,
-          stores:store_id (name)
-        `)
+        .select(`*, stores:store_id (name)`)
         .order("upload_date", { ascending: false })
         .limit(50);
 
@@ -118,7 +107,6 @@ const TradePhotos = () => {
       fetchPhotos();
       setDeletingPhotoId(null);
     } catch (error: any) {
-      console.error("Erro ao excluir foto:", error);
       toast.error("Erro ao excluir foto: " + error.message);
     }
   };
@@ -158,7 +146,9 @@ const TradePhotos = () => {
   if (permissionsLoading) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12">Carregando permissões...</div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-trade" />
+        </div>
       </DashboardLayout>
     );
   }
@@ -169,36 +159,35 @@ const TradePhotos = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <ModuleBreadcrumb 
-          moduleName="Trade Marketing" 
-          moduleHref="/dashboard/trade" 
-          currentPage="Análise de Fotos" 
+      <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-6">
+        <TradePageHeader
+          title="Análise de Fotos"
+          description={`${photos.length} fotos capturadas`}
+          actions={
+            <>
+              <Button 
+                variant="outline"
+                size="sm"
+                className="h-9 text-xs sm:text-sm"
+                onClick={() => {
+                  setLoading(true);
+                  fetchPhotos();
+                }}
+              >
+                <RefreshCw className="mr-1.5 h-4 w-4" />
+                <span className="hidden sm:inline">Atualizar</span>
+              </Button>
+              <Button 
+                size="sm"
+                className="h-9 text-xs sm:text-sm bg-trade hover:bg-trade-dark"
+                onClick={() => toast.info("Use o Lançamento Rápido no módulo Trade Marketing.")}
+              >
+                <Upload className="mr-1.5 h-4 w-4" />
+                <span>Upload</span>
+              </Button>
+            </>
+          }
         />
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Análise de Fotos</h1>
-            <p className="text-muted-foreground">
-              Gestão e análise de fotos de campo
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline"
-              onClick={() => {
-                setLoading(true);
-                fetchPhotos();
-              }}
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Atualizar
-            </Button>
-            <Button onClick={() => toast.info("Funcionalidade de upload em desenvolvimento. Use o cadastro rápido em Trade Marketing.")}>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload de Fotos
-            </Button>
-          </div>
-        </div>
 
         <TradeFilters
           selectedStore={selectedStore}
@@ -207,27 +196,37 @@ const TradePhotos = () => {
         />
 
         {loading ? (
-          <div className="text-center py-12">Carregando fotos...</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="aspect-square bg-muted rounded-lg animate-pulse" />
+            ))}
+          </div>
         ) : photos.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhuma foto encontrada</h3>
-              <p className="text-muted-foreground mb-4">
-                Faça upload de fotos para começar a análise
+            <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
+              <div className="p-3 bg-trade-light rounded-full mb-3">
+                <Camera className="h-8 w-8 text-trade" />
+              </div>
+              <h3 className="text-base sm:text-lg font-semibold mb-1">Nenhuma foto encontrada</h3>
+              <p className="text-sm text-muted-foreground text-center mb-4">
+                Faça upload de fotos para começar
               </p>
-              <Button onClick={() => toast.info("Funcionalidade de upload em desenvolvimento. Use o cadastro rápido em Trade Marketing.")}>
+              <Button 
+                size="sm"
+                className="bg-trade hover:bg-trade-dark"
+                onClick={() => toast.info("Use o Lançamento Rápido no módulo Trade Marketing.")}
+              >
                 <Upload className="mr-2 h-4 w-4" />
                 Upload de Fotos
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
             {photos.map((photo) => (
               <Card 
                 key={photo.id} 
-                className="overflow-hidden group hover:shadow-lg transition-shadow cursor-pointer"
+                className="overflow-hidden group hover:shadow-lg active:scale-[0.98] transition-all cursor-pointer touch-manipulation border-0 sm:border"
                 onClick={() => {
                   setSelectedPhotoId(photo.id);
                   setPhotoDetailOpen(true);
@@ -239,13 +238,28 @@ const TradePhotos = () => {
                       src={photo.photo_url} 
                       alt={getTypeLabel(photo.photo_type)}
                       className="w-full h-full object-cover"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                      <ImageIcon className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground" />
                     </div>
                   )}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                  
+                  {/* Overlay badges - Mobile */}
+                  <div className="absolute bottom-0 left-0 right-0 p-1.5 sm:p-2 bg-gradient-to-t from-black/70 to-transparent">
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <Badge variant="secondary" className="text-[10px] h-5 bg-white/90 text-foreground">
+                        {getTypeLabel(photo.photo_type)}
+                      </Badge>
+                      {photo.ai_processed && (
+                        <Badge className="text-[10px] h-5 bg-trade text-white">IA</Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Desktop hover actions */}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex gap-2">
                     {photo.photo_url && (
                       <Button
                         variant="secondary"
@@ -255,7 +269,6 @@ const TradePhotos = () => {
                           e.stopPropagation();
                           window.open(photo.photo_url, '_blank');
                         }}
-                        aria-label="Abrir foto em nova aba"
                       >
                         <ExternalLink className="h-4 w-4" />
                       </Button>
@@ -268,53 +281,30 @@ const TradePhotos = () => {
                         e.stopPropagation();
                         setDeletingPhotoId(photo.id);
                       }}
-                      aria-label="Excluir foto"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline">{getTypeLabel(photo.photo_type)}</Badge>
-                    {photo.ai_processed && (
-                      <Badge variant="secondary">IA Processada</Badge>
-                    )}
-                  </div>
-                  <p className="font-medium text-sm truncate">
+                
+                {/* Details - Hidden on mobile, shown on desktop */}
+                <CardContent className="p-2 sm:p-3 hidden sm:block">
+                  <p className="font-medium text-xs sm:text-sm truncate">
                     {photo.stores?.name || "Loja não especificada"}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     {new Date(photo.upload_date).toLocaleDateString("pt-BR")}
                   </p>
                   
-                  {/* Insights por foto */}
-                  {photo.ai_processed && photo.ai_analysis && (
-                    <div className="mt-3 pt-3 border-t space-y-2">
-                      <p className="text-xs font-semibold text-primary">Insights da IA:</p>
-                      {photo.ai_analysis.insights && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {photo.ai_analysis.insights}
-                        </p>
-                      )}
-                      {photo.ai_analysis.compliance_score && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs">Conformidade:</span>
-                          <Badge variant={photo.ai_analysis.compliance_score >= 80 ? "default" : "destructive"}>
-                            {photo.ai_analysis.compliance_score}%
-                          </Badge>
-                        </div>
-                      )}
-                      {photo.ai_analysis.issues && photo.ai_analysis.issues.length > 0 && (
-                        <div>
-                          <p className="text-xs text-destructive font-medium">Problemas:</p>
-                          <ul className="text-xs text-muted-foreground list-disc list-inside">
-                            {photo.ai_analysis.issues.slice(0, 2).map((issue: string, idx: number) => (
-                              <li key={idx} className="truncate">{issue}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                  {photo.ai_processed && photo.ai_analysis?.compliance_score && (
+                    <div className="flex items-center gap-1 mt-2">
+                      <span className="text-[10px] text-muted-foreground">Conformidade:</span>
+                      <Badge 
+                        variant={photo.ai_analysis.compliance_score >= 80 ? "default" : "destructive"}
+                        className="text-[10px] h-4"
+                      >
+                        {photo.ai_analysis.compliance_score}%
+                      </Badge>
                     </div>
                   )}
                 </CardContent>
@@ -330,16 +320,16 @@ const TradePhotos = () => {
         />
 
         <AlertDialog open={!!deletingPhotoId} onOpenChange={(open) => !open && setDeletingPhotoId(null)}>
-          <AlertDialogContent>
+          <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem certeza que deseja excluir esta foto? Esta ação não pode ser desfeita.
+                Tem certeza que deseja excluir esta foto?
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeletePhoto} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeletePhoto} className="bg-destructive text-destructive-foreground">
                 Excluir
               </AlertDialogAction>
             </AlertDialogFooter>
