@@ -12,7 +12,6 @@ import {
   ArrowRight,
   BarChart3,
   Trophy,
-  DollarSign,
   MapPin,
   ShoppingBag,
   Users,
@@ -104,12 +103,12 @@ const TradeModule = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Trade Marketing</h1>
-          <p className="text-muted-foreground mt-1">
-            Gestão completa de PDVs, visitas e execução
+      <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-6">
+        {/* Header - Compacto no mobile */}
+        <div className="px-1">
+          <h1 className="text-2xl sm:text-3xl font-bold">Trade Marketing</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-0.5 sm:mt-1">
+            Gestão de PDVs, visitas e execução
           </p>
         </div>
 
@@ -119,15 +118,15 @@ const TradeModule = () => {
           onOpenChange={setQuickEntryOpen}
         />
 
-        {/* Ações Rápidas */}
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+        {/* Ações Rápidas - Layout vertical no mobile */}
+        <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-3">
           <Button 
             onClick={() => setQuickEntryOpen(true)} 
             size="lg"
-            className="h-14 gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg"
+            className="h-12 sm:h-14 gap-2 sm:gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg text-sm sm:text-base"
           >
-            <div className="p-1.5 bg-white/20 rounded-lg">
-              <Plus className="h-5 w-5" />
+            <div className="p-1 sm:p-1.5 bg-white/20 rounded-lg">
+              <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <span className="font-semibold">Lançamento Rápido</span>
           </Button>
@@ -136,11 +135,11 @@ const TradeModule = () => {
             asChild
             size="lg"
             variant="outline"
-            className="h-14 gap-3 border-green-200 bg-green-50 hover:bg-green-100 text-green-700 dark:border-green-800 dark:bg-green-950 dark:hover:bg-green-900 dark:text-green-400"
+            className="h-12 sm:h-14 gap-2 sm:gap-3 border-green-200 bg-green-50 hover:bg-green-100 text-green-700 dark:border-green-800 dark:bg-green-950 dark:hover:bg-green-900 dark:text-green-400 text-sm sm:text-base"
           >
             <Link to="/dashboard/trade/visits">
-              <div className="p-1.5 bg-green-200 dark:bg-green-800 rounded-lg">
-                <Calendar className="h-5 w-5" />
+              <div className="p-1 sm:p-1.5 bg-green-200 dark:bg-green-800 rounded-lg">
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
               <span className="font-semibold">Nova Visita</span>
             </Link>
@@ -150,35 +149,35 @@ const TradeModule = () => {
             asChild
             size="lg"
             variant="outline"
-            className="h-14 gap-3 border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:hover:bg-purple-900 dark:text-purple-400"
+            className="h-12 sm:h-14 gap-2 sm:gap-3 border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:hover:bg-purple-900 dark:text-purple-400 text-sm sm:text-base"
           >
             <Link to="/dashboard/trade/photos">
-              <div className="p-1.5 bg-purple-200 dark:bg-purple-800 rounded-lg">
-                <Camera className="h-5 w-5" />
+              <div className="p-1 sm:p-1.5 bg-purple-200 dark:bg-purple-800 rounded-lg">
+                <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
               <span className="font-semibold">Capturar Foto</span>
             </Link>
           </Button>
         </div>
 
-        {/* Módulos Principais - 4 cards destacados com métricas */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {/* Módulos Principais - Grid 2x2 no mobile */}
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           {/* PDVs */}
           <Link to="/dashboard/trade/stores">
-            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500 h-full">
-              <CardContent className="p-5">
+            <Card className="group relative overflow-hidden hover:shadow-lg active:scale-[0.98] transition-all duration-200 border-l-4 border-l-blue-500 h-full touch-manipulation">
+              <CardContent className="p-3 sm:p-5">
                 <div className="flex items-start justify-between">
-                  <div className="p-2.5 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
-                    <Store className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <div className="p-2 sm:p-2.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg sm:rounded-xl">
+                    <Store className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
                 </div>
-                <div className="mt-4">
-                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                <div className="mt-2 sm:mt-4">
+                  <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">
                     {stats?.totalStores || 0}
                   </p>
-                  <h3 className="text-sm font-medium text-foreground mt-1">PDVs Ativos</h3>
-                  <p className="text-xs text-muted-foreground">Pontos de venda</p>
+                  <h3 className="text-xs sm:text-sm font-medium text-foreground mt-0.5 sm:mt-1">PDVs Ativos</h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Pontos de venda</p>
                 </div>
               </CardContent>
             </Card>
@@ -186,20 +185,20 @@ const TradeModule = () => {
 
           {/* Visitas */}
           <Link to="/dashboard/trade/visits">
-            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-green-500 h-full">
-              <CardContent className="p-5">
+            <Card className="group relative overflow-hidden hover:shadow-lg active:scale-[0.98] transition-all duration-200 border-l-4 border-l-green-500 h-full touch-manipulation">
+              <CardContent className="p-3 sm:p-5">
                 <div className="flex items-start justify-between">
-                  <div className="p-2.5 bg-green-100 dark:bg-green-900/50 rounded-xl">
-                    <Calendar className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <div className="p-2 sm:p-2.5 bg-green-100 dark:bg-green-900/50 rounded-lg sm:rounded-xl">
+                    <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
                 </div>
-                <div className="mt-4">
-                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                <div className="mt-2 sm:mt-4">
+                  <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">
                     {stats?.visitsMonth || 0}
                   </p>
-                  <h3 className="text-sm font-medium text-foreground mt-1">Visitas no Mês</h3>
-                  <p className="text-xs text-muted-foreground">Realizadas</p>
+                  <h3 className="text-xs sm:text-sm font-medium text-foreground mt-0.5 sm:mt-1">Visitas Mês</h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Realizadas</p>
                 </div>
               </CardContent>
             </Card>
@@ -207,20 +206,20 @@ const TradeModule = () => {
 
           {/* Fotos */}
           <Link to="/dashboard/trade/photos">
-            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-purple-500 h-full">
-              <CardContent className="p-5">
+            <Card className="group relative overflow-hidden hover:shadow-lg active:scale-[0.98] transition-all duration-200 border-l-4 border-l-purple-500 h-full touch-manipulation">
+              <CardContent className="p-3 sm:p-5">
                 <div className="flex items-start justify-between">
-                  <div className="p-2.5 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
-                    <Camera className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                  <div className="p-2 sm:p-2.5 bg-purple-100 dark:bg-purple-900/50 rounded-lg sm:rounded-xl">
+                    <Camera className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
                 </div>
-                <div className="mt-4">
-                  <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                <div className="mt-2 sm:mt-4">
+                  <p className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">
                     {(stats?.totalPhotos || 0).toLocaleString("pt-BR")}
                   </p>
-                  <h3 className="text-sm font-medium text-foreground mt-1">Fotos</h3>
-                  <p className="text-xs text-muted-foreground">Capturadas</p>
+                  <h3 className="text-xs sm:text-sm font-medium text-foreground mt-0.5 sm:mt-1">Fotos</h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Capturadas</p>
                 </div>
               </CardContent>
             </Card>
@@ -228,29 +227,29 @@ const TradeModule = () => {
 
           {/* Sell Out */}
           <Link to="/dashboard/trade/sellout">
-            <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-emerald-500 h-full">
-              <CardContent className="p-5">
+            <Card className="group relative overflow-hidden hover:shadow-lg active:scale-[0.98] transition-all duration-200 border-l-4 border-l-emerald-500 h-full touch-manipulation">
+              <CardContent className="p-3 sm:p-5">
                 <div className="flex items-start justify-between">
-                  <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-xl">
-                    <ShoppingBag className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                  <div className="p-2 sm:p-2.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg sm:rounded-xl">
+                    <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
                 </div>
-                <div className="mt-4">
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                <div className="mt-2 sm:mt-4">
+                  <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                     R$ {((stats?.totalInvestments || 0) / 1000).toFixed(0)}k
                   </p>
-                  <h3 className="text-sm font-medium text-foreground mt-1">Sell Out</h3>
-                  <p className="text-xs text-muted-foreground">Vendas registradas</p>
+                  <h3 className="text-xs sm:text-sm font-medium text-foreground mt-0.5 sm:mt-1">Sell Out</h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Vendas registradas</p>
                 </div>
               </CardContent>
             </Card>
           </Link>
         </div>
 
-        {/* Módulos Secundários - Accordion */}
+        {/* Módulos Secundários - Accordion otimizado para touch */}
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 sm:mb-3 px-1">
             <Zap className="h-4 w-4" />
             <span>Mais funcionalidades</span>
           </div>
@@ -261,7 +260,7 @@ const TradeModule = () => {
               open={openSections[category]}
               onOpenChange={() => toggleSection(category)}
             >
-              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted active:bg-muted/70 transition-colors touch-manipulation">
                 <span className="font-medium text-sm">{category}</span>
                 <ChevronDown 
                   className={cn(
@@ -271,15 +270,15 @@ const TradeModule = () => {
                 />
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-2">
-                <div className="flex flex-wrap gap-2 pl-2">
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 pl-1 sm:pl-2">
                   {modules.map((module) => (
                     <Link 
                       key={module.to} 
                       to={module.to}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-background border hover:bg-muted/50 hover:border-primary/30 transition-colors text-sm"
+                      className="flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-lg bg-background border hover:bg-muted/50 active:bg-muted/70 hover:border-primary/30 transition-colors text-sm touch-manipulation"
                     >
-                      <module.icon className={cn("h-4 w-4", module.color)} />
-                      <span>{module.title}</span>
+                      <module.icon className={cn("h-4 w-4 flex-shrink-0", module.color)} />
+                      <span className="truncate">{module.title}</span>
                     </Link>
                   ))}
                 </div>
