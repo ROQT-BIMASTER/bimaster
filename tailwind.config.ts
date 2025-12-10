@@ -69,6 +69,24 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Module colors
+        trade: {
+          DEFAULT: "hsl(var(--module-trade))",
+          light: "hsl(var(--module-trade-light))",
+          dark: "hsl(var(--module-trade-dark))",
+        },
+        prospects: {
+          DEFAULT: "hsl(var(--module-prospects))",
+        },
+        financeiro: {
+          DEFAULT: "hsl(var(--module-financeiro))",
+        },
+        marketing: {
+          DEFAULT: "hsl(var(--module-marketing))",
+        },
+        fabrica: {
+          DEFAULT: "hsl(var(--module-fabrica))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

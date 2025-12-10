@@ -8,8 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { NovoSellOutMultiprodutos } from "@/components/trade/NovoSellOutMultiprodutos";
 import { GerenciarProdutosLojaDialog } from "@/components/trade/GerenciarProdutosLojaDialog";
+import { TradePageHeader } from "@/components/trade/TradePageHeader";
 import { 
-  Plus, Package, DollarSign, TrendingUp, TrendingDown, 
+  Plus, Package, DollarSign, TrendingUp, 
   ShoppingCart, BarChart3, Calendar, Settings 
 } from "lucide-react";
 import { format } from "date-fns";
@@ -56,17 +57,7 @@ export default function TradeSellOut() {
 
     const channel = supabase
       .channel('sellouts-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'store_sellouts'
-        },
-        () => {
-          fetchSellouts();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'store_sellouts' }, () => fetchSellouts())
       .subscribe();
 
     return () => {
@@ -90,10 +81,6 @@ export default function TradeSellOut() {
         const saleDate = new Date(s.sale_date);
         return saleDate >= new Date(dateRange.start) && saleDate <= new Date(dateRange.end);
       });
-    }
-
-    if (aiCriteria) {
-      // Implementar lógica de filtro IA conforme critérios retornados
     }
 
     setFilteredSellouts(filtered);
@@ -128,7 +115,7 @@ export default function TradeSellOut() {
     if (!selectedStore) {
       toast({
         title: "Selecione uma loja",
-        description: "Escolha uma loja antes de registrar um sell-out",
+        description: "Escolha uma loja antes de registrar",
         variant: "destructive",
       });
       return;
@@ -136,18 +123,16 @@ export default function TradeSellOut() {
     setDialogOpen(true);
   };
 
-  // Cálculos de KPIs
+  // KPIs
   const totalQuantity = filteredSellouts.reduce((sum, s) => sum + s.quantity, 0);
   const totalRevenue = filteredSellouts.reduce((sum, s) => sum + (s.total_amount || 0), 0);
   const avgTicket = filteredSellouts.length > 0 ? totalRevenue / filteredSellouts.length : 0;
   const totalTransactions = filteredSellouts.length;
 
-  // Dados para gráficos
+  // Chart data
   const salesByDay = filteredSellouts.reduce((acc, s) => {
     const date = format(new Date(s.sale_date), "dd/MM", { locale: ptBR });
-    if (!acc[date]) {
-      acc[date] = { date, quantidade: 0, valor: 0 };
-    }
+    if (!acc[date]) acc[date] = { date, quantidade: 0, valor: 0 };
     acc[date].quantidade += s.quantity;
     acc[date].valor += s.total_amount || 0;
     return acc;
@@ -157,44 +142,44 @@ export default function TradeSellOut() {
 
   const productSales = filteredSellouts.reduce((acc, s) => {
     const product = s.store_products?.product_name || "Sem nome";
-    if (!acc[product]) {
-      acc[product] = { name: product, value: 0 };
-    }
+    if (!acc[product]) acc[product] = { name: product, value: 0 };
     acc[product].value += s.quantity;
     return acc;
   }, {} as Record<string, any>);
 
-  const topProducts = Object.values(productSales)
-    .sort((a: any, b: any) => b.value - a.value)
-    .slice(0, 5);
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+  const topProducts = Object.values(productSales).sort((a: any, b: any) => b.value - a.value).slice(0, 5);
+  const COLORS = ['hsl(25, 95%, 53%)', 'hsl(25, 80%, 60%)', 'hsl(25, 70%, 70%)', 'hsl(25, 60%, 75%)', 'hsl(25, 50%, 80%)'];
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Sell Out</h1>
-            <p className="text-muted-foreground">
-              Gerencie e analise as vendas dos produtos nas lojas
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setProductsDialogOpen(true)}
-              disabled={!selectedStore}
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              Gerenciar Produtos
-            </Button>
-            <Button onClick={openNewSellOutDialog} disabled={!selectedStore}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Sell Out
-            </Button>
-          </div>
-        </div>
+      <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-6">
+        <TradePageHeader
+          title="Sell Out"
+          description="Vendas dos produtos nas lojas"
+          actions={
+            <>
+              <Button 
+                variant="outline"
+                size="sm"
+                className="h-9 text-xs sm:text-sm"
+                onClick={() => setProductsDialogOpen(true)}
+                disabled={!selectedStore}
+              >
+                <Settings className="mr-1.5 h-4 w-4" />
+                <span className="hidden sm:inline">Produtos</span>
+              </Button>
+              <Button 
+                size="sm"
+                className="h-9 text-xs sm:text-sm bg-trade hover:bg-trade-dark"
+                onClick={openNewSellOutDialog}
+                disabled={!selectedStore}
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                <span>Novo</span>
+              </Button>
+            </>
+          }
+        />
 
         <TradeFilters
           onStoreChange={setSelectedStore}
@@ -202,184 +187,173 @@ export default function TradeSellOut() {
           selectedStore={selectedStore}
         />
 
-        {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Vendido</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+        {/* KPIs - Grid responsivo */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+          <Card className="border-l-4 border-l-trade">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Vendido</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-trade hidden sm:block" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalQuantity.toLocaleString('pt-BR')}</div>
-              <p className="text-xs text-muted-foreground">unidades</p>
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold text-trade">{totalQuantity.toLocaleString('pt-BR')}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">unidades</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Faturamento</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <Card className="border-l-4 border-l-trade">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Faturamento</CardTitle>
+              <DollarSign className="h-4 w-4 text-trade hidden sm:block" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                R$ {totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold text-trade">
+                R$ {(totalRevenue / 1000).toFixed(0)}k
               </div>
-              <p className="text-xs text-muted-foreground">total</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">total</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <Card className="border-l-4 border-l-trade">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Ticket Médio</CardTitle>
+              <TrendingUp className="h-4 w-4 text-trade hidden sm:block" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                R$ {avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold text-trade">
+                R$ {avgTicket.toFixed(0)}
               </div>
-              <p className="text-xs text-muted-foreground">por transação</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">por transação</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Transações</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          <Card className="border-l-4 border-l-trade">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Transações</CardTitle>
+              <BarChart3 className="h-4 w-4 text-trade hidden sm:block" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalTransactions}</div>
-              <p className="text-xs text-muted-foreground">registros</p>
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold text-trade">{totalTransactions}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">registros</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Gráficos */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Charts - Stack on mobile */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Vendas por Dia (Últimos 7 dias)</CardTitle>
+            <CardHeader className="p-3 sm:p-6 pb-2">
+              <CardTitle className="text-sm sm:text-base">Vendas por Dia</CardTitle>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    yAxisId="left" 
-                    type="monotone" 
-                    dataKey="quantidade" 
-                    stroke="#8884d8" 
-                    name="Quantidade" 
-                  />
-                  <Line 
-                    yAxisId="right" 
-                    type="monotone" 
-                    dataKey="valor" 
-                    stroke="#82ca9d" 
-                    name="Valor (R$)" 
-                  />
+            <CardContent className="p-2 sm:p-6 pt-0">
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} width={35} />
+                  <Tooltip contentStyle={{ fontSize: '12px' }} />
+                  <Line type="monotone" dataKey="quantidade" stroke="hsl(25, 95%, 53%)" name="Qtd" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Top 5 Produtos Vendidos</CardTitle>
+            <CardHeader className="p-3 sm:p-6 pb-2">
+              <CardTitle className="text-sm sm:text-base">Top 5 Produtos</CardTitle>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+            <CardContent className="p-2 sm:p-6 pt-0">
+              <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
                     data={topProducts}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    label={(entry) => entry.name}
-                    outerRadius={80}
+                    innerRadius={40}
+                    outerRadius={70}
                     fill="#8884d8"
                     dataKey="value"
+                    label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
                   >
                     {topProducts.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip contentStyle={{ fontSize: '12px' }} />
                 </PieChart>
               </ResponsiveContainer>
+              {/* Legend for mobile */}
+              <div className="flex flex-wrap gap-2 mt-2 justify-center">
+                {topProducts.slice(0, 3).map((p: any, i) => (
+                  <div key={i} className="flex items-center gap-1 text-[10px] sm:text-xs">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i] }} />
+                    <span className="truncate max-w-[80px]">{p.name}</span>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tabela de Sell Outs */}
+        {/* Sell Out List */}
         {loading ? (
-          <div className="text-center py-8">Carregando sell-outs...</div>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-trade" />
+          </div>
         ) : filteredSellouts.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
-              <p className="text-muted-foreground">
-                {sellouts.length === 0 
-                  ? "Nenhum sell-out registrado ainda."
-                  : "Nenhum sell-out encontrado com os filtros aplicados."
-                }
+              <div className="p-3 bg-trade-light rounded-full w-fit mx-auto mb-3">
+                <Package className="h-6 w-6 text-trade" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {sellouts.length === 0 ? "Nenhum sell-out registrado." : "Nenhum resultado com os filtros."}
               </p>
             </CardContent>
           </Card>
         ) : (
           <Card>
-            <CardHeader>
-              <CardTitle>Histórico de Sell Out</CardTitle>
+            <CardHeader className="p-3 sm:p-6 pb-2">
+              <CardTitle className="text-sm sm:text-base">Histórico de Sell Out</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="p-2 sm:p-6 pt-0">
+              <div className="space-y-2">
                 {filteredSellouts.map((sellout) => (
                   <div 
                     key={sellout.id} 
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 active:bg-accent/70 transition-colors touch-manipulation"
                   >
-                    <div className="flex items-center gap-4 flex-1">
-                      <Package className="h-8 w-8 text-muted-foreground" />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+                      <div className="p-2 bg-trade-light rounded-lg hidden sm:flex">
+                        <Package className="h-5 w-5 text-trade" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                          <h3 className="font-medium text-sm truncate">
                             {sellout.store_products?.product_name || "Produto sem nome"}
                           </h3>
-                          {sellout.store_products?.product_code && (
-                            <Badge variant="outline">
-                              {sellout.store_products.product_code}
-                            </Badge>
-                          )}
                           {sellout.store_products?.category && (
-                            <Badge variant="secondary">
+                            <Badge variant="secondary" className="text-[10px] h-4 hidden sm:inline-flex">
                               {sellout.store_products.category}
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {sellout.stores?.name} ({sellout.stores?.code})
+                        <p className="text-xs text-muted-foreground truncate">
+                          {sellout.stores?.name}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3 inline mr-1" />
-                          {format(new Date(sellout.sale_date), "dd/MM/yyyy", { locale: ptBR })}
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {format(new Date(sellout.sale_date), "dd/MM/yy", { locale: ptBR })}
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold">
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-sm sm:text-lg font-bold text-trade">
                         {sellout.quantity} un
                       </div>
                       {sellout.total_amount && (
-                        <div className="text-sm text-muted-foreground">
-                          R$ {sellout.total_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </div>
-                      )}
-                      {sellout.unit_price && (
-                        <div className="text-xs text-muted-foreground">
-                          R$ {sellout.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / un
+                        <div className="text-[10px] sm:text-sm text-muted-foreground">
+                          R$ {sellout.total_amount.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                         </div>
                       )}
                     </div>
