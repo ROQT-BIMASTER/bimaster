@@ -164,3 +164,7 @@ verify_jwt = true
 # Integration Hub - Roteador central para integrações
 [functions.integration-router]
 verify_jwt = false
+
+# WhatsApp Business API - Webhook e envio de mensagens
+[functions.whatsapp-business-api]
+verify_jwt = false

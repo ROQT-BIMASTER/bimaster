@@ -16,6 +16,7 @@ import { TradeDashboardWidget } from "@/components/dashboard/TradeDashboardWidge
 import { FinanceiroDashboardWidget } from "@/components/dashboard/FinanceiroDashboardWidget";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PushNotificationPrompt } from "@/components/pwa/PushNotificationPrompt";
 
 interface PipelineData {
   stage: string;
@@ -201,6 +202,9 @@ const Dashboard = () => {
         </div>
 
         {isAdmin && <MetricasDistribuicao />}
+
+        {/* Prompt para ativar notificações push */}
+        <PushNotificationPrompt />
 
         {/* Widgets condicionais por módulo */}
         {permissionsLoading ? (
