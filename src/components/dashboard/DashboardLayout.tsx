@@ -9,6 +9,7 @@ import { useSyncOfflineData } from "@/hooks/useSyncOfflineData";
 import { WifiOff, Wifi } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
+import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -95,6 +96,9 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           )}
           <div className="p-6">{children}</div>
         </main>
+        
+        {/* Indicador de status offline */}
+        <OfflineIndicator />
       </div>
     </SidebarProvider>
   );
