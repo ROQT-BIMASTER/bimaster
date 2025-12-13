@@ -168,3 +168,7 @@ verify_jwt = false
 # WhatsApp Business API - Webhook e envio de mensagens
 [functions.whatsapp-business-api]
 verify_jwt = false
+
+# Auditoria de Contas a Receber
+[functions.auditoria-contas-receber]
+verify_jwt = true
