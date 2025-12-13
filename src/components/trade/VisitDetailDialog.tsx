@@ -16,6 +16,7 @@ import {
   FileText,
   UserCheck
 } from "lucide-react";
+import { OfflinePhotoCapture } from "./OfflinePhotoCapture";
 
 interface VisitDetailDialogProps {
   open: boolean;
@@ -328,6 +329,15 @@ export function VisitDetailDialog({ open, onOpenChange, visitId }: VisitDetailDi
               </div>
             </CardContent>
           </Card>
+
+          {/* Captura de Fotos Offline - apenas para visitas em andamento */}
+          {visit.status === 'in_progress' && visit.store_id && (
+            <OfflinePhotoCapture
+              storeId={visit.store_id}
+              storeName={visit.stores?.name}
+              onPhotoCaptured={() => fetchVisitDetails()}
+            />
+          )}
 
           {/* Fotos da Visita */}
           {photos.length > 0 && (
