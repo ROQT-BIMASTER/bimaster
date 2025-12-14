@@ -152,7 +152,7 @@ ${planoContas?.slice(0, 30).map(p => `- ${p.code} ${p.name} (${p.account_type})`
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },

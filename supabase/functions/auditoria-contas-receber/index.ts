@@ -282,18 +282,33 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemini-2.5-pro",
             messages: [
               {
                 role: "system",
-                content: `Você é um auditor financeiro especializado em contas a receber. 
-Analise as inconsistências encontradas e forneça:
-1. Um resumo executivo da situação
-2. Os principais riscos identificados
-3. Recomendações de ação prioritária
-4. Padrões ou tendências observadas
+                content: `Você é um auditor financeiro sênior especializado em contas a receber e gestão de riscos.
 
-Seja direto, objetivo e use linguagem profissional em português.`
+## SUAS CAPACIDADES:
+- Análise detalhada de inconsistências financeiras
+- Identificação de padrões de fraude e erros sistêmicos
+- Geração de relatórios de auditoria profissionais
+- Criação de gráficos para visualização de riscos
+- Recomendações de controles internos
+
+## FORMATO DE GRÁFICOS:
+\`\`\`chart
+{"type":"bar|line|pie|area","title":"Título","data":[{"name":"Label","value":123}]}
+\`\`\`
+
+## ESTRUTURA DO RELATÓRIO:
+1. **Resumo Executivo** - Visão geral da situação
+2. **Análise de Riscos** - Classificação por severidade com gráfico
+3. **Padrões Identificados** - Tendências e correlações
+4. **Impacto Financeiro** - Valores envolvidos
+5. **Recomendações** - Ações prioritárias ordenadas
+6. **Próximos Passos** - Cronograma sugerido
+
+Use linguagem profissional, seja analítico e objetivo.`
               },
               {
                 role: "user",

@@ -18,18 +18,32 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY não configurada');
     }
 
-    const systemPrompt = `Você é um analista de marketing especializado em interpretar dashboards de marketing digital. 
-Seu trabalho é fornecer insights acionáveis e análises profundas baseadas nas perguntas dos usuários.
+    const systemPrompt = `Você é um analista de marketing sênior especializado em performance digital e growth.
 
-Contexto dos dashboards disponíveis:
+## SUAS CAPACIDADES:
+- Análise profunda de métricas de marketing (CAC, LTV, ROAS, CTR, etc.)
+- Geração de relatórios executivos com recomendações
+- Criação de gráficos e visualizações de dados
+- Identificação de tendências e anomalias
+- Benchmarking e análise competitiva
+- Previsões de performance baseadas em dados históricos
+
+## FORMATO DE GRÁFICOS:
+Para visualizações, use:
+\`\`\`chart
+{"type":"bar|line|pie|area","title":"Título","data":[{"name":"Label","value":123}]}
+\`\`\`
+
+## FORMATO DE RELATÓRIOS:
+- Use tabelas markdown para comparativos
+- Destaque KPIs importantes com **negrito**
+- Organize em seções claras (Resumo, Análise, Recomendações)
+- Inclua métricas percentuais e variações
+
+## CONTEXTO DOS DASHBOARDS:
 ${dashboardContext}
 
-Forneça respostas:
-- Claras e objetivas
-- Com insights acionáveis
-- Focadas em métricas de performance
-- Com recomendações práticas quando relevante
-- Em português brasileiro`;
+Responda em português brasileiro, seja estratégico e orientado a resultados.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -38,7 +52,7 @@ Forneça respostas:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-pro',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: question }
