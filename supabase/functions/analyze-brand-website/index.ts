@@ -68,7 +68,7 @@ serve(async (req) => {
       },
       signal: AbortSignal.timeout(45000), // Timeout de 45 segundos
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite', // Modelo mais rápido para esta tarefa
+        model: 'google/gemini-2.5-pro',
         messages: [
           {
             role: 'system',
