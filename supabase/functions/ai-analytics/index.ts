@@ -331,11 +331,58 @@ serve(async (req) => {
     };
 
     // Limitar histórico para evitar prompts muito longos
-    const MAX_HISTORY = 6; // últimas 3 interações (user + assistant)
+    const MAX_HISTORY = 8; // últimas 4 interações (user + assistant)
     const recentMessages = messages.slice(-MAX_HISTORY);
+    
+    // Buscar contexto inicial automaticamente para perguntas gerais
+    let contextData = "";
+    const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
+    
+    // Se é uma pergunta geral ou primeira mensagem, buscar dados automaticamente
+    const needsContext = 
+      messages.length <= 2 ||
+      lastUserMessage.includes("olá") ||
+      lastUserMessage.includes("oi") ||
+      lastUserMessage.includes("resumo") ||
+      lastUserMessage.includes("overview") ||
+      lastUserMessage.includes("situação") ||
+      lastUserMessage.includes("como está") ||
+      lastUserMessage.includes("relatório geral");
+
+    if (needsContext) {
+      console.log("📊 Auto-fetching context data...");
+      
+      // Buscar dados resumidos em paralelo
+      const [prospectsRes, storesRes, visitsRes] = await Promise.all([
+        supabase.from("prospects").select("id, status").limit(100),
+        supabase.from("stores").select("id, active").limit(100),
+        supabase.from("visits").select("id, status, visit_date").gte("visit_date", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]).limit(100)
+      ]);
+      
+      const prospectsCount = prospectsRes.data?.length || 0;
+      const storesCount = storesRes.data?.length || 0;
+      const visitsCount = visitsRes.data?.length || 0;
+      
+      const statusCounts = prospectsRes.data?.reduce((acc: any, p: any) => {
+        acc[p.status] = (acc[p.status] || 0) + 1;
+        return acc;
+      }, {}) || {};
+      
+      contextData = `
+CONTEXTO ATUAL DO SISTEMA (dados reais carregados automaticamente):
+- Total de Prospects: ${prospectsCount} ${Object.entries(statusCounts).map(([k, v]) => `(${k}: ${v})`).join(", ")}
+- Total de Lojas: ${storesCount}
+- Visitas nos últimos 30 dias: ${visitsCount}
+
+Use estes dados para responder e ofereça análises mais detalhadas usando as ferramentas disponíveis.
+`;
+      console.log("✅ Context loaded:", { prospectsCount, storesCount, visitsCount });
+    }
     
     // Primeira chamada à IA com as ferramentas
     const systemPrompt = `Você é um analista de dados avançado especializado em CRM, Trade Marketing e Business Intelligence.
+
+${contextData}
 
 ## SUAS CAPACIDADES:
 - Consulta e análise de dados em tempo real usando as ferramentas disponíveis
@@ -346,11 +393,17 @@ serve(async (req) => {
 - Recomendações estratégicas baseadas em evidências
 
 ## FERRAMENTAS DISPONÍVEIS:
-Use as ferramentas para buscar dados reais do sistema. Sempre que possível, combine múltiplas consultas para análises mais completas.
+Use SEMPRE as ferramentas para buscar dados reais do sistema. Nunca invente dados!
+- consultar_prospects: busca prospects com filtros
+- consultar_lojas: busca lojas cadastradas
+- consultar_visitas: busca visitas realizadas
+- consultar_kpis: busca KPIs agregados (requer data_inicio e data_fim no formato YYYY-MM-DD)
+- consultar_vendas: busca vendas (requer data_inicio e data_fim)
+- ranking_usuarios: busca ranking de usuários
 
 ## FORMATO DE GRÁFICOS (use múltiplos quando apropriado):
 \`\`\`chart
-{"type":"bar|line|pie|area","title":"Título Descritivo","data":[{"name":"Label","value":123,"color":"#8884d8"}]}
+{"type":"bar|line|pie|area","title":"Título Descritivo","data":[{"name":"Label","value":123}]}
 \`\`\`
 
 ## FORMATO DE RELATÓRIOS:
@@ -360,13 +413,16 @@ Use as ferramentas para buscar dados reais do sistema. Sempre que possível, com
 - Inclua variações percentuais (▲ +5% ou ▼ -3%)
 - Adicione interpretações e insights após cada gráfico
 
-## REGRAS:
-- Datas no formato YYYY-MM-DD
-- Padrão: últimos 30 dias se não especificado
-- Sempre explique o que os dados significam
-- Seja proativo em sugerir análises complementares
+## REGRAS CRÍTICAS:
+- SEMPRE use as ferramentas para buscar dados antes de responder
+- Datas no formato YYYY-MM-DD (ex: 2024-01-01)
+- Use data de hoje: ${new Date().toISOString().split("T")[0]}
+- Padrão para consultas: últimos 30 dias
+- Seja proativo: se o usuário pedir algo vago, busque os dados relevantes
 
 Responda em português brasileiro.`;
+
+    console.log("🤖 Calling AI with tools, message:", lastUserMessage.substring(0, 50));
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -383,8 +439,7 @@ Responda em português brasileiro.`;
         tools,
         tool_choice: "auto",
         stream: true,
-        temperature: 0.7,
-        max_tokens: 1500,
+        max_completion_tokens: 4096,
       }),
     });
 
