@@ -535,6 +535,146 @@ serve(async (req) => {
       });
     }
 
+    // ============ IMPORTAR-CLIENTES - Import clients from ERP ============
+    if (path === "importar-clientes" && req.method === "POST") {
+      const auth = await authenticateRequest(req, supabase);
+      if (!auth.authenticated) {
+        return new Response(JSON.stringify({ error: "Não autorizado" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const body = await req.json();
+      const clientes = Array.isArray(body) ? body : body.clientes;
+
+      if (!clientes || !Array.isArray(clientes) || clientes.length === 0) {
+        return new Response(JSON.stringify({ error: "Array de clientes é obrigatório" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Use the database function to import
+      const { data, error } = await supabase.rpc("importar_clientes", {
+        p_clientes: clientes,
+      });
+
+      if (error) throw error;
+
+      console.log(`[Cobrança] Clientes importados:`, data);
+      return new Response(JSON.stringify({ success: true, ...data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ============ CLIENTES - List/search clients ============
+    if (path === "clientes" && (req.method === "GET" || req.method === "POST")) {
+      const auth = await authenticateRequest(req, supabase);
+      if (!auth.authenticated) {
+        return new Response(JSON.stringify({ error: "Não autorizado" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const search = url.searchParams.get("search");
+      const rota = url.searchParams.get("rota");
+      const status = url.searchParams.get("status");
+      const limit = parseInt(url.searchParams.get("limit") || "50");
+
+      let query = supabase
+        .from("vw_clientes_cobranca")
+        .select("*")
+        .limit(limit);
+
+      if (search) {
+        query = query.or(`cliente_nome.ilike.%${search}%,cnpj.ilike.%${search}%,cliente_codigo.ilike.%${search}%`);
+      }
+      if (rota) {
+        query = query.eq("rota", rota);
+      }
+      if (status) {
+        query = query.eq("status_bloqueio", status);
+      }
+
+      const { data, error } = await query.order("cliente_nome");
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true, data, count: data?.length || 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ============ CLIENTE-DETALHE - Get client details for billing ============
+    if (path === "cliente-detalhe" && (req.method === "GET" || req.method === "POST")) {
+      const auth = await authenticateRequest(req, supabase);
+      if (!auth.authenticated) {
+        return new Response(JSON.stringify({ error: "Não autorizado" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const codigo = url.searchParams.get("codigo");
+      if (!codigo) {
+        return new Response(JSON.stringify({ error: "codigo é obrigatório" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get client data
+      const { data: cliente, error: clienteError } = await supabase
+        .from("clientes")
+        .select("*")
+        .eq("codigo", codigo)
+        .single();
+
+      if (clienteError && clienteError.code !== "PGRST116") throw clienteError;
+
+      // Get open titles
+      const { data: titulos, error: titulosError } = await supabase
+        .from("contas_receber")
+        .select("*")
+        .eq("cliente_codigo", codigo)
+        .in("status", ["vencido", "pendente"])
+        .gt("valor_aberto", 0)
+        .order("data_vencimento");
+
+      if (titulosError) throw titulosError;
+
+      // Get credit profile
+      const { data: perfil } = await supabase
+        .from("clientes_perfil_credito")
+        .select("*")
+        .eq("cliente_codigo", codigo)
+        .single();
+
+      // Get collection history
+      const { data: historico } = await supabase
+        .from("cobrancas_enviadas")
+        .select("*")
+        .eq("cliente_codigo", codigo)
+        .order("enviado_em", { ascending: false })
+        .limit(10);
+
+      return new Response(JSON.stringify({
+        success: true,
+        cliente,
+        titulos_abertos: titulos || [],
+        perfil_credito: perfil,
+        historico_cobrancas: historico || [],
+        resumo: {
+          total_titulos: titulos?.length || 0,
+          valor_total: titulos?.reduce((sum, t) => sum + (t.valor_aberto || 0), 0) || 0,
+          maior_atraso: titulos?.reduce((max, t) => Math.max(max, t.dias_atraso || 0), 0) || 0,
+        }
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Default response
     return new Response(JSON.stringify({ 
       error: "Endpoint não encontrado",
@@ -547,6 +687,9 @@ serve(async (req) => {
         "GET /stats - Estatísticas da fila",
         "GET /templates - Lista templates",
         "GET /regras - Lista regras de escalonamento",
+        "POST /importar-clientes - Importa clientes do ERP",
+        "GET /clientes - Lista/pesquisa clientes",
+        "GET /cliente-detalhe?codigo=X - Detalhes do cliente para cobrança",
       ]
     }), {
       status: 404,
