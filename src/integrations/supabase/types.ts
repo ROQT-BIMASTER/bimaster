@@ -704,6 +704,141 @@ export type Database = {
           },
         ]
       }
+      clientes: {
+        Row: {
+          bairro: string | null
+          bairro_cobranca: string | null
+          celular: string | null
+          cep: string | null
+          cep_cobranca: string | null
+          cidade: string | null
+          cidade_cobranca: string | null
+          classificacao: number | null
+          cnpj: string | null
+          codigo: string
+          comprador: string | null
+          conceito: string | null
+          contrato: number | null
+          convenio: number | null
+          created_at: string | null
+          data_cadastro: string | null
+          data_maior_compra: string | null
+          data_ultima_compra: string | null
+          email: string | null
+          empresa_id: number | null
+          endereco: string | null
+          endereco_cobranca: string | null
+          fax: string | null
+          id: string
+          inscricao_estadual: string | null
+          limite_credito: number | null
+          nome: string
+          nome_abreviado: string | null
+          observacoes: string | null
+          portador: string | null
+          ramo_atividade: number | null
+          responsavel: string | null
+          rota: string | null
+          sincronizado_em: string | null
+          status_bloqueio: string | null
+          telefone: string | null
+          tipo_cliente: number | null
+          uf: string | null
+          uf_cobranca: string | null
+          updated_at: string | null
+          valor_maior_compra: number | null
+          valor_ultima_compra: number | null
+        }
+        Insert: {
+          bairro?: string | null
+          bairro_cobranca?: string | null
+          celular?: string | null
+          cep?: string | null
+          cep_cobranca?: string | null
+          cidade?: string | null
+          cidade_cobranca?: string | null
+          classificacao?: number | null
+          cnpj?: string | null
+          codigo: string
+          comprador?: string | null
+          conceito?: string | null
+          contrato?: number | null
+          convenio?: number | null
+          created_at?: string | null
+          data_cadastro?: string | null
+          data_maior_compra?: string | null
+          data_ultima_compra?: string | null
+          email?: string | null
+          empresa_id?: number | null
+          endereco?: string | null
+          endereco_cobranca?: string | null
+          fax?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          limite_credito?: number | null
+          nome: string
+          nome_abreviado?: string | null
+          observacoes?: string | null
+          portador?: string | null
+          ramo_atividade?: number | null
+          responsavel?: string | null
+          rota?: string | null
+          sincronizado_em?: string | null
+          status_bloqueio?: string | null
+          telefone?: string | null
+          tipo_cliente?: number | null
+          uf?: string | null
+          uf_cobranca?: string | null
+          updated_at?: string | null
+          valor_maior_compra?: number | null
+          valor_ultima_compra?: number | null
+        }
+        Update: {
+          bairro?: string | null
+          bairro_cobranca?: string | null
+          celular?: string | null
+          cep?: string | null
+          cep_cobranca?: string | null
+          cidade?: string | null
+          cidade_cobranca?: string | null
+          classificacao?: number | null
+          cnpj?: string | null
+          codigo?: string
+          comprador?: string | null
+          conceito?: string | null
+          contrato?: number | null
+          convenio?: number | null
+          created_at?: string | null
+          data_cadastro?: string | null
+          data_maior_compra?: string | null
+          data_ultima_compra?: string | null
+          email?: string | null
+          empresa_id?: number | null
+          endereco?: string | null
+          endereco_cobranca?: string | null
+          fax?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          limite_credito?: number | null
+          nome?: string
+          nome_abreviado?: string | null
+          observacoes?: string | null
+          portador?: string | null
+          ramo_atividade?: number | null
+          responsavel?: string | null
+          rota?: string | null
+          sincronizado_em?: string | null
+          status_bloqueio?: string | null
+          telefone?: string | null
+          tipo_cliente?: number | null
+          uf?: string | null
+          uf_cobranca?: string | null
+          updated_at?: string | null
+          valor_maior_compra?: number | null
+          valor_ultima_compra?: number | null
+        }
+        Relationships: []
+      }
       clientes_alertas_credito: {
         Row: {
           cliente_codigo: string
@@ -6168,6 +6303,7 @@ export type Database = {
         Row: {
           agendado_para: string | null
           canal: string
+          cliente_celular: string | null
           cliente_codigo: string
           cliente_email: string | null
           cliente_nome: string | null
@@ -6190,6 +6326,7 @@ export type Database = {
         Insert: {
           agendado_para?: string | null
           canal: string
+          cliente_celular?: string | null
           cliente_codigo: string
           cliente_email?: string | null
           cliente_nome?: string | null
@@ -6212,6 +6349,7 @@ export type Database = {
         Update: {
           agendado_para?: string | null
           canal?: string
+          cliente_celular?: string | null
           cliente_codigo?: string
           cliente_email?: string | null
           cliente_nome?: string | null
@@ -12248,6 +12386,33 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_clientes_cobranca: {
+        Row: {
+          celular: string | null
+          cidade: string | null
+          cliente_codigo: string | null
+          cliente_id: string | null
+          cliente_nome: string | null
+          cnpj: string | null
+          comportamento_pagamento: string | null
+          dme: number | null
+          email: string | null
+          endereco: string | null
+          limite_credito: number | null
+          maior_atraso_dias: number | null
+          pontualidade_percentual: number | null
+          rota: string | null
+          score_atual: number | null
+          score_classificacao: string | null
+          status_bloqueio: string | null
+          telefone: string | null
+          total_titulos_abertos: number | null
+          uf: string | null
+          valor_total_aberto: number | null
+          vencimento_mais_antigo: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       atualizar_perfil_credito_cliente: {
@@ -12255,6 +12420,20 @@ export type Database = {
         Returns: string
       }
       bulk_upsert_contas_receber: { Args: { p_records: Json }; Returns: Json }
+      buscar_dados_cliente_cobranca: {
+        Args: { p_cliente_codigo: string }
+        Returns: {
+          cliente_celular: string
+          cliente_cidade: string
+          cliente_email: string
+          cliente_endereco: string
+          cliente_nome: string
+          cliente_telefone: string
+          cliente_uf: string
+          limite_credito: number
+          status_bloqueio: string
+        }[]
+      }
       buscar_regra_fiscal_item: {
         Args: {
           p_ncm: string
@@ -12537,6 +12716,7 @@ export type Database = {
       }
       icms_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       icms_tipo_credito: { Args: { p_cst: string }; Returns: string }
+      importar_clientes: { Args: { p_clientes: Json }; Returns: Json }
       is_admin_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
       is_participant_of_conversa: {
         Args: { conversa_id_param: string; user_id_param: string }
