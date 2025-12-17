@@ -10520,6 +10520,45 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_sessions: {
+        Row: {
+          chunks_processados: number | null
+          completed_at: string | null
+          entidade: string
+          id: string
+          metadata: Json | null
+          started_at: string | null
+          status: string | null
+          total_chunks: number | null
+          total_esperado: number | null
+          total_processado: number | null
+        }
+        Insert: {
+          chunks_processados?: number | null
+          completed_at?: string | null
+          entidade: string
+          id?: string
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string | null
+          total_chunks?: number | null
+          total_esperado?: number | null
+          total_processado?: number | null
+        }
+        Update: {
+          chunks_processados?: number | null
+          completed_at?: string | null
+          entidade?: string
+          id?: string
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string | null
+          total_chunks?: number | null
+          total_esperado?: number | null
+          total_processado?: number | null
+        }
+        Relationships: []
+      }
       telas_sistema: {
         Row: {
           ativo: boolean | null
@@ -12420,6 +12459,10 @@ export type Database = {
         Returns: string
       }
       bulk_upsert_contas_receber: { Args: { p_records: Json }; Returns: Json }
+      bulk_upsert_contas_receber_v2: {
+        Args: { p_records: Json }
+        Returns: Json
+      }
       buscar_dados_cliente_cobranca: {
         Args: { p_cliente_codigo: string }
         Returns: {
@@ -12774,6 +12817,18 @@ export type Database = {
       sincronizar_permissoes_usuario: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      start_sync_session: {
+        Args: {
+          p_entidade: string
+          p_total_chunks: number
+          p_total_esperado: number
+        }
+        Returns: string
+      }
+      update_sync_progress: {
+        Args: { p_records_processed: number; p_session_id: string }
+        Returns: Json
       }
       update_user_ranking: {
         Args: { p_period_key: string; p_period_type: string; p_user_id: string }
