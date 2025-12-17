@@ -6,14 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-// Configurações para carga massiva - OTIMIZADO PARA CHUNKING INTELIGENTE
-const BULK_BATCH_SIZE = 1000;
-const MAX_PAYLOAD_SIZE = 35000;
-const UPSERT_BATCH_SIZE = 50;
-const BATCH_DELAY_MS = 30;
+// Configurações OTIMIZADAS para 1 MILHÃO+ de registros
+const BULK_BATCH_SIZE = 5000;       // Aumentado para usar função v2 otimizada
+const MAX_PAYLOAD_SIZE = 100000;    // 100k registros max por request
+const UPSERT_BATCH_SIZE = 500;      // Aumentado para fallback
+const BATCH_DELAY_MS = 10;          // Reduzido - função v2 é mais rápida
 const MAX_RETRIES = 5;
-const RETRY_BASE_DELAY_MS = 200;
-const RECOMMENDED_CHUNK_SIZE = 5000; // Tamanho recomendado por chunk N8N
+const RETRY_BASE_DELAY_MS = 100;
+const RECOMMENDED_CHUNK_SIZE = 10000; // Recomendado: 10k por chunk N8N
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -124,7 +124,8 @@ async function processBulkInsert(
     
     let success = false;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      const { data, error } = await supabase.rpc('bulk_upsert_contas_receber', { 
+      // Usando função V2 otimizada (operação em conjunto, sem LOOP)
+      const { data, error } = await supabase.rpc('bulk_upsert_contas_receber_v2', { 
         p_records: batch 
       });
       
