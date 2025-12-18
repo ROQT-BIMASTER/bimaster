@@ -152,6 +152,228 @@ export type Database = {
           },
         ]
       }
+      ads_accounts: {
+        Row: {
+          account_id: string
+          account_name: string
+          created_at: string
+          credentials: Json | null
+          id: string
+          is_active: boolean | null
+          last_sync_at: string | null
+          platform: string
+          sync_status: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          account_id: string
+          account_name: string
+          created_at?: string
+          credentials?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          platform: string
+          sync_status?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          account_name?: string
+          created_at?: string
+          credentials?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          platform?: string
+          sync_status?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ads_campaign_metrics: {
+        Row: {
+          campaign_id: string | null
+          clicks: number | null
+          conversion_value: number | null
+          conversions: number | null
+          cpc: number | null
+          created_at: string
+          ctr: number | null
+          id: string
+          impressions: number | null
+          metric_date: string
+          reach: number | null
+          spend: number | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          clicks?: number | null
+          conversion_value?: number | null
+          conversions?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          id?: string
+          impressions?: number | null
+          metric_date: string
+          reach?: number | null
+          spend?: number | null
+        }
+        Update: {
+          campaign_id?: string | null
+          clicks?: number | null
+          conversion_value?: number | null
+          conversions?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          id?: string
+          impressions?: number | null
+          metric_date?: string
+          reach?: number | null
+          spend?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_campaign_metrics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ads_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_campaigns: {
+        Row: {
+          account_id: string | null
+          budget_type: string | null
+          campaign_id: string
+          campaign_name: string
+          created_at: string
+          daily_budget: number | null
+          end_date: string | null
+          id: string
+          lifetime_budget: number | null
+          objective: string | null
+          start_date: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          budget_type?: string | null
+          campaign_id: string
+          campaign_name: string
+          created_at?: string
+          daily_budget?: number | null
+          end_date?: string | null
+          id?: string
+          lifetime_budget?: number | null
+          objective?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          budget_type?: string | null
+          campaign_id?: string
+          campaign_name?: string
+          created_at?: string
+          daily_budget?: number | null
+          end_date?: string | null
+          id?: string
+          lifetime_budget?: number | null
+          objective?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_campaigns_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "ads_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads_metrics: {
+        Row: {
+          account_id: string | null
+          campaign_data: Json | null
+          clicks: number | null
+          conversion_value: number | null
+          conversions: number | null
+          cpc: number | null
+          cpm: number | null
+          created_at: string
+          ctr: number | null
+          engagement: number | null
+          frequency: number | null
+          id: string
+          impressions: number | null
+          metric_date: string
+          reach: number | null
+          roas: number | null
+          spend: number | null
+          video_views: number | null
+        }
+        Insert: {
+          account_id?: string | null
+          campaign_data?: Json | null
+          clicks?: number | null
+          conversion_value?: number | null
+          conversions?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string
+          ctr?: number | null
+          engagement?: number | null
+          frequency?: number | null
+          id?: string
+          impressions?: number | null
+          metric_date: string
+          reach?: number | null
+          roas?: number | null
+          spend?: number | null
+          video_views?: number | null
+        }
+        Update: {
+          account_id?: string | null
+          campaign_data?: Json | null
+          clicks?: number | null
+          conversion_value?: number | null
+          conversions?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string
+          ctr?: number | null
+          engagement?: number | null
+          frequency?: number | null
+          id?: string
+          impressions?: number | null
+          metric_date?: string
+          reach?: number | null
+          roas?: number | null
+          spend?: number | null
+          video_views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ads_metrics_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "ads_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agg_daily_kpis: {
         Row: {
           created_at: string | null
@@ -394,6 +616,74 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      analytics_metrics: {
+        Row: {
+          account_id: string | null
+          avg_session_duration: number | null
+          bounce_rate: number | null
+          created_at: string
+          device_data: Json | null
+          geo_data: Json | null
+          goal_completions: number | null
+          id: string
+          metric_date: string
+          new_users: number | null
+          pages_per_session: number | null
+          pageviews: number | null
+          revenue: number | null
+          sessions: number | null
+          source_medium_data: Json | null
+          transactions: number | null
+          users: number | null
+        }
+        Insert: {
+          account_id?: string | null
+          avg_session_duration?: number | null
+          bounce_rate?: number | null
+          created_at?: string
+          device_data?: Json | null
+          geo_data?: Json | null
+          goal_completions?: number | null
+          id?: string
+          metric_date: string
+          new_users?: number | null
+          pages_per_session?: number | null
+          pageviews?: number | null
+          revenue?: number | null
+          sessions?: number | null
+          source_medium_data?: Json | null
+          transactions?: number | null
+          users?: number | null
+        }
+        Update: {
+          account_id?: string | null
+          avg_session_duration?: number | null
+          bounce_rate?: number | null
+          created_at?: string
+          device_data?: Json | null
+          geo_data?: Json | null
+          goal_completions?: number | null
+          id?: string
+          metric_date?: string
+          new_users?: number | null
+          pages_per_session?: number | null
+          pageviews?: number | null
+          revenue?: number | null
+          sessions?: number | null
+          source_medium_data?: Json | null
+          transactions?: number | null
+          users?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_metrics_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "ads_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       api_access_log: {
         Row: {
