@@ -15,8 +15,9 @@ import {
   Palette, Sparkles, Image, Wand2, Download, Copy, 
   Instagram, FileImage, Mail, Video, Loader2, Check,
   Layout, Type, RefreshCw, Upload, Trash2, Eye, X,
-  FileVideo, File, Filter, Search, Plus, FolderOpen
+  FileVideo, File, Filter, Search, Plus, FolderOpen, Camera
 } from "lucide-react";
+import { ProductCreativeGenerator } from "../ProductCreativeGenerator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -753,14 +754,18 @@ export function CreativeHub() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="assets" className="space-y-4">
-          <TabsList className="grid grid-cols-3 w-full max-w-md">
+          <TabsList className="grid grid-cols-4 w-full max-w-lg">
             <TabsTrigger value="assets" className="text-xs">
               <Image className="h-3 w-3 mr-1" />
               Assets
             </TabsTrigger>
+            <TabsTrigger value="creative" className="text-xs">
+              <Camera className="h-3 w-3 mr-1" />
+              Criativo IA
+            </TabsTrigger>
             <TabsTrigger value="generator" className="text-xs">
               <Wand2 className="h-3 w-3 mr-1" />
-              Gerador IA
+              Gerador
             </TabsTrigger>
             <TabsTrigger value="templates" className="text-xs">
               <Layout className="h-3 w-3 mr-1" />
@@ -770,6 +775,12 @@ export function CreativeHub() {
 
           <TabsContent value="assets">
             <AssetGallery />
+          </TabsContent>
+
+          <TabsContent value="creative">
+            <ScrollArea className="h-[500px] pr-4">
+              <ProductCreativeGenerator />
+            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="generator" className="space-y-4">

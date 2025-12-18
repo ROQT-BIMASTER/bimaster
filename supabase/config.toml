@@ -172,3 +172,7 @@ verify_jwt = false
 # Auditoria de Contas a Receber
 [functions.auditoria-contas-receber]
 verify_jwt = true
+
+# Gerador de Criativos com Lovable AI (Nano Banana)
+[functions.generate-product-creative]
+verify_jwt = true
