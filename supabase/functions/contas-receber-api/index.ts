@@ -781,7 +781,8 @@ Deno.serve(async (req) => {
 
     // ============ POST /sync-incremental - Sincronização INCREMENTAL ============
     if (path.endsWith('/sync-incremental') && req.method === 'POST') {
-      if (!validateApiKey()) {
+      // Accept both API key (N8N) and JWT (frontend)
+      if (!(await validateAuth())) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
