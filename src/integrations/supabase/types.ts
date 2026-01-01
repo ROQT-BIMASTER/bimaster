@@ -8249,6 +8249,69 @@ export type Database = {
           },
         ]
       }
+      n8n_cache_contas_receber: {
+        Row: {
+          cliente_codigo: string | null
+          conta_data: Json
+          created_at: string | null
+          erp_id: string | null
+          id: number
+          synced_at: string | null
+        }
+        Insert: {
+          cliente_codigo?: string | null
+          conta_data: Json
+          created_at?: string | null
+          erp_id?: string | null
+          id?: number
+          synced_at?: string | null
+        }
+        Update: {
+          cliente_codigo?: string | null
+          conta_data?: Json
+          created_at?: string | null
+          erp_id?: string | null
+          id?: number
+          synced_at?: string | null
+        }
+        Relationships: []
+      }
+      n8n_sync_control: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          last_sync: string | null
+          metadata: Json | null
+          records_processed: number | null
+          status: string | null
+          table_name: string
+          total_records: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          last_sync?: string | null
+          metadata?: Json | null
+          records_processed?: number | null
+          status?: string | null
+          table_name: string
+          total_records?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          last_sync?: string | null
+          metadata?: Json | null
+          records_processed?: number | null
+          status?: string | null
+          table_name?: string
+          total_records?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           digest_frequency: string | null
