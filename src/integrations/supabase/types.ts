@@ -10949,6 +10949,7 @@ export type Database = {
           entidade: string
           error_message: string | null
           id: string
+          last_sync: string | null
           last_sync_at: string
           metadata: Json | null
           records_inserted: number | null
@@ -10956,7 +10957,9 @@ export type Database = {
           records_skipped: number | null
           records_updated: number | null
           status: string | null
+          sync_name: string | null
           tipo_sync: string
+          total_records: number | null
         }
         Insert: {
           created_at?: string | null
@@ -10964,6 +10967,7 @@ export type Database = {
           entidade: string
           error_message?: string | null
           id?: string
+          last_sync?: string | null
           last_sync_at?: string
           metadata?: Json | null
           records_inserted?: number | null
@@ -10971,7 +10975,9 @@ export type Database = {
           records_skipped?: number | null
           records_updated?: number | null
           status?: string | null
+          sync_name?: string | null
           tipo_sync: string
+          total_records?: number | null
         }
         Update: {
           created_at?: string | null
@@ -10979,6 +10985,7 @@ export type Database = {
           entidade?: string
           error_message?: string | null
           id?: string
+          last_sync?: string | null
           last_sync_at?: string
           metadata?: Json | null
           records_inserted?: number | null
@@ -10986,7 +10993,9 @@ export type Database = {
           records_skipped?: number | null
           records_updated?: number | null
           status?: string | null
+          sync_name?: string | null
           tipo_sync?: string
+          total_records?: number | null
         }
         Relationships: []
       }
