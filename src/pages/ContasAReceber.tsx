@@ -55,13 +55,17 @@ export default function ContasAReceber() {
   const [filterMes, setFilterMes] = useState<string>("all");
 
   // Query contas a receber
-  const { data: contas, isLoading } = useQuery<ContaReceber[]>({
-    queryKey: ['contas-receber', searchCliente, filterStatus, filterEmpresas, filterAno, filterMes],
+  const [page, setPage] = useState(1);
+  const pageSize = 500;
+
+  const { data: contasData, isLoading } = useQuery({
+    queryKey: ['contas-receber', searchCliente, filterStatus, filterEmpresas, filterAno, filterMes, page],
     queryFn: async () => {
       let query = supabase
         .from('contas_receber' as any)
-        .select('*')
-        .order('data_vencimento', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('data_vencimento', { ascending: false })
+        .range((page - 1) * pageSize, page * pageSize - 1);
 
       if (searchCliente) {
         query = query.ilike('cliente_nome', `%${searchCliente}%`);
@@ -91,11 +95,15 @@ export default function ContasAReceber() {
         query = query.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data as unknown as ContaReceber[];
+      return { data: data as unknown as ContaReceber[], count: count || 0 };
     }
   });
+
+  const contas = contasData?.data;
+  const totalCount = contasData?.count || 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   // Empresas únicas para filtro
   const empresas = Array.from(new Set(contas?.map(c => ({ id: c.empresa_id, nome: c.empresa_nome })) || []))
@@ -381,7 +389,7 @@ export default function ContasAReceber() {
                           </TableCell>
                         </TableRow>
                       ) : contas && contas.length > 0 ? (
-                        contas.slice(0, 100).map((conta) => (
+                        contas.map((conta) => (
                           <TableRow key={conta.id}>
                             <TableCell className="font-medium">{conta.empresa_nome}</TableCell>
                             <TableCell>{conta.numero_documento}/{conta.parcela}</TableCell>
@@ -416,10 +424,35 @@ export default function ContasAReceber() {
                     </TableBody>
                   </Table>
                 </div>
-                {contas && contas.length > 100 && (
-                  <p className="text-sm text-muted-foreground mt-4 text-center">
-                    Exibindo 100 de {contas.length} registros. Use os filtros para refinar sua busca.
-                  </p>
+                
+                {/* Paginação */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, totalCount)} de {totalCount.toLocaleString()} registros
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                      >
+                        Anterior
+                      </Button>
+                      <span className="flex items-center px-3 text-sm">
+                        Página {page} de {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page >= totalPages}
+                      >
+                        Próxima
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>

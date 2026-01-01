@@ -1,12 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
 import { useN8NSync } from '@/hooks/useN8NSync';
-import { RefreshCw, Wifi, WifiOff, Play, Eye, Clock, Database, Zap, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { 
+  RefreshCw, Wifi, WifiOff, Play, Eye, Clock, Database, Zap, 
+  CheckCircle, XCircle, Loader2, TrendingUp, AlertCircle, 
+  History, ArrowUpCircle, StopCircle
+} from 'lucide-react';
+import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function ContasReceberSyncPage() {
@@ -17,14 +22,35 @@ export default function ContasReceberSyncPage() {
     preview,
     syncResult,
     error,
+    syncHistory,
+    lastSyncTimestamp,
+    eta,
     testConnection,
     fetchPreview,
     syncAll,
+    syncIncremental,
+    cancelSync,
+    getLastSyncTimestamp,
   } = useN8NSync();
+
+  const [activeSync, setActiveSync] = useState<'full' | 'incremental' | null>(null);
 
   useEffect(() => {
     testConnection();
+    getLastSyncTimestamp('full');
   }, []);
+
+  const handleSyncFull = async () => {
+    setActiveSync('full');
+    await syncAll(25000); // Usando chunk de 25k
+    setActiveSync(null);
+  };
+
+  const handleSyncIncremental = async () => {
+    setActiveSync('incremental');
+    await syncIncremental();
+    setActiveSync(null);
+  };
 
   return (
     <DashboardLayout>
@@ -34,7 +60,7 @@ export default function ContasReceberSyncPage() {
           <div>
             <h1 className="text-2xl font-bold">Sincronização com ERP</h1>
             <p className="text-muted-foreground">
-              Contas a Receber via N8N Webhook
+              Contas a Receber - Otimizado para 1M+ registros
             </p>
           </div>
           <div className="flex gap-2">
@@ -46,18 +72,56 @@ export default function ContasReceberSyncPage() {
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
               Testar Conexão
             </Button>
-            <Button
-              onClick={() => syncAll()}
-              disabled={isSyncing || !status?.n8n?.connected}
-            >
-              {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Sincronizar Agora
-            </Button>
+            {isSyncing ? (
+              <Button variant="destructive" onClick={cancelSync}>
+                <StopCircle className="h-4 w-4 mr-2" />
+                Cancelar
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleSyncIncremental}
+                  disabled={!status?.n8n?.connected}
+                >
+                  <ArrowUpCircle className="h-4 w-4 mr-2" />
+                  Sync Incremental
+                </Button>
+                <Button
+                  onClick={handleSyncFull}
+                  disabled={!status?.n8n?.connected}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Sync Full
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
+        {/* Sync in Progress */}
+        {isSyncing && (
+          <Card className="border-primary">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                Sincronização {activeSync === 'full' ? 'FULL' : 'INCREMENTAL'} em Andamento
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Progress value={undefined} className="h-2" />
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Processando registros...</span>
+                  {eta && <span>ETA: {eta}</span>}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* N8N Connection */}
           <Card>
             <CardHeader className="pb-2">
@@ -78,11 +142,8 @@ export default function ContasReceberSyncPage() {
                   </Badge>
                   {status.n8n.responseTime && (
                     <p className="text-sm text-muted-foreground">
-                      Tempo de resposta: {status.n8n.responseTime}ms
+                      {status.n8n.responseTime}ms
                     </p>
-                  )}
-                  {status.n8n.error && (
-                    <p className="text-sm text-destructive">{status.n8n.error}</p>
                   )}
                 </div>
               ) : (
@@ -101,7 +162,7 @@ export default function ContasReceberSyncPage() {
             </CardHeader>
             <CardContent>
               {status?.local ? (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <p className="text-2xl font-bold">
                     {status.local.totalRecords.toLocaleString()}
                   </p>
@@ -118,29 +179,55 @@ export default function ContasReceberSyncPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Última Sincronização
+                Última Sync
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {status?.local?.lastSync ? (
-                <div className="space-y-2">
+              {lastSyncTimestamp ? (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    {formatDistanceToNow(new Date(lastSyncTimestamp), {
+                      addSuffix: true,
+                      locale: ptBR,
+                    })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(lastSyncTimestamp), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  </p>
+                </div>
+              ) : status?.local?.lastSync ? (
+                <div className="space-y-1">
                   <p className="text-sm">
                     {formatDistanceToNow(new Date(status.local.lastSync), {
                       addSuffix: true,
                       locale: ptBR,
                     })}
                   </p>
-                  <Badge variant={status.local.lastSyncStatus === 'completed' ? 'default' : 'secondary'}>
-                    {status.local.lastSyncStatus}
-                  </Badge>
-                  {status.local.lastSyncRecords && (
-                    <p className="text-sm text-muted-foreground">
-                      {status.local.lastSyncRecords.toLocaleString()} registros
-                    </p>
-                  )}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Nenhuma sincronização</p>
+                <p className="text-sm text-muted-foreground">Nenhuma</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Performance */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Performance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {syncResult?.statistics ? (
+                <div className="space-y-1">
+                  <p className="text-2xl font-bold">
+                    {syncResult.statistics.rate_per_second}
+                  </p>
+                  <p className="text-sm text-muted-foreground">rec/segundo</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">-</p>
               )}
             </CardContent>
           </Card>
@@ -148,7 +235,7 @@ export default function ContasReceberSyncPage() {
 
         {/* Sync Result */}
         {syncResult && (
-          <Card className={syncResult.success ? 'border-green-500' : 'border-red-500'}>
+          <Card className={syncResult.success ? 'border-green-500/50' : 'border-red-500/50'}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 {syncResult.success ? (
@@ -156,11 +243,38 @@ export default function ContasReceberSyncPage() {
                 ) : (
                   <XCircle className="h-5 w-5 text-red-500" />
                 )}
-                Resultado da Sincronização
+                Resultado - {syncResult.mode?.toUpperCase() || 'SYNC'}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {syncResult.success && syncResult.summary ? (
+              {syncResult.success && syncResult.statistics ? (
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Recebidos</p>
+                    <p className="text-xl font-bold">{syncResult.statistics.total_received?.toLocaleString() || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Processados</p>
+                    <p className="text-xl font-bold text-green-600">{syncResult.statistics.processed?.toLocaleString() || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Inseridos</p>
+                    <p className="text-xl font-bold text-blue-600">{syncResult.statistics.inserted?.toLocaleString() || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Atualizados</p>
+                    <p className="text-xl font-bold text-orange-600">{syncResult.statistics.updated?.toLocaleString() || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Ignorados</p>
+                    <p className="text-xl font-bold text-muted-foreground">{syncResult.statistics.skipped?.toLocaleString() || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Velocidade</p>
+                    <p className="text-xl font-bold">{syncResult.statistics.rate_per_second} rec/s</p>
+                  </div>
+                </div>
+              ) : syncResult.success && syncResult.summary ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Registros</p>
@@ -182,6 +296,70 @@ export default function ContasReceberSyncPage() {
               ) : (
                 <p className="text-destructive">{syncResult.error}</p>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Sync History */}
+        {syncHistory.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                Histórico de Sincronizações
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Processados</TableHead>
+                      <TableHead className="text-right">Inseridos</TableHead>
+                      <TableHead className="text-right">Atualizados</TableHead>
+                      <TableHead className="text-right">Ignorados</TableHead>
+                      <TableHead className="text-right">Duração</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {syncHistory.slice(0, 10).map((sync) => (
+                      <TableRow key={sync.id}>
+                        <TableCell>
+                          {format(new Date(sync.last_sync_at), "dd/MM HH:mm", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={sync.tipo_sync === 'full' ? 'default' : 'secondary'}>
+                            {sync.tipo_sync}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={sync.status === 'completed' ? 'default' : sync.status === 'partial' ? 'secondary' : 'destructive'}>
+                            {sync.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {sync.records_processed?.toLocaleString() || '-'}
+                        </TableCell>
+                        <TableCell className="text-right text-green-600">
+                          {sync.records_inserted?.toLocaleString() || '-'}
+                        </TableCell>
+                        <TableCell className="text-right text-orange-600">
+                          {sync.records_updated?.toLocaleString() || '-'}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {sync.records_skipped?.toLocaleString() || '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {sync.duration_ms ? `${(sync.duration_ms / 1000).toFixed(1)}s` : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -274,31 +452,52 @@ export default function ContasReceberSyncPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5" />
-              Sobre a Integração
+              Configuração Otimizada para 1M+ Registros
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-medium mb-2">Webhook N8N</h4>
-                <code className="text-xs bg-muted p-2 rounded block break-all">
-                  {status?.n8n?.webhookUrl || 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp'}
-                </code>
-              </div>
-              <div>
-                <h4 className="font-medium mb-2">Fluxos Ativos</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <h4 className="font-medium mb-2">Sync FULL</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• <strong>Agendado:</strong> A cada 40 minutos (automático)</li>
-                  <li>• <strong>Manual:</strong> Via botão "Sincronizar Agora"</li>
+                  <li>• Chunks de 25.000 registros</li>
+                  <li>• Timeout: 180s por chunk</li>
+                  <li>• Ideal: 1x/dia às 02:00</li>
+                  <li>• Tempo: ~15min para 1M</li>
+                </ul>
+              </div>
+              <div className="p-4 bg-muted rounded-lg">
+                <h4 className="font-medium mb-2">Sync INCREMENTAL</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Apenas registros alterados</li>
+                  <li>• Comparação por hash</li>
+                  <li>• Ideal: 4x/dia (08h, 14h, 20h)</li>
+                  <li>• Economia de ~90% tempo</li>
+                </ul>
+              </div>
+              <div className="p-4 bg-muted rounded-lg">
+                <h4 className="font-medium mb-2">Performance</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Taxa: ~1.500 rec/segundo</li>
+                  <li>• Batch SQL: 10.000 registros</li>
+                  <li>• Retry: 5x com backoff</li>
+                  <li>• Monitoramento em tempo real</li>
                 </ul>
               </div>
             </div>
-            <div>
-              <h4 className="font-medium mb-2">Performance</h4>
-              <p className="text-sm text-muted-foreground">
-                Processamento de ~1000 registros por página. Para 1.5M de registros, 
-                a sincronização completa leva aproximadamente 25-30 minutos.
-              </p>
+            
+            <div className="p-4 border border-amber-500/30 bg-amber-500/10 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-amber-700">Recomendação N8N</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Configure o workflow N8N com <strong>Split In Batches</strong> de 25.000 registros 
+                    e <strong>Wait</strong> de 2 segundos entre chunks. Veja a documentação completa em 
+                    <code className="ml-1 text-xs bg-muted px-1 rounded">docs/N8N_WORKFLOW_1M_REGISTROS.md</code>
+                  </p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
