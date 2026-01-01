@@ -270,12 +270,13 @@ async function handlePreview(req: Request) {
 }
 
 // Full sync with pagination - SEM LIMITE de registros totais
+// Continua até não haver mais dados retornados
 async function handleSyncAll(req: Request, supabase: any, userId: string) {
   const body = await req.json().catch(() => ({}));
   // Usar o batchSize solicitado ou o padrão - SEM LIMITE MÁXIMO
   const batchSize = body.batchSize || DEFAULT_BATCH_SIZE;
 
-  console.log(`🔄 Starting UNLIMITED full sync with batch size: ${batchSize}`);
+  console.log(`🔄 Starting UNLIMITED full sync with batch size: ${batchSize} - WILL CONTINUE UNTIL NO MORE DATA`);
 
   const startTime = Date.now();
 
@@ -285,7 +286,7 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
     .insert({
       tipo: 'contas_receber',
       status: 'running',
-      detalhes: { source: 'n8n-webhook', batchSize, startedBy: userId },
+      detalhes: { source: 'n8n-webhook', batchSize, startedBy: userId, unlimited: true },
     })
     .select()
     .single();
@@ -301,7 +302,7 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
       entidade: 'contas_receber',
       tipo_sync: 'full',
       status: 'running',
-      metadata: { source: 'n8n-webhook', batchSize, startedBy: userId },
+      metadata: { source: 'n8n-webhook', batchSize, startedBy: userId, unlimited: true },
     })
     .select()
     .single();
@@ -317,14 +318,16 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
   let totalProcessed = 0;
   let totalCreated = 0;
   let totalUpdated = 0;
-  let hasMore = true;
+  let consecutiveEmptyPages = 0;
   let pageCount = 0;
   const errors: any[] = [];
+  const MAX_CONSECUTIVE_EMPTY = 3; // Para de buscar após 3 páginas vazias consecutivas
 
   try {
-    while (hasMore) {
+    // Loop INFINITO até não haver mais dados
+    while (true) {
       pageCount++;
-      console.log(`📄 Processing page ${pageCount}, offset: ${offset}`);
+      console.log(`📄 Processing page ${pageCount}, offset: ${offset}, total so far: ${totalProcessed}`);
 
       // Fetch from N8N
       const response = await fetch(N8N_WEBHOOK_URL, {
@@ -338,18 +341,45 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
       });
 
       if (!response.ok) {
-        throw new Error(`N8N webhook error on page ${pageCount}: ${response.status}`);
+        // Log error but try to continue
+        console.error(`⚠️ N8N webhook error on page ${pageCount}: ${response.status}`);
+        errors.push({ page: pageCount, error: `HTTP ${response.status}` });
+        
+        // Incrementar offset e tentar próxima página
+        offset += batchSize;
+        consecutiveEmptyPages++;
+        
+        if (consecutiveEmptyPages >= MAX_CONSECUTIVE_EMPTY) {
+          console.log(`🛑 Stopping after ${MAX_CONSECUTIVE_EMPTY} consecutive errors/empty pages`);
+          break;
+        }
+        continue;
       }
 
       const data = await response.json();
 
-      if (!data.success || !data.data || data.data.length === 0) {
-        hasMore = false;
-        break;
+      // Verificar se há dados - CONDIÇÃO DE PARADA
+      const records = data.data || [];
+      
+      if (records.length === 0) {
+        consecutiveEmptyPages++;
+        console.log(`⚠️ Empty page ${pageCount}, consecutive empty: ${consecutiveEmptyPages}`);
+        
+        if (consecutiveEmptyPages >= MAX_CONSECUTIVE_EMPTY) {
+          console.log(`🛑 Stopping: ${MAX_CONSECUTIVE_EMPTY} consecutive empty pages - ALL DATA LOADED`);
+          break;
+        }
+        
+        // Tentar próximo offset mesmo assim
+        offset += batchSize;
+        continue;
       }
+      
+      // Reset contador de páginas vazias
+      consecutiveEmptyPages = 0;
 
       // Transform records
-      const transformedRecords = data.data.map(transformErpData);
+      const transformedRecords = records.map(transformErpData);
       
       // Generate hashes for deduplication
       for (const record of transformedRecords) {
@@ -380,11 +410,16 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
         }
       }
       
-      console.log(`✅ Page ${pageCount} processed: ${transformedRecords.length} records`);
+      console.log(`✅ Page ${pageCount} processed: ${transformedRecords.length} records, total: ${totalProcessed}`);
 
-      // Check if there's more data
-      hasMore = data.metadata?.hasMoreData === true;
-      offset = data.metadata?.nextOffset || offset + batchSize;
+      // Atualizar offset - usar nextOffset se disponível, senão calcular
+      const previousOffset = offset;
+      offset = data.metadata?.nextOffset || (offset + records.length);
+      
+      // Se o offset não mudou, forçar incremento
+      if (offset === previousOffset) {
+        offset += batchSize;
+      }
 
       // Update sync log progress
       if (syncId) {
@@ -398,6 +433,7 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
               pagesProcessed: pageCount,
               currentOffset: offset,
               errors: errors.length,
+              unlimited: true,
             },
           })
           .eq('id', syncId);
@@ -415,14 +451,21 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
               pagesProcessed: pageCount,
               currentOffset: offset,
               errors: errors.length,
+              unlimited: true,
             },
           })
           .eq('id', trackingId);
       }
 
-      // Small delay between pages to avoid overwhelming the webhook
-      if (hasMore) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+      // Se retornou menos que o batch size, provavelmente é a última página
+      if (records.length < batchSize) {
+        console.log(`📊 Last page detected (${records.length} < ${batchSize}) - checking for more...`);
+        // Continuar tentando mais uma vez para garantir
+      }
+
+      // Pequeno delay apenas se tiver processado muitos registros para não sobrecarregar
+      if (pageCount % 10 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
 
