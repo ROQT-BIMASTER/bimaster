@@ -291,15 +291,33 @@ export function useN8NSync() {
         return { success: true, processed: 0 };
       }
       
-      // Enviar para sync incremental
-      const { data, error: fnError } = await supabase.functions.invoke('contas-receber-api/sync-incremental', {
-        body: { 
+      // Enviar para sync incremental usando fetch direto (supabase.functions.invoke não suporta subpaths)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('Não autenticado');
+      }
+      
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/contas-receber-api/sync-incremental`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ 
           contas: n8nData.data,
           skip_unchanged: true
-        },
+        }),
       });
       
-      if (fnError) throw fnError;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
       
       setSyncResult(data);
       
