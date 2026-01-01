@@ -10849,6 +10849,54 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_tracking: {
+        Row: {
+          created_at: string | null
+          duration_ms: number | null
+          entidade: string
+          error_message: string | null
+          id: string
+          last_sync_at: string
+          metadata: Json | null
+          records_inserted: number | null
+          records_processed: number | null
+          records_skipped: number | null
+          records_updated: number | null
+          status: string | null
+          tipo_sync: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_ms?: number | null
+          entidade: string
+          error_message?: string | null
+          id?: string
+          last_sync_at?: string
+          metadata?: Json | null
+          records_inserted?: number | null
+          records_processed?: number | null
+          records_skipped?: number | null
+          records_updated?: number | null
+          status?: string | null
+          tipo_sync: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_ms?: number | null
+          entidade?: string
+          error_message?: string | null
+          id?: string
+          last_sync_at?: string
+          metadata?: Json | null
+          records_inserted?: number | null
+          records_processed?: number | null
+          records_skipped?: number | null
+          records_updated?: number | null
+          status?: string | null
+          tipo_sync?: string
+        }
+        Relationships: []
+      }
       telas_sistema: {
         Row: {
           ativo: boolean | null
@@ -12669,6 +12717,19 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_tracking_summary: {
+        Row: {
+          avg_duration_ms: number | null
+          completed_count: number | null
+          entidade: string | null
+          failed_count: number | null
+          last_sync_at: string | null
+          tipo_sync: string | null
+          total_records_processed: number | null
+          total_syncs: number | null
+        }
+        Relationships: []
+      }
       team_performance_view: {
         Row: {
           audits_this_month: number | null
@@ -12841,6 +12902,19 @@ export type Database = {
         }[]
       }
       calculate_visit_points: { Args: { visit_id: string }; Returns: number }
+      complete_sync: {
+        Args: {
+          p_duration_ms?: number
+          p_error_message?: string
+          p_records_inserted?: number
+          p_records_processed: number
+          p_records_skipped?: number
+          p_records_updated?: number
+          p_status?: string
+          p_sync_id: string
+        }
+        Returns: undefined
+      }
       consume_budget_credit: {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined
@@ -12960,6 +13034,10 @@ export type Database = {
           quantidade_reservada: number
           sku_master: string
         }[]
+      }
+      get_last_sync_timestamp: {
+        Args: { p_entidade: string; p_tipo?: string }
+        Returns: string
       }
       get_sales_performance: {
         Args: never
@@ -13107,6 +13185,10 @@ export type Database = {
       sincronizar_permissoes_usuario: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      start_sync: {
+        Args: { p_entidade: string; p_metadata?: Json; p_tipo?: string }
+        Returns: string
       }
       start_sync_session: {
         Args: {
