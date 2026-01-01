@@ -247,7 +247,9 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
 
   console.log(`🔄 Starting full sync with batch size: ${batchSize}`);
 
-  // Create sync log entry
+  const startTime = Date.now();
+
+  // Create sync log entry in sync_logs table
   const { data: syncLog, error: logError } = await supabase
     .from('sync_logs')
     .insert({
@@ -262,8 +264,24 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
     console.error('Failed to create sync log:', logError);
   }
 
+  // Also create entry in sync_tracking table (used by frontend hook)
+  const { data: syncTracking, error: trackingError } = await supabase
+    .from('sync_tracking')
+    .insert({
+      entidade: 'contas_receber',
+      tipo_sync: 'full',
+      status: 'running',
+      metadata: { source: 'n8n-webhook', batchSize, startedBy: userId },
+    })
+    .select()
+    .single();
+
+  if (trackingError) {
+    console.error('Failed to create sync tracking:', trackingError);
+  }
+
   const syncId = syncLog?.id;
-  const startTime = Date.now();
+  const trackingId = syncTracking?.id;
   
   let offset = 0;
   let totalProcessed = 0;
@@ -347,6 +365,23 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
           .eq('id', syncId);
       }
 
+      // Update sync_tracking progress
+      if (trackingId) {
+        await supabase
+          .from('sync_tracking')
+          .update({
+            records_processed: totalProcessed,
+            metadata: {
+              source: 'n8n-webhook',
+              batchSize,
+              pagesProcessed: pageCount,
+              currentOffset: offset,
+              errors: errors.length,
+            },
+          })
+          .eq('id', trackingId);
+      }
+
       // Small delay between pages to avoid overwhelming the webhook
       if (hasMore) {
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -373,12 +408,33 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
         .eq('id', syncId);
     }
 
+    // Update sync_tracking with final status
+    if (trackingId) {
+      await supabase
+        .from('sync_tracking')
+        .update({
+          status: errors.length > 0 ? 'partial' : 'completed',
+          records_processed: totalProcessed,
+          duration_ms: duration,
+          last_sync_at: new Date().toISOString(),
+          metadata: {
+            source: 'n8n-webhook',
+            batchSize,
+            pagesProcessed: pageCount,
+            duration_ms: duration,
+            errors,
+          },
+        })
+        .eq('id', trackingId);
+    }
+
     console.log(`🎉 Sync completed: ${totalProcessed} records in ${pageCount} pages (${duration}ms)`);
 
     return new Response(
       JSON.stringify({
         success: true,
         syncId,
+        trackingId,
         summary: {
           totalProcessed,
           pagesProcessed: pageCount,
@@ -395,6 +451,8 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
     const err = error as Error;
     console.error('❌ Sync failed:', err);
 
+    const failedDuration = Date.now() - startTime;
+
     // Update sync log with error
     if (syncId) {
       await supabase
@@ -407,12 +465,33 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
             source: 'n8n-webhook',
             batchSize,
             pagesProcessed: pageCount,
-            duration_ms: Date.now() - startTime,
+            duration_ms: failedDuration,
             errors,
             fatalError: err.message,
           },
         })
         .eq('id', syncId);
+    }
+
+    // Update sync_tracking with error
+    if (trackingId) {
+      await supabase
+        .from('sync_tracking')
+        .update({
+          status: 'failed',
+          error_message: err.message,
+          records_processed: totalProcessed,
+          duration_ms: failedDuration,
+          metadata: {
+            source: 'n8n-webhook',
+            batchSize,
+            pagesProcessed: pageCount,
+            duration_ms: failedDuration,
+            errors,
+            fatalError: err.message,
+          },
+        })
+        .eq('id', trackingId);
     }
 
     return new Response(

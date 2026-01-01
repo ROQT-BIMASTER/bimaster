@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Receipt, AlertCircle, CheckCircle, Clock, ArrowLeft, Building2, ChevronsUpDown, LayoutDashboard, CalendarDays, TableIcon, AlertTriangle } from "lucide-react";
+import { Download, Receipt, AlertCircle, CheckCircle, Clock, ArrowLeft, Building2, ChevronsUpDown, LayoutDashboard, CalendarDays, TableIcon, AlertTriangle, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
@@ -313,6 +313,12 @@ export default function ContasAReceber() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button asChild variant="default" className="gap-2">
+              <Link to="/dashboard/financeiro/contas-a-receber/sync">
+                <RefreshCw className="h-4 w-4" />
+                Sincronizar ERP
+              </Link>
+            </Button>
             <Button asChild variant="outline" className="gap-2">
               <Link to="/dashboard/financeiro/contas-a-receber/auditoria">
                 <AlertTriangle className="h-4 w-4" />
