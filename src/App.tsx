@@ -102,6 +102,7 @@ const ContasAReceber = lazy(() => import("./pages/ContasAReceber"));
 const ContasReceberAuditoria = lazy(() => import("./pages/ContasReceberAuditoria"));
 const CobrancaInadimplentes = lazy(() => import("./pages/CobrancaInadimplentes"));
 const FluxoDeCaixa = lazy(() => import("./pages/FluxoDeCaixa"));
+const ContasReceberSyncPage = lazy(() => import("./pages/financeiro/ContasReceberSyncPage"));
 // Portal do Cliente (isolado)
 const PortalPrecos = lazy(() => import("./pages/portal/PortalPrecos"));
 const PortalPerfil = lazy(() => import("./pages/portal/PortalPerfil"));
@@ -281,6 +282,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/contas-a-pagar" element={<ProtectedRoute><ContasAPagar /></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber" element={<ProtectedRoute><ContasAReceber /></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ProtectedRoute><ContasReceberAuditoria /></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ProtectedRoute><ContasReceberSyncPage /></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/cobranca" element={<ProtectedRoute><CobrancaInadimplentes /></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ProtectedRoute><FluxoDeCaixa /></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/plano-contas" element={<ProtectedRoute><PlanoContas /></ProtectedRoute>} />
