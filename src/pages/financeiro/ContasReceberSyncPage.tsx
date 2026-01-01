@@ -43,7 +43,7 @@ export default function ContasReceberSyncPage() {
 
   const handleSyncFull = async () => {
     setActiveSync('full');
-    await syncAll(500); // Reduzido para evitar timeout de CPU
+    await syncAll(1000); // Batch de 1000 registros por página, sem limite total
     setActiveSync(null);
   };
 

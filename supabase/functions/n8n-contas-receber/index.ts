@@ -7,9 +7,8 @@ const corsHeaders = {
 };
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
-const MAX_LIMIT = 500;  // Reduzido para evitar timeout
-const DEFAULT_LIMIT = 100;
-const UPSERT_BATCH_SIZE = 100; // Tamanho do lote para upsert
+const DEFAULT_BATCH_SIZE = 1000;  // Tamanho padrão do lote para paginação
+const UPSERT_BATCH_SIZE = 100; // Tamanho do lote para upsert no banco
 
 // Transform ERP data format to local format
 function transformErpData(erpRecord: any) {
@@ -203,10 +202,10 @@ async function handleStatus(supabase: any) {
   );
 }
 
-// Query data from N8N (single page)
+// Query data from N8N (single page) - SEM LIMITE
 async function handleQuery(req: Request) {
   const body = await req.json();
-  const { limit = DEFAULT_LIMIT, offset = 0, filters = {} } = body;
+  const { limit = DEFAULT_BATCH_SIZE, offset = 0, filters = {} } = body;
 
   console.log(`📊 Querying N8N: limit=${limit}, offset=${offset}`);
 
@@ -215,7 +214,7 @@ async function handleQuery(req: Request) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       tableName: 'ConsultaPowerBIReceber',
-      limit: Math.min(limit, MAX_LIMIT),
+      limit, // Sem limite máximo
       offset,
       filters,
     }),
@@ -270,14 +269,13 @@ async function handlePreview(req: Request) {
   );
 }
 
-// Full sync with pagination
+// Full sync with pagination - SEM LIMITE de registros totais
 async function handleSyncAll(req: Request, supabase: any, userId: string) {
   const body = await req.json().catch(() => ({}));
-  // Forçar limite máximo para evitar timeout
-  const requestedBatchSize = body.batchSize || MAX_LIMIT;
-  const batchSize = Math.min(requestedBatchSize, MAX_LIMIT);
+  // Usar o batchSize solicitado ou o padrão - SEM LIMITE MÁXIMO
+  const batchSize = body.batchSize || DEFAULT_BATCH_SIZE;
 
-  console.log(`🔄 Starting full sync with batch size: ${batchSize} (requested: ${requestedBatchSize})`);
+  console.log(`🔄 Starting UNLIMITED full sync with batch size: ${batchSize}`);
 
   const startTime = Date.now();
 

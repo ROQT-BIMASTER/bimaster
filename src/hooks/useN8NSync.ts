@@ -354,7 +354,7 @@ export function useN8NSync() {
       
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       
-      // Buscar dados do N8N com filtro de data (limite reduzido para evitar timeout)
+      // Buscar dados do N8N - SEM LIMITE de registros
       const queryResponse = await fetch(`${supabaseUrl}/functions/v1/n8n-contas-receber/query`, {
         method: 'POST',
         headers: {
@@ -362,7 +362,7 @@ export function useN8NSync() {
           'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ 
-          limit: 5000, // Reduzido de 50000 para evitar timeout
+          limit: 100000, // Sem limite prático - buscar todos os registros alterados
           filters: { since }
         }),
       });
