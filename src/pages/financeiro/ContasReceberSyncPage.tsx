@@ -25,6 +25,7 @@ export default function ContasReceberSyncPage() {
     syncHistory,
     lastSyncTimestamp,
     eta,
+    syncProgress,
     testConnection,
     fetchPreview,
     syncAll,
@@ -101,7 +102,7 @@ export default function ContasReceberSyncPage() {
 
         {/* Sync in Progress */}
         {isSyncing && (
-          <Card className="border-primary">
+          <Card className="border-primary bg-primary/5">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -111,9 +112,43 @@ export default function ContasReceberSyncPage() {
             <CardContent>
               <div className="space-y-4">
                 <Progress value={undefined} className="h-2" />
+                
+                {/* Progress Details */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-3 bg-background rounded-lg border">
+                    <p className="text-2xl font-bold text-primary">
+                      {syncProgress?.recordsProcessed?.toLocaleString() || 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Registros Processados</p>
+                  </div>
+                  <div className="text-center p-3 bg-background rounded-lg border">
+                    <p className="text-2xl font-bold text-blue-600">
+                      {syncProgress?.currentPage || 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Páginas</p>
+                  </div>
+                  <div className="text-center p-3 bg-background rounded-lg border">
+                    <p className="text-2xl font-bold text-orange-600">
+                      {syncProgress ? Math.round((Date.now() - syncProgress.startTime) / 1000) : 0}s
+                    </p>
+                    <p className="text-xs text-muted-foreground">Tempo Decorrido</p>
+                  </div>
+                  <div className="text-center p-3 bg-background rounded-lg border">
+                    <p className="text-2xl font-bold text-green-600">
+                      {syncProgress && syncProgress.recordsProcessed > 0 
+                        ? Math.round(syncProgress.recordsProcessed / ((Date.now() - syncProgress.startTime) / 1000))
+                        : 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Registros/seg</p>
+                  </div>
+                </div>
+
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Processando registros...</span>
-                  {eta && <span>ETA: {eta}</span>}
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Processando lote de {syncProgress?.recordsInCurrentBatch || 500} registros...
+                  </span>
+                  {eta && <span className="font-medium">ETA: {eta}</span>}
                 </div>
               </div>
             </CardContent>
