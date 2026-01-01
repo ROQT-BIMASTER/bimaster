@@ -7,13 +7,13 @@ const corsHeaders = {
 };
 
 // Configurações OTIMIZADAS para 1 MILHÃO+ de registros
-const BULK_BATCH_SIZE = 5000;       // Aumentado para usar função v2 otimizada
+const BULK_BATCH_SIZE = 10000;      // AUMENTADO: 10k por batch SQL
 const MAX_PAYLOAD_SIZE = 100000;    // 100k registros max por request
-const UPSERT_BATCH_SIZE = 500;      // Aumentado para fallback
-const BATCH_DELAY_MS = 10;          // Reduzido - função v2 é mais rápida
+const UPSERT_BATCH_SIZE = 1000;     // AUMENTADO: fallback mais rápido
+const BATCH_DELAY_MS = 5;           // REDUZIDO: menos delay entre batches
 const MAX_RETRIES = 5;
 const RETRY_BASE_DELAY_MS = 100;
-const RECOMMENDED_CHUNK_SIZE = 10000; // Recomendado: 10k por chunk N8N
+const RECOMMENDED_CHUNK_SIZE = 25000; // AUMENTADO: 25k por chunk N8N
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -775,6 +775,180 @@ Deno.serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ============ POST /sync-incremental - Sincronização INCREMENTAL ============
+    if (path.endsWith('/sync-incremental') && req.method === 'POST') {
+      if (!validateApiKey()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const startTime = Date.now();
+      
+      let body;
+      try {
+        body = await req.json();
+      } catch (parseError) {
+        return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { contas, skip_unchanged = true } = body;
+      
+      if (!contas || !Array.isArray(contas)) {
+        return new Response(JSON.stringify({ error: 'Invalid payload - contas must be array' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      console.log(`[INCREMENTAL] Processing ${contas.length} records (skip_unchanged: ${skip_unchanged})`);
+
+      // Registrar início da sync
+      const { data: syncData } = await supabase.rpc('start_sync', {
+        p_entidade: 'contas_receber',
+        p_tipo: 'incremental',
+        p_metadata: { total_records: contas.length }
+      });
+      const syncId = syncData;
+
+      let processed = 0;
+      let inserted = 0;
+      let updated = 0;
+      let skipped = 0;
+      const errors: any[] = [];
+      const now = new Date().toISOString();
+
+      // Transformar e calcular hashes
+      const records: any[] = [];
+      for (const conta of contas) {
+        try {
+          const erpId = generateErpId(conta);
+          const transformed = transformErpData(conta);
+          const dataHash = await calculateHash(transformed);
+          records.push({ erp_id: erpId, data_hash: dataHash, ...transformed, sincronizado_em: now });
+        } catch (error) {
+          errors.push({ record: conta, error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+
+      if (skip_unchanged && records.length > 0) {
+        // Buscar hashes existentes para comparação
+        const erpIds = records.map(r => r.erp_id);
+        const { data: existingRecords } = await supabase
+          .from('contas_receber')
+          .select('erp_id, data_hash')
+          .in('erp_id', erpIds);
+
+        const existingHashes = new Map(
+          (existingRecords || []).map(r => [r.erp_id, r.data_hash])
+        );
+
+        // Filtrar apenas registros que mudaram
+        const changedRecords = records.filter(r => {
+          const existingHash = existingHashes.get(r.erp_id);
+          if (!existingHash) {
+            inserted++;
+            return true; // Novo registro
+          }
+          if (existingHash !== r.data_hash) {
+            updated++;
+            return true; // Registro alterado
+          }
+          skipped++;
+          return false; // Sem alteração
+        });
+
+        console.log(`[INCREMENTAL] Filtered: ${changedRecords.length} changed, ${skipped} unchanged`);
+
+        // Processar apenas os que mudaram
+        if (changedRecords.length > 0) {
+          const result = await processBulkInsert(supabase, changedRecords.map(r => {
+            // Reconverter para formato ERP para processBulkInsert
+            return { ...r, _already_transformed: true };
+          }));
+          processed = result.processed;
+          errors.push(...result.errors);
+        }
+      } else {
+        // Processar todos (modo legacy)
+        const result = await processBulkInsert(supabase, contas);
+        processed = result.processed;
+        inserted = processed;
+        errors.push(...result.errors);
+      }
+
+      const duration = Date.now() - startTime;
+      const rate = Math.round(processed / (duration / 1000));
+
+      // Finalizar sync tracking
+      await supabase.rpc('complete_sync', {
+        p_sync_id: syncId,
+        p_records_processed: processed,
+        p_records_inserted: inserted,
+        p_records_updated: updated,
+        p_records_skipped: skipped,
+        p_duration_ms: duration,
+        p_status: errors.length === 0 ? 'completed' : 'partial',
+        p_error_message: errors.length > 0 ? JSON.stringify(errors.slice(0, 5)) : null
+      });
+
+      console.log(`[INCREMENTAL] Completed: ${processed} processed, ${skipped} skipped, ${errors.length} errors in ${duration}ms`);
+
+      return new Response(JSON.stringify({
+        success: errors.length === 0,
+        mode: 'incremental',
+        sync_id: syncId,
+        statistics: {
+          total_received: contas.length,
+          processed,
+          inserted,
+          updated,
+          skipped,
+          errors: errors.length,
+          rate_per_second: rate
+        },
+        duration_ms: duration,
+        message: `${processed} processados, ${skipped} sem alteração`
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ============ GET /last-sync - Último timestamp de sincronização ============
+    if (path.endsWith('/last-sync') && req.method === 'GET') {
+      if (!(await validateAuth())) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const tipo = url.searchParams.get('tipo') || 'full';
+
+      const { data, error } = await supabase.rpc('get_last_sync_timestamp', {
+        p_entidade: 'contas_receber',
+        p_tipo: tipo
+      });
+
+      if (error) throw error;
+
+      // Buscar histórico recente
+      const { data: history } = await supabase
+        .from('sync_tracking')
+        .select('*')
+        .eq('entidade', 'contas_receber')
+        .order('last_sync_at', { ascending: false })
+        .limit(10);
+
+      return new Response(JSON.stringify({
+        last_sync_timestamp: data,
+        tipo,
+        history: history || []
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
