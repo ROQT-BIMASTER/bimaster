@@ -43,7 +43,7 @@ export default function ContasReceberSyncPage() {
 
   const handleSyncFull = async () => {
     setActiveSync('full');
-    await syncAll(1000); // Batch de 1000 registros - otimizado para evitar 502 do N8N
+    await syncAll(5000); // Batch de 5000 registros - otimizado para 500k+ registros
     setActiveSync(null);
   };
 
@@ -61,7 +61,7 @@ export default function ContasReceberSyncPage() {
           <div>
             <h1 className="text-2xl font-bold">Sincronização com ERP</h1>
             <p className="text-muted-foreground">
-              Contas a Receber - Otimizado para 1M+ registros
+              Contas a Receber - Sync ilimitado (500k+ registros)
             </p>
           </div>
           <div className="flex gap-2">

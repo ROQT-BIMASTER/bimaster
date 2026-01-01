@@ -7,11 +7,11 @@ const corsHeaders = {
 };
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
-const DEFAULT_BATCH_SIZE = 1000;  // Reduzido para evitar 502 do N8N
-const UPSERT_BATCH_SIZE = 100; // Tamanho do lote para upsert no banco
+const DEFAULT_BATCH_SIZE = 5000;  // Aumentado para 5k por página - otimizado para 500k+ registros
+const UPSERT_BATCH_SIZE = 500; // Aumentado para 500 - upsert mais eficiente
 const MAX_RETRIES = 5; // Número máximo de tentativas por página
-const RETRY_DELAY_MS = 5000; // Delay inicial entre tentativas (5s)
-const PAGE_DELAY_MS = 1500; // Delay entre páginas para não sobrecarregar N8N
+const RETRY_DELAY_MS = 3000; // Delay entre tentativas (3s)
+const PAGE_DELAY_MS = 500; // Reduzido para 500ms - mais velocidade
 
 // Transform ERP data format to local format
 function transformErpData(erpRecord: any) {
