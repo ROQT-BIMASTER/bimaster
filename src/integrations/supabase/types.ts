@@ -10810,6 +10810,36 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_logs: {
+        Row: {
+          created_at: string | null
+          detalhes: Json | null
+          erro_mensagem: string | null
+          id: string
+          registros_processados: number | null
+          status: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string | null
+          detalhes?: Json | null
+          erro_mensagem?: string | null
+          id?: string
+          registros_processados?: number | null
+          status?: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string | null
+          detalhes?: Json | null
+          erro_mensagem?: string | null
+          id?: string
+          registros_processados?: number | null
+          status?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       sync_sessions: {
         Row: {
           chunks_processados: number | null
