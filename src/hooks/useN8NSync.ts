@@ -146,15 +146,36 @@ export function useN8NSync() {
 
   const getLastSyncTimestamp = useCallback(async (tipo: 'full' | 'incremental' = 'full') => {
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('contas-receber-api/last-sync', {
-        body: { tipo },
-      });
+      // Use direct Supabase query instead of Edge Function for reliability
+      const { data: lastSync, error: syncError } = await supabase
+        .from('sync_tracking')
+        .select('*')
+        .eq('entidade', 'contas_receber')
+        .eq('tipo_sync', tipo)
+        .order('last_sync_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
       
-      if (fnError) throw fnError;
+      if (syncError) throw syncError;
       
-      setLastSyncTimestamp(data.last_sync_timestamp);
-      setSyncHistory(data.history || []);
-      return data;
+      // Get history
+      const { data: history, error: historyError } = await supabase
+        .from('sync_tracking')
+        .select('*')
+        .eq('entidade', 'contas_receber')
+        .order('last_sync_at', { ascending: false })
+        .limit(10);
+      
+      if (historyError) throw historyError;
+      
+      const result = {
+        last_sync_timestamp: lastSync?.last_sync_at || null,
+        history: history || []
+      };
+      
+      setLastSyncTimestamp(result.last_sync_timestamp);
+      setSyncHistory(result.history as SyncHistory[]);
+      return result;
     } catch (err: any) {
       console.error('Erro ao buscar último timestamp:', err);
       return null;
