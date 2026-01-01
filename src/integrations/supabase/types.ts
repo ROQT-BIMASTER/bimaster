@@ -12907,7 +12907,7 @@ export type Database = {
           p_duration_ms?: number
           p_error_message?: string
           p_records_inserted?: number
-          p_records_processed: number
+          p_records_processed?: number
           p_records_skipped?: number
           p_records_updated?: number
           p_status?: string
