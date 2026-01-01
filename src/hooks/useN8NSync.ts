@@ -65,6 +65,14 @@ interface SyncHistory {
   status: string;
 }
 
+export interface SyncProgress {
+  currentPage: number;
+  recordsProcessed: number;
+  recordsInCurrentBatch: number;
+  startTime: number;
+  isRunning: boolean;
+}
+
 export function useN8NSync() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -76,7 +84,9 @@ export function useN8NSync() {
   const [syncHistory, setSyncHistory] = useState<SyncHistory[]>([]);
   const [lastSyncTimestamp, setLastSyncTimestamp] = useState<string | null>(null);
   const [eta, setEta] = useState<string | null>(null);
+  const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const testConnection = useCallback(async () => {
     setIsLoading(true);
@@ -207,7 +217,64 @@ export function useN8NSync() {
     setError(null);
     setEta(null);
     
+    const startTime = Date.now();
+    setSyncProgress({
+      currentPage: 0,
+      recordsProcessed: 0,
+      recordsInCurrentBatch: 0,
+      startTime,
+      isRunning: true,
+    });
+    
     abortControllerRef.current = new AbortController();
+    
+    // Poll para atualizar progresso em tempo real
+    progressIntervalRef.current = setInterval(async () => {
+      try {
+        const { data: trackingData } = await supabase
+          .from('sync_tracking')
+          .select('records_processed, metadata')
+          .eq('entidade', 'contas_receber')
+          .eq('status', 'running')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (trackingData) {
+          const processed = trackingData.records_processed || 0;
+          const metadata = trackingData.metadata as Record<string, unknown> | null;
+          const pagesProcessed = (metadata?.pagesProcessed as number) || 0;
+          
+          setSyncProgress(prev => ({
+            ...prev!,
+            currentPage: pagesProcessed,
+            recordsProcessed: processed,
+            recordsInCurrentBatch: batchSize,
+            isRunning: true,
+          }));
+          
+          // Calcular ETA
+          const elapsed = Date.now() - startTime;
+          if (processed > 0 && elapsed > 0) {
+            const rate = processed / (elapsed / 1000);
+            // Estimar total baseado na taxa atual (assumir ~200k registros para ETA)
+            const estimatedTotal = status?.local?.totalRecords || 200000;
+            const remaining = Math.max(0, estimatedTotal - processed);
+            const remainingSeconds = remaining / rate;
+            
+            if (remainingSeconds < 60) {
+              setEta(`~${Math.round(remainingSeconds)}s`);
+            } else if (remainingSeconds < 3600) {
+              setEta(`~${Math.round(remainingSeconds / 60)}min`);
+            } else {
+              setEta(`~${Math.round(remainingSeconds / 3600)}h ${Math.round((remainingSeconds % 3600) / 60)}min`);
+            }
+          }
+        }
+      } catch (e) {
+        // Silenciar erros de polling
+      }
+    }, 2000);
     
     toast({
       title: 'Sincronização FULL iniciada',
@@ -250,11 +317,16 @@ export function useN8NSync() {
       });
       return null;
     } finally {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       setIsSyncing(false);
       setEta(null);
+      setSyncProgress(null);
       abortControllerRef.current = null;
     }
-  }, [toast, getLastSyncTimestamp]);
+  }, [toast, getLastSyncTimestamp, status]);
 
   const syncIncremental = useCallback(async () => {
     setIsSyncing(true);
@@ -414,6 +486,7 @@ export function useN8NSync() {
     syncHistory,
     lastSyncTimestamp,
     eta,
+    syncProgress,
     
     // Actions
     testConnection,
