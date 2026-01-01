@@ -272,15 +272,35 @@ export function useN8NSync() {
       const lastSync = await getLastSyncTimestamp('incremental');
       const since = lastSync?.last_sync_timestamp || new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
       
-      // Buscar dados do N8N com filtro de data
-      const { data: n8nData, error: n8nError } = await supabase.functions.invoke('n8n-contas-receber/query', {
-        body: { 
-          limit: 50000,
-          filters: { since }
+      // Obter sessão para autenticação
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('Não autenticado');
+      }
+      
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      
+      // Buscar dados do N8N com filtro de data (limite reduzido para evitar timeout)
+      const queryResponse = await fetch(`${supabaseUrl}/functions/v1/n8n-contas-receber/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
         },
+        body: JSON.stringify({ 
+          limit: 5000, // Reduzido de 50000 para evitar timeout
+          filters: { since }
+        }),
       });
       
-      if (n8nError) throw n8nError;
+      if (!queryResponse.ok) {
+        const errorData = await queryResponse.json().catch(() => ({ error: 'Erro ao buscar dados' }));
+        throw new Error(errorData.error || `HTTP ${queryResponse.status}`);
+      }
+      
+      const n8nData = await queryResponse.json();
       
       if (!n8nData?.data?.length) {
         toast({
@@ -291,16 +311,8 @@ export function useN8NSync() {
         return { success: true, processed: 0 };
       }
       
-      // Enviar para sync incremental usando fetch direto (supabase.functions.invoke não suporta subpaths)
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('Não autenticado');
-      }
-      
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/contas-receber-api/sync-incremental`, {
+      // Enviar para sync incremental usando fetch direto (reutiliza accessToken e supabaseUrl)
+      const syncResponse = await fetch(`${supabaseUrl}/functions/v1/contas-receber-api/sync-incremental`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -312,12 +324,12 @@ export function useN8NSync() {
         }),
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+      if (!syncResponse.ok) {
+        const errorData = await syncResponse.json().catch(() => ({ error: 'Erro desconhecido' }));
+        throw new Error(errorData.error || `HTTP ${syncResponse.status}`);
       }
       
-      const data = await response.json();
+      const data = await syncResponse.json();
       
       setSyncResult(data);
       
