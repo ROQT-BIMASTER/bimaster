@@ -7,8 +7,10 @@ const corsHeaders = {
 };
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
-const DEFAULT_BATCH_SIZE = 1000;  // Tamanho padrão do lote para paginação
-const UPSERT_BATCH_SIZE = 100; // Tamanho do lote para upsert no banco
+const DEFAULT_BATCH_SIZE = 2000;  // Reduzido para evitar 502 do N8N
+const UPSERT_BATCH_SIZE = 200; // Tamanho do lote para upsert no banco
+const MAX_RETRIES = 3; // Número máximo de tentativas por página
+const RETRY_DELAY_MS = 2000; // Delay inicial entre tentativas
 
 // Transform ERP data format to local format
 function transformErpData(erpRecord: any) {
@@ -40,6 +42,42 @@ async function generateHash(data: any): Promise<string> {
   const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(dataStr));
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+}
+
+// Fetch with retry logic
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MAX_RETRIES): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // Se não for erro de servidor, retornar
+      if (response.status < 500) {
+        return response;
+      }
+      
+      // Erro 5xx - tentar novamente
+      console.log(`⚠️ Attempt ${attempt}/${maxRetries} failed with status ${response.status}`);
+      lastError = new Error(`HTTP ${response.status}`);
+      
+      if (attempt < maxRetries) {
+        const delay = RETRY_DELAY_MS * attempt; // Backoff exponencial simples
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    } catch (error) {
+      console.log(`⚠️ Attempt ${attempt}/${maxRetries} failed with error:`, (error as Error).message);
+      lastError = error as Error;
+      
+      if (attempt < maxRetries) {
+        const delay = RETRY_DELAY_MS * attempt;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError || new Error('Max retries exceeded');
 }
 
 serve(async (req) => {
@@ -329,19 +367,35 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
       pageCount++;
       console.log(`📄 Processing page ${pageCount}, offset: ${offset}, total so far: ${totalProcessed}`);
 
-      // Fetch from N8N
-      const response = await fetch(N8N_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tableName: 'ConsultaPowerBIReceber',
-          limit: batchSize,
-          offset,
-        }),
-      });
+      // Fetch from N8N with retry logic
+      let response: Response;
+      try {
+        response = await fetchWithRetry(N8N_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tableName: 'ConsultaPowerBIReceber',
+            limit: batchSize,
+            offset,
+          }),
+        });
+      } catch (fetchError) {
+        console.error(`❌ Failed to fetch page ${pageCount} after ${MAX_RETRIES} retries:`, (fetchError as Error).message);
+        errors.push({ page: pageCount, error: (fetchError as Error).message });
+        
+        // Incrementar offset e tentar próxima página
+        offset += batchSize;
+        consecutiveEmptyPages++;
+        
+        if (consecutiveEmptyPages >= MAX_CONSECUTIVE_EMPTY) {
+          console.log(`🛑 Stopping after ${MAX_CONSECUTIVE_EMPTY} consecutive errors`);
+          break;
+        }
+        continue;
+      }
 
       if (!response.ok) {
-        // Log error but try to continue
+        // Log error but try to continue (já tentamos retry, então pular esta página)
         console.error(`⚠️ N8N webhook error on page ${pageCount}: ${response.status}`);
         errors.push({ page: pageCount, error: `HTTP ${response.status}` });
         

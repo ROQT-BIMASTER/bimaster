@@ -43,7 +43,7 @@ export default function ContasReceberSyncPage() {
 
   const handleSyncFull = async () => {
     setActiveSync('full');
-    await syncAll(5000); // Batch de 5000 registros por página para carregar mais rápido - SEM LIMITE TOTAL
+    await syncAll(2000); // Batch de 2000 registros - balanceado para evitar 502 do N8N
     setActiveSync(null);
   };
 
