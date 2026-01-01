@@ -7,8 +7,9 @@ const corsHeaders = {
 };
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
-const MAX_LIMIT = 1000;
+const MAX_LIMIT = 500;  // Reduzido para evitar timeout
 const DEFAULT_LIMIT = 100;
+const UPSERT_BATCH_SIZE = 100; // Tamanho do lote para upsert
 
 // Transform ERP data format to local format
 function transformErpData(erpRecord: any) {
@@ -347,7 +348,7 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
         break;
       }
 
-      // Transform and upsert records
+      // Transform records
       const transformedRecords = data.data.map(transformErpData);
       
       // Generate hashes for deduplication
@@ -360,18 +361,26 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
         });
       }
 
-      // Upsert using the existing optimized function
-      const { error: upsertError } = await supabase.rpc('bulk_upsert_contas_receber_v2', {
-        p_contas: transformedRecords,
-      });
+      // Upsert in small batches to avoid memory issues
+      for (let i = 0; i < transformedRecords.length; i += UPSERT_BATCH_SIZE) {
+        const batch = transformedRecords.slice(i, i + UPSERT_BATCH_SIZE);
+        
+        const { error: upsertError } = await supabase
+          .from('contas_receber')
+          .upsert(batch, { 
+            onConflict: 'erp_id',
+            ignoreDuplicates: false 
+          });
 
-      if (upsertError) {
-        console.error(`❌ Upsert error on page ${pageCount}:`, upsertError);
-        errors.push({ page: pageCount, error: upsertError.message });
-      } else {
-        totalProcessed += transformedRecords.length;
-        console.log(`✅ Page ${pageCount} processed: ${transformedRecords.length} records`);
+        if (upsertError) {
+          console.error(`❌ Upsert error on page ${pageCount}, batch ${Math.floor(i / UPSERT_BATCH_SIZE) + 1}:`, upsertError);
+          errors.push({ page: pageCount, batch: Math.floor(i / UPSERT_BATCH_SIZE) + 1, error: upsertError.message });
+        } else {
+          totalProcessed += batch.length;
+        }
       }
+      
+      console.log(`✅ Page ${pageCount} processed: ${transformedRecords.length} records`);
 
       // Check if there's more data
       hasMore = data.metadata?.hasMoreData === true;
