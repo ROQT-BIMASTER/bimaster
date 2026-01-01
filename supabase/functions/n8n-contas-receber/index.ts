@@ -7,10 +7,11 @@ const corsHeaders = {
 };
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
-const DEFAULT_BATCH_SIZE = 2000;  // Reduzido para evitar 502 do N8N
-const UPSERT_BATCH_SIZE = 200; // Tamanho do lote para upsert no banco
-const MAX_RETRIES = 3; // Número máximo de tentativas por página
-const RETRY_DELAY_MS = 2000; // Delay inicial entre tentativas
+const DEFAULT_BATCH_SIZE = 1000;  // Reduzido para evitar 502 do N8N
+const UPSERT_BATCH_SIZE = 100; // Tamanho do lote para upsert no banco
+const MAX_RETRIES = 5; // Número máximo de tentativas por página
+const RETRY_DELAY_MS = 5000; // Delay inicial entre tentativas (5s)
+const PAGE_DELAY_MS = 1500; // Delay entre páginas para não sobrecarregar N8N
 
 // Transform ERP data format to local format
 function transformErpData(erpRecord: any) {
@@ -323,7 +324,7 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
     .from('sync_logs')
     .insert({
       tipo: 'contas_receber',
-      status: 'running',
+      status: 'in_progress',
       detalhes: { source: 'n8n-webhook', batchSize, startedBy: userId, unlimited: true },
     })
     .select()
@@ -339,7 +340,7 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
     .insert({
       entidade: 'contas_receber',
       tipo_sync: 'full',
-      status: 'running',
+      status: 'in_progress',
       metadata: { source: 'n8n-webhook', batchSize, startedBy: userId, unlimited: true },
     })
     .select()
@@ -517,10 +518,9 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
         // Continuar tentando mais uma vez para garantir
       }
 
-      // Pequeno delay apenas se tiver processado muitos registros para não sobrecarregar
-      if (pageCount % 10 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
+      // Delay entre TODAS as páginas para não sobrecarregar o N8N
+      console.log(`⏳ Aguardando ${PAGE_DELAY_MS}ms antes da próxima página...`);
+      await new Promise(resolve => setTimeout(resolve, PAGE_DELAY_MS));
     }
 
     const duration = Date.now() - startTime;
