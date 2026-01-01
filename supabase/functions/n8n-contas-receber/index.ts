@@ -113,64 +113,93 @@ async function handleStatus(supabase: any) {
   console.log('🔍 Testing N8N webhook connection...');
   
   const startTime = Date.now();
+  let n8nResponse: any = null;
+  let n8nConnected = false;
+  let n8nError: string | null = null;
+  let responseData: any = null;
   
   try {
+    // Try POST first (expected for data queries)
     const response = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ limit: 1, offset: 0 }),
+      body: JSON.stringify({ 
+        tableName: 'ConsultaPowerBIReceber',
+        limit: 1, 
+        offset: 0 
+      }),
     });
 
     const duration = Date.now() - startTime;
-    const data = await response.json();
+    const responseText = await response.text();
+    
+    console.log(`📡 N8N Response - Status: ${response.status}, Body preview: ${responseText.substring(0, 200)}`);
 
-    // Get last sync info
-    const { data: lastSync } = await supabase
-      .from('sync_logs')
-      .select('*')
-      .eq('tipo', 'contas_receber')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (parseErr) {
+      console.log('⚠️ N8N response is not JSON:', responseText.substring(0, 100));
+      responseData = { raw: responseText };
+    }
 
-    // Get local record count
-    const { count: localCount } = await supabase
-      .from('contas_receber')
-      .select('*', { count: 'exact', head: true });
-
-    return new Response(
-      JSON.stringify({
-        success: response.ok,
-        n8n: {
-          connected: response.ok,
-          responseTime: duration,
-          webhookUrl: N8N_WEBHOOK_URL,
-          sampleRecord: data.success ? data.data?.[0] : null,
-          metadata: data.metadata || null,
-        },
-        local: {
-          totalRecords: localCount || 0,
-          lastSync: lastSync?.created_at || null,
-          lastSyncStatus: lastSync?.status || null,
-          lastSyncRecords: lastSync?.registros_processados || null,
-        }
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    // Check connection - N8N is connected if we get a 200 response
+    // The webhook might return data array directly or wrapped in success/data
+    n8nConnected = response.ok && (
+      responseData?.success === true || 
+      Array.isArray(responseData?.data) || 
+      Array.isArray(responseData) ||
+      (responseData && typeof responseData === 'object' && !responseData.error)
     );
+
+    n8nResponse = {
+      connected: n8nConnected,
+      responseTime: duration,
+      webhookUrl: N8N_WEBHOOK_URL,
+      httpStatus: response.status,
+      sampleRecord: Array.isArray(responseData?.data) ? responseData.data[0] : 
+                    Array.isArray(responseData) ? responseData[0] : null,
+      metadata: responseData?.metadata || null,
+      rawResponse: !n8nConnected ? responseData : undefined,
+    };
+
   } catch (error: unknown) {
     const err = error as Error;
-    return new Response(
-      JSON.stringify({
-        success: false,
-        n8n: {
-          connected: false,
-          error: err.message,
-          webhookUrl: N8N_WEBHOOK_URL,
-        }
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error('❌ N8N connection error:', err.message);
+    n8nError = err.message;
+    n8nResponse = {
+      connected: false,
+      error: err.message,
+      webhookUrl: N8N_WEBHOOK_URL,
+    };
   }
+
+  // Get last sync info from sync_logs
+  const { data: lastSync } = await supabase
+    .from('sync_logs')
+    .select('*')
+    .eq('tipo', 'contas_receber')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Get local record count
+  const { count: localCount } = await supabase
+    .from('contas_receber')
+    .select('*', { count: 'exact', head: true });
+
+  return new Response(
+    JSON.stringify({
+      success: n8nConnected,
+      n8n: n8nResponse,
+      local: {
+        totalRecords: localCount || 0,
+        lastSync: lastSync?.created_at || null,
+        lastSyncStatus: lastSync?.status || null,
+        lastSyncRecords: lastSync?.registros_processados || null,
+      }
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
 }
 
 // Query data from N8N (single page)
