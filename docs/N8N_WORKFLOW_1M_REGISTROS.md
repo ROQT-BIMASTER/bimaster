@@ -313,3 +313,38 @@ x-api-key: [N8N_API_KEY configurada nas secrets]
 4. **Monitorável** - Rastreamento completo com ETA
 5. **Escalável** - Pronto para 2M+ registros
 6. **Menor carga** - Menos requests, menos overhead
+
+---
+
+## Configuração no Lovable
+
+A página de sincronização está disponível em:
+**`/dashboard/financeiro/contas-a-receber/sync`**
+
+Funcionalidades:
+- **Sync Full**: Sincroniza todos os registros (usar 1x/dia)
+- **Sync Incremental**: Apenas alterações (usar 4x/dia)
+- **Histórico**: Visualização das últimas 10 sincronizações
+- **Preview**: Visualização dos dados antes de sincronizar
+- **Cancelamento**: Possibilidade de cancelar sync em andamento
+
+---
+
+## Implementação Técnica
+
+### Edge Function Endpoints
+
+| Endpoint | Método | Uso |
+|----------|--------|-----|
+| `/bulk-sync` | POST | Carga massiva (FULL) |
+| `/sync-incremental` | POST | Apenas alterações |
+| `/last-sync` | GET | Último timestamp |
+| `/sync-status` | GET | Status atual |
+| `/sync-start` | POST | Iniciar tracking |
+| `/sync-complete` | POST | Finalizar tracking |
+
+### Banco de Dados
+
+- **sync_tracking**: Histórico de sincronizações
+- **sync_chunks_log**: Log de chunks processados
+- **contas_receber**: Tabela principal (215k+ registros)
