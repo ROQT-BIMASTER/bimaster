@@ -42,7 +42,7 @@ export default function ContasReceberSyncPage() {
 
   const handleSyncFull = async () => {
     setActiveSync('full');
-    await syncAll(25000); // Usando chunk de 25k
+    await syncAll(500); // Reduzido para evitar timeout de CPU
     setActiveSync(null);
   };
 

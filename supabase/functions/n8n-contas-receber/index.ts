@@ -273,9 +273,11 @@ async function handlePreview(req: Request) {
 // Full sync with pagination
 async function handleSyncAll(req: Request, supabase: any, userId: string) {
   const body = await req.json().catch(() => ({}));
-  const { batchSize = MAX_LIMIT } = body;
+  // Forçar limite máximo para evitar timeout
+  const requestedBatchSize = body.batchSize || MAX_LIMIT;
+  const batchSize = Math.min(requestedBatchSize, MAX_LIMIT);
 
-  console.log(`🔄 Starting full sync with batch size: ${batchSize}`);
+  console.log(`🔄 Starting full sync with batch size: ${batchSize} (requested: ${requestedBatchSize})`);
 
   const startTime = Date.now();
 
