@@ -7,11 +7,15 @@ const corsHeaders = {
 };
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
-const DEFAULT_BATCH_SIZE = 5000;  // Aumentado para 5k por página - otimizado para 500k+ registros
-const UPSERT_BATCH_SIZE = 500; // Aumentado para 500 - upsert mais eficiente
-const MAX_RETRIES = 5; // Número máximo de tentativas por página
-const RETRY_DELAY_MS = 3000; // Delay entre tentativas (3s)
-const PAGE_DELAY_MS = 500; // Reduzido para 500ms - mais velocidade
+
+// ============= CONFIGURAÇÕES OTIMIZADAS PARA 50K+ REGISTROS =============
+const DEFAULT_BATCH_SIZE = 2000;  // Reduzido para 2k - melhor estabilidade de conexão
+const UPSERT_BATCH_SIZE = 250;    // Reduzido para 250 - evita timeouts no Supabase
+const MAX_RETRIES = 3;            // 3 tentativas com backoff
+const RETRY_DELAY_MS = 2000;      // 2s entre tentativas
+const PAGE_DELAY_MS = 1500;       // 1.5s entre páginas - evita sobrecarga
+const FETCH_TIMEOUT_MS = 60000;   // 60s timeout por request
+const SUPABASE_BATCH_DELAY_MS = 100; // 100ms entre batches de upsert
 
 // Transform ERP data format to local format
 function transformErpData(erpRecord: any) {
@@ -45,13 +49,22 @@ async function generateHash(data: any): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
 }
 
-// Fetch with retry logic
+// Fetch with retry logic and timeout
 async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MAX_RETRIES): Promise<Response> {
   let lastError: Error | null = null;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(url, options);
+      // Criar AbortController para timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
       
       // Se não for erro de servidor, retornar
       if (response.status < 500) {
@@ -63,16 +76,19 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MA
       lastError = new Error(`HTTP ${response.status}`);
       
       if (attempt < maxRetries) {
-        const delay = RETRY_DELAY_MS * attempt; // Backoff exponencial simples
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1); // Backoff exponencial
         console.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     } catch (error) {
-      console.log(`⚠️ Attempt ${attempt}/${maxRetries} failed with error:`, (error as Error).message);
-      lastError = error as Error;
+      const err = error as Error;
+      const isTimeout = err.name === 'AbortError';
+      console.log(`⚠️ Attempt ${attempt}/${maxRetries} ${isTimeout ? 'TIMEOUT' : 'failed'}:`, err.message);
+      lastError = isTimeout ? new Error(`Request timeout after ${FETCH_TIMEOUT_MS}ms`) : err;
       
       if (attempt < maxRetries) {
-        const delay = RETRY_DELAY_MS * attempt;
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -446,22 +462,41 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
         });
       }
 
-      // Upsert in small batches to avoid memory issues
+      // Upsert in small batches with delay to avoid connection issues
+      const totalBatches = Math.ceil(transformedRecords.length / UPSERT_BATCH_SIZE);
+      
       for (let i = 0; i < transformedRecords.length; i += UPSERT_BATCH_SIZE) {
+        const batchNum = Math.floor(i / UPSERT_BATCH_SIZE) + 1;
         const batch = transformedRecords.slice(i, i + UPSERT_BATCH_SIZE);
         
-        const { error: upsertError } = await supabase
-          .from('contas_receber')
-          .upsert(batch, { 
-            onConflict: 'erp_id',
-            ignoreDuplicates: false 
-          });
+        // Retry logic para upsert
+        let upsertSuccess = false;
+        for (let upsertAttempt = 1; upsertAttempt <= 3; upsertAttempt++) {
+          const { error: upsertError } = await supabase
+            .from('contas_receber')
+            .upsert(batch, { 
+              onConflict: 'erp_id',
+              ignoreDuplicates: false 
+            });
 
-        if (upsertError) {
-          console.error(`❌ Upsert error on page ${pageCount}, batch ${Math.floor(i / UPSERT_BATCH_SIZE) + 1}:`, upsertError);
-          errors.push({ page: pageCount, batch: Math.floor(i / UPSERT_BATCH_SIZE) + 1, error: upsertError.message });
-        } else {
-          totalProcessed += batch.length;
+          if (!upsertError) {
+            totalProcessed += batch.length;
+            upsertSuccess = true;
+            break;
+          }
+          
+          if (upsertAttempt < 3) {
+            console.log(`⚠️ Upsert retry ${upsertAttempt}/3 for batch ${batchNum}...`);
+            await new Promise(resolve => setTimeout(resolve, 500 * upsertAttempt));
+          } else {
+            console.error(`❌ Upsert failed after 3 attempts on page ${pageCount}, batch ${batchNum}:`, upsertError);
+            errors.push({ page: pageCount, batch: batchNum, error: upsertError.message });
+          }
+        }
+        
+        // Delay entre batches de upsert para não sobrecarregar
+        if (i + UPSERT_BATCH_SIZE < transformedRecords.length) {
+          await new Promise(resolve => setTimeout(resolve, SUPABASE_BATCH_DELAY_MS));
         }
       }
       
