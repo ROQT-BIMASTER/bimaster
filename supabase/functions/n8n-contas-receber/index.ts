@@ -280,7 +280,9 @@ async function handlePreview(req: Request) {
   );
 }
 
-// ============= NOVOS ENDPOINTS PARA PAGINAÇÃO CONTROLADA PELO N8N =============
+// ============= ENDPOINTS PARA PAGINAÇÃO CONTROLADA PELO N8N =============
+// IMPORTANTE: No N8N, o Loop Over Items tem limite de 15 iterações por padrão.
+// Configure "Max Iterations" no nó de Loop para um valor maior (ex: 1000)
 
 // SYNC-START: Inicia o sync e retorna o primeiro offset
 async function handleSyncStart(req: Request, supabase: any, userId: string) {
@@ -319,6 +321,12 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
       batchSize,
       nextOffset: 0,
       hasMore: true,
+      loopIteration: 0,
+      n8nConfig: {
+        warning: 'Configure Max Iterations no Loop do N8N para 1000 ou mais!',
+        defaultLimit: 15,
+        recommendedLimit: 1000,
+      },
       message: 'Sync iniciado. Use sync-page para processar cada página.',
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
