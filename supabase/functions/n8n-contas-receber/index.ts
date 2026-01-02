@@ -9,13 +9,13 @@ const corsHeaders = {
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
 
 // ============= CONFIGURAÇÕES OTIMIZADAS PARA 50K+ REGISTROS =============
-const DEFAULT_BATCH_SIZE = 2000;  // Reduzido para 2k - melhor estabilidade de conexão
-const UPSERT_BATCH_SIZE = 250;    // Reduzido para 250 - evita timeouts no Supabase
+const DEFAULT_BATCH_SIZE = 1000;  // Reduzido para 1k - melhor estabilidade
+const UPSERT_BATCH_SIZE = 100;    // CRÍTICO: 100 registros por upsert para evitar timeout
 const MAX_RETRIES = 3;            // 3 tentativas com backoff
 const RETRY_DELAY_MS = 2000;      // 2s entre tentativas
-const PAGE_DELAY_MS = 1500;       // 1.5s entre páginas - evita sobrecarga
+const PAGE_DELAY_MS = 2000;       // 2s entre páginas - evita sobrecarga
 const FETCH_TIMEOUT_MS = 60000;   // 60s timeout por request
-const SUPABASE_BATCH_DELAY_MS = 100; // 100ms entre batches de upsert
+const SUPABASE_BATCH_DELAY_MS = 200; // 200ms entre batches de upsert - evita statement timeout
 
 // Transform ERP data format to local format
 function transformErpData(erpRecord: any) {
