@@ -324,67 +324,92 @@ async function handlePreview(req: Request) {
   );
 }
 
-// Full sync with pagination - SEM LIMITE de registros totais
-// Continua até não haver mais dados retornados
+// Full sync with pagination - USANDO BACKGROUND TASK para não ter timeout
+// A função retorna imediatamente e o processamento continua em background
 async function handleSyncAll(req: Request, supabase: any, userId: string) {
   const body = await req.json().catch(() => ({}));
-  // Usar o batchSize solicitado ou o padrão - SEM LIMITE MÁXIMO
   const batchSize = body.batchSize || DEFAULT_BATCH_SIZE;
 
-  console.log(`🔄 Starting UNLIMITED full sync with batch size: ${batchSize} - WILL CONTINUE UNTIL NO MORE DATA`);
+  console.log(`🔄 Starting BACKGROUND sync with batch size: ${batchSize}`);
 
   const startTime = Date.now();
 
-  // Create sync log entry in sync_logs table
-  const { data: syncLog, error: logError } = await supabase
+  // Create sync log entry
+  const { data: syncLog } = await supabase
     .from('sync_logs')
     .insert({
       tipo: 'contas_receber',
       status: 'in_progress',
-      detalhes: { source: 'n8n-webhook', batchSize, startedBy: userId, unlimited: true },
+      detalhes: { source: 'n8n-webhook', batchSize, startedBy: userId, background: true },
     })
     .select()
     .single();
 
-  if (logError) {
-    console.error('Failed to create sync log:', logError);
-  }
-
-  // Also create entry in sync_tracking table (used by frontend hook)
-  const { data: syncTracking, error: trackingError } = await supabase
+  const { data: syncTracking } = await supabase
     .from('sync_tracking')
     .insert({
       entidade: 'contas_receber',
       tipo_sync: 'full',
       status: 'in_progress',
-      metadata: { source: 'n8n-webhook', batchSize, startedBy: userId, unlimited: true },
+      metadata: { source: 'n8n-webhook', batchSize, startedBy: userId, background: true },
     })
     .select()
     .single();
 
-  if (trackingError) {
-    console.error('Failed to create sync tracking:', trackingError);
-  }
-
   const syncId = syncLog?.id;
   const trackingId = syncTracking?.id;
+
+  // CRITICAL: Inicia processamento em BACKGROUND
+  // @ts-ignore - EdgeRuntime é disponível em Supabase Edge Functions
+  EdgeRuntime.waitUntil(processInBackground(supabase, syncId, trackingId, batchSize, startTime));
+
+  // Retorna IMEDIATAMENTE - processamento continua em background
+  return new Response(
+    JSON.stringify({
+      success: true,
+      message: 'Sincronização iniciada em background',
+      syncId,
+      trackingId,
+      batchSize,
+      note: 'O processamento continuará em segundo plano. Consulte o status para acompanhar.',
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+// Função que executa em BACKGROUND - sem limite de tempo
+async function processInBackground(
+  supabase: any, 
+  syncId: string | null, 
+  trackingId: string | null, 
+  batchSize: number,
+  startTime: number
+) {
+  console.log(`🚀 BACKGROUND PROCESSING STARTED - syncId: ${syncId}`);
   
   let offset = 0;
   let totalProcessed = 0;
-  let totalCreated = 0;
-  let totalUpdated = 0;
   let consecutiveEmptyPages = 0;
   let pageCount = 0;
   const errors: any[] = [];
-  const MAX_CONSECUTIVE_EMPTY = 3; // Para de buscar após 3 páginas vazias consecutivas
+  const MAX_CONSECUTIVE_EMPTY = 3;
 
   try {
-    // Loop INFINITO até não haver mais dados
     while (true) {
       pageCount++;
-      console.log(`📄 Processing page ${pageCount}, offset: ${offset}, total so far: ${totalProcessed}`);
+      console.log(`📄 [BG] Page ${pageCount}, offset: ${offset}, processed: ${totalProcessed}`);
 
-      // Fetch from N8N with retry logic
+      // Update progress periodically
+      if (pageCount % 5 === 0 && trackingId) {
+        await supabase
+          .from('sync_tracking')
+          .update({ 
+            registros_processados: totalProcessed,
+            metadata: { pages: pageCount, offset, lastUpdate: new Date().toISOString() }
+          })
+          .eq('id', trackingId);
+      }
+
       let response: Response;
       try {
         response = await fetchWithRetry(N8N_WEBHOOK_URL, {
@@ -397,62 +422,47 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
           }),
         });
       } catch (fetchError) {
-        console.error(`❌ Failed to fetch page ${pageCount} after ${MAX_RETRIES} retries:`, (fetchError as Error).message);
+        console.error(`❌ [BG] Page ${pageCount} failed:`, (fetchError as Error).message);
         errors.push({ page: pageCount, error: (fetchError as Error).message });
-        
-        // Incrementar offset e tentar próxima página
         offset += batchSize;
         consecutiveEmptyPages++;
         
         if (consecutiveEmptyPages >= MAX_CONSECUTIVE_EMPTY) {
-          console.log(`🛑 Stopping after ${MAX_CONSECUTIVE_EMPTY} consecutive errors`);
+          console.log(`🛑 [BG] Stopping after ${MAX_CONSECUTIVE_EMPTY} consecutive errors`);
           break;
         }
         continue;
       }
 
       if (!response.ok) {
-        // Log error but try to continue (já tentamos retry, então pular esta página)
-        console.error(`⚠️ N8N webhook error on page ${pageCount}: ${response.status}`);
         errors.push({ page: pageCount, error: `HTTP ${response.status}` });
-        
-        // Incrementar offset e tentar próxima página
         offset += batchSize;
         consecutiveEmptyPages++;
         
-        if (consecutiveEmptyPages >= MAX_CONSECUTIVE_EMPTY) {
-          console.log(`🛑 Stopping after ${MAX_CONSECUTIVE_EMPTY} consecutive errors/empty pages`);
-          break;
-        }
+        if (consecutiveEmptyPages >= MAX_CONSECUTIVE_EMPTY) break;
         continue;
       }
 
       const data = await response.json();
-
-      // Verificar se há dados - CONDIÇÃO DE PARADA
       const records = data.data || [];
       
       if (records.length === 0) {
         consecutiveEmptyPages++;
-        console.log(`⚠️ Empty page ${pageCount}, consecutive empty: ${consecutiveEmptyPages}`);
+        console.log(`⚠️ [BG] Empty page ${pageCount}, consecutive: ${consecutiveEmptyPages}`);
         
         if (consecutiveEmptyPages >= MAX_CONSECUTIVE_EMPTY) {
-          console.log(`🛑 Stopping: ${MAX_CONSECUTIVE_EMPTY} consecutive empty pages - ALL DATA LOADED`);
+          console.log(`✅ [BG] ALL DATA LOADED - no more records`);
           break;
         }
-        
-        // Tentar próximo offset mesmo assim
         offset += batchSize;
         continue;
       }
       
-      // Reset contador de páginas vazias
       consecutiveEmptyPages = 0;
 
       // Transform records
       const transformedRecords = records.map(transformErpData);
       
-      // Generate hashes for deduplication
       for (const record of transformedRecords) {
         record.data_hash = await generateHash({
           erp_id: record.erp_id,
@@ -462,34 +472,26 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
         });
       }
 
-      // Upsert in small batches with delay to avoid connection issues
-      const totalBatches = Math.ceil(transformedRecords.length / UPSERT_BATCH_SIZE);
-      
+      // Upsert in smaller batches
       for (let i = 0; i < transformedRecords.length; i += UPSERT_BATCH_SIZE) {
-        const batchNum = Math.floor(i / UPSERT_BATCH_SIZE) + 1;
         const batch = transformedRecords.slice(i, i + UPSERT_BATCH_SIZE);
+        const batchNum = Math.floor(i / UPSERT_BATCH_SIZE) + 1;
         
-        // Retry logic para upsert
-        let upsertSuccess = false;
-        for (let upsertAttempt = 1; upsertAttempt <= 3; upsertAttempt++) {
+        for (let attempt = 1; attempt <= 3; attempt++) {
           const { error: upsertError } = await supabase
             .from('contas_receber')
-            .upsert(batch, { 
-              onConflict: 'erp_id',
-              ignoreDuplicates: false 
-            });
+            .upsert(batch, { onConflict: 'erp_id', ignoreDuplicates: false });
 
           if (!upsertError) {
             totalProcessed += batch.length;
-            upsertSuccess = true;
             break;
           }
           
-          if (upsertAttempt < 3) {
-            console.log(`⚠️ Upsert retry ${upsertAttempt}/3 for batch ${batchNum}...`);
-            await new Promise(resolve => setTimeout(resolve, 500 * upsertAttempt));
+          if (attempt < 3) {
+            console.log(`⚠️ [BG] Upsert retry ${attempt}/3...`);
+            await new Promise(r => setTimeout(r, 500 * attempt));
           } else {
-            console.error(`❌ Upsert failed after 3 attempts on page ${pageCount}, batch ${batchNum}:`, upsertError);
+            console.error(`❌ [BG] Upsert failed page ${pageCount}, batch ${batchNum}:`, upsertError);
             errors.push({ page: pageCount, batch: batchNum, error: upsertError.message });
           }
         }
