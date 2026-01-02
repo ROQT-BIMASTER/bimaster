@@ -8,14 +8,13 @@ const corsHeaders = {
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
 
-// ============= CONFIGURAÇÕES OTIMIZADAS PARA 50K+ REGISTROS =============
-const DEFAULT_BATCH_SIZE = 1000;  // Reduzido para 1k - melhor estabilidade
-const UPSERT_BATCH_SIZE = 100;    // CRÍTICO: 100 registros por upsert para evitar timeout
-const MAX_RETRIES = 3;            // 3 tentativas com backoff
-const RETRY_DELAY_MS = 2000;      // 2s entre tentativas
-const PAGE_DELAY_MS = 2000;       // 2s entre páginas - evita sobrecarga
-const FETCH_TIMEOUT_MS = 60000;   // 60s timeout por request
-const SUPABASE_BATCH_DELAY_MS = 200; // 200ms entre batches de upsert - evita statement timeout
+// ============= CONFIGURAÇÕES OTIMIZADAS =============
+const DEFAULT_BATCH_SIZE = 1000;  // Registros por página
+const UPSERT_BATCH_SIZE = 100;    // Registros por upsert
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
+const FETCH_TIMEOUT_MS = 30000;   // 30s timeout
+const SUPABASE_BATCH_DELAY_MS = 100;
 
 // Transform ERP data format to local format
 function transformErpData(erpRecord: any) {
@@ -55,7 +54,6 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MA
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Criar AbortController para timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
       
@@ -66,18 +64,15 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MA
       
       clearTimeout(timeoutId);
       
-      // Se não for erro de servidor, retornar
       if (response.status < 500) {
         return response;
       }
       
-      // Erro 5xx - tentar novamente
       console.log(`⚠️ Attempt ${attempt}/${maxRetries} failed with status ${response.status}`);
       lastError = new Error(`HTTP ${response.status}`);
       
       if (attempt < maxRetries) {
-        const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1); // Backoff exponencial
-        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     } catch (error) {
@@ -88,7 +83,6 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MA
       
       if (attempt < maxRetries) {
         const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
-        console.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -98,7 +92,6 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MA
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -107,12 +100,10 @@ serve(async (req) => {
   const path = url.pathname.split('/').pop();
 
   try {
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Validate JWT
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -131,9 +122,8 @@ serve(async (req) => {
       );
     }
 
-    console.log(`✅ N8N Contas Receber: User ${user.id} authenticated, path: ${path}`);
+    console.log(`✅ User ${user.id} authenticated, path: ${path}`);
 
-    // Route handling
     switch (path) {
       case 'status':
         return await handleStatus(supabase);
@@ -141,21 +131,37 @@ serve(async (req) => {
       case 'query':
         return await handleQuery(req);
       
-      case 'sync-all':
-        return await handleSyncAll(req, supabase, user.id);
+      case 'sync-page':
+        // NOVO: Processa apenas UMA página e retorna próximo offset
+        return await handleSyncPage(req, supabase, user.id);
+      
+      case 'sync-start':
+        // NOVO: Inicia sync e retorna primeiro offset
+        return await handleSyncStart(req, supabase, user.id);
+      
+      case 'sync-finish':
+        // NOVO: Finaliza sync (atualiza logs)
+        return await handleSyncFinish(req, supabase);
       
       case 'preview':
         return await handlePreview(req);
       
+      // Mantém sync-all para compatibilidade mas marca como deprecated
+      case 'sync-all':
+        return await handleSyncPage(req, supabase, user.id);
+      
       default:
         return new Response(
-          JSON.stringify({ error: 'Unknown endpoint', availableEndpoints: ['status', 'query', 'sync-all', 'preview'] }),
+          JSON.stringify({ 
+            error: 'Unknown endpoint', 
+            availableEndpoints: ['status', 'query', 'sync-start', 'sync-page', 'sync-finish', 'preview'] 
+          }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
   } catch (error: unknown) {
     const err = error as Error;
-    console.error('❌ N8N Contas Receber Error:', err);
+    console.error('❌ Error:', err);
     return new Response(
       JSON.stringify({ error: err.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -163,18 +169,15 @@ serve(async (req) => {
   }
 });
 
-// Test connection to N8N webhook
+// Test connection
 async function handleStatus(supabase: any) {
   console.log('🔍 Testing N8N webhook connection...');
   
   const startTime = Date.now();
-  let n8nResponse: any = null;
   let n8nConnected = false;
-  let n8nError: string | null = null;
   let responseData: any = null;
   
   try {
-    // Try POST first (expected for data queries)
     const response = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -188,47 +191,22 @@ async function handleStatus(supabase: any) {
     const duration = Date.now() - startTime;
     const responseText = await response.text();
     
-    console.log(`📡 N8N Response - Status: ${response.status}, Body preview: ${responseText.substring(0, 200)}`);
-
     try {
       responseData = JSON.parse(responseText);
-    } catch (parseErr) {
-      console.log('⚠️ N8N response is not JSON:', responseText.substring(0, 100));
+    } catch {
       responseData = { raw: responseText };
     }
 
-    // Check connection - N8N is connected if we get a 200 response
-    // The webhook might return data array directly or wrapped in success/data
     n8nConnected = response.ok && (
       responseData?.success === true || 
       Array.isArray(responseData?.data) || 
-      Array.isArray(responseData) ||
-      (responseData && typeof responseData === 'object' && !responseData.error)
+      Array.isArray(responseData)
     );
 
-    n8nResponse = {
-      connected: n8nConnected,
-      responseTime: duration,
-      webhookUrl: N8N_WEBHOOK_URL,
-      httpStatus: response.status,
-      sampleRecord: Array.isArray(responseData?.data) ? responseData.data[0] : 
-                    Array.isArray(responseData) ? responseData[0] : null,
-      metadata: responseData?.metadata || null,
-      rawResponse: !n8nConnected ? responseData : undefined,
-    };
-
   } catch (error: unknown) {
-    const err = error as Error;
-    console.error('❌ N8N connection error:', err.message);
-    n8nError = err.message;
-    n8nResponse = {
-      connected: false,
-      error: err.message,
-      webhookUrl: N8N_WEBHOOK_URL,
-    };
+    console.error('❌ N8N connection error:', (error as Error).message);
   }
 
-  // Get last sync info from sync_logs
   const { data: lastSync } = await supabase
     .from('sync_logs')
     .select('*')
@@ -237,7 +215,6 @@ async function handleStatus(supabase: any) {
     .limit(1)
     .maybeSingle();
 
-  // Get local record count
   const { count: localCount } = await supabase
     .from('contas_receber')
     .select('*', { count: 'exact', head: true });
@@ -245,19 +222,18 @@ async function handleStatus(supabase: any) {
   return new Response(
     JSON.stringify({
       success: n8nConnected,
-      n8n: n8nResponse,
+      n8n: { connected: n8nConnected, webhookUrl: N8N_WEBHOOK_URL },
       local: {
         totalRecords: localCount || 0,
         lastSync: lastSync?.created_at || null,
         lastSyncStatus: lastSync?.status || null,
-        lastSyncRecords: lastSync?.registros_processados || null,
       }
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
 
-// Query data from N8N (single page) - SEM LIMITE
+// Query data from N8N (single page)
 async function handleQuery(req: Request) {
   const body = await req.json();
   const { limit = DEFAULT_BATCH_SIZE, offset = 0, filters = {} } = body;
@@ -267,41 +243,28 @@ async function handleQuery(req: Request) {
   const response = await fetch(N8N_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      tableName: 'ConsultaPowerBIReceber',
-      limit, // Sem limite máximo
-      offset,
-      filters,
-    }),
+    body: JSON.stringify({ tableName: 'ConsultaPowerBIReceber', limit, offset, filters }),
   });
 
   if (!response.ok) {
     throw new Error(`N8N webhook error: ${response.status}`);
   }
 
-  const data = await response.json();
-
   return new Response(
-    JSON.stringify(data),
+    JSON.stringify(await response.json()),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
 
-// Preview first records (for UI display)
+// Preview first records
 async function handlePreview(req: Request) {
   const body = await req.json().catch(() => ({}));
   const { limit = 10 } = body;
 
-  console.log(`👁️ Preview: fetching ${limit} records from N8N`);
-
   const response = await fetch(N8N_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      tableName: 'ConsultaPowerBIReceber',
-      limit: Math.min(limit, 100),
-      offset: 0,
-    }),
+    body: JSON.stringify({ tableName: 'ConsultaPowerBIReceber', limit: Math.min(limit, 100), offset: 0 }),
   });
 
   if (!response.ok) {
@@ -309,38 +272,30 @@ async function handlePreview(req: Request) {
   }
 
   const data = await response.json();
-
-  // Transform for preview
   const transformedRecords = (data.data || []).map(transformErpData);
 
   return new Response(
-    JSON.stringify({
-      success: true,
-      preview: transformedRecords,
-      originalFormat: data.data?.[0] || null,
-      metadata: data.metadata,
-    }),
+    JSON.stringify({ success: true, preview: transformedRecords, metadata: data.metadata }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
 
-// Full sync with pagination - USANDO BACKGROUND TASK para não ter timeout
-// A função retorna imediatamente e o processamento continua em background
-async function handleSyncAll(req: Request, supabase: any, userId: string) {
+// ============= NOVOS ENDPOINTS PARA PAGINAÇÃO CONTROLADA PELO N8N =============
+
+// SYNC-START: Inicia o sync e retorna o primeiro offset
+async function handleSyncStart(req: Request, supabase: any, userId: string) {
   const body = await req.json().catch(() => ({}));
   const batchSize = body.batchSize || DEFAULT_BATCH_SIZE;
 
-  console.log(`🔄 Starting BACKGROUND sync with batch size: ${batchSize}`);
+  console.log(`🚀 Starting sync session with batch size: ${batchSize}`);
 
-  const startTime = Date.now();
-
-  // Create sync log entry
+  // Criar entrada no sync_logs
   const { data: syncLog } = await supabase
     .from('sync_logs')
     .insert({
       tipo: 'contas_receber',
       status: 'in_progress',
-      detalhes: { source: 'n8n-webhook', batchSize, startedBy: userId, background: true },
+      detalhes: { source: 'n8n-pagination', batchSize, startedBy: userId },
     })
     .select()
     .single();
@@ -351,331 +306,250 @@ async function handleSyncAll(req: Request, supabase: any, userId: string) {
       entidade: 'contas_receber',
       tipo_sync: 'full',
       status: 'in_progress',
-      metadata: { source: 'n8n-webhook', batchSize, startedBy: userId, background: true },
+      metadata: { source: 'n8n-pagination', batchSize, startedBy: userId },
     })
     .select()
     .single();
 
-  const syncId = syncLog?.id;
-  const trackingId = syncTracking?.id;
-
-  // CRITICAL: Inicia processamento em BACKGROUND
-  // @ts-ignore - EdgeRuntime é disponível em Supabase Edge Functions
-  EdgeRuntime.waitUntil(processInBackground(supabase, syncId, trackingId, batchSize, startTime));
-
-  // Retorna IMEDIATAMENTE - processamento continua em background
   return new Response(
     JSON.stringify({
       success: true,
-      message: 'Sincronização iniciada em background',
-      syncId,
-      trackingId,
+      syncId: syncLog?.id,
+      trackingId: syncTracking?.id,
       batchSize,
-      note: 'O processamento continuará em segundo plano. Consulte o status para acompanhar.',
+      nextOffset: 0,
+      hasMore: true,
+      message: 'Sync iniciado. Use sync-page para processar cada página.',
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
 
-// Função que executa em BACKGROUND - sem limite de tempo
-async function processInBackground(
-  supabase: any, 
-  syncId: string | null, 
-  trackingId: string | null, 
-  batchSize: number,
-  startTime: number
-) {
-  console.log(`🚀 BACKGROUND PROCESSING STARTED - syncId: ${syncId}`);
-  
-  let offset = 0;
-  let totalProcessed = 0;
-  let consecutiveEmptyPages = 0;
-  let pageCount = 0;
-  const errors: any[] = [];
-  const MAX_CONSECUTIVE_EMPTY = 3;
+// SYNC-PAGE: Processa UMA página e retorna se tem mais
+async function handleSyncPage(req: Request, supabase: any, userId: string) {
+  const body = await req.json().catch(() => ({}));
+  const { 
+    offset = 0, 
+    batchSize = DEFAULT_BATCH_SIZE,
+    syncId = null,
+    trackingId = null,
+    totalProcessed = 0,
+    pageNumber = 1,
+  } = body;
+
+  const startTime = Date.now();
+  console.log(`📄 Processing page ${pageNumber}, offset: ${offset}`);
 
   try {
-    while (true) {
-      pageCount++;
-      console.log(`📄 [BG] Page ${pageCount}, offset: ${offset}, processed: ${totalProcessed}`);
+    // Buscar dados do N8N
+    const response = await fetchWithRetry(N8N_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tableName: 'ConsultaPowerBIReceber',
+        limit: batchSize,
+        offset,
+      }),
+    });
 
-      // Update progress periodically
-      if (pageCount % 5 === 0 && trackingId) {
-        await supabase
-          .from('sync_tracking')
-          .update({ 
-            registros_processados: totalProcessed,
-            metadata: { pages: pageCount, offset, lastUpdate: new Date().toISOString() }
-          })
-          .eq('id', trackingId);
-      }
-
-      let response: Response;
-      try {
-        response = await fetchWithRetry(N8N_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tableName: 'ConsultaPowerBIReceber',
-            limit: batchSize,
-            offset,
-          }),
-        });
-      } catch (fetchError) {
-        console.error(`❌ [BG] Page ${pageCount} failed:`, (fetchError as Error).message);
-        errors.push({ page: pageCount, error: (fetchError as Error).message });
-        offset += batchSize;
-        consecutiveEmptyPages++;
-        
-        if (consecutiveEmptyPages >= MAX_CONSECUTIVE_EMPTY) {
-          console.log(`🛑 [BG] Stopping after ${MAX_CONSECUTIVE_EMPTY} consecutive errors`);
-          break;
-        }
-        continue;
-      }
-
-      if (!response.ok) {
-        errors.push({ page: pageCount, error: `HTTP ${response.status}` });
-        offset += batchSize;
-        consecutiveEmptyPages++;
-        
-        if (consecutiveEmptyPages >= MAX_CONSECUTIVE_EMPTY) break;
-        continue;
-      }
-
-      const data = await response.json();
-      const records = data.data || [];
-      
-      if (records.length === 0) {
-        consecutiveEmptyPages++;
-        console.log(`⚠️ [BG] Empty page ${pageCount}, consecutive: ${consecutiveEmptyPages}`);
-        
-        if (consecutiveEmptyPages >= MAX_CONSECUTIVE_EMPTY) {
-          console.log(`✅ [BG] ALL DATA LOADED - no more records`);
-          break;
-        }
-        offset += batchSize;
-        continue;
-      }
-      
-      consecutiveEmptyPages = 0;
-
-      // Transform records
-      const transformedRecords = records.map(transformErpData);
-      
-      for (const record of transformedRecords) {
-        record.data_hash = await generateHash({
-          erp_id: record.erp_id,
-          valor_original: record.valor_original,
-          valor_aberto: record.valor_aberto,
-          status: record.status,
-        });
-      }
-
-      // Upsert in smaller batches
-      for (let i = 0; i < transformedRecords.length; i += UPSERT_BATCH_SIZE) {
-        const batch = transformedRecords.slice(i, i + UPSERT_BATCH_SIZE);
-        const batchNum = Math.floor(i / UPSERT_BATCH_SIZE) + 1;
-        
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          const { error: upsertError } = await supabase
-            .from('contas_receber')
-            .upsert(batch, { onConflict: 'erp_id', ignoreDuplicates: false });
-
-          if (!upsertError) {
-            totalProcessed += batch.length;
-            break;
-          }
-          
-          if (attempt < 3) {
-            console.log(`⚠️ [BG] Upsert retry ${attempt}/3...`);
-            await new Promise(r => setTimeout(r, 500 * attempt));
-          } else {
-            console.error(`❌ [BG] Upsert failed page ${pageCount}, batch ${batchNum}:`, upsertError);
-            errors.push({ page: pageCount, batch: batchNum, error: upsertError.message });
-          }
-        }
-        
-        // Delay entre batches de upsert para não sobrecarregar
-        if (i + UPSERT_BATCH_SIZE < transformedRecords.length) {
-          await new Promise(resolve => setTimeout(resolve, SUPABASE_BATCH_DELAY_MS));
-        }
-      }
-      
-      console.log(`✅ Page ${pageCount} processed: ${transformedRecords.length} records, total: ${totalProcessed}`);
-
-      // Atualizar offset - usar nextOffset se disponível, senão calcular
-      const previousOffset = offset;
-      offset = data.metadata?.nextOffset || (offset + records.length);
-      
-      // Se o offset não mudou, forçar incremento
-      if (offset === previousOffset) {
-        offset += batchSize;
-      }
-
-      // Update sync log progress
-      if (syncId) {
-        await supabase
-          .from('sync_logs')
-          .update({
-            registros_processados: totalProcessed,
-            detalhes: {
-              source: 'n8n-webhook',
-              batchSize,
-              pagesProcessed: pageCount,
-              currentOffset: offset,
-              errors: errors.length,
-              unlimited: true,
-            },
-          })
-          .eq('id', syncId);
-      }
-
-      // Update sync_tracking progress
-      if (trackingId) {
-        await supabase
-          .from('sync_tracking')
-          .update({
-            records_processed: totalProcessed,
-            metadata: {
-              source: 'n8n-webhook',
-              batchSize,
-              pagesProcessed: pageCount,
-              currentOffset: offset,
-              errors: errors.length,
-              unlimited: true,
-            },
-          })
-          .eq('id', trackingId);
-      }
-
-      // Se retornou menos que o batch size, provavelmente é a última página
-      if (records.length < batchSize) {
-        console.log(`📊 Last page detected (${records.length} < ${batchSize}) - checking for more...`);
-        // Continuar tentando mais uma vez para garantir
-      }
-
-      // Delay entre TODAS as páginas para não sobrecarregar o N8N
-      console.log(`⏳ Aguardando ${PAGE_DELAY_MS}ms antes da próxima página...`);
-      await new Promise(resolve => setTimeout(resolve, PAGE_DELAY_MS));
+    if (!response.ok) {
+      throw new Error(`N8N error: ${response.status}`);
     }
 
+    const data = await response.json();
+    const records = data.data || [];
+    
+    console.log(`📥 Received ${records.length} records from N8N`);
+
+    if (records.length === 0) {
+      // Sem mais registros - sync completo
+      console.log(`✅ No more records - sync complete!`);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          hasMore: false,
+          pageProcessed: pageNumber,
+          recordsInPage: 0,
+          totalProcessed,
+          syncId,
+          trackingId,
+          message: 'Sync completo - sem mais registros',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Transformar registros
+    const transformedRecords = records.map(transformErpData);
+    
+    for (const record of transformedRecords) {
+      record.data_hash = await generateHash({
+        erp_id: record.erp_id,
+        valor_original: record.valor_original,
+        valor_aberto: record.valor_aberto,
+        status: record.status,
+      });
+    }
+
+    // Upsert em batches menores
+    let pageRecordsProcessed = 0;
+    const errors: any[] = [];
+
+    for (let i = 0; i < transformedRecords.length; i += UPSERT_BATCH_SIZE) {
+      const batch = transformedRecords.slice(i, i + UPSERT_BATCH_SIZE);
+      
+      const { error: upsertError } = await supabase
+        .from('contas_receber')
+        .upsert(batch, { onConflict: 'erp_id', ignoreDuplicates: false });
+
+      if (upsertError) {
+        console.error(`❌ Upsert error:`, upsertError);
+        errors.push({ batch: Math.floor(i / UPSERT_BATCH_SIZE) + 1, error: upsertError.message });
+      } else {
+        pageRecordsProcessed += batch.length;
+      }
+
+      if (i + UPSERT_BATCH_SIZE < transformedRecords.length) {
+        await new Promise(resolve => setTimeout(resolve, SUPABASE_BATCH_DELAY_MS));
+      }
+    }
+
+    const newTotalProcessed = totalProcessed + pageRecordsProcessed;
+    const nextOffset = data.metadata?.nextOffset || (offset + records.length);
+    const hasMore = records.length >= batchSize;
     const duration = Date.now() - startTime;
 
-    // Update sync log with final status
+    console.log(`✅ Page ${pageNumber} done: ${pageRecordsProcessed} records in ${duration}ms`);
+
+    // Atualizar sync_logs se fornecido
     if (syncId) {
       await supabase
         .from('sync_logs')
         .update({
-          status: errors.length > 0 ? 'completed_with_errors' : 'completed',
-          registros_processados: totalProcessed,
-          detalhes: {
-            source: 'n8n-webhook',
-            batchSize,
-            pagesProcessed: pageCount,
-            duration_ms: duration,
-            errors,
+          registros_processados: newTotalProcessed,
+          detalhes: { 
+            source: 'n8n-pagination', 
+            batchSize, 
+            pagesProcessed: pageNumber,
+            currentOffset: nextOffset,
           },
         })
         .eq('id', syncId);
     }
 
-    // Update sync_tracking with final status
+    // Atualizar sync_tracking se fornecido
     if (trackingId) {
       await supabase
         .from('sync_tracking')
         .update({
-          status: errors.length > 0 ? 'partial' : 'completed',
-          records_processed: totalProcessed,
-          duration_ms: duration,
-          last_sync_at: new Date().toISOString(),
-          metadata: {
-            source: 'n8n-webhook',
-            batchSize,
-            pagesProcessed: pageCount,
-            duration_ms: duration,
-            errors,
+          records_processed: newTotalProcessed,
+          metadata: { 
+            source: 'n8n-pagination', 
+            batchSize, 
+            pagesProcessed: pageNumber,
+            currentOffset: nextOffset,
           },
         })
         .eq('id', trackingId);
     }
-
-    console.log(`🎉 Sync completed: ${totalProcessed} records in ${pageCount} pages (${duration}ms)`);
 
     return new Response(
       JSON.stringify({
         success: true,
+        hasMore,
+        nextOffset,
+        pageProcessed: pageNumber,
+        recordsInPage: pageRecordsProcessed,
+        totalProcessed: newTotalProcessed,
         syncId,
         trackingId,
-        summary: {
-          totalProcessed,
-          pagesProcessed: pageCount,
-          duration: duration,
-          durationFormatted: `${Math.round(duration / 1000)}s`,
-          recordsPerSecond: Math.round(totalProcessed / (duration / 1000)),
-          errors: errors.length,
-        },
+        duration,
         errors: errors.length > 0 ? errors : undefined,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error: unknown) {
     const err = error as Error;
-    console.error('❌ Sync failed:', err);
-
-    const failedDuration = Date.now() - startTime;
-
-    // Update sync log with error
-    if (syncId) {
-      await supabase
-        .from('sync_logs')
-        .update({
-          status: 'failed',
-          erro_mensagem: err.message,
-          registros_processados: totalProcessed,
-          detalhes: {
-            source: 'n8n-webhook',
-            batchSize,
-            pagesProcessed: pageCount,
-            duration_ms: failedDuration,
-            errors,
-            fatalError: err.message,
-          },
-        })
-        .eq('id', syncId);
-    }
-
-    // Update sync_tracking with error
-    if (trackingId) {
-      await supabase
-        .from('sync_tracking')
-        .update({
-          status: 'failed',
-          error_message: err.message,
-          records_processed: totalProcessed,
-          duration_ms: failedDuration,
-          metadata: {
-            source: 'n8n-webhook',
-            batchSize,
-            pagesProcessed: pageCount,
-            duration_ms: failedDuration,
-            errors,
-            fatalError: err.message,
-          },
-        })
-        .eq('id', trackingId);
-    }
+    console.error(`❌ Page ${pageNumber} failed:`, err.message);
 
     return new Response(
       JSON.stringify({
         success: false,
         error: err.message,
-        partial: {
-          totalProcessed,
-          pagesProcessed: pageCount,
-        },
+        hasMore: true, // Assume que tem mais para N8N tentar novamente
+        nextOffset: offset, // Mesmo offset para retry
+        pageProcessed: pageNumber,
+        totalProcessed,
+        syncId,
+        trackingId,
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
+}
+
+// SYNC-FINISH: Finaliza o sync e atualiza logs
+async function handleSyncFinish(req: Request, supabase: any) {
+  const body = await req.json().catch(() => ({}));
+  const { 
+    syncId, 
+    trackingId, 
+    totalProcessed = 0, 
+    pagesProcessed = 0,
+    hasErrors = false,
+    duration = 0,
+  } = body;
+
+  console.log(`🎉 Finishing sync: ${totalProcessed} records in ${pagesProcessed} pages`);
+
+  const status = hasErrors ? 'completed_with_errors' : 'completed';
+
+  if (syncId) {
+    await supabase
+      .from('sync_logs')
+      .update({
+        status,
+        registros_processados: totalProcessed,
+        detalhes: { 
+          source: 'n8n-pagination', 
+          pagesProcessed,
+          duration_ms: duration,
+          finishedAt: new Date().toISOString(),
+        },
+      })
+      .eq('id', syncId);
+  }
+
+  if (trackingId) {
+    await supabase
+      .from('sync_tracking')
+      .update({
+        status: hasErrors ? 'partial' : 'completed',
+        records_processed: totalProcessed,
+        duration_ms: duration,
+        last_sync_at: new Date().toISOString(),
+        metadata: { 
+          source: 'n8n-pagination', 
+          pagesProcessed,
+          duration_ms: duration,
+        },
+      })
+      .eq('id', trackingId);
+  }
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      message: 'Sync finalizado com sucesso',
+      summary: {
+        totalProcessed,
+        pagesProcessed,
+        duration,
+        status,
+      },
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
 }
