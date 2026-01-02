@@ -8,13 +8,118 @@ const corsHeaders = {
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
 
-// ============= CONFIGURAÇÕES OTIMIZADAS =============
-const DEFAULT_BATCH_SIZE = 1000;  // Registros por página
-const UPSERT_BATCH_SIZE = 100;    // Registros por upsert
+// ============= CONFIGURAÇÕES OTIMIZADAS COM PROTEÇÃO =============
+const DEFAULT_BATCH_SIZE = 500;     // Reduzido de 1000 para 500
+const UPSERT_BATCH_SIZE = 50;       // Reduzido de 100 para 50
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
-const FETCH_TIMEOUT_MS = 30000;   // 30s timeout
-const SUPABASE_BATCH_DELAY_MS = 100;
+const FETCH_TIMEOUT_MS = 30000;     // 30s timeout
+const SUPABASE_BATCH_DELAY_MS = 200; // Aumentado de 100 para 200ms
+
+// ============= PROTEÇÕES CONTRA SOBRECARGA =============
+const RATE_LIMIT_WINDOW_MS = 60000; // Janela de 1 minuto
+const MAX_REQUESTS_PER_WINDOW = 30; // Máximo 30 requests por minuto
+const MAX_CONCURRENT_SYNCS = 2;     // Máximo 2 syncs simultâneos
+const PAGE_DELAY_MS = 2000;         // Delay obrigatório entre páginas (2s)
+const DB_HEALTH_CHECK_INTERVAL = 5; // Verificar saúde do DB a cada 5 páginas
+
+// Rate limiter em memória (reset quando função reinicia)
+const rateLimiter = new Map<string, { count: number; resetAt: number }>();
+const activeSyncs = new Map<string, { startedAt: number; lastActivity: number }>();
+
+// Função para verificar rate limit
+function checkRateLimit(userId: string): { allowed: boolean; retryAfter?: number; message?: string } {
+  const now = Date.now();
+  const userLimit = rateLimiter.get(userId);
+  
+  if (!userLimit || userLimit.resetAt < now) {
+    rateLimiter.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true };
+  }
+  
+  if (userLimit.count >= MAX_REQUESTS_PER_WINDOW) {
+    const retryAfter = Math.ceil((userLimit.resetAt - now) / 1000);
+    return { 
+      allowed: false, 
+      retryAfter,
+      message: `Rate limit exceeded. Try again in ${retryAfter} seconds.`
+    };
+  }
+  
+  userLimit.count++;
+  return { allowed: true };
+}
+
+// Função para verificar syncs ativos
+function checkConcurrentSyncs(syncId: string): { allowed: boolean; message?: string } {
+  const now = Date.now();
+  
+  // Limpar syncs inativos (mais de 5 minutos sem atividade)
+  for (const [id, sync] of activeSyncs.entries()) {
+    if (now - sync.lastActivity > 300000) { // 5 minutos
+      activeSyncs.delete(id);
+      console.log(`🧹 Cleaned up inactive sync: ${id}`);
+    }
+  }
+  
+  // Se este sync já está ativo, atualizar e permitir
+  if (activeSyncs.has(syncId)) {
+    activeSyncs.set(syncId, { ...activeSyncs.get(syncId)!, lastActivity: now });
+    return { allowed: true };
+  }
+  
+  // Verificar limite de syncs simultâneos
+  if (activeSyncs.size >= MAX_CONCURRENT_SYNCS) {
+    return { 
+      allowed: false, 
+      message: `Maximum ${MAX_CONCURRENT_SYNCS} concurrent syncs allowed. Wait for current syncs to complete.`
+    };
+  }
+  
+  // Registrar novo sync
+  activeSyncs.set(syncId, { startedAt: now, lastActivity: now });
+  return { allowed: true };
+}
+
+// Função para remover sync ativo
+function removeSyncFromActive(syncId: string) {
+  activeSyncs.delete(syncId);
+  console.log(`✅ Sync ${syncId} removed from active list. Active syncs: ${activeSyncs.size}`);
+}
+
+// Verificação de saúde do banco
+async function checkDatabaseHealth(supabase: any): Promise<{ healthy: boolean; message?: string }> {
+  try {
+    const startTime = Date.now();
+    
+    // Query simples para verificar responsividade
+    const { error } = await supabase
+      .from('sync_logs')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+    
+    const duration = Date.now() - startTime;
+    
+    if (error) {
+      console.warn(`⚠️ DB health check failed:`, error.message);
+      return { healthy: false, message: error.message };
+    }
+    
+    if (duration > 5000) { // Mais de 5s é preocupante
+      console.warn(`⚠️ DB slow: ${duration}ms`);
+      return { healthy: false, message: `Database responding slowly: ${duration}ms` };
+    }
+    
+    console.log(`💚 DB healthy: ${duration}ms`);
+    return { healthy: true };
+    
+  } catch (error) {
+    const err = error as Error;
+    console.error(`❌ DB health check error:`, err.message);
+    return { healthy: false, message: err.message };
+  }
+}
 
 // Transform ERP data format to local format
 function transformErpData(erpRecord: any) {
@@ -73,6 +178,7 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MA
       
       if (attempt < maxRetries) {
         const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     } catch (error) {
@@ -83,6 +189,7 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MA
       
       if (attempt < maxRetries) {
         const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -122,6 +229,20 @@ serve(async (req) => {
       );
     }
 
+    // Verificar rate limit
+    const rateLimitCheck = checkRateLimit(user.id);
+    if (!rateLimitCheck.allowed) {
+      console.warn(`🚫 Rate limit exceeded for user ${user.id}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Rate limit exceeded', 
+          message: rateLimitCheck.message,
+          retryAfter: rateLimitCheck.retryAfter,
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(rateLimitCheck.retryAfter) } }
+      );
+    }
+
     console.log(`✅ User ${user.id} authenticated, path: ${path}`);
 
     switch (path) {
@@ -132,19 +253,19 @@ serve(async (req) => {
         return await handleQuery(req);
       
       case 'sync-page':
-        // NOVO: Processa apenas UMA página e retorna próximo offset
         return await handleSyncPage(req, supabase, user.id);
       
       case 'sync-start':
-        // NOVO: Inicia sync e retorna primeiro offset
         return await handleSyncStart(req, supabase, user.id);
       
       case 'sync-finish':
-        // NOVO: Finaliza sync (atualiza logs)
         return await handleSyncFinish(req, supabase);
       
       case 'preview':
         return await handlePreview(req);
+      
+      case 'health':
+        return await handleHealthCheck(supabase);
       
       // Mantém sync-all para compatibilidade mas marca como deprecated
       case 'sync-all':
@@ -154,7 +275,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             error: 'Unknown endpoint', 
-            availableEndpoints: ['status', 'query', 'sync-start', 'sync-page', 'sync-finish', 'preview'] 
+            availableEndpoints: ['status', 'query', 'sync-start', 'sync-page', 'sync-finish', 'preview', 'health'] 
           }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -168,6 +289,31 @@ serve(async (req) => {
     );
   }
 });
+
+// Health check endpoint
+async function handleHealthCheck(supabase: any) {
+  const dbHealth = await checkDatabaseHealth(supabase);
+  const activeSyncCount = activeSyncs.size;
+  
+  return new Response(
+    JSON.stringify({
+      success: true,
+      database: dbHealth,
+      activeSyncs: activeSyncCount,
+      maxConcurrentSyncs: MAX_CONCURRENT_SYNCS,
+      rateLimiting: {
+        maxRequestsPerMinute: MAX_REQUESTS_PER_WINDOW,
+        pageDelayMs: PAGE_DELAY_MS,
+      },
+      config: {
+        batchSize: DEFAULT_BATCH_SIZE,
+        upsertBatchSize: UPSERT_BATCH_SIZE,
+        dbHealthCheckInterval: DB_HEALTH_CHECK_INTERVAL,
+      },
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
 
 // Test connection
 async function handleStatus(supabase: any) {
@@ -219,6 +365,8 @@ async function handleStatus(supabase: any) {
     .from('contas_receber')
     .select('*', { count: 'exact', head: true });
 
+  const dbHealth = await checkDatabaseHealth(supabase);
+
   return new Response(
     JSON.stringify({
       success: n8nConnected,
@@ -227,7 +375,14 @@ async function handleStatus(supabase: any) {
         totalRecords: localCount || 0,
         lastSync: lastSync?.created_at || null,
         lastSyncStatus: lastSync?.status || null,
-      }
+      },
+      database: dbHealth,
+      activeSyncs: activeSyncs.size,
+      protections: {
+        rateLimitPerMinute: MAX_REQUESTS_PER_WINDOW,
+        maxConcurrentSyncs: MAX_CONCURRENT_SYNCS,
+        pageDelayMs: PAGE_DELAY_MS,
+      },
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
@@ -281,15 +436,49 @@ async function handlePreview(req: Request) {
 }
 
 // ============= ENDPOINTS PARA PAGINAÇÃO CONTROLADA PELO N8N =============
-// IMPORTANTE: No N8N, o Loop Over Items tem limite de 15 iterações por padrão.
-// Configure "Max Iterations" no nó de Loop para um valor maior (ex: 1000)
+// IMPORTANTE: 
+// - Configure Max Iterations no Loop do N8N para 1000+
+// - Configure delay de 2-5 segundos entre iterações no N8N
 
 // SYNC-START: Inicia o sync e retorna o primeiro offset
 async function handleSyncStart(req: Request, supabase: any, userId: string) {
   const body = await req.json().catch(() => ({}));
-  const batchSize = body.batchSize || DEFAULT_BATCH_SIZE;
+  const batchSize = Math.min(body.batchSize || DEFAULT_BATCH_SIZE, 500); // Máximo 500
 
   console.log(`🚀 Starting sync session with batch size: ${batchSize}`);
+
+  // Verificar saúde do banco antes de iniciar
+  const dbHealth = await checkDatabaseHealth(supabase);
+  if (!dbHealth.healthy) {
+    console.error(`❌ Database unhealthy, refusing to start sync: ${dbHealth.message}`);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Database unhealthy',
+        message: `Cannot start sync: ${dbHealth.message}. Wait a few minutes and try again.`,
+      }),
+      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Gerar ID único para este sync
+  const syncSessionId = `sync-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // Verificar syncs simultâneos
+  const concurrentCheck = checkConcurrentSyncs(syncSessionId);
+  if (!concurrentCheck.allowed) {
+    console.warn(`🚫 Too many concurrent syncs`);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Too many concurrent syncs',
+        message: concurrentCheck.message,
+        activeSyncs: activeSyncs.size,
+        maxConcurrentSyncs: MAX_CONCURRENT_SYNCS,
+      }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
 
   // Criar entrada no sync_logs
   const { data: syncLog } = await supabase
@@ -297,7 +486,17 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
     .insert({
       tipo: 'contas_receber',
       status: 'in_progress',
-      detalhes: { source: 'n8n-pagination', batchSize, startedBy: userId },
+      detalhes: { 
+        source: 'n8n-pagination', 
+        batchSize, 
+        startedBy: userId,
+        syncSessionId,
+        protections: {
+          pageDelayMs: PAGE_DELAY_MS,
+          maxConcurrentSyncs: MAX_CONCURRENT_SYNCS,
+          rateLimit: MAX_REQUESTS_PER_WINDOW,
+        },
+      },
     })
     .select()
     .single();
@@ -308,7 +507,12 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
       entidade: 'contas_receber',
       tipo_sync: 'full',
       status: 'in_progress',
-      metadata: { source: 'n8n-pagination', batchSize, startedBy: userId },
+      metadata: { 
+        source: 'n8n-pagination', 
+        batchSize, 
+        startedBy: userId,
+        syncSessionId,
+      },
     })
     .select()
     .single();
@@ -318,6 +522,7 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
       success: true,
       syncId: syncLog?.id,
       trackingId: syncTracking?.id,
+      syncSessionId,
       batchSize,
       nextOffset: 0,
       hasMore: true,
@@ -326,8 +531,15 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
         warning: 'Configure Max Iterations no Loop do N8N para 1000 ou mais!',
         defaultLimit: 15,
         recommendedLimit: 1000,
+        requiredDelayBetweenPages: `${PAGE_DELAY_MS}ms (2 segundos)`,
+        maxBatchSize: 500,
       },
-      message: 'Sync iniciado. Use sync-page para processar cada página.',
+      protections: {
+        pageDelayMs: PAGE_DELAY_MS,
+        maxConcurrentSyncs: MAX_CONCURRENT_SYNCS,
+        dbHealthCheckInterval: DB_HEALTH_CHECK_INTERVAL,
+      },
+      message: 'Sync iniciado. Use sync-page para processar cada página. IMPORTANTE: Configure delay de 2s entre páginas no N8N!',
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
@@ -338,15 +550,50 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
   const body = await req.json().catch(() => ({}));
   const { 
     offset = 0, 
-    batchSize = DEFAULT_BATCH_SIZE,
+    batchSize: requestedBatchSize = DEFAULT_BATCH_SIZE,
     syncId = null,
     trackingId = null,
+    syncSessionId = null,
     totalProcessed = 0,
     pageNumber = 1,
   } = body;
 
+  // Limitar batch size
+  const batchSize = Math.min(requestedBatchSize, 500);
+
   const startTime = Date.now();
-  console.log(`📄 Processing page ${pageNumber}, offset: ${offset}`);
+  console.log(`📄 Processing page ${pageNumber}, offset: ${offset}, batchSize: ${batchSize}`);
+
+  // Atualizar atividade do sync se temos sessão
+  if (syncSessionId && activeSyncs.has(syncSessionId)) {
+    activeSyncs.set(syncSessionId, { ...activeSyncs.get(syncSessionId)!, lastActivity: Date.now() });
+  }
+
+  // Verificar saúde do banco a cada N páginas
+  if (pageNumber % DB_HEALTH_CHECK_INTERVAL === 0) {
+    console.log(`🔍 Performing periodic DB health check (page ${pageNumber})`);
+    const dbHealth = await checkDatabaseHealth(supabase);
+    if (!dbHealth.healthy) {
+      console.error(`❌ Database unhealthy at page ${pageNumber}: ${dbHealth.message}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Database unhealthy',
+          message: `Sync paused: ${dbHealth.message}. The N8N workflow should wait and retry.`,
+          hasMore: true,
+          nextOffset: offset, // Mesmo offset para retry
+          pageProcessed: pageNumber,
+          totalProcessed,
+          syncId,
+          trackingId,
+          syncSessionId,
+          shouldWait: true,
+          waitMs: 30000, // Esperar 30s antes de retry
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  }
 
   try {
     // Buscar dados do N8N
@@ -373,6 +620,11 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
       // Sem mais registros - sync completo
       console.log(`✅ No more records - sync complete!`);
       
+      // Remover sync da lista de ativos
+      if (syncSessionId) {
+        removeSyncFromActive(syncSessionId);
+      }
+      
       return new Response(
         JSON.stringify({
           success: true,
@@ -382,6 +634,7 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
           totalProcessed,
           syncId,
           trackingId,
+          syncSessionId,
           message: 'Sync completo - sem mais registros',
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -400,7 +653,7 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
       });
     }
 
-    // Upsert em batches menores
+    // Upsert em batches menores com delays
     let pageRecordsProcessed = 0;
     const errors: any[] = [];
 
@@ -414,10 +667,33 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
       if (upsertError) {
         console.error(`❌ Upsert error:`, upsertError);
         errors.push({ batch: Math.floor(i / UPSERT_BATCH_SIZE) + 1, error: upsertError.message });
+        
+        // Se erro grave, pausar
+        if (upsertError.message.includes('timeout') || upsertError.message.includes('connection')) {
+          console.error(`❌ Critical DB error, pausing sync`);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Database error',
+              message: `Critical error: ${upsertError.message}. Sync should pause and retry.`,
+              hasMore: true,
+              nextOffset: offset,
+              pageProcessed: pageNumber,
+              totalProcessed,
+              syncId,
+              trackingId,
+              syncSessionId,
+              shouldWait: true,
+              waitMs: 60000, // Esperar 1 minuto
+            }),
+            { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       } else {
         pageRecordsProcessed += batch.length;
       }
 
+      // Delay entre batches de upsert
       if (i + UPSERT_BATCH_SIZE < transformedRecords.length) {
         await new Promise(resolve => setTimeout(resolve, SUPABASE_BATCH_DELAY_MS));
       }
@@ -441,6 +717,7 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
             batchSize, 
             pagesProcessed: pageNumber,
             currentOffset: nextOffset,
+            lastPageDuration: duration,
           },
         })
         .eq('id', syncId);
@@ -457,6 +734,7 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
             batchSize, 
             pagesProcessed: pageNumber,
             currentOffset: nextOffset,
+            lastPageDuration: duration,
           },
         })
         .eq('id', trackingId);
@@ -472,8 +750,12 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
         totalProcessed: newTotalProcessed,
         syncId,
         trackingId,
+        syncSessionId,
         duration,
         errors: errors.length > 0 ? errors : undefined,
+        // Informar o N8N sobre delay recomendado
+        recommendedDelay: PAGE_DELAY_MS,
+        message: hasMore ? `Page ${pageNumber} complete. Wait ${PAGE_DELAY_MS}ms before next page.` : 'Processing complete.',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -492,6 +774,9 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
         totalProcessed,
         syncId,
         trackingId,
+        syncSessionId,
+        shouldWait: true,
+        waitMs: 10000, // Esperar 10s antes de retry
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -503,7 +788,8 @@ async function handleSyncFinish(req: Request, supabase: any) {
   const body = await req.json().catch(() => ({}));
   const { 
     syncId, 
-    trackingId, 
+    trackingId,
+    syncSessionId,
     totalProcessed = 0, 
     pagesProcessed = 0,
     hasErrors = false,
@@ -511,6 +797,11 @@ async function handleSyncFinish(req: Request, supabase: any) {
   } = body;
 
   console.log(`🎉 Finishing sync: ${totalProcessed} records in ${pagesProcessed} pages`);
+
+  // Remover da lista de syncs ativos
+  if (syncSessionId) {
+    removeSyncFromActive(syncSessionId);
+  }
 
   const status = hasErrors ? 'completed_with_errors' : 'completed';
 
@@ -557,6 +848,7 @@ async function handleSyncFinish(req: Request, supabase: any) {
         duration,
         status,
       },
+      activeSyncsRemaining: activeSyncs.size,
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
