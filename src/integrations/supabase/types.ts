@@ -2190,8 +2190,10 @@ export type Database = {
           parcela: number | null
           portador: string | null
           portador_id: string | null
+          portador_nome: string | null
           sincronizado_em: string | null
           status: string | null
+          tabela: string | null
           tabela_preco: string | null
           tipo_documento: string | null
           updated_at: string | null
@@ -2201,6 +2203,7 @@ export type Database = {
           valor_juros: number | null
           valor_original: number | null
           valor_recebido: number | null
+          vendedor: string | null
           vendedor_codigo: string | null
           vendedor_nome: string | null
         }
@@ -2222,8 +2225,10 @@ export type Database = {
           parcela?: number | null
           portador?: string | null
           portador_id?: string | null
+          portador_nome?: string | null
           sincronizado_em?: string | null
           status?: string | null
+          tabela?: string | null
           tabela_preco?: string | null
           tipo_documento?: string | null
           updated_at?: string | null
@@ -2233,6 +2238,7 @@ export type Database = {
           valor_juros?: number | null
           valor_original?: number | null
           valor_recebido?: number | null
+          vendedor?: string | null
           vendedor_codigo?: string | null
           vendedor_nome?: string | null
         }
@@ -2254,8 +2260,10 @@ export type Database = {
           parcela?: number | null
           portador?: string | null
           portador_id?: string | null
+          portador_nome?: string | null
           sincronizado_em?: string | null
           status?: string | null
+          tabela?: string | null
           tabela_preco?: string | null
           tipo_documento?: string | null
           updated_at?: string | null
@@ -2265,6 +2273,7 @@ export type Database = {
           valor_juros?: number | null
           valor_original?: number | null
           valor_recebido?: number | null
+          vendedor?: string | null
           vendedor_codigo?: string | null
           vendedor_nome?: string | null
         }
