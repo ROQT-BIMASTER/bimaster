@@ -26,6 +26,7 @@ interface EditarContaDialogProps {
 export function EditarContaDialog({ open, onOpenChange, account, onSuccess, parentAccounts }: EditarContaDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [departamentoId, setDepartamentoId] = useState<string>(account.departamento_id || "");
+  const [categoriaDre, setCategoriaDre] = useState<string>(account.categoria_dre || "");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
 
@@ -75,6 +76,7 @@ export function EditarContaDialog({ open, onOpenChange, account, onSuccess, pare
         is_active: account.is_active,
       });
       setDepartamentoId(account.departamento_id || "");
+      setCategoriaDre(account.categoria_dre || "");
       setAiSuggestion(null);
     }
   }, [account, form]);
@@ -85,6 +87,7 @@ export function EditarContaDialog({ open, onOpenChange, account, onSuccess, pare
       const accountData = {
         ...data,
         departamento_id: departamentoId || null,
+        categoria_dre: categoriaDre || null,
         // Se o usuário escolheu manualmente, marcar como manual
         departamento_definido_manualmente: departamentoId !== account.departamento_id,
         departamento_confianca: aiSuggestion?.confianca || account.departamento_confianca || null,
@@ -309,6 +312,25 @@ export function EditarContaDialog({ open, onOpenChange, account, onSuccess, pare
                 </FormItem>
               )}
             />
+
+            {/* Categoria DRE */}
+            <div className="space-y-2 border rounded-lg p-4 bg-primary/5">
+              <Label className="text-sm font-medium">Categoria DRE</Label>
+              <p className="text-xs text-muted-foreground">Define como esta conta aparece na DRE. Deixe vazio para classificação automática.</p>
+              <Select value={categoriaDre} onValueChange={setCategoriaDre}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Automático (regras de texto)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Automático (regras de texto)</SelectItem>
+                  <SelectItem value="receita_bruta">Receita Bruta</SelectItem>
+                  <SelectItem value="deducoes">Deduções e Abatimentos</SelectItem>
+                  <SelectItem value="custo_vendas">Custo de Vendas</SelectItem>
+                  <SelectItem value="despesas_fixas">Despesas Fixas</SelectItem>
+                  <SelectItem value="impostos_lucro">Impostos s/ Lucro (IRPJ/CSLL)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Departamento */}
             <div className="space-y-3 border rounded-lg p-4 bg-accent/20">

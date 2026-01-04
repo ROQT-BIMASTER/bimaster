@@ -669,26 +669,36 @@ export default function DREAnalitico() {
       const conta = contasMap.get(lancamento.plano_contas_id);
       if (!conta) return;
 
-      // Determinar grupo baseado no código da conta ou tipo
+      // Determinar grupo baseado na categoria_dre manual ou regras automáticas
       let grupoDestino: DRENode;
-      const codigoConta = conta.code?.toLowerCase() || '';
       const nomeConta = conta.name?.toLowerCase() || '';
       
-      // Categorização baseada no padrão CIGAM
-      if (nomeConta.includes('icms') || nomeConta.includes('ipi') || nomeConta.includes('pis') || 
-          nomeConta.includes('cofins') || nomeConta.includes('iss') || nomeConta.includes('comiss') ||
-          nomeConta.includes('devolu') || nomeConta.includes('desconto') || nomeConta.includes('abatimento')) {
-        grupoDestino = deducoes;
-      } else if (nomeConta.includes('irpj') || nomeConta.includes('csll') || nomeConta.includes('imposto de renda') ||
-                 nomeConta.includes('contribuição social')) {
-        grupoDestino = impostosLucro;
-      } else if (conta.account_type === 'cost_center' || nomeConta.includes('custo') || 
-                 nomeConta.includes('matéria') || nomeConta.includes('material') ||
-                 nomeConta.includes('mercadoria') || nomeConta.includes('frete') ||
-                 nomeConta.includes('serviço') || nomeConta.includes('compra')) {
-        grupoDestino = custosVendas;
+      // 1. Se tem categoria_dre definida manualmente, usar ela
+      if (conta.categoria_dre) {
+        switch (conta.categoria_dre) {
+          case 'deducoes': grupoDestino = deducoes; break;
+          case 'custo_vendas': grupoDestino = custosVendas; break;
+          case 'despesas_fixas': grupoDestino = despesasFixas; break;
+          case 'impostos_lucro': grupoDestino = impostosLucro; break;
+          default: grupoDestino = despesasFixas;
+        }
       } else {
-        grupoDestino = despesasFixas;
+        // 2. Fallback para regras automáticas (IA/texto)
+        if (nomeConta.includes('icms') || nomeConta.includes('ipi') || nomeConta.includes('pis') || 
+            nomeConta.includes('cofins') || nomeConta.includes('iss') || nomeConta.includes('comiss') ||
+            nomeConta.includes('devolu') || nomeConta.includes('desconto') || nomeConta.includes('abatimento')) {
+          grupoDestino = deducoes;
+        } else if (nomeConta.includes('irpj') || nomeConta.includes('csll') || nomeConta.includes('imposto de renda') ||
+                   nomeConta.includes('contribuição social')) {
+          grupoDestino = impostosLucro;
+        } else if (conta.account_type === 'cost_center' || nomeConta.includes('custo') || 
+                   nomeConta.includes('matéria') || nomeConta.includes('material') ||
+                   nomeConta.includes('mercadoria') || nomeConta.includes('frete') ||
+                   nomeConta.includes('serviço') || nomeConta.includes('compra')) {
+          grupoDestino = custosVendas;
+        } else {
+          grupoDestino = despesasFixas;
+        }
       }
 
       grupoDestino.valor += valor;
