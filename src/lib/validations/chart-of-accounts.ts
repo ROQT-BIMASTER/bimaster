@@ -23,6 +23,14 @@ export const chartOfAccountsSchema = z.object({
     errorMap: () => ({ message: "Tipo de conta inválido" }) 
   }),
   
+  categoria_dre: z.enum([
+    "receita_bruta",
+    "deducoes",
+    "custo_vendas",
+    "despesas_fixas",
+    "impostos_lucro"
+  ]).optional().nullable(),
+  
   nivel: z.number()
     .int()
     .min(1, { message: "Nível mínimo é 1" })
