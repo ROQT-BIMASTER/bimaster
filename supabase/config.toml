@@ -177,6 +177,6 @@ verify_jwt = true
 [functions.generate-product-creative]
 verify_jwt = true
 
-# N8N Contas a Receber - Integração via webhook MCP
+# N8N Contas a Receber - Integração via webhook MCP (usa x-api-key)
 [functions.n8n-contas-receber]
-verify_jwt = true
+verify_jwt = false
