@@ -100,9 +100,10 @@ export function SyncControlPanel() {
     }
   }, []);
 
-  // Fetch local stats
+  // Fetch local stats - com fallback para consulta direta
   const fetchStats = useCallback(async () => {
     try {
+      // Primeiro tenta a edge function
       const { data, error } = await supabase.functions.invoke('n8n-contas-receber/status');
       
       if (error) throw error;
@@ -113,15 +114,49 @@ export function SyncControlPanel() {
           records2025: data.local.records2025 || 0,
           records2024Plus: data.local.records2024Plus || 0,
         });
+      } else {
+        // Fallback: consulta direta ao banco
+        const [total2025, total2024, totalAll] = await Promise.all([
+          supabase.from('contas_receber').select('id', { count: 'exact', head: true })
+            .gte('data_vencimento', '2025-01-01'),
+          supabase.from('contas_receber').select('id', { count: 'exact', head: true })
+            .gte('data_vencimento', '2024-01-01'),
+          supabase.from('contas_receber').select('id', { count: 'exact', head: true }),
+        ]);
+        
+        setLocalStats({
+          totalRecords: totalAll.count || 0,
+          records2025: total2025.count || 0,
+          records2024Plus: total2024.count || 0,
+        });
       }
       
-      if (data.database) {
+      if (data?.database) {
         setDbHealth(data.database);
       }
       
-      setActiveSyncs(data.activeSyncs || 0);
+      setActiveSyncs(data?.activeSyncs || 0);
     } catch (err) {
       console.error('Failed to fetch stats:', err);
+      
+      // Fallback em caso de erro total
+      try {
+        const [total2025, total2024, totalAll] = await Promise.all([
+          supabase.from('contas_receber').select('id', { count: 'exact', head: true })
+            .gte('data_vencimento', '2025-01-01'),
+          supabase.from('contas_receber').select('id', { count: 'exact', head: true })
+            .gte('data_vencimento', '2024-01-01'),
+          supabase.from('contas_receber').select('id', { count: 'exact', head: true }),
+        ]);
+        
+        setLocalStats({
+          totalRecords: totalAll.count || 0,
+          records2025: total2025.count || 0,
+          records2024Plus: total2024.count || 0,
+        });
+      } catch (e) {
+        console.error('Fallback stats query failed:', e);
+      }
     }
   }, []);
 
@@ -180,12 +215,12 @@ export function SyncControlPanel() {
     }
   }, [syncStatus.trackingId, syncStatus.startTime, config.scope]);
 
-  // Get estimated records for scope
+  // Get estimated records for scope (based on real DB data)
   const getScopeEstimate = (scope: SyncScope): number => {
     switch (scope) {
-      case '2025': return 40000;
-      case '2024+': return 100000;
-      case 'full': return 220000;
+      case '2025': return localStats.records2025 > 0 ? localStats.records2025 : 40000;
+      case '2024+': return localStats.records2024Plus > 0 ? localStats.records2024Plus : 100000;
+      case 'full': return localStats.totalRecords > 0 ? localStats.totalRecords : 220000;
       default: return 100000;
     }
   };
@@ -378,10 +413,10 @@ export function SyncControlPanel() {
               <p className="text-3xl font-bold">{localStats.records2025.toLocaleString()}</p>
               <p className="text-sm text-muted-foreground">registros locais</p>
               <Badge variant="secondary" className="bg-green-500/10 text-green-600">
-                ~40k registros ERP
+                {localStats.records2025 > 0 ? `~${Math.round(localStats.records2025 / 1000)}k` : '~40k'} registros
               </Badge>
               <p className="text-xs text-muted-foreground">
-                Estimativa: 3-5 minutos
+                Estimativa: {Math.max(3, Math.ceil(localStats.records2025 / 8000))}-{Math.max(5, Math.ceil(localStats.records2025 / 5000))} minutos
               </p>
             </div>
           </CardContent>
@@ -403,10 +438,10 @@ export function SyncControlPanel() {
               <p className="text-3xl font-bold">{localStats.records2024Plus.toLocaleString()}</p>
               <p className="text-sm text-muted-foreground">registros locais</p>
               <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
-                ~100k registros ERP
+                {localStats.records2024Plus > 0 ? `~${Math.round(localStats.records2024Plus / 1000)}k` : '~100k'} registros
               </Badge>
               <p className="text-xs text-muted-foreground">
-                Estimativa: 10-15 minutos
+                Estimativa: {Math.max(10, Math.ceil(localStats.records2024Plus / 8000))}-{Math.max(15, Math.ceil(localStats.records2024Plus / 5000))} minutos
               </p>
             </div>
           </CardContent>
@@ -428,10 +463,10 @@ export function SyncControlPanel() {
               <p className="text-3xl font-bold">{localStats.totalRecords.toLocaleString()}</p>
               <p className="text-sm text-muted-foreground">registros locais</p>
               <Badge variant="secondary" className="bg-orange-500/10 text-orange-600">
-                ~220k registros ERP
+                {localStats.totalRecords > 0 ? `~${Math.round(localStats.totalRecords / 1000)}k` : '~220k'} registros
               </Badge>
               <p className="text-xs text-muted-foreground">
-                Estimativa: 30-45 minutos
+                Estimativa: {Math.max(30, Math.ceil(localStats.totalRecords / 8000))}-{Math.max(45, Math.ceil(localStats.totalRecords / 5000))} minutos
               </p>
             </div>
           </CardContent>
