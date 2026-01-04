@@ -236,9 +236,25 @@ export default function DREAnalitico() {
     }
   });
 
-  // Campo de data a usar baseado no regime de análise
-  const campoDataReceber = regimeAnalise === 'competencia' ? 'data_emissao' : 'data_recebimento';
-  const campoDataPagar = regimeAnalise === 'competencia' ? 'data_emissao' : 'data_pagamento';
+  // Funções para obter a data de referência baseado no regime de análise
+  // Isso garante que tanto o filtro da query quanto o agrupamento mensal usem a mesma data
+  const getDataRefReceber = (registro: any): string | null => {
+    if (regimeAnalise === 'caixa') {
+      // Regime de caixa usa data_vencimento como proxy (data_recebimento geralmente é NULL)
+      return registro.data_vencimento || registro.data_emissao;
+    }
+    // Regime de competência usa data de emissão
+    return registro.data_emissao || registro.data_vencimento;
+  };
+
+  const getDataRefPagar = (registro: any): string | null => {
+    if (regimeAnalise === 'caixa') {
+      // Regime de caixa usa data_pagamento
+      return registro.data_pagamento || registro.data_vencimento;
+    }
+    // Regime de competência usa data de vencimento
+    return registro.data_vencimento;
+  };
   
   // Buscar contas a receber (receitas)
   const { data: contasReceber } = useSupabaseQuery(
@@ -277,14 +293,22 @@ export default function DREAnalitico() {
   const { data: lancamentosBase, isLoading } = useSupabaseQuery(
     ['lancamentos-dre', dataInicio, dataFim, filterEmpresa, mostrarInativos, filterDepartamento, filterConta, regimeAnalise],
     async () => {
-      // Para regime de competência usa data_vencimento, para caixa usa data_pagamento
-      const campoData = regimeAnalise === 'competencia' ? 'data_vencimento' : 'data_pagamento';
-      
       let query = supabase
         .from('contas_pagar')
-        .select(`*, departamento:departamentos(id, nome)`)
-        .gte(campoData, dataInicio)
-        .lte(campoData, dataFim);
+        .select(`*, departamento:departamentos(id, nome)`);
+      
+      // Para regime de caixa, filtra por data_pagamento e status pago
+      // Para regime de competência, filtra por data_vencimento
+      if (regimeAnalise === 'caixa') {
+        query = query
+          .eq('status', 'pago')
+          .gte('data_pagamento', dataInicio)
+          .lte('data_pagamento', dataFim);
+      } else {
+        query = query
+          .gte('data_vencimento', dataInicio)
+          .lte('data_vencimento', dataFim);
+      }
       
       if (filterEmpresa !== 'todas') {
         query = query.eq('empresa_nome', filterEmpresa);
@@ -542,8 +566,13 @@ export default function DREAnalitico() {
       const receitasPorCliente = new Map<string, { nome: string; valor: number; valoresMensais: { [key: string]: number }; lancamentos: any[] }>();
       
       contasReceber.forEach(recebimento => {
-        const valor = parseFloat(String(recebimento.valor_recebido || recebimento.valor_original || 0));
-        const dataRef = recebimento.data_emissao || recebimento.data_vencimento;
+        // Para regime de caixa, usar valor_recebido; para competência, usar valor_original
+        const valor = regimeAnalise === 'caixa' 
+          ? parseFloat(String(recebimento.valor_recebido || recebimento.valor_original || 0))
+          : parseFloat(String(recebimento.valor_original || 0));
+        
+        // Usar a função getDataRefReceber para garantir consistência entre filtro e agrupamento
+        const dataRef = getDataRefReceber(recebimento);
         const mesKey = dataRef ? format(parseISO(dataRef), 'yyyy-MM') : null;
         const clienteKey = recebimento.cliente_codigo || recebimento.cliente_nome || 'sem-cliente';
         const clienteNome = recebimento.cliente_nome || 'Cliente não identificado';
@@ -596,8 +625,11 @@ export default function DREAnalitico() {
           natureza: 'C',
           accountType: 'revenue',
           children: clienteData.lancamentos.map(lanc => {
-            const lancValor = parseFloat(String(lanc.valor_recebido || lanc.valor_original || 0));
-            const lancDataRef = lanc.data_emissao || lanc.data_vencimento;
+            // Usar mesmo critério de valor e data do agrupamento
+            const lancValor = regimeAnalise === 'caixa'
+              ? parseFloat(String(lanc.valor_recebido || lanc.valor_original || 0))
+              : parseFloat(String(lanc.valor_original || 0));
+            const lancDataRef = getDataRefReceber(lanc);
             const lancMesKey = lancDataRef ? format(parseISO(lancDataRef), 'yyyy-MM') : null;
             const lancValoresMensais = initValoresMensais();
             if (lancMesKey && lancValoresMensais[lancMesKey] !== undefined) {
@@ -627,8 +659,13 @@ export default function DREAnalitico() {
 
     // Processar contas a pagar (DESPESAS) - categorizar conforme estrutura CIGAM
     lancamentos.forEach(lancamento => {
-      const valor = parseFloat(String(lancamento.valor_pago || lancamento.valor_original || 0));
-      const mesKey = lancamento.data_vencimento ? format(parseISO(lancamento.data_vencimento), 'yyyy-MM') : null;
+      // Para regime de caixa, usar valor_pago; para competência, usar valor_original
+      const valor = regimeAnalise === 'caixa'
+        ? parseFloat(String(lancamento.valor_pago || lancamento.valor_original || 0))
+        : parseFloat(String(lancamento.valor_original || 0));
+      // Usar a função getDataRefPagar para garantir consistência entre filtro e agrupamento
+      const dataRef = getDataRefPagar(lancamento);
+      const mesKey = dataRef ? format(parseISO(dataRef), 'yyyy-MM') : null;
       
       if (!lancamento.plano_contas_id) {
         naoClassificados.valor += valor;
@@ -962,8 +999,12 @@ export default function DREAnalitico() {
       };
 
       lancsDept.forEach(lanc => {
-        const valor = parseFloat(String(lanc.valor_pago || lanc.valor_original || 0));
-        const mesKey = lanc.data_vencimento ? format(parseISO(lanc.data_vencimento), 'yyyy-MM') : null;
+        // Usar mesmo critério de valor e data do regime selecionado
+        const valor = regimeAnalise === 'caixa'
+          ? parseFloat(String(lanc.valor_pago || lanc.valor_original || 0))
+          : parseFloat(String(lanc.valor_original || 0));
+        const dataRef = getDataRefPagar(lanc);
+        const mesKey = dataRef ? format(parseISO(dataRef), 'yyyy-MM') : null;
         
         nodoDept.valor += valor;
         if (mesKey && nodoDept.valoresMensais![mesKey] !== undefined) {
