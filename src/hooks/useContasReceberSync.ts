@@ -277,6 +277,58 @@ export function useContasReceberSync() {
     }
   }, [toast]);
 
+  // Sincronização via N8N webhook
+  const syncN8n = useCallback(async (options?: { batchSize?: number }) => {
+    setIsSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('n8n-contas-receber/sync-auto', {
+        body: { 
+          batchSize: options?.batchSize || 2500,
+          webhookUrl: 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp'
+        }
+      });
+      
+      if (error) throw error;
+
+      if (data?.success === false) {
+        throw new Error(data?.error || 'Falha na sincronização');
+      }
+
+      setLastSyncResult({
+        success: true,
+        statistics: data?.statistics,
+        duration_ms: data?.duration_ms,
+        message: data?.message
+      });
+
+      toast({
+        title: 'Sincronização Iniciada',
+        description: data?.message || 'Sincronização via N8N em andamento',
+      });
+
+      // Aguardar um pouco e atualizar estatísticas
+      setTimeout(async () => {
+        await Promise.all([fetchStats(), fetchSyncHistory()]);
+      }, 5000);
+
+      return data;
+    } catch (err) {
+      console.error('Erro na sincronização N8N:', err);
+      setLastSyncResult({
+        success: false,
+        error: err instanceof Error ? err.message : 'Erro desconhecido'
+      });
+      toast({
+        title: 'Erro na Sincronização',
+        description: err instanceof Error ? err.message : 'Falha ao sincronizar via N8N',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [toast, fetchStats, fetchSyncHistory]);
+
   // Refresh de todas as estatísticas
   const refreshAll = useCallback(async () => {
     await Promise.all([
@@ -299,6 +351,7 @@ export function useContasReceberSync() {
     testConnection,
     testErpConnection,
     syncDirect,
+    syncN8n,
     fetchPreview,
     refreshAll,
   };

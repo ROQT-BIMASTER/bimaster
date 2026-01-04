@@ -45,6 +45,7 @@ export function ContasReceberSyncPanel() {
     testConnection,
     testErpConnection,
     syncDirect,
+    syncN8n,
     refreshAll
   } = useContasReceberSync();
 
@@ -70,6 +71,10 @@ export function ContasReceberSyncPanel() {
 
   const handleSyncDirect = async () => {
     await syncDirect({ anoMinimo: parseInt(anoMinimo) });
+  };
+
+  const handleSyncN8n = async () => {
+    await syncN8n({ batchSize: 2500 });
   };
 
   const formatCurrency = (value: number) => {
@@ -306,6 +311,34 @@ export function ContasReceberSyncPanel() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Botão de Sincronização N8N Manual */}
+              <div className="border-t pt-4 mt-4">
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <Play className="h-4 w-4" />
+                  Sincronização Manual via N8N
+                </h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Dispara uma sincronização completa usando o webhook do N8N para buscar todos os dados do SQL Server.
+                </p>
+                <Button 
+                  className="w-full" 
+                  onClick={handleSyncN8n}
+                  disabled={isSyncing}
+                >
+                  {isSyncing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Sincronizando via N8N...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-4 w-4 mr-2" />
+                      Sincronizar via N8N
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
