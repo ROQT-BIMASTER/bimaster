@@ -278,13 +278,14 @@ export function useContasReceberSync() {
   }, [toast]);
 
   // Sincronização via N8N webhook
-  const syncN8n = useCallback(async (options?: { batchSize?: number }) => {
+  const syncN8n = useCallback(async (options?: { batchSize?: number; skipHealthCheck?: boolean }) => {
     setIsSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('n8n-contas-receber/sync-auto', {
         body: { 
           batchSize: options?.batchSize || 2500,
-          webhookUrl: 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp'
+          webhookUrl: 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp',
+          skipHealthCheck: options?.skipHealthCheck ?? true // Por padrão, ignora verificação inicial
         }
       });
       

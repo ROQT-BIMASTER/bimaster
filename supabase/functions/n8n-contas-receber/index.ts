@@ -23,8 +23,8 @@ const MAX_REQUESTS_PER_WINDOW = 100; // Aumentado para sync massivo
 const MAX_CONCURRENT_SYNCS = 1;      // Apenas 1 sync por vez
 const PAGE_DELAY_MS = 1000;          // 1s entre páginas
 const DB_HEALTH_CHECK_INTERVAL = 10; // Verificar a cada 10 páginas
-const CIRCUIT_BREAKER_THRESHOLD_MS = 8000; // Se resposta > 8s, pausar
-const CIRCUIT_BREAKER_WAIT_MS = 15000;     // Esperar 15s se banco lento
+const CIRCUIT_BREAKER_THRESHOLD_MS = 30000; // Se resposta > 30s, pausar (aumentado de 8s)
+const CIRCUIT_BREAKER_WAIT_MS = 10000;      // Esperar 10s se banco lento (reduzido)
 
 // Rate limiter em memória (reset quando função reinicia)
 const rateLimiter = new Map<string, { count: number; resetAt: number }>();
@@ -1053,20 +1053,30 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
   const batchSize = Math.min(body.batchSize || 2500, MAX_BATCH_SIZE);
   const webhookUrl = body.webhookUrl || N8N_WEBHOOK_URL;
   const maxPages = body.maxPages || 250; // ~500k registros com batch de 2500
+  const skipHealthCheck = body.skipHealthCheck || false; // Opção para ignorar verificação inicial
 
-  console.log(`🤖 SYNC-AUTO iniciado: batchSize=${batchSize}, maxPages=${maxPages}`);
+  console.log(`🤖 SYNC-AUTO iniciado: batchSize=${batchSize}, maxPages=${maxPages}, skipHealthCheck=${skipHealthCheck}`);
   
   const syncStartTime = Date.now();
   const syncSessionId = `auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  // Verificar saúde do banco
-  const dbHealth = await checkDatabaseHealth(supabase);
-  if (!dbHealth.healthy) {
-    console.error(`❌ Database unhealthy, aborting auto-sync`);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Database unhealthy', message: dbHealth.message }),
-      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+  // Verificar saúde do banco (pode ser ignorado com skipHealthCheck)
+  if (!skipHealthCheck) {
+    const dbHealth = await checkDatabaseHealth(supabase);
+    if (!dbHealth.healthy) {
+      console.warn(`⚠️ Database slow (${dbHealth.responseTime}ms), but continuing with sync...`);
+      // Em vez de abortar, apenas loga o aviso e continua
+      // Só aborta se o banco realmente estiver indisponível (não apenas lento)
+      if (dbHealth.message?.includes('connection') || dbHealth.message?.includes('timeout')) {
+        console.error(`❌ Database unavailable, aborting auto-sync`);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Database unavailable', message: dbHealth.message }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+  } else {
+    console.log(`⏭️ Skipping initial health check as requested`);
   }
 
   // Verificar syncs simultâneos
