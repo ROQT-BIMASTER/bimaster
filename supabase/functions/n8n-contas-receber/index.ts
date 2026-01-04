@@ -137,23 +137,24 @@ async function checkDatabaseHealth(supabase: any): Promise<{ healthy: boolean; r
 }
 
 // Transform ERP data format to local format
-// Mapeamento baseado nos campos reais do ERP (ConsultaPowerBIReceber):
-// Código, Nome, Cnpj, Num_Duplicata, Tipo_Documento, Parcela, Data_Emissao, 
-// Data_Vcto, Data Pgto, Vl_Original, Vl_Pago, Vl_Acrescimo, Vl_Desconto, 
-// Vl_Devolver, Vl_Aberto, Situacao, Nome Portador, Empresa, Vendedor, Regiao
+// MAPEAMENTO ATUALIZADO baseado nos dados REAIS do webhook N8N:
+// ID Empresa, Empresa, Tipo, Nota, Seq, Código, Cliente, Emissão, Vencimento,
+// Valor_Trc, Valor em Aberto, Data Pgto, Valor Pago, Valor Juros, Valor Desconto,
+// Valor Ajustes, Tabela, Vendedor, ID Portador, Nome Portador, Conta, RowNum
 function transformErpData(erpRecord: any) {
-  // Função auxiliar para parsear datas
+  // Função auxiliar para parsear datas (formato ISO do SQL Server)
   const parseDate = (value: any): string | null => {
     if (!value) return null;
     // Se já é uma data válida em formato ISO
-    if (typeof value === 'string' && value.includes('T')) return value;
-    // Tentar parsear
-    try {
-      const date = new Date(value);
-      return isNaN(date.getTime()) ? null : date.toISOString();
-    } catch {
-      return null;
+    if (typeof value === 'string') {
+      try {
+        const date = new Date(value);
+        return isNaN(date.getTime()) ? null : date.toISOString();
+      } catch {
+        return null;
+      }
     }
+    return null;
   };
 
   // Função auxiliar para parsear valores monetários
@@ -165,47 +166,49 @@ function transformErpData(erpRecord: any) {
     return parseFloat(cleanValue) || 0;
   };
 
-  // Determinar status baseado na situação
-  const situacao = erpRecord['Situacao'] || erpRecord['situacao'] || '';
+  // Determinar status baseado no valor em aberto vs valor pago
+  const valorAberto = parseAmount(erpRecord['Valor em Aberto']);
+  const valorPago = parseAmount(erpRecord['Valor Pago']);
+  const valorOriginal = parseAmount(erpRecord['Valor_Trc']);
+  
   let status = 'aberto';
-  if (situacao.toLowerCase().includes('pago') || situacao.toLowerCase().includes('liquidado')) {
+  if (valorAberto === 0 && valorPago > 0) {
     status = 'pago';
-  } else if (situacao.toLowerCase().includes('parcial')) {
+  } else if (valorPago > 0 && valorAberto > 0) {
     status = 'parcial';
-  } else if (situacao.toLowerCase().includes('cancel')) {
-    status = 'cancelado';
   }
 
-  // Gerar erp_id único
-  const codigo = erpRecord['Código'] || erpRecord['Codigo'] || erpRecord['codigo'] || '';
-  const numDup = erpRecord['Num_Duplicata'] || erpRecord['num_duplicata'] || '';
-  const parcela = erpRecord['Parcela'] || erpRecord['parcela'] || 1;
-  const empresa = erpRecord['Empresa'] || erpRecord['empresa'] || '';
+  // Gerar erp_id único usando campos do webhook real
+  const empresaId = erpRecord['ID Empresa'] || 1;
+  const tipo = erpRecord['Tipo'] || '';
+  const nota = erpRecord['Nota'] || '';
+  const seq = erpRecord['Seq'] || 1;
   
-  const erpId = `${empresa}-${numDup}-${parcela}`.replace(/\s+/g, '');
+  const erpId = `${empresaId}-${tipo}-${nota}-${seq}`.replace(/\s+/g, '');
 
   return {
-    empresa_id: 1, // Empresa padrão
-    empresa_nome: erpRecord['Empresa'] || erpRecord['empresa'] || null,
-    tipo_documento: erpRecord['Tipo_Documento'] || erpRecord['tipo_documento'] || erpRecord['Tipo'] || null,
-    numero_documento: erpRecord['Num_Duplicata'] || erpRecord['num_duplicata'] || null,
-    parcela: parseInt(erpRecord['Parcela'] || erpRecord['parcela']) || 1,
-    cliente_codigo: erpRecord['Código'] || erpRecord['Codigo'] || erpRecord['codigo'] || null,
-    cliente_nome: erpRecord['Nome'] || erpRecord['nome'] || null,
-    cnpj: erpRecord['Cnpj'] || erpRecord['cnpj'] || null,
-    valor_original: parseAmount(erpRecord['Vl_Original'] || erpRecord['vl_original']),
-    valor_aberto: parseAmount(erpRecord['Vl_Aberto'] || erpRecord['vl_aberto']),
-    valor_recebido: parseAmount(erpRecord['Vl_Pago'] || erpRecord['vl_pago']),
-    valor_acrescimo: parseAmount(erpRecord['Vl_Acrescimo'] || erpRecord['vl_acrescimo']),
-    valor_desconto: parseAmount(erpRecord['Vl_Desconto'] || erpRecord['vl_desconto']),
-    data_emissao: parseDate(erpRecord['Data_Emissao'] || erpRecord['data_emissao']),
-    data_vencimento: parseDate(erpRecord['Data_Vcto'] || erpRecord['data_vcto']),
-    data_recebimento: parseDate(erpRecord['Data Pgto'] || erpRecord['data pgto'] || erpRecord['Data_Pgto']),
+    empresa_id: empresaId,
+    empresa_nome: erpRecord['Empresa'] || null,
+    tipo_documento: String(erpRecord['Tipo'] || ''),
+    numero_documento: String(erpRecord['Nota'] || ''),
+    parcela: parseInt(erpRecord['Seq']) || 1,
+    cliente_codigo: String(erpRecord['Código'] || erpRecord['Codigo'] || ''),
+    cliente_nome: erpRecord['Cliente'] || null,
+    valor_original: valorOriginal,
+    valor_aberto: valorAberto,
+    valor_recebido: valorPago,
+    valor_juros: parseAmount(erpRecord['Valor Juros']),
+    valor_desconto: parseAmount(erpRecord['Valor Desconto']),
+    valor_ajustes: parseAmount(erpRecord['Valor Ajustes']),
+    data_emissao: parseDate(erpRecord['Emissão'] || erpRecord['Emissao']),
+    data_vencimento: parseDate(erpRecord['Vencimento']),
+    data_recebimento: parseDate(erpRecord['Data Pgto']),
     status,
-    situacao: situacao,
-    portador: erpRecord['Nome Portador'] || erpRecord['nome portador'] || erpRecord['Portador'] || null,
-    vendedor: erpRecord['Vendedor'] || erpRecord['vendedor'] || null,
-    regiao: erpRecord['Regiao'] || erpRecord['regiao'] || null,
+    portador: erpRecord['Nome Portador'] || null,
+    portador_id: erpRecord['ID Portador'] || null,
+    vendedor: erpRecord['Vendedor'] || null,
+    tabela: erpRecord['Tabela'] || null,
+    conta: erpRecord['Conta'] || null,
     erp_id: erpId || `auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     sincronizado_em: new Date().toISOString(),
   };
