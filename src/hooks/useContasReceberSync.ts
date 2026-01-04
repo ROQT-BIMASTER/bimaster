@@ -5,11 +5,14 @@ import { useToast } from '@/hooks/use-toast';
 export interface SyncResult {
   success: boolean;
   statistics?: {
-    total_received: number;
-    inserted: number;
-    updated: number;
-    skipped: number;
+    total_received?: number;
+    total?: number;
+    inserted?: number;
+    updated?: number;
+    processed?: number;
+    skipped?: number;
     errors: number;
+    rate_per_second?: number;
   };
   duration_ms?: number;
   error?: string;
@@ -28,30 +31,22 @@ export interface SyncHistory {
   erro_mensagem?: string;
 }
 
-export interface ContasPagarStats {
+export interface ContasReceberStats {
   totalRecords: number;
   pendentes: number;
   vencidas: number;
   totalValorAberto: number;
-  totalValorPago: number;
+  totalValorRecebido: number;
   lastSync: string | null;
 }
 
 export type SyncMode = 'n8n' | 'direct';
 
-export interface ErpCredentials {
-  host: string;
-  port: string;
-  database: string;
-  user: string;
-  password: string;
-}
-
-export function useContasPagarSync() {
+export function useContasReceberSync() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [stats, setStats] = useState<ContasPagarStats | null>(null);
+  const [stats, setStats] = useState<ContasReceberStats | null>(null);
   const [syncHistory, setSyncHistory] = useState<SyncHistory[]>([]);
   const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
   const [syncMode, setSyncMode] = useState<SyncMode>('n8n');
@@ -70,41 +65,32 @@ export function useContasPagarSync() {
         valoresResult,
         lastSyncResult
       ] = await Promise.all([
-        // Total de registros
-        supabase.from('contas_pagar').select('id', { count: 'exact', head: true }),
-        
-        // Pendentes (valor_aberto > 0 e não vencidas)
-        supabase.from('contas_pagar')
+        supabase.from('contas_receber').select('id', { count: 'exact', head: true }),
+        supabase.from('contas_receber')
           .select('id', { count: 'exact', head: true })
           .gt('valor_aberto', 0)
           .gte('data_vencimento', today),
-        
-        // Vencidas (valor_aberto > 0 e vencidas)
-        supabase.from('contas_pagar')
+        supabase.from('contas_receber')
           .select('id', { count: 'exact', head: true })
           .gt('valor_aberto', 0)
           .lt('data_vencimento', today),
-        
-        // Somar valores
-        supabase.from('contas_pagar')
-          .select('valor_aberto, valor_pago'),
-        
-        // Última sincronização
+        supabase.from('contas_receber')
+          .select('valor_aberto, valor_recebido')
+          .limit(10000),
         supabase.from('sync_control')
           .select('*')
-          .eq('entidade', 'contas_pagar')
+          .eq('entidade', 'contas_receber')
           .order('created_at', { ascending: false })
           .limit(1)
           .single()
       ]);
 
-      // Calcular totais de valores
       let totalValorAberto = 0;
-      let totalValorPago = 0;
+      let totalValorRecebido = 0;
       if (valoresResult.data) {
         valoresResult.data.forEach(conta => {
           totalValorAberto += conta.valor_aberto || 0;
-          totalValorPago += conta.valor_pago || 0;
+          totalValorRecebido += conta.valor_recebido || 0;
         });
       }
 
@@ -113,7 +99,7 @@ export function useContasPagarSync() {
         pendentes: pendentesResult.count || 0,
         vencidas: vencidasResult.count || 0,
         totalValorAberto,
-        totalValorPago,
+        totalValorRecebido,
         lastSync: lastSyncResult.data?.ultima_sync || null
       });
 
@@ -121,7 +107,7 @@ export function useContasPagarSync() {
       console.error('Erro ao buscar estatísticas:', err);
       toast({
         title: 'Erro',
-        description: 'Falha ao buscar estatísticas de contas a pagar',
+        description: 'Falha ao buscar estatísticas de contas a receber',
         variant: 'destructive',
       });
     } finally {
@@ -135,7 +121,7 @@ export function useContasPagarSync() {
       const { data, error } = await supabase
         .from('sync_control')
         .select('*')
-        .eq('entidade', 'contas_pagar')
+        .eq('entidade', 'contas_receber')
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -162,9 +148,8 @@ export function useContasPagarSync() {
   const testConnection = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Testa conexão verificando se há registros na tabela
       const { count, error } = await supabase
-        .from('contas_pagar')
+        .from('contas_receber')
         .select('id', { count: 'exact', head: true });
       
       if (error) throw error;
@@ -192,7 +177,7 @@ export function useContasPagarSync() {
   const testErpConnection = useCallback(async () => {
     setErpConnectionStatus('checking');
     try {
-      const { data, error } = await supabase.functions.invoke('contas-pagar-api', {
+      const { data, error } = await supabase.functions.invoke('contas-receber-api', {
         body: { action: 'test-erp-connection' }
       });
       
@@ -224,7 +209,7 @@ export function useContasPagarSync() {
   const syncDirect = useCallback(async (options?: { anoMinimo?: number; empresaId?: number }) => {
     setIsSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('contas-pagar-api', {
+      const { data, error } = await supabase.functions.invoke('contas-receber-api', {
         body: { 
           action: 'sync-direct',
           anoMinimo: options?.anoMinimo || 2020,
@@ -246,7 +231,6 @@ export function useContasPagarSync() {
         description: `${data?.statistics?.processed || 0} registros processados em ${((data?.duration_ms || 0) / 1000).toFixed(1)}s`,
       });
 
-      // Atualizar estatísticas e histórico
       await Promise.all([fetchStats(), fetchSyncHistory()]);
 
       return data;
@@ -272,7 +256,7 @@ export function useContasPagarSync() {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('contas_pagar')
+        .from('contas_receber')
         .select('*')
         .order('data_vencimento', { ascending: false })
         .limit(limit);

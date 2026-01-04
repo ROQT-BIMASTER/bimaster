@@ -19,7 +19,7 @@ export default function ContasPagarSyncPage() {
           <div>
             <h1 className="text-2xl font-bold">Contas a Pagar - Sincronização</h1>
             <p className="text-muted-foreground">
-              Monitore a integração com o ERP via N8N
+              Monitore a integração com o ERP via N8N ou API Direta
             </p>
           </div>
         </div>
