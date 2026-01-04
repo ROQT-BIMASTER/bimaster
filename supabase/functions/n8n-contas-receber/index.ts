@@ -8,23 +8,23 @@ const corsHeaders = {
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
 
-// ============= CONFIGURAÇÕES ULTRA-CONSERVADORAS ANTI-SOBRECARGA =============
-const DEFAULT_BATCH_SIZE = 500;      // Reduzido de 1000 para 500
-const MAX_BATCH_SIZE = 1000;         // Máximo absoluto
-const UPSERT_BATCH_SIZE = 50;        // Reduzido de 100 para 50
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 3000;         // Aumentado para 3s
-const FETCH_TIMEOUT_MS = 45000;      // 45s timeout
-const SUPABASE_BATCH_DELAY_MS = 300; // Aumentado de 200 para 300ms
+// ============= CONFIGURAÇÕES OTIMIZADAS PARA 500K+ REGISTROS =============
+const DEFAULT_BATCH_SIZE = 2000;     // Aumentado para processar mais rápido
+const MAX_BATCH_SIZE = 5000;         // Máximo para grande volume
+const UPSERT_BATCH_SIZE = 200;       // Aumentado para melhor throughput
+const MAX_RETRIES = 5;               // Mais retries para grande volume
+const RETRY_DELAY_MS = 2000;         // 2s entre retries
+const FETCH_TIMEOUT_MS = 60000;      // 60s timeout para queries grandes
+const SUPABASE_BATCH_DELAY_MS = 100; // Reduzido para maior velocidade
 
-// ============= PROTEÇÕES RIGOROSAS CONTRA SOBRECARGA =============
+// ============= PROTEÇÕES BALANCEADAS PARA GRANDE VOLUME =============
 const RATE_LIMIT_WINDOW_MS = 60000;  // Janela de 1 minuto
-const MAX_REQUESTS_PER_WINDOW = 20;  // Reduzido de 30 para 20
-const MAX_CONCURRENT_SYNCS = 1;      // APENAS 1 sync por vez (era 2)
-const PAGE_DELAY_MS = 3000;          // Aumentado de 2s para 3s
-const DB_HEALTH_CHECK_INTERVAL = 3;  // Verificar a cada 3 páginas (era 5)
-const CIRCUIT_BREAKER_THRESHOLD_MS = 5000; // Se resposta > 5s, pausar
-const CIRCUIT_BREAKER_WAIT_MS = 30000;     // Esperar 30s se banco lento
+const MAX_REQUESTS_PER_WINDOW = 100; // Aumentado para sync massivo
+const MAX_CONCURRENT_SYNCS = 1;      // Apenas 1 sync por vez
+const PAGE_DELAY_MS = 1000;          // 1s entre páginas
+const DB_HEALTH_CHECK_INTERVAL = 10; // Verificar a cada 10 páginas
+const CIRCUIT_BREAKER_THRESHOLD_MS = 8000; // Se resposta > 8s, pausar
+const CIRCUIT_BREAKER_WAIT_MS = 15000;     // Esperar 15s se banco lento
 
 // Rate limiter em memória (reset quando função reinicia)
 const rateLimiter = new Map<string, { count: number; resetAt: number }>();
@@ -137,24 +137,76 @@ async function checkDatabaseHealth(supabase: any): Promise<{ healthy: boolean; r
 }
 
 // Transform ERP data format to local format
+// Mapeamento baseado nos campos reais do ERP (ConsultaPowerBIReceber):
+// Código, Nome, Cnpj, Num_Duplicata, Tipo_Documento, Parcela, Data_Emissao, 
+// Data_Vcto, Data Pgto, Vl_Original, Vl_Pago, Vl_Acrescimo, Vl_Desconto, 
+// Vl_Devolver, Vl_Aberto, Situacao, Nome Portador, Empresa, Vendedor, Regiao
 function transformErpData(erpRecord: any) {
+  // Função auxiliar para parsear datas
+  const parseDate = (value: any): string | null => {
+    if (!value) return null;
+    // Se já é uma data válida em formato ISO
+    if (typeof value === 'string' && value.includes('T')) return value;
+    // Tentar parsear
+    try {
+      const date = new Date(value);
+      return isNaN(date.getTime()) ? null : date.toISOString();
+    } catch {
+      return null;
+    }
+  };
+
+  // Função auxiliar para parsear valores monetários
+  const parseAmount = (value: any): number => {
+    if (typeof value === 'number') return value;
+    if (!value) return 0;
+    // Remover formatação brasileira se houver
+    const cleanValue = String(value).replace(/\./g, '').replace(',', '.');
+    return parseFloat(cleanValue) || 0;
+  };
+
+  // Determinar status baseado na situação
+  const situacao = erpRecord['Situacao'] || erpRecord['situacao'] || '';
+  let status = 'aberto';
+  if (situacao.toLowerCase().includes('pago') || situacao.toLowerCase().includes('liquidado')) {
+    status = 'pago';
+  } else if (situacao.toLowerCase().includes('parcial')) {
+    status = 'parcial';
+  } else if (situacao.toLowerCase().includes('cancel')) {
+    status = 'cancelado';
+  }
+
+  // Gerar erp_id único
+  const codigo = erpRecord['Código'] || erpRecord['Codigo'] || erpRecord['codigo'] || '';
+  const numDup = erpRecord['Num_Duplicata'] || erpRecord['num_duplicata'] || '';
+  const parcela = erpRecord['Parcela'] || erpRecord['parcela'] || 1;
+  const empresa = erpRecord['Empresa'] || erpRecord['empresa'] || '';
+  
+  const erpId = `${empresa}-${numDup}-${parcela}`.replace(/\s+/g, '');
+
   return {
-    empresa_id: erpRecord['ID Empresa'] || erpRecord.empresa_id || 1,
-    empresa_nome: erpRecord['Empresa'] || erpRecord.empresa_nome || null,
-    tipo_documento: erpRecord['Tipo'] || erpRecord.tipo_documento || null,
-    numero_documento: erpRecord['Nota'] || erpRecord.numero_documento || null,
-    parcela: erpRecord['Seq'] || erpRecord.parcela || 1,
-    cliente_codigo: erpRecord['Codigo'] || erpRecord.cliente_codigo || null,
-    cliente_nome: erpRecord['Cliente'] || erpRecord.cliente_nome || null,
-    valor_original: parseFloat(erpRecord['Valor_Trc'] || erpRecord.valor_original || 0),
-    valor_aberto: parseFloat(erpRecord['Valor em Aberto'] || erpRecord.valor_aberto || 0),
-    valor_recebido: parseFloat(erpRecord['Valor Pago'] || erpRecord.valor_recebido || erpRecord.valor_pago || 0),
-    data_emissao: erpRecord['Emissao'] || erpRecord.data_emissao || null,
-    data_vencimento: erpRecord['Vencimento'] || erpRecord.data_vencimento || null,
-    data_recebimento: erpRecord['Pagamento'] || erpRecord.data_recebimento || erpRecord.data_pagamento || null,
-    status: erpRecord['Status'] || erpRecord.status || 'aberto',
-    portador: erpRecord['Portador'] || erpRecord.portador || null,
-    erp_id: `${erpRecord['ID Empresa'] || 1}-${erpRecord['Tipo'] || 'NF'}-${erpRecord['Nota'] || ''}-${erpRecord['Seq'] || 1}`,
+    empresa_id: 1, // Empresa padrão
+    empresa_nome: erpRecord['Empresa'] || erpRecord['empresa'] || null,
+    tipo_documento: erpRecord['Tipo_Documento'] || erpRecord['tipo_documento'] || erpRecord['Tipo'] || null,
+    numero_documento: erpRecord['Num_Duplicata'] || erpRecord['num_duplicata'] || null,
+    parcela: parseInt(erpRecord['Parcela'] || erpRecord['parcela']) || 1,
+    cliente_codigo: erpRecord['Código'] || erpRecord['Codigo'] || erpRecord['codigo'] || null,
+    cliente_nome: erpRecord['Nome'] || erpRecord['nome'] || null,
+    cnpj: erpRecord['Cnpj'] || erpRecord['cnpj'] || null,
+    valor_original: parseAmount(erpRecord['Vl_Original'] || erpRecord['vl_original']),
+    valor_aberto: parseAmount(erpRecord['Vl_Aberto'] || erpRecord['vl_aberto']),
+    valor_recebido: parseAmount(erpRecord['Vl_Pago'] || erpRecord['vl_pago']),
+    valor_acrescimo: parseAmount(erpRecord['Vl_Acrescimo'] || erpRecord['vl_acrescimo']),
+    valor_desconto: parseAmount(erpRecord['Vl_Desconto'] || erpRecord['vl_desconto']),
+    data_emissao: parseDate(erpRecord['Data_Emissao'] || erpRecord['data_emissao']),
+    data_vencimento: parseDate(erpRecord['Data_Vcto'] || erpRecord['data_vcto']),
+    data_recebimento: parseDate(erpRecord['Data Pgto'] || erpRecord['data pgto'] || erpRecord['Data_Pgto']),
+    status,
+    situacao: situacao,
+    portador: erpRecord['Nome Portador'] || erpRecord['nome portador'] || erpRecord['Portador'] || null,
+    vendedor: erpRecord['Vendedor'] || erpRecord['vendedor'] || null,
+    regiao: erpRecord['Regiao'] || erpRecord['regiao'] || null,
+    erp_id: erpId || `auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     sincronizado_em: new Date().toISOString(),
   };
 }
