@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid, Eye, GripVertical, Flag, Target } from "lucide-react";
+import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid, Eye, GripVertical, Flag, Target, Maximize2 } from "lucide-react";
+import { DREFocusMode } from "@/components/financeiro/DREFocusMode";
+import { DREFocusContent } from "@/components/financeiro/DREFocusContent";
 import { MarcarRevisaoDialog } from "@/components/financeiro/MarcarRevisaoDialog";
 import { PlanoReducaoGastos } from "@/components/financeiro/PlanoReducaoGastos";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, subMonths, subYears, parseISO } from "date-fns";
@@ -1605,16 +1607,32 @@ export default function DREAnalitico() {
                       DRE Gerencial
                       <Badge variant="outline" className="text-xs">Padrão CIGAM</Badge>
                     </CardTitle>
-                    <TabsList>
-                      <TabsTrigger value="contas" className="gap-2">
-                        <FileText className="h-4 w-4" />
-                        Por Contas
-                      </TabsTrigger>
-                      <TabsTrigger value="departamentos" className="gap-2">
-                        <Building2 className="h-4 w-4" />
-                        Por Departamentos
-                      </TabsTrigger>
-                    </TabsList>
+                    <div className="flex items-center gap-3">
+                      <DREFocusMode title="DRE Gerencial - Modo Foco" onExport={exportarExcel}>
+                        <DREFocusContent 
+                          visaoAtiva={visaoAtiva}
+                          setVisaoAtiva={setVisaoAtiva}
+                          hierarquia={hierarquia}
+                          hierarquiaDepartamentos={hierarquiaDepartamentos}
+                          mesesPeriodo={mesesPeriodo}
+                          columnWidths={columnWidths}
+                          formatConfig={formatConfig}
+                          handleMouseDown={handleMouseDown}
+                          renderNode={renderNode}
+                          isLoading={isLoading}
+                        />
+                      </DREFocusMode>
+                      <TabsList>
+                        <TabsTrigger value="contas" className="gap-2">
+                          <FileText className="h-4 w-4" />
+                          Por Contas
+                        </TabsTrigger>
+                        <TabsTrigger value="departamentos" className="gap-2">
+                          <Building2 className="h-4 w-4" />
+                          Por Departamentos
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
                   </div>
                 </CardHeader>
 
