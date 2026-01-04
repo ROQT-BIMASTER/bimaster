@@ -226,39 +226,61 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // ============= AUTENTICAÇÃO DUAL: N8N API Key OU JWT =============
+    const n8nApiKey = Deno.env.get('N8N_API_KEY');
+    const xApiKey = req.headers.get('x-api-key');
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authorization header required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
-    if (authError || !user) {
+    let userId = 'n8n-service'; // ID padrão para chamadas do N8N
+    let isN8NRequest = false;
+    
+    // Verificar se é uma chamada do N8N via x-api-key
+    if (xApiKey && n8nApiKey && xApiKey === n8nApiKey) {
+      isN8NRequest = true;
+      console.log(`🤖 N8N request authenticated via x-api-key, path: ${path}`);
+    } 
+    // Verificar se é uma chamada do N8N via Authorization header com a API key
+    else if (authHeader && n8nApiKey && authHeader === `Bearer ${n8nApiKey}`) {
+      isN8NRequest = true;
+      console.log(`🤖 N8N request authenticated via Bearer API key, path: ${path}`);
+    }
+    // Verificar autenticação JWT normal (frontend)
+    else if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid token or API key', hint: 'Use x-api-key header with N8N_API_KEY or valid Supabase JWT' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      userId = user.id;
+      console.log(`✅ User ${user.id} authenticated via JWT, path: ${path}`);
+    } else {
       return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
+        JSON.stringify({ error: 'Authentication required', hint: 'Use x-api-key header with N8N_API_KEY or Authorization header with JWT' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Verificar rate limit
-    const rateLimitCheck = checkRateLimit(user.id);
-    if (!rateLimitCheck.allowed) {
-      console.warn(`🚫 Rate limit exceeded for user ${user.id}`);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Rate limit exceeded', 
-          message: rateLimitCheck.message,
-          retryAfter: rateLimitCheck.retryAfter,
-        }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(rateLimitCheck.retryAfter) } }
-      );
+    // Verificar rate limit (mais relaxado para N8N)
+    if (!isN8NRequest) {
+      const rateLimitCheck = checkRateLimit(userId);
+      if (!rateLimitCheck.allowed) {
+        console.warn(`🚫 Rate limit exceeded for user ${userId}`);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Rate limit exceeded', 
+            message: rateLimitCheck.message,
+            retryAfter: rateLimitCheck.retryAfter,
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(rateLimitCheck.retryAfter) } }
+        );
+      }
     }
 
-    console.log(`✅ User ${user.id} authenticated, path: ${path}`);
+    console.log(`✅ Request authenticated (${isN8NRequest ? 'N8N' : 'User'}), path: ${path}`);
 
     switch (path) {
       case 'status':
@@ -268,10 +290,10 @@ serve(async (req) => {
         return await handleQuery(req);
       
       case 'sync-page':
-        return await handleSyncPage(req, supabase, user.id);
+        return await handleSyncPage(req, supabase, userId);
       
       case 'sync-start':
-        return await handleSyncStart(req, supabase, user.id);
+        return await handleSyncStart(req, supabase, userId);
       
       case 'sync-finish':
         return await handleSyncFinish(req, supabase);
@@ -284,7 +306,7 @@ serve(async (req) => {
       
       // Mantém sync-all para compatibilidade mas marca como deprecated
       case 'sync-all':
-        return await handleSyncPage(req, supabase, user.id);
+        return await handleSyncPage(req, supabase, userId);
       
       default:
         return new Response(
