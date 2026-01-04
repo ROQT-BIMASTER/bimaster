@@ -359,6 +359,9 @@ serve(async (req) => {
       case 'health':
         return await handleHealthCheck(supabase);
       
+      case 'sync-auto':
+        return await handleSyncAuto(req, supabase, userId);
+      
       // Mantém sync-all para compatibilidade mas marca como deprecated
       case 'sync-all':
         return await handleSyncPage(req, supabase, userId);
@@ -367,7 +370,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             error: 'Unknown endpoint', 
-            availableEndpoints: ['status', 'query', 'sync-start', 'sync-page', 'sync-finish', 'preview', 'health'] 
+            availableEndpoints: ['status', 'query', 'sync-start', 'sync-page', 'sync-finish', 'preview', 'health', 'sync-auto'] 
           }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -1008,4 +1011,197 @@ async function handleSyncFinish(req: Request, supabase: any) {
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
+}
+
+// ============= SYNC-AUTO: SINCRONIZAÇÃO COMPLETA AUTOMÁTICA (CRON) =============
+// Endpoint chamado pelo pg_cron a cada 6 horas
+async function handleSyncAuto(req: Request, supabase: any, userId: string) {
+  const body = await req.json().catch(() => ({}));
+  const batchSize = Math.min(body.batchSize || 2500, MAX_BATCH_SIZE);
+  const webhookUrl = body.webhookUrl || N8N_WEBHOOK_URL;
+  const maxPages = body.maxPages || 250; // ~500k registros com batch de 2500
+
+  console.log(`🤖 SYNC-AUTO iniciado: batchSize=${batchSize}, maxPages=${maxPages}`);
+  
+  const syncStartTime = Date.now();
+  const syncSessionId = `auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // Verificar saúde do banco
+  const dbHealth = await checkDatabaseHealth(supabase);
+  if (!dbHealth.healthy) {
+    console.error(`❌ Database unhealthy, aborting auto-sync`);
+    return new Response(
+      JSON.stringify({ success: false, error: 'Database unhealthy', message: dbHealth.message }),
+      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Verificar syncs simultâneos
+  const concurrentCheck = checkConcurrentSyncs(syncSessionId);
+  if (!concurrentCheck.allowed) {
+    console.warn(`🚫 Auto-sync blocked: ${concurrentCheck.message}`);
+    return new Response(
+      JSON.stringify({ success: false, error: 'Sync in progress', message: concurrentCheck.message }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Criar log de sync
+  const { data: syncLog } = await supabase
+    .from('sync_logs')
+    .insert({
+      tipo: 'contas_receber',
+      status: 'in_progress',
+      detalhes: { source: 'cron-auto', batchSize, syncSessionId, startedAt: new Date().toISOString() },
+    })
+    .select()
+    .single();
+
+  let totalProcessed = 0;
+  let pagesProcessed = 0;
+  let offset = 0;
+  let hasMore = true;
+  const errors: any[] = [];
+
+  try {
+    // Loop por todas as páginas
+    while (hasMore && pagesProcessed < maxPages) {
+      pagesProcessed++;
+      console.log(`📄 Auto-sync page ${pagesProcessed}, offset: ${offset}`);
+
+      // Verificar saúde a cada 10 páginas
+      if (pagesProcessed % 10 === 0) {
+        const health = await checkDatabaseHealth(supabase);
+        if (!health.healthy) {
+          console.warn(`⚠️ DB slow at page ${pagesProcessed}, waiting ${CIRCUIT_BREAKER_WAIT_MS}ms`);
+          await new Promise(r => setTimeout(r, CIRCUIT_BREAKER_WAIT_MS));
+        }
+      }
+
+      // Buscar dados do webhook N8N
+      const response = await fetchWithRetry(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: batchSize, offset }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Webhook error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const records = data.data || [];
+      
+      console.log(`📥 Page ${pagesProcessed}: received ${records.length} records`);
+
+      if (records.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      // Transformar e inserir
+      const transformedRecords = records.map(transformErpData);
+      for (const record of transformedRecords) {
+        record.data_hash = await generateHash({
+          erp_id: record.erp_id,
+          valor_original: record.valor_original,
+          valor_aberto: record.valor_aberto,
+          status: record.status,
+        });
+      }
+
+      // Upsert em batches
+      for (let i = 0; i < transformedRecords.length; i += UPSERT_BATCH_SIZE) {
+        const batch = transformedRecords.slice(i, i + UPSERT_BATCH_SIZE);
+        
+        const { error: upsertError } = await supabase
+          .from('contas_receber')
+          .upsert(batch, { onConflict: 'erp_id', ignoreDuplicates: false });
+
+        if (upsertError) {
+          console.error(`❌ Upsert error page ${pagesProcessed}:`, upsertError.message);
+          errors.push({ page: pagesProcessed, error: upsertError.message });
+        } else {
+          totalProcessed += batch.length;
+        }
+
+        await new Promise(r => setTimeout(r, SUPABASE_BATCH_DELAY_MS));
+      }
+
+      // Próxima página
+      offset = data.metadata?.nextOffset || (offset + records.length);
+      hasMore = records.length >= batchSize;
+
+      // Atualizar log
+      if (syncLog?.id) {
+        await supabase
+          .from('sync_logs')
+          .update({
+            registros_processados: totalProcessed,
+            detalhes: { source: 'cron-auto', pagesProcessed, currentOffset: offset, lastUpdate: new Date().toISOString() },
+          })
+          .eq('id', syncLog.id);
+      }
+
+      // Delay entre páginas
+      await new Promise(r => setTimeout(r, PAGE_DELAY_MS));
+    }
+
+    const duration = Date.now() - syncStartTime;
+    console.log(`✅ SYNC-AUTO completo: ${totalProcessed} records em ${pagesProcessed} páginas (${duration}ms)`);
+
+    // Remover sync ativo
+    removeSyncFromActive(syncSessionId);
+
+    // Atualizar log final
+    if (syncLog?.id) {
+      await supabase
+        .from('sync_logs')
+        .update({
+          status: errors.length > 0 ? 'completed_with_errors' : 'completed',
+          registros_processados: totalProcessed,
+          detalhes: { 
+            source: 'cron-auto', 
+            pagesProcessed, 
+            duration_ms: duration, 
+            errors: errors.length,
+            finishedAt: new Date().toISOString(),
+          },
+        })
+        .eq('id', syncLog.id);
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Sincronização automática concluída',
+        summary: {
+          totalProcessed,
+          pagesProcessed,
+          duration_ms: duration,
+          errors: errors.length,
+          syncSessionId,
+        },
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error(`❌ SYNC-AUTO failed:`, err.message);
+    
+    removeSyncFromActive(syncSessionId);
+    
+    if (syncLog?.id) {
+      await supabase
+        .from('sync_logs')
+        .update({ status: 'failed', detalhes: { error: err.message, pagesProcessed, totalProcessed } })
+        .eq('id', syncLog.id);
+    }
+
+    return new Response(
+      JSON.stringify({ success: false, error: err.message, totalProcessed, pagesProcessed }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
 }
