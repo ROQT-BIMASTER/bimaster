@@ -6,9 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useContasPagarSync, SyncMode } from '@/hooks/useContasPagarSync';
+import { useContasReceberSync, SyncMode } from '@/hooks/useContasReceberSync';
 import { 
   RefreshCw, 
   Database, 
@@ -16,7 +15,7 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  TrendingDown,
+  TrendingUp,
   AlertTriangle,
   Banknote,
   Calendar,
@@ -30,7 +29,7 @@ import {
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export function ContasPagarSyncPanel() {
+export function ContasReceberSyncPanel() {
   const { toast } = useToast();
   const {
     isLoading,
@@ -47,7 +46,7 @@ export function ContasPagarSyncPanel() {
     testErpConnection,
     syncDirect,
     refreshAll
-  } = useContasPagarSync();
+  } = useContasReceberSync();
 
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [anoMinimo, setAnoMinimo] = useState('2020');
@@ -65,7 +64,7 @@ export function ContasPagarSyncPanel() {
     await refreshAll();
     toast({
       title: 'Dados Atualizados',
-      description: 'Estatísticas de Contas a Pagar atualizadas',
+      description: 'Estatísticas de Contas a Receber atualizadas',
     });
   }, [refreshAll, toast]);
 
@@ -85,7 +84,7 @@ export function ContasPagarSyncPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold">Sincronização - Contas a Pagar</h2>
+          <h2 className="text-xl font-bold">Sincronização - Contas a Receber</h2>
           <p className="text-sm text-muted-foreground">
             Monitore a integração com o ERP e visualize estatísticas
           </p>
@@ -198,7 +197,7 @@ export function ContasPagarSyncPanel() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-orange-500" />
+              <TrendingUp className="h-4 w-4 text-orange-500" />
               Total em Aberto
             </CardTitle>
           </CardHeader>
@@ -206,7 +205,7 @@ export function ContasPagarSyncPanel() {
             <p className="text-2xl font-bold text-orange-600">
               {formatCurrency(stats?.totalValorAberto || 0)}
             </p>
-            <p className="text-sm text-muted-foreground">valor a pagar</p>
+            <p className="text-sm text-muted-foreground">valor a receber</p>
           </CardContent>
         </Card>
 
@@ -214,14 +213,14 @@ export function ContasPagarSyncPanel() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Banknote className="h-4 w-4 text-green-500" />
-              Total Pago
+              Total Recebido
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-green-600">
-              {formatCurrency(stats?.totalValorPago || 0)}
+              {formatCurrency(stats?.totalValorRecebido || 0)}
             </p>
-            <p className="text-sm text-muted-foreground">já quitado</p>
+            <p className="text-sm text-muted-foreground">já recebido</p>
           </CardContent>
         </Card>
       </div>
@@ -253,11 +252,22 @@ export function ContasPagarSyncPanel() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Endpoint de Sincronização</h4>
-                <code className="text-sm bg-background px-2 py-1 rounded block overflow-x-auto">
-                  POST /functions/v1/contas-pagar-api/sync
-                </code>
-                <p className="text-sm text-muted-foreground mt-2">
+                <h4 className="font-medium mb-2">Endpoints Disponíveis</h4>
+                <div className="space-y-2">
+                  <div>
+                    <code className="text-sm bg-background px-2 py-1 rounded block overflow-x-auto">
+                      POST /functions/v1/contas-receber-api/sync
+                    </code>
+                    <p className="text-xs text-muted-foreground mt-1">Sync padrão (recomendado)</p>
+                  </div>
+                  <div>
+                    <code className="text-sm bg-background px-2 py-1 rounded block overflow-x-auto">
+                      POST /functions/v1/contas-receber-api/bulk-sync
+                    </code>
+                    <p className="text-xs text-muted-foreground mt-1">Carga massiva (alta performance)</p>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mt-3">
                   Header: <code className="bg-background px-1 rounded">x-api-key: [N8N_API_KEY]</code>
                 </p>
               </div>
@@ -273,8 +283,8 @@ export function ContasPagarSyncPanel() {
       "Tipo": "NF",
       "Nota": "12345",
       "Seq": 1,
-      "Código": "FORN001",
-      "Cliente": "Fornecedor",
+      "Código": "CLI001",
+      "Cliente": "Nome Cliente",
       "Valor_Trc": 1000.00,
       "Valor em Aberto": 500.00,
       "Emissão": "2025-01-01",
@@ -285,15 +295,14 @@ export function ContasPagarSyncPanel() {
                 </pre>
               </div>
 
-              <div className="p-4 border border-amber-500/30 bg-amber-500/10 rounded-lg">
+              <div className="p-4 border border-green-500/30 bg-green-500/10 rounded-lg">
                 <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-amber-700">Importante</h4>
+                    <h4 className="font-medium text-green-700">Alta Performance</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      O N8N envia os dados automaticamente para este endpoint. 
-                      Este painel apenas monitora as sincronizações recebidas.
-                      Para disparar uma nova sync, execute o workflow no N8N.
+                      O endpoint <code className="text-xs">/bulk-sync</code> suporta até 100.000 registros por request,
+                      com processamento de até 10.000 registros/segundo.
                     </p>
                   </div>
                 </div>
@@ -403,7 +412,7 @@ export function ContasPagarSyncPanel() {
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div>
                         <span className="text-muted-foreground">Processados:</span>
-                        <span className="ml-1 font-medium">{lastSyncResult.statistics.inserted || lastSyncResult.statistics.updated || 0}</span>
+                        <span className="ml-1 font-medium">{lastSyncResult.statistics.processed || lastSyncResult.statistics.inserted || 0}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Erros:</span>

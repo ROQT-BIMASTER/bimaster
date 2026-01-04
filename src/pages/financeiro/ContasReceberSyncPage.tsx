@@ -8,10 +8,11 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useN8NSync } from '@/hooks/useN8NSync';
 import { SyncControlPanel } from '@/components/financeiro/SyncControlPanel';
+import { ContasReceberSyncPanel } from '@/components/financeiro/ContasReceberSyncPanel';
 import { 
   RefreshCw, Wifi, WifiOff, Play, Eye, Clock, Database, Zap, 
   CheckCircle, XCircle, Loader2, TrendingUp, AlertCircle, 
-  History, ArrowUpCircle, StopCircle, Shield
+  History, ArrowUpCircle, StopCircle, Shield, Server
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -79,8 +80,12 @@ export default function ContasReceberSyncPage() {
         </div>
 
         {/* Tabs: Painel de Controle vs Modo Legado */}
-        <Tabs defaultValue="control-panel" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+        <Tabs defaultValue="dual-mode" className="w-full">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+            <TabsTrigger value="dual-mode" className="flex items-center gap-2">
+              <Server className="h-4 w-4" />
+              N8N + API Direta
+            </TabsTrigger>
             <TabsTrigger value="control-panel" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
               Painel Seguro
@@ -90,6 +95,10 @@ export default function ContasReceberSyncPage() {
               Modo Rápido
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dual-mode" className="mt-6">
+            <ContasReceberSyncPanel />
+          </TabsContent>
 
           <TabsContent value="control-panel" className="mt-6">
             <SyncControlPanel />
