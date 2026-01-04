@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useN8NSync } from '@/hooks/useN8NSync';
+import { SyncControlPanel } from '@/components/financeiro/SyncControlPanel';
 import { 
   RefreshCw, Wifi, WifiOff, Play, Eye, Clock, Database, Zap, 
   CheckCircle, XCircle, Loader2, TrendingUp, AlertCircle, 
-  History, ArrowUpCircle, StopCircle
+  History, ArrowUpCircle, StopCircle, Shield
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -61,7 +63,7 @@ export default function ContasReceberSyncPage() {
           <div>
             <h1 className="text-2xl font-bold">Sincronização com ERP</h1>
             <p className="text-muted-foreground">
-              Contas a Receber - Sync ilimitado (500k+ registros)
+              Contas a Receber - Sync seguro com proteções anti-sobrecarga
             </p>
           </div>
           <div className="flex gap-2">
@@ -73,32 +75,68 @@ export default function ContasReceberSyncPage() {
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
               Testar Conexão
             </Button>
-            {isSyncing ? (
-              <Button variant="destructive" onClick={cancelSync}>
-                <StopCircle className="h-4 w-4 mr-2" />
-                Cancelar
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={handleSyncIncremental}
-                  disabled={!status?.n8n?.connected}
-                >
-                  <ArrowUpCircle className="h-4 w-4 mr-2" />
-                  Sync Incremental
-                </Button>
-                <Button
-                  onClick={handleSyncFull}
-                  disabled={!status?.n8n?.connected}
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Sync Full
-                </Button>
-              </>
-            )}
           </div>
         </div>
+
+        {/* Tabs: Painel de Controle vs Modo Legado */}
+        <Tabs defaultValue="control-panel" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="control-panel" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Painel Seguro
+            </TabsTrigger>
+            <TabsTrigger value="legacy" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              Modo Rápido
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="control-panel" className="mt-6">
+            <SyncControlPanel />
+          </TabsContent>
+
+          <TabsContent value="legacy" className="mt-6 space-y-6">
+            {/* Legacy sync buttons */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-500" />
+                  Modo Rápido (Legado)
+                </CardTitle>
+                <CardDescription>
+                  Use apenas se o Painel Seguro não estiver funcionando. Risco de sobrecarga.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-4">
+                  {isSyncing ? (
+                    <Button variant="destructive" onClick={cancelSync}>
+                      <StopCircle className="h-4 w-4 mr-2" />
+                      Cancelar
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={handleSyncIncremental}
+                        disabled={!status?.n8n?.connected}
+                      >
+                        <ArrowUpCircle className="h-4 w-4 mr-2" />
+                        Sync Incremental
+                      </Button>
+                      <Button
+                        onClick={handleSyncFull}
+                        disabled={!status?.n8n?.connected}
+                        variant="secondary"
+                      >
+                        <Play className="h-4 w-4 mr-2" />
+                        Sync Full (Legado)
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
         {/* Sync in Progress */}
         {isSyncing && (
@@ -536,6 +574,8 @@ export default function ContasReceberSyncPage() {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

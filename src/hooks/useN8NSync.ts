@@ -14,9 +14,23 @@ interface N8NStatus {
   };
   local?: {
     totalRecords: number;
+    records2025?: number;
+    records2024Plus?: number;
     lastSync: string | null;
     lastSyncStatus: string | null;
     lastSyncRecords: number | null;
+  };
+  database?: {
+    healthy: boolean;
+    responseTime: number;
+    message?: string;
+  };
+  activeSyncs?: number;
+  protections?: {
+    rateLimitPerMinute: number;
+    maxConcurrentSyncs: number;
+    pageDelayMs: number;
+    circuitBreakerMs?: number;
   };
 }
 
@@ -24,6 +38,7 @@ interface SyncResult {
   success: boolean;
   syncId?: string;
   mode?: 'full' | 'incremental' | 'bulk_sql';
+  scope?: string;
   summary?: {
     totalProcessed: number;
     pagesProcessed: number;
@@ -71,7 +86,10 @@ export interface SyncProgress {
   recordsInCurrentBatch: number;
   startTime: number;
   isRunning: boolean;
+  scope?: string;
 }
+
+export type SyncScope = '2025' | '2024+' | 'full';
 
 export function useN8NSync() {
   const { toast } = useToast();
@@ -100,9 +118,12 @@ export function useN8NSync() {
       setStatus(data);
       
       if (data.success && data.n8n.connected) {
+        const healthMsg = data.database?.healthy 
+          ? `DB OK (${data.database.responseTime}ms)` 
+          : 'DB lento';
         toast({
           title: 'Conexão OK',
-          description: `N8N respondeu em ${data.n8n.responseTime}ms`,
+          description: `N8N conectado. ${healthMsg}. Syncs ativos: ${data.activeSyncs || 0}`,
         });
       } else {
         toast({
@@ -156,7 +177,6 @@ export function useN8NSync() {
 
   const getLastSyncTimestamp = useCallback(async (tipo: 'full' | 'incremental' = 'full') => {
     try {
-      // Use direct Supabase query instead of Edge Function for reliability
       const { data: lastSync, error: syncError } = await supabase
         .from('sync_tracking')
         .select('*')
@@ -168,7 +188,6 @@ export function useN8NSync() {
       
       if (syncError) throw syncError;
       
-      // Get history
       const { data: history, error: historyError } = await supabase
         .from('sync_tracking')
         .select('*')
@@ -211,102 +230,113 @@ export function useN8NSync() {
     }
   }, []);
 
-  const syncAll = useCallback(async (batchSize = 1000) => {
+  // Sync with scope selection (safe sync)
+  const syncWithScope = useCallback(async (scope: SyncScope = '2025', batchSize = 500) => {
     setIsSyncing(true);
     setSyncResult(null);
     setError(null);
     setEta(null);
     
     const startTime = Date.now();
+    const anoMinimo = scope === '2025' ? 2025 : (scope === '2024+' ? 2024 : null);
+    
     setSyncProgress({
       currentPage: 0,
       recordsProcessed: 0,
-      recordsInCurrentBatch: 0,
+      recordsInCurrentBatch: batchSize,
       startTime,
       isRunning: true,
+      scope,
     });
     
-    abortControllerRef.current = new AbortController();
-    
-    // Poll para atualizar progresso em tempo real
-    progressIntervalRef.current = setInterval(async () => {
-      try {
-        const { data: trackingData } = await supabase
-          .from('sync_tracking')
-          .select('records_processed, metadata')
-          .eq('entidade', 'contas_receber')
-          .eq('status', 'running')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        if (trackingData) {
-          const processed = trackingData.records_processed || 0;
-          const metadata = trackingData.metadata as Record<string, unknown> | null;
-          const pagesProcessed = (metadata?.pagesProcessed as number) || 0;
-          
-          setSyncProgress(prev => ({
-            ...prev!,
-            currentPage: pagesProcessed,
-            recordsProcessed: processed,
-            recordsInCurrentBatch: batchSize,
-            isRunning: true,
-          }));
-          
-          // Calcular ETA
-          const elapsed = Date.now() - startTime;
-          if (processed > 0 && elapsed > 0) {
-            const rate = processed / (elapsed / 1000);
-            // Estimar total baseado na taxa atual (assumir ~200k registros para ETA)
-            const estimatedTotal = status?.local?.totalRecords || 200000;
-            const remaining = Math.max(0, estimatedTotal - processed);
-            const remainingSeconds = remaining / rate;
-            
-            if (remainingSeconds < 60) {
-              setEta(`~${Math.round(remainingSeconds)}s`);
-            } else if (remainingSeconds < 3600) {
-              setEta(`~${Math.round(remainingSeconds / 60)}min`);
-            } else {
-              setEta(`~${Math.round(remainingSeconds / 3600)}h ${Math.round((remainingSeconds % 3600) / 60)}min`);
-            }
-          }
-        }
-      } catch (e) {
-        // Silenciar erros de polling
-      }
-    }, 2000);
-    
     toast({
-      title: 'Sincronização FULL iniciada',
-      description: 'Buscando todos os dados do ERP via N8N...',
+      title: `Sincronização ${scope.toUpperCase()} iniciada`,
+      description: `Buscando dados com proteções anti-sobrecarga...`,
     });
     
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('n8n-contas-receber/sync-all', {
-        body: { batchSize },
+      // Start sync
+      const { data: startData, error: startError } = await supabase.functions.invoke('n8n-contas-receber/sync-start', {
+        body: { batchSize, scope, anoMinimo },
       });
       
-      if (fnError) throw fnError;
+      if (startError) throw startError;
       
-      setSyncResult(data);
-      
-      if (data.success) {
-        toast({
-          title: 'Sincronização FULL concluída',
-          description: `${data.summary?.totalProcessed?.toLocaleString() || 0} registros em ${data.summary?.durationFormatted || '?'}`,
-        });
-      } else {
-        toast({
-          title: 'Sincronização falhou',
-          description: data.error || 'Erro desconhecido',
-          variant: 'destructive',
-        });
+      if (!startData.success) {
+        throw new Error(startData.message || startData.error || 'Falha ao iniciar sync');
       }
       
-      // Atualizar histórico
-      await getLastSyncTimestamp('full');
+      // Poll para atualizar progresso
+      progressIntervalRef.current = setInterval(async () => {
+        try {
+          const { data: trackingData } = await supabase
+            .from('sync_tracking')
+            .select('records_processed, status, metadata')
+            .eq('id', startData.trackingId)
+            .single();
+          
+          if (trackingData) {
+            const processed = trackingData.records_processed || 0;
+            const metadata = trackingData.metadata as Record<string, unknown> | null;
+            const pagesProcessed = (metadata?.pagesProcessed as number) || 0;
+            
+            setSyncProgress(prev => ({
+              ...prev!,
+              currentPage: pagesProcessed,
+              recordsProcessed: processed,
+              isRunning: trackingData.status === 'running',
+            }));
+            
+            // Calcular ETA
+            const elapsed = Date.now() - startTime;
+            if (processed > 0 && elapsed > 0) {
+              const rate = processed / (elapsed / 1000);
+              const estimatedTotal = scope === '2025' ? 40000 : (scope === '2024+' ? 100000 : 220000);
+              const remaining = Math.max(0, estimatedTotal - processed);
+              const remainingSeconds = remaining / rate;
+              
+              if (remainingSeconds < 60) {
+                setEta(`~${Math.round(remainingSeconds)}s`);
+              } else if (remainingSeconds < 3600) {
+                setEta(`~${Math.round(remainingSeconds / 60)}min`);
+              } else {
+                setEta(`~${Math.round(remainingSeconds / 3600)}h ${Math.round((remainingSeconds % 3600) / 60)}min`);
+              }
+            }
+            
+            // Check if completed
+            if (trackingData.status !== 'running') {
+              if (progressIntervalRef.current) {
+                clearInterval(progressIntervalRef.current);
+                progressIntervalRef.current = null;
+              }
+              
+              setSyncResult({
+                success: trackingData.status === 'completed',
+                mode: scope === 'full' ? 'full' : 'incremental',
+                scope,
+                summary: {
+                  totalProcessed: processed,
+                  pagesProcessed,
+                  duration: Date.now() - startTime,
+                  durationFormatted: `${Math.round((Date.now() - startTime) / 1000)}s`,
+                  recordsPerSecond: Math.round(processed / ((Date.now() - startTime) / 1000)),
+                  errors: 0,
+                },
+              });
+              
+              setIsSyncing(false);
+              setSyncProgress(null);
+              setEta(null);
+            }
+          }
+        } catch (e) {
+          // Silenciar erros de polling
+        }
+      }, 3000);
       
-      return data;
+      return startData;
+      
     } catch (err: any) {
       const errorMsg = err.message || 'Erro na sincronização';
       setError(errorMsg);
@@ -315,18 +345,22 @@ export function useN8NSync() {
         description: errorMsg,
         variant: 'destructive',
       });
-      return null;
-    } finally {
+      
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
       setIsSyncing(false);
-      setEta(null);
       setSyncProgress(null);
-      abortControllerRef.current = null;
+      setEta(null);
+      
+      return null;
     }
-  }, [toast, getLastSyncTimestamp, status]);
+  }, [toast]);
+
+  const syncAll = useCallback(async (batchSize = 500) => {
+    return syncWithScope('full', batchSize);
+  }, [syncWithScope]);
 
   const syncIncremental = useCallback(async () => {
     setIsSyncing(true);
@@ -340,11 +374,9 @@ export function useN8NSync() {
     });
     
     try {
-      // Primeiro, buscar o último timestamp
       const lastSync = await getLastSyncTimestamp('incremental');
       const since = lastSync?.last_sync_timestamp || new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
       
-      // Obter sessão para autenticação
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
       
@@ -354,7 +386,6 @@ export function useN8NSync() {
       
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       
-      // Buscar dados do N8N - SEM LIMITE de registros
       const queryResponse = await fetch(`${supabaseUrl}/functions/v1/n8n-contas-receber/query`, {
         method: 'POST',
         headers: {
@@ -362,7 +393,7 @@ export function useN8NSync() {
           'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ 
-          limit: 100000, // Sem limite prático - buscar todos os registros alterados
+          limit: 100000,
           filters: { since }
         }),
       });
@@ -383,7 +414,6 @@ export function useN8NSync() {
         return { success: true, processed: 0 };
       }
       
-      // Enviar para sync incremental usando fetch direto (reutiliza accessToken e supabaseUrl)
       const syncResponse = await fetch(`${supabaseUrl}/functions/v1/contas-receber-api/sync-incremental`, {
         method: 'POST',
         headers: {
@@ -419,7 +449,6 @@ export function useN8NSync() {
         });
       }
       
-      // Atualizar histórico
       await getLastSyncTimestamp('incremental');
       
       return data;
@@ -439,14 +468,21 @@ export function useN8NSync() {
   }, [toast, getLastSyncTimestamp]);
 
   const cancelSync = useCallback(() => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
-      toast({
-        title: 'Cancelado',
-        description: 'Sincronização cancelada pelo usuário.',
-        variant: 'destructive',
-      });
     }
+    setIsSyncing(false);
+    setSyncProgress(null);
+    setEta(null);
+    toast({
+      title: 'Cancelado',
+      description: 'Sincronização cancelada pelo usuário.',
+      variant: 'destructive',
+    });
   }, [toast]);
 
   const queryPage = useCallback(async (limit = 100, offset = 0, filters = {}) => {
@@ -492,6 +528,7 @@ export function useN8NSync() {
     testConnection,
     fetchPreview,
     syncAll,
+    syncWithScope,
     syncIncremental,
     cancelSync,
     queryPage,
