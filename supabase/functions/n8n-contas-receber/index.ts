@@ -8,20 +8,23 @@ const corsHeaders = {
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
 
-// ============= CONFIGURAÇÕES OTIMIZADAS COM PROTEÇÃO =============
-const DEFAULT_BATCH_SIZE = 500;     // Reduzido de 1000 para 500
-const UPSERT_BATCH_SIZE = 50;       // Reduzido de 100 para 50
+// ============= CONFIGURAÇÕES ULTRA-CONSERVADORAS ANTI-SOBRECARGA =============
+const DEFAULT_BATCH_SIZE = 500;      // Reduzido de 1000 para 500
+const MAX_BATCH_SIZE = 1000;         // Máximo absoluto
+const UPSERT_BATCH_SIZE = 50;        // Reduzido de 100 para 50
 const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 2000;
-const FETCH_TIMEOUT_MS = 30000;     // 30s timeout
-const SUPABASE_BATCH_DELAY_MS = 200; // Aumentado de 100 para 200ms
+const RETRY_DELAY_MS = 3000;         // Aumentado para 3s
+const FETCH_TIMEOUT_MS = 45000;      // 45s timeout
+const SUPABASE_BATCH_DELAY_MS = 300; // Aumentado de 200 para 300ms
 
-// ============= PROTEÇÕES CONTRA SOBRECARGA =============
-const RATE_LIMIT_WINDOW_MS = 60000; // Janela de 1 minuto
-const MAX_REQUESTS_PER_WINDOW = 30; // Máximo 30 requests por minuto
-const MAX_CONCURRENT_SYNCS = 2;     // Máximo 2 syncs simultâneos
-const PAGE_DELAY_MS = 2000;         // Delay obrigatório entre páginas (2s)
-const DB_HEALTH_CHECK_INTERVAL = 5; // Verificar saúde do DB a cada 5 páginas
+// ============= PROTEÇÕES RIGOROSAS CONTRA SOBRECARGA =============
+const RATE_LIMIT_WINDOW_MS = 60000;  // Janela de 1 minuto
+const MAX_REQUESTS_PER_WINDOW = 20;  // Reduzido de 30 para 20
+const MAX_CONCURRENT_SYNCS = 1;      // APENAS 1 sync por vez (era 2)
+const PAGE_DELAY_MS = 3000;          // Aumentado de 2s para 3s
+const DB_HEALTH_CHECK_INTERVAL = 3;  // Verificar a cada 3 páginas (era 5)
+const CIRCUIT_BREAKER_THRESHOLD_MS = 5000; // Se resposta > 5s, pausar
+const CIRCUIT_BREAKER_WAIT_MS = 30000;     // Esperar 30s se banco lento
 
 // Rate limiter em memória (reset quando função reinicia)
 const rateLimiter = new Map<string, { count: number; resetAt: number }>();
@@ -68,11 +71,16 @@ function checkConcurrentSyncs(syncId: string): { allowed: boolean; message?: str
     return { allowed: true };
   }
   
-  // Verificar limite de syncs simultâneos
+  // Verificar limite de syncs simultâneos - APENAS 1 PERMITIDO
   if (activeSyncs.size >= MAX_CONCURRENT_SYNCS) {
+    const activeList = Array.from(activeSyncs.entries()).map(([id, s]) => ({
+      id,
+      runningFor: Math.round((now - s.startedAt) / 1000) + 's',
+      lastActivity: Math.round((now - s.lastActivity) / 1000) + 's ago'
+    }));
     return { 
       allowed: false, 
-      message: `Maximum ${MAX_CONCURRENT_SYNCS} concurrent syncs allowed. Wait for current syncs to complete.`
+      message: `Já existe ${MAX_CONCURRENT_SYNCS} sync em andamento. Aguarde a conclusão antes de iniciar outro. Syncs ativos: ${JSON.stringify(activeList)}`
     };
   }
   
@@ -87,8 +95,8 @@ function removeSyncFromActive(syncId: string) {
   console.log(`✅ Sync ${syncId} removed from active list. Active syncs: ${activeSyncs.size}`);
 }
 
-// Verificação de saúde do banco
-async function checkDatabaseHealth(supabase: any): Promise<{ healthy: boolean; message?: string }> {
+// Verificação de saúde do banco com circuit breaker
+async function checkDatabaseHealth(supabase: any): Promise<{ healthy: boolean; responseTime: number; message?: string; shouldWait?: boolean; waitMs?: number }> {
   try {
     const startTime = Date.now();
     
@@ -103,21 +111,28 @@ async function checkDatabaseHealth(supabase: any): Promise<{ healthy: boolean; m
     
     if (error) {
       console.warn(`⚠️ DB health check failed:`, error.message);
-      return { healthy: false, message: error.message };
+      return { healthy: false, responseTime: duration, message: error.message };
     }
     
-    if (duration > 5000) { // Mais de 5s é preocupante
-      console.warn(`⚠️ DB slow: ${duration}ms`);
-      return { healthy: false, message: `Database responding slowly: ${duration}ms` };
+    // CIRCUIT BREAKER: Se resposta muito lenta, pausar
+    if (duration > CIRCUIT_BREAKER_THRESHOLD_MS) {
+      console.warn(`🔴 CIRCUIT BREAKER: DB responding slowly (${duration}ms > ${CIRCUIT_BREAKER_THRESHOLD_MS}ms)`);
+      return { 
+        healthy: false, 
+        responseTime: duration,
+        message: `Database responding slowly: ${duration}ms. Circuit breaker activated.`,
+        shouldWait: true,
+        waitMs: CIRCUIT_BREAKER_WAIT_MS
+      };
     }
     
     console.log(`💚 DB healthy: ${duration}ms`);
-    return { healthy: true };
+    return { healthy: true, responseTime: duration };
     
   } catch (error) {
     const err = error as Error;
     console.error(`❌ DB health check error:`, err.message);
-    return { healthy: false, message: err.message };
+    return { healthy: false, responseTime: 0, message: err.message };
   }
 }
 
@@ -307,8 +322,16 @@ async function handleHealthCheck(supabase: any) {
       },
       config: {
         batchSize: DEFAULT_BATCH_SIZE,
+        maxBatchSize: MAX_BATCH_SIZE,
         upsertBatchSize: UPSERT_BATCH_SIZE,
         dbHealthCheckInterval: DB_HEALTH_CHECK_INTERVAL,
+        circuitBreakerThresholdMs: CIRCUIT_BREAKER_THRESHOLD_MS,
+      },
+      protections: {
+        description: 'Proteções ultra-conservadoras para evitar sobrecarga',
+        maxConcurrentSyncs: MAX_CONCURRENT_SYNCS,
+        pageDelayMs: PAGE_DELAY_MS,
+        circuitBreakerWaitMs: CIRCUIT_BREAKER_WAIT_MS,
       },
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -365,6 +388,17 @@ async function handleStatus(supabase: any) {
     .from('contas_receber')
     .select('*', { count: 'exact', head: true });
 
+  // Contagem por ano
+  const { count: count2025 } = await supabase
+    .from('contas_receber')
+    .select('*', { count: 'exact', head: true })
+    .gte('data_vencimento', '2025-01-01');
+
+  const { count: count2024 } = await supabase
+    .from('contas_receber')
+    .select('*', { count: 'exact', head: true })
+    .gte('data_vencimento', '2024-01-01');
+
   const dbHealth = await checkDatabaseHealth(supabase);
 
   return new Response(
@@ -373,6 +407,8 @@ async function handleStatus(supabase: any) {
       n8n: { connected: n8nConnected, webhookUrl: N8N_WEBHOOK_URL },
       local: {
         totalRecords: localCount || 0,
+        records2025: count2025 || 0,
+        records2024Plus: count2024 || 0,
         lastSync: lastSync?.created_at || null,
         lastSyncStatus: lastSync?.status || null,
       },
@@ -382,23 +418,29 @@ async function handleStatus(supabase: any) {
         rateLimitPerMinute: MAX_REQUESTS_PER_WINDOW,
         maxConcurrentSyncs: MAX_CONCURRENT_SYNCS,
         pageDelayMs: PAGE_DELAY_MS,
+        circuitBreakerMs: CIRCUIT_BREAKER_THRESHOLD_MS,
       },
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
 
-// Query data from N8N (single page)
+// Query data from N8N (single page) - com suporte a filtro de ano
 async function handleQuery(req: Request) {
   const body = await req.json();
-  const { limit = DEFAULT_BATCH_SIZE, offset = 0, filters = {} } = body;
+  const { limit = DEFAULT_BATCH_SIZE, offset = 0, filters = {}, anoMinimo } = body;
 
-  console.log(`📊 Querying N8N: limit=${limit}, offset=${offset}`);
+  console.log(`📊 Querying N8N: limit=${limit}, offset=${offset}, anoMinimo=${anoMinimo || 'all'}`);
+
+  const queryFilters = { ...filters };
+  if (anoMinimo) {
+    queryFilters.anoMinimo = anoMinimo;
+  }
 
   const response = await fetch(N8N_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tableName: 'ConsultaPowerBIReceber', limit, offset, filters }),
+    body: JSON.stringify({ tableName: 'ConsultaPowerBIReceber', limit, offset, filters: queryFilters }),
   });
 
   if (!response.ok) {
@@ -438,14 +480,18 @@ async function handlePreview(req: Request) {
 // ============= ENDPOINTS PARA PAGINAÇÃO CONTROLADA PELO N8N =============
 // IMPORTANTE: 
 // - Configure Max Iterations no Loop do N8N para 1000+
-// - Configure delay de 2-5 segundos entre iterações no N8N
+// - Configure delay de 3 segundos entre iterações no N8N
+// - Use filtro de ano para reduzir volume inicial
 
 // SYNC-START: Inicia o sync e retorna o primeiro offset
 async function handleSyncStart(req: Request, supabase: any, userId: string) {
   const body = await req.json().catch(() => ({}));
-  const batchSize = Math.min(body.batchSize || DEFAULT_BATCH_SIZE, 500); // Máximo 500
+  const requestedBatchSize = body.batchSize || DEFAULT_BATCH_SIZE;
+  const batchSize = Math.min(requestedBatchSize, MAX_BATCH_SIZE); // Máximo absoluto
+  const anoMinimo = body.anoMinimo || null; // Filtro de ano opcional
+  const scope = body.scope || 'full'; // 'full', '2025', '2024+'
 
-  console.log(`🚀 Starting sync session with batch size: ${batchSize}`);
+  console.log(`🚀 Starting sync session with batch size: ${batchSize}, scope: ${scope}, anoMinimo: ${anoMinimo}`);
 
   // Verificar saúde do banco antes de iniciar
   const dbHealth = await checkDatabaseHealth(supabase);
@@ -456,6 +502,9 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
         success: false,
         error: 'Database unhealthy',
         message: `Cannot start sync: ${dbHealth.message}. Wait a few minutes and try again.`,
+        dbResponseTime: dbHealth.responseTime,
+        shouldWait: dbHealth.shouldWait,
+        waitMs: dbHealth.waitMs,
       }),
       { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -464,14 +513,14 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
   // Gerar ID único para este sync
   const syncSessionId = `sync-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  // Verificar syncs simultâneos
+  // Verificar syncs simultâneos - APENAS 1 PERMITIDO
   const concurrentCheck = checkConcurrentSyncs(syncSessionId);
   if (!concurrentCheck.allowed) {
-    console.warn(`🚫 Too many concurrent syncs`);
+    console.warn(`🚫 Sync blocked: ${concurrentCheck.message}`);
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'Too many concurrent syncs',
+        error: 'Sync already in progress',
         message: concurrentCheck.message,
         activeSyncs: activeSyncs.size,
         maxConcurrentSyncs: MAX_CONCURRENT_SYNCS,
@@ -491,10 +540,13 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
         batchSize, 
         startedBy: userId,
         syncSessionId,
+        scope,
+        anoMinimo,
         protections: {
           pageDelayMs: PAGE_DELAY_MS,
           maxConcurrentSyncs: MAX_CONCURRENT_SYNCS,
           rateLimit: MAX_REQUESTS_PER_WINDOW,
+          circuitBreakerMs: CIRCUIT_BREAKER_THRESHOLD_MS,
         },
       },
     })
@@ -505,13 +557,15 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
     .from('sync_tracking')
     .insert({
       entidade: 'contas_receber',
-      tipo_sync: 'full',
-      status: 'in_progress',
+      tipo_sync: scope === 'full' ? 'full' : 'partial',
+      status: 'running',
       metadata: { 
         source: 'n8n-pagination', 
         batchSize, 
         startedBy: userId,
         syncSessionId,
+        scope,
+        anoMinimo,
       },
     })
     .select()
@@ -524,22 +578,29 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
       trackingId: syncTracking?.id,
       syncSessionId,
       batchSize,
+      scope,
+      anoMinimo,
       nextOffset: 0,
       hasMore: true,
       loopIteration: 0,
+      dbHealth: {
+        healthy: dbHealth.healthy,
+        responseTime: dbHealth.responseTime,
+      },
       n8nConfig: {
-        warning: 'Configure Max Iterations no Loop do N8N para 1000 ou mais!',
-        defaultLimit: 15,
-        recommendedLimit: 1000,
-        requiredDelayBetweenPages: `${PAGE_DELAY_MS}ms (2 segundos)`,
-        maxBatchSize: 500,
+        warning: '⚠️ OBRIGATÓRIO: Configure delay de 3s entre páginas no N8N!',
+        requiredDelayBetweenPages: `${PAGE_DELAY_MS}ms (3 segundos)`,
+        maxBatchSize: MAX_BATCH_SIZE,
+        recommendedBatchSize: DEFAULT_BATCH_SIZE,
+        maxIterations: 1000,
       },
       protections: {
         pageDelayMs: PAGE_DELAY_MS,
         maxConcurrentSyncs: MAX_CONCURRENT_SYNCS,
         dbHealthCheckInterval: DB_HEALTH_CHECK_INTERVAL,
+        circuitBreakerThresholdMs: CIRCUIT_BREAKER_THRESHOLD_MS,
       },
-      message: 'Sync iniciado. Use sync-page para processar cada página. IMPORTANTE: Configure delay de 2s entre páginas no N8N!',
+      message: `Sync iniciado (scope: ${scope}). Use sync-page para processar cada página. OBRIGATÓRIO: delay de 3s entre páginas no N8N!`,
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
@@ -556,20 +617,22 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
     syncSessionId = null,
     totalProcessed = 0,
     pageNumber = 1,
+    anoMinimo = null,
+    scope = 'full',
   } = body;
 
   // Limitar batch size
-  const batchSize = Math.min(requestedBatchSize, 500);
+  const batchSize = Math.min(requestedBatchSize, MAX_BATCH_SIZE);
 
   const startTime = Date.now();
-  console.log(`📄 Processing page ${pageNumber}, offset: ${offset}, batchSize: ${batchSize}`);
+  console.log(`📄 Processing page ${pageNumber}, offset: ${offset}, batchSize: ${batchSize}, scope: ${scope}`);
 
   // Atualizar atividade do sync se temos sessão
   if (syncSessionId && activeSyncs.has(syncSessionId)) {
     activeSyncs.set(syncSessionId, { ...activeSyncs.get(syncSessionId)!, lastActivity: Date.now() });
   }
 
-  // Verificar saúde do banco a cada N páginas
+  // Verificar saúde do banco a cada N páginas (mais frequente agora)
   if (pageNumber % DB_HEALTH_CHECK_INTERVAL === 0) {
     console.log(`🔍 Performing periodic DB health check (page ${pageNumber})`);
     const dbHealth = await checkDatabaseHealth(supabase);
@@ -588,7 +651,8 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
           trackingId,
           syncSessionId,
           shouldWait: true,
-          waitMs: 30000, // Esperar 30s antes de retry
+          waitMs: dbHealth.waitMs || CIRCUIT_BREAKER_WAIT_MS,
+          dbResponseTime: dbHealth.responseTime,
         }),
         { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -596,6 +660,12 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
   }
 
   try {
+    // Preparar filtros para N8N
+    const queryFilters: Record<string, any> = {};
+    if (anoMinimo) {
+      queryFilters.anoMinimo = anoMinimo;
+    }
+
     // Buscar dados do N8N
     const response = await fetchWithRetry(N8N_WEBHOOK_URL, {
       method: 'POST',
@@ -604,6 +674,7 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
         tableName: 'ConsultaPowerBIReceber',
         limit: batchSize,
         offset,
+        filters: Object.keys(queryFilters).length > 0 ? queryFilters : undefined,
       }),
     });
 
@@ -669,7 +740,7 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
         errors.push({ batch: Math.floor(i / UPSERT_BATCH_SIZE) + 1, error: upsertError.message });
         
         // Se erro grave, pausar
-        if (upsertError.message.includes('timeout') || upsertError.message.includes('connection')) {
+        if (upsertError.message.includes('timeout') || upsertError.message.includes('connection') || upsertError.message.includes('deadlock')) {
           console.error(`❌ Critical DB error, pausing sync`);
           return new Response(
             JSON.stringify({
@@ -718,6 +789,8 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
             pagesProcessed: pageNumber,
             currentOffset: nextOffset,
             lastPageDuration: duration,
+            scope,
+            anoMinimo,
           },
         })
         .eq('id', syncId);
@@ -735,6 +808,8 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
             pagesProcessed: pageNumber,
             currentOffset: nextOffset,
             lastPageDuration: duration,
+            scope,
+            anoMinimo,
           },
         })
         .eq('id', trackingId);
@@ -753,9 +828,9 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
         syncSessionId,
         duration,
         errors: errors.length > 0 ? errors : undefined,
-        // Informar o N8N sobre delay recomendado
-        recommendedDelay: PAGE_DELAY_MS,
-        message: hasMore ? `Page ${pageNumber} complete. Wait ${PAGE_DELAY_MS}ms before next page.` : 'Processing complete.',
+        // Informar o N8N sobre delay obrigatório
+        requiredDelay: PAGE_DELAY_MS,
+        message: hasMore ? `Page ${pageNumber} complete. ⚠️ WAIT ${PAGE_DELAY_MS}ms before next page.` : 'Processing complete.',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -794,9 +869,10 @@ async function handleSyncFinish(req: Request, supabase: any) {
     pagesProcessed = 0,
     hasErrors = false,
     duration = 0,
+    scope = 'full',
   } = body;
 
-  console.log(`🎉 Finishing sync: ${totalProcessed} records in ${pagesProcessed} pages`);
+  console.log(`🎉 Finishing sync: ${totalProcessed} records in ${pagesProcessed} pages (scope: ${scope})`);
 
   // Remover da lista de syncs ativos
   if (syncSessionId) {
@@ -816,6 +892,7 @@ async function handleSyncFinish(req: Request, supabase: any) {
           pagesProcessed,
           duration_ms: duration,
           finishedAt: new Date().toISOString(),
+          scope,
         },
       })
       .eq('id', syncId);
@@ -833,6 +910,7 @@ async function handleSyncFinish(req: Request, supabase: any) {
           source: 'n8n-pagination', 
           pagesProcessed,
           duration_ms: duration,
+          scope,
         },
       })
       .eq('id', trackingId);
@@ -847,6 +925,7 @@ async function handleSyncFinish(req: Request, supabase: any) {
         pagesProcessed,
         duration,
         status,
+        scope,
       },
       activeSyncsRemaining: activeSyncs.size,
     }),
