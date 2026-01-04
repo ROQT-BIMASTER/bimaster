@@ -145,25 +145,28 @@ export function useContasPagarSync() {
     }
   }, []);
 
-  // Testar conexão com a API de Contas a Pagar
+  // Testar conexão verificando dados no banco
   const testConnection = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('contas-pagar-api/stats');
+      // Testa conexão verificando se há registros na tabela
+      const { count, error } = await supabase
+        .from('contas_pagar')
+        .select('id', { count: 'exact', head: true });
       
       if (error) throw error;
 
       toast({
         title: 'Conexão OK',
-        description: 'API de Contas a Pagar está funcionando',
+        description: `Banco de dados acessível. ${count || 0} registros encontrados.`,
       });
 
-      return { connected: true, data };
+      return { connected: true, count };
     } catch (err) {
       console.error('Erro ao testar conexão:', err);
       toast({
         title: 'Erro de Conexão',
-        description: 'Falha ao conectar com a API de Contas a Pagar',
+        description: 'Falha ao conectar com o banco de dados',
         variant: 'destructive',
       });
       return { connected: false, error: err };
