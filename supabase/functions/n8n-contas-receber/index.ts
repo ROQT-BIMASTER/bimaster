@@ -211,6 +211,7 @@ function transformErpData(erpRecord: any) {
     conta: erpRecord['Conta'] || null,
     erp_id: erpId || `auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     sincronizado_em: new Date().toISOString(),
+    data_hash: null as string | null, // Será preenchido depois
   };
 }
 
@@ -1122,6 +1123,8 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
       }
 
       // Buscar dados do webhook N8N
+      console.log(`🔗 Calling webhook: ${webhookUrl} with limit=${batchSize}, offset=${offset}`);
+      
       const response = await fetchWithRetry(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1129,28 +1132,59 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
       });
 
       if (!response.ok) {
-        throw new Error(`Webhook error: ${response.status}`);
+        const errorText = await response.text().catch(() => 'No response body');
+        console.error(`❌ Webhook returned ${response.status}: ${errorText}`);
+        throw new Error(`Webhook error ${response.status}: ${errorText.substring(0, 200)}`);
       }
 
-      const data = await response.json();
-      const records = data.data || [];
+      const responseText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error(`❌ Failed to parse webhook response:`, responseText.substring(0, 500));
+        throw new Error(`Invalid JSON from webhook: ${responseText.substring(0, 100)}`);
+      }
+      
+      // Suportar múltiplos formatos de resposta do N8N
+      let records: any[] = [];
+      if (Array.isArray(data)) {
+        // N8N retorna array direto
+        records = data;
+      } else if (data.data && Array.isArray(data.data)) {
+        // Formato esperado { data: [...] }
+        records = data.data;
+      } else if (data.records && Array.isArray(data.records)) {
+        // Formato alternativo { records: [...] }
+        records = data.records;
+      } else {
+        console.warn(`⚠️ Unexpected response format:`, JSON.stringify(data).substring(0, 200));
+        // Tentar extrair array de qualquer propriedade
+        const firstArrayProp = Object.values(data).find(v => Array.isArray(v));
+        if (firstArrayProp) {
+          records = firstArrayProp as any[];
+        }
+      }
       
       console.log(`📥 Page ${pagesProcessed}: received ${records.length} records`);
 
       if (records.length === 0) {
+        console.log(`📭 No more records, finishing sync`);
         hasMore = false;
         break;
       }
 
       // Transformar e inserir
-      const transformedRecords = records.map(transformErpData);
-      for (const record of transformedRecords) {
-        record.data_hash = await generateHash({
-          erp_id: record.erp_id,
-          valor_original: record.valor_original,
-          valor_aberto: record.valor_aberto,
-          status: record.status,
+      const transformedRecords: any[] = [];
+      for (const erpRecord of records) {
+        const transformed = transformErpData(erpRecord);
+        transformed.data_hash = await generateHash({
+          erp_id: transformed.erp_id,
+          valor_original: transformed.valor_original,
+          valor_aberto: transformed.valor_aberto,
+          status: transformed.status,
         });
+        transformedRecords.push(transformed);
       }
 
       // Upsert em batches
