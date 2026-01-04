@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Search, Save, Sparkles, Filter, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Search, Save, Sparkles, Filter, CheckCircle, AlertCircle, Loader2, Wand2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { ClassificarCategoriasDREDialog } from "./ClassificarCategoriasDREDialog";
 
 interface ChartOfAccount {
   id: string;
@@ -42,6 +43,7 @@ export default function ConfigurarCategoriasDRE() {
   const [filterCategoria, setFilterCategoria] = useState<string>('todas');
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [showClassifyDialog, setShowClassifyDialog] = useState(false);
 
   // Buscar contas do plano de contas
   const { data: contas, isLoading } = useQuery({
@@ -143,6 +145,7 @@ export default function ConfigurarCategoriasDRE() {
   }, [contas]);
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -155,14 +158,25 @@ export default function ConfigurarCategoriasDRE() {
               Configure como cada conta aparece na DRE. Contas não classificadas usam regras automáticas.
             </CardDescription>
           </div>
-          <Button 
-            onClick={handleSaveAll} 
-            disabled={Object.keys(pendingChanges).length === 0 || isSaving}
-            className="gap-2"
-          >
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Salvar Alterações ({Object.keys(pendingChanges).length})
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => setShowClassifyDialog(true)}
+              disabled={stats.naoClassificadas === 0}
+              className="gap-2"
+            >
+              <Wand2 className="h-4 w-4" />
+              Classificar com IA ({stats.naoClassificadas})
+            </Button>
+            <Button 
+              onClick={handleSaveAll} 
+              disabled={Object.keys(pendingChanges).length === 0 || isSaving}
+              className="gap-2"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Salvar ({Object.keys(pendingChanges).length})
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -305,5 +319,15 @@ export default function ConfigurarCategoriasDRE() {
         </div>
       </CardContent>
     </Card>
+
+    <ClassificarCategoriasDREDialog
+      open={showClassifyDialog}
+      onOpenChange={setShowClassifyDialog}
+      onSuccess={() => {
+        queryClient.invalidateQueries({ queryKey: ['chart-of-accounts-dre-config'] });
+      }}
+      accounts={contas || []}
+    />
+    </>
   );
 }
