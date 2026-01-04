@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { 
   Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, 
   ArrowLeft, Brain, Bot, Pencil, User, Lock, ArrowUpDown, ArrowUp, ArrowDown, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown, RefreshCw
 } from "lucide-react";
 import { DashboardContasPagar } from "@/components/financeiro/DashboardContasPagar";
 import { CalendarioVencimentos } from "@/components/financeiro/CalendarioVencimentos";
@@ -632,6 +632,12 @@ export default function ContasAPagar() {
                 <Link to="/dashboard/financeiro/plano-contas">
                   <BookOpen className="h-4 w-4 mr-2" />
                   Plano de Contas
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/dashboard/financeiro/contas-a-pagar/sync">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Sincronização ERP
                 </Link>
               </Button>
             </div>
