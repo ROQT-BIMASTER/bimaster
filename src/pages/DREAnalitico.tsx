@@ -25,7 +25,7 @@ interface DRENode {
   id: string;
   codigo: string;
   nome: string;
-  tipo: 'grupo' | 'conta' | 'departamento' | 'fornecedor' | 'lancamento';
+  tipo: 'grupo' | 'subtotal' | 'conta' | 'departamento' | 'fornecedor' | 'lancamento';
   nivel: number;
   valor: number;
   valoresMensais?: { [mes: string]: number };
@@ -33,6 +33,7 @@ interface DRENode {
   accountType: string;
   children?: DRENode[];
   metadata?: any;
+  sinal?: '+' | '-' | '='; // Indicador visual do sinal na DRE
 }
 
 interface MonthData {
@@ -49,7 +50,7 @@ const tableFormatConfig = {
     nameColWidth: 'min-w-[220px] max-w-[220px]',
     monthColWidth: 'w-[70px]',
     totalColWidth: 'w-[90px]',
-    variationColWidth: 'w-[60px]',
+    variationColWidth: 'w-[50px]',
     fontSize: 'text-[10px]',
     fontSizeValue: 'text-[10px]',
     padding: 'py-1 px-2',
@@ -60,9 +61,9 @@ const tableFormatConfig = {
   },
   padrao: {
     nameColWidth: 'min-w-[280px] max-w-[280px]',
-    monthColWidth: 'w-[100px]',
-    totalColWidth: 'w-[120px]',
-    variationColWidth: 'w-[80px]',
+    monthColWidth: 'w-[90px]',
+    totalColWidth: 'w-[110px]',
+    variationColWidth: 'w-[60px]',
     fontSize: 'text-xs',
     fontSizeValue: 'text-xs',
     padding: 'py-2 px-2',
@@ -73,9 +74,9 @@ const tableFormatConfig = {
   },
   expandido: {
     nameColWidth: 'min-w-[350px] max-w-[350px]',
-    monthColWidth: 'w-[130px]',
-    totalColWidth: 'w-[150px]',
-    variationColWidth: 'w-[100px]',
+    monthColWidth: 'w-[110px]',
+    totalColWidth: 'w-[130px]',
+    variationColWidth: 'w-[70px]',
     fontSize: 'text-sm',
     fontSizeValue: 'text-sm',
     padding: 'py-3 px-3',
@@ -109,10 +110,10 @@ export default function DREAnalitico() {
   
   // Estado para larguras das colunas (em pixels)
   const [columnWidths, setColumnWidths] = useState({
-    name: 280,
-    month: 100,
-    total: 120,
-    variation: 80
+    name: 320,
+    month: 90,
+    total: 110,
+    variation: 55
   });
   const resizingColumn = useRef<string | null>(null);
   const startX = useRef<number>(0);
@@ -158,7 +159,7 @@ export default function DREAnalitico() {
   }, [handleMouseMove, handleMouseUp]);
 
   const resetColumnWidths = useCallback(() => {
-    setColumnWidths({ name: 280, month: 100, total: 120, variation: 80 });
+    setColumnWidths({ name: 320, month: 90, total: 110, variation: 55 });
   }, []);
 
   // Gerar meses para o período selecionado
@@ -248,31 +249,10 @@ export default function DREAnalitico() {
       
       const { data, error } = await query.limit(50000);
       if (error) throw error;
-      console.log('Contas receber carregadas:', data?.length, 'registros');
       return data;
     },
     { staleTime: 0, refetchOnMount: 'always', gcTime: 0 }
   );
-
-  // Buscar total de contas
-  const { data: totalContas } = useQuery({
-    queryKey: ['total-contas', dataInicio, dataFim, filterEmpresa],
-    queryFn: async () => {
-      let query = supabase
-        .from('contas_pagar')
-        .select('*', { count: 'exact', head: true })
-        .gte('data_vencimento', dataInicio)
-        .lte('data_vencimento', dataFim);
-      
-      if (filterEmpresa !== 'todas') {
-        query = query.eq('empresa_nome', filterEmpresa);
-      }
-      
-      const { count, error } = await query;
-      if (error) throw error;
-      return count || 0;
-    }
-  });
 
   // Buscar lançamentos do período (sem filtro de descrição para cachear dados base)
   const { data: lancamentosBase, isLoading } = useSupabaseQuery(
@@ -296,12 +276,10 @@ export default function DREAnalitico() {
         query = query.eq('plano_contas_id', filterConta);
       }
       
-      // Filtrar apenas lançamentos ativos se não mostrar inativos
       if (!mostrarInativos) {
         query = query.neq('ativo_dre', false);
       }
       
-      // Buscar todos os registros (sem limite padrão de 1000)
       const { data, error } = await query.limit(50000);
       if (error) throw error;
       
@@ -389,14 +367,13 @@ export default function DREAnalitico() {
     if (filterDescricao.trim() && lancamentos && lancamentos.length > 0) {
       const nodosParaExpandir = new Set<string>();
       
-      // Expandir grupos raiz
-      nodosParaExpandir.add('despesas');
-      nodosParaExpandir.add('custos');
-      nodosParaExpandir.add('receitas');
-      nodosParaExpandir.add('patrimoniais');
+      nodosParaExpandir.add('receita-bruta');
+      nodosParaExpandir.add('deducoes');
+      nodosParaExpandir.add('custos-vendas');
+      nodosParaExpandir.add('despesas-operacionais');
+      nodosParaExpandir.add('impostos-lucro');
       nodosParaExpandir.add('nao-classificados');
       
-      // Expandir todas as contas e departamentos relacionados aos lançamentos filtrados
       lancamentos.forEach(l => {
         if (l.plano_contas_id) nodosParaExpandir.add(l.plano_contas_id);
         if (l.departamento_id) nodosParaExpandir.add(l.departamento_id);
@@ -406,18 +383,6 @@ export default function DREAnalitico() {
       setExpandedNodes(nodosParaExpandir);
     }
   }, [filterDescricao, lancamentos]);
-
-  // Calcular MoM (Month over Month) %
-  const calcularMoM = (valoresMensais: { [mes: string]: number }): number | null => {
-    const keys = Object.keys(valoresMensais).sort();
-    if (keys.length < 2) return null;
-    
-    const mesAtual = valoresMensais[keys[keys.length - 1]];
-    const mesAnterior = valoresMensais[keys[keys.length - 2]];
-    
-    if (mesAnterior === 0) return mesAtual > 0 ? 100 : 0;
-    return ((mesAtual - mesAnterior) / Math.abs(mesAnterior)) * 100;
-  };
 
   // Calcular totais ano anterior por conta
   const totaisAnoAnteriorPorConta = useMemo(() => {
@@ -432,65 +397,147 @@ export default function DREAnalitico() {
     return totais;
   }, [lancamentosAnoAnterior]);
 
-  // Calcular YoY
-  const calcularYoY = (contaId: string, valorAtual: number): number | null => {
-    const valorAnoAnterior = totaisAnoAnteriorPorConta[contaId] || 0;
-    if (valorAnoAnterior === 0) return valorAtual > 0 ? 100 : null;
-    return ((valorAtual - valorAnoAnterior) / Math.abs(valorAnoAnterior)) * 100;
+  // Calcular AH (Análise Horizontal) - variação sobre período anterior
+  const calcularAH = (valoresMensais: { [mes: string]: number }): number | null => {
+    const keys = Object.keys(valoresMensais).sort();
+    if (keys.length < 2) return null;
+    
+    const mesAtual = valoresMensais[keys[keys.length - 1]];
+    const mesAnterior = valoresMensais[keys[keys.length - 2]];
+    
+    if (mesAnterior === 0) return mesAtual > 0 ? 100 : 0;
+    return ((mesAtual - mesAnterior) / Math.abs(mesAnterior)) * 100;
   };
 
-  // Construir hierarquia DRE com valores mensais
+  // Construir hierarquia DRE padrão CIGAM
   const construirHierarquiaDRE = (): DRENode[] => {
     if (!planoContas || !lancamentos) return [];
 
     const arvore: DRENode[] = [];
     const contasMap = new Map(planoContas.map(c => [c.id, c]));
 
-    const criarGrupo = (id: string, codigo: string, nome: string, natureza: 'D' | 'C', accountType: string): DRENode => {
-      const grupo: DRENode = {
-        id, codigo, nome, tipo: 'grupo', nivel: 1, valor: 0, valoresMensais: {},
-        natureza, accountType, children: []
-      };
-      mesesPeriodo.forEach(m => grupo.valoresMensais![m.key] = 0);
-      return grupo;
+    // Inicializar valores mensais vazios
+    const initValoresMensais = () => {
+      const vm: { [key: string]: number } = {};
+      mesesPeriodo.forEach(m => vm[m.key] = 0);
+      return vm;
     };
 
-    const receitas = criarGrupo('receitas', '4', 'RECEITAS OPERACIONAIS', 'C', 'revenue');
-    const despesas = criarGrupo('despesas', '5', 'DESPESAS OPERACIONAIS', 'D', 'expense');
-    const custos = criarGrupo('custos', '6', 'CUSTOS E CENTROS DE CUSTO', 'D', 'cost_center');
-    const patrimoniais = criarGrupo('patrimoniais', '7', 'MOVIMENTAÇÕES PATRIMONIAIS', 'D', 'asset');
-    const naoClassificados = criarGrupo('nao-classificados', '9', 'NÃO CLASSIFICADOS', 'D', 'expense');
+    // === ESTRUTURA DRE PADRÃO CIGAM ===
+    
+    // 1. (+) RECEITAS COM VENDA (Faturamento)
+    const receitaBruta: DRENode = {
+      id: 'receita-bruta',
+      codigo: '01',
+      nome: '(+) RECEITAS COM VENDA (Faturamento)',
+      tipo: 'grupo',
+      nivel: 0,
+      valor: 0,
+      valoresMensais: initValoresMensais(),
+      natureza: 'C',
+      accountType: 'revenue',
+      sinal: '+',
+      children: []
+    };
+
+    // 2. (-) DEDUÇÕES E ABATIMENTOS
+    const deducoes: DRENode = {
+      id: 'deducoes',
+      codigo: '02.01',
+      nome: '(-) DEDUÇÕES E ABATIMENTOS (Imp. e deduções)',
+      tipo: 'grupo',
+      nivel: 0,
+      valor: 0,
+      valoresMensais: initValoresMensais(),
+      natureza: 'D',
+      accountType: 'expense',
+      sinal: '-',
+      children: []
+    };
+
+    // 4. (-) CUSTO DE VENDAS (custos variáveis)
+    const custosVendas: DRENode = {
+      id: 'custos-vendas',
+      codigo: '02.02',
+      nome: '(-) CUSTO DE VENDAS (custos variáveis)',
+      tipo: 'grupo',
+      nivel: 0,
+      valor: 0,
+      valoresMensais: initValoresMensais(),
+      natureza: 'D',
+      accountType: 'cost_center',
+      sinal: '-',
+      children: []
+    };
+
+    // 6. (-) DESPESAS FIXAS (operacionais)
+    const despesasFixas: DRENode = {
+      id: 'despesas-operacionais',
+      codigo: '02.03',
+      nome: '(-) DESPESAS FIXAS (operacionais)',
+      tipo: 'grupo',
+      nivel: 0,
+      valor: 0,
+      valoresMensais: initValoresMensais(),
+      natureza: 'D',
+      accountType: 'expense',
+      sinal: '-',
+      children: []
+    };
+
+    // 8. (-) ABATIMENTOS DO IRPJ E CSLL
+    const impostosLucro: DRENode = {
+      id: 'impostos-lucro',
+      codigo: '02.90',
+      nome: '(-) ABATIMENTOS DO IRPJ E CSLL',
+      tipo: 'grupo',
+      nivel: 0,
+      valor: 0,
+      valoresMensais: initValoresMensais(),
+      natureza: 'D',
+      accountType: 'expense',
+      sinal: '-',
+      children: []
+    };
+
+    // Não classificados
+    const naoClassificados: DRENode = {
+      id: 'nao-classificados',
+      codigo: '99',
+      nome: 'NÃO CLASSIFICADOS',
+      tipo: 'grupo',
+      nivel: 0,
+      valor: 0,
+      valoresMensais: initValoresMensais(),
+      natureza: 'D',
+      accountType: 'expense',
+      sinal: '-',
+      children: []
+    };
 
     // Processar contas a receber (RECEITAS)
-    // Usar data_emissao para alocação mensal correta (data da venda/faturamento)
     if (contasReceber && contasReceber.length > 0) {
-      // Agrupar por cliente
       const receitasPorCliente = new Map<string, { nome: string; valor: number; valoresMensais: { [key: string]: number }; lancamentos: any[] }>();
       
       contasReceber.forEach(recebimento => {
         const valor = parseFloat(String(recebimento.valor_recebido || recebimento.valor_original || 0));
-        // Usar data_emissao para alocar a receita no mês correto (competência)
-        // Fallback para data_vencimento se data_emissao não existir
         const dataRef = recebimento.data_emissao || recebimento.data_vencimento;
         const mesKey = dataRef ? format(parseISO(dataRef), 'yyyy-MM') : null;
         const clienteKey = recebimento.cliente_codigo || recebimento.cliente_nome || 'sem-cliente';
         const clienteNome = recebimento.cliente_nome || 'Cliente não identificado';
         
-        // Acumular no grupo receitas
-        receitas.valor += valor;
-        if (mesKey && receitas.valoresMensais![mesKey] !== undefined) {
-          receitas.valoresMensais![mesKey] += valor;
+        receitaBruta.valor += valor;
+        if (mesKey && receitaBruta.valoresMensais![mesKey] !== undefined) {
+          receitaBruta.valoresMensais![mesKey] += valor;
         }
         
-        // Agrupar por cliente
         if (!receitasPorCliente.has(clienteKey)) {
           receitasPorCliente.set(clienteKey, {
             nome: clienteNome,
             valor: 0,
-            valoresMensais: {},
+            valoresMensais: initValoresMensais(),
             lancamentos: []
           });
-          mesesPeriodo.forEach(m => receitasPorCliente.get(clienteKey)!.valoresMensais[m.key] = 0);
         }
         
         const clienteData = receitasPorCliente.get(clienteKey)!;
@@ -501,71 +548,62 @@ export default function DREAnalitico() {
         clienteData.lancamentos.push(recebimento);
       });
       
-      // Criar subgrupo "Vendas / Faturamento"
-      const vendasGrupo: DRENode = {
+      // Criar subconta "Vendas / Faturamento"
+      const vendasSubconta: DRENode = {
         id: 'vendas-faturamento',
-        codigo: '4.1',
-        nome: 'Vendas / Faturamento',
+        codigo: '01.01',
+        nome: 'RECEITAS DE VENDA',
         tipo: 'conta',
-        nivel: 2,
-        valor: receitas.valor,
-        valoresMensais: { ...receitas.valoresMensais! },
+        nivel: 1,
+        valor: receitaBruta.valor,
+        valoresMensais: { ...receitaBruta.valoresMensais! },
         natureza: 'C',
         accountType: 'revenue',
         children: []
       };
       
-      // Adicionar clientes como filhos
       receitasPorCliente.forEach((clienteData, clienteKey) => {
         const nodoCliente: DRENode = {
           id: `cliente-${clienteKey}`,
-          codigo: clienteKey,
+          codigo: '',
           nome: clienteData.nome,
-          tipo: 'fornecedor', // Usando 'fornecedor' para representar clientes (mesmo estilo visual)
-          nivel: 3,
+          tipo: 'fornecedor',
+          nivel: 2,
           valor: clienteData.valor,
           valoresMensais: clienteData.valoresMensais,
           natureza: 'C',
           accountType: 'revenue',
-          children: []
+          children: clienteData.lancamentos.map(lanc => {
+            const lancValor = parseFloat(String(lanc.valor_recebido || lanc.valor_original || 0));
+            const lancDataRef = lanc.data_emissao || lanc.data_vencimento;
+            const lancMesKey = lancDataRef ? format(parseISO(lancDataRef), 'yyyy-MM') : null;
+            const lancValoresMensais = initValoresMensais();
+            if (lancMesKey && lancValoresMensais[lancMesKey] !== undefined) {
+              lancValoresMensais[lancMesKey] = lancValor;
+            }
+            
+            return {
+              id: lanc.id,
+              codigo: lanc.numero_documento || '',
+              nome: `Doc: ${lanc.numero_documento || 'S/N'} - ${format(new Date(lanc.data_vencimento), 'dd/MM/yyyy')}`,
+              tipo: 'lancamento' as const,
+              nivel: 3,
+              valor: lancValor,
+              valoresMensais: lancValoresMensais,
+              natureza: 'C' as const,
+              accountType: 'revenue',
+              metadata: { ...lanc, tipo_lancamento: 'receita' }
+            };
+          })
         };
-        
-        // Adicionar lançamentos individuais do cliente
-        clienteData.lancamentos.forEach(lanc => {
-          const lancValor = parseFloat(String(lanc.valor_recebido || lanc.valor_original || 0));
-          // Usar data_emissao para alocar no mês correto
-          const lancDataRef = lanc.data_emissao || lanc.data_vencimento;
-          const lancMesKey = lancDataRef ? format(parseISO(lancDataRef), 'yyyy-MM') : null;
-          
-          const lancValoresMensais: { [key: string]: number } = {};
-          mesesPeriodo.forEach(m => lancValoresMensais[m.key] = 0);
-          if (lancMesKey && lancValoresMensais[lancMesKey] !== undefined) {
-            lancValoresMensais[lancMesKey] = lancValor;
-          }
-          
-          nodoCliente.children?.push({
-            id: lanc.id,
-            codigo: lanc.numero_documento || '',
-            nome: `Doc: ${lanc.numero_documento || 'S/N'} - ${format(new Date(lanc.data_vencimento), 'dd/MM/yyyy')}`,
-            tipo: 'lancamento',
-            nivel: 4,
-            valor: lancValor,
-            valoresMensais: lancValoresMensais,
-            natureza: 'C',
-            accountType: 'revenue',
-            metadata: { ...lanc, tipo_lancamento: 'receita' }
-          });
-        });
-        
-        vendasGrupo.children?.push(nodoCliente);
+        vendasSubconta.children?.push(nodoCliente);
       });
       
-      // Ordenar clientes por valor (maior primeiro)
-      vendasGrupo.children?.sort((a, b) => b.valor - a.valor);
-      receitas.children?.push(vendasGrupo);
+      vendasSubconta.children?.sort((a, b) => b.valor - a.valor);
+      receitaBruta.children?.push(vendasSubconta);
     }
 
-    // Processar contas a pagar (DESPESAS)
+    // Processar contas a pagar (DESPESAS) - categorizar conforme estrutura CIGAM
     lancamentos.forEach(lancamento => {
       const valor = parseFloat(String(lancamento.valor_pago || lancamento.valor_original || 0));
       const mesKey = lancamento.data_vencimento ? format(parseISO(lancamento.data_vencimento), 'yyyy-MM') : null;
@@ -577,15 +615,19 @@ export default function DREAnalitico() {
         }
         
         let nodoCategoria = naoClassificados.children?.find(c => c.nome === (lancamento.categoria_nome || 'Sem Categoria'));
-        
         if (!nodoCategoria) {
           nodoCategoria = {
-            id: `cat-${lancamento.categoria_nome || 'sem'}`, codigo: '',
+            id: `cat-${lancamento.categoria_nome || 'sem'}`,
+            codigo: '',
             nome: lancamento.categoria_nome || 'Sem Categoria',
-            tipo: 'conta', nivel: 2, valor: 0, valoresMensais: {},
-            natureza: 'D', accountType: 'expense', children: []
+            tipo: 'conta',
+            nivel: 1,
+            valor: 0,
+            valoresMensais: initValoresMensais(),
+            natureza: 'D',
+            accountType: 'expense',
+            children: []
           };
-          mesesPeriodo.forEach(m => nodoCategoria!.valoresMensais![m.key] = 0);
           naoClassificados.children?.push(nodoCategoria);
         }
         
@@ -594,18 +636,22 @@ export default function DREAnalitico() {
           nodoCategoria.valoresMensais![mesKey] += valor;
         }
 
-        // Criar valoresMensais para lançamento não classificado
-        const lancamentoValoresMensaisNaoClass: { [key: string]: number } = {};
-        mesesPeriodo.forEach(m => lancamentoValoresMensaisNaoClass[m.key] = 0);
-        if (mesKey && lancamentoValoresMensaisNaoClass[mesKey] !== undefined) {
-          lancamentoValoresMensaisNaoClass[mesKey] = valor;
+        const lancValoresMensais = initValoresMensais();
+        if (mesKey && lancValoresMensais[mesKey] !== undefined) {
+          lancValoresMensais[mesKey] = valor;
         }
 
         nodoCategoria.children?.push({
-          id: lancamento.id, codigo: lancamento.numero_documento || '',
+          id: lancamento.id,
+          codigo: lancamento.numero_documento || '',
           nome: `${lancamento.fornecedor_nome || 'N/A'} - ${format(new Date(lancamento.data_vencimento), 'dd/MM/yyyy')}`,
-          tipo: 'lancamento', nivel: 5, valor, valoresMensais: lancamentoValoresMensaisNaoClass,
-          natureza: 'D', accountType: 'expense', metadata: lancamento
+          tipo: 'lancamento',
+          nivel: 2,
+          valor,
+          valoresMensais: lancValoresMensais,
+          natureza: 'D',
+          accountType: 'expense',
+          metadata: lancamento
         });
         return;
       }
@@ -613,37 +659,62 @@ export default function DREAnalitico() {
       const conta = contasMap.get(lancamento.plano_contas_id);
       if (!conta) return;
 
-      let grupoRaiz: DRENode;
-      if (conta.account_type === 'revenue') grupoRaiz = receitas;
-      else if (conta.account_type === 'cost_center' || conta.account_type === 'budget') grupoRaiz = custos;
-      else if (conta.account_type === 'asset' || conta.account_type === 'liability') grupoRaiz = patrimoniais;
-      else grupoRaiz = despesas;
+      // Determinar grupo baseado no código da conta ou tipo
+      let grupoDestino: DRENode;
+      const codigoConta = conta.code?.toLowerCase() || '';
+      const nomeConta = conta.name?.toLowerCase() || '';
+      
+      // Categorização baseada no padrão CIGAM
+      if (nomeConta.includes('icms') || nomeConta.includes('ipi') || nomeConta.includes('pis') || 
+          nomeConta.includes('cofins') || nomeConta.includes('iss') || nomeConta.includes('comiss') ||
+          nomeConta.includes('devolu') || nomeConta.includes('desconto') || nomeConta.includes('abatimento')) {
+        grupoDestino = deducoes;
+      } else if (nomeConta.includes('irpj') || nomeConta.includes('csll') || nomeConta.includes('imposto de renda') ||
+                 nomeConta.includes('contribuição social')) {
+        grupoDestino = impostosLucro;
+      } else if (conta.account_type === 'cost_center' || nomeConta.includes('custo') || 
+                 nomeConta.includes('matéria') || nomeConta.includes('material') ||
+                 nomeConta.includes('mercadoria') || nomeConta.includes('frete') ||
+                 nomeConta.includes('serviço') || nomeConta.includes('compra')) {
+        grupoDestino = custosVendas;
+      } else {
+        grupoDestino = despesasFixas;
+      }
 
-      let nodoConta = grupoRaiz.children?.find(c => c.id === conta.id);
+      grupoDestino.valor += valor;
+      if (mesKey && grupoDestino.valoresMensais![mesKey] !== undefined) {
+        grupoDestino.valoresMensais![mesKey] += valor;
+      }
+
+      // Buscar ou criar nó da conta
+      let nodoConta = grupoDestino.children?.find(c => c.id === conta.id);
       if (!nodoConta) {
         nodoConta = {
-          id: conta.id, codigo: conta.code, nome: conta.name,
-          tipo: 'conta', nivel: conta.nivel, valor: 0, valoresMensais: {},
+          id: conta.id,
+          codigo: conta.code,
+          nome: conta.name,
+          tipo: 'conta',
+          nivel: 1,
+          valor: 0,
+          valoresMensais: initValoresMensais(),
           natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
-          accountType: conta.account_type, children: [], metadata: conta
+          accountType: conta.account_type,
+          children: [],
+          metadata: conta
         };
-        mesesPeriodo.forEach(m => nodoConta!.valoresMensais![m.key] = 0);
-        grupoRaiz.children?.push(nodoConta);
+        grupoDestino.children?.push(nodoConta);
       }
 
       nodoConta.valor += valor;
-      grupoRaiz.valor += valor;
-      if (mesKey) {
-        if (nodoConta.valoresMensais![mesKey] !== undefined) nodoConta.valoresMensais![mesKey] += valor;
-        if (grupoRaiz.valoresMensais![mesKey] !== undefined) grupoRaiz.valoresMensais![mesKey] += valor;
+      if (mesKey && nodoConta.valoresMensais![mesKey] !== undefined) {
+        nodoConta.valoresMensais![mesKey] += valor;
       }
 
-      // Função auxiliar para adicionar lançamento agrupado por fornecedor
-      const adicionarLancamentoAgrupado = (parentNode: DRENode) => {
+      // Adicionar lançamento agrupado por departamento/fornecedor
+      const adicionarLancamento = (parentNode: DRENode) => {
         const fornecedorKey = lancamento.fornecedor_codigo || lancamento.fornecedor_nome || 'sem-fornecedor';
         const fornecedorNome = lancamento.fornecedor_nome || 'N/A';
         
-        // Buscar ou criar nó do fornecedor
         let nodoFornecedor = parentNode.children?.find(f => 
           f.tipo === 'fornecedor' && f.id === `fornecedor-${fornecedorKey}`
         );
@@ -653,29 +724,25 @@ export default function DREAnalitico() {
             id: `fornecedor-${fornecedorKey}`,
             codigo: lancamento.fornecedor_codigo || '',
             nome: fornecedorNome,
-            tipo: 'fornecedor' as const,
-            nivel: 5,
+            tipo: 'fornecedor',
+            nivel: 2,
             valor: 0,
-            valoresMensais: {},
+            valoresMensais: initValoresMensais(),
             natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
             accountType: conta.account_type,
             children: []
           };
-          mesesPeriodo.forEach(m => nodoFornecedor!.valoresMensais![m.key] = 0);
           parentNode.children?.push(nodoFornecedor);
         }
         
-        // Acumular valores no fornecedor
         nodoFornecedor.valor += valor;
         if (mesKey && nodoFornecedor.valoresMensais![mesKey] !== undefined) {
           nodoFornecedor.valoresMensais![mesKey] += valor;
         }
         
-        // Criar nó do documento individual
-        const lancamentoValoresMensais: { [key: string]: number } = {};
-        mesesPeriodo.forEach(m => lancamentoValoresMensais[m.key] = 0);
-        if (mesKey && lancamentoValoresMensais[mesKey] !== undefined) {
-          lancamentoValoresMensais[mesKey] = valor;
+        const lancValoresMensais = initValoresMensais();
+        if (mesKey && lancValoresMensais[mesKey] !== undefined) {
+          lancValoresMensais[mesKey] = valor;
         }
         
         nodoFornecedor.children?.push({
@@ -683,9 +750,9 @@ export default function DREAnalitico() {
           codigo: lancamento.numero_documento || '',
           nome: `Doc: ${lancamento.numero_documento || 'S/N'} - ${format(new Date(lancamento.data_vencimento), 'dd/MM/yyyy')}`,
           tipo: 'lancamento',
-          nivel: 6,
+          nivel: 3,
           valor,
-          valoresMensais: lancamentoValoresMensais,
+          valoresMensais: lancValoresMensais,
           natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
           accountType: conta.account_type,
           metadata: lancamento
@@ -697,13 +764,17 @@ export default function DREAnalitico() {
         if (!nodoDept) {
           const dept = departamentos?.find(d => d.id === lancamento.departamento_id);
           nodoDept = {
-            id: lancamento.departamento_id, codigo: '',
+            id: lancamento.departamento_id,
+            codigo: '',
             nome: dept?.nome || 'Sem Departamento',
-            tipo: 'departamento', nivel: 4, valor: 0, valoresMensais: {},
+            tipo: 'departamento',
+            nivel: 2,
+            valor: 0,
+            valoresMensais: initValoresMensais(),
             natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
-            accountType: conta.account_type, children: []
+            accountType: conta.account_type,
+            children: []
           };
-          mesesPeriodo.forEach(m => nodoDept!.valoresMensais![m.key] = 0);
           nodoConta.children?.push(nodoDept);
         }
         
@@ -712,52 +783,127 @@ export default function DREAnalitico() {
           nodoDept.valoresMensais![mesKey] += valor;
         }
 
-        adicionarLancamentoAgrupado(nodoDept);
+        adicionarLancamento(nodoDept);
       } else {
-        adicionarLancamentoAgrupado(nodoConta);
+        adicionarLancamento(nodoConta);
       }
     });
 
+    // Ordenar filhos
     const ordenarNos = (nos: DRENode[]) => {
-      nos.sort((a, b) => a.codigo.localeCompare(b.codigo));
+      nos.sort((a, b) => b.valor - a.valor);
       nos.forEach(no => { if (no.children) ordenarNos(no.children); });
     };
 
-    [receitas, despesas, custos, patrimoniais, naoClassificados].forEach(g => {
+    [receitaBruta, deducoes, custosVendas, despesasFixas, impostosLucro, naoClassificados].forEach(g => {
       if (g.children) ordenarNos(g.children);
     });
 
-    arvore.push(receitas);
-    if (despesas.valor > 0) arvore.push(despesas);
-    if (custos.valor > 0) arvore.push(custos);
-    if (patrimoniais.valor > 0) arvore.push(patrimoniais);
-    if (naoClassificados.valor > 0) arvore.push(naoClassificados);
+    // Montar árvore com subtotais intermediários
+    arvore.push(receitaBruta);
 
-    const totalDespesasCompleto = despesas.valor + custos.valor + patrimoniais.valor + naoClassificados.valor;
-    const resultadoValoresMensais: { [mes: string]: number } = {};
+    if (deducoes.valor > 0) arvore.push(deducoes);
+
+    // (=) RECEITA LÍQUIDA
+    const receitaLiquidaValores = initValoresMensais();
     mesesPeriodo.forEach(m => {
-      const recMes = receitas.valoresMensais![m.key] || 0;
-      const despMes = (despesas.valoresMensais![m.key] || 0) + (custos.valoresMensais![m.key] || 0) + 
-                      (patrimoniais.valoresMensais![m.key] || 0) + (naoClassificados.valoresMensais![m.key] || 0);
-      resultadoValoresMensais[m.key] = recMes - despMes;
+      receitaLiquidaValores[m.key] = (receitaBruta.valoresMensais![m.key] || 0) - (deducoes.valoresMensais![m.key] || 0);
     });
+    const receitaLiquida: DRENode = {
+      id: 'receita-liquida',
+      codigo: '',
+      nome: '(=) RECEITA LÍQUIDA',
+      tipo: 'subtotal',
+      nivel: 0,
+      valor: receitaBruta.valor - deducoes.valor,
+      valoresMensais: receitaLiquidaValores,
+      natureza: 'C',
+      accountType: 'revenue',
+      sinal: '='
+    };
+    arvore.push(receitaLiquida);
 
-    arvore.push({
-      id: 'resultado', codigo: '', nome: 'RESULTADO DO PERÍODO',
-      tipo: 'grupo', nivel: 1, valor: receitas.valor - totalDespesasCompleto,
-      valoresMensais: resultadoValoresMensais, natureza: 'C', accountType: 'revenue'
+    if (custosVendas.valor > 0) arvore.push(custosVendas);
+
+    // (=) LUCRO BRUTO (margem de contribuição)
+    const lucroBrutoValores = initValoresMensais();
+    mesesPeriodo.forEach(m => {
+      lucroBrutoValores[m.key] = receitaLiquidaValores[m.key] - (custosVendas.valoresMensais![m.key] || 0);
     });
+    const lucroBruto: DRENode = {
+      id: 'lucro-bruto',
+      codigo: '',
+      nome: '(=) LUCRO BRUTO (margem de contrib.)',
+      tipo: 'subtotal',
+      nivel: 0,
+      valor: receitaLiquida.valor - custosVendas.valor,
+      valoresMensais: lucroBrutoValores,
+      natureza: 'C',
+      accountType: 'revenue',
+      sinal: '='
+    };
+    arvore.push(lucroBruto);
+
+    if (despesasFixas.valor > 0) arvore.push(despesasFixas);
+
+    // (=) RESULTADO BRUTO/OPERACIONAL
+    const resultadoOperacionalValores = initValoresMensais();
+    mesesPeriodo.forEach(m => {
+      resultadoOperacionalValores[m.key] = lucroBrutoValores[m.key] - (despesasFixas.valoresMensais![m.key] || 0);
+    });
+    const resultadoOperacional: DRENode = {
+      id: 'resultado-operacional',
+      codigo: '',
+      nome: '(=) RESULTADO BRUTO/OPERACIONAL (antes dos impostos)',
+      tipo: 'subtotal',
+      nivel: 0,
+      valor: lucroBruto.valor - despesasFixas.valor,
+      valoresMensais: resultadoOperacionalValores,
+      natureza: 'C',
+      accountType: 'revenue',
+      sinal: '='
+    };
+    arvore.push(resultadoOperacional);
+
+    if (impostosLucro.valor > 0) arvore.push(impostosLucro);
+
+    // (=) RESULTADO LÍQUIDO
+    const resultadoLiquidoValores = initValoresMensais();
+    mesesPeriodo.forEach(m => {
+      resultadoLiquidoValores[m.key] = resultadoOperacionalValores[m.key] - (impostosLucro.valoresMensais![m.key] || 0);
+    });
+    const resultadoLiquido: DRENode = {
+      id: 'resultado-liquido',
+      codigo: '',
+      nome: '(=) RESULTADO LÍQUIDO',
+      tipo: 'subtotal',
+      nivel: 0,
+      valor: resultadoOperacional.valor - impostosLucro.valor,
+      valoresMensais: resultadoLiquidoValores,
+      natureza: 'C',
+      accountType: 'revenue',
+      sinal: '='
+    };
+    arvore.push(resultadoLiquido);
+
+    if (naoClassificados.valor > 0) arvore.push(naoClassificados);
 
     return arvore;
   };
 
-  // Construir hierarquia por departamento
+  // Construir hierarquia por departamento (mantido similar ao original)
   const construirHierarquiaPorDepartamento = (): DRENode[] => {
     if (!planoContas || !lancamentos || !departamentos) return [];
 
     const arvore: DRENode[] = [];
     const contasMap = new Map(planoContas.map(c => [c.id, c]));
     const deptsMap = new Map(departamentos.map(d => [d.id, d]));
+
+    const initValoresMensais = () => {
+      const vm: { [key: string]: number } = {};
+      mesesPeriodo.forEach(m => vm[m.key] = 0);
+      return vm;
+    };
 
     const lancamentosPorDept = new Map<string, any[]>();
     const lancamentosSemDept: any[] = [];
@@ -779,12 +925,9 @@ export default function DREAnalitico() {
 
       const nodoDept: DRENode = {
         id: deptId, codigo: '', nome: dept.nome,
-        tipo: 'departamento', nivel: 1, valor: 0, valoresMensais: {},
+        tipo: 'departamento', nivel: 0, valor: 0, valoresMensais: initValoresMensais(),
         natureza: 'D', accountType: 'expense', children: []
       };
-      mesesPeriodo.forEach(m => nodoDept.valoresMensais![m.key] = 0);
-
-      const grupos = new Map<string, DRENode>();
 
       lancsDept.forEach(lanc => {
         const valor = parseFloat(String(lanc.valor_pago || lanc.valor_original || 0));
@@ -795,45 +938,23 @@ export default function DREAnalitico() {
           nodoDept.valoresMensais![mesKey] += valor;
         }
 
-        if (!lanc.plano_contas_id) return;
-
         const conta = contasMap.get(lanc.plano_contas_id);
-        if (!conta) return;
-
-        let grupoNome = 'Despesas', grupoId = 'despesas';
-        if (conta.account_type === 'revenue') { grupoNome = 'Receitas'; grupoId = 'receitas'; }
-        else if (conta.account_type === 'cost_center' || conta.account_type === 'budget') { grupoNome = 'Custos'; grupoId = 'custos'; }
-        else if (conta.account_type === 'asset' || conta.account_type === 'liability') { grupoNome = 'Patrimoniais'; grupoId = 'patrimoniais'; }
-
-        const grupoKey = `${deptId}-${grupoId}`;
+        let nodoConta = nodoDept.children?.find(c => c.id === `${deptId}-${lanc.plano_contas_id}`);
         
-        if (!grupos.has(grupoKey)) {
-          const novoGrupo: DRENode = {
-            id: grupoKey, codigo: '', nome: grupoNome,
-            tipo: 'grupo', nivel: 2, valor: 0, valoresMensais: {},
-            natureza: conta.account_type === 'revenue' ? 'C' : 'D',
-            accountType: conta.account_type, children: []
-          };
-          mesesPeriodo.forEach(m => novoGrupo.valoresMensais![m.key] = 0);
-          grupos.set(grupoKey, novoGrupo);
-        }
-
-        const grupo = grupos.get(grupoKey)!;
-        grupo.valor += valor;
-        if (mesKey && grupo.valoresMensais![mesKey] !== undefined) {
-          grupo.valoresMensais![mesKey] += valor;
-        }
-
-        let nodoConta = grupo.children?.find(c => c.id === `${grupoKey}-${conta.id}`);
         if (!nodoConta) {
           nodoConta = {
-            id: `${grupoKey}-${conta.id}`, codigo: conta.code, nome: conta.name,
-            tipo: 'conta', nivel: 3, valor: 0, valoresMensais: {},
-            natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
-            accountType: conta.account_type, children: [], metadata: conta
+            id: `${deptId}-${lanc.plano_contas_id}`,
+            codigo: conta?.code || '',
+            nome: conta?.name || 'Sem Classificação',
+            tipo: 'conta',
+            nivel: 1,
+            valor: 0,
+            valoresMensais: initValoresMensais(),
+            natureza: 'D',
+            accountType: conta?.account_type || 'expense',
+            children: []
           };
-          mesesPeriodo.forEach(m => nodoConta!.valoresMensais![m.key] = 0);
-          grupo.children?.push(nodoConta);
+          nodoDept.children?.push(nodoConta);
         }
 
         nodoConta.valor += valor;
@@ -841,72 +962,28 @@ export default function DREAnalitico() {
           nodoConta.valoresMensais![mesKey] += valor;
         }
 
-        const categoriaNome = lanc.categoria_nome || 'Sem Categoria';
-        const categoriaKey = `${nodoConta.id}-cat-${categoriaNome}`;
-        
-        let nodoCategoria = nodoConta.children?.find(c => c.id === categoriaKey);
-        if (!nodoCategoria) {
-          nodoCategoria = {
-            id: categoriaKey, codigo: '', nome: categoriaNome.toUpperCase(),
-            tipo: 'departamento', nivel: 4, valor: 0, valoresMensais: {},
-            natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
-            accountType: conta.account_type, children: []
-          };
-          mesesPeriodo.forEach(m => nodoCategoria!.valoresMensais![m.key] = 0);
-          nodoConta.children?.push(nodoCategoria);
+        const lancValoresMensais = initValoresMensais();
+        if (mesKey && lancValoresMensais[mesKey] !== undefined) {
+          lancValoresMensais[mesKey] = valor;
         }
 
-        nodoCategoria.valor += valor;
-        if (mesKey && nodoCategoria.valoresMensais![mesKey] !== undefined) {
-          nodoCategoria.valoresMensais![mesKey] += valor;
-        }
-
-        nodoCategoria.children?.push({
-          id: `${categoriaKey}-${lanc.id}`, codigo: lanc.numero_documento || '',
-          nome: `${lanc.fornecedor_nome || 'N/A'}${lanc.data_vencimento ? ` - ${format(new Date(lanc.data_vencimento), 'dd/MM/yyyy')}` : ''}`,
-          tipo: 'lancamento', nivel: 5, valor,
-          natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
-          accountType: conta.account_type, metadata: lanc
+        nodoConta.children?.push({
+          id: lanc.id,
+          codigo: lanc.numero_documento || '',
+          nome: `${lanc.fornecedor_nome || 'N/A'} - ${lanc.data_vencimento ? format(new Date(lanc.data_vencimento), 'dd/MM/yyyy') : ''}`,
+          tipo: 'lancamento',
+          nivel: 2,
+          valor,
+          valoresMensais: lancValoresMensais,
+          natureza: 'D',
+          accountType: conta?.account_type || 'expense',
+          metadata: lanc
         });
       });
 
-      nodoDept.children = Array.from(grupos.values());
+      nodoDept.children?.sort((a, b) => b.valor - a.valor);
       arvore.push(nodoDept);
     });
-
-    if (lancamentosSemDept.length > 0) {
-      const nodoSemDept: DRENode = {
-        id: 'sem-departamento', codigo: '', nome: 'SEM DEPARTAMENTO',
-        tipo: 'departamento', nivel: 1, valor: 0, valoresMensais: {},
-        natureza: 'D', accountType: 'expense', children: []
-      };
-      mesesPeriodo.forEach(m => nodoSemDept.valoresMensais![m.key] = 0);
-
-      lancamentosSemDept.forEach(lanc => {
-        const valor = parseFloat(String(lanc.valor_pago || lanc.valor_original || 0));
-        const mesKey = lanc.data_vencimento ? format(parseISO(lanc.data_vencimento), 'yyyy-MM') : null;
-        
-        nodoSemDept.valor += valor;
-        if (mesKey && nodoSemDept.valoresMensais![mesKey] !== undefined) {
-          nodoSemDept.valoresMensais![mesKey] += valor;
-        }
-
-        if (lanc.plano_contas_id) {
-          const conta = contasMap.get(lanc.plano_contas_id);
-          if (conta) {
-            nodoSemDept.children?.push({
-              id: `sem-dept-${lanc.id}`, codigo: conta.code,
-              nome: `${conta.name} - ${lanc.fornecedor_nome || 'N/A'}`,
-              tipo: 'lancamento', nivel: 2, valor,
-              natureza: (conta.natureza === 'C' ? 'C' : 'D') as 'C' | 'D',
-              accountType: conta.account_type, metadata: lanc
-            });
-          }
-        }
-      });
-
-      arvore.push(nodoSemDept);
-    }
 
     arvore.sort((a, b) => b.valor - a.valor);
     return arvore;
@@ -914,6 +991,9 @@ export default function DREAnalitico() {
 
   const hierarquia = construirHierarquiaDRE();
   const hierarquiaDepartamentos = construirHierarquiaPorDepartamento();
+
+  // Calcular receita bruta total para AV
+  const receitaBrutaTotal = hierarquia.find(h => h.id === 'receita-bruta')?.valor || 0;
 
   const toggleNode = (id: string) => {
     const newExpanded = new Set(expandedNodes);
@@ -933,52 +1013,65 @@ export default function DREAnalitico() {
     }).format(Math.abs(valor));
   };
 
-  const formatarVariacao = (variacao: number | null) => {
-    if (variacao === null) return '-';
-    const sinal = variacao > 0 ? '+' : '';
-    return `${sinal}${variacao.toFixed(1)}%`;
+  const formatarPercentual = (valor: number | null) => {
+    if (valor === null || isNaN(valor)) return '-';
+    return `${valor.toFixed(2)}%`;
   };
 
   const renderVariacaoCell = (variacao: number | null, isExpense: boolean = false) => {
-    if (variacao === null) return <span className="text-muted-foreground">-</span>;
+    if (variacao === null || isNaN(variacao)) return <span className="text-muted-foreground">-</span>;
     
     const isPositive = variacao > 0;
     const isGood = isExpense ? !isPositive : isPositive;
     const color = Math.abs(variacao) < 1 ? 'text-muted-foreground' : isGood ? 'text-emerald-600' : 'text-red-600';
-    const Icon = isPositive ? ArrowUp : variacao < 0 ? ArrowDown : Minus;
     
     return (
-      <div className={`flex items-center justify-end gap-0.5 ${color}`}>
-        <Icon className="h-3 w-3" />
-        <span className="text-xs font-medium">{formatarVariacao(variacao)}</span>
-      </div>
+      <span className={`font-mono ${formatConfig.fontSizeValue} ${color}`}>
+        {variacao > 0 ? '+' : ''}{variacao.toFixed(2)}%
+      </span>
     );
   };
 
   const renderNode = (node: DRENode, level: number = 0) => {
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedNodes.has(node.id);
-    const indentMultiplier = tableFormat === 'compacto' ? 14 : tableFormat === 'expandido' ? 24 : 20;
+    const indentMultiplier = tableFormat === 'compacto' ? 12 : tableFormat === 'expandido' ? 20 : 16;
     const paddingLeft = level * indentMultiplier;
     const isExpense = ['expense', 'cost_center', 'budget', 'asset', 'liability'].includes(node.accountType);
+    const isSubtotal = node.tipo === 'subtotal';
+    const isGrupo = node.tipo === 'grupo' && level === 0;
+
+    // Calcular AV (% sobre Receita Bruta)
+    const calcularAV = (valor: number) => {
+      if (receitaBrutaTotal === 0) return null;
+      return (valor / receitaBrutaTotal) * 100;
+    };
+
+    // Calcular AH
+    const ah = node.valoresMensais ? calcularAH(node.valoresMensais) : null;
 
     const getRowStyle = () => {
-      if (node.id === 'resultado') return 'bg-gradient-to-r from-primary/20 to-primary/5 font-bold border-t-2 border-primary/30';
-      if (node.tipo === 'grupo' && level === 0) return 'bg-slate-100 dark:bg-slate-800 font-bold';
-      if (node.tipo === 'conta') return 'bg-slate-50 dark:bg-slate-800/50 font-semibold';
-      if (node.tipo === 'departamento') return 'bg-blue-50/50 dark:bg-blue-900/20';
+      if (isSubtotal) {
+        if (node.id === 'resultado-liquido') {
+          return 'bg-gradient-to-r from-primary/30 to-primary/10 font-bold border-y-2 border-primary/40';
+        }
+        return 'bg-gradient-to-r from-slate-200/80 to-slate-100/50 dark:from-slate-700/80 dark:to-slate-800/50 font-bold border-y border-slate-300 dark:border-slate-600';
+      }
+      if (isGrupo) return 'bg-slate-100 dark:bg-slate-800 font-semibold';
+      if (node.tipo === 'conta') return 'bg-slate-50/50 dark:bg-slate-800/30 font-medium';
+      if (node.tipo === 'departamento') return 'bg-blue-50/30 dark:bg-blue-900/10';
+      if (node.tipo === 'fornecedor') return 'bg-amber-50/20 dark:bg-amber-900/5';
       return 'hover:bg-muted/50';
     };
 
     const getValueColor = () => {
-      if (node.id === 'resultado') return node.valor >= 0 ? 'text-emerald-600' : 'text-red-600';
-      if (node.accountType === 'revenue') return 'text-emerald-600';
-      if (isExpense) return 'text-red-600';
+      if (isSubtotal) {
+        return node.valor >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400';
+      }
+      if (node.accountType === 'revenue') return 'text-emerald-600 dark:text-emerald-400';
+      if (isExpense) return 'text-red-600 dark:text-red-400';
       return node.valor >= 0 ? 'text-emerald-600' : 'text-red-600';
     };
-
-    const mom = node.valoresMensais ? calcularMoM(node.valoresMensais) : null;
-    const yoy = calcularYoY(node.id, node.valor);
 
     const handleLancamentoClick = () => {
       if (node.tipo === 'lancamento' && node.metadata) {
@@ -988,6 +1081,13 @@ export default function DREAnalitico() {
     };
 
     const isClickable = node.tipo === 'lancamento' && node.metadata;
+
+    // Indicador de sinal
+    const renderSinal = () => {
+      if (!node.sinal) return null;
+      const sinalColor = node.sinal === '+' ? 'text-emerald-600' : node.sinal === '-' ? 'text-red-600' : 'text-primary';
+      return <span className={`font-bold mr-1 ${sinalColor}`}>{node.sinal === '=' ? '' : ''}</span>;
+    };
 
     return (
       <div key={node.id}>
@@ -1001,64 +1101,48 @@ export default function DREAnalitico() {
           {/* Coluna fixa: Nome */}
           <div 
             className={`flex items-center ${formatConfig.rowGap} ${formatConfig.padding} sticky left-0 bg-inherit z-10 border-r`}
-            style={{ paddingLeft: `${paddingLeft + 12}px`, width: columnWidths.name, minWidth: columnWidths.name }}
+            style={{ paddingLeft: `${paddingLeft + 8}px`, width: columnWidths.name, minWidth: columnWidths.name }}
           >
             {hasChildren ? (
               <Button variant="ghost" size="sm" className={`${formatConfig.expandBtnSize} hover:bg-transparent`} onClick={(e) => { e.stopPropagation(); toggleNode(node.id); }}>
                 {isExpanded ? <ChevronDown className={formatConfig.iconSize} /> : <ChevronRight className={formatConfig.iconSize} />}
               </Button>
             ) : node.tipo === 'lancamento' ? (
-              <Eye className={`${formatConfig.iconSize} text-muted-foreground/50`} />
+              <Eye className={`${formatConfig.iconSize} text-muted-foreground/50 ml-1`} />
             ) : (
-              <div className={tableFormat === 'compacto' ? 'w-4' : tableFormat === 'expandido' ? 'w-6' : 'w-5'} />
+              <div className={tableFormat === 'compacto' ? 'w-3' : tableFormat === 'expandido' ? 'w-5' : 'w-4'} />
             )}
             
-            {node.codigo && (
-              <span className={`font-mono ${formatConfig.fontSize} text-muted-foreground ${tableFormat === 'compacto' ? 'w-[45px]' : tableFormat === 'expandido' ? 'w-[65px]' : 'w-[55px]'} flex-shrink-0`}>{node.codigo}</span>
+            {renderSinal()}
+            
+            {node.codigo && !isSubtotal && (
+              <span className={`font-mono ${formatConfig.fontSize} text-muted-foreground mr-2 flex-shrink-0`}>{node.codigo}</span>
             )}
             
-            <span className={`truncate ${node.tipo === 'lancamento' ? `${formatConfig.fontSize} text-muted-foreground hover:text-foreground` : formatConfig.fontSize}`}>
+            <span className={`truncate ${isSubtotal ? 'text-sm font-bold' : node.tipo === 'lancamento' ? `${formatConfig.fontSize} text-muted-foreground hover:text-foreground` : formatConfig.fontSize}`}>
               {node.nome}
             </span>
 
             {node.id === 'nao-classificados' && (
-              <Badge variant="destructive" className={`ml-1 ${tableFormat === 'compacto' ? 'text-[8px] px-0.5 py-0 h-3' : tableFormat === 'expandido' ? 'text-[10px] px-1.5 py-0.5 h-5' : 'text-[9px] px-1 py-0 h-4'}`}>Pendente</Badge>
+              <Badge variant="destructive" className={`ml-1 text-[8px] px-1 py-0 h-4`}>Pendente</Badge>
             )}
 
             {node.tipo === 'lancamento' && node.metadata?.ativo_dre === false && (
-              <Badge variant="secondary" className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'} bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400`}>Inativo</Badge>
+              <Badge variant="secondary" className="ml-1 text-[7px] px-0.5 py-0 h-3 bg-orange-100 text-orange-700">Inativo</Badge>
             )}
 
-            {node.tipo === 'lancamento' && node.metadata?.classificacao_manual && (
-              <Badge variant="outline" className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'}`}>Manual</Badge>
-            )}
-
-            {/* Indicador de conta em revisão */}
             {node.tipo === 'lancamento' && contasIdEmRevisao.has(node.metadata?.id) && (
-              <Badge className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'} bg-amber-500 text-white hover:bg-amber-600`}>
-                <Target className="h-2 w-2 mr-0.5" />
-                Revisão
-              </Badge>
-            )}
-            {node.tipo === 'conta' && planosContasEmRevisao.has(node.metadata?.id) && (
-              <Badge className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'} bg-amber-500 text-white hover:bg-amber-600`}>
-                <Target className="h-2 w-2 mr-0.5" />
-                Em Revisão
-              </Badge>
-            )}
-            {node.tipo === 'departamento' && departamentosEmRevisao.has(node.id) && (
-              <Badge className={`ml-1 ${tableFormat === 'compacto' ? 'text-[7px] px-0.5 py-0 h-3' : 'text-[8px] px-1 py-0 h-4'} bg-amber-500 text-white hover:bg-amber-600`}>
-                <Target className="h-2 w-2 mr-0.5" />
-                Em Revisão
+              <Badge className="ml-1 text-[7px] px-0.5 py-0 h-3 bg-amber-500 text-white">
+                <Target className="h-2 w-2 mr-0.5" />Revisão
               </Badge>
             )}
 
-            {/* Botão para marcar revisão - grupos, contas, departamentos e fornecedores */}
-            {(node.tipo === 'conta' || node.tipo === 'grupo' || node.tipo === 'departamento' || node.tipo === 'fornecedor') && node.valor > 0 && (
+            {/* Botão para marcar revisão */}
+            {(node.tipo === 'conta' || node.tipo === 'grupo' || node.tipo === 'departamento' || node.tipo === 'fornecedor') && node.valor > 0 && !isSubtotal && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-5 w-5 ml-1 opacity-50 hover:opacity-100"
+                className="h-4 w-4 ml-1 opacity-40 hover:opacity-100"
                 onClick={(e) => {
                   e.stopPropagation();
                   setItemParaRevisao({
@@ -1067,7 +1151,6 @@ export default function DREAnalitico() {
                     categoriaNome: node.nome,
                     valor: node.valor,
                     nome: node.nome,
-                    // Se for fornecedor, incluir dados do fornecedor
                     ...(node.tipo === 'fornecedor' && {
                       fornecedorNome: node.nome,
                       fornecedorCodigo: node.codigo || null,
@@ -1075,96 +1158,78 @@ export default function DREAnalitico() {
                   });
                   setMarcarRevisaoOpen(true);
                 }}
-                title={node.tipo === 'fornecedor' ? "Marcar fornecedor para revisão" : "Marcar para revisão de gastos"}
+                title="Marcar para revisão"
               >
-                <Flag className="h-3 w-3 text-amber-500" />
-              </Button>
-            )}
-
-            {/* Botão para marcar revisão - lançamentos individuais (com detalhes do fornecedor) */}
-            {node.tipo === 'lancamento' && node.valor > 0 && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 ml-1 opacity-50 hover:opacity-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const lancamento = node.metadata;
-                  setItemParaRevisao({
-                    contaId: lancamento?.id || null,
-                    planoContasId: lancamento?.plano_contas_id || null,
-                    departamentoId: lancamento?.departamento_id || null,
-                    categoriaNome: lancamento?.categoria_nome || node.nome,
-                    valor: node.valor,
-                    nome: `${lancamento?.fornecedor_nome || 'N/A'} - ${lancamento?.categoria_nome || node.nome}`,
-                    // Campos de detalhamento
-                    fornecedorNome: lancamento?.fornecedor_nome || null,
-                    fornecedorCodigo: lancamento?.fornecedor_codigo || null,
-                    numeroDocumento: lancamento?.numero_documento || null,
-                    dataVencimento: lancamento?.data_vencimento || null,
-                    empresaNome: lancamento?.empresa_nome || null,
-                    tipoDocumento: lancamento?.tipo_documento || null,
-                  });
-                  setMarcarRevisaoOpen(true);
-                }}
-                title="Marcar lançamento para revisão"
-              >
-                <Flag className="h-3 w-3 text-amber-500" />
+                <Flag className="h-2.5 w-2.5 text-amber-500" />
               </Button>
             )}
           </div>
 
-          {/* Colunas de valores mensais */}
+          {/* Colunas de valores mensais com AV */}
           <div className="flex items-center flex-nowrap">
             {mesesPeriodo.map(mes => {
               const valorMes = node.valoresMensais?.[mes.key] || 0;
-              const isResultado = node.id === 'resultado';
-              const temValor = isResultado ? valorMes !== 0 : valorMes > 0;
+              const avMes = calcularAV(valorMes);
+              const temValor = isSubtotal ? valorMes !== 0 : valorMes > 0;
+              
               return (
-                <div 
-                  key={mes.key} 
-                  className={`flex-shrink-0 text-right ${formatConfig.padding}`}
-                  style={{ width: columnWidths.month }}
-                >
-                  {temValor ? (
-                    <span className={`font-mono ${formatConfig.fontSizeValue} ${isResultado ? (valorMes >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : getValueColor()}`}>
-                      {isResultado 
-                        ? (valorMes < 0 ? `(${formatarValor(Math.abs(valorMes), true)})` : formatarValor(valorMes, true))
-                        : (isExpense ? `(${formatarValor(valorMes, true)})` : formatarValor(valorMes, true))}
+                <div key={mes.key} className="flex flex-col">
+                  {/* Valor */}
+                  <div 
+                    className={`flex-shrink-0 text-right ${formatConfig.padding}`}
+                    style={{ width: columnWidths.month }}
+                  >
+                    {temValor ? (
+                      <span className={`font-mono ${formatConfig.fontSizeValue} ${getValueColor()}`}>
+                        {isSubtotal 
+                          ? (valorMes < 0 ? `(${formatarValor(Math.abs(valorMes), true)})` : formatarValor(valorMes, true))
+                          : (isExpense && !isSubtotal ? `(${formatarValor(valorMes, true)})` : formatarValor(valorMes, true))}
+                      </span>
+                    ) : (
+                      <span className={`text-muted-foreground ${formatConfig.fontSizeValue}`}>-</span>
+                    )}
+                  </div>
+                  {/* AV% */}
+                  <div 
+                    className={`flex-shrink-0 text-right px-2 pb-1`}
+                    style={{ width: columnWidths.month }}
+                  >
+                    <span className={`font-mono text-[9px] text-muted-foreground`}>
+                      {formatarPercentual(avMes)}
                     </span>
-                  ) : (
-                    <span className={`text-muted-foreground ${formatConfig.fontSizeValue}`}>-</span>
-                  )}
+                  </div>
                 </div>
               );
             })}
 
-            {/* Total */}
-            <div 
-              className={`flex-shrink-0 text-right ${formatConfig.padding} border-l-2 bg-slate-50/50 dark:bg-slate-800/30`}
-              style={{ width: columnWidths.total }}
-            >
-              <span className={`font-mono ${formatConfig.fontSizeValue} font-semibold ${node.id === 'resultado' ? (node.valor >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : getValueColor()}`}>
-                {node.id === 'resultado' 
-                  ? (node.valor < 0 ? `(${formatarValor(Math.abs(node.valor))})` : formatarValor(node.valor))
-                  : (isExpense && node.valor > 0 ? `(${formatarValor(node.valor)})` : formatarValor(node.valor))}
-              </span>
+            {/* Total e AV */}
+            <div className="flex flex-col border-l-2 bg-slate-50/50 dark:bg-slate-800/30">
+              <div 
+                className={`flex-shrink-0 text-right ${formatConfig.padding}`}
+                style={{ width: columnWidths.total }}
+              >
+                <span className={`font-mono ${formatConfig.fontSizeValue} font-semibold ${getValueColor()}`}>
+                  {isSubtotal 
+                    ? (node.valor < 0 ? `(${formatarValor(Math.abs(node.valor))})` : formatarValor(node.valor))
+                    : (isExpense && node.valor > 0 && !isSubtotal ? `(${formatarValor(node.valor)})` : formatarValor(node.valor))}
+                </span>
+              </div>
+              <div 
+                className={`flex-shrink-0 text-right px-2 pb-1`}
+                style={{ width: columnWidths.total }}
+              >
+                <span className={`font-mono text-[9px] text-muted-foreground font-medium`}>
+                  {formatarPercentual(calcularAV(node.valor))}
+                </span>
+              </div>
             </div>
 
-            {/* MoM */}
+            {/* AH (Análise Horizontal) */}
             <div 
               className={`flex-shrink-0 text-right ${formatConfig.padding} border-l`}
               style={{ width: columnWidths.variation }}
             >
-              {renderVariacaoCell(mom, isExpense)}
-            </div>
-
-            {/* YoY */}
-            <div 
-              className={`flex-shrink-0 text-right ${formatConfig.padding} border-l`}
-              style={{ width: columnWidths.variation }}
-            >
-              {renderVariacaoCell(yoy, isExpense)}
+              {renderVariacaoCell(ah, isExpense && !isSubtotal)}
             </div>
           </div>
         </div>
@@ -1181,11 +1246,18 @@ export default function DREAnalitico() {
       const result: any[] = [];
       
       nodes.forEach(node => {
-        const row: any = { 'Código': node.codigo, 'Descrição': node.nome, 'Tipo': node.tipo };
-        mesesPeriodo.forEach(m => { row[m.label] = node.valoresMensais?.[m.key] || 0; });
-        row['Total'] = node.valor;
-        row['MoM %'] = calcularMoM(node.valoresMensais || {});
-        row['YoY %'] = calcularYoY(node.id, node.valor);
+        const row: any = { 
+          'Código': node.codigo, 
+          'Descrição': node.nome, 
+          'Tipo': node.tipo 
+        };
+        mesesPeriodo.forEach(m => { 
+          row[`${m.label} (R$)`] = node.valoresMensais?.[m.key] || 0;
+          row[`${m.label} (AV%)`] = receitaBrutaTotal > 0 ? ((node.valoresMensais?.[m.key] || 0) / receitaBrutaTotal * 100).toFixed(2) : 0;
+        });
+        row['Total (R$)'] = node.valor;
+        row['Total (AV%)'] = receitaBrutaTotal > 0 ? (node.valor / receitaBrutaTotal * 100).toFixed(2) : 0;
+        row['AH%'] = calcularAH(node.valoresMensais || {})?.toFixed(2) || '-';
         result.push(row);
         if (node.children) result.push(...flattenData(node.children));
       });
@@ -1196,18 +1268,20 @@ export default function DREAnalitico() {
     const data = flattenData(visaoAtiva === 'contas' ? hierarquia : hierarquiaDepartamentos);
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "DRE");
+    XLSX.utils.book_append_sheet(wb, ws, "DRE Gerencial");
     
-    XLSX.writeFile(wb, `DRE_${format(new Date(dataInicio), 'dd-MM-yyyy')}_a_${format(new Date(dataFim), 'dd-MM-yyyy')}.xlsx`);
-    toast.success("Relatório exportado com sucesso!");
+    XLSX.writeFile(wb, `DRE_Gerencial_${format(new Date(dataInicio), 'dd-MM-yyyy')}_a_${format(new Date(dataFim), 'dd-MM-yyyy')}.xlsx`);
+    toast.success("Relatório DRE exportado com sucesso!");
   };
 
-  const totalReceitas = hierarquia.find(h => h.id === 'receitas')?.valor || 0;
-  const totalDespesas = hierarquia.find(h => h.id === 'despesas')?.valor || 0;
-  const totalCustos = hierarquia.find(h => h.id === 'custos')?.valor || 0;
-  const totalPatrimoniais = hierarquia.find(h => h.id === 'patrimoniais')?.valor || 0;
-  const totalNaoClassificados = hierarquia.find(h => h.id === 'nao-classificados')?.valor || 0;
-  const resultado = totalReceitas - totalDespesas - totalCustos - totalPatrimoniais - totalNaoClassificados;
+  // Resumo
+  const receitaBruta = hierarquia.find(h => h.id === 'receita-bruta')?.valor || 0;
+  const deducoes = hierarquia.find(h => h.id === 'deducoes')?.valor || 0;
+  const receitaLiquida = hierarquia.find(h => h.id === 'receita-liquida')?.valor || 0;
+  const custosVendas = hierarquia.find(h => h.id === 'custos-vendas')?.valor || 0;
+  const lucroBruto = hierarquia.find(h => h.id === 'lucro-bruto')?.valor || 0;
+  const despesasOperacionais = hierarquia.find(h => h.id === 'despesas-operacionais')?.valor || 0;
+  const resultadoLiquido = hierarquia.find(h => h.id === 'resultado-liquido')?.valor || 0;
 
   return (
     <DashboardLayout>
@@ -1215,8 +1289,8 @@ export default function DREAnalitico() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Demonstrativo de Resultado do Exercício</h1>
-            <p className="text-muted-foreground">Análise financeira com comparativos MoM e YoY</p>
+            <h1 className="text-3xl font-bold tracking-tight">DRE Gerencial</h1>
+            <p className="text-muted-foreground">Demonstrativo de Resultado do Exercício com AV e AH</p>
           </div>
           <Button onClick={exportarExcel} className="gap-2">
             <FileDown className="h-4 w-4" />
@@ -1278,9 +1352,7 @@ export default function DREAnalitico() {
                   <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todas">Todas as Contas</SelectItem>
-                    {planoContas?.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>
-                    ))}
+                    {planoContas?.map((c) => <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -1288,18 +1360,18 @@ export default function DREAnalitico() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               <div className="space-y-2 col-span-2">
-                <Label>Buscar por Descrição/Fornecedor</Label>
+                <Label>Buscar (Fornecedor/Descrição)</Label>
                 <Input 
                   placeholder="Digite para filtrar..." 
                   value={filterDescricao} 
-                  onChange={(e) => setFilterDescricao(e.target.value)} 
+                  onChange={(e) => setFilterDescricao(e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label className="flex items-center gap-1">
                   <LayoutGrid className="h-3 w-3" />
-                  Formato Tabela
+                  Formato
                 </Label>
                 <Select value={tableFormat} onValueChange={(v) => setTableFormat(v as TableFormat)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1326,8 +1398,9 @@ export default function DREAnalitico() {
 
               <div className="flex items-end gap-2">
                 <Button 
-                  onClick={() => setExpandedNodes(new Set(['receitas', 'despesas', 'custos', 'patrimoniais']))}
-                  variant="outline" className="flex-1"
+                  onClick={() => setExpandedNodes(new Set(['receita-bruta', 'deducoes', 'custos-vendas', 'despesas-operacionais', 'impostos-lucro']))}
+                  variant="outline" 
+                  size="sm"
                 >
                   Expandir Grupos
                 </Button>
@@ -1339,6 +1412,7 @@ export default function DREAnalitico() {
                     setFilterDepartamento('todos');
                     setFilterConta('todas');
                     setFilterDescricao('');
+                    setExpandedNodes(new Set());
                   }}
                   variant="ghost" 
                   size="sm"
@@ -1346,62 +1420,70 @@ export default function DREAnalitico() {
                 >
                   Limpar Filtros
                 </Button>
-                <Button 
-                  onClick={resetColumnWidths}
-                  variant="ghost" 
-                  size="sm"
-                  className="text-xs text-muted-foreground"
-                  title="Resetar largura das colunas"
-                >
-                  Resetar Colunas
-                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Cards de Resumo */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {/* Cards de Resumo - Estrutura CIGAM */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <Card className="border-l-4 border-l-emerald-500">
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
-                Receitas
-              </div>
-              <div className="text-2xl font-bold text-emerald-600">{formatarValor(totalReceitas)}</div>
+            <CardContent className="pt-3 pb-2">
+              <div className="text-[10px] text-muted-foreground mb-0.5">Receita Bruta</div>
+              <div className="text-lg font-bold text-emerald-600">{formatarValor(receitaBruta)}</div>
+              <div className="text-[9px] text-muted-foreground">100%</div>
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-red-500">
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                <TrendingDown className="h-4 w-4 text-red-500" />
-                Despesas
-              </div>
-              <div className="text-2xl font-bold text-red-600">{formatarValor(totalDespesas)}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-orange-500">
-            <CardContent className="pt-4 pb-3">
-              <div className="text-sm text-muted-foreground mb-1">Custos</div>
-              <div className="text-2xl font-bold text-orange-600">{formatarValor(totalCustos)}</div>
+          <Card className="border-l-4 border-l-orange-400">
+            <CardContent className="pt-3 pb-2">
+              <div className="text-[10px] text-muted-foreground mb-0.5">Deduções</div>
+              <div className="text-lg font-bold text-orange-600">({formatarValor(deducoes)})</div>
+              <div className="text-[9px] text-muted-foreground">{formatarPercentual(receitaBruta > 0 ? (deducoes / receitaBruta) * 100 : 0)}</div>
             </CardContent>
           </Card>
 
           <Card className="border-l-4 border-l-blue-500">
-            <CardContent className="pt-4 pb-3">
-              <div className="text-sm text-muted-foreground mb-1">Patrimoniais</div>
-              <div className="text-2xl font-bold text-blue-600">{formatarValor(totalPatrimoniais)}</div>
+            <CardContent className="pt-3 pb-2">
+              <div className="text-[10px] text-muted-foreground mb-0.5">Receita Líquida</div>
+              <div className="text-lg font-bold text-blue-600">{formatarValor(receitaLiquida)}</div>
+              <div className="text-[9px] text-muted-foreground">{formatarPercentual(receitaBruta > 0 ? (receitaLiquida / receitaBruta) * 100 : 0)}</div>
             </CardContent>
           </Card>
 
-          <Card className={`border-l-4 ${resultado >= 0 ? 'border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20' : 'border-l-red-500 bg-red-50/50 dark:bg-red-950/20'}`}>
-            <CardContent className="pt-4 pb-3">
-              <div className="text-sm text-muted-foreground mb-1">Resultado</div>
-              <div className={`text-2xl font-bold ${resultado >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(resultado)}
+          <Card className="border-l-4 border-l-red-400">
+            <CardContent className="pt-3 pb-2">
+              <div className="text-[10px] text-muted-foreground mb-0.5">Custos</div>
+              <div className="text-lg font-bold text-red-500">({formatarValor(custosVendas)})</div>
+              <div className="text-[9px] text-muted-foreground">{formatarPercentual(receitaBruta > 0 ? (custosVendas / receitaBruta) * 100 : 0)}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-cyan-500">
+            <CardContent className="pt-3 pb-2">
+              <div className="text-[10px] text-muted-foreground mb-0.5">Lucro Bruto</div>
+              <div className={`text-lg font-bold ${lucroBruto >= 0 ? 'text-cyan-600' : 'text-red-600'}`}>
+                {lucroBruto < 0 ? '(' : ''}{formatarValor(Math.abs(lucroBruto))}{lucroBruto < 0 ? ')' : ''}
               </div>
+              <div className="text-[9px] text-muted-foreground">{formatarPercentual(receitaBruta > 0 ? (lucroBruto / receitaBruta) * 100 : 0)}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-purple-400">
+            <CardContent className="pt-3 pb-2">
+              <div className="text-[10px] text-muted-foreground mb-0.5">Despesas Op.</div>
+              <div className="text-lg font-bold text-purple-600">({formatarValor(despesasOperacionais)})</div>
+              <div className="text-[9px] text-muted-foreground">{formatarPercentual(receitaBruta > 0 ? (despesasOperacionais / receitaBruta) * 100 : 0)}</div>
+            </CardContent>
+          </Card>
+
+          <Card className={`border-l-4 ${resultadoLiquido >= 0 ? 'border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20' : 'border-l-red-500 bg-red-50/50 dark:bg-red-950/20'}`}>
+            <CardContent className="pt-3 pb-2">
+              <div className="text-[10px] text-muted-foreground mb-0.5">Resultado Líquido</div>
+              <div className={`text-lg font-bold ${resultadoLiquido >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                {resultadoLiquido < 0 ? '(' : ''}{formatarValor(Math.abs(resultadoLiquido))}{resultadoLiquido < 0 ? ')' : ''}
+              </div>
+              <div className="text-[9px] text-muted-foreground">{formatarPercentual(receitaBruta > 0 ? (resultadoLiquido / receitaBruta) * 100 : 0)}</div>
             </CardContent>
           </Card>
         </div>
@@ -1411,11 +1493,11 @@ export default function DREAnalitico() {
           <TabsList className="mb-4">
             <TabsTrigger value="dre" className="gap-2">
               <FileText className="h-4 w-4" />
-              DRE Analítico
+              DRE Gerencial
             </TabsTrigger>
             <TabsTrigger value="reducao" className="gap-2">
               <Target className="h-4 w-4" />
-              Plano de Redução de Gastos
+              Plano de Redução
             </TabsTrigger>
           </TabsList>
 
@@ -1432,7 +1514,10 @@ export default function DREAnalitico() {
               <Tabs value={visaoAtiva} onValueChange={(v) => setVisaoAtiva(v as 'contas' | 'departamentos')}>
                 <CardHeader className="pb-0">
                   <div className="flex items-center justify-between">
-                    <CardTitle>Análise Detalhada</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      DRE Gerencial
+                      <Badge variant="outline" className="text-xs">Padrão CIGAM</Badge>
+                    </CardTitle>
                     <TabsList>
                       <TabsTrigger value="contas" className="gap-2">
                         <FileText className="h-4 w-4" />
@@ -1446,96 +1531,102 @@ export default function DREAnalitico() {
                   </div>
                 </CardHeader>
 
-            <CardContent className="p-0 mt-4">
-              {/* Header da tabela */}
-              <div className={`flex items-center bg-muted/80 border-y ${formatConfig.fontSize} font-semibold text-muted-foreground sticky top-0 z-20`}>
-                <div 
-                  className={`${formatConfig.headerPadding} sticky left-0 bg-muted/80 z-10 border-r flex items-center justify-between group`}
-                  style={{ width: columnWidths.name, minWidth: columnWidths.name }}
-                >
-                  <span>Conta / Descrição</span>
-                  <div 
-                    className="w-1 h-full cursor-col-resize hover:bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-0 bottom-0"
-                    onMouseDown={(e) => handleMouseDown(e, 'name')}
-                  />
-                </div>
-                <div className="flex items-center flex-nowrap">
-                  {mesesPeriodo.map((mes, idx) => (
+                <CardContent className="p-0 mt-4">
+                  {/* Header da tabela */}
+                  <div className={`flex items-center bg-muted/80 border-y ${formatConfig.fontSize} font-semibold text-muted-foreground sticky top-0 z-20`}>
                     <div 
-                      key={mes.key} 
-                      className={`flex-shrink-0 text-right ${formatConfig.headerPadding} uppercase relative group`}
-                      style={{ width: columnWidths.month }}
+                      className={`${formatConfig.headerPadding} sticky left-0 bg-muted/80 z-10 border-r flex items-center justify-between group`}
+                      style={{ width: columnWidths.name, minWidth: columnWidths.name }}
                     >
-                      {mes.label}
-                      {idx === 0 && (
+                      <span>Descrição</span>
+                      <div 
+                        className="w-1 h-full cursor-col-resize hover:bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-0 bottom-0"
+                        onMouseDown={(e) => handleMouseDown(e, 'name')}
+                      />
+                    </div>
+                    <div className="flex items-center flex-nowrap">
+                      {mesesPeriodo.map((mes, idx) => (
                         <div 
-                          className="w-1 h-full cursor-col-resize hover:bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-0 bottom-0"
-                          onMouseDown={(e) => handleMouseDown(e, 'month')}
-                          title="Arraste para redimensionar todas as colunas de meses"
-                        />
+                          key={mes.key} 
+                          className="flex flex-col"
+                        >
+                          <div 
+                            className={`flex-shrink-0 text-center ${formatConfig.headerPadding} uppercase relative group`}
+                            style={{ width: columnWidths.month }}
+                          >
+                            {mes.label}
+                            {idx === 0 && (
+                              <div 
+                                className="w-1 h-full cursor-col-resize hover:bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-0 bottom-0"
+                                onMouseDown={(e) => handleMouseDown(e, 'month')}
+                              />
+                            )}
+                          </div>
+                          <div 
+                            className={`flex-shrink-0 text-center text-[9px] pb-1`}
+                            style={{ width: columnWidths.month }}
+                          >
+                            AV%
+                          </div>
+                        </div>
+                      ))}
+                      <div className="flex flex-col border-l-2 bg-muted/50">
+                        <div 
+                          className={`flex-shrink-0 text-center ${formatConfig.headerPadding} font-bold relative group`}
+                          style={{ width: columnWidths.total }}
+                        >
+                          TOTAL
+                          <div 
+                            className="w-1 h-full cursor-col-resize hover:bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-0 bottom-0"
+                            onMouseDown={(e) => handleMouseDown(e, 'total')}
+                          />
+                        </div>
+                        <div 
+                          className={`flex-shrink-0 text-center text-[9px] pb-1`}
+                          style={{ width: columnWidths.total }}
+                        >
+                          AV%
+                        </div>
+                      </div>
+                      <div 
+                        className={`flex-shrink-0 text-center ${formatConfig.headerPadding} border-l relative group`}
+                        style={{ width: columnWidths.variation }}
+                      >
+                        AH%
+                      </div>
+                    </div>
+                  </div>
+
+                  <TabsContent value="contas" className="m-0">
+                    <ScrollArea className="h-[600px]">
+                      {isLoading ? (
+                        <div className="p-12 text-center text-muted-foreground">
+                          <div className="animate-pulse">Carregando dados financeiros...</div>
+                        </div>
+                      ) : (
+                        hierarquia.map(node => renderNode(node, 0))
                       )}
-                    </div>
-                  ))}
-                  <div 
-                    className={`flex-shrink-0 text-right ${formatConfig.headerPadding} border-l-2 bg-muted/50 font-bold relative group`}
-                    style={{ width: columnWidths.total }}
-                  >
-                    Total
-                    <div 
-                      className="w-1 h-full cursor-col-resize hover:bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-0 bottom-0"
-                      onMouseDown={(e) => handleMouseDown(e, 'total')}
-                    />
-                  </div>
-                  <div 
-                    className={`flex-shrink-0 text-right ${formatConfig.headerPadding} border-l relative group`}
-                    style={{ width: columnWidths.variation }}
-                  >
-                    MoM
-                    <div 
-                      className="w-1 h-full cursor-col-resize hover:bg-primary/50 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-0 bottom-0"
-                      onMouseDown={(e) => handleMouseDown(e, 'variation')}
-                      title="Arraste para redimensionar colunas de variação"
-                    />
-                  </div>
-                  <div 
-                    className={`flex-shrink-0 text-right ${formatConfig.headerPadding} border-l`}
-                    style={{ width: columnWidths.variation }}
-                  >
-                    YoY
-                  </div>
-                </div>
-              </div>
+                    </ScrollArea>
+                  </TabsContent>
 
-              <TabsContent value="contas" className="m-0">
-                <ScrollArea className="h-[600px]">
-                  {isLoading ? (
-                    <div className="p-12 text-center text-muted-foreground">
-                      <div className="animate-pulse">Carregando dados financeiros...</div>
-                    </div>
-                  ) : (
-                    hierarquia.map(node => renderNode(node, 0))
-                  )}
-                </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="departamentos" className="m-0">
-                <ScrollArea className="h-[600px]">
-                  {isLoading ? (
-                    <div className="p-12 text-center text-muted-foreground">
-                      <div className="animate-pulse">Carregando dados financeiros...</div>
-                    </div>
-                  ) : hierarquiaDepartamentos.length === 0 ? (
-                    <div className="p-12 text-center text-muted-foreground">
-                      Nenhum lançamento com departamento no período
-                    </div>
-                  ) : (
-                    hierarquiaDepartamentos.map(node => renderNode(node, 0))
-                  )}
-                </ScrollArea>
-              </TabsContent>
-            </CardContent>
-          </Tabs>
-        </Card>
+                  <TabsContent value="departamentos" className="m-0">
+                    <ScrollArea className="h-[600px]">
+                      {isLoading ? (
+                        <div className="p-12 text-center text-muted-foreground">
+                          <div className="animate-pulse">Carregando dados financeiros...</div>
+                        </div>
+                      ) : hierarquiaDepartamentos.length === 0 ? (
+                        <div className="p-12 text-center text-muted-foreground">
+                          Nenhum lançamento com departamento no período
+                        </div>
+                      ) : (
+                        hierarquiaDepartamentos.map(node => renderNode(node, 0))
+                      )}
+                    </ScrollArea>
+                  </TabsContent>
+                </CardContent>
+              </Tabs>
+            </Card>
           </TabsContent>
         </Tabs>
 
