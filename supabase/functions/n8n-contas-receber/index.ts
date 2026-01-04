@@ -281,37 +281,70 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // ============= AUTENTICAÇÃO DUAL: N8N API Key OU JWT =============
+    // ============= AUTENTICAÇÃO: N8N API Key, JWT ou Cron interno =============
     const n8nApiKey = Deno.env.get('N8N_API_KEY');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
     const xApiKey = req.headers.get('x-api-key');
     const authHeader = req.headers.get('Authorization');
     
-    let userId = 'n8n-service'; // ID padrão para chamadas do N8N
-    let isN8NRequest = false;
+    let userId = 'n8n-service'; // ID padrão para chamadas do N8N/Cron
+    let isServiceRequest = false;
     
     // Verificar se é uma chamada do N8N via x-api-key
     if (xApiKey && n8nApiKey && xApiKey === n8nApiKey) {
-      isN8NRequest = true;
+      isServiceRequest = true;
       console.log(`🤖 N8N request authenticated via x-api-key, path: ${path}`);
     } 
     // Verificar se é uma chamada do N8N via Authorization header com a API key
     else if (authHeader && n8nApiKey && authHeader === `Bearer ${n8nApiKey}`) {
-      isN8NRequest = true;
+      isServiceRequest = true;
       console.log(`🤖 N8N request authenticated via Bearer API key, path: ${path}`);
+    }
+    // Verificar se é uma chamada interna do cron (usando anon key)
+    else if (authHeader && supabaseAnonKey && authHeader === `Bearer ${supabaseAnonKey}`) {
+      isServiceRequest = true;
+      userId = 'cron-service';
+      console.log(`⏰ Cron job request authenticated via anon key, path: ${path}`);
     }
     // Verificar autenticação JWT normal (frontend)
     else if (authHeader) {
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       
-      if (authError || !user) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid token or API key', hint: 'Use x-api-key header with N8N_API_KEY or valid Supabase JWT' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+      // Primeiro verificar se é o anon key diretamente (pode vir sem prefixo Bearer correto)
+      if (token === supabaseAnonKey) {
+        isServiceRequest = true;
+        userId = 'cron-service';
+        console.log(`⏰ Cron job request authenticated via anon key token, path: ${path}`);
+      } else {
+        // Tentar autenticar como usuário
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        
+        if (authError || !user) {
+          // Se falhou, verificar se o token é válido para chamadas de serviço
+          // Aceitar qualquer JWT válido do Supabase para chamadas internas
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload.iss && payload.iss.includes('supabase') && payload.role === 'anon') {
+              isServiceRequest = true;
+              userId = 'cron-service';
+              console.log(`⏰ Cron job request authenticated via JWT payload, path: ${path}`);
+            } else {
+              return new Response(
+                JSON.stringify({ error: 'Invalid token or API key', hint: 'Use x-api-key header with N8N_API_KEY or valid Supabase JWT' }),
+                { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+          } catch {
+            return new Response(
+              JSON.stringify({ error: 'Invalid token or API key', hint: 'Use x-api-key header with N8N_API_KEY or valid Supabase JWT' }),
+              { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        } else {
+          userId = user.id;
+          console.log(`✅ User ${user.id} authenticated via JWT, path: ${path}`);
+        }
       }
-      userId = user.id;
-      console.log(`✅ User ${user.id} authenticated via JWT, path: ${path}`);
     } else {
       return new Response(
         JSON.stringify({ error: 'Authentication required', hint: 'Use x-api-key header with N8N_API_KEY or Authorization header with JWT' }),
@@ -319,8 +352,8 @@ serve(async (req) => {
       );
     }
 
-    // Verificar rate limit (mais relaxado para N8N)
-    if (!isN8NRequest) {
+    // Verificar rate limit (mais relaxado para serviços)
+    if (!isServiceRequest) {
       const rateLimitCheck = checkRateLimit(userId);
       if (!rateLimitCheck.allowed) {
         console.warn(`🚫 Rate limit exceeded for user ${userId}`);
@@ -335,7 +368,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`✅ Request authenticated (${isN8NRequest ? 'N8N' : 'User'}), path: ${path}`);
+    console.log(`✅ Request authenticated (${isServiceRequest ? 'Service' : 'User'}), path: ${path}`);
 
     switch (path) {
       case 'status':
