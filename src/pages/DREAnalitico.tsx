@@ -246,9 +246,20 @@ export default function DREAnalitico() {
     async () => {
       let query = supabase
         .from('contas_receber')
-        .select('*')
-        .gte(campoDataReceber, dataInicio)
-        .lte(campoDataReceber, dataFim);
+        .select('id, empresa_id, empresa_nome, cliente_codigo, cliente_nome, numero_documento, parcela, data_emissao, data_vencimento, data_recebimento, valor_original, valor_recebido, valor_aberto, status, tipo_documento, vendedor_codigo, vendedor_nome');
+      
+      // Para regime de caixa, filtra apenas registros que foram recebidos
+      if (regimeAnalise === 'caixa') {
+        query = query
+          .not('data_recebimento', 'is', null)
+          .gte('data_recebimento', dataInicio)
+          .lte('data_recebimento', dataFim);
+      } else {
+        // Regime de competência usa data de emissão
+        query = query
+          .gte('data_emissao', dataInicio)
+          .lte('data_emissao', dataFim);
+      }
       
       if (filterEmpresa !== 'todas') {
         query = query.eq('empresa_nome', filterEmpresa);
