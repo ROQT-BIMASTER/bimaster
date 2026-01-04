@@ -32,6 +32,7 @@ import { GerenciamentoDepartamentos } from "@/components/configuracoes/Gerenciam
 import { GerenciamentoPermissoesDepartamentos } from "@/components/configuracoes/GerenciamentoPermissoesDepartamentos";
 import { AtribuirDepartamentoUsuario } from "@/components/configuracoes/AtribuirDepartamentoUsuario";
 import { ConfiguracoesCobrancaAutomatica } from "@/components/configuracoes/ConfiguracoesCobrancaAutomatica";
+import { DocumentacaoIntegracaoERP } from "@/components/configuracoes/DocumentacaoIntegracaoERP";
 
 interface Profile {
   id: string;
@@ -258,6 +259,7 @@ function Configuracoes() {
               {isAdmin && <TabsTrigger value="premiacoes">Premiações</TabsTrigger>}
               {isAdmin && <TabsTrigger value="departamentos">Departamentos</TabsTrigger>}
               {isAdmin && <TabsTrigger value="cobranca">Cobrança Auto</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="integracao-erp">Integrações ERP</TabsTrigger>}
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
               {isAdmin && (
                 <TabsTrigger 
@@ -357,6 +359,12 @@ function Configuracoes() {
             {isAdmin && (
               <TabsContent value="cobranca">
                 <ConfiguracoesCobrancaAutomatica />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="integracao-erp">
+                <DocumentacaoIntegracaoERP />
               </TabsContent>
             )}
 
