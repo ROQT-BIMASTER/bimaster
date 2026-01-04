@@ -248,15 +248,15 @@ export default function DREAnalitico() {
         .from('contas_receber')
         .select('id, empresa_id, empresa_nome, cliente_codigo, cliente_nome, numero_documento, parcela, data_emissao, data_vencimento, data_recebimento, valor_original, valor_recebido, valor_aberto, status, tipo_documento, vendedor_codigo, vendedor_nome');
       
-      // Para regime de caixa, filtra registros recebidos (por status ou valor_recebido > 0)
-      // Como data_recebimento geralmente não está preenchido, usamos data_emissao + status
+      // Para regime de caixa (recebimento), filtra registros recebidos pela data de vencimento
+      // Como data_recebimento geralmente não está preenchido, usamos data_vencimento como proxy
       if (regimeAnalise === 'caixa') {
         query = query
           .eq('status', 'recebido')
-          .gte('data_emissao', dataInicio)
-          .lte('data_emissao', dataFim);
+          .gte('data_vencimento', dataInicio)
+          .lte('data_vencimento', dataFim);
       } else {
-        // Regime de competência usa data de emissão
+        // Regime de competência (faturamento) usa data de emissão
         query = query
           .gte('data_emissao', dataInicio)
           .lte('data_emissao', dataFim);
