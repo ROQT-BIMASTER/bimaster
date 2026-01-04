@@ -103,6 +103,9 @@ export default function DREAnalitico() {
   const [marcarRevisaoOpen, setMarcarRevisaoOpen] = useState(false);
   const [itemParaRevisao, setItemParaRevisao] = useState<any>(null);
   
+  // Regime de análise: 'competencia' (faturamento/emissão) ou 'caixa' (recebimento)
+  const [regimeAnalise, setRegimeAnalise] = useState<'competencia' | 'caixa'>('competencia');
+  
   // Novos filtros
   const [filterDepartamento, setFilterDepartamento] = useState<string>('todos');
   const [filterConta, setFilterConta] = useState<string>('todas');
@@ -233,15 +236,19 @@ export default function DREAnalitico() {
     }
   });
 
-  // Buscar contas a receber (receitas) - usar data_emissao para regime de competência
+  // Campo de data a usar baseado no regime de análise
+  const campoDataReceber = regimeAnalise === 'competencia' ? 'data_emissao' : 'data_recebimento';
+  const campoDataPagar = regimeAnalise === 'competencia' ? 'data_emissao' : 'data_pagamento';
+  
+  // Buscar contas a receber (receitas)
   const { data: contasReceber } = useSupabaseQuery(
-    ['contas-receber-dre-v2', dataInicio, dataFim, filterEmpresa],
+    ['contas-receber-dre-v2', dataInicio, dataFim, filterEmpresa, regimeAnalise],
     async () => {
       let query = supabase
         .from('contas_receber')
         .select('*')
-        .gte('data_emissao', dataInicio)
-        .lte('data_emissao', dataFim);
+        .gte(campoDataReceber, dataInicio)
+        .lte(campoDataReceber, dataFim);
       
       if (filterEmpresa !== 'todas') {
         query = query.eq('empresa_nome', filterEmpresa);
@@ -256,13 +263,16 @@ export default function DREAnalitico() {
 
   // Buscar lançamentos do período (sem filtro de descrição para cachear dados base)
   const { data: lancamentosBase, isLoading } = useSupabaseQuery(
-    ['lancamentos-dre', dataInicio, dataFim, filterEmpresa, mostrarInativos, filterDepartamento, filterConta],
+    ['lancamentos-dre', dataInicio, dataFim, filterEmpresa, mostrarInativos, filterDepartamento, filterConta, regimeAnalise],
     async () => {
+      // Para regime de competência usa data_vencimento, para caixa usa data_pagamento
+      const campoData = regimeAnalise === 'competencia' ? 'data_vencimento' : 'data_pagamento';
+      
       let query = supabase
         .from('contas_pagar')
         .select(`*, departamento:departamentos(id, nome)`)
-        .gte('data_vencimento', dataInicio)
-        .lte('data_vencimento', dataFim);
+        .gte(campoData, dataInicio)
+        .lte(campoData, dataFim);
       
       if (filterEmpresa !== 'todas') {
         query = query.eq('empresa_nome', filterEmpresa);
@@ -1379,6 +1389,20 @@ export default function DREAnalitico() {
                     <SelectItem value="compacto">Compacto</SelectItem>
                     <SelectItem value="padrao">Padrão</SelectItem>
                     <SelectItem value="expandido">Expandido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  Regime
+                </Label>
+                <Select value={regimeAnalise} onValueChange={(v) => setRegimeAnalise(v as 'competencia' | 'caixa')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="competencia">Competência (Faturamento)</SelectItem>
+                    <SelectItem value="caixa">Caixa (Recebimento)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
