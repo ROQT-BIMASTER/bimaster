@@ -20,7 +20,7 @@ interface ChartOfAccount {
 }
 
 const CATEGORIAS_DRE = [
-  { value: '', label: 'Automático (IA)' },
+  { value: 'auto', label: 'Automático (IA)' },
   { value: 'receita_bruta', label: 'Receita Bruta' },
   { value: 'deducoes', label: 'Deduções e Abatimentos' },
   { value: 'custo_vendas', label: 'Custo de Vendas' },
@@ -80,7 +80,7 @@ export default function ConfigurarCategoriasDRE() {
     mutationFn: async (changes: Record<string, string>) => {
       const updates = Object.entries(changes).map(([id, categoria_dre]) => ({
         id,
-        categoria_dre: categoria_dre === '' ? null : categoria_dre
+        categoria_dre: categoria_dre === 'auto' ? null : categoria_dre
       }));
 
       for (const update of updates) {
@@ -127,7 +127,7 @@ export default function ConfigurarCategoriasDRE() {
     if (pendingChanges[conta.id] !== undefined) {
       return pendingChanges[conta.id];
     }
-    return conta.categoria_dre || '';
+    return conta.categoria_dre || 'auto';
   };
 
   // Estatísticas
@@ -275,7 +275,7 @@ export default function ConfigurarCategoriasDRE() {
                           </Select>
                         </TableCell>
                         <TableCell className="text-center">
-                          {categoriaAtual ? (
+                          {categoriaAtual && categoriaAtual !== 'auto' ? (
                             <CheckCircle className="h-4 w-4 text-emerald-500 mx-auto" />
                           ) : (
                             <AlertCircle className="h-4 w-4 text-amber-500 mx-auto" />
