@@ -1546,12 +1546,62 @@ As contas do plano de contas são classificadas nas seguintes categorias:
     - Valores negativos indicam redução
     - Quando mês anterior = 0, considera 100% se há valor no mês atual
 
-5.3 CÁLCULO DOS SUBTOTAIS
+5.3 CÁLCULO DOS SUBTOTAIS (FÓRMULAS)
     
     RECEITA LÍQUIDA = RECEITA BRUTA - DEDUÇÕES
     LUCRO BRUTO = RECEITA LÍQUIDA - CUSTO DE VENDAS  
     LUCRO OPERACIONAL = LUCRO BRUTO - DESPESAS FIXAS
     RESULTADO LÍQUIDO = LUCRO OPERACIONAL - IMPOSTOS SOBRE LUCRO
+
+5.4 DEMONSTRAÇÃO DOS CÁLCULOS REALIZADOS (VALORES REAIS DO PERÍODO)
+    ┌─────────────────────────────────────────────────────────────────────────────┐
+    │ CÁLCULO                                                                      │
+    ├─────────────────────────────────────────────────────────────────────────────┤
+    │ RECEITA LÍQUIDA                                                             │
+    │   R$ ${receitaBruta.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).padStart(15, ' ')} (Receita Bruta)                                     │
+    │ - R$ ${deducoes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).padStart(15, ' ')} (Deduções e Abatimentos)                            │
+    │ ─────────────────────────────                                               │
+    │ = R$ ${receitaLiquida.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).padStart(15, ' ')} (Receita Líquida)                                  │
+    ├─────────────────────────────────────────────────────────────────────────────┤
+    │ LUCRO BRUTO                                                                 │
+    │   R$ ${receitaLiquida.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).padStart(15, ' ')} (Receita Líquida)                                  │
+    │ - R$ ${custosVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).padStart(15, ' ')} (Custo de Vendas)                                  │
+    │ ─────────────────────────────                                               │
+    │ = R$ ${lucroBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).padStart(15, ' ')} (Lucro Bruto)                                        │
+    │   Margem Bruta: ${receitaBrutaTotal > 0 ? ((lucroBruto / receitaBrutaTotal) * 100).toFixed(2) : '0.00'}% sobre Receita Bruta                            │
+    ├─────────────────────────────────────────────────────────────────────────────┤
+    │ RESULTADO LÍQUIDO (LUCRO/PREJUÍZO OPERACIONAL)                              │
+    │   R$ ${lucroBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).padStart(15, ' ')} (Lucro Bruto)                                        │
+    │ - R$ ${despesasOperacionais.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).padStart(15, ' ')} (Despesas Operacionais)                          │
+    │ ─────────────────────────────                                               │
+    │ = R$ ${resultadoLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).padStart(15, ' ')} (Resultado Líquido)                                │
+    │   Margem Líquida: ${receitaBrutaTotal > 0 ? ((resultadoLiquido / receitaBrutaTotal) * 100).toFixed(2) : '0.00'}% sobre Receita Bruta                         │
+    └─────────────────────────────────────────────────────────────────────────────┘
+
+5.5 EXEMPLO DE CÁLCULO DE ANÁLISE VERTICAL (AV%)
+    Tomando como base a Receita Bruta de R$ ${receitaBruta.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}:
+    
+    │ COMPONENTE           │ VALOR             │ CÁLCULO AV%                  │ RESULTADO │
+    ├──────────────────────┼───────────────────┼──────────────────────────────┼───────────┤
+    │ Receita Bruta        │ R$ ${receitaBruta.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} │ ${receitaBruta.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} / ${receitaBrutaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} × 100 │   100.00% │
+    │ Deduções             │ R$ ${deducoes.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} │ ${deducoes.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} / ${receitaBrutaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} × 100 │ ${receitaBrutaTotal > 0 ? ((deducoes / receitaBrutaTotal) * 100).toFixed(2).padStart(8, ' ') : '    0.00'}% │
+    │ Receita Líquida      │ R$ ${receitaLiquida.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} │ ${receitaLiquida.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} / ${receitaBrutaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} × 100 │ ${receitaBrutaTotal > 0 ? ((receitaLiquida / receitaBrutaTotal) * 100).toFixed(2).padStart(8, ' ') : '    0.00'}% │
+    │ Custo de Vendas      │ R$ ${custosVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} │ ${custosVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} / ${receitaBrutaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} × 100 │ ${receitaBrutaTotal > 0 ? ((custosVendas / receitaBrutaTotal) * 100).toFixed(2).padStart(8, ' ') : '    0.00'}% │
+    │ Lucro Bruto          │ R$ ${lucroBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} │ ${lucroBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} / ${receitaBrutaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} × 100 │ ${receitaBrutaTotal > 0 ? ((lucroBruto / receitaBrutaTotal) * 100).toFixed(2).padStart(8, ' ') : '    0.00'}% │
+    │ Despesas Operacionais│ R$ ${despesasOperacionais.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} │ ${despesasOperacionais.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} / ${receitaBrutaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} × 100 │ ${receitaBrutaTotal > 0 ? ((despesasOperacionais / receitaBrutaTotal) * 100).toFixed(2).padStart(8, ' ') : '    0.00'}% │
+    │ Resultado Líquido    │ R$ ${resultadoLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} │ ${resultadoLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} / ${receitaBrutaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }).padStart(12, ' ')} × 100 │ ${receitaBrutaTotal > 0 ? ((resultadoLiquido / receitaBrutaTotal) * 100).toFixed(2).padStart(8, ' ') : '    0.00'}% │
+
+5.6 INDICADORES DE PERFORMANCE CALCULADOS
+    ┌─────────────────────────────────────────────────────────────────────────────┐
+    │ INDICADOR              │ FÓRMULA                          │ VALOR          │
+    ├────────────────────────┼──────────────────────────────────┼────────────────┤
+    │ Margem Bruta           │ Lucro Bruto / Receita Bruta ×100 │ ${receitaBrutaTotal > 0 ? ((lucroBruto / receitaBrutaTotal) * 100).toFixed(2).padStart(8, ' ') : '    0.00'}%       │
+    │ Margem Operacional     │ Resultado Líq / Rec. Bruta ×100  │ ${receitaBrutaTotal > 0 ? ((resultadoLiquido / receitaBrutaTotal) * 100).toFixed(2).padStart(8, ' ') : '    0.00'}%       │
+    │ % Deduções             │ Deduções / Receita Bruta × 100   │ ${receitaBrutaTotal > 0 ? ((deducoes / receitaBrutaTotal) * 100).toFixed(2).padStart(8, ' ') : '    0.00'}%       │
+    │ % Custos               │ Custo Vendas / Rec. Bruta × 100  │ ${receitaBrutaTotal > 0 ? ((custosVendas / receitaBrutaTotal) * 100).toFixed(2).padStart(8, ' ') : '    0.00'}%       │
+    │ % Despesas Operacionais│ Desp. Oper. / Rec. Bruta × 100   │ ${receitaBrutaTotal > 0 ? ((despesasOperacionais / receitaBrutaTotal) * 100).toFixed(2).padStart(8, ' ') : '    0.00'}%       │
+    │ Eficiência Operacional │ (Rec.Bruta - Custos) / Rec.Bruta │ ${receitaBrutaTotal > 0 ? (((receitaBrutaTotal - custosVendas) / receitaBrutaTotal) * 100).toFixed(2).padStart(8, ' ') : '    0.00'}%       │
+    └────────────────────────┴──────────────────────────────────┴────────────────┘
 
 6. FONTE DOS DADOS
 --------------------------------------------------------------------------------
