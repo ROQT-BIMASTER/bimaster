@@ -73,19 +73,25 @@ Classificação: Confidencial - Uso Interno
 11. QUERIES SQL DE REFERÊNCIA
 12. CONFIGURAÇÃO N8N
 13. MONITORAMENTO E LOGS
-14. PONTOS DE ATENÇÃO - GERENCIAIS E TÉCNICOS ⚠️ IMPORTANTE
-15. PERGUNTAS OBRIGATÓRIAS ANTES DE INICIAR
-16. PLANO DE AÇÃO RECOMENDADO
-17. CHECKLIST DE IMPLEMENTAÇÃO
-18. SUPORTE TÉCNICO
+14. CHECKLIST DE IMPLEMENTAÇÃO
+15. SUPORTE TÉCNICO
+
+DEFINIÇÕES IMPORTANTES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 FONTE DA VERDADE: ERP (o CRM apenas recebe dados, não envia)
+📊 VOLUME ATUAL: ~500.000 registros em Contas a Receber (dados históricos)
 
 ═══════════════════════════════════════════════════════════════════════════════
 1. VISÃO GERAL E ARQUITETURA
 ═══════════════════════════════════════════════════════════════════════════════
 
-Esta API REST foi projetada para sincronização bidirecional de dados entre 
-sistemas ERP e a plataforma BiMaster/Union CRM, com capacidade para processar
-MILHÕES de registros de forma eficiente e segura.
+Esta API REST foi projetada para sincronização UNIDIRECIONAL de dados do ERP 
+para a plataforma BiMaster/Union CRM, com capacidade para processar MILHÕES 
+de registros de forma eficiente e segura.
+
+IMPORTANTE: O ERP é a FONTE DA VERDADE. O CRM apenas recebe e armazena dados.
+Não há fluxo de dados do CRM para o ERP nesta integração.
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         ARQUITETURA DA INTEGRAÇÃO                           │
@@ -1070,151 +1076,9 @@ LOGS REGISTRADOS:
 
 RETENÇÃO DE LOGS: 90 dias
 
-═══════════════════════════════════════════════════════════════════════════════
-14. PONTOS DE ATENÇÃO - GERENCIAIS E TÉCNICOS
-═══════════════════════════════════════════════════════════════════════════════
-
-🟡 PONTO 1: SEGURANÇA (Precisa Alinhamento Final)
-────────────────────────────────────────────────────────────────────────────────
-
-⚠ API Key simples (x-api-key)
-⚠ Não há menção explícita a:
-  • Rotação automatizada de chaves
-  • Ambientes separados por chave (dev/hml/prod) com política formal
-  • Auditoria por empresa_id
-
-RECOMENDAÇÃO GERENCIAL:
-  • Criar chaves por ambiente + por cliente
-  • Logar sempre: empresa_id, sync_id, ip, endpoint
-  • Implementar rotação trimestral de API keys
-
-🟡 PONTO 2: SQL SERVER – USO DE NOLOCK
-────────────────────────────────────────────────────────────────────────────────
-
-⚠ Uso extensivo de WITH (NOLOCK) nas queries de exemplo
-
-RISCOS:
-  • Possibilidade de leitura suja (dirty reads)
-  • Dados inconsistentes em fechamento financeiro
-
-SUGESTÃO:
-  • Avaliar Snapshot Isolation no SQL Server
-  • NOLOCK apenas para cargas históricas (dados imutáveis)
-  • Incremental SEM NOLOCK para dados recentes
-
-🟡 PONTO 3: TIMEOUT E N8N CLOUD
-────────────────────────────────────────────────────────────────────────────────
-
-⚠ Alguns endpoints podem atingir:
-  • 180s timeout por requisição
-  • 25.000 registros por chunk
-
-ALERTA:
-  • N8N Cloud pode sofrer com limites de execução
-  • Edge Functions têm limite de timeout de 60s (padrão) ou até 150s com configuração especial
-
-MITIGAÇÃO:
-  • Preferir 10k–15k registros em produção inicial
-  • Subir gradualmente após benchmark real
-  • Usar N8N self-hosted para volumes acima de 500k
-
-🔴 PONTO 4: GOVERNANÇA DE DADOS (NEGÓCIO) - CRÍTICO
-────────────────────────────────────────────────────────────────────────────────
-
-⚠ NÃO está explícito:
-  • Quem é a fonte da verdade (ERP ou CRM)?
-  • Se o CRM pode sobrescrever dados do ERP
-  • Regras de conflito bidirecional
-
-⚡ Isso PRECISA ser decidido ANTES da produção!
-
-🔵 PONTO 5: MONITORAMENTO E ALERTAS (Recomendado)
-────────────────────────────────────────────────────────────────────────────────
-
-📊 Para garantir a saúde da integração em produção:
-  • Alertas de falha via webhook (Slack, Discord, Email)
-  • Dashboard de monitoramento com métricas de SLA
-  • Logs centralizados com retenção mínima de 30 dias
-  • Métricas de throughput por módulo
-
-IMPLEMENTAÇÃO SUGERIDA:
-  • Configurar webhooks no N8N para notificar falhas
-  • Usar tabela sync_control para dashboards
-  • Monitorar tempo de resposta p95 e p99
-  • Alertar quando throughput cair abaixo de 500 rec/s
-
-THROUGHPUT ESPERADO POR MÓDULO:
-┌──────────────────────┬───────────────┬────────────────────────┐
-│ Módulo               │ Throughput    │ Chunk Recomendado      │
-├──────────────────────┼───────────────┼────────────────────────┤
-│ Contas a Receber     │ ~2.000 rec/s  │ 10.000 - 25.000        │
-│ Contas a Pagar       │ ~1.200 rec/s  │ 5.000 - 15.000         │
-│ Estoque              │ ~800 rec/s    │ 5.000 - 10.000         │
-└──────────────────────┴───────────────┴────────────────────────┘
-* Valores baseados em ambiente otimizado
 
 ═══════════════════════════════════════════════════════════════════════════════
-15. PERGUNTAS OBRIGATÓRIAS ANTES DE INICIAR (Gerente de TI)
-═══════════════════════════════════════════════════════════════════════════════
-
-🏢 AMBIENTES:
-  [ ] Teremos DEV / HML / PROD separados?
-  [ ] Cada um com API Key própria?
-
-🎯 FONTE DA VERDADE:
-  [ ] ERP sempre manda?
-  [ ] CRM pode corrigir dados financeiros?
-
-⏰ JANELA DE EXECUÇÃO:
-  [ ] Qual o horário "seguro" no ERP?
-  [ ] Existe fechamento contábil diário?
-
-📊 VOLUME REAL:
-  [ ] Contas a Receber: quantos registros hoje?
-  [ ] Contas a Pagar: quantos registros hoje?
-  [ ] Estoque: movimentações/dia ou histórico completo?
-
-🖥️ INFRAESTRUTURA:
-  [ ] N8N será self-hosted ou cloud?
-  [ ] Quantos GB de RAM disponíveis para N8N?
-  [ ] Conexão de rede entre ERP e Cloud é estável?
-
-═══════════════════════════════════════════════════════════════════════════════
-16. PLANO DE AÇÃO RECOMENDADO (Próximos Passos)
-═══════════════════════════════════════════════════════════════════════════════
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ FASE 1 – PREPARAÇÃO (Obrigatória)                                           │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ [ ] Validar volumes reais de cada módulo                                    │
-│ [ ] Definir chunk inicial conservador (10k-15k)                             │
-│ [ ] Criar API Keys por ambiente (DEV/HML/PROD)                              │
-│ [ ] Validar SQL sem impacto no ERP (testar NOLOCK)                          │
-│ [ ] Definir fonte da verdade e regras de conflito                           │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ FASE 2 – HOMOLOGAÇÃO                                                        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ [ ] Teste com 10k → 100k → 1M registros                                     │
-│ [ ] Medir tempo REAL (não estimado)                                         │
-│ [ ] Simular falhas (timeout, rede, retry)                                   │
-│ [ ] Validar hash incremental funciona corretamente                          │
-│ [ ] Verificar logs de auditoria                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ FASE 3 – PRODUÇÃO CONTROLADA                                                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ [ ] Primeira execução monitorada em tempo real                              │
-│ [ ] Alertas ativos (Slack/Email para falhas)                                │
-│ [ ] Logs auditáveis com empresa_id e sync_id                                │
-│ [ ] Rollback plan documentado                                               │
-│ [ ] Comunicação com time financeiro                                         │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-═══════════════════════════════════════════════════════════════════════════════
-17. CHECKLIST DE IMPLEMENTAÇÃO
+14. CHECKLIST DE IMPLEMENTAÇÃO
 ═══════════════════════════════════════════════════════════════════════════════
 
 ANTES DE INICIAR:
@@ -1248,7 +1112,7 @@ PRODUÇÃO:
 [ ] Validar integridade dos dados
 
 ═══════════════════════════════════════════════════════════════════════════════
-18. SUPORTE TÉCNICO
+15. SUPORTE TÉCNICO
 ═══════════════════════════════════════════════════════════════════════════════
 
 INFORMAÇÕES PARA ABERTURA DE CHAMADO:
@@ -1271,9 +1135,9 @@ DOCUMENTAÇÃO ADICIONAL:
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                          FIM DO DOCUMENTO                                    ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║  Versão 3.1 - ${new Date().toLocaleDateString('pt-BR')}                                                        ║
+║  Versão 3.2 - ${new Date().toLocaleDateString('pt-BR')}                                                        ║
 ║  Este documento é confidencial e de uso exclusivo para integração.           ║
-║  Inclui: Pontos de Atenção, Perguntas Obrigatórias e Plano de Ação          ║
+║  Fonte da verdade: ERP | Volume: ~500k registros em Contas a Receber         ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 `;
 
