@@ -137,15 +137,13 @@ async function checkDatabaseHealth(supabase: any): Promise<{ healthy: boolean; r
 }
 
 // Transform ERP data format to local format
-// MAPEAMENTO ATUALIZADO baseado nos dados REAIS do webhook N8N:
-// ID Empresa, Empresa, Tipo, Nota, Seq, Código, Cliente, Emissão, Vencimento,
-// Valor_Trc, Valor em Aberto, Data Pgto, Valor Pago, Valor Juros, Valor Desconto,
-// Valor Ajustes, Tabela, Vendedor, ID Portador, Nome Portador, Conta, RowNum
+// SUPORTA DOIS FORMATOS:
+// 1. Formato ANTIGO (campos em português com espaços): ID Empresa, Valor em Aberto, etc.
+// 2. Formato NOVO (campos snake_case já formatados): erp_id, valor_aberto, empresa_id, etc.
 function transformErpData(erpRecord: any) {
   // Função auxiliar para parsear datas (formato ISO do SQL Server)
   const parseDate = (value: any): string | null => {
     if (!value) return null;
-    // Se já é uma data válida em formato ISO
     if (typeof value === 'string') {
       try {
         const date = new Date(value);
@@ -161,12 +159,56 @@ function transformErpData(erpRecord: any) {
   const parseAmount = (value: any): number => {
     if (typeof value === 'number') return value;
     if (!value) return 0;
-    // Remover formatação brasileira se houver
     const cleanValue = String(value).replace(/\./g, '').replace(',', '.');
     return parseFloat(cleanValue) || 0;
   };
 
-  // Determinar status baseado no valor em aberto vs valor pago
+  // DETECTAR FORMATO: Se tem 'erp_id', é formato novo; senão, formato antigo
+  const isNewFormat = 'erp_id' in erpRecord || 'empresa_id' in erpRecord;
+  
+  if (isNewFormat) {
+    // FORMATO NOVO - dados já vêm formatados do N8N
+    const valorAberto = parseAmount(erpRecord.valor_aberto);
+    const valorPago = parseAmount(erpRecord.valor_pago);
+    
+    let status = 'aberto';
+    if (valorAberto === 0 && valorPago > 0) {
+      status = 'pago';
+    } else if (valorPago > 0 && valorAberto > 0) {
+      status = 'parcial';
+    }
+
+    return {
+      erp_id: erpRecord.erp_id || `auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      empresa_id: erpRecord.empresa_id || 1,
+      empresa_nome: erpRecord.empresa_nome || null,
+      tipo_documento: String(erpRecord.tipo_documento || ''),
+      numero_documento: String(erpRecord.numero_documento || ''),
+      parcela: parseInt(erpRecord.parcela) || 1,
+      cliente_codigo: String(erpRecord.cliente_codigo || ''),
+      cliente_nome: erpRecord.cliente_nome || null,
+      valor_original: parseAmount(erpRecord.valor_original),
+      valor_aberto: valorAberto,
+      valor_recebido: valorPago,
+      valor_juros: parseAmount(erpRecord.valor_juros),
+      valor_desconto: parseAmount(erpRecord.valor_desconto),
+      valor_ajustes: parseAmount(erpRecord.valor_ajustes),
+      data_emissao: parseDate(erpRecord.data_emissao),
+      data_vencimento: parseDate(erpRecord.data_vencimento),
+      data_recebimento: parseDate(erpRecord.data_pagamento || erpRecord.data_recebimento),
+      status,
+      portador: erpRecord.portador || null,
+      portador_id: erpRecord.portador_id || null,
+      vendedor: erpRecord.vendedor || null,
+      vendedor_nome: erpRecord.vendedor || null,
+      tabela: erpRecord.tabela || null,
+      conta: erpRecord.conta || null,
+      sincronizado_em: new Date().toISOString(),
+      data_hash: null as string | null,
+    };
+  }
+  
+  // FORMATO ANTIGO - precisa mapear campos
   const valorAberto = parseAmount(erpRecord['Valor em Aberto']);
   const valorPago = parseAmount(erpRecord['Valor Pago']);
   const valorOriginal = parseAmount(erpRecord['Valor_Trc']);
@@ -178,12 +220,10 @@ function transformErpData(erpRecord: any) {
     status = 'parcial';
   }
 
-  // Gerar erp_id único usando campos do webhook real
   const empresaId = erpRecord['ID Empresa'] || 1;
   const tipo = erpRecord['Tipo'] || '';
   const nota = erpRecord['Nota'] || '';
   const seq = erpRecord['Seq'] || 1;
-  
   const erpId = `${empresaId}-${tipo}-${nota}-${seq}`.replace(/\s+/g, '');
 
   return {
@@ -211,7 +251,7 @@ function transformErpData(erpRecord: any) {
     conta: erpRecord['Conta'] || null,
     erp_id: erpId || `auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     sincronizado_em: new Date().toISOString(),
-    data_hash: null as string | null, // Será preenchido depois
+    data_hash: null as string | null,
   };
 }
 
