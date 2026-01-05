@@ -14,7 +14,7 @@ const MAX_BATCH_SIZE = 5000;         // Máximo para grande volume
 const UPSERT_BATCH_SIZE = 200;       // Aumentado para melhor throughput
 const MAX_RETRIES = 5;               // Mais retries para grande volume
 const RETRY_DELAY_MS = 2000;         // 2s entre retries
-const FETCH_TIMEOUT_MS = 60000;      // 60s timeout para queries grandes
+const FETCH_TIMEOUT_MS = 300000;     // 5 MINUTOS timeout para queries grandes
 const SUPABASE_BATCH_DELAY_MS = 100; // Reduzido para maior velocidade
 
 // ============= PROTEÇÕES BALANCEADAS PARA GRANDE VOLUME =============
