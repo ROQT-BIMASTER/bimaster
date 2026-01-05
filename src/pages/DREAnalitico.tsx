@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid, Eye, GripVertical, Flag, Target, Maximize2, Pencil } from "lucide-react";
+import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid, Eye, GripVertical, Flag, Target, Maximize2, Pencil, BookOpen } from "lucide-react";
 import { DREFocusMode } from "@/components/financeiro/DREFocusMode";
 import { DREFocusContent } from "@/components/financeiro/DREFocusContent";
 import { MarcarRevisaoDialog } from "@/components/financeiro/MarcarRevisaoDialog";
@@ -1420,6 +1420,293 @@ export default function DREAnalitico() {
     toast.success("Relatório DRE exportado com sucesso!");
   };
 
+  const exportarDocumentacaoTecnica = () => {
+    const dataGeracao = format(new Date(), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR });
+    const periodoFormatado = `${format(new Date(dataInicio), 'dd/MM/yyyy')} a ${format(new Date(dataFim), 'dd/MM/yyyy')}`;
+    
+    // Estatísticas do relatório
+    const totalLancamentos = lancamentos?.length || 0;
+    const totalReceitas = contasReceber?.length || 0;
+    const contasClassificadas = lancamentos?.filter(l => l.plano_contas_id)?.length || 0;
+    const contasNaoClassificadas = totalLancamentos - contasClassificadas;
+    
+    const documentacao = `
+================================================================================
+           DOCUMENTAÇÃO TÉCNICA E ARQUITETÔNICA - DRE GERENCIAL
+================================================================================
+Documento gerado automaticamente pelo Sistema de Gestão Financeira
+Data de geração: ${dataGeracao}
+Período analisado: ${periodoFormatado}
+Regime de análise: ${regimeAnalise === 'caixa' ? 'REGIME DE CAIXA' : 'REGIME DE COMPETÊNCIA'}
+================================================================================
+
+1. INTRODUÇÃO E ESCOPO
+--------------------------------------------------------------------------------
+Este documento descreve a arquitetura técnica, metodologia de cálculo e
+critérios utilizados na elaboração do Demonstrativo de Resultado do Exercício
+(DRE) Gerencial. O objetivo é fornecer transparência total sobre os processos
+de classificação e cálculo para fins de auditoria contábil.
+
+2. REGIME DE ANÁLISE
+--------------------------------------------------------------------------------
+${regimeAnalise === 'caixa' ? `
+2.1 REGIME DE CAIXA (Aplicado neste relatório)
+    - RECEITAS: Considera valor_recebido na data de recebimento efetivo
+    - DESPESAS: Considera valor_pago na data de pagamento efetivo
+    - STATUS FILTRADO: Apenas registros com status 'recebido' ou 'pago'
+    - CRITÉRIO DE DATA: data_recebimento/data_pagamento para agrupamento mensal
+` : `
+2.1 REGIME DE COMPETÊNCIA (Aplicado neste relatório)  
+    - RECEITAS: Considera valor_original na data de emissão (faturamento)
+    - DESPESAS: Considera valor_original na data de vencimento
+    - STATUS FILTRADO: Todos os registros (a pagar/receber e pagos/recebidos)
+    - CRITÉRIO DE DATA: data_emissao/data_vencimento para agrupamento mensal
+`}
+
+3. ESTRUTURA HIERÁRQUICA DO DRE
+--------------------------------------------------------------------------------
+A estrutura segue o padrão contábil brasileiro adaptado para gestão gerencial:
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CÓDIGO  │ CATEGORIA                        │ SINAL │ NATUREZA │ FONTE      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 01      │ (+) RECEITAS COM VENDA           │   +   │ Crédito  │ Contas Rec │
+│ 02.01   │ (-) DEDUÇÕES E ABATIMENTOS       │   -   │ Débito   │ Contas Pag │
+│ =       │ (=) RECEITA LÍQUIDA              │   =   │ Calculado│ Subtração  │
+│ 02.02   │ (-) CUSTO DE VENDAS              │   -   │ Débito   │ Contas Pag │
+│ =       │ (=) LUCRO BRUTO                  │   =   │ Calculado│ Subtração  │
+│ 02.03   │ (-) DESPESAS FIXAS               │   -   │ Débito   │ Contas Pag │
+│ =       │ (=) LUCRO OPERACIONAL            │   =   │ Calculado│ Subtração  │
+│ 02.90   │ (-) ABATIMENTOS IRPJ/CSLL        │   -   │ Débito   │ Contas Pag │
+│ =       │ (=) RESULTADO LÍQUIDO            │   =   │ Calculado│ Subtração  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+4. CATEGORIZAÇÃO DRE (categoria_dre)
+--------------------------------------------------------------------------------
+As contas do plano de contas são classificadas nas seguintes categorias:
+
+4.1 RECEITA BRUTA (receita_bruta)
+    - Origem: tabela contas_receber
+    - Descrição: Todas as receitas de vendas e faturamento
+    - Natureza contábil: CRÉDITO
+    - Impacto no resultado: POSITIVO
+
+4.2 DEDUÇÕES E ABATIMENTOS (deducoes)  
+    - Origem: tabela contas_pagar vinculada ao plano de contas
+    - Conteúdo: ICMS, IPI, PIS, COFINS, ISS, Comissões sobre vendas
+    - Critério de classificação automática: Nome da conta contém termos 
+      fiscais (icms, ipi, pis, cofins, iss) ou comissão
+    - Natureza contábil: DÉBITO
+    - Impacto no resultado: NEGATIVO (reduz a receita líquida)
+
+4.3 CUSTO DE VENDAS (custo_vendas)
+    - Origem: tabela contas_pagar vinculada ao plano de contas  
+    - Conteúdo: CMV, custos diretos de produção, matéria-prima
+    - Critério de classificação automática: Nome contém 'cmv', 'custo',
+      'matéria-prima', 'insumo', 'mercadoria'
+    - Natureza contábil: DÉBITO
+    - Impacto no resultado: NEGATIVO (reduz o lucro bruto)
+
+4.4 DESPESAS FIXAS (despesas_fixas)
+    - Origem: tabela contas_pagar vinculada ao plano de contas
+    - Conteúdo: Despesas administrativas, pessoal, infraestrutura
+    - Subcategorias:
+      * Despesas com pessoal: salários, encargos, benefícios
+      * Despesas administrativas: aluguel, utilidades, serviços
+      * Despesas comerciais: marketing, propaganda
+    - Critério: Todas as despesas não classificadas em outras categorias
+    - Natureza contábil: DÉBITO  
+    - Impacto no resultado: NEGATIVO (reduz lucro operacional)
+
+4.5 IMPOSTOS SOBRE O LUCRO (impostos_lucro)
+    - Origem: tabela contas_pagar vinculada ao plano de contas
+    - Conteúdo: IRPJ, CSLL, contribuições sobre o lucro
+    - Critério de classificação automática: Nome contém 'irpj', 'csll',
+      'imposto de renda', 'contribuição social'
+    - Natureza contábil: DÉBITO
+    - Impacto no resultado: NEGATIVO (reduz resultado líquido)
+
+5. METODOLOGIA DE CÁLCULO
+--------------------------------------------------------------------------------
+
+5.1 ANÁLISE VERTICAL (AV%)
+    Fórmula: AV% = (Valor da Conta / Receita Bruta Total) × 100
+    
+    Interpretação:
+    - Indica a participação percentual de cada conta em relação à receita bruta
+    - Permite comparar a estrutura de custos entre períodos diferentes
+    - Base de cálculo: Receita Bruta Total do período = R$ ${receitaBrutaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+
+5.2 ANÁLISE HORIZONTAL (AH%)
+    Fórmula: AH% = ((Valor Mês Atual - Valor Mês Anterior) / |Valor Mês Anterior|) × 100
+    
+    Interpretação:
+    - Indica a variação percentual entre o mês atual e o mês anterior
+    - Valores positivos indicam crescimento
+    - Valores negativos indicam redução
+    - Quando mês anterior = 0, considera 100% se há valor no mês atual
+
+5.3 CÁLCULO DOS SUBTOTAIS
+    
+    RECEITA LÍQUIDA = RECEITA BRUTA - DEDUÇÕES
+    LUCRO BRUTO = RECEITA LÍQUIDA - CUSTO DE VENDAS  
+    LUCRO OPERACIONAL = LUCRO BRUTO - DESPESAS FIXAS
+    RESULTADO LÍQUIDO = LUCRO OPERACIONAL - IMPOSTOS SOBRE LUCRO
+
+6. FONTE DOS DADOS
+--------------------------------------------------------------------------------
+
+6.1 TABELAS UTILIZADAS
+    ┌────────────────────────┬────────────────────────────────────────────────┐
+    │ TABELA                 │ UTILIZAÇÃO                                     │
+    ├────────────────────────┼────────────────────────────────────────────────┤
+    │ contas_receber         │ Receitas de vendas e faturamento              │
+    │ contas_pagar           │ Despesas, custos e deduções                   │
+    │ trade_chart_of_accounts│ Plano de contas com categorização DRE         │
+    │ departamentos          │ Classificação por centro de custo             │
+    └────────────────────────┴────────────────────────────────────────────────┘
+
+6.2 CAMPOS PRINCIPAIS UTILIZADOS
+
+    CONTAS A RECEBER:
+    - valor_original: Valor faturado (regime competência)
+    - valor_recebido: Valor efetivamente recebido (regime caixa)
+    - data_emissao: Data do faturamento
+    - data_recebimento: Data do recebimento efetivo
+    - cliente_codigo, cliente_nome: Identificação do cliente
+
+    CONTAS A PAGAR:
+    - valor_original: Valor da obrigação (regime competência)
+    - valor_pago: Valor efetivamente pago (regime caixa)
+    - data_vencimento: Data da obrigação
+    - data_pagamento: Data do pagamento efetivo
+    - fornecedor_codigo, fornecedor_nome: Identificação do fornecedor
+    - plano_contas_id: Vínculo com o plano de contas
+    - departamento_id: Centro de custo/departamento
+
+7. ESTATÍSTICAS DO PERÍODO
+--------------------------------------------------------------------------------
+    Período: ${periodoFormatado}
+    Empresa: ${filterEmpresa === 'todas' ? 'Todas as empresas' : filterEmpresa}
+    Departamento: ${filterDepartamento === 'todos' ? 'Todos os departamentos' : filterDepartamento}
+    
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │ INDICADOR                              │ QUANTIDADE                     │
+    ├─────────────────────────────────────────────────────────────────────────┤
+    │ Total de receitas processadas          │ ${String(totalReceitas).padStart(10, ' ')}                     │
+    │ Total de despesas processadas          │ ${String(totalLancamentos).padStart(10, ' ')}                     │
+    │ Lançamentos classificados              │ ${String(contasClassificadas).padStart(10, ' ')}                     │
+    │ Lançamentos não classificados          │ ${String(contasNaoClassificadas).padStart(10, ' ')}                     │
+    │ Taxa de classificação                  │ ${totalLancamentos > 0 ? ((contasClassificadas / totalLancamentos) * 100).toFixed(1) : '0.0'}%                    │
+    └─────────────────────────────────────────────────────────────────────────┘
+
+8. RESUMO DOS RESULTADOS
+--------------------------------------------------------------------------------
+    (+) Receita Bruta:          R$ ${receitaBruta.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+    (-) Deduções:               R$ ${deducoes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+    (=) Receita Líquida:        R$ ${receitaLiquida.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+    (-) Custo de Vendas:        R$ ${custosVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+    (=) Lucro Bruto:            R$ ${lucroBruto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+    (-) Despesas Operacionais:  R$ ${despesasOperacionais.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+    (=) Resultado Líquido:      R$ ${resultadoLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+    
+    Margem Bruta:       ${receitaBrutaTotal > 0 ? ((lucroBruto / receitaBrutaTotal) * 100).toFixed(2) : '0.00'}%
+    Margem Operacional: ${receitaBrutaTotal > 0 ? ((resultadoLiquido / receitaBrutaTotal) * 100).toFixed(2) : '0.00'}%
+
+9. CRITÉRIOS DE CLASSIFICAÇÃO AUTOMÁTICA
+--------------------------------------------------------------------------------
+O sistema utiliza os seguintes critérios para classificação automática quando
+a categoria_dre não está definida manualmente no plano de contas:
+
+9.1 REGRAS POR PALAVRAS-CHAVE NO NOME DA CONTA:
+
+    DEDUÇÕES (Impostos sobre vendas e comissões):
+    - icms, ipi, pis, cofins, iss, comissão, comissões, abatimento
+
+    CUSTO DE VENDAS:
+    - cmv, custo das mercadorias, custo de vendas, matéria-prima,
+      insumo, mercadoria vendida, custo direto
+
+    IMPOSTOS SOBRE LUCRO:
+    - irpj, csll, imposto de renda pessoa jurídica, contribuição social,
+      provisão para imposto
+
+    DESPESAS FIXAS (padrão):
+    - Todas as demais contas de despesa que não se enquadram acima
+
+9.2 HIERARQUIA DE CLASSIFICAÇÃO:
+    1º - categoria_dre manual definida no plano de contas (prioridade máxima)
+    2º - Classificação automática por palavras-chave
+    3º - Fallback para despesas_fixas
+
+10. CONSIDERAÇÕES TÉCNICAS
+--------------------------------------------------------------------------------
+10.1 PRECISÃO NUMÉRICA
+    - Todos os valores monetários são armazenados com precisão decimal
+    - Cálculos percentuais utilizam até 4 casas decimais internamente
+    - Apresentação utiliza 2 casas decimais
+
+10.2 TRATAMENTO DE VALORES NULOS
+    - Valores nulos são tratados como zero (0) para cálculos
+    - Campos de texto nulos são apresentados como "N/A" ou "Não identificado"
+
+10.3 ORDENAÇÃO
+    - Hierarquia por código do plano de contas
+    - Dentro de cada grupo: por valor (maior para menor)
+    - Lançamentos individuais: por data de vencimento
+
+10.4 LIMITES DE CONSULTA
+    - Máximo de 50.000 registros por tabela por consulta
+    - Otimização através de índices em campos de data e foreign keys
+
+11. GLOSSÁRIO
+--------------------------------------------------------------------------------
+    AV%    - Análise Vertical: participação % sobre receita bruta
+    AH%    - Análise Horizontal: variação % entre períodos
+    CMV    - Custo das Mercadorias Vendidas
+    CSLL   - Contribuição Social sobre o Lucro Líquido
+    DRE    - Demonstrativo de Resultado do Exercício
+    ICMS   - Imposto sobre Circulação de Mercadorias e Serviços
+    IPI    - Imposto sobre Produtos Industrializados
+    IRPJ   - Imposto de Renda Pessoa Jurídica
+    ISS    - Imposto Sobre Serviços
+    PIS    - Programa de Integração Social
+    COFINS - Contribuição para Financiamento da Seguridade Social
+
+12. AUDITORIA E RASTREABILIDADE
+--------------------------------------------------------------------------------
+Este relatório foi gerado com base nos dados disponíveis no sistema na data
+de ${dataGeracao}. Todas as transações individuais podem ser
+rastreadas através dos IDs únicos (UUID) presentes em cada lançamento.
+
+Para verificação detalhada de qualquer valor, consulte:
+- Relatório de Contas a Pagar filtrado pelo período
+- Relatório de Contas a Receber filtrado pelo período  
+- Plano de Contas com classificação DRE
+
+================================================================================
+                         FIM DA DOCUMENTAÇÃO TÉCNICA
+================================================================================
+Documento gerado automaticamente - Sistema de Gestão Financeira
+Versão do motor de cálculo: 2.0
+Data: ${dataGeracao}
+================================================================================
+`;
+
+    // Criar e baixar arquivo TXT
+    const blob = new Blob([documentacao], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `DRE_Documentacao_Tecnica_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success("Documentação técnica exportada com sucesso!");
+  };
+
   // Resumo
   const receitaBruta = hierarquia.find(h => h.id === 'receita-bruta')?.valor || 0;
   const deducoes = hierarquia.find(h => h.id === 'deducoes')?.valor || 0;
@@ -1438,10 +1725,16 @@ export default function DREAnalitico() {
             <h1 className="text-3xl font-bold tracking-tight">DRE Gerencial</h1>
             <p className="text-muted-foreground">Demonstrativo de Resultado do Exercício com AV e AH</p>
           </div>
-          <Button onClick={exportarExcel} className="gap-2">
-            <FileDown className="h-4 w-4" />
-            Exportar Excel
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={exportarDocumentacaoTecnica} variant="outline" className="gap-2">
+              <BookOpen className="h-4 w-4" />
+              Doc. Técnica
+            </Button>
+            <Button onClick={exportarExcel} className="gap-2">
+              <FileDown className="h-4 w-4" />
+              Exportar Excel
+            </Button>
+          </div>
         </div>
 
         {/* Filtros */}
