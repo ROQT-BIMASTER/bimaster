@@ -41,52 +41,123 @@ export function DocumentacaoIntegracaoERP() {
     }
   };
 
-  const mensagemTI = `
+const mensagemTI = `
 ================================================================================
-REQUISITOS TÉCNICOS PARA INTEGRAÇÃO API - SISTEMA LOVABLE
+DOCUMENTAÇÃO TÉCNICA - API REST PARA INTEGRAÇÃO ERP
+================================================================================
+Versão: 2.0
+Última atualização: ${new Date().toLocaleDateString('pt-BR')}
+
+================================================================================
+1. VISÃO GERAL
 ================================================================================
 
-Prezada equipe de TI,
+Este documento descreve a API REST para sincronização bidirecional de dados 
+entre o sistema ERP e nossa plataforma de gestão financeira.
 
-Segue a documentação técnica para integração entre o ERP e nosso sistema de gestão.
+Protocolo: HTTP REST (HTTPS obrigatório em produção)
+Autenticação: API Key via header
+Formato: JSON
 
---------------------------------------------------------------------------------
-1. AUTENTICAÇÃO
---------------------------------------------------------------------------------
+================================================================================
+2. AUTENTICAÇÃO
+================================================================================
 
-Todas as requisições devem incluir o header:
-- x-api-key: [será fornecida após configuração]
+Todas as requisições DEVEM incluir os headers:
 
---------------------------------------------------------------------------------
-2. CONTAS A RECEBER
---------------------------------------------------------------------------------
+| Header          | Valor                    | Obrigatório |
+|-----------------|--------------------------|-------------|
+| x-api-key       | [chave fornecida]        | Sim         |
+| Content-Type    | application/json         | Sim         |
 
-Base URL: ${SUPABASE_URL}/n8n-contas-receber
+Exemplo:
+curl -X POST "${SUPABASE_URL}/n8n-contas-receber/sync-start" \\
+  -H "x-api-key: sua_api_key_aqui" \\
+  -H "Content-Type: application/json"
 
-ENDPOINTS DISPONÍVEIS:
+================================================================================
+3. BASE URL
+================================================================================
 
-a) POST /sync-page - Sincronização Paginada
-   Headers:
-   - x-api-key: [N8N_API_KEY]
-   - Content-Type: application/json
-   
-   Body:
-   {
-     "sync_id": "uuid-da-sincronização",
-     "page": 1,
-     "contas": [...]
-   }
+Produção: ${SUPABASE_URL}
 
-b) GET /status - Verificar Status
-   Query params: nenhum
+================================================================================
+4. ENDPOINTS - CONTAS A RECEBER
+================================================================================
 
-c) POST /sync-start - Iniciar Sincronização
-   Body: { "total_expected": 1000 }
+Base: ${SUPABASE_URL}/n8n-contas-receber
 
-d) POST /sync-finish - Finalizar Sincronização
-   Body: { "sync_id": "uuid" }
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4.1 GET /status - Verificar conectividade                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Resposta: { "status": "ok", "timestamp": "...", "total_registros": 12345 }  │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-PAYLOAD ESPERADO (cada registro):
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4.2 GET /health - Saúde do sistema                                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Resposta: { "database": true, "sync_active": false, "last_sync": "..." }    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4.3 POST /sync-start - Iniciar sessão de sincronização                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Body: {                                                                      │
+│   "batchSize": 5000,        // Tamanho do lote (opcional, default: 5000)    │
+│   "anoMinimo": 2023,        // Ano mínimo para filtrar dados (opcional)     │
+│   "scope": "incremental"    // "full" ou "incremental"                      │
+│ }                                                                            │
+│                                                                              │
+│ IMPORTANTE: Apenas 1 sincronização ativa por vez!                           │
+│ Resposta: { "sync_id": "uuid", "started_at": "..." }                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4.4 POST /sync-page - Enviar página de registros                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Body: {                                                                      │
+│   "sync_id": "uuid-da-sessão",                                              │
+│   "page": 1,                                                                 │
+│   "contas": [ ... array de registros ... ]                                  │
+│ }                                                                            │
+│ Resposta: { "processed": 500, "errors": 0, "page": 1 }                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4.5 POST /sync-finish - Finalizar sincronização                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Body: { "sync_id": "uuid-da-sessão" }                                       │
+│ Resposta: { "status": "completed", "total_processed": 5000, "duration": 45 }│
+└─────────────────────────────────────────────────────────────────────────────┘
+
+ENDPOINT ALTERNATIVO PARA CARGA MASSIVA:
+────────────────────────────────────────
+
+${SUPABASE_URL}/contas-receber-api/bulk-sync
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ POST /bulk-sync - Carga massiva (até 100.000 registros)                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Body: {                                                                      │
+│   "contas": [ ... array de registros ... ],                                 │
+│   "clearExisting": false   // Limpar registros existentes antes?            │
+│ }                                                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+${SUPABASE_URL}/contas-receber-api/sync-chunk
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ POST /sync-chunk - RECOMENDADO PARA N8N                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Processa chunks de 5.000 a 10.000 registros com tratamento de erros.        │
+│ Body: { "contas": [ ... ] }                                                 │
+│ Resposta: { "inserted": 4500, "updated": 450, "errors": 50 }                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PAYLOAD ESPERADO - CONTAS A RECEBER:
+────────────────────────────────────
+
+Formato 1 (Nomes amigáveis):
 {
   "ID Empresa": 1,
   "Empresa": "NOME EMPRESA",
@@ -113,30 +184,55 @@ PAYLOAD ESPERADO (cada registro):
   "Tabela": "T01"
 }
 
---------------------------------------------------------------------------------
-3. CONTAS A PAGAR
---------------------------------------------------------------------------------
+Formato 2 (JSON alternativo):
+{
+  "empresa_id": 1,
+  "empresa_nome": "NOME EMPRESA",
+  "tipo_documento": "DUP",
+  "numero_documento": "NF-001",
+  "conta": "123456",
+  "parcela": 1,
+  "cliente_codigo": "C001",
+  "cliente_nome": "NOME CLIENTE",
+  "portador_id": "001",
+  "portador_nome": "BANCO X",
+  "data_emissao": "2025-01-01",
+  "data_vencimento": "2025-02-01",
+  "data_recebimento": null,
+  "valor_original": 1500.00,
+  "valor_desconto": 0.00,
+  "valor_juros": 0.00,
+  "valor_ajustes": 0.00,
+  "valor_recebido": 0.00,
+  "valor_aberto": 1500.00,
+  "status": "aberto",
+  "vendedor_codigo": "V001",
+  "vendedor_nome": "NOME VENDEDOR",
+  "tabela_preco": "T01"
+}
 
-Base URL: ${SUPABASE_URL}/contas-pagar-api
+================================================================================
+5. ENDPOINTS - CONTAS A PAGAR
+================================================================================
 
-ENDPOINTS DISPONÍVEIS:
+Base: ${SUPABASE_URL}/contas-pagar-api
 
-a) POST /sync - Sincronização
-   Headers:
-   - x-api-key: [N8N_API_KEY]
-   - Content-Type: application/json
-   
-   Body:
-   {
-     "contas": [...]
-   }
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ POST /sync - Sincronização de contas a pagar                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Body: { "contas": [ ... array de registros ... ] }                          │
+│ Resposta: { "inserted": 100, "updated": 50, "total": 150 }                  │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-b) GET /contas-pagar-api - Consultar Contas
-   Query params: limit (opcional)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ GET / - Consultar contas a pagar                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Query params: ?limit=100&status=aberto                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-c) GET /stats - Estatísticas de Sincronização
+PAYLOAD ESPERADO - CONTAS A PAGAR:
+──────────────────────────────────
 
-PAYLOAD ESPERADO (cada registro):
 {
   "ID Empresa": 1,
   "Empresa": "NOME EMPRESA",
@@ -159,93 +255,187 @@ PAYLOAD ESPERADO (cada registro):
   "Status": "aberto"
 }
 
---------------------------------------------------------------------------------
-4. ESTOQUE
---------------------------------------------------------------------------------
+================================================================================
+6. ENDPOINTS - ESTOQUE
+================================================================================
 
-Base URL: ${SUPABASE_URL}/estoque-api
+Base: ${SUPABASE_URL}/estoque-n8n-sync
 
-ENDPOINTS DISPONÍVEIS:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ POST / - Sincronização completa de estoque                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Body: {                                                                      │
+│   "distribuidoras": [ ... ],    // Lista de distribuidoras                  │
+│   "produtos_master": [ ... ],   // Produtos master                          │
+│   "vinculacoes": [ ... ],       // Vínculos produto-distribuidora           │
+│   "movimentacoes": [ ... ]      // Movimentações de estoque                 │
+│ }                                                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-a) GET ?tipo=por-distribuidora&distribuidora_id=XXX
-   Retorna estoque por distribuidora
+Consultas: ${SUPABASE_URL}/estoque-api
 
-b) GET ?tipo=por-produto-master&produto_master_id=XXX
-   Retorna estoque por produto master
+- GET ?tipo=por-distribuidora&distribuidora_id=XXX
+- GET ?tipo=por-produto-master&produto_master_id=XXX
+- GET ?tipo=consolidado&categoria=XXX
+- GET ?tipo=movimentacoes&estoque_id=XXX&data_inicio=YYYY-MM-DD&data_fim=YYYY-MM-DD
+- GET ?tipo=sync-logs&status=XXX
 
-c) GET ?tipo=consolidado&categoria=XXX
-   Retorna estoque consolidado (categoria opcional)
+================================================================================
+7. TRATAMENTO DE ERROS
+================================================================================
 
-d) GET ?tipo=movimentacoes&estoque_id=XXX&data_inicio=YYYY-MM-DD&data_fim=YYYY-MM-DD
-   Retorna movimentações de estoque
+Códigos HTTP:
 
-e) GET ?tipo=sync-logs&status=XXX
-   Retorna logs de sincronização
+| Código | Significado                    | Ação Recomendada                |
+|--------|--------------------------------|---------------------------------|
+| 200    | Sucesso                        | Prosseguir normalmente          |
+| 207    | Sucesso parcial (alguns erros) | Verificar campo "errors"        |
+| 400    | Requisição inválida            | Verificar payload/parâmetros    |
+| 401    | Não autorizado                 | Verificar x-api-key             |
+| 413    | Payload muito grande           | Reduzir tamanho do chunk        |
+| 429    | Rate limit excedido            | Aguardar e retry com backoff    |
+| 500    | Erro interno do servidor       | Retry com backoff exponencial   |
 
---------------------------------------------------------------------------------
-5. REQUISITOS TÉCNICOS
---------------------------------------------------------------------------------
+Estrutura de erro:
+{
+  "error": "Descrição do erro",
+  "code": "VALIDATION_ERROR",
+  "details": { ... }
+}
 
-CONFIGURAÇÕES RECOMENDADAS PARA N8N:
+Lógica de retry recomendada:
+- 1ª tentativa: aguardar 1 segundo
+- 2ª tentativa: aguardar 2 segundos
+- 3ª tentativa: aguardar 4 segundos
+- Máximo: 5 tentativas
+
+================================================================================
+8. RECOMENDAÇÕES DE PERFORMANCE
+================================================================================
+
+TAMANHO DE CHUNK RECOMENDADO:
+┌──────────────────────┬───────────────────┐
+│ Cenário              │ Chunk Size        │
+├──────────────────────┼───────────────────┤
+│ Sincronização diária │ 5.000 - 10.000    │
+│ Carga inicial        │ 10.000 - 20.000   │
+│ Rede lenta           │ 2.000 - 5.000     │
+└──────────────────────┴───────────────────┘
+
+INTERVALO ENTRE CHUNKS: 3.000 ms (3 segundos)
+
+SINCRONIZAÇÕES SIMULTÂNEAS: Máximo 1 por endpoint
+
+TIMEOUT RECOMENDADO: 60.000 ms (1 minuto)
+
+DICAS DE OTIMIZAÇÃO:
+- Use filtros de ano para reduzir volume de dados
+- Priorize horários de menor carga (noite/madrugada)
+- Implemente retry com backoff exponencial
+- Monitore os logs de sincronização
+
+================================================================================
+9. QUERIES SQL SUGERIDAS
+================================================================================
+
+-- CONTAS A RECEBER (com paginação)
+SELECT TOP (@pageSize)
+  emp.ID_EMPRESA AS [ID Empresa],
+  emp.NOME AS [Empresa],
+  cr.TIPO AS [Tipo],
+  cr.CONTA AS [Conta],
+  cr.PARCELA AS [Parcela],
+  cr.DOCUMENTO AS [Documento],
+  cli.CODIGO AS [Cliente Codigo],
+  cli.NOME AS [Cliente],
+  port.ID AS [Portador ID],
+  port.NOME AS [Portador],
+  CONVERT(VARCHAR, cr.DATA_EMISSAO, 23) AS [Data Emissão],
+  CONVERT(VARCHAR, cr.DATA_VENCIMENTO, 23) AS [Data Vencimento],
+  CONVERT(VARCHAR, cr.DATA_RECEBIMENTO, 23) AS [Data Recebimento],
+  cr.VALOR_ORIGINAL AS [Valor Original],
+  ISNULL(cr.VALOR_DESCONTO, 0) AS [Valor Desconto],
+  ISNULL(cr.VALOR_JUROS, 0) AS [Valor Juros],
+  ISNULL(cr.VALOR_AJUSTES, 0) AS [Valor Ajustes],
+  ISNULL(cr.VALOR_RECEBIDO, 0) AS [Valor Recebido],
+  cr.VALOR_ABERTO AS [Valor Aberto],
+  CASE 
+    WHEN cr.DATA_RECEBIMENTO IS NOT NULL THEN 'pago'
+    WHEN cr.DATA_VENCIMENTO < GETDATE() THEN 'vencido'
+    ELSE 'aberto'
+  END AS [Status],
+  vend.CODIGO AS [Vendedor Codigo],
+  vend.NOME AS [Vendedor],
+  tab.NOME AS [Tabela]
+FROM CONTAS_RECEBER cr
+  INNER JOIN EMPRESAS emp ON cr.EMPRESA_ID = emp.ID
+  INNER JOIN CLIENTES cli ON cr.CLIENTE_ID = cli.ID
+  LEFT JOIN PORTADORES port ON cr.PORTADOR_ID = port.ID
+  LEFT JOIN VENDEDORES vend ON cr.VENDEDOR_ID = vend.ID
+  LEFT JOIN TABELAS_PRECO tab ON cr.TABELA_ID = tab.ID
+WHERE cr.DATA_EMISSAO >= @dataInicio
+ORDER BY cr.CONTA, cr.PARCELA
+OFFSET @offset ROWS;
+
+-- CONTAS A PAGAR (com paginação)
+SELECT TOP (@pageSize)
+  emp.ID_EMPRESA AS [ID Empresa],
+  emp.NOME AS [Empresa],
+  cp.TIPO_DOCUMENTO AS [Tipo Documento],
+  cp.CONTA AS [Conta],
+  cp.PARCELA AS [Parcela],
+  cp.DOCUMENTO AS [Documento],
+  forn.CODIGO AS [Fornecedor Codigo],
+  forn.NOME AS [Fornecedor],
+  port.NOME AS [Portador],
+  CONVERT(VARCHAR, cp.DATA_EMISSAO, 23) AS [Data Emissão],
+  CONVERT(VARCHAR, cp.DATA_VENCIMENTO, 23) AS [Data Vencimento],
+  CONVERT(VARCHAR, cp.DATA_PAGAMENTO, 23) AS [Data Pagamento],
+  cp.VALOR_ORIGINAL AS [Valor Original],
+  ISNULL(cp.VALOR_DESCONTO, 0) AS [Valor Desconto],
+  ISNULL(cp.VALOR_JUROS, 0) AS [Valor Juros],
+  ISNULL(cp.VALOR_AJUSTES, 0) AS [Valor Ajustes],
+  ISNULL(cp.VALOR_PAGO, 0) AS [Valor Pago],
+  cp.VALOR_ABERTO AS [Valor Aberto],
+  CASE 
+    WHEN cp.DATA_PAGAMENTO IS NOT NULL THEN 'pago'
+    WHEN cp.DATA_VENCIMENTO < GETDATE() THEN 'vencido'
+    ELSE 'aberto'
+  END AS [Status]
+FROM CONTAS_PAGAR cp
+  INNER JOIN EMPRESAS emp ON cp.EMPRESA_ID = emp.ID
+  INNER JOIN FORNECEDORES forn ON cp.FORNECEDOR_ID = forn.ID
+  LEFT JOIN PORTADORES port ON cp.PORTADOR_ID = port.ID
+WHERE cp.DATA_EMISSAO >= @dataInicio
+ORDER BY cp.CONTA, cp.PARCELA
+OFFSET @offset ROWS;
+
+================================================================================
+10. CONFIGURAÇÃO N8N
+================================================================================
+
+Node HTTP Request:
+- Timeout: 60000ms
+- Retry on Fail: true
+- Max Retries: 3
+- Retry Delay: 3000ms
 
 Node SQL Server:
 - Connection Timeout: 60000ms
 - Request Timeout: 120000ms
 
-Node HTTP Request:
-- Timeout: 300000ms (5 minutos)
-- Retry on Fail: true
-- Max Retries: 3
+================================================================================
+11. SEGURANÇA
+================================================================================
 
-PAGINAÇÃO RECOMENDADA:
-- Chunk size: 500-1000 registros por requisição
-- Intervalo entre chunks: 2-5 segundos
+- API Key obrigatória em todas as requisições
+- HTTPS obrigatório em produção
+- IP Whitelist recomendado (solicitar IPs para liberação)
+- Logs de auditoria mantidos por 90 dias
 
-QUERIES SQL SUGERIDAS:
-
--- Contas a Receber (com paginação)
-SELECT TOP (@pageSize)
-  [ID Empresa], [Empresa], [Tipo], [Conta], [Parcela],
-  [Documento], [Cliente Codigo], [Cliente], [Portador ID],
-  [Portador], [Data Emissão], [Data Vencimento], [Data Recebimento],
-  [Valor Original], [Valor Desconto], [Valor Juros], [Valor Ajustes],
-  [Valor Recebido], [Valor Aberto], [Status], [Vendedor Codigo],
-  [Vendedor], [Tabela]
-FROM vw_contas_receber
-WHERE [Data Emissão] >= @dataInicio
-ORDER BY [Conta], [Parcela]
-OFFSET @offset ROWS
-
--- Contas a Pagar (com paginação)
-SELECT TOP (@pageSize)
-  [ID Empresa], [Empresa], [Tipo Documento], [Conta], [Parcela],
-  [Documento], [Fornecedor Codigo], [Fornecedor], [Portador],
-  [Data Emissão], [Data Vencimento], [Data Pagamento],
-  [Valor Original], [Valor Desconto], [Valor Juros], [Valor Ajustes],
-  [Valor Pago], [Valor Aberto], [Status]
-FROM vw_contas_pagar
-WHERE [Data Emissão] >= @dataInicio
-ORDER BY [Conta], [Parcela]
-OFFSET @offset ROWS
-
---------------------------------------------------------------------------------
-6. CONFIGURAÇÃO FUTURA - API DIRETA
---------------------------------------------------------------------------------
-
-Para conexão direta sem N8N, precisaremos:
-
-- Host do SQL Server: _______________
-- Porta: _______________ (padrão: 1433)
-- Nome do Database: _______________
-- Usuário de leitura: _______________
-- Senha: _______________
-- IP do servidor para whitelist: _______________
-
-Estes dados serão armazenados de forma segura como secrets.
-
---------------------------------------------------------------------------------
-7. INFORMAÇÕES NECESSÁRIAS
---------------------------------------------------------------------------------
+================================================================================
+12. INFORMAÇÕES NECESSÁRIAS DO ERP
+================================================================================
 
 Por favor, nos forneça:
 
@@ -257,11 +447,11 @@ Por favor, nos forneça:
 [ ] Horários recomendados para sincronização (menor carga)
 [ ] Contato técnico para suporte
 
---------------------------------------------------------------------------------
-8. CONTATOS
---------------------------------------------------------------------------------
+================================================================================
+13. CONTATOS
+================================================================================
 
-Em caso de dúvidas técnicas sobre a integração, entrar em contato com a equipe responsável pelo sistema Lovable.
+Em caso de dúvidas técnicas, entrar em contato com a equipe responsável.
 
 ================================================================================
 `;
@@ -493,20 +683,48 @@ OFFSET @offset ROWS;`;
                   <AccordionTrigger>Endpoints Disponíveis</AccordionTrigger>
                   <AccordionContent className="space-y-4">
                     <div className="space-y-3">
+                      <Alert className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                          <strong>Recomendado para N8N:</strong> Use <code>/sync-chunk</code> para processamento otimizado
+                        </AlertDescription>
+                      </Alert>
+
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge>POST</Badge>
+                            <Badge variant="outline" className="text-xs">Recomendado</Badge>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(`${SUPABASE_URL}/contas-receber-api/sync-chunk`, "cr-chunk")}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <code className="text-sm break-all">{SUPABASE_URL}/contas-receber-api/sync-chunk</code>
+                        <p className="text-xs text-muted-foreground mt-1">Sincronização em chunks (5.000-10.000 registros)</p>
+                      </div>
+
                       <div className="p-3 bg-muted rounded-lg">
                         <div className="flex items-center justify-between mb-2">
                           <Badge>POST</Badge>
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => copyToClipboard(`${SUPABASE_URL}/n8n-contas-receber/sync-page`, "cr-sync")}
+                            onClick={() => copyToClipboard(`${SUPABASE_URL}/contas-receber-api/bulk-sync`, "cr-bulk")}
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
-                        <code className="text-sm break-all">{SUPABASE_URL}/n8n-contas-receber/sync-page</code>
-                        <p className="text-xs text-muted-foreground mt-1">Sincronização paginada de contas</p>
+                        <code className="text-sm break-all">{SUPABASE_URL}/contas-receber-api/bulk-sync</code>
+                        <p className="text-xs text-muted-foreground mt-1">Carga massiva (até 100.000 registros)</p>
                       </div>
+
+                      <Separator className="my-2" />
+                      <p className="text-xs text-muted-foreground font-medium">Endpoints de Sessão:</p>
 
                       <div className="p-3 bg-muted rounded-lg">
                         <div className="flex items-center justify-between mb-2">
@@ -520,7 +738,22 @@ OFFSET @offset ROWS;`;
                           </Button>
                         </div>
                         <code className="text-sm break-all">{SUPABASE_URL}/n8n-contas-receber/status</code>
-                        <p className="text-xs text-muted-foreground mt-1">Verificar status da API</p>
+                        <p className="text-xs text-muted-foreground mt-1">Verificar status e conectividade</p>
+                      </div>
+
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge variant="secondary">GET</Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(`${SUPABASE_URL}/n8n-contas-receber/health`, "cr-health")}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <code className="text-sm break-all">{SUPABASE_URL}/n8n-contas-receber/health</code>
+                        <p className="text-xs text-muted-foreground mt-1">Saúde do sistema e configurações ativas</p>
                       </div>
 
                       <div className="p-3 bg-muted rounded-lg">
@@ -535,7 +768,22 @@ OFFSET @offset ROWS;`;
                           </Button>
                         </div>
                         <code className="text-sm break-all">{SUPABASE_URL}/n8n-contas-receber/sync-start</code>
-                        <p className="text-xs text-muted-foreground mt-1">Iniciar processo de sincronização</p>
+                        <p className="text-xs text-muted-foreground mt-1">Iniciar sessão de sincronização</p>
+                      </div>
+
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge>POST</Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(`${SUPABASE_URL}/n8n-contas-receber/sync-page`, "cr-sync")}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <code className="text-sm break-all">{SUPABASE_URL}/n8n-contas-receber/sync-page</code>
+                        <p className="text-xs text-muted-foreground mt-1">Enviar página de registros</p>
                       </div>
 
                       <div className="p-3 bg-muted rounded-lg">
@@ -766,8 +1014,58 @@ OFFSET @offset ROWS;`;
             </CardHeader>
             <CardContent>
               <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="endpoints">
-                  <AccordionTrigger>Endpoints Disponíveis</AccordionTrigger>
+                <AccordionItem value="endpoints-sync">
+                  <AccordionTrigger>Sincronização (N8N)</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="space-y-3">
+                      <Alert className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                          <strong>Endpoint principal para N8N:</strong> Sincroniza distribuidoras, produtos, vínculos e movimentações
+                        </AlertDescription>
+                      </Alert>
+
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge>POST</Badge>
+                            <Badge variant="outline" className="text-xs">Sincronização</Badge>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(`${SUPABASE_URL}/estoque-n8n-sync`, "est-sync")}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <code className="text-sm break-all">{SUPABASE_URL}/estoque-n8n-sync</code>
+                        <p className="text-xs text-muted-foreground mt-1">Sincronização completa de estoque</p>
+                      </div>
+
+                      <div className="p-4 border rounded-lg bg-muted/50">
+                        <p className="text-xs font-medium mb-2">Payload de Sincronização:</p>
+                        <pre className="text-xs overflow-x-auto">{`{
+  "distribuidoras": [
+    { "cnpj": "12345678901234", "nome": "Distribuidora X", "cidade": "São Paulo", "uf": "SP" }
+  ],
+  "produtos_master": [
+    { "sku_master": "PROD001", "nome": "Produto Exemplo", "categoria": "Categoria A" }
+  ],
+  "vinculacoes": [
+    { "distribuidora_cnpj": "12345678901234", "sku_master": "PROD001", "sku_distribuidora": "SKU-001" }
+  ],
+  "movimentacoes": [
+    { "estoque_id": "uuid", "tipo_movimento": "entrada", "quantidade": 100 }
+  ]
+}`}</pre>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="endpoints-consulta">
+                  <AccordionTrigger>Consultas (API)</AccordionTrigger>
                   <AccordionContent className="space-y-4">
                     <div className="space-y-3">
                       <div className="p-3 bg-muted rounded-lg">
