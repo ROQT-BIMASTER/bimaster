@@ -51,11 +51,11 @@ const accountTypeColors: Record<string, string> = {
 
 const categoriaDreLabels: Record<string, string> = {
   receita_bruta: "Receita Bruta",
-  deducoes: "Deduções",
-  custo_vendas: "Custo Vendas",
-  despesas_variaveis: "Desp. Variáveis",
-  despesas_fixas: "Desp. Fixas",
-  impostos_lucro: "Impostos",
+  deducoes: "Deduções e Abatimentos",
+  custo_vendas: "Custo de Vendas",
+  despesas_variaveis: "Despesas Variáveis",
+  despesas_fixas: "Despesas Fixas",
+  impostos_lucro: "Impostos s/ Lucro",
 };
 
 const categoriaDreColors: Record<string, string> = {
