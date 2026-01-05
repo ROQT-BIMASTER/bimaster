@@ -475,7 +475,7 @@ export function ReclassificarContaDREDialog({
             </>
           )}
 
-          {/* Para fornecedor/departamento: mostra todas as contas agrupadas por categoria */}
+          {/* Para fornecedor/departamento: mostra todas as contas */}
           {(contaOrigem.tipoDre === 'fornecedor' || contaOrigem.tipoDre === 'departamento') && (
             <div className="space-y-2">
               <Label>Mover lançamentos para a conta:</Label>
@@ -488,31 +488,33 @@ export function ReclassificarContaDREDialog({
                     <div className="p-2 text-center text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin mx-auto" />
                     </div>
+                  ) : contasDisponiveis.length === 0 ? (
+                    <div className="p-2 text-center text-muted-foreground text-sm">
+                      Nenhuma conta disponível
+                    </div>
                   ) : (
                     <>
-                      {/* Show all accounts grouped by category */}
-                      {Object.entries(contasAgrupadas)
-                        .filter(([cat]) => cat !== 'sem_categoria')
-                        .map(([categoria, contas]) => (
-                          <SelectGroup key={categoria}>
-                            <SelectLabel className="text-xs font-semibold text-muted-foreground py-2 flex items-center gap-2">
-                              <div className={`w-2 h-2 rounded-full ${CATEGORIA_COLORS[categoria]?.split(' ')[0] || 'bg-muted'}`} />
-                              {getCategoriaLabel(categoria)}
-                            </SelectLabel>
-                            {contas.map((conta) => (
-                              <SelectItem 
-                                key={conta.id} 
-                                value={conta.id}
-                              >
-                                <div className="flex items-center gap-1">
-                                  <span className="font-mono text-xs mr-2">{conta.code}</span>
-                                  {conta.is_group && <span className="text-muted-foreground text-xs">[Grupo]</span>}
-                                  <span className={conta.is_group ? 'font-medium' : ''}>{conta.name}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        ))}
+                      {/* Show accounts grouped by category */}
+                      {Object.entries(contasAgrupadas).map(([categoria, contas]) => (
+                        <SelectGroup key={categoria}>
+                          <SelectLabel className="text-xs font-semibold text-muted-foreground py-2 flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${CATEGORIA_COLORS[categoria]?.split(' ')[0] || 'bg-muted'}`} />
+                            {categoria === 'sem_categoria' ? 'Sem Categoria' : getCategoriaLabel(categoria)}
+                          </SelectLabel>
+                          {contas.map((conta) => (
+                            <SelectItem 
+                              key={conta.id} 
+                              value={conta.id}
+                            >
+                              <div className="flex items-center gap-1">
+                                <span className="font-mono text-xs mr-2">{conta.code}</span>
+                                {conta.is_group && <span className="text-muted-foreground text-xs">[Grupo]</span>}
+                                <span className={conta.is_group ? 'font-medium' : ''}>{conta.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
                     </>
                   )}
                 </SelectContent>
