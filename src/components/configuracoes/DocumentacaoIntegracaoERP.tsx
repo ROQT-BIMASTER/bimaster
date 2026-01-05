@@ -1111,7 +1111,7 @@ SUGESTÃO:
 
 ALERTA:
   • N8N Cloud pode sofrer com limites de execução
-  • Edge Functions têm limites de timeout (300s máx)
+  • Edge Functions têm limite de timeout de 60s (padrão) ou até 150s com configuração especial
 
 MITIGAÇÃO:
   • Preferir 10k–15k registros em produção inicial
@@ -1127,6 +1127,31 @@ MITIGAÇÃO:
   • Regras de conflito bidirecional
 
 ⚡ Isso PRECISA ser decidido ANTES da produção!
+
+🔵 PONTO 5: MONITORAMENTO E ALERTAS (Recomendado)
+────────────────────────────────────────────────────────────────────────────────
+
+📊 Para garantir a saúde da integração em produção:
+  • Alertas de falha via webhook (Slack, Discord, Email)
+  • Dashboard de monitoramento com métricas de SLA
+  • Logs centralizados com retenção mínima de 30 dias
+  • Métricas de throughput por módulo
+
+IMPLEMENTAÇÃO SUGERIDA:
+  • Configurar webhooks no N8N para notificar falhas
+  • Usar tabela sync_control para dashboards
+  • Monitorar tempo de resposta p95 e p99
+  • Alertar quando throughput cair abaixo de 500 rec/s
+
+THROUGHPUT ESPERADO POR MÓDULO:
+┌──────────────────────┬───────────────┬────────────────────────┐
+│ Módulo               │ Throughput    │ Chunk Recomendado      │
+├──────────────────────┼───────────────┼────────────────────────┤
+│ Contas a Receber     │ ~2.000 rec/s  │ 10.000 - 25.000        │
+│ Contas a Pagar       │ ~1.200 rec/s  │ 5.000 - 15.000         │
+│ Estoque              │ ~800 rec/s    │ 5.000 - 10.000         │
+└──────────────────────┴───────────────┴────────────────────────┘
+* Valores baseados em ambiente otimizado
 
 ═══════════════════════════════════════════════════════════════════════════════
 15. PERGUNTAS OBRIGATÓRIAS ANTES DE INICIAR (Gerente de TI)
@@ -2271,6 +2296,40 @@ OFFSET @offset ROWS;`;
                     </tbody>
                   </table>
                 </div>
+                
+                {/* Tabela de Throughput */}
+                <div className="mt-4 p-4 border rounded-lg bg-muted/30">
+                  <h4 className="font-medium mb-3 text-sm">📈 Throughput Esperado por Módulo</h4>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">Módulo</th>
+                        <th className="text-left p-2">Throughput</th>
+                        <th className="text-left p-2">Chunk Recomendado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b">
+                        <td className="p-2 font-medium">Contas a Receber</td>
+                        <td className="p-2 text-green-600">~2.000 rec/s</td>
+                        <td className="p-2 text-muted-foreground">10.000 - 25.000</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="p-2 font-medium">Contas a Pagar</td>
+                        <td className="p-2 text-green-600">~1.200 rec/s</td>
+                        <td className="p-2 text-muted-foreground">5.000 - 15.000</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="p-2 font-medium">Estoque</td>
+                        <td className="p-2 text-amber-600">~800 rec/s</td>
+                        <td className="p-2 text-muted-foreground">5.000 - 10.000</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    * Valores baseados em ambiente otimizado. Performance real pode variar conforme infraestrutura.
+                  </p>
+                </div>
               </div>
 
               <Separator />
@@ -2365,7 +2424,7 @@ OFFSET @offset ROWS;`;
                         <p className="mt-2 font-medium">Impacto:</p>
                         <ul className="list-disc ml-6 space-y-1">
                           <li>N8N Cloud pode sofrer com limites de execução</li>
-                          <li>Edge Functions têm limites de timeout (300s máx)</li>
+                          <li>Edge Functions têm limite de timeout de <strong>60s</strong> (padrão) ou até <strong>150s</strong> com configuração especial</li>
                         </ul>
                       </AlertDescription>
                     </Alert>
@@ -2384,7 +2443,7 @@ OFFSET @offset ROWS;`;
                 </AccordionItem>
 
                 <AccordionItem value="governanca">
-                  <AccordionTrigger className="text-amber-600">
+                  <AccordionTrigger className="text-red-600">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4" />
                       4. Governança de Dados (Negócio)
@@ -2411,6 +2470,42 @@ OFFSET @offset ROWS;`;
                         <li>2. O CRM pode corrigir dados financeiros e enviar de volta?</li>
                         <li>3. Em caso de conflito, qual sistema prevalece?</li>
                         <li>4. Dados editados no CRM devem ser protegidos de sobrescrita?</li>
+                      </ul>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="monitoramento">
+                  <AccordionTrigger className="text-blue-600">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      5. Monitoramento e Alertas (Recomendado)
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <Alert className="border-blue-500/50 bg-blue-500/10 text-blue-800">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Boas Práticas de Observabilidade</AlertTitle>
+                      <AlertDescription className="space-y-2 mt-2">
+                        <p>📊 Para garantir a saúde da integração em produção:</p>
+                        <ul className="list-disc ml-6 space-y-1">
+                          <li>Alertas de falha via webhook (Slack, Discord, Email)</li>
+                          <li>Dashboard de monitoramento com métricas de SLA</li>
+                          <li>Logs centralizados com retenção mínima de 30 dias</li>
+                          <li>Métricas de throughput por módulo</li>
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                    <div className="p-4 border rounded-lg bg-muted/30">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        Implementação Sugerida
+                      </h4>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>• Configurar webhooks no N8N para notificar falhas</li>
+                        <li>• Usar tabela sync_control para dashboards</li>
+                        <li>• Monitorar tempo de resposta p95 e p99</li>
+                        <li>• Alertar quando throughput cair abaixo de 500 rec/s</li>
                       </ul>
                     </div>
                   </AccordionContent>
@@ -2451,6 +2546,7 @@ OFFSET @offset ROWS;`;
                     <h4 className="font-medium mb-2 text-sm">📊 Volume Real</h4>
                     <ul className="text-sm space-y-1 text-muted-foreground">
                       <li>• Contas a Receber: quantos registros hoje?</li>
+                      <li>• Contas a Pagar: quantos registros hoje?</li>
                       <li>• Estoque: movimentações/dia ou histórico completo?</li>
                     </ul>
                   </div>
