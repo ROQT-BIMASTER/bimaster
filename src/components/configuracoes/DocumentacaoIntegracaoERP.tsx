@@ -73,8 +73,11 @@ Classificação: Confidencial - Uso Interno
 11. QUERIES SQL DE REFERÊNCIA
 12. CONFIGURAÇÃO N8N
 13. MONITORAMENTO E LOGS
-14. CHECKLIST DE IMPLEMENTAÇÃO
-15. SUPORTE TÉCNICO
+14. PONTOS DE ATENÇÃO - GERENCIAIS E TÉCNICOS ⚠️ IMPORTANTE
+15. PERGUNTAS OBRIGATÓRIAS ANTES DE INICIAR
+16. PLANO DE AÇÃO RECOMENDADO
+17. CHECKLIST DE IMPLEMENTAÇÃO
+18. SUPORTE TÉCNICO
 
 ═══════════════════════════════════════════════════════════════════════════════
 1. VISÃO GERAL E ARQUITETURA
@@ -1068,7 +1071,125 @@ LOGS REGISTRADOS:
 RETENÇÃO DE LOGS: 90 dias
 
 ═══════════════════════════════════════════════════════════════════════════════
-14. CHECKLIST DE IMPLEMENTAÇÃO
+14. PONTOS DE ATENÇÃO - GERENCIAIS E TÉCNICOS
+═══════════════════════════════════════════════════════════════════════════════
+
+🟡 PONTO 1: SEGURANÇA (Precisa Alinhamento Final)
+────────────────────────────────────────────────────────────────────────────────
+
+⚠ API Key simples (x-api-key)
+⚠ Não há menção explícita a:
+  • Rotação automatizada de chaves
+  • Ambientes separados por chave (dev/hml/prod) com política formal
+  • Auditoria por empresa_id
+
+RECOMENDAÇÃO GERENCIAL:
+  • Criar chaves por ambiente + por cliente
+  • Logar sempre: empresa_id, sync_id, ip, endpoint
+  • Implementar rotação trimestral de API keys
+
+🟡 PONTO 2: SQL SERVER – USO DE NOLOCK
+────────────────────────────────────────────────────────────────────────────────
+
+⚠ Uso extensivo de WITH (NOLOCK) nas queries de exemplo
+
+RISCOS:
+  • Possibilidade de leitura suja (dirty reads)
+  • Dados inconsistentes em fechamento financeiro
+
+SUGESTÃO:
+  • Avaliar Snapshot Isolation no SQL Server
+  • NOLOCK apenas para cargas históricas (dados imutáveis)
+  • Incremental SEM NOLOCK para dados recentes
+
+🟡 PONTO 3: TIMEOUT E N8N CLOUD
+────────────────────────────────────────────────────────────────────────────────
+
+⚠ Alguns endpoints podem atingir:
+  • 180s timeout por requisição
+  • 25.000 registros por chunk
+
+ALERTA:
+  • N8N Cloud pode sofrer com limites de execução
+  • Edge Functions têm limites de timeout (300s máx)
+
+MITIGAÇÃO:
+  • Preferir 10k–15k registros em produção inicial
+  • Subir gradualmente após benchmark real
+  • Usar N8N self-hosted para volumes acima de 500k
+
+🔴 PONTO 4: GOVERNANÇA DE DADOS (NEGÓCIO) - CRÍTICO
+────────────────────────────────────────────────────────────────────────────────
+
+⚠ NÃO está explícito:
+  • Quem é a fonte da verdade (ERP ou CRM)?
+  • Se o CRM pode sobrescrever dados do ERP
+  • Regras de conflito bidirecional
+
+⚡ Isso PRECISA ser decidido ANTES da produção!
+
+═══════════════════════════════════════════════════════════════════════════════
+15. PERGUNTAS OBRIGATÓRIAS ANTES DE INICIAR (Gerente de TI)
+═══════════════════════════════════════════════════════════════════════════════
+
+🏢 AMBIENTES:
+  [ ] Teremos DEV / HML / PROD separados?
+  [ ] Cada um com API Key própria?
+
+🎯 FONTE DA VERDADE:
+  [ ] ERP sempre manda?
+  [ ] CRM pode corrigir dados financeiros?
+
+⏰ JANELA DE EXECUÇÃO:
+  [ ] Qual o horário "seguro" no ERP?
+  [ ] Existe fechamento contábil diário?
+
+📊 VOLUME REAL:
+  [ ] Contas a Receber: quantos registros hoje?
+  [ ] Contas a Pagar: quantos registros hoje?
+  [ ] Estoque: movimentações/dia ou histórico completo?
+
+🖥️ INFRAESTRUTURA:
+  [ ] N8N será self-hosted ou cloud?
+  [ ] Quantos GB de RAM disponíveis para N8N?
+  [ ] Conexão de rede entre ERP e Cloud é estável?
+
+═══════════════════════════════════════════════════════════════════════════════
+16. PLANO DE AÇÃO RECOMENDADO (Próximos Passos)
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ FASE 1 – PREPARAÇÃO (Obrigatória)                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ [ ] Validar volumes reais de cada módulo                                    │
+│ [ ] Definir chunk inicial conservador (10k-15k)                             │
+│ [ ] Criar API Keys por ambiente (DEV/HML/PROD)                              │
+│ [ ] Validar SQL sem impacto no ERP (testar NOLOCK)                          │
+│ [ ] Definir fonte da verdade e regras de conflito                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ FASE 2 – HOMOLOGAÇÃO                                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ [ ] Teste com 10k → 100k → 1M registros                                     │
+│ [ ] Medir tempo REAL (não estimado)                                         │
+│ [ ] Simular falhas (timeout, rede, retry)                                   │
+│ [ ] Validar hash incremental funciona corretamente                          │
+│ [ ] Verificar logs de auditoria                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ FASE 3 – PRODUÇÃO CONTROLADA                                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ [ ] Primeira execução monitorada em tempo real                              │
+│ [ ] Alertas ativos (Slack/Email para falhas)                                │
+│ [ ] Logs auditáveis com empresa_id e sync_id                                │
+│ [ ] Rollback plan documentado                                               │
+│ [ ] Comunicação com time financeiro                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+17. CHECKLIST DE IMPLEMENTAÇÃO
 ═══════════════════════════════════════════════════════════════════════════════
 
 ANTES DE INICIAR:
@@ -1102,7 +1223,7 @@ PRODUÇÃO:
 [ ] Validar integridade dos dados
 
 ═══════════════════════════════════════════════════════════════════════════════
-15. SUPORTE TÉCNICO
+18. SUPORTE TÉCNICO
 ═══════════════════════════════════════════════════════════════════════════════
 
 INFORMAÇÕES PARA ABERTURA DE CHAMADO:
@@ -1118,13 +1239,16 @@ Ao reportar problemas, incluir:
 DOCUMENTAÇÃO ADICIONAL:
 • docs/N8N_SYNC_CONFIGURATION.md
 • docs/N8N_WORKFLOW_1M_REGISTROS.md
+• docs/N8N_WORKFLOW_CONTAS_PAGAR_1M.md
+• docs/N8N_WORKFLOW_ESTOQUE_1M.md
 • docs/API_REST_INTEGRACAO_ERP.md
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                          FIM DO DOCUMENTO                                    ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║  Versão 3.0 - ${new Date().toLocaleDateString('pt-BR')}                                                        ║
+║  Versão 3.1 - ${new Date().toLocaleDateString('pt-BR')}                                                        ║
 ║  Este documento é confidencial e de uso exclusivo para integração.           ║
+║  Inclui: Pontos de Atenção, Perguntas Obrigatórias e Plano de Ação          ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 `;
 
@@ -1319,18 +1443,25 @@ OFFSET @offset ROWS;`;
       </Card>
 
       <Tabs defaultValue="contas-receber" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="contas-receber" className="flex items-center gap-2">
             <Receipt className="h-4 w-4" />
-            Contas a Receber
+            <span className="hidden sm:inline">Contas a Receber</span>
+            <span className="sm:hidden">C. Receber</span>
           </TabsTrigger>
           <TabsTrigger value="contas-pagar" className="flex items-center gap-2">
             <Wallet className="h-4 w-4" />
-            Contas a Pagar
+            <span className="hidden sm:inline">Contas a Pagar</span>
+            <span className="sm:hidden">C. Pagar</span>
           </TabsTrigger>
           <TabsTrigger value="estoque" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             Estoque
+          </TabsTrigger>
+          <TabsTrigger value="atencao" className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">Pontos de Atenção</span>
+            <span className="sm:hidden">Atenção</span>
           </TabsTrigger>
           <TabsTrigger value="mcp" className="flex items-center gap-2">
             <Plug className="h-4 w-4" />
@@ -1338,7 +1469,8 @@ OFFSET @offset ROWS;`;
           </TabsTrigger>
           <TabsTrigger value="configuracao" className="flex items-center gap-2">
             <Key className="h-4 w-4" />
-            Configuração
+            <span className="hidden sm:inline">Configuração</span>
+            <span className="sm:hidden">Config</span>
           </TabsTrigger>
         </TabsList>
 
@@ -2077,6 +2209,315 @@ OFFSET @offset ROWS;`;
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Nova aba: Pontos de Atenção */}
+        <TabsContent value="atencao">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-amber-500" />
+                Pontos de Atenção e Plano de Ação
+                <Badge className="ml-2 bg-amber-500/10 text-amber-600 border-amber-500/20">Importante</Badge>
+              </CardTitle>
+              <CardDescription>
+                Considerações críticas de segurança, governança e implementação
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Avaliação por Módulo */}
+              <div className="space-y-3">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Avaliação por Módulo
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left p-2">Módulo</th>
+                        <th className="text-left p-2">Avaliação</th>
+                        <th className="text-left p-2">Observação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b">
+                        <td className="p-2 font-medium">Contas a Receber</td>
+                        <td className="p-2 text-green-600">⭐⭐⭐⭐⭐</td>
+                        <td className="p-2 text-muted-foreground">Muito bem resolvido</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="p-2 font-medium">Contas a Pagar</td>
+                        <td className="p-2 text-green-600">⭐⭐⭐⭐⭐</td>
+                        <td className="p-2 text-muted-foreground">Estrutura madura</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="p-2 font-medium">Estoque</td>
+                        <td className="p-2 text-amber-600">⭐⭐⭐⭐☆</td>
+                        <td className="p-2 text-muted-foreground">Alto volume exige testes de stress</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="p-2 font-medium">Incremental (Hash)</td>
+                        <td className="p-2 text-green-600">⭐⭐⭐⭐⭐</td>
+                        <td className="p-2 text-muted-foreground">Uso de hash é excelente</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="p-2 font-medium">Bulk Insert</td>
+                        <td className="p-2 text-green-600">⭐⭐⭐⭐⭐</td>
+                        <td className="p-2 text-muted-foreground">SQL bulk insert bem pensado</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Pontos de Atenção */}
+              <Accordion type="multiple" className="w-full">
+                <AccordionItem value="seguranca">
+                  <AccordionTrigger className="text-amber-600">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      1. Segurança (Precisa Alinhamento Final)
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <Alert variant="destructive" className="border-amber-500/50 bg-amber-500/10 text-amber-800">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Pontos Pendentes</AlertTitle>
+                      <AlertDescription className="space-y-2 mt-2">
+                        <p>⚠ API Key simples (x-api-key) - sem rotação automatizada</p>
+                        <p>⚠ Não há menção explícita a:</p>
+                        <ul className="list-disc ml-6 space-y-1">
+                          <li>Rotação automatizada de chaves</li>
+                          <li>Ambientes separados por chave (dev/hml/prod) com política formal</li>
+                          <li>Auditoria por empresa_id</li>
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                    <div className="p-4 border rounded-lg bg-muted/30">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        Recomendação Gerencial
+                      </h4>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>• Criar chaves por ambiente + por cliente</li>
+                        <li>• Logar sempre: empresa_id, sync_id, ip, endpoint</li>
+                        <li>• Implementar rotação trimestral de API keys</li>
+                      </ul>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="nolock">
+                  <AccordionTrigger className="text-amber-600">
+                    <div className="flex items-center gap-2">
+                      <Database className="h-4 w-4" />
+                      2. SQL Server – Uso de NOLOCK
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <Alert variant="destructive" className="border-amber-500/50 bg-amber-500/10 text-amber-800">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Risco Identificado</AlertTitle>
+                      <AlertDescription className="space-y-2 mt-2">
+                        <p>⚠ Uso extensivo de <code className="bg-muted px-1 rounded">WITH (NOLOCK)</code></p>
+                        <ul className="list-disc ml-6 space-y-1">
+                          <li>Possibilidade de leitura suja (dirty reads)</li>
+                          <li>Dados inconsistentes em fechamento financeiro</li>
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                    <div className="p-4 border rounded-lg bg-muted/30">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        Sugestão
+                      </h4>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>• Avaliar <strong>Snapshot Isolation</strong> no SQL Server</li>
+                        <li>• Usar NOLOCK <strong>apenas</strong> para cargas históricas (dados imutáveis)</li>
+                        <li>• Incremental <strong>sem NOLOCK</strong> para dados recentes</li>
+                      </ul>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="timeout">
+                  <AccordionTrigger className="text-amber-600">
+                    <div className="flex items-center gap-2">
+                      <Server className="h-4 w-4" />
+                      3. Timeout e N8N Cloud
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <Alert variant="destructive" className="border-amber-500/50 bg-amber-500/10 text-amber-800">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Alerta de Performance</AlertTitle>
+                      <AlertDescription className="space-y-2 mt-2">
+                        <p>⚠ Alguns endpoints podem atingir:</p>
+                        <ul className="list-disc ml-6 space-y-1">
+                          <li>180s timeout por requisição</li>
+                          <li>25.000 registros por chunk</li>
+                        </ul>
+                        <p className="mt-2 font-medium">Impacto:</p>
+                        <ul className="list-disc ml-6 space-y-1">
+                          <li>N8N Cloud pode sofrer com limites de execução</li>
+                          <li>Edge Functions têm limites de timeout (300s máx)</li>
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                    <div className="p-4 border rounded-lg bg-muted/30">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        Mitigação
+                      </h4>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>• Preferir <strong>10k–15k registros</strong> em produção inicial</li>
+                        <li>• Subir gradualmente após benchmark real</li>
+                        <li>• Usar N8N self-hosted para volumes acima de 500k</li>
+                      </ul>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="governanca">
+                  <AccordionTrigger className="text-amber-600">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      4. Governança de Dados (Negócio)
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-800">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Decisão Pendente - CRÍTICO</AlertTitle>
+                      <AlertDescription className="space-y-2 mt-2">
+                        <p>⚠ Não está explícito:</p>
+                        <ul className="list-disc ml-6 space-y-1">
+                          <li><strong>Quem é a fonte da verdade</strong> (ERP ou CRM)?</li>
+                          <li>Se o CRM pode sobrescrever dados do ERP</li>
+                          <li>Regras de conflito bidirecional</li>
+                        </ul>
+                        <p className="mt-2 font-medium text-red-700">⚡ Isso PRECISA ser decidido antes da produção!</p>
+                      </AlertDescription>
+                    </Alert>
+                    <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                      <h4 className="font-medium mb-2">Perguntas para Definir:</h4>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>1. O ERP sempre manda? O CRM apenas recebe?</li>
+                        <li>2. O CRM pode corrigir dados financeiros e enviar de volta?</li>
+                        <li>3. Em caso de conflito, qual sistema prevalece?</li>
+                        <li>4. Dados editados no CRM devem ser protegidos de sobrescrita?</li>
+                      </ul>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              <Separator />
+
+              {/* Perguntas Obrigatórias */}
+              <div className="space-y-3">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  Perguntas Obrigatórias Antes de Iniciar (Gerente de TI)
+                </h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2 text-sm">🏢 Ambientes</h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>• Teremos DEV / HML / PROD separados?</li>
+                      <li>• Cada um com API Key própria?</li>
+                    </ul>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2 text-sm">🎯 Fonte da Verdade</h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>• ERP sempre manda?</li>
+                      <li>• CRM pode corrigir dados financeiros?</li>
+                    </ul>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2 text-sm">⏰ Janela de Execução</h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>• Qual o horário "seguro" no ERP?</li>
+                      <li>• Existe fechamento contábil diário?</li>
+                    </ul>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2 text-sm">📊 Volume Real</h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>• Contas a Receber: quantos registros hoje?</li>
+                      <li>• Estoque: movimentações/dia ou histórico completo?</li>
+                    </ul>
+                  </div>
+                  <div className="p-4 border rounded-lg md:col-span-2">
+                    <h4 className="font-medium mb-2 text-sm">🖥️ Infraestrutura</h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>• N8N será self-hosted ou cloud?</li>
+                      <li>• Quantos GB de RAM disponíveis para N8N?</li>
+                      <li>• Conexão de rede entre ERP e Cloud é estável?</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Plano de Ação */}
+              <div className="space-y-3">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" />
+                  Plano de Ação Recomendado (Próximos Passos)
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="p-4 border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20 rounded-r-lg">
+                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                      <Badge className="bg-blue-500">Fase 1</Badge>
+                      Preparação (Obrigatória)
+                    </h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>✓ Validar volumes reais de cada módulo</li>
+                      <li>✓ Definir chunk inicial conservador (10k-15k)</li>
+                      <li>✓ Criar API Keys por ambiente (DEV/HML/PROD)</li>
+                      <li>✓ Validar SQL sem impacto no ERP (testar NOLOCK)</li>
+                      <li>✓ Definir fonte da verdade e regras de conflito</li>
+                    </ul>
+                  </div>
+
+                  <div className="p-4 border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20 rounded-r-lg">
+                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                      <Badge className="bg-amber-500">Fase 2</Badge>
+                      Homologação
+                    </h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>✓ Teste com 10k → 100k → 1M registros</li>
+                      <li>✓ Medir tempo real (não estimado)</li>
+                      <li>✓ Simular falhas (timeout, rede, retry)</li>
+                      <li>✓ Validar hash incremental funciona corretamente</li>
+                      <li>✓ Verificar logs de auditoria</li>
+                    </ul>
+                  </div>
+
+                  <div className="p-4 border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20 rounded-r-lg">
+                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                      <Badge className="bg-green-500">Fase 3</Badge>
+                      Produção Controlada
+                    </h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>✓ Primeira execução monitorada em tempo real</li>
+                      <li>✓ Alertas ativos (Slack/Email para falhas)</li>
+                      <li>✓ Logs auditáveis com empresa_id e sync_id</li>
+                      <li>✓ Rollback plan documentado</li>
+                      <li>✓ Comunicação com time financeiro</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
