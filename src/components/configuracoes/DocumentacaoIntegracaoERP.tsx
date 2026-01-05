@@ -425,144 +425,183 @@ Resposta (200 OK):
 }
 
 ═══════════════════════════════════════════════════════════════════════════════
-5. ENDPOINTS - CONTAS A PAGAR
+5. ENDPOINTS - CONTAS A PAGAR (★ OTIMIZADO PARA 1M+ REGISTROS ★)
 ═══════════════════════════════════════════════════════════════════════════════
 
 BASE URL: ${SUPABASE_URL}/contas-pagar-api
 
+PERFORMANCE ESPERADA:
+┌────────────────────────┬────────────────────┬─────────────────────┐
+│ Volume                 │ Tempo Estimado     │ Throughput          │
+├────────────────────────┼────────────────────┼─────────────────────┤
+│ 10.000 registros       │ ~8 segundos        │ ~1.200 rec/seg      │
+│ 100.000 registros      │ ~1.5 minutos       │ ~1.200 rec/seg      │
+│ 500.000 registros      │ ~7 minutos         │ ~1.200 rec/seg      │
+│ 1.000.000 registros    │ ~15 minutos        │ ~1.200 rec/seg      │
+│ 5.000.000+ registros   │ ~70 minutos        │ ~1.200 rec/seg      │
+└────────────────────────┴────────────────────┴─────────────────────┘
+
 ────────────────────────────────────────────────────────────────────────────────
-5.1 SINCRONIZAÇÃO
+5.1 CARGA MASSIVA (★ RECOMENDADO PARA N8N ★)
 ────────────────────────────────────────────────────────────────────────────────
 
-POST /sync
+POST /bulk-sync
+
+Descrição: Endpoint OTIMIZADO para carga massiva via N8N.
+Processa até 5.000 registros por requisição com SQL bulk insert.
+Usa hash MD5 para detecção inteligente de mudanças.
 
 Request Body:
 {
   "contas": [
     {
-      "ID Empresa": 1,
-      "Empresa": "NOME EMPRESA",
-      "Tipo Documento": "NF",
-      "Conta": "123456",
-      "Parcela": 1,
-      "Documento": "NF-001",
-      "Fornecedor Codigo": "F001",
-      "Fornecedor": "NOME FORNECEDOR",
-      "Portador": "CAIXA",
-      "Data Emissão": "2025-01-01",
-      "Data Vencimento": "2025-02-01",
-      "Data Pagamento": null,
-      "Valor Original": 2500.00,
-      "Valor Desconto": 0.00,
-      "Valor Juros": 0.00,
-      "Valor Ajustes": 0.00,
-      "Valor Pago": 0.00,
-      "Valor Aberto": 2500.00,
-      "Status": "aberto"
+      "erp_id": "ERP-CP-001",
+      "empresa_id": 1,
+      "fornecedor_codigo": "F001",
+      "fornecedor_nome": "Fornecedor Exemplo",
+      "tipo_documento": "NF",
+      "numero_documento": "12345",
+      "data_vencimento": "2025-02-15",
+      "valor_original": 2500.00,
+      "valor_aberto": 2500.00,
+      "status": "aberto"
     }
-  ]
+  ],
+  "chunk_index": 1,
+  "total_chunks": 40,
+  "sync_id": "sync_20250105"
 }
 
 Resposta (200 OK):
 {
   "success": true,
   "statistics": {
-    "total_received": 1000,
-    "inserted": 800,
-    "updated": 150,
-    "skipped": 50,
+    "received": 5000,
+    "processed": 5000,
+    "inserted": 3500,
+    "updated": 1450,
+    "unchanged": 50,
     "errors": 0
   },
-  "duration_ms": 5000
+  "timing": {
+    "total_ms": 4200,
+    "rate_per_second": 1190
+  }
 }
 
 ────────────────────────────────────────────────────────────────────────────────
-5.2 CONSULTA
+5.2 SINCRONIZAÇÃO INCREMENTAL
 ────────────────────────────────────────────────────────────────────────────────
 
-GET /?limit=100&status=aberto
+POST /sync-incremental
 
-Resposta (200 OK):
+Descrição: Sincronização inteligente que ignora registros sem alteração.
+
+Request Body: (mesmo formato do /bulk-sync)
+
+Resposta: Inclui campo "unchanged" com registros ignorados.
+
+────────────────────────────────────────────────────────────────────────────────
+5.3 FINALIZAÇÃO DE SINCRONIZAÇÃO
+────────────────────────────────────────────────────────────────────────────────
+
+POST /sync-complete
+
+Descrição: Finaliza sessão e consolida estatísticas.
+
+Request Body:
 {
-  "data": [ /* array de contas a pagar */ ]
+  "sync_id": "sync_20250105",
+  "total_expected": 1000000,
+  "tipo": "full"
 }
+
+────────────────────────────────────────────────────────────────────────────────
+5.4 MONITORAMENTO
+────────────────────────────────────────────────────────────────────────────────
+
+GET /status              - Status e configuração da API
+GET /chunks-progress     - Progresso dos chunks processados
+GET /stats               - Estatísticas de sincronização
 
 ═══════════════════════════════════════════════════════════════════════════════
-6. ENDPOINTS - ESTOQUE
+6. ENDPOINTS - ESTOQUE (★ OTIMIZADO PARA 1M+ MOVIMENTAÇÕES ★)
 ═══════════════════════════════════════════════════════════════════════════════
 
 BASE URL: ${SUPABASE_URL}/estoque-n8n-sync
 
+PERFORMANCE ESPERADA:
+┌────────────────────────┬────────────────────┬─────────────────────┐
+│ Volume                 │ Tempo Estimado     │ Throughput          │
+├────────────────────────┼────────────────────┼─────────────────────┤
+│ 10.000 movimentações   │ ~12 segundos       │ ~800 rec/seg        │
+│ 100.000 movimentações  │ ~2 minutos         │ ~800 rec/seg        │
+│ 500.000 movimentações  │ ~10 minutos        │ ~800 rec/seg        │
+│ 1.000.000 movimentações│ ~20 minutos        │ ~800 rec/seg        │
+│ 5.000.000+ movimentações│ ~100 minutos      │ ~800 rec/seg        │
+└────────────────────────┴────────────────────┴─────────────────────┘
+
 ────────────────────────────────────────────────────────────────────────────────
-6.1 SINCRONIZAÇÃO COMPLETA
+6.1 CARGA MASSIVA DE MOVIMENTAÇÕES (★ RECOMENDADO PARA N8N ★)
+────────────────────────────────────────────────────────────────────────────────
+
+POST /bulk-movimentacoes
+
+Descrição: Endpoint OTIMIZADO para carga massiva de movimentações.
+Processa até 5.000 registros por requisição.
+
+Request Body:
+{
+  "movimentacoes": [
+    {
+      "erp_id": "MOV-001",
+      "distribuidora_cnpj": "12345678901234",
+      "produto_sku": "SKU-001",
+      "tipo_movimento": "entrada",
+      "quantidade": 100,
+      "data_movimento": "2025-01-05",
+      "lote": "LOTE-2025-001",
+      "custo_unitario": 15.50,
+      "documento_referencia": "NF-12345"
+    }
+  ],
+  "chunk_index": 1,
+  "total_chunks": 200,
+  "sync_id": "estoque_sync_20250105"
+}
+
+Resposta (200 OK):
+{
+  "success": true,
+  "statistics": {
+    "received": 5000,
+    "processed": 5000,
+    "inserted": 5000,
+    "errors": 0
+  },
+  "timing": {
+    "total_ms": 6250,
+    "rate_per_second": 800
+  },
+  "saldos_atualizados": 5000
+}
+
+────────────────────────────────────────────────────────────────────────────────
+6.2 SINCRONIZAÇÃO COMPLETA (DADOS MESTRES)
 ────────────────────────────────────────────────────────────────────────────────
 
 POST /
 
-Descrição: Sincroniza distribuidoras, produtos master, vinculações e movimentações.
+Descrição: Sincroniza distribuidoras, produtos master e vinculações.
+Use /bulk-movimentacoes para movimentações em massa.
 
 Request Body:
 {
   "tipo": "completo",
   "dados": {
-    "distribuidoras": [
-      {
-        "nome": "DISTRIBUIDORA EXEMPLO",
-        "cnpj": "12.345.678/0001-90",
-        "endereco": "Rua Exemplo, 123",
-        "cidade": "São Paulo",
-        "uf": "SP",
-        "telefone": "(11) 1234-5678",
-        "email": "contato@distribuidora.com"
-      }
-    ],
-    "produtos_master": [
-      {
-        "nome": "PRODUTO EXEMPLO",
-        "sku_master": "SKU-001",
-        "unidade_medida": "UN",
-        "categoria": "CATEGORIA A",
-        "subcategoria": "SUB 1",
-        "descricao": "Descrição do produto"
-      }
-    ],
-    "vinculacoes": [
-      {
-        "sku_master": "SKU-001",
-        "cnpj_distribuidora": "12.345.678/0001-90",
-        "codigo_produto_distribuidora": "PROD-DIST-001",
-        "nome_exibicao": "Produto na Distribuidora",
-        "fator_conversao": 1.0
-      }
-    ],
-    "movimentacoes": [
-      {
-        "cnpj_distribuidora": "12.345.678/0001-90",
-        "codigo_produto": "PROD-DIST-001",
-        "tipo_movimento": "entrada",  // entrada|saida|transferencia|ajuste|inventario
-        "quantidade": 100,
-        "lote": "LOTE-2025-001",
-        "localizacao": "A1-B2",
-        "data_validade": "2026-01-01",
-        "custo_unitario": 15.50,
-        "documento_referencia": "NF-12345",
-        "observacao": "Entrada de mercadoria"
-      }
-    ]
-  },
-  "transaction_id": "uuid-opcional"
-}
-
-Resposta (200 OK):
-{
-  "sucesso": true,
-  "processados": 150,
-  "erros": [],
-  "detalhes": {
-    "distribuidoras": { "processados": 5, "erros": [] },
-    "produtos_master": { "processados": 50, "erros": [] },
-    "vinculacoes": { "processados": 50, "erros": [] },
-    "movimentacoes": { "processados": 45, "erros": [] }
+    "distribuidoras": [...],
+    "produtos_master": [...],
+    "vinculacoes": [...]
   }
 }
 
@@ -789,14 +828,26 @@ EXEMPLO DE CÁLCULO:
 
 SCHEDULE RECOMENDADO:
 
-┌─────────────────────────┬─────────────────────────────────────────────────────┐
-│ Tipo de Sincronização   │ Horário / Frequência                                │
-├─────────────────────────┼─────────────────────────────────────────────────────┤
-│ Full Sync (carga inicial│ 1x única - Noturno (02:00 - 05:00)                  │
-│ Full Sync (semanal)     │ Domingos às 03:00 (baixa carga)                     │
-│ Incremental (diário)    │ 4x ao dia: 06:00, 12:00, 18:00, 23:00               │
-│ Incremental (tempo real)│ A cada 15 minutos (apenas alterações)               │
-└─────────────────────────┴─────────────────────────────────────────────────────┘
+┌─────────────────────────┬────────────────────────────────────────────────────────────┐
+│ Horário                 │ Contas Receber     │ Contas Pagar      │ Estoque          │
+├─────────────────────────┼────────────────────┼───────────────────┼──────────────────┤
+│ 02:00 (Full Sync)       │ Sim                │ Sim               │ Sim              │
+│ 08:00 (Incremental)     │ Sim                │ Sim               │ Sim              │
+│ 14:00 (Incremental)     │ Sim                │ Sim               │ Sim              │
+│ 20:00 (Incremental)     │ Sim                │ Sim               │ -                │
+└─────────────────────────┴────────────────────┴───────────────────┴──────────────────┘
+
+PARÂMETROS POR MÓDULO:
+
+┌──────────────────────────┬──────────────────┬───────────────────┬──────────────────┐
+│ Parâmetro                │ Contas Receber   │ Contas Pagar      │ Estoque          │
+├──────────────────────────┼──────────────────┼───────────────────┼──────────────────┤
+│ Chunk Size               │ 25.000           │ 25.000            │ 10.000           │
+│ Timeout (ms)             │ 180.000          │ 180.000           │ 180.000          │
+│ Delay entre chunks       │ 2-3 segundos     │ 2-3 segundos      │ 2-3 segundos     │
+│ Max Retries              │ 5                │ 5                 │ 5                │
+│ Throughput esperado      │ ~2.000 rec/s     │ ~1.200 rec/s      │ ~800 rec/s       │
+└──────────────────────────┴──────────────────┴───────────────────┴──────────────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════
 11. QUERIES SQL DE REFERÊNCIA
@@ -1521,30 +1572,93 @@ OFFSET @offset ROWS;`;
               <CardTitle className="flex items-center gap-2">
                 <Wallet className="h-5 w-5" />
                 API Contas a Pagar
+                <Badge className="ml-2 bg-green-500/10 text-green-600 border-green-500/20">Otimizado</Badge>
               </CardTitle>
               <CardDescription>
-                Endpoints e configurações para sincronização de contas a pagar
+                Endpoints otimizados para sincronização massiva de contas a pagar (1M+ registros)
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Accordion type="single" collapsible className="w-full">
+              <Accordion type="single" collapsible className="w-full" defaultValue="endpoints">
                 <AccordionItem value="endpoints">
                   <AccordionTrigger>Endpoints Disponíveis</AccordionTrigger>
                   <AccordionContent className="space-y-4">
+                    <Alert className="mb-4">
+                      <Zap className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        <strong>Recomendado para N8N:</strong> Use <code>/bulk-sync</code> para processamento otimizado. 
+                        Throughput: ~1.200 registros/segundo.
+                      </AlertDescription>
+                    </Alert>
+
                     <div className="space-y-3">
+                      <div className="p-3 bg-muted rounded-lg border-2 border-primary/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge>POST</Badge>
+                            <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600">★ Recomendado</Badge>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(`${SUPABASE_URL}/contas-pagar-api/bulk-sync`, "cp-bulk")}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <code className="text-sm break-all">{SUPABASE_URL}/contas-pagar-api/bulk-sync</code>
+                        <p className="text-xs text-muted-foreground mt-1">Carga massiva otimizada (até 5.000 registros/req)</p>
+                      </div>
+
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge>POST</Badge>
+                            <Badge variant="outline" className="text-xs">Incremental</Badge>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(`${SUPABASE_URL}/contas-pagar-api/sync-incremental`, "cp-incr")}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <code className="text-sm break-all">{SUPABASE_URL}/contas-pagar-api/sync-incremental</code>
+                        <p className="text-xs text-muted-foreground mt-1">Sincronização inteligente com detecção de mudanças (hash MD5)</p>
+                      </div>
+
                       <div className="p-3 bg-muted rounded-lg">
                         <div className="flex items-center justify-between mb-2">
                           <Badge>POST</Badge>
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => copyToClipboard(`${SUPABASE_URL}/contas-pagar-api/sync`, "cp-sync")}
+                            onClick={() => copyToClipboard(`${SUPABASE_URL}/contas-pagar-api/sync-complete`, "cp-complete")}
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
-                        <code className="text-sm break-all">{SUPABASE_URL}/contas-pagar-api/sync</code>
-                        <p className="text-xs text-muted-foreground mt-1">Sincronização de contas a pagar</p>
+                        <code className="text-sm break-all">{SUPABASE_URL}/contas-pagar-api/sync-complete</code>
+                        <p className="text-xs text-muted-foreground mt-1">Finalização de sincronização (após todos os chunks)</p>
+                      </div>
+
+                      <Separator className="my-2" />
+                      <p className="text-xs text-muted-foreground font-medium">Endpoints de Monitoramento:</p>
+
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge variant="secondary">GET</Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(`${SUPABASE_URL}/contas-pagar-api/status`, "cp-status")}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <code className="text-sm break-all">{SUPABASE_URL}/contas-pagar-api/status</code>
+                        <p className="text-xs text-muted-foreground mt-1">Status e configuração da API</p>
                       </div>
 
                       <div className="p-3 bg-muted rounded-lg">
@@ -1553,13 +1667,13 @@ OFFSET @offset ROWS;`;
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => copyToClipboard(`${SUPABASE_URL}/contas-pagar-api`, "cp-get")}
+                            onClick={() => copyToClipboard(`${SUPABASE_URL}/contas-pagar-api/chunks-progress?sync_id=XXX`, "cp-chunks")}
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
-                        <code className="text-sm break-all">{SUPABASE_URL}/contas-pagar-api</code>
-                        <p className="text-xs text-muted-foreground mt-1">Consultar contas a pagar</p>
+                        <code className="text-sm break-all">{SUPABASE_URL}/contas-pagar-api/chunks-progress</code>
+                        <p className="text-xs text-muted-foreground mt-1">Progresso dos chunks processados</p>
                       </div>
 
                       <div className="p-3 bg-muted rounded-lg">
@@ -1576,6 +1690,38 @@ OFFSET @offset ROWS;`;
                         <code className="text-sm break-all">{SUPABASE_URL}/contas-pagar-api/stats</code>
                         <p className="text-xs text-muted-foreground mt-1">Estatísticas de sincronização</p>
                       </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="performance">
+                  <AccordionTrigger>Performance Esperada</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2">Volume</th>
+                            <th className="text-left p-2">Tempo Estimado</th>
+                            <th className="text-left p-2">Throughput</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            ["10.000 registros", "~8 segundos", "~1.200 rec/s"],
+                            ["100.000 registros", "~1.5 minutos", "~1.200 rec/s"],
+                            ["500.000 registros", "~7 minutos", "~1.200 rec/s"],
+                            ["1.000.000 registros", "~15 minutos", "~1.200 rec/s"],
+                            ["5.000.000+ registros", "~70 minutos", "~1.200 rec/s"],
+                          ].map(([volume, tempo, throughput], i) => (
+                            <tr key={i} className="border-b">
+                              <td className="p-2 font-medium">{volume}</td>
+                              <td className="p-2 text-muted-foreground">{tempo}</td>
+                              <td className="p-2 text-green-600">{throughput}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
@@ -1601,6 +1747,50 @@ OFFSET @offset ROWS;`;
                   </AccordionContent>
                 </AccordionItem>
 
+                <AccordionItem value="mapeamento">
+                  <AccordionTrigger>Mapeamento de Campos</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2">Campo API</th>
+                            <th className="text-left p-2">Tipo</th>
+                            <th className="text-left p-2">Obrigatório</th>
+                            <th className="text-left p-2">Descrição</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            ["erp_id", "STRING", "Sim", "ID único do registro no ERP"],
+                            ["empresa_id", "INTEGER", "Sim", "ID da empresa"],
+                            ["fornecedor_codigo", "STRING", "Sim", "Código do fornecedor"],
+                            ["fornecedor_nome", "STRING", "Não", "Nome do fornecedor"],
+                            ["tipo_documento", "STRING", "Não", "Tipo do documento (NF, BOL, etc)"],
+                            ["numero_documento", "STRING", "Não", "Número do documento"],
+                            ["data_emissao", "DATE", "Não", "Data de emissão (YYYY-MM-DD)"],
+                            ["data_vencimento", "DATE", "Não", "Data de vencimento (YYYY-MM-DD)"],
+                            ["data_pagamento", "DATE", "Não", "Data do pagamento"],
+                            ["valor_original", "DECIMAL", "Não", "Valor original do título"],
+                            ["valor_aberto", "DECIMAL", "Não", "Valor em aberto"],
+                            ["valor_pago", "DECIMAL", "Não", "Valor já pago"],
+                            ["status", "STRING", "Não", "Status: aberto, pago, vencido"],
+                            ["categoria_codigo", "STRING", "Não", "Código da categoria"],
+                            ["categoria_nome", "STRING", "Não", "Nome da categoria"],
+                          ].map(([campo, tipo, obrig, desc], i) => (
+                            <tr key={i} className="border-b">
+                              <td className="p-2 font-mono text-xs">{campo}</td>
+                              <td className="p-2"><Badge variant="outline">{tipo}</Badge></td>
+                              <td className="p-2">{obrig === "Sim" ? <CheckCircle2 className="h-4 w-4 text-primary" /> : "-"}</td>
+                              <td className="p-2 text-muted-foreground">{desc}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
                 <AccordionItem value="sql">
                   <AccordionTrigger>Query SQL Exemplo</AccordionTrigger>
                   <AccordionContent>
@@ -1619,6 +1809,15 @@ OFFSET @offset ROWS;`;
                         </pre>
                       </ScrollArea>
                     </div>
+                    
+                    <Alert className="mt-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle className="text-sm">Query Incremental</AlertTitle>
+                      <AlertDescription className="text-xs font-mono mt-2">
+                        WHERE data_modificacao &gt;= DATEADD(HOUR, -6, GETDATE())<br/>
+                        OR data_pagamento &gt;= DATEADD(HOUR, -6, GETDATE())
+                      </AlertDescription>
+                    </Alert>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -1632,21 +1831,111 @@ OFFSET @offset ROWS;`;
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
                 API Estoque
+                <Badge className="ml-2 bg-green-500/10 text-green-600 border-green-500/20">Otimizado</Badge>
               </CardTitle>
               <CardDescription>
-                Endpoints para consulta de estoque e movimentações
+                Endpoints otimizados para sincronização massiva de estoque (1M+ movimentações)
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Accordion type="single" collapsible className="w-full">
+              <Accordion type="single" collapsible className="w-full" defaultValue="endpoints-bulk">
+                <AccordionItem value="endpoints-bulk">
+                  <AccordionTrigger>Carga Massiva (★ Recomendado)</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <Alert className="mb-4">
+                      <Zap className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        <strong>Para volumes acima de 100.000 movimentações:</strong> Use <code>/bulk-movimentacoes</code>. 
+                        Throughput: ~800 registros/segundo.
+                      </AlertDescription>
+                    </Alert>
+
+                    <div className="space-y-3">
+                      <div className="p-3 bg-muted rounded-lg border-2 border-primary/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge>POST</Badge>
+                            <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600">★ Recomendado</Badge>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(`${SUPABASE_URL}/estoque-n8n-sync/bulk-movimentacoes`, "est-bulk")}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <code className="text-sm break-all">{SUPABASE_URL}/estoque-n8n-sync/bulk-movimentacoes</code>
+                        <p className="text-xs text-muted-foreground mt-1">Carga massiva de movimentações (até 5.000 registros/req)</p>
+                      </div>
+
+                      <div className="p-4 border rounded-lg bg-muted/50">
+                        <p className="text-xs font-medium mb-2">Payload de Carga Massiva:</p>
+                        <pre className="text-xs overflow-x-auto">{`{
+  "movimentacoes": [
+    {
+      "erp_id": "MOV-001",
+      "distribuidora_cnpj": "12345678901234",
+      "produto_sku": "SKU-001",
+      "tipo_movimento": "entrada",
+      "quantidade": 100,
+      "data_movimento": "2025-01-05",
+      "lote": "LOTE-2025-001",
+      "custo_unitario": 15.50,
+      "documento_referencia": "NF-12345"
+    }
+    // ... até 5.000 registros
+  ],
+  "chunk_index": 1,
+  "total_chunks": 200,
+  "sync_id": "estoque_sync_20250105"
+}`}</pre>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="performance">
+                  <AccordionTrigger>Performance Esperada</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2">Volume</th>
+                            <th className="text-left p-2">Tempo Estimado</th>
+                            <th className="text-left p-2">Throughput</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            ["10.000 movimentações", "~12 segundos", "~800 rec/s"],
+                            ["100.000 movimentações", "~2 minutos", "~800 rec/s"],
+                            ["500.000 movimentações", "~10 minutos", "~800 rec/s"],
+                            ["1.000.000 movimentações", "~20 minutos", "~800 rec/s"],
+                            ["5.000.000+ movimentações", "~100 minutos", "~800 rec/s"],
+                          ].map(([volume, tempo, throughput], i) => (
+                            <tr key={i} className="border-b">
+                              <td className="p-2 font-medium">{volume}</td>
+                              <td className="p-2 text-muted-foreground">{tempo}</td>
+                              <td className="p-2 text-green-600">{throughput}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
                 <AccordionItem value="endpoints-sync">
-                  <AccordionTrigger>Sincronização (N8N)</AccordionTrigger>
+                  <AccordionTrigger>Sincronização Completa (Dados Mestres)</AccordionTrigger>
                   <AccordionContent className="space-y-4">
                     <div className="space-y-3">
                       <Alert className="mb-4">
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription className="text-xs">
-                          <strong>Endpoint principal para N8N:</strong> Sincroniza distribuidoras, produtos, vínculos e movimentações
+                          <strong>Use para dados mestres:</strong> Distribuidoras, produtos, vínculos. 
+                          Para movimentações em massa, use <code>/bulk-movimentacoes</code>.
                         </AlertDescription>
                       </Alert>
 
@@ -1654,7 +1943,7 @@ OFFSET @offset ROWS;`;
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <Badge>POST</Badge>
-                            <Badge variant="outline" className="text-xs">Sincronização</Badge>
+                            <Badge variant="outline" className="text-xs">Dados Mestres</Badge>
                           </div>
                           <Button
                             size="sm"
@@ -1665,24 +1954,24 @@ OFFSET @offset ROWS;`;
                           </Button>
                         </div>
                         <code className="text-sm break-all">{SUPABASE_URL}/estoque-n8n-sync</code>
-                        <p className="text-xs text-muted-foreground mt-1">Sincronização completa de estoque</p>
+                        <p className="text-xs text-muted-foreground mt-1">Sincronização de distribuidoras, produtos e vínculos</p>
                       </div>
 
                       <div className="p-4 border rounded-lg bg-muted/50">
-                        <p className="text-xs font-medium mb-2">Payload de Sincronização:</p>
+                        <p className="text-xs font-medium mb-2">Payload de Dados Mestres:</p>
                         <pre className="text-xs overflow-x-auto">{`{
-  "distribuidoras": [
-    { "cnpj": "12345678901234", "nome": "Distribuidora X", "cidade": "São Paulo", "uf": "SP" }
-  ],
-  "produtos_master": [
-    { "sku_master": "PROD001", "nome": "Produto Exemplo", "categoria": "Categoria A" }
-  ],
-  "vinculacoes": [
-    { "distribuidora_cnpj": "12345678901234", "sku_master": "PROD001", "sku_distribuidora": "SKU-001" }
-  ],
-  "movimentacoes": [
-    { "estoque_id": "uuid", "tipo_movimento": "entrada", "quantidade": 100 }
-  ]
+  "tipo": "completo",
+  "dados": {
+    "distribuidoras": [
+      { "cnpj": "12345678901234", "nome": "Distribuidora X", "cidade": "São Paulo", "uf": "SP" }
+    ],
+    "produtos_master": [
+      { "sku_master": "PROD001", "nome": "Produto Exemplo", "categoria": "Categoria A" }
+    ],
+    "vinculacoes": [
+      { "distribuidora_cnpj": "12345678901234", "sku_master": "PROD001", "sku_distribuidora": "SKU-001" }
+    ]
+  }
 }`}</pre>
                       </div>
                     </div>
@@ -1752,6 +2041,38 @@ OFFSET @offset ROWS;`;
                         <code className="text-sm break-all">{SUPABASE_URL}/estoque-api?tipo=sync-logs</code>
                         <p className="text-xs text-muted-foreground mt-1">Logs de sincronização</p>
                       </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="tipos-movimento">
+                  <AccordionTrigger>Tipos de Movimento</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2">Tipo</th>
+                            <th className="text-left p-2">Descrição</th>
+                            <th className="text-left p-2">Efeito no Saldo</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            ["entrada", "Entrada de mercadoria (compra, devolução)", "+"],
+                            ["saida", "Saída de mercadoria (venda, transferência)", "-"],
+                            ["transferencia", "Movimentação entre localizações", "±"],
+                            ["ajuste", "Ajuste de estoque (pode ser positivo ou negativo)", "±"],
+                            ["inventario", "Contagem física (define quantidade absoluta)", "="],
+                          ].map(([tipo, desc, efeito], i) => (
+                            <tr key={i} className="border-b">
+                              <td className="p-2 font-mono text-xs">{tipo}</td>
+                              <td className="p-2 text-muted-foreground">{desc}</td>
+                              <td className="p-2 text-center font-bold">{efeito}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
