@@ -53,7 +53,7 @@ const categoriaDreLabels: Record<string, string> = {
   receita_bruta: "Receita Bruta",
   deducoes: "Deduções e Abatimentos",
   custo_vendas: "Custo de Vendas",
-  despesas_variaveis: "Despesas Variáveis",
+  despesas_variaveis: "Custo Variável",
   despesas_fixas: "Despesas Fixas",
   impostos_lucro: "Impostos s/ Lucro",
 };
