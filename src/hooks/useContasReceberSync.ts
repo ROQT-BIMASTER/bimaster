@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,6 +17,19 @@ export interface SyncResult {
   duration_ms?: number;
   error?: string;
   message?: string;
+}
+
+export interface SyncProgress {
+  isActive: boolean;
+  currentPage: number;
+  totalPages: number;
+  recordsProcessed: number;
+  recordsTotal: number;
+  currentBatch: number;
+  status: 'idle' | 'fetching' | 'processing' | 'completed' | 'error';
+  message: string;
+  startTime: number | null;
+  elapsedSeconds: number;
 }
 
 export interface SyncHistory {
@@ -42,6 +55,19 @@ export interface ContasReceberStats {
 
 export type SyncMode = 'n8n' | 'direct';
 
+const initialProgress: SyncProgress = {
+  isActive: false,
+  currentPage: 0,
+  totalPages: 0,
+  recordsProcessed: 0,
+  recordsTotal: 0,
+  currentBatch: 0,
+  status: 'idle',
+  message: '',
+  startTime: null,
+  elapsedSeconds: 0,
+};
+
 export function useContasReceberSync() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -51,6 +77,53 @@ export function useContasReceberSync() {
   const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
   const [syncMode, setSyncMode] = useState<SyncMode>('n8n');
   const [erpConnectionStatus, setErpConnectionStatus] = useState<'idle' | 'checking' | 'connected' | 'error'>('idle');
+  const [syncProgress, setSyncProgress] = useState<SyncProgress>(initialProgress);
+
+  // Timer para atualizar elapsed time durante sync
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (syncProgress.isActive && syncProgress.startTime) {
+      interval = setInterval(() => {
+        setSyncProgress(prev => ({
+          ...prev,
+          elapsedSeconds: Math.floor((Date.now() - (prev.startTime || Date.now())) / 1000)
+        }));
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [syncProgress.isActive, syncProgress.startTime]);
+
+  // Polling para atualizar contagem de registros durante sync
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (syncProgress.isActive) {
+      interval = setInterval(async () => {
+        try {
+          const { count } = await supabase
+            .from('contas_receber')
+            .select('id', { count: 'exact', head: true });
+          
+          if (count !== null) {
+            setSyncProgress(prev => ({
+              ...prev,
+              recordsProcessed: count
+            }));
+          }
+        } catch (err) {
+          console.error('Erro ao atualizar contagem:', err);
+        }
+      }, 3000); // Atualiza a cada 3 segundos
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [syncProgress.isActive]);
 
   // Buscar estatísticas locais do banco de dados
   const fetchStats = useCallback(async () => {
@@ -277,15 +350,31 @@ export function useContasReceberSync() {
     }
   }, [toast]);
 
-  // Sincronização via N8N webhook
+  // Sincronização via N8N webhook com progresso
   const syncN8n = useCallback(async (options?: { batchSize?: number; skipHealthCheck?: boolean }) => {
     setIsSyncing(true);
+    
+    // Inicializar progresso
+    const startTime = Date.now();
+    setSyncProgress({
+      isActive: true,
+      currentPage: 0,
+      totalPages: 0,
+      recordsProcessed: stats?.totalRecords || 0,
+      recordsTotal: 0,
+      currentBatch: 0,
+      status: 'fetching',
+      message: 'Iniciando sincronização...',
+      startTime,
+      elapsedSeconds: 0,
+    });
+    
     try {
       const { data, error } = await supabase.functions.invoke('n8n-contas-receber/sync-auto', {
         body: { 
-          batchSize: options?.batchSize || 100, // Batch muito pequeno - SQL Server não suporta mais
+          batchSize: options?.batchSize || 100,
           webhookUrl: 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp',
-          skipHealthCheck: options?.skipHealthCheck ?? true // Por padrão, ignora verificação inicial
+          skipHealthCheck: options?.skipHealthCheck ?? true
         }
       });
       
@@ -295,6 +384,15 @@ export function useContasReceberSync() {
         throw new Error(data?.error || 'Falha na sincronização');
       }
 
+      // Atualizar progresso como completo
+      setSyncProgress(prev => ({
+        ...prev,
+        isActive: false,
+        status: 'completed',
+        message: data?.message || 'Sincronização concluída!',
+        recordsProcessed: data?.statistics?.total_received || data?.statistics?.processed || prev.recordsProcessed,
+      }));
+
       setLastSyncResult({
         success: true,
         statistics: data?.statistics,
@@ -303,18 +401,24 @@ export function useContasReceberSync() {
       });
 
       toast({
-        title: 'Sincronização Iniciada',
-        description: data?.message || 'Sincronização via N8N em andamento',
+        title: 'Sincronização Concluída',
+        description: data?.message || 'Dados sincronizados com sucesso',
       });
 
-      // Aguardar um pouco e atualizar estatísticas
-      setTimeout(async () => {
-        await Promise.all([fetchStats(), fetchSyncHistory()]);
-      }, 5000);
+      // Atualizar estatísticas
+      await Promise.all([fetchStats(), fetchSyncHistory()]);
 
       return data;
     } catch (err) {
       console.error('Erro na sincronização N8N:', err);
+      
+      setSyncProgress(prev => ({
+        ...prev,
+        isActive: false,
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Erro desconhecido',
+      }));
+      
       setLastSyncResult({
         success: false,
         error: err instanceof Error ? err.message : 'Erro desconhecido'
@@ -328,7 +432,7 @@ export function useContasReceberSync() {
     } finally {
       setIsSyncing(false);
     }
-  }, [toast, fetchStats, fetchSyncHistory]);
+  }, [toast, fetchStats, fetchSyncHistory, stats?.totalRecords]);
 
   // Refresh de todas as estatísticas
   const refreshAll = useCallback(async () => {
@@ -337,6 +441,11 @@ export function useContasReceberSync() {
       fetchSyncHistory()
     ]);
   }, [fetchStats, fetchSyncHistory]);
+
+  // Resetar progresso
+  const resetProgress = useCallback(() => {
+    setSyncProgress(initialProgress);
+  }, []);
 
   return {
     isLoading,
@@ -347,6 +456,7 @@ export function useContasReceberSync() {
     syncMode,
     setSyncMode,
     erpConnectionStatus,
+    syncProgress,
     fetchStats,
     fetchSyncHistory,
     testConnection,
@@ -355,5 +465,6 @@ export function useContasReceberSync() {
     syncN8n,
     fetchPreview,
     refreshAll,
+    resetProgress,
   };
 }

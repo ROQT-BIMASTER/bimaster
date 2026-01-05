@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useContasReceberSync, SyncMode } from '@/hooks/useContasReceberSync';
 import { 
@@ -24,7 +25,8 @@ import {
   Server,
   Zap,
   Play,
-  Settings
+  Settings,
+  Timer
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -40,13 +42,15 @@ export function ContasReceberSyncPanel() {
     syncMode,
     setSyncMode,
     erpConnectionStatus,
+    syncProgress,
     fetchStats,
     fetchSyncHistory,
     testConnection,
     testErpConnection,
     syncDirect,
     syncN8n,
-    refreshAll
+    refreshAll,
+    resetProgress
   } = useContasReceberSync();
 
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
@@ -74,7 +78,7 @@ export function ContasReceberSyncPanel() {
   };
 
   const handleSyncN8n = async () => {
-    await syncN8n({ batchSize: 2500 });
+    await syncN8n({ batchSize: 100 });
   };
 
   const formatCurrency = (value: number) => {
@@ -82,6 +86,33 @@ export function ContasReceberSyncPanel() {
       style: 'currency',
       currency: 'BRL',
     }).format(value);
+  };
+
+  const formatElapsedTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'fetching': return 'text-blue-500';
+      case 'processing': return 'text-yellow-500';
+      case 'completed': return 'text-green-500';
+      case 'error': return 'text-red-500';
+      default: return 'text-muted-foreground';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'idle': return 'Aguardando';
+      case 'fetching': return 'Buscando dados...';
+      case 'processing': return 'Processando...';
+      case 'completed': return 'Concluído';
+      case 'error': return 'Erro';
+      default: return status;
+    }
   };
 
   return (
@@ -312,6 +343,109 @@ export function ContasReceberSyncPanel() {
                   </div>
                 </div>
               </div>
+
+              {/* Painel de Progresso da Sincronização */}
+              {(syncProgress.isActive || syncProgress.status === 'completed' || syncProgress.status === 'error') && (
+                <div className={`p-4 rounded-lg border ${
+                  syncProgress.status === 'error' ? 'bg-red-500/10 border-red-500/30' :
+                  syncProgress.status === 'completed' ? 'bg-green-500/10 border-green-500/30' :
+                  'bg-blue-500/10 border-blue-500/30'
+                }`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      {syncProgress.isActive ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                      ) : syncProgress.status === 'completed' ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : syncProgress.status === 'error' ? (
+                        <XCircle className="h-5 w-5 text-red-500" />
+                      ) : (
+                        <Activity className="h-5 w-5 text-muted-foreground" />
+                      )}
+                      <span className={`font-medium ${getStatusColor(syncProgress.status)}`}>
+                        {getStatusLabel(syncProgress.status)}
+                      </span>
+                    </div>
+                    {!syncProgress.isActive && (
+                      <Button variant="ghost" size="sm" onClick={resetProgress}>
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Barra de Progresso Animada */}
+                  {syncProgress.isActive && (
+                    <div className="space-y-2 mb-4">
+                      <Progress 
+                        value={undefined} 
+                        className="h-2 [&>div]:animate-pulse [&>div]:bg-blue-500"
+                      />
+                      <p className="text-xs text-muted-foreground text-center">
+                        Sincronização em andamento...
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Métricas */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Database className="h-3 w-3" />
+                        <span>Registros</span>
+                      </div>
+                      <p className="text-lg font-bold">
+                        {syncProgress.recordsProcessed.toLocaleString()}
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Timer className="h-3 w-3" />
+                        <span>Tempo</span>
+                      </div>
+                      <p className="text-lg font-bold">
+                        {formatElapsedTime(syncProgress.elapsedSeconds)}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Activity className="h-3 w-3" />
+                        <span>Taxa</span>
+                      </div>
+                      <p className="text-lg font-bold">
+                        {syncProgress.elapsedSeconds > 0 
+                          ? Math.round(syncProgress.recordsProcessed / syncProgress.elapsedSeconds)
+                          : 0
+                        } /s
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Zap className="h-3 w-3" />
+                        <span>Status</span>
+                      </div>
+                      <Badge variant={
+                        syncProgress.status === 'completed' ? 'default' :
+                        syncProgress.status === 'error' ? 'destructive' :
+                        'secondary'
+                      }>
+                        {syncProgress.isActive ? 'Ativo' : 
+                         syncProgress.status === 'completed' ? 'OK' : 
+                         syncProgress.status === 'error' ? 'Erro' : 'Parado'}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Mensagem */}
+                  {syncProgress.message && (
+                    <p className="text-sm mt-3 text-muted-foreground">
+                      {syncProgress.message}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Botão de Sincronização N8N Manual */}
               <div className="border-t pt-4 mt-4">
