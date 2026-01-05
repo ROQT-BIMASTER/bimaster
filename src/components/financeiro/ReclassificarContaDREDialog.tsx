@@ -26,6 +26,7 @@ interface PlanoContasItem {
   name: string;
   account_type: string | null;
   categoria_dre: string | null;
+  is_group?: boolean;
 }
 
 interface ReclassificarContaDREDialogProps {
@@ -88,9 +89,8 @@ export function ReclassificarContaDREDialog({
       try {
         const { data, error } = await supabase
           .from('trade_chart_of_accounts')
-          .select('id, code, name, account_type, categoria_dre')
+          .select('id, code, name, account_type, categoria_dre, is_group')
           .eq('is_active', true)
-          .eq('is_group', false)
           .order('code');
         
         if (error) throw error;
@@ -100,7 +100,8 @@ export function ReclassificarContaDREDialog({
           code: c.code,
           name: c.name,
           account_type: c.account_type,
-          categoria_dre: c.categoria_dre
+          categoria_dre: c.categoria_dre,
+          is_group: c.is_group,
         }));
         setContasDisponiveis(contas);
       } catch (err) {
@@ -344,11 +345,14 @@ export function ReclassificarContaDREDialog({
                               value={conta.id}
                               disabled={conta.code === contaOrigem.codigo}
                             >
-                              <span className="font-mono text-xs mr-2">{conta.code}</span>
-                              {conta.name}
-                              {conta.code === contaOrigem.codigo && (
-                                <span className="text-xs text-muted-foreground ml-1">(atual)</span>
-                              )}
+                              <div className="flex items-center gap-1">
+                                <span className="font-mono text-xs mr-2">{conta.code}</span>
+                                {conta.is_group && <span className="text-muted-foreground">[Grupo]</span>}
+                                {conta.name}
+                                {conta.code === contaOrigem.codigo && (
+                                  <span className="text-xs text-muted-foreground ml-1">(atual)</span>
+                                )}
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectGroup>
@@ -368,8 +372,11 @@ export function ReclassificarContaDREDialog({
                                 value={conta.id}
                                 disabled={conta.code === contaOrigem.codigo}
                               >
-                                <span className="font-mono text-xs mr-2">{conta.code}</span>
-                                {conta.name}
+                                <div className="flex items-center gap-1">
+                                  <span className="font-mono text-xs mr-2">{conta.code}</span>
+                                  {conta.is_group && <span className="text-muted-foreground">[Grupo]</span>}
+                                  {conta.name}
+                                </div>
                               </SelectItem>
                             ))}
                             {contas.length > 5 && (
