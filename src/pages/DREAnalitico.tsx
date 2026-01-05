@@ -740,6 +740,7 @@ export default function DREAnalitico() {
         switch (conta.categoria_dre) {
           case 'deducoes': grupoDestino = deducoes; break;
           case 'custo_vendas': grupoDestino = custosVendas; break;
+          case 'despesas_variaveis': grupoDestino = custosVendas; break; // Custo Variável vai para Custo de Vendas
           case 'despesas_fixas': grupoDestino = despesasFixas; break;
           case 'impostos_lucro': grupoDestino = impostosLucro; break;
           default: grupoDestino = despesasFixas;
@@ -747,7 +748,7 @@ export default function DREAnalitico() {
       } else {
         // 2. Fallback para regras automáticas (IA/texto)
         if (nomeConta.includes('icms') || nomeConta.includes('ipi') || nomeConta.includes('pis') || 
-            nomeConta.includes('cofins') || nomeConta.includes('iss') || nomeConta.includes('comiss') ||
+            nomeConta.includes('cofins') || nomeConta.includes('iss') ||
             nomeConta.includes('devolu') || nomeConta.includes('desconto') || nomeConta.includes('abatimento')) {
           grupoDestino = deducoes;
         } else if (nomeConta.includes('irpj') || nomeConta.includes('csll') || nomeConta.includes('imposto de renda') ||
@@ -756,7 +757,8 @@ export default function DREAnalitico() {
         } else if (conta.account_type === 'cost_center' || nomeConta.includes('custo') || 
                    nomeConta.includes('matéria') || nomeConta.includes('material') ||
                    nomeConta.includes('mercadoria') || nomeConta.includes('frete') ||
-                   nomeConta.includes('serviço') || nomeConta.includes('compra')) {
+                   nomeConta.includes('serviço') || nomeConta.includes('compra') ||
+                   nomeConta.includes('comiss')) {
           grupoDestino = custosVendas;
         } else {
           grupoDestino = despesasFixas;
