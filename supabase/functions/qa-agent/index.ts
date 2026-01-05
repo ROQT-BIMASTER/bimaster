@@ -588,113 +588,124 @@ Você está pronto para ajudar a testar e melhorar o sistema!`;
       throw new Error(`AI Gateway error: ${response.status}`);
     }
 
-    // Processar streaming com tool calls
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let fullContent = "";
-    let toolCalls: any[] = [];
-    let currentToolCall: any = null;
+    // Criar um TransformStream para processar e passar o stream adiante
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const encoder = new TextEncoder();
 
-    const processChunk = async () => {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") continue;
-            
-            try {
-              const parsed = JSON.parse(data);
-              const choice = parsed.choices?.[0];
+    // Processar streaming em background
+    (async () => {
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullContent = "";
+      let toolCalls: any[] = [];
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          buffer += chunk;
+          
+          // Passar chunk para o cliente
+          await writer.write(value);
+          
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6).trim();
+              if (data === "[DONE]") continue;
               
-              if (choice?.delta?.content) {
-                fullContent += choice.delta.content;
-              }
-              
-              if (choice?.delta?.tool_calls) {
-                for (const tc of choice.delta.tool_calls) {
-                  if (tc.index !== undefined) {
-                    if (!toolCalls[tc.index]) {
-                      toolCalls[tc.index] = { id: tc.id, function: { name: "", arguments: "" } };
-                    }
-                    if (tc.function?.name) {
-                      toolCalls[tc.index].function.name = tc.function.name;
-                    }
-                    if (tc.function?.arguments) {
-                      toolCalls[tc.index].function.arguments += tc.function.arguments;
+              try {
+                const parsed = JSON.parse(data);
+                const choice = parsed.choices?.[0];
+                
+                if (choice?.delta?.content) {
+                  fullContent += choice.delta.content;
+                }
+                
+                if (choice?.delta?.tool_calls) {
+                  for (const tc of choice.delta.tool_calls) {
+                    if (tc.index !== undefined) {
+                      if (!toolCalls[tc.index]) {
+                        toolCalls[tc.index] = { id: tc.id, function: { name: "", arguments: "" } };
+                      }
+                      if (tc.function?.name) {
+                        toolCalls[tc.index].function.name = tc.function.name;
+                      }
+                      if (tc.function?.arguments) {
+                        toolCalls[tc.index].function.arguments += tc.function.arguments;
+                      }
                     }
                   }
                 }
-              }
-              
-              if (choice?.finish_reason === "tool_calls") {
-                // Executar tool calls
-                const toolResults: any[] = [];
                 
-                for (const tc of toolCalls) {
-                  if (tc && tc.function?.name) {
-                    const args = tc.function.arguments ? JSON.parse(tc.function.arguments) : {};
-                    console.log(`Executing tool: ${tc.function.name}`, args);
-                    const result = await executeTool(tc.function.name, args);
-                    toolResults.push({
-                      tool_call_id: tc.id,
-                      role: "tool",
-                      content: JSON.stringify(result)
-                    });
+                if (choice?.finish_reason === "tool_calls") {
+                  // Executar tool calls
+                  const toolResults: any[] = [];
+                  
+                  for (const tc of toolCalls) {
+                    if (tc && tc.function?.name) {
+                      const args = tc.function.arguments ? JSON.parse(tc.function.arguments) : {};
+                      console.log(`Executing tool: ${tc.function.name}`, args);
+                      const result = await executeTool(tc.function.name, args);
+                      toolResults.push({
+                        tool_call_id: tc.id,
+                        role: "tool",
+                        content: JSON.stringify(result)
+                      });
+                    }
                   }
-                }
-                
-                // Segunda chamada com resultados das ferramentas
-                const secondMessages = [
-                  { role: "system", content: systemPrompt },
-                  ...messages,
-                  { role: "assistant", content: fullContent, tool_calls: toolCalls.filter(Boolean) },
-                  ...toolResults
-                ];
-                
-                const secondResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                  method: "POST",
-                  headers: {
-                    "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    model: "google/gemini-2.5-flash",
-                    messages: secondMessages,
-                    stream: true
-                  }),
-                });
-                
-                if (secondResponse.ok) {
-                  return new Response(secondResponse.body, {
-                    headers: { ...corsHeaders, "Content-Type": "text/event-stream" }
+                  
+                  // Segunda chamada com resultados das ferramentas
+                  const secondMessages = [
+                    { role: "system", content: systemPrompt },
+                    ...messages,
+                    { role: "assistant", content: fullContent, tool_calls: toolCalls.filter(Boolean) },
+                    ...toolResults
+                  ];
+                  
+                  const secondResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      model: "google/gemini-2.5-flash",
+                      messages: secondMessages,
+                      stream: true
+                    }),
                   });
+                  
+                  if (secondResponse.ok && secondResponse.body) {
+                    const secondReader = secondResponse.body.getReader();
+                    while (true) {
+                      const { done: done2, value: value2 } = await secondReader.read();
+                      if (done2) break;
+                      await writer.write(value2);
+                    }
+                  }
                 }
+              } catch (e) {
+                // Ignore parse errors for incomplete chunks
               }
-            } catch (e) {
-              // Ignore parse errors for incomplete chunks
             }
           }
         }
+      } catch (error) {
+        console.error("Stream processing error:", error);
+      } finally {
+        await writer.close();
       }
-    };
+    })();
 
-    // Se não houver tool calls, retorna o stream direto
-    if (toolCalls.length === 0) {
-      return new Response(response.body, {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" }
-      });
-    }
-
-    // Processar com tool calls
-    return await processChunk() || new Response(response.body, {
+    // Retornar o readable stream imediatamente
+    return new Response(readable, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" }
     });
 
