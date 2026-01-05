@@ -12,11 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid, Eye, GripVertical, Flag, Target, Maximize2 } from "lucide-react";
+import { ChevronRight, ChevronDown, FileDown, Calendar, TrendingUp, TrendingDown, Building2, FileText, ArrowUp, ArrowDown, Minus, LayoutGrid, Eye, GripVertical, Flag, Target, Maximize2, Pencil } from "lucide-react";
 import { DREFocusMode } from "@/components/financeiro/DREFocusMode";
 import { DREFocusContent } from "@/components/financeiro/DREFocusContent";
 import { MarcarRevisaoDialog } from "@/components/financeiro/MarcarRevisaoDialog";
 import { PlanoReducaoGastos } from "@/components/financeiro/PlanoReducaoGastos";
+import { ReclassificarContaDREDialog } from "@/components/financeiro/ReclassificarContaDREDialog";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, subMonths, subYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -104,6 +105,14 @@ export default function DREAnalitico() {
   const [tabAtiva, setTabAtiva] = useState<'dre' | 'reducao'>('dre');
   const [marcarRevisaoOpen, setMarcarRevisaoOpen] = useState(false);
   const [itemParaRevisao, setItemParaRevisao] = useState<any>(null);
+  const [reclassificarDialogOpen, setReclassificarDialogOpen] = useState(false);
+  const [contaParaReclassificar, setContaParaReclassificar] = useState<{
+    id: string;
+    codigo: string;
+    nome: string;
+    valor: number;
+    lancamentosIds: string[];
+  } | null>(null);
   
   // Regime de análise: 'competencia' (faturamento/emissão) ou 'caixa' (recebimento)
   const [regimeAnalise, setRegimeAnalise] = useState<'competencia' | 'caixa'>('competencia');
@@ -1107,6 +1116,21 @@ export default function DREAnalitico() {
     );
   };
 
+  // Função para extrair IDs de lançamentos de um node
+  const extrairLancamentosIds = (node: DRENode): string[] => {
+    const ids: string[] = [];
+    
+    const coletarIds = (n: DRENode) => {
+      if (n.tipo === 'lancamento' && n.metadata?.id) {
+        ids.push(n.metadata.id);
+      }
+      n.children?.forEach(coletarIds);
+    };
+    
+    coletarIds(node);
+    return ids;
+  };
+
   const renderNode = (node: DRENode, level: number = 0) => {
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedNodes.has(node.id);
@@ -1210,6 +1234,34 @@ export default function DREAnalitico() {
               <Badge className="ml-1 text-[7px] px-0.5 py-0 h-3 bg-amber-500 text-white">
                 <Target className="h-2 w-2 mr-0.5" />Revisão
               </Badge>
+            )}
+
+            {/* Botão para reclassificar conta */}
+            {(node.tipo === 'conta' || (node.tipo === 'grupo' && level > 0)) && node.valor > 0 && !isSubtotal && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 ml-1 opacity-40 hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const lancamentosIds = extrairLancamentosIds(node);
+                  if (lancamentosIds.length === 0) {
+                    toast.error("Nenhum lançamento encontrado para reclassificar");
+                    return;
+                  }
+                  setContaParaReclassificar({
+                    id: node.id,
+                    codigo: node.codigo,
+                    nome: node.nome,
+                    valor: node.valor,
+                    lancamentosIds,
+                  });
+                  setReclassificarDialogOpen(true);
+                }}
+                title="Reclassificar conta"
+              >
+                <Pencil className="h-2.5 w-2.5 text-blue-500" />
+              </Button>
             )}
 
             {/* Botão para marcar revisão */}
@@ -1767,6 +1819,18 @@ export default function DREAnalitico() {
             }}
           />
         )}
+
+        {/* Dialog de Reclassificação */}
+        <ReclassificarContaDREDialog
+          open={reclassificarDialogOpen}
+          onOpenChange={setReclassificarDialogOpen}
+          contaOrigem={contaParaReclassificar}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
+            setReclassificarDialogOpen(false);
+            setContaParaReclassificar(null);
+          }}
+        />
       </div>
     </DashboardLayout>
   );
