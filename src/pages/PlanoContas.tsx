@@ -26,6 +26,8 @@ interface Account {
   description: string | null;
   is_active: boolean;
   ordem: number;
+  departamento_id?: string | null;
+  categoria_dre?: string | null;
   children?: Account[];
 }
 
@@ -47,6 +49,24 @@ const accountTypeColors: Record<string, string> = {
   cost_center: "bg-cyan-500/10 text-cyan-700 border-cyan-200",
 };
 
+const categoriaDreLabels: Record<string, string> = {
+  receita_bruta: "Receita Bruta",
+  deducoes: "Deduções",
+  custo_vendas: "Custo Vendas",
+  despesas_variaveis: "Desp. Variáveis",
+  despesas_fixas: "Desp. Fixas",
+  impostos_lucro: "Impostos",
+};
+
+const categoriaDreColors: Record<string, string> = {
+  receita_bruta: "bg-emerald-500/20 text-emerald-700 border-emerald-500/30",
+  deducoes: "bg-orange-500/20 text-orange-700 border-orange-500/30",
+  custo_vendas: "bg-red-500/20 text-red-700 border-red-500/30",
+  despesas_variaveis: "bg-amber-500/20 text-amber-700 border-amber-500/30",
+  despesas_fixas: "bg-blue-500/20 text-blue-700 border-blue-500/30",
+  impostos_lucro: "bg-purple-500/20 text-purple-700 border-purple-500/30",
+};
+
 export default function PlanoContas() {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(["1", "2", "4", "5", "6", "7", "8"]));
@@ -60,7 +80,7 @@ export default function PlanoContas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trade_chart_of_accounts")
-        .select("*")
+        .select("id, code, name, account_type, nivel, natureza, is_group, permite_lancamento, parent_account_id, description, is_active, ordem, departamento_id, categoria_dre")
         .order("ordem", { ascending: true });
 
       if (error) throw error;
@@ -174,6 +194,14 @@ export default function PlanoContas() {
           </div>
 
           <div className="flex items-center gap-2">
+            {account.categoria_dre && (
+              <Badge 
+                variant="outline" 
+                className={categoriaDreColors[account.categoria_dre] || "bg-muted text-muted-foreground"}
+              >
+                {categoriaDreLabels[account.categoria_dre] || account.categoria_dre}
+              </Badge>
+            )}
             <Badge variant="outline" className={accountTypeColors[account.account_type]}>
               {accountTypeLabels[account.account_type]}
             </Badge>
@@ -189,15 +217,16 @@ export default function PlanoContas() {
               <Badge variant="destructive">Inativo</Badge>
             )}
             
-            {(account as any).departamento_id && departamentos && (
+            {account.departamento_id && departamentos && (
               <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
-                {departamentos.find((d: any) => d.id === (account as any).departamento_id)?.nome || 'Dept.'}
+                {departamentos.find((d: any) => d.id === account.departamento_id)?.nome || 'Dept.'}
               </Badge>
             )}
             
             <Button
               variant="ghost"
               size="sm"
+              title="Editar conta"
               onClick={() => {
                 setSelectedAccount(account);
                 setIsEditDialogOpen(true);
