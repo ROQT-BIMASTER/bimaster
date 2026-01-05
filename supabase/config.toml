@@ -1,6 +1,9 @@
 project_id = "aokkyrgaqjarhlywhjju"
 
 # Edge Functions
+[functions.contas-receber-powerquery]
+verify_jwt = false
+
 [functions.cobranca-automation-api]
 verify_jwt = false
 

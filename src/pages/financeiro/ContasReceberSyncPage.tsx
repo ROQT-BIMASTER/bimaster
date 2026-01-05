@@ -12,8 +12,9 @@ import { ContasReceberSyncPanel } from '@/components/financeiro/ContasReceberSyn
 import { 
   RefreshCw, Wifi, WifiOff, Play, Eye, Clock, Database, Zap, 
   CheckCircle, XCircle, Loader2, TrendingUp, AlertCircle, 
-  History, ArrowUpCircle, StopCircle, Shield, Server
+  History, ArrowUpCircle, StopCircle, Shield, Server, FileSpreadsheet
 } from 'lucide-react';
+import { PowerQueryInstructions } from '@/components/financeiro/PowerQueryInstructions';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -81,7 +82,7 @@ export default function ContasReceberSyncPage() {
 
         {/* Tabs: Painel de Controle vs Modo Legado */}
         <Tabs defaultValue="dual-mode" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsList className="grid w-full max-w-3xl grid-cols-4">
             <TabsTrigger value="dual-mode" className="flex items-center gap-2">
               <Server className="h-4 w-4" />
               N8N + API Direta
@@ -89,6 +90,10 @@ export default function ContasReceberSyncPage() {
             <TabsTrigger value="control-panel" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
               Painel Seguro
+            </TabsTrigger>
+            <TabsTrigger value="powerquery" className="flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Power Query
             </TabsTrigger>
             <TabsTrigger value="legacy" className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
@@ -102,6 +107,10 @@ export default function ContasReceberSyncPage() {
 
           <TabsContent value="control-panel" className="mt-6">
             <SyncControlPanel />
+          </TabsContent>
+
+          <TabsContent value="powerquery" className="mt-6">
+            <PowerQueryInstructions />
           </TabsContent>
 
           <TabsContent value="legacy" className="mt-6 space-y-6">
