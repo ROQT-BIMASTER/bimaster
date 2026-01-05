@@ -113,6 +113,7 @@ export default function DREAnalitico() {
     valor: number;
     lancamentosIds: string[];
     categoriaDre?: string | null;
+    tipoDre?: 'conta' | 'grupo' | 'fornecedor' | 'departamento';
   } | null>(null);
   
   // Regime de análise: 'competencia' (faturamento/emissão) ou 'caixa' (recebimento)
@@ -1272,6 +1273,7 @@ export default function DREAnalitico() {
                     valor: node.valor,
                     lancamentosIds,
                     categoriaDre,
+                    tipoDre: node.tipo as 'conta' | 'grupo' | 'fornecedor' | 'departamento',
                   });
                   setReclassificarDialogOpen(true);
                 }}
