@@ -110,14 +110,27 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Handle GET requests - return status/info (useful for testing connectivity)
+  if (req.method === 'GET') {
+    return new Response(
+      JSON.stringify({ 
+        status: 'online',
+        message: 'Endpoint de sincronização Power Query ativo. Use POST para enviar dados.',
+        usage: 'Envie um array JSON de registros via POST',
+        timestamp: new Date().toISOString()
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   const startTime = Date.now();
   console.log('🚀 Power Query Sync iniciado');
 
   try {
-    // Validar método
+    // Validar método (aceitar apenas POST para dados)
     if (req.method !== 'POST') {
       return new Response(
-        JSON.stringify({ error: 'Método não permitido. Use POST.' }),
+        JSON.stringify({ error: 'Método não permitido. Use POST para enviar dados.' }),
         { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
