@@ -10948,6 +10948,66 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_chunks_tracking: {
+        Row: {
+          chunk_number: number
+          completed_at: string | null
+          created_at: string | null
+          duration_ms: number | null
+          entidade: string
+          error_message: string | null
+          id: string
+          records_error: number | null
+          records_in_chunk: number | null
+          records_inserted: number | null
+          records_processed: number | null
+          records_skipped: number | null
+          records_updated: number | null
+          started_at: string | null
+          status: string | null
+          sync_id: string
+          total_chunks: number | null
+        }
+        Insert: {
+          chunk_number: number
+          completed_at?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          entidade: string
+          error_message?: string | null
+          id?: string
+          records_error?: number | null
+          records_in_chunk?: number | null
+          records_inserted?: number | null
+          records_processed?: number | null
+          records_skipped?: number | null
+          records_updated?: number | null
+          started_at?: string | null
+          status?: string | null
+          sync_id: string
+          total_chunks?: number | null
+        }
+        Update: {
+          chunk_number?: number
+          completed_at?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          entidade?: string
+          error_message?: string | null
+          id?: string
+          records_error?: number | null
+          records_in_chunk?: number | null
+          records_inserted?: number | null
+          records_processed?: number | null
+          records_skipped?: number | null
+          records_updated?: number | null
+          started_at?: string | null
+          status?: string | null
+          sync_id?: string
+          total_chunks?: number | null
+        }
+        Relationships: []
+      }
       sync_control: {
         Row: {
           created_at: string | null
@@ -12942,6 +13002,24 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_chunks_progress: {
+        Row: {
+          completed_chunks: number | null
+          entidade: string | null
+          error_chunks: number | null
+          last_completed_at: string | null
+          overall_status: string | null
+          started_at: string | null
+          sync_id: string | null
+          total_chunks: number | null
+          total_duration_ms: number | null
+          total_inserted: number | null
+          total_processed: number | null
+          total_skipped: number | null
+          total_updated: number | null
+        }
+        Relationships: []
+      }
       sync_tracking_summary: {
         Row: {
           avg_duration_ms: number | null
@@ -13034,8 +13112,13 @@ export type Database = {
         Args: { p_cliente_codigo: string }
         Returns: string
       }
+      bulk_upsert_contas_pagar_v2: { Args: { p_records: Json }; Returns: Json }
       bulk_upsert_contas_receber: { Args: { p_records: Json }; Returns: Json }
       bulk_upsert_contas_receber_v2: {
+        Args: { p_records: Json }
+        Returns: Json
+      }
+      bulk_upsert_estoque_movimentacoes_v2: {
         Args: { p_records: Json }
         Returns: Json
       }
