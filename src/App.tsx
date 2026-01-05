@@ -70,6 +70,7 @@ const WhatsAppMonitoring = lazy(() => import("./pages/WhatsAppMonitoring"));
 const Marketing = lazy(() => import("./pages/Marketing"));
 const MarketingMissionControlPage = lazy(() => import("./pages/MarketingMissionControlPage"));
 const AIAnalytics = lazy(() => import("./pages/AIAnalytics"));
+const QAAgent = lazy(() => import("./pages/QAAgent"));
 const FabricaModule = lazy(() => import("./pages/modules/FabricaModule"));
 const FabricaMateriasPrimas = lazy(() => import("./pages/FabricaMateriasPrimas"));
 const FabricaFormulas = lazy(() => import("./pages/FabricaFormulas"));
@@ -191,6 +192,7 @@ function AppContent() {
             {/* Protected Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/dashboard/ai-analytics" element={<ProtectedRoute><AIAnalytics /></ProtectedRoute>} />
+            <Route path="/dashboard/qa-agent" element={<ProtectedRoute><QAAgent /></ProtectedRoute>} />
             <Route path="/dashboard/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             
             {/* Módulo de Marketing */}

@@ -183,3 +183,7 @@ verify_jwt = true
 # N8N Contas a Receber - Integração via webhook MCP (usa x-api-key)
 [functions.n8n-contas-receber]
 verify_jwt = false
+
+# QA Agent - Agente de IA para testes de qualidade
+[functions.qa-agent]
+verify_jwt = true

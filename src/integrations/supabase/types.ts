@@ -9347,6 +9347,117 @@ export type Database = {
           },
         ]
       }
+      qa_chat_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          messages: Json | null
+          tests_failed: number | null
+          tests_passed: number | null
+          tests_run: number | null
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          messages?: Json | null
+          tests_failed?: number | null
+          tests_passed?: number | null
+          tests_run?: number | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          messages?: Json | null
+          tests_failed?: number | null
+          tests_passed?: number | null
+          tests_run?: number | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      qa_issues: {
+        Row: {
+          auto_fixable: boolean | null
+          category: string
+          created_at: string | null
+          description: string
+          fixed_at: string | null
+          fixed_by: string | null
+          id: string
+          severity: string
+          status: string | null
+          suggested_fix: string | null
+        }
+        Insert: {
+          auto_fixable?: boolean | null
+          category: string
+          created_at?: string | null
+          description: string
+          fixed_at?: string | null
+          fixed_by?: string | null
+          id?: string
+          severity: string
+          status?: string | null
+          suggested_fix?: string | null
+        }
+        Update: {
+          auto_fixable?: boolean | null
+          category?: string
+          created_at?: string | null
+          description?: string
+          fixed_at?: string | null
+          fixed_by?: string | null
+          id?: string
+          severity?: string
+          status?: string | null
+          suggested_fix?: string | null
+        }
+        Relationships: []
+      }
+      qa_test_results: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          duration_ms: number | null
+          id: string
+          message: string | null
+          session_id: string | null
+          status: string
+          target: string
+          test_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          duration_ms?: number | null
+          id?: string
+          message?: string | null
+          session_id?: string | null
+          status: string
+          target: string
+          test_type: string
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          duration_ms?: number | null
+          id?: string
+          message?: string | null
+          session_id?: string | null
+          status?: string
+          target?: string
+          test_type?: string
+        }
+        Relationships: []
+      }
       regras_cobranca: {
         Row: {
           ativo: boolean | null
