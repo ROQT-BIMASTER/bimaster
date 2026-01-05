@@ -25,7 +25,7 @@ const CATEGORIAS_DRE = [
   { value: 'receita_bruta', label: 'Receita Bruta' },
   { value: 'deducoes', label: 'Deduções e Abatimentos' },
   { value: 'custo_vendas', label: 'Custo de Vendas' },
-  { value: 'despesas_variaveis', label: 'Despesas Variáveis' },
+  { value: 'despesas_variaveis', label: 'Custo Variável' },
   { value: 'despesas_fixas', label: 'Despesas Fixas' },
   { value: 'impostos_lucro', label: 'Impostos s/ Lucro' },
 ];
