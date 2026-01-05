@@ -6907,6 +6907,360 @@ export type Database = {
           },
         ]
       }
+      huggs_agent_config: {
+        Row: {
+          capabilities: Json | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_tokens: number | null
+          model: string | null
+          n8n_webhook_url: string | null
+          n8n_workflow_id: string | null
+          name: string
+          system_prompt: string | null
+          temperature: number | null
+          updated_at: string
+        }
+        Insert: {
+          capabilities?: Json | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_tokens?: number | null
+          model?: string | null
+          n8n_webhook_url?: string | null
+          n8n_workflow_id?: string | null
+          name?: string
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+        }
+        Update: {
+          capabilities?: Json | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_tokens?: number | null
+          model?: string | null
+          n8n_webhook_url?: string | null
+          n8n_workflow_id?: string | null
+          name?: string
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      huggs_charts: {
+        Row: {
+          chart_config: Json
+          chart_type: string
+          created_at: string
+          data: Json
+          department: string | null
+          id: string
+          is_favorite: boolean | null
+          message_id: string | null
+          session_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          chart_config: Json
+          chart_type: string
+          created_at?: string
+          data: Json
+          department?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          message_id?: string | null
+          session_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          chart_config?: Json
+          chart_type?: string
+          created_at?: string
+          data?: Json
+          department?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          message_id?: string | null
+          session_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "huggs_charts_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "huggs_chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "huggs_charts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "huggs_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      huggs_chat_messages: {
+        Row: {
+          content: string
+          content_type: string | null
+          created_at: string
+          id: string
+          latency_ms: number | null
+          metadata: Json | null
+          role: string
+          session_id: string
+          tokens_used: number | null
+          tool_calls: Json | null
+          tool_results: Json | null
+        }
+        Insert: {
+          content: string
+          content_type?: string | null
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          metadata?: Json | null
+          role: string
+          session_id: string
+          tokens_used?: number | null
+          tool_calls?: Json | null
+          tool_results?: Json | null
+        }
+        Update: {
+          content?: string
+          content_type?: string | null
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          metadata?: Json | null
+          role?: string
+          session_id?: string
+          tokens_used?: number | null
+          tool_calls?: Json | null
+          tool_results?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "huggs_chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "huggs_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      huggs_chat_sessions: {
+        Row: {
+          context: Json | null
+          created_at: string
+          department: string | null
+          id: string
+          last_message_at: string | null
+          messages_count: number | null
+          metadata: Json | null
+          status: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          last_message_at?: string | null
+          messages_count?: number | null
+          metadata?: Json | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          last_message_at?: string | null
+          messages_count?: number | null
+          metadata?: Json | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      huggs_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          feedback_type: string | null
+          id: string
+          message_id: string
+          rating: number | null
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          feedback_type?: string | null
+          id?: string
+          message_id: string
+          rating?: number | null
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          feedback_type?: string | null
+          id?: string
+          message_id?: string
+          rating?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "huggs_feedback_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "huggs_chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      huggs_reports: {
+        Row: {
+          content: string | null
+          created_at: string
+          date_range: Json | null
+          department: string | null
+          format: string | null
+          id: string
+          is_favorite: boolean | null
+          message_id: string | null
+          metadata: Json | null
+          report_type: string | null
+          session_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          date_range?: Json | null
+          department?: string | null
+          format?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          message_id?: string | null
+          metadata?: Json | null
+          report_type?: string | null
+          session_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          date_range?: Json | null
+          department?: string | null
+          format?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          message_id?: string | null
+          metadata?: Json | null
+          report_type?: string | null
+          session_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "huggs_reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "huggs_chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "huggs_reports_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "huggs_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      huggs_usage_logs: {
+        Row: {
+          action: string
+          created_at: string
+          error_message: string | null
+          id: string
+          latency_ms: number | null
+          metadata: Json | null
+          session_id: string | null
+          success: boolean | null
+          tokens_input: number | null
+          tokens_output: number | null
+          tool_used: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          latency_ms?: number | null
+          metadata?: Json | null
+          session_id?: string | null
+          success?: boolean | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          tool_used?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          latency_ms?: number | null
+          metadata?: Json | null
+          session_id?: string | null
+          success?: boolean | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          tool_used?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "huggs_usage_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "huggs_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ideal_pdv_photos: {
         Row: {
           category: string
