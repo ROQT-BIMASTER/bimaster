@@ -1,15 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, AlertTriangle, ArrowRight } from "lucide-react";
+import { Loader2, AlertTriangle, ArrowDown } from "lucide-react";
 
 interface ContaOrigem {
   id: string;
@@ -17,6 +17,7 @@ interface ContaOrigem {
   nome: string;
   valor: number;
   lancamentosIds: string[];
+  categoriaDre?: string | null;
 }
 
 interface PlanoContasItem {
@@ -24,6 +25,7 @@ interface PlanoContasItem {
   code: string;
   name: string;
   account_type: string | null;
+  categoria_dre: string | null;
 }
 
 interface ReclassificarContaDREDialogProps {
@@ -33,6 +35,24 @@ interface ReclassificarContaDREDialogProps {
   onSuccess: () => void;
 }
 
+const CATEGORIAS_DRE = [
+  { value: 'receita_bruta', label: 'Receita Bruta' },
+  { value: 'deducoes', label: 'Deduções e Abatimentos' },
+  { value: 'custo_vendas', label: 'Custo de Vendas' },
+  { value: 'despesas_variaveis', label: 'Despesas Variáveis' },
+  { value: 'despesas_fixas', label: 'Despesas Fixas' },
+  { value: 'impostos_lucro', label: 'Impostos s/ Lucro' },
+];
+
+const CATEGORIA_COLORS: Record<string, string> = {
+  'receita_bruta': 'bg-emerald-500/20 text-emerald-700 border-emerald-500/30',
+  'deducoes': 'bg-orange-500/20 text-orange-700 border-orange-500/30',
+  'custo_vendas': 'bg-red-500/20 text-red-700 border-red-500/30',
+  'despesas_variaveis': 'bg-amber-500/20 text-amber-700 border-amber-500/30',
+  'despesas_fixas': 'bg-blue-500/20 text-blue-700 border-blue-500/30',
+  'impostos_lucro': 'bg-purple-500/20 text-purple-700 border-purple-500/30',
+};
+
 export function ReclassificarContaDREDialog({
   open,
   onOpenChange,
@@ -40,6 +60,7 @@ export function ReclassificarContaDREDialog({
   onSuccess,
 }: ReclassificarContaDREDialogProps) {
   const queryClient = useQueryClient();
+  const [novaCategoriaDre, setNovaCategoriaDre] = useState<string>("");
   const [novaContaId, setNovaContaId] = useState<string>("");
   const [justificativa, setJustificativa] = useState("");
   const [bloquearIA, setBloquearIA] = useState(true);
@@ -47,6 +68,7 @@ export function ReclassificarContaDREDialog({
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
+      setNovaCategoriaDre("");
       setNovaContaId("");
       setJustificativa("");
       setBloquearIA(true);
@@ -66,7 +88,7 @@ export function ReclassificarContaDREDialog({
       try {
         const { data, error } = await supabase
           .from('trade_chart_of_accounts')
-          .select('id, code, name, account_type')
+          .select('id, code, name, account_type, categoria_dre')
           .eq('is_active', true)
           .eq('is_group', false)
           .order('code');
@@ -77,7 +99,8 @@ export function ReclassificarContaDREDialog({
           id: c.id,
           code: c.code,
           name: c.name,
-          account_type: c.account_type
+          account_type: c.account_type,
+          categoria_dre: c.categoria_dre
         }));
         setContasDisponiveis(contas);
       } catch (err) {
@@ -90,11 +113,65 @@ export function ReclassificarContaDREDialog({
     fetchContas();
   }, [open]);
 
+  // Filter accounts by selected category
+  const contasFiltradas = useMemo(() => {
+    if (!novaCategoriaDre) return [];
+    return contasDisponiveis.filter(c => c.categoria_dre === novaCategoriaDre);
+  }, [contasDisponiveis, novaCategoriaDre]);
+
+  // Group accounts by category for display
+  const contasAgrupadas = useMemo(() => {
+    const grupos: Record<string, PlanoContasItem[]> = {};
+    
+    CATEGORIAS_DRE.forEach(cat => {
+      const contasCat = contasDisponiveis.filter(c => c.categoria_dre === cat.value);
+      if (contasCat.length > 0) {
+        grupos[cat.value] = contasCat;
+      }
+    });
+    
+    // Add uncategorized accounts
+    const semCategoria = contasDisponiveis.filter(c => !c.categoria_dre);
+    if (semCategoria.length > 0) {
+      grupos['sem_categoria'] = semCategoria;
+    }
+    
+    return grupos;
+  }, [contasDisponiveis]);
+
+  const getCategoriaLabel = (value: string | null | undefined) => {
+    if (!value) return 'Não definida';
+    const cat = CATEGORIAS_DRE.find(c => c.value === value);
+    return cat?.label || value;
+  };
+
   // Mutation to update accounts
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!contaOrigem || !novaContaId) {
+      if (!contaOrigem) {
         throw new Error("Dados incompletos para reclassificação");
+      }
+
+      // If just changing category (no new account selected)
+      if (novaCategoriaDre && !novaContaId) {
+        // Find the original account and update its category
+        const { error } = await supabase
+          .from('trade_chart_of_accounts')
+          .update({ categoria_dre: novaCategoriaDre })
+          .eq('code', contaOrigem.codigo);
+
+        if (error) throw error;
+
+        return { 
+          type: 'categoria' as const, 
+          novaCategoria: getCategoriaLabel(novaCategoriaDre),
+          count: contaOrigem.lancamentosIds.length 
+        };
+      }
+
+      // Moving to a different account
+      if (!novaContaId) {
+        throw new Error("Selecione uma conta destino");
       }
 
       const novaConta = contasDisponiveis.find(c => c.id === novaContaId);
@@ -135,11 +212,20 @@ export function ReclassificarContaDREDialog({
         console.error('Erro ao registrar histórico:', histError);
       }
 
-      return { count: contaOrigem.lancamentosIds.length, novaConta };
+      return { 
+        type: 'conta' as const, 
+        novaConta, 
+        count: contaOrigem.lancamentosIds.length 
+      };
     },
     onSuccess: (result) => {
-      toast.success(`${result.count} lançamento(s) reclassificado(s) para ${result.novaConta.code} - ${result.novaConta.name}`);
+      if (result.type === 'categoria') {
+        toast.success(`Categoria da conta alterada para "${result.novaCategoria}"`);
+      } else {
+        toast.success(`${result.count} lançamento(s) reclassificado(s) para ${result.novaConta.code} - ${result.novaConta.name}`);
+      }
       queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
+      queryClient.invalidateQueries({ queryKey: ['plano-contas-dre'] });
       onSuccess();
     },
     onError: (error) => {
@@ -157,6 +243,8 @@ export function ReclassificarContaDREDialog({
     }).format(Math.abs(value));
   };
 
+  const categoriaAtual = contaOrigem.categoriaDre;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -166,7 +254,7 @@ export function ReclassificarContaDREDialog({
             Reclassificar Conta
           </DialogTitle>
           <DialogDescription>
-            Mova todos os lançamentos desta conta para outra conta do plano de contas.
+            Altere a categoria DRE ou mova os lançamentos para outra conta.
           </DialogDescription>
         </DialogHeader>
 
@@ -175,48 +263,131 @@ export function ReclassificarContaDREDialog({
           <div className="p-3 bg-muted/50 rounded-lg border">
             <Label className="text-xs text-muted-foreground">Conta Origem</Label>
             <div className="font-medium mt-1">
-              <Badge variant="outline" className="mr-2">{contaOrigem.codigo}</Badge>
+              <Badge variant="outline" className="mr-2 font-mono">{contaOrigem.codigo}</Badge>
               {contaOrigem.nome}
             </div>
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-              <span>{contaOrigem.lancamentosIds.length} lançamento(s)</span>
-              <span>•</span>
-              <span className="font-medium text-foreground">{formatCurrency(contaOrigem.valor)}</span>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge 
+                variant="outline" 
+                className={categoriaAtual ? CATEGORIA_COLORS[categoriaAtual] : 'bg-muted text-muted-foreground'}
+              >
+                {getCategoriaLabel(categoriaAtual)}
+              </Badge>
+              <span className="text-sm text-muted-foreground">•</span>
+              <span className="text-sm text-muted-foreground">{contaOrigem.lancamentosIds.length} lançamento(s)</span>
+              <span className="text-sm text-muted-foreground">•</span>
+              <span className="text-sm font-medium">{formatCurrency(contaOrigem.valor)}</span>
             </div>
           </div>
 
           {/* Arrow */}
           <div className="flex justify-center">
-            <ArrowRight className="h-5 w-5 text-muted-foreground" />
+            <ArrowDown className="h-5 w-5 text-muted-foreground" />
           </div>
 
-          {/* Conta Destino */}
+          {/* Nova Categoria DRE */}
           <div className="space-y-2">
-            <Label>Nova Conta (Destino)</Label>
-            <Select value={novaContaId} onValueChange={setNovaContaId}>
+            <Label>Nova Categoria DRE</Label>
+            <Select value={novaCategoriaDre} onValueChange={(val) => {
+              setNovaCategoriaDre(val);
+              setNovaContaId(""); // Reset account selection when category changes
+            }}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione a conta destino..." />
+                <SelectValue placeholder="Selecione a categoria..." />
               </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                {loadingContas ? (
-                  <div className="p-2 text-center text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                  </div>
-                ) : (
-                  contasDisponiveis.map((conta) => (
-                    <SelectItem 
-                      key={conta.id} 
-                      value={conta.id}
-                      disabled={conta.code === contaOrigem.codigo}
-                    >
-                      <span className="font-mono text-xs mr-2">{conta.code}</span>
-                      {conta.name}
-                    </SelectItem>
-                  ))
-                )}
+              <SelectContent>
+                {CATEGORIAS_DRE.map((cat) => (
+                  <SelectItem 
+                    key={cat.value} 
+                    value={cat.value}
+                    disabled={cat.value === categoriaAtual}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${CATEGORIA_COLORS[cat.value]?.split(' ')[0] || 'bg-muted'}`} />
+                      {cat.label}
+                      {cat.value === categoriaAtual && <span className="text-xs text-muted-foreground">(atual)</span>}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+
+          {/* Nova Conta (opcional) */}
+          {novaCategoriaDre && (
+            <div className="space-y-2">
+              <Label>Mover para outra conta (opcional)</Label>
+              <Select value={novaContaId} onValueChange={setNovaContaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Manter na mesma conta..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {loadingContas ? (
+                    <div className="p-2 text-center text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                    </div>
+                  ) : (
+                    <>
+                      <SelectItem value="mesma">
+                        <span className="text-muted-foreground">Manter na conta atual</span>
+                      </SelectItem>
+                      
+                      {/* Show accounts in the selected category */}
+                      {contasFiltradas.length > 0 && (
+                        <SelectGroup>
+                          <SelectLabel className="text-xs font-semibold text-muted-foreground">
+                            {getCategoriaLabel(novaCategoriaDre)}
+                          </SelectLabel>
+                          {contasFiltradas.map((conta) => (
+                            <SelectItem 
+                              key={conta.id} 
+                              value={conta.id}
+                              disabled={conta.code === contaOrigem.codigo}
+                            >
+                              <span className="font-mono text-xs mr-2">{conta.code}</span>
+                              {conta.name}
+                              {conta.code === contaOrigem.codigo && (
+                                <span className="text-xs text-muted-foreground ml-1">(atual)</span>
+                              )}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      )}
+
+                      {/* Also show other categories for flexibility */}
+                      {Object.entries(contasAgrupadas)
+                        .filter(([cat]) => cat !== novaCategoriaDre && cat !== 'sem_categoria')
+                        .map(([categoria, contas]) => (
+                          <SelectGroup key={categoria}>
+                            <SelectLabel className="text-xs font-semibold text-muted-foreground">
+                              {getCategoriaLabel(categoria)}
+                            </SelectLabel>
+                            {contas.slice(0, 5).map((conta) => (
+                              <SelectItem 
+                                key={conta.id} 
+                                value={conta.id}
+                                disabled={conta.code === contaOrigem.codigo}
+                              >
+                                <span className="font-mono text-xs mr-2">{conta.code}</span>
+                                {conta.name}
+                              </SelectItem>
+                            ))}
+                            {contas.length > 5 && (
+                              <div className="px-2 py-1 text-xs text-muted-foreground">
+                                +{contas.length - 5} contas...
+                              </div>
+                            )}
+                          </SelectGroup>
+                        ))}
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Se não selecionar, apenas a categoria da conta será alterada.
+              </p>
+            </div>
+          )}
 
           {/* Justificativa */}
           <div className="space-y-2">
@@ -224,27 +395,29 @@ export function ReclassificarContaDREDialog({
             <Textarea
               value={justificativa}
               onChange={(e) => setJustificativa(e.target.value)}
-              placeholder="Ex: Conta estava classificada incorretamente..."
+              placeholder="Ex: Serviços jurídicos são despesas fixas, não custo de vendas..."
               rows={2}
             />
           </div>
 
-          {/* Bloquear IA */}
-          <div className="flex items-center space-x-2 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
-            <Checkbox 
-              id="bloquear-ia" 
-              checked={bloquearIA}
-              onCheckedChange={(checked) => setBloquearIA(checked as boolean)}
-            />
-            <div className="flex-1">
-              <Label htmlFor="bloquear-ia" className="text-sm font-medium cursor-pointer">
-                Bloquear reclassificação automática
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Impede que a IA reclassifique estes lançamentos futuramente
-              </p>
+          {/* Bloquear IA - only show when moving to another account */}
+          {novaContaId && novaContaId !== 'mesma' && (
+            <div className="flex items-center space-x-2 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+              <Checkbox 
+                id="bloquear-ia" 
+                checked={bloquearIA}
+                onCheckedChange={(checked) => setBloquearIA(checked as boolean)}
+              />
+              <div className="flex-1">
+                <Label htmlFor="bloquear-ia" className="text-sm font-medium cursor-pointer">
+                  Bloquear reclassificação automática
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Impede que a IA reclassifique estes lançamentos futuramente
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -253,15 +426,17 @@ export function ReclassificarContaDREDialog({
           </Button>
           <Button 
             onClick={() => mutation.mutate()}
-            disabled={!novaContaId || mutation.isPending}
+            disabled={!novaCategoriaDre || mutation.isPending}
           >
             {mutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Reclassificando...
+                Salvando...
               </>
-            ) : (
+            ) : novaContaId && novaContaId !== 'mesma' ? (
               `Reclassificar ${contaOrigem.lancamentosIds.length} lançamento(s)`
+            ) : (
+              `Alterar Categoria`
             )}
           </Button>
         </DialogFooter>

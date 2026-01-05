@@ -112,6 +112,7 @@ export default function DREAnalitico() {
     nome: string;
     valor: number;
     lancamentosIds: string[];
+    categoriaDre?: string | null;
   } | null>(null);
   
   // Regime de análise: 'competencia' (faturamento/emissão) ou 'caixa' (recebimento)
@@ -1249,12 +1250,15 @@ export default function DREAnalitico() {
                     toast.error("Nenhum lançamento encontrado para reclassificar");
                     return;
                   }
+                  // Get categoria_dre from planoContas if available
+                  const contaPlano = planoContas?.find(c => c.code === node.codigo);
                   setContaParaReclassificar({
                     id: node.id,
                     codigo: node.codigo,
                     nome: node.nome,
                     valor: node.valor,
                     lancamentosIds,
+                    categoriaDre: contaPlano?.categoria_dre || null,
                   });
                   setReclassificarDialogOpen(true);
                 }}
