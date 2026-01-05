@@ -311,19 +311,27 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MA
 
 // ============= FETCH N8N COM FALLBACK POST -> GET =============
 // Tenta POST primeiro, se falhar com 404 "not registered for POST", tenta GET
+// IMPORTANTE: O workflow N8N usa NumeroPagina e batchSize ao invés de offset/limit
 async function fetchN8nWithFallback(
   limit: number, 
   offset: number, 
   filters?: Record<string, any>
 ): Promise<{ response: Response; method: string }> {
+  // Converter offset/limit para NumeroPagina/batchSize que o N8N espera
+  // Fórmula: NumeroPagina = (offset / batchSize) + 1
+  const batchSize = limit;
+  const numeroPagina = Math.floor(offset / batchSize) + 1;
+  
   const payload = { 
     tableName: 'ConsultaPowerBIReceber', 
     limit, 
     offset,
+    batchSize,
+    NumeroPagina: numeroPagina,
     ...(filters && Object.keys(filters).length > 0 ? { filters } : {})
   };
 
-  console.log(`🔗 Fetching N8N webhook: limit=${limit}, offset=${offset}, method=POST first`);
+  console.log(`🔗 Fetching N8N webhook: limit=${limit}, offset=${offset}, NumeroPagina=${numeroPagina}, batchSize=${batchSize}, method=POST first`);
   
   // Tentar POST primeiro (apenas 2 tentativas rápidas)
   try {
@@ -352,11 +360,16 @@ async function fetchN8nWithFallback(
       if (responseText.includes('not registered for POST') || responseText.includes('Did you mean to make a GET')) {
         console.log(`⚠️ POST not supported by webhook, falling back to GET...`);
         
-        // Construir URL com query params para GET
+        // Construir URL com query params para GET (incluindo NumeroPagina e batchSize)
+        const batchSize = limit;
+        const numeroPagina = Math.floor(offset / batchSize) + 1;
+        
         const queryParams = new URLSearchParams({
           tableName: 'ConsultaPowerBIReceber',
           limit: limit.toString(),
           offset: offset.toString(),
+          batchSize: batchSize.toString(),
+          NumeroPagina: numeroPagina.toString(),
         });
         
         // Adicionar filtros se existirem
@@ -402,11 +415,16 @@ async function fetchN8nWithFallback(
       console.log(`⚠️ POST failed (${err.message}), falling back to GET...`);
     }
     
-    // Fallback para GET em caso de erro
+    // Fallback para GET em caso de erro (incluindo NumeroPagina e batchSize)
+    const batchSize = limit;
+    const numeroPagina = Math.floor(offset / batchSize) + 1;
+    
     const queryParams = new URLSearchParams({
       tableName: 'ConsultaPowerBIReceber',
       limit: limit.toString(),
       offset: offset.toString(),
+      batchSize: batchSize.toString(),
+      NumeroPagina: numeroPagina.toString(),
     });
     
     if (filters) {
