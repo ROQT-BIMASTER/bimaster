@@ -9,13 +9,13 @@ const corsHeaders = {
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
 
 // ============= CONFIGURAÇÕES OTIMIZADAS PARA 500K+ REGISTROS =============
-const DEFAULT_BATCH_SIZE = 2000;     // Aumentado para processar mais rápido
+const DEFAULT_BATCH_SIZE = 2500;     // Batch maior para 500K registros
 const MAX_BATCH_SIZE = 5000;         // Máximo para grande volume
-const UPSERT_BATCH_SIZE = 200;       // Aumentado para melhor throughput
-const MAX_RETRIES = 5;               // Mais retries para grande volume
-const RETRY_DELAY_MS = 2000;         // 2s entre retries
-const FETCH_TIMEOUT_MS = 300000;     // 5 MINUTOS timeout para queries grandes
-const SUPABASE_BATCH_DELAY_MS = 100; // Reduzido para maior velocidade
+const UPSERT_BATCH_SIZE = 200;       // Batch de upsert
+const MAX_RETRIES = 10;              // 10 retries para grande volume
+const RETRY_DELAY_MS = 3000;         // 3s entre retries
+const FETCH_TIMEOUT_MS = 600000;     // 10 MINUTOS timeout para queries grandes
+const SUPABASE_BATCH_DELAY_MS = 100; // Delay entre upserts
 
 // ============= PROTEÇÕES BALANCEADAS PARA GRANDE VOLUME =============
 const RATE_LIMIT_WINDOW_MS = 60000;  // Janela de 1 minuto
@@ -269,6 +269,135 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MA
   throw lastError || new Error('Max retries exceeded');
 }
 
+// ============= FETCH N8N COM FALLBACK POST -> GET =============
+// Tenta POST primeiro, se falhar com 404 "not registered for POST", tenta GET
+async function fetchN8nWithFallback(
+  limit: number, 
+  offset: number, 
+  filters?: Record<string, any>
+): Promise<{ response: Response; method: string }> {
+  const payload = { 
+    tableName: 'ConsultaPowerBIReceber', 
+    limit, 
+    offset,
+    ...(filters && Object.keys(filters).length > 0 ? { filters } : {})
+  };
+
+  console.log(`🔗 Fetching N8N webhook: limit=${limit}, offset=${offset}, method=POST first`);
+  
+  // Tentar POST primeiro (apenas 2 tentativas rápidas)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout para teste POST
+    
+    const postResponse = await fetch(N8N_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+
+    // Se POST funcionar (status 200-299), retornar
+    if (postResponse.ok) {
+      console.log(`✅ POST successful (${postResponse.status})`);
+      return { response: postResponse, method: 'POST' };
+    }
+
+    // Verificar se é erro 404 de "not registered for POST"
+    if (postResponse.status === 404) {
+      const responseText = await postResponse.text();
+      
+      if (responseText.includes('not registered for POST') || responseText.includes('Did you mean to make a GET')) {
+        console.log(`⚠️ POST not supported by webhook, falling back to GET...`);
+        
+        // Construir URL com query params para GET
+        const queryParams = new URLSearchParams({
+          tableName: 'ConsultaPowerBIReceber',
+          limit: limit.toString(),
+          offset: offset.toString(),
+        });
+        
+        // Adicionar filtros se existirem
+        if (filters) {
+          Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+              queryParams.append(key, String(value));
+            }
+          });
+        }
+        
+        const getUrl = `${N8N_WEBHOOK_URL}?${queryParams.toString()}`;
+        console.log(`🔗 Trying GET: ${getUrl}`);
+        
+        // Usar fetchWithRetry para o GET com todas as retries
+        const getResponse = await fetchWithRetry(getUrl, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        
+        if (getResponse.ok) {
+          console.log(`✅ GET fallback successful (${getResponse.status})`);
+        } else {
+          console.error(`❌ GET fallback failed: ${getResponse.status}`);
+        }
+        
+        return { response: getResponse, method: 'GET' };
+      }
+      
+      // Outro tipo de 404, não é problema de método
+      console.error(`❌ Webhook 404 error: ${responseText.substring(0, 200)}`);
+      throw new Error(`N8N webhook not found: ${responseText.substring(0, 100)}`);
+    }
+
+    // Para outros erros (500+), usar retry com POST
+    console.log(`⚠️ POST returned ${postResponse.status}, trying with retry logic...`);
+    
+  } catch (error) {
+    const err = error as Error;
+    if (err.name === 'AbortError') {
+      console.log(`⚠️ POST initial test timed out, falling back to GET...`);
+    } else {
+      console.log(`⚠️ POST failed (${err.message}), falling back to GET...`);
+    }
+    
+    // Fallback para GET em caso de erro
+    const queryParams = new URLSearchParams({
+      tableName: 'ConsultaPowerBIReceber',
+      limit: limit.toString(),
+      offset: offset.toString(),
+    });
+    
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, String(value));
+        }
+      });
+    }
+    
+    const getUrl = `${N8N_WEBHOOK_URL}?${queryParams.toString()}`;
+    console.log(`🔗 Fallback GET: ${getUrl}`);
+    
+    const getResponse = await fetchWithRetry(getUrl, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    
+    return { response: getResponse, method: 'GET' };
+  }
+  
+  // Se chegou aqui, POST falhou com status não-404, tentar com retry completo
+  const fullRetryResponse = await fetchWithRetry(N8N_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  
+  return { response: fullRetryResponse, method: 'POST' };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -461,15 +590,8 @@ async function handleStatus(supabase: any) {
   let responseData: any = null;
   
   try {
-    const response = await fetch(N8N_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        tableName: 'ConsultaPowerBIReceber',
-        limit: 1, 
-        offset: 0 
-      }),
-    });
+    // Usar fallback POST -> GET
+    const { response, method } = await fetchN8nWithFallback(1, 0);
 
     const duration = Date.now() - startTime;
     const responseText = await response.text();
@@ -485,6 +607,8 @@ async function handleStatus(supabase: any) {
       Array.isArray(responseData?.data) || 
       Array.isArray(responseData)
     );
+    
+    console.log(`✅ N8N connection test: ${n8nConnected ? 'SUCCESS' : 'FAILED'} via ${method} in ${duration}ms`);
 
   } catch (error: unknown) {
     console.error('❌ N8N connection error:', (error as Error).message);
@@ -551,18 +675,19 @@ async function handleQuery(req: Request) {
     queryFilters.anoMinimo = anoMinimo;
   }
 
-  const response = await fetch(N8N_WEBHOOK_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tableName: 'ConsultaPowerBIReceber', limit, offset, filters: queryFilters }),
-  });
+  // Usar fallback POST -> GET
+  const { response, method } = await fetchN8nWithFallback(limit, offset, queryFilters);
 
   if (!response.ok) {
-    throw new Error(`N8N webhook error: ${response.status}`);
+    const errorText = await response.text().catch(() => 'Unknown error');
+    throw new Error(`N8N webhook error (${method}): ${response.status} - ${errorText.substring(0, 100)}`);
   }
 
+  const data = await response.json();
+  console.log(`✅ Query successful via ${method}: ${(data.data || []).length} records`);
+
   return new Response(
-    JSON.stringify(await response.json()),
+    JSON.stringify(data),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
@@ -572,21 +697,21 @@ async function handlePreview(req: Request) {
   const body = await req.json().catch(() => ({}));
   const { limit = 10 } = body;
 
-  const response = await fetch(N8N_WEBHOOK_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tableName: 'ConsultaPowerBIReceber', limit: Math.min(limit, 100), offset: 0 }),
-  });
+  // Usar fallback POST -> GET
+  const { response, method } = await fetchN8nWithFallback(Math.min(limit, 100), 0);
 
   if (!response.ok) {
-    throw new Error(`N8N webhook error: ${response.status}`);
+    const errorText = await response.text().catch(() => 'Unknown error');
+    throw new Error(`N8N webhook error (${method}): ${response.status} - ${errorText.substring(0, 100)}`);
   }
 
   const data = await response.json();
   const transformedRecords = (data.data || []).map(transformErpData);
+  
+  console.log(`✅ Preview successful via ${method}: ${transformedRecords.length} records`);
 
   return new Response(
-    JSON.stringify({ success: true, preview: transformedRecords, metadata: data.metadata }),
+    JSON.stringify({ success: true, preview: transformedRecords, metadata: data.metadata, method }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
@@ -780,26 +905,19 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
       queryFilters.anoMinimo = anoMinimo;
     }
 
-    // Buscar dados do N8N
-    const response = await fetchWithRetry(N8N_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tableName: 'ConsultaPowerBIReceber',
-        limit: batchSize,
-        offset,
-        filters: Object.keys(queryFilters).length > 0 ? queryFilters : undefined,
-      }),
-    });
+    // Buscar dados do N8N com fallback POST -> GET
+    const { response, method } = await fetchN8nWithFallback(batchSize, offset, queryFilters);
 
     if (!response.ok) {
-      throw new Error(`N8N error: ${response.status}`);
+      const errorText = await response.text().catch(() => 'Unknown error');
+      throw new Error(`N8N error (${method}): ${response.status} - ${errorText.substring(0, 100)}`);
     }
 
     const data = await response.json();
     const records = data.data || [];
     
-    console.log(`📥 Received ${records.length} records from N8N`);
+    console.log(`📥 Received ${records.length} records from N8N via ${method}`);
+
 
     if (records.length === 0) {
       // Sem mais registros - sync completo
@@ -1122,19 +1240,15 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
         }
       }
 
-      // Buscar dados do webhook N8N
-      console.log(`🔗 Calling webhook: ${webhookUrl} with limit=${batchSize}, offset=${offset}`);
+      // Buscar dados do webhook N8N com fallback POST -> GET
+      console.log(`🔗 Calling webhook with limit=${batchSize}, offset=${offset}`);
       
-      const response = await fetchWithRetry(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: batchSize, offset }),
-      });
+      const { response, method } = await fetchN8nWithFallback(batchSize, offset);
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'No response body');
-        console.error(`❌ Webhook returned ${response.status}: ${errorText}`);
-        throw new Error(`Webhook error ${response.status}: ${errorText.substring(0, 200)}`);
+        console.error(`❌ Webhook returned ${response.status} via ${method}: ${errorText}`);
+        throw new Error(`Webhook error ${response.status} (${method}): ${errorText.substring(0, 200)}`);
       }
 
       const responseText = await response.text();
@@ -1145,6 +1259,8 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
         console.error(`❌ Failed to parse webhook response:`, responseText.substring(0, 500));
         throw new Error(`Invalid JSON from webhook: ${responseText.substring(0, 100)}`);
       }
+      
+      console.log(`📥 Received data via ${method}`);
       
       // Suportar múltiplos formatos de resposta do N8N
       let records: any[] = [];
