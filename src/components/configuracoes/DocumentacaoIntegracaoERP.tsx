@@ -21,7 +21,11 @@ import {
   RefreshCw,
   Wallet,
   Package,
-  Receipt
+  Receipt,
+  Plug,
+  Zap,
+  Shield,
+  Globe
 } from "lucide-react";
 
 const SUPABASE_URL = "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1";
@@ -1264,7 +1268,7 @@ OFFSET @offset ROWS;`;
       </Card>
 
       <Tabs defaultValue="contas-receber" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="contas-receber" className="flex items-center gap-2">
             <Receipt className="h-4 w-4" />
             Contas a Receber
@@ -1276,6 +1280,10 @@ OFFSET @offset ROWS;`;
           <TabsTrigger value="estoque" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             Estoque
+          </TabsTrigger>
+          <TabsTrigger value="mcp" className="flex items-center gap-2">
+            <Plug className="h-4 w-4" />
+            MCP
           </TabsTrigger>
           <TabsTrigger value="configuracao" className="flex items-center gap-2">
             <Key className="h-4 w-4" />
@@ -1748,6 +1756,405 @@ OFFSET @offset ROWS;`;
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="mcp">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Plug className="h-5 w-5" />
+                Integração via MCP (Model Context Protocol)
+                <Badge className="ml-2 bg-green-500/10 text-green-600 border-green-500/20">Novo</Badge>
+              </CardTitle>
+              <CardDescription>
+                Opção avançada de integração direta via protocolo MCP com N8N
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Introdução */}
+              <Alert className="border-primary/20 bg-primary/5">
+                <Zap className="h-4 w-4" />
+                <AlertTitle>Integração Bidirecional em Tempo Real</AlertTitle>
+                <AlertDescription className="text-sm">
+                  O MCP (Model Context Protocol) permite que o sistema N8N se conecte diretamente aos nossos workflows, 
+                  possibilitando sincronização automatizada sem necessidade de configurar endpoints manualmente.
+                </AlertDescription>
+              </Alert>
+
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="oque-e-mcp">
+                  <AccordionTrigger>O que é MCP?</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="prose prose-sm max-w-none">
+                      <p className="text-sm text-muted-foreground">
+                        O <strong>Model Context Protocol (MCP)</strong> é um protocolo que permite que sistemas externos 
+                        acessem e executem workflows de forma programática. Com essa integração, o N8N do ERP pode:
+                      </p>
+                      <ul className="text-sm space-y-2 mt-3">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                          <span>Listar todos os workflows disponíveis para sincronização</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                          <span>Executar workflows diretamente sem configurar URLs de endpoints</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                          <span>Receber respostas estruturadas com confirmação de processamento</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                          <span>Monitorar status de sincronizações em tempo real</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="workflows-disponiveis">
+                  <AccordionTrigger>Workflows Disponíveis via MCP</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="grid gap-3">
+                      <div className="p-4 border rounded-lg bg-muted/30">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Receipt className="h-4 w-4 text-primary" />
+                            <span className="font-medium">sync_contas_receber</span>
+                          </div>
+                          <Badge variant="outline">Webhook</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Sincroniza dados de contas a receber do ERP. Aceita payloads em chunks de até 10.000 registros.
+                        </p>
+                      </div>
+
+                      <div className="p-4 border rounded-lg bg-muted/30">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Wallet className="h-4 w-4 text-primary" />
+                            <span className="font-medium">sync_contas_pagar</span>
+                          </div>
+                          <Badge variant="outline">Webhook</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Sincroniza dados de contas a pagar. Suporta classificação automática por categoria DRE.
+                        </p>
+                      </div>
+
+                      <div className="p-4 border rounded-lg bg-muted/30">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-primary" />
+                            <span className="font-medium">sync_estoque</span>
+                          </div>
+                          <Badge variant="outline">Webhook</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Sincroniza distribuidoras, produtos master, vínculos e movimentações de estoque.
+                        </p>
+                      </div>
+
+                      <div className="p-4 border rounded-lg bg-muted/30">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Database className="h-4 w-4 text-primary" />
+                            <span className="font-medium">sync_clientes</span>
+                          </div>
+                          <Badge variant="outline">Webhook</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Sincroniza cadastro de clientes com dados completos de endereço e contato.
+                        </p>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="configurar-n8n">
+                  <AccordionTrigger>Como Configurar no N8N</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="space-y-4">
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                          O N8N precisa ser versão 1.0+ e ter o módulo MCP habilitado. 
+                          Consulte a documentação oficial do N8N para ativação do MCP.
+                        </AlertDescription>
+                      </Alert>
+
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-sm">Passo 1: Habilitar Acesso MCP no N8N</h4>
+                        <div className="p-3 bg-muted rounded-lg text-sm space-y-2">
+                          <p>1. Acesse <strong>Settings → MCP Access</strong> no N8N</p>
+                          <p>2. Ative <strong>Enable MCP Access</strong></p>
+                          <p>3. Copie a URL MCP gerada (ex: <code className="text-xs">https://seu-n8n.com/mcp-server/http</code>)</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-sm">Passo 2: Configurar Credenciais</h4>
+                        <div className="p-4 bg-muted rounded-lg relative">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="absolute top-2 right-2"
+                            onClick={() => copyToClipboard(`{
+  "mcp_url": "https://seu-n8n.com/mcp-server/http",
+  "api_key": "SUA_API_KEY_AQUI",
+  "timeout_ms": 60000
+}`, "mcp-config")}
+                          >
+                            {copiedSection === "mcp-config" ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                          </Button>
+                          <pre className="text-xs overflow-x-auto">{`{
+  "mcp_url": "https://seu-n8n.com/mcp-server/http",
+  "api_key": "SUA_API_KEY_AQUI",
+  "timeout_ms": 60000
+}`}</pre>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-sm">Passo 3: Habilitar Workflows para MCP</h4>
+                        <div className="p-3 bg-muted rounded-lg text-sm space-y-2">
+                          <p>Para cada workflow que deseja expor:</p>
+                          <p>1. Abra o workflow no editor</p>
+                          <p>2. Acesse <strong>Settings (⚙️)</strong></p>
+                          <p>3. Ative <strong>Available in MCP</strong></p>
+                        </div>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="exemplo-execucao">
+                  <AccordionTrigger>Exemplo de Execução via MCP</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-sm">Listar Workflows Disponíveis</h4>
+                      <div className="p-4 bg-muted rounded-lg relative">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="absolute top-2 right-2"
+                          onClick={() => copyToClipboard(`// Usando search_workflows
+{
+  "query": "sync",
+  "limit": 10
+}
+
+// Resposta esperada
+{
+  "workflows": [
+    {
+      "id": "workflow_abc123",
+      "name": "sync_contas_receber",
+      "description": "Sincronização de contas a receber",
+      "trigger_type": "webhook"
+    },
+    // ...
+  ]
+}`, "mcp-list")}
+                        >
+                          {copiedSection === "mcp-list" ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                        <pre className="text-xs overflow-x-auto">{`// Usando search_workflows
+{
+  "query": "sync",
+  "limit": 10
+}
+
+// Resposta esperada
+{
+  "workflows": [
+    {
+      "id": "workflow_abc123",
+      "name": "sync_contas_receber",
+      "description": "Sincronização de contas a receber",
+      "trigger_type": "webhook"
+    },
+    // ...
+  ]
+}`}</pre>
+                      </div>
+
+                      <h4 className="font-medium text-sm">Executar Workflow de Sincronização</h4>
+                      <div className="p-4 bg-muted rounded-lg relative">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="absolute top-2 right-2"
+                          onClick={() => copyToClipboard(`// Usando execute_workflow
+{
+  "workflowId": "workflow_abc123",
+  "inputs": {
+    "type": "webhook",
+    "webhookData": {
+      "method": "POST",
+      "body": {
+        "contas": [
+          {
+            "empresa_id": 1,
+            "empresa_nome": "Matriz",
+            "tipo_documento": "DUP",
+            "numero_documento": "12345",
+            "parcela": 1,
+            "cliente_codigo": "CLI001",
+            "cliente_nome": "Cliente Exemplo",
+            "data_vencimento": "2025-02-15",
+            "valor_original": 1500.00,
+            "valor_aberto": 1500.00,
+            "status": "aberto"
+          }
+          // ... mais registros
+        ],
+        "chunk_id": 1,
+        "total_chunks": 10
+      }
+    }
+  }
+}`, "mcp-exec")}
+                        >
+                          {copiedSection === "mcp-exec" ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                        <pre className="text-xs overflow-x-auto">{`// Usando execute_workflow
+{
+  "workflowId": "workflow_abc123",
+  "inputs": {
+    "type": "webhook",
+    "webhookData": {
+      "method": "POST",
+      "body": {
+        "contas": [
+          {
+            "empresa_id": 1,
+            "empresa_nome": "Matriz",
+            "tipo_documento": "DUP",
+            "numero_documento": "12345",
+            "parcela": 1,
+            "cliente_codigo": "CLI001",
+            "cliente_nome": "Cliente Exemplo",
+            "data_vencimento": "2025-02-15",
+            "valor_original": 1500.00,
+            "valor_aberto": 1500.00,
+            "status": "aberto"
+          }
+          // ... mais registros
+        ],
+        "chunk_id": 1,
+        "total_chunks": 10
+      }
+    }
+  }
+}`}</pre>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="vantagens-mcp">
+                  <AccordionTrigger>Vantagens do MCP vs API REST</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2">Característica</th>
+                            <th className="text-left p-2">API REST</th>
+                            <th className="text-left p-2">MCP</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            ["Configuração", "Manual (URLs, headers)", "Automática (discovery)"],
+                            ["Descoberta de endpoints", "Documentação externa", "Listagem dinâmica"],
+                            ["Validação de schema", "Runtime", "Pré-execução"],
+                            ["Monitoramento", "Logs separados", "Integrado"],
+                            ["Versionamento", "Gerenciado manualmente", "Automático"],
+                            ["Segurança", "API Key", "API Key + MCP Token"],
+                            ["Ideal para", "Integrações simples", "Automações complexas"],
+                          ].map(([caracteristica, rest, mcp], i) => (
+                            <tr key={i} className="border-b">
+                              <td className="p-2 font-medium">{caracteristica}</td>
+                              <td className="p-2 text-muted-foreground">{rest}</td>
+                              <td className="p-2 text-green-600">{mcp}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="seguranca-mcp">
+                  <AccordionTrigger>Segurança e Boas Práticas</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3 p-3 border rounded-lg">
+                        <Shield className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-sm">Autenticação Dupla</p>
+                          <p className="text-xs text-muted-foreground">
+                            O MCP requer tanto a API Key quanto o token MCP para execução de workflows.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3 p-3 border rounded-lg">
+                        <Globe className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-sm">IP Whitelist</p>
+                          <p className="text-xs text-muted-foreground">
+                            Configure no N8N os IPs autorizados a acessar o servidor MCP.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 border rounded-lg">
+                        <Key className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-sm">Rotação de Credenciais</p>
+                          <p className="text-xs text-muted-foreground">
+                            Recomendamos rotacionar as credenciais MCP a cada 90 dias.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 border rounded-lg">
+                        <Database className="h-5 w-5 text-purple-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-sm">Logs de Auditoria</p>
+                          <p className="text-xs text-muted-foreground">
+                            Todas as execuções via MCP são registradas com timestamp, IP e resultado.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              <Separator />
+
+              <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+                <ExternalLink className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Documentação Oficial N8N MCP</p>
+                  <p className="text-xs text-muted-foreground">
+                    <a 
+                      href="https://docs.n8n.io/advanced-ai/accessing-n8n-mcp-server/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      https://docs.n8n.io/advanced-ai/accessing-n8n-mcp-server/
+                    </a>
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
