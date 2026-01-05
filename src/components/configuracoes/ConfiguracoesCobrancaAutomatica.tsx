@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -20,7 +21,9 @@ import {
   CheckCircle,
   AlertCircle,
   Copy,
-  RefreshCw
+  RefreshCw,
+  HelpCircle,
+  ExternalLink
 } from "lucide-react";
 
 interface CobrancaConfig {
@@ -424,12 +427,103 @@ export function ConfiguracoesCobrancaAutomatica() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 p-4">
-            <p className="text-sm text-amber-800 dark:text-amber-200">
-              <strong>Importante:</strong> Para usar seu e-mail corporativo, o domínio deve estar verificado no Resend. 
-              Caso contrário, os e-mails serão enviados do domínio padrão.
-            </p>
-          </div>
+          {/* Step-by-step instructions */}
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="instructions" className="border rounded-lg">
+              <AccordionTrigger className="px-4 hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <HelpCircle className="h-4 w-4 text-primary" />
+                  <span className="font-medium">Como configurar seu e-mail corporativo no Resend</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">1</div>
+                      <div className="space-y-1">
+                        <p className="font-medium">Acesse o Resend</p>
+                        <p className="text-sm text-muted-foreground">
+                          Vá para{" "}
+                          <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-primary underline inline-flex items-center gap-1">
+                            resend.com <ExternalLink className="h-3 w-3" />
+                          </a>{" "}
+                          e faça login ou crie uma conta gratuita.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">2</div>
+                      <div className="space-y-1">
+                        <p className="font-medium">Adicione seu domínio</p>
+                        <p className="text-sm text-muted-foreground">
+                          Acesse{" "}
+                          <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-primary underline inline-flex items-center gap-1">
+                            Domains <ExternalLink className="h-3 w-3" />
+                          </a>{" "}
+                          no menu lateral e clique em <strong>"Add Domain"</strong>. Digite seu domínio (ex: suaempresa.com.br).
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">3</div>
+                      <div className="space-y-1">
+                        <p className="font-medium">Configure os registros DNS</p>
+                        <p className="text-sm text-muted-foreground">
+                          O Resend mostrará 3 tipos de registros que você deve adicionar no painel do seu provedor de domínio:
+                        </p>
+                        <ul className="text-sm text-muted-foreground list-disc list-inside pl-2 space-y-1">
+                          <li><strong>TXT</strong> - Para verificação de propriedade e SPF</li>
+                          <li><strong>CNAME</strong> - Para assinatura DKIM</li>
+                          <li><strong>MX</strong> (opcional) - Para receber respostas</li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">4</div>
+                      <div className="space-y-1">
+                        <p className="font-medium">Adicione no seu provedor DNS</p>
+                        <p className="text-sm text-muted-foreground">
+                          Acesse o painel do seu provedor (Registro.br, GoDaddy, Cloudflare, Hostinger, etc.) e adicione os registros DNS exibidos pelo Resend.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">5</div>
+                      <div className="space-y-1">
+                        <p className="font-medium">Aguarde a verificação</p>
+                        <p className="text-sm text-muted-foreground">
+                          Clique em <strong>"Verify DNS Records"</strong> no Resend. A propagação pode levar de alguns minutos até 48 horas. 
+                          O status mudará para <Badge variant="outline" className="text-green-600 border-green-600 ml-1">Verified</Badge> quando estiver pronto.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">6</div>
+                      <div className="space-y-1">
+                        <p className="font-medium">Configure aqui</p>
+                        <p className="text-sm text-muted-foreground">
+                          Após verificar, preencha os campos abaixo com o nome e e-mail do remetente (ex: cobranca@suaempresa.com.br).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 p-3 rounded-lg">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <p>
+                      <strong>Atenção:</strong> Sem verificar o domínio, os e-mails serão enviados como "onboarding@resend.dev" e podem cair no spam do destinatário.
+                    </p>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
