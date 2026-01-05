@@ -1141,6 +1141,137 @@ DOCUMENTAÇÃO ADICIONAL:
 ╚══════════════════════════════════════════════════════════════════════════════╝
 `;
 
+  // Versão resumida para programadores experientes
+  const mensagemTIResumida = `
+╔══════════════════════════════════════════════════════════════════════════════╗
+║         API REST INTEGRAÇÃO ERP → CRM | QUICK REFERENCE                      ║
+║                        BiMaster/Union CRM v3.0                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+► CONCEITO: ERP = fonte da verdade | CRM apenas recebe dados (unidirecional)
+► VOLUME: ~500k registros Contas Receber (histórico)
+► AUTH: Header x-api-key obrigatório
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BASE URL: ${SUPABASE_URL}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ENDPOINTS PRINCIPAIS                                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ CONTAS A RECEBER (/contas-receber-api)                                      │
+│   POST /bulk-sync          → Carga massiva (até 100k registros)             │
+│   POST /sync-chunk         → Chunks p/ N8N (5k-25k registros)               │
+│   POST /sync-incremental   → Sincronização delta (skip_unchanged: true)     │
+│   GET  /status             → Health check                                   │
+│   GET  /chunks-progress    → Progresso dos chunks                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ CONTAS A PAGAR (/contas-pagar-api)                                          │
+│   POST /bulk-sync          → Carga massiva (até 5k registros/req)           │
+│   POST /sync-incremental   → Sincronização delta                            │
+│   POST /sync-complete      → Finalizar sync                                 │
+│   GET  /status             → Health check                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ESTOQUE (/estoque-n8n-sync)                                                 │
+│   POST /bulk-movimentacoes → Movimentações em massa (até 5k/req)            │
+│   POST /                   → Dados mestres (distribuidoras, produtos)       │
+│   POST /sync-complete      → Finalizar sync                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ THROUGHPUT POR MÓDULO                                                       │
+├──────────────────────┬──────────────┬───────────────┬───────────────────────┤
+│ Módulo               │ Throughput   │ Chunk Size    │ 1M registros          │
+├──────────────────────┼──────────────┼───────────────┼───────────────────────┤
+│ Contas Receber       │ ~2.000/s     │ 25.000        │ ~8 min                │
+│ Contas Pagar         │ ~1.200/s     │ 25.000        │ ~15 min               │
+│ Estoque              │ ~800/s       │ 10.000        │ ~20 min               │
+└──────────────────────┴──────────────┴───────────────┴───────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PAYLOAD - CONTAS A RECEBER (snake_case)                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ {                                                                           │
+│   "erp_id": "1-DUP-000001-1-C00001",  // ID único composto                  │
+│   "empresa_id": 1,                     // Obrigatório                       │
+│   "cliente_codigo": "C00001",          // Obrigatório                       │
+│   "data_vencimento": "2025-02-01",     // YYYY-MM-DD                        │
+│   "valor_original": 1500.00,           // Decimal                           │
+│   "valor_aberto": 1500.00,                                                  │
+│   "status": "aberto"                   // aberto|vencido|pago|parcial       │
+│ }                                                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PAYLOAD - CONTAS A PAGAR (snake_case)                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ {                                                                           │
+│   "erp_id": "ERP-CP-001",              // ID único                          │
+│   "empresa_id": 1,                     // Obrigatório                       │
+│   "fornecedor_codigo": "F001",         // Obrigatório                       │
+│   "data_vencimento": "2025-02-15",     // YYYY-MM-DD                        │
+│   "valor_original": 2500.00,                                                │
+│   "valor_aberto": 2500.00,                                                  │
+│   "status": "aberto"                                                        │
+│ }                                                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PAYLOAD - MOVIMENTAÇÃO ESTOQUE                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ {                                                                           │
+│   "erp_id": "MOV-001",                                                      │
+│   "distribuidora_cnpj": "12345678901234",                                   │
+│   "produto_sku": "SKU-001",                                                 │
+│   "tipo_movimento": "entrada",   // entrada|saida|transferencia|ajuste      │
+│   "quantidade": 100,                                                        │
+│   "data_movimento": "2025-01-05"                                            │
+│ }                                                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CONFIGURAÇÃO N8N                                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ HTTP Request:                                                               │
+│   Method: POST                                                              │
+│   URL: ${SUPABASE_URL}/<endpoint>                              │
+│   Headers: { "x-api-key": "{{$env.API_KEY}}", "Content-Type": "app/json" }  │
+│   Timeout: 180000ms                                                         │
+│   Retry: 5x com backoff exponencial                                         │
+│                                                                             │
+│ Split In Batches:                                                           │
+│   Batch Size: 25000 (Contas) | 10000 (Estoque)                              │
+│                                                                             │
+│ Wait: 3 segundos entre chunks                                               │
+│                                                                             │
+│ Schedule: Full 02:00 | Incremental 08:00, 14:00, 20:00                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CÓDIGOS HTTP                                                                │
+├────────┬────────────────────────────────────────────────────────────────────┤
+│ 200    │ OK - processar resposta                                            │
+│ 207    │ Parcial - verificar campo "errors"                                 │
+│ 409    │ Conflict - sync já em andamento, aguardar                          │
+│ 429    │ Rate limit - retry com Retry-After header                          │
+│ 500/503│ Retry com backoff exponencial (1s, 2s, 4s, 8s, 16s)                │
+└────────┴────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ LIMITES TÉCNICOS                                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ • Rate Limit: 100 req/min por IP                                            │
+│ • Timeout: 60s (padrão) | 150s (configurável)                               │
+│ • Payload máximo: 100k registros                                            │
+│ • Sincronização simultânea: 1 por entidade                                  │
+│ • Retry: 5x com backoff exponencial                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Docs completos: docs/API_REST_INTEGRACAO_ERP.md | docs/N8N_WORKFLOW_*.md
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
   const payloadContasReceber = `{
   "ID Empresa": 1,
   "Empresa": "EMPRESA EXEMPLO LTDA",
@@ -1300,7 +1431,7 @@ OFFSET @offset ROWS;`;
               ) : (
                 <Copy className="h-4 w-4" />
               )}
-              Copiar Documento para TI
+              Copiar Documento Completo
             </Button>
             <Button
               variant="outline"
@@ -1309,14 +1440,42 @@ OFFSET @offset ROWS;`;
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'requisitos-integracao-erp.txt';
+                a.download = 'requisitos-integracao-erp-completo.txt';
                 a.click();
                 URL.revokeObjectURL(url);
               }}
               className="flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
-              Baixar como TXT
+              Baixar Completo
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => copyToClipboard(mensagemTIResumida, "mensagem-ti-resumida")}
+              className="flex items-center gap-2"
+            >
+              {copiedSection === "mensagem-ti-resumida" ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+              Copiar Versão Resumida
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const blob = new Blob([mensagemTIResumida], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'api-quick-reference.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="flex items-center gap-2"
+            >
+              <Zap className="h-4 w-4" />
+              Baixar Quick Reference
             </Button>
           </div>
 
