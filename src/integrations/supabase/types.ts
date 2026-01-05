@@ -1824,11 +1824,13 @@ export type Database = {
           automacao_ativa: boolean | null
           created_at: string | null
           created_by: string | null
+          email_remetente: string | null
           hora_fim_envio: string | null
           hora_inicio_envio: string | null
           id: string
           intervalo_minimo_dias: number | null
           max_envios_hora: number | null
+          nome_remetente: string | null
           updated_at: string | null
           updated_by: string | null
           whatsapp_verify_token: string | null
@@ -1838,11 +1840,13 @@ export type Database = {
           automacao_ativa?: boolean | null
           created_at?: string | null
           created_by?: string | null
+          email_remetente?: string | null
           hora_fim_envio?: string | null
           hora_inicio_envio?: string | null
           id?: string
           intervalo_minimo_dias?: number | null
           max_envios_hora?: number | null
+          nome_remetente?: string | null
           updated_at?: string | null
           updated_by?: string | null
           whatsapp_verify_token?: string | null
@@ -1852,11 +1856,13 @@ export type Database = {
           automacao_ativa?: boolean | null
           created_at?: string | null
           created_by?: string | null
+          email_remetente?: string | null
           hora_fim_envio?: string | null
           hora_inicio_envio?: string | null
           id?: string
           intervalo_minimo_dias?: number | null
           max_envios_hora?: number | null
+          nome_remetente?: string | null
           updated_at?: string | null
           updated_by?: string | null
           whatsapp_verify_token?: string | null

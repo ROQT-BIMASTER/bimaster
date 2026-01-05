@@ -250,6 +250,16 @@ serve(async (req) => {
         });
       }
 
+      // Fetch sender configuration
+      const { data: configData } = await supabase
+        .from("configuracoes_cobranca")
+        .select("email_remetente, nome_remetente")
+        .single();
+
+      const senderEmail = configData?.email_remetente || "cobranca@resend.dev";
+      const senderName = configData?.nome_remetente || "Cobrança";
+      const fromAddress = `${senderName} <${senderEmail}>`;
+
       const resend = new Resend(resendApiKey);
       const body = await req.json();
       const { fila_id, to, subject, html, from } = body;
@@ -262,7 +272,7 @@ serve(async (req) => {
       }
 
       const emailResponse = await resend.emails.send({
-        from: from || "Cobrança <cobranca@resend.dev>",
+        from: from || fromAddress,
         to: Array.isArray(to) ? to : [to],
         subject,
         html,
@@ -321,6 +331,16 @@ serve(async (req) => {
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
       const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
+      // Fetch sender configuration
+      const { data: configData } = await supabase
+        .from("configuracoes_cobranca")
+        .select("email_remetente, nome_remetente")
+        .single();
+
+      const senderEmail = configData?.email_remetente || "cobranca@resend.dev";
+      const senderName = configData?.nome_remetente || "Cobrança";
+      const fromAddress = `${senderName} <${senderEmail}>`;
+
       // Get pending email items
       const { data: pendentes, error: fetchError } = await supabase
         .from("fila_cobrancas")
@@ -370,7 +390,7 @@ serve(async (req) => {
 
           if (resend) {
             const emailResponse = await resend.emails.send({
-              from: "Cobrança <cobranca@resend.dev>",
+              from: fromAddress,
               to: [item.cliente_email],
               subject,
               html,

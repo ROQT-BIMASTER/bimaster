@@ -32,6 +32,8 @@ interface CobrancaConfig {
   hora_fim_envio: string;
   max_envios_hora: number;
   intervalo_minimo_dias: number;
+  email_remetente: string;
+  nome_remetente: string;
 }
 
 export function ConfiguracoesCobrancaAutomatica() {
@@ -42,7 +44,9 @@ export function ConfiguracoesCobrancaAutomatica() {
     hora_inicio_envio: "08:00",
     hora_fim_envio: "18:00",
     max_envios_hora: 50,
-    intervalo_minimo_dias: 3
+    intervalo_minimo_dias: 3,
+    email_remetente: "",
+    nome_remetente: ""
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,7 +79,9 @@ export function ConfiguracoesCobrancaAutomatica() {
           hora_inicio_envio: d.hora_inicio_envio || "08:00",
           hora_fim_envio: d.hora_fim_envio || "18:00",
           max_envios_hora: d.max_envios_hora || 50,
-          intervalo_minimo_dias: d.intervalo_minimo_dias || 3
+          intervalo_minimo_dias: d.intervalo_minimo_dias || 3,
+          email_remetente: d.email_remetente || "",
+          nome_remetente: d.nome_remetente || ""
         });
       }
     } catch (error) {
@@ -99,6 +105,8 @@ export function ConfiguracoesCobrancaAutomatica() {
         hora_fim_envio: config.hora_fim_envio,
         max_envios_hora: config.max_envios_hora,
         intervalo_minimo_dias: config.intervalo_minimo_dias,
+        email_remetente: config.email_remetente,
+        nome_remetente: config.nome_remetente,
         updated_by: user.id
       };
 
@@ -404,6 +412,62 @@ export function ConfiguracoesCobrancaAutomatica() {
         </CardContent>
       </Card>
 
+      {/* Email Sender Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Email Remetente
+          </CardTitle>
+          <CardDescription>
+            Configure seu e-mail corporativo para envio das cobranças automáticas
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 p-4">
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              <strong>Importante:</strong> Para usar seu e-mail corporativo, o domínio deve estar verificado no Resend. 
+              Caso contrário, os e-mails serão enviados do domínio padrão.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Nome do Remetente</Label>
+              <Input
+                value={config.nome_remetente}
+                onChange={(e) => setConfig(prev => ({ ...prev, nome_remetente: e.target.value }))}
+                placeholder="Ex: Financeiro - Sua Empresa"
+              />
+              <p className="text-xs text-muted-foreground">
+                Nome que aparecerá para o destinatário
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>E-mail Remetente</Label>
+              <Input
+                type="email"
+                value={config.email_remetente}
+                onChange={(e) => setConfig(prev => ({ ...prev, email_remetente: e.target.value }))}
+                placeholder="Ex: cobranca@suaempresa.com.br"
+              />
+              <p className="text-xs text-muted-foreground">
+                E-mail corporativo (domínio deve estar verificado)
+              </p>
+            </div>
+          </div>
+
+          {config.email_remetente && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">
+                E-mails serão enviados como: <strong>{config.nome_remetente || "Cobrança"} &lt;{config.email_remetente}&gt;</strong>
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Channels Card */}
       <Card>
         <CardHeader>
@@ -418,9 +482,13 @@ export function ConfiguracoesCobrancaAutomatica() {
               <Mail className="h-5 w-5 text-primary" />
               <div>
                 <p className="font-medium">Email (Resend)</p>
-                <p className="text-sm text-muted-foreground">Processado via pg_cron</p>
+                <p className="text-sm text-muted-foreground">
+                  {config.email_remetente ? config.email_remetente : "Usando domínio padrão"}
+                </p>
               </div>
-              <Badge variant="default" className="ml-auto">Ativo</Badge>
+              <Badge variant={config.email_remetente ? "default" : "secondary"} className="ml-auto">
+                {config.email_remetente ? "Personalizado" : "Padrão"}
+              </Badge>
             </div>
             
             <div className="flex items-center gap-3 p-3 rounded-lg border">
