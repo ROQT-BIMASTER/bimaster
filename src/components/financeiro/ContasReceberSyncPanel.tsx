@@ -306,7 +306,7 @@ export function ContasReceberSyncPanel() {
                   <div>
                     <h4 className="font-medium text-green-700">Alta Performance</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      O endpoint <code className="text-xs">/bulk-sync</code> suporta até 100.000 registros por request,
+                      O endpoint <code className="text-xs">/bulk-sync</code> suporta até 500.000 registros por request,
                       com processamento de até 10.000 registros/segundo.
                     </p>
                   </div>
