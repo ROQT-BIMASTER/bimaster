@@ -8,14 +8,14 @@ const corsHeaders = {
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
 
-// ============= CONFIGURAÇÕES OTIMIZADAS PARA 500K+ REGISTROS =============
-const DEFAULT_BATCH_SIZE = 300;      // Batch reduzido para evitar timeout no SQL Server/N8N
-const MAX_BATCH_SIZE = 500;          // Máximo para evitar timeout
-const UPSERT_BATCH_SIZE = 200;       // Batch de upsert
+// ============= CONFIGURAÇÕES PARA BATCHES MENORES (SQL SERVER LIMITADO) =============
+const DEFAULT_BATCH_SIZE = 100;      // Batch pequeno - SQL Server não suporta mais
+const MAX_BATCH_SIZE = 100;          // Máximo para evitar timeout no N8N/SQL Server
+const UPSERT_BATCH_SIZE = 100;       // Batch de upsert
 const MAX_RETRIES = 10;              // 10 retries para grande volume
 const RETRY_DELAY_MS = 3000;         // 3s entre retries
-const FETCH_TIMEOUT_MS = 120000;     // 2 MINUTOS timeout (reduzido para batches menores)
-const SUPABASE_BATCH_DELAY_MS = 100; // Delay entre upserts
+const FETCH_TIMEOUT_MS = 60000;      // 60s timeout para batches pequenos
+const SUPABASE_BATCH_DELAY_MS = 50;  // Delay entre upserts
 
 // ============= PROTEÇÕES BALANCEADAS PARA GRANDE VOLUME =============
 const RATE_LIMIT_WINDOW_MS = 60000;  // Janela de 1 minuto

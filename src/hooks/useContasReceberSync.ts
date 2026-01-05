@@ -283,7 +283,7 @@ export function useContasReceberSync() {
     try {
       const { data, error } = await supabase.functions.invoke('n8n-contas-receber/sync-auto', {
         body: { 
-          batchSize: options?.batchSize || 300, // Batch reduzido para evitar timeout no SQL Server/N8N
+          batchSize: options?.batchSize || 100, // Batch muito pequeno - SQL Server não suporta mais
           webhookUrl: 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp',
           skipHealthCheck: options?.skipHealthCheck ?? true // Por padrão, ignora verificação inicial
         }
