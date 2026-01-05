@@ -1238,7 +1238,7 @@ export default function DREAnalitico() {
             )}
 
             {/* Botão para reclassificar conta */}
-            {(node.tipo === 'conta' || (node.tipo === 'grupo' && level > 0)) && node.valor > 0 && !isSubtotal && (
+            {(node.tipo === 'conta' || node.tipo === 'departamento' || node.tipo === 'fornecedor' || (node.tipo === 'grupo' && level > 0)) && node.valor > 0 && !isSubtotal && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -1250,19 +1250,32 @@ export default function DREAnalitico() {
                     toast.error("Nenhum lançamento encontrado para reclassificar");
                     return;
                   }
-                  // Get categoria_dre from planoContas if available
-                  const contaPlano = planoContas?.find(c => c.code === node.codigo);
+                  
+                  // Get categoria_dre based on node type
+                  let categoriaDre: string | null = null;
+                  if (node.tipo === 'conta' || node.tipo === 'grupo') {
+                    const contaPlano = planoContas?.find(c => c.code === node.codigo);
+                    categoriaDre = contaPlano?.categoria_dre || null;
+                  } else if (node.children?.length) {
+                    // For dept/fornecedor, infer from first child account
+                    const primeiraContaFilha = node.children.find((c: { tipo: string }) => c.tipo === 'conta');
+                    if (primeiraContaFilha) {
+                      const contaPlano = planoContas?.find(c => c.code === primeiraContaFilha.codigo);
+                      categoriaDre = contaPlano?.categoria_dre || null;
+                    }
+                  }
+                  
                   setContaParaReclassificar({
                     id: node.id,
                     codigo: node.codigo,
                     nome: node.nome,
                     valor: node.valor,
                     lancamentosIds,
-                    categoriaDre: contaPlano?.categoria_dre || null,
+                    categoriaDre,
                   });
                   setReclassificarDialogOpen(true);
                 }}
-                title="Reclassificar conta"
+                title="Reclassificar lançamentos"
               >
                 <Pencil className="h-2.5 w-2.5 text-blue-500" />
               </Button>
