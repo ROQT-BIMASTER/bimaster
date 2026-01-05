@@ -128,6 +128,12 @@ const fabricaGroups = [
       { title: "Produtos Acabados", url: "/dashboard/fabrica/produtos-acabados", icon: Package },
     ]
   },
+  {
+    label: "Ferramentas",
+    items: [
+      { title: "Agente de QA", url: "/dashboard/qa-agent", icon: Shield },
+    ]
+  },
 ];
 
 interface ModuleHeaderProps {
