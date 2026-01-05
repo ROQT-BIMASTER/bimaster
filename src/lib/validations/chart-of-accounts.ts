@@ -27,6 +27,7 @@ export const chartOfAccountsSchema = z.object({
     "receita_bruta",
     "deducoes",
     "custo_vendas",
+    "despesas_variaveis",
     "despesas_fixas",
     "impostos_lucro"
   ]).optional().nullable(),
