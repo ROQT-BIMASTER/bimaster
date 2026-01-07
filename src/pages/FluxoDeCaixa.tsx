@@ -29,12 +29,16 @@ import {
   Filter,
   X,
   User,
-  FileText
+  FileText,
+  ExternalLink,
+  Table as TableIcon
 } from "lucide-react";
 import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, Cell } from "recharts";
 import { cn } from "@/lib/utils";
+import { FluxoCaixaTable } from "@/components/fluxocaixa/FluxoCaixaTable";
+import { CashGapAlertsDialog } from "@/components/fluxocaixa/CashGapAlertsDialog";
 
 type PeriodType = "daily" | "weekly" | "monthly";
 
@@ -351,7 +355,7 @@ const FluxoDeCaixa = () => {
       .map(p => ({
         date: p.date,
         gap: Math.abs(p.saldo),
-        severity: Math.abs(p.saldo) > 50000 ? "critical" : Math.abs(p.saldo) > 20000 ? "warning" : "info"
+        severity: (Math.abs(p.saldo) > 50000 ? "critical" : Math.abs(p.saldo) > 20000 ? "warning" : "info") as "critical" | "warning" | "info"
       }));
   }, [projections]);
 
@@ -641,10 +645,21 @@ const FluxoDeCaixa = () => {
         {cashGapAlerts.length > 0 && (
           <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
             <CardHeader className="pb-2">
-              <CardTitle className="text-amber-700 dark:text-amber-400 flex items-center gap-2 text-base">
-                <AlertTriangle className="h-5 w-5" />
-                Alertas de Gap de Caixa ({cashGapAlerts.length})
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-amber-700 dark:text-amber-400 flex items-center gap-2 text-base">
+                  <AlertTriangle className="h-5 w-5" />
+                  Alertas de Gap de Caixa ({cashGapAlerts.length})
+                </CardTitle>
+                <CashGapAlertsDialog 
+                  alerts={cashGapAlerts}
+                  trigger={
+                    <Button variant="outline" size="sm" className="gap-2 bg-background">
+                      <TableIcon className="h-4 w-4" />
+                      Ver Tabela Completa
+                    </Button>
+                  }
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
@@ -658,7 +673,14 @@ const FluxoDeCaixa = () => {
                   </Badge>
                 ))}
                 {cashGapAlerts.length > 5 && (
-                  <Badge variant="outline">+{cashGapAlerts.length - 5} alertas</Badge>
+                  <CashGapAlertsDialog 
+                    alerts={cashGapAlerts}
+                    trigger={
+                      <Badge variant="outline" className="cursor-pointer hover:bg-muted">
+                        +{cashGapAlerts.length - 5} alertas
+                      </Badge>
+                    }
+                  />
                 )}
               </div>
             </CardContent>
@@ -788,6 +810,9 @@ const FluxoDeCaixa = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Cash Flow Table - Similar to CIGAM */}
+            <FluxoCaixaTable projections={projections} period={period} />
           </TabsContent>
 
           <TabsContent value="aging-receber">

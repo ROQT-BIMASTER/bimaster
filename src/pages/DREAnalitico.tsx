@@ -18,6 +18,7 @@ import { DREFocusContent } from "@/components/financeiro/DREFocusContent";
 import { MarcarRevisaoDialog } from "@/components/financeiro/MarcarRevisaoDialog";
 import { PlanoReducaoGastos } from "@/components/financeiro/PlanoReducaoGastos";
 import { ReclassificarContaDREDialog } from "@/components/financeiro/ReclassificarContaDREDialog";
+import { DREFontSizeControl, FontSizeLevel, fontSizeClasses } from "@/components/dre/DREFontSizeControl";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, subMonths, subYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -100,6 +101,7 @@ export default function DREAnalitico() {
   const [filterEmpresa, setFilterEmpresa] = useState<string>('todas');
   const [mostrarInativos, setMostrarInativos] = useState(false);
   const [tableFormat, setTableFormat] = useState<TableFormat>('padrao');
+  const [fontSize, setFontSize] = useState<FontSizeLevel>('sm');
   const [selectedLancamento, setSelectedLancamento] = useState<any | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [tabAtiva, setTabAtiva] = useState<'dre' | 'reducao'>('dre');
@@ -2024,6 +2026,7 @@ Data: ${dataGeracao}
                       <Badge variant="outline" className="text-xs">Padrão CIGAM</Badge>
                     </CardTitle>
                     <div className="flex items-center gap-3">
+                      <DREFontSizeControl currentSize={fontSize} onSizeChange={setFontSize} />
                       <DREFocusMode title="DRE Gerencial - Modo Foco" onExport={exportarExcel}>
                         <DREFocusContent 
                           visaoAtiva={visaoAtiva}
@@ -2054,7 +2057,7 @@ Data: ${dataGeracao}
 
                 <CardContent className="p-0 mt-4">
                   {/* Header da tabela */}
-                  <div className={`flex items-center bg-muted/80 border-y ${formatConfig.fontSize} font-semibold text-muted-foreground sticky top-0 z-20`}>
+                  <div className={`flex items-center bg-muted/80 border-y ${fontSizeClasses[fontSize].header} font-semibold text-muted-foreground sticky top-0 z-20`}>
                     <div 
                       className={`${formatConfig.headerPadding} sticky left-0 bg-muted/80 z-10 border-r flex items-center justify-between group`}
                       style={{ width: columnWidths.name, minWidth: columnWidths.name }}
