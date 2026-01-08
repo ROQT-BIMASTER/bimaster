@@ -78,7 +78,7 @@ serve(async (req) => {
           // Usar URL diretamente (já é pública)
           const photoUrl = item.photo_url;
 
-          // Chamar API de análise
+          // Chamar API de análise com tool calling para estrutura robusta
           const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -86,31 +86,27 @@ serve(async (req) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-pro",
+              model: "google/gemini-2.5-flash",
               messages: [
                 {
                   role: "system",
-                  content: `Você é um especialista em análise de Trade Marketing. 
-Analise a foto de gôndola e forneça insights sobre:
-1. Produtos visíveis e share de prateleira
-2. Qualidade da exposição
-3. Oportunidades de melhoria
-4. Problemas identificados
+                  content: `Você é um especialista em análise de Trade Marketing e merchandising no ponto de venda.
+Sua função é analisar fotos de gôndolas e prateleiras para identificar:
+1. Produtos visíveis, marcas e categorias
+2. Share de prateleira (espaço ocupado por cada marca)
+3. Qualidade da exposição e organização
+4. Precificação e promoções visíveis
+5. Problemas como rupturas, produtos mal posicionados ou vencidos
+6. Oportunidades de melhoria na execução
 
-Seja específico e objetivo. Retorne em formato JSON com as chaves:
-- insights: string resumida
-- products_detected: array de nomes de produtos
-- our_facings: número estimado de faces dos nossos produtos
-- competitor_facings: número estimado de faces concorrentes
-- issues: array de problemas encontrados
-- compliance_score: nota de 0-100`
+Seja objetivo, específico e forneça métricas quando possível.`
                 },
                 {
                   role: "user",
                   content: [
                     {
                       type: "text",
-                      text: "Analise esta foto de gôndola:"
+                      text: "Analise esta foto de gôndola/prateleira de loja e forneça insights detalhados sobre a execução de trade marketing:"
                     },
                     {
                       type: "image_url",
@@ -119,26 +115,129 @@ Seja específico e objetivo. Retorne em formato JSON com as chaves:
                   ]
                 }
               ],
-              max_tokens: 1000,
+              tools: [
+                {
+                  type: "function",
+                  function: {
+                    name: "analyze_shelf_photo",
+                    description: "Retorna análise estruturada de uma foto de gôndola/prateleira",
+                    parameters: {
+                      type: "object",
+                      properties: {
+                        insights: {
+                          type: "string",
+                          description: "Resumo executivo da análise em 2-3 frases"
+                        },
+                        products_detected: {
+                          type: "array",
+                          items: { type: "string" },
+                          description: "Lista de produtos/marcas identificados na foto"
+                        },
+                        our_facings: {
+                          type: "number",
+                          description: "Número estimado de faces dos produtos da empresa (Ruby Rose, Melu, etc)"
+                        },
+                        competitor_facings: {
+                          type: "number",
+                          description: "Número estimado de faces de produtos concorrentes"
+                        },
+                        shelf_share_percentage: {
+                          type: "number",
+                          description: "Porcentagem estimada do espaço de prateleira ocupado pelos nossos produtos (0-100)"
+                        },
+                        issues: {
+                          type: "array",
+                          items: { type: "string" },
+                          description: "Problemas identificados (rupturas, má organização, precificação incorreta, etc)"
+                        },
+                        opportunities: {
+                          type: "array",
+                          items: { type: "string" },
+                          description: "Oportunidades de melhoria identificadas"
+                        },
+                        compliance_score: {
+                          type: "number",
+                          description: "Nota de conformidade da execução de 0 a 100"
+                        },
+                        quality_assessment: {
+                          type: "string",
+                          enum: ["excelente", "bom", "regular", "ruim"],
+                          description: "Avaliação geral da qualidade da exposição"
+                        },
+                        has_promotion: {
+                          type: "boolean",
+                          description: "Se há promoções visíveis na foto"
+                        },
+                        has_rupture: {
+                          type: "boolean",
+                          description: "Se há rupturas (espaços vazios) visíveis"
+                        }
+                      },
+                      required: ["insights", "products_detected", "compliance_score", "quality_assessment"]
+                    }
+                  }
+                }
+              ],
+              tool_choice: { type: "function", function: { name: "analyze_shelf_photo" } },
+              max_tokens: 1500,
             }),
           });
 
           if (!aiResponse.ok) {
             const errorText = await aiResponse.text();
-            throw new Error(`Erro na API: ${errorText}`);
+            console.error(`❌ AI API error: ${errorText}`);
+            throw new Error(`Erro na API de IA: ${aiResponse.status}`);
           }
 
           const aiData = await aiResponse.json();
-          const analysisText = aiData.choices?.[0]?.message?.content || "";
-
-          // Tentar extrair JSON do texto
+          
+          // Extract tool call result
           let analysisResult;
-          try {
-            const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-            analysisResult = jsonMatch ? JSON.parse(jsonMatch[0]) : { insights: analysisText };
-          } catch {
-            analysisResult = { insights: analysisText };
+          const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+          
+          if (toolCall && toolCall.function?.arguments) {
+            try {
+              analysisResult = JSON.parse(toolCall.function.arguments);
+              console.log(`✅ Tool call parsed successfully for photo ${item.photo_id}`);
+            } catch (parseError) {
+              console.error(`⚠️ Failed to parse tool call arguments:`, parseError);
+              // Fallback to content extraction
+              const content = aiData.choices?.[0]?.message?.content || "";
+              analysisResult = { insights: content, compliance_score: 50 };
+            }
+          } else {
+            // Fallback: try to extract from content
+            const content = aiData.choices?.[0]?.message?.content || "";
+            console.log(`⚠️ No tool call found, using content fallback for photo ${item.photo_id}`);
+            
+            // Try to extract JSON from markdown code blocks
+            const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              try {
+                const jsonStr = jsonMatch[1] || jsonMatch[0];
+                analysisResult = JSON.parse(jsonStr.trim());
+              } catch {
+                analysisResult = { insights: content, compliance_score: 50 };
+              }
+            } else {
+              analysisResult = { insights: content, compliance_score: 50 };
+            }
           }
+          
+          // Ensure required fields exist
+          analysisResult = {
+            insights: analysisResult.insights || "Análise não disponível",
+            products_detected: analysisResult.products_detected || [],
+            our_facings: analysisResult.our_facings || 0,
+            competitor_facings: analysisResult.competitor_facings || 0,
+            shelf_share_percentage: analysisResult.shelf_share_percentage || 0,
+            issues: analysisResult.issues || [],
+            opportunities: analysisResult.opportunities || [],
+            compliance_score: analysisResult.compliance_score || 50,
+            quality_assessment: analysisResult.quality_assessment || "regular",
+            has_promotion: analysisResult.has_promotion || false,
+            has_rupture: analysisResult.has_rupture || false,
+          };
 
           // Atualizar foto com resultado
           await supabase
