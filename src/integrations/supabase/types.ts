@@ -9213,6 +9213,7 @@ export type Database = {
           created_at: string | null
           departamento_id: string | null
           email: string
+          gerente_id: string | null
           id: string
           nome: string
           status: string
@@ -9224,6 +9225,7 @@ export type Database = {
           created_at?: string | null
           departamento_id?: string | null
           email: string
+          gerente_id?: string | null
           id: string
           nome: string
           status?: string
@@ -9235,6 +9237,7 @@ export type Database = {
           created_at?: string | null
           departamento_id?: string | null
           email?: string
+          gerente_id?: string | null
           id?: string
           nome?: string
           status?: string
@@ -9255,6 +9258,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "mv_analise_departamentos"
             referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "profiles_gerente_id_fkey"
+            columns: ["gerente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_gerente_id_fkey"
+            columns: ["gerente_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "profiles_supervisor_id_fkey"
@@ -13733,6 +13750,13 @@ export type Database = {
           subordinado_id: string
         }[]
       }
+      get_subordinates: {
+        Args: { _user_id: string }
+        Returns: {
+          nivel: number
+          subordinate_id: string
+        }[]
+      }
       get_trade_performance: {
         Args: never
         Returns: {
@@ -13913,6 +13937,7 @@ export type Database = {
         | "promotora"
         | "promotor"
         | "cliente"
+        | "gerente"
       client_category: "A" | "B" | "C" | "D"
       prospect_status:
         | "novo"
@@ -14069,6 +14094,7 @@ export const Constants = {
         "promotora",
         "promotor",
         "cliente",
+        "gerente",
       ],
       client_category: ["A", "B", "C", "D"],
       prospect_status: [
