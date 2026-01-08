@@ -9015,6 +9015,65 @@ export type Database = {
           },
         ]
       }
+      plano_contas_auditoria: {
+        Row: {
+          campo_alterado: string
+          conta_codigo: string | null
+          conta_id: string | null
+          conta_nome: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          justificativa: string | null
+          tipo_alteracao: string
+          usuario_email: string | null
+          usuario_id: string
+          usuario_nome: string | null
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          campo_alterado: string
+          conta_codigo?: string | null
+          conta_id?: string | null
+          conta_nome?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          justificativa?: string | null
+          tipo_alteracao: string
+          usuario_email?: string | null
+          usuario_id: string
+          usuario_nome?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          campo_alterado?: string
+          conta_codigo?: string | null
+          conta_id?: string | null
+          conta_nome?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          justificativa?: string | null
+          tipo_alteracao?: string
+          usuario_email?: string | null
+          usuario_id?: string
+          usuario_nome?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_contas_auditoria_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planos: {
         Row: {
           ativo: boolean
