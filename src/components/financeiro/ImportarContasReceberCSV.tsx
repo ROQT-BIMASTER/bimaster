@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Upload, FileSpreadsheet, CheckCircle2, XCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Upload, FileSpreadsheet, CheckCircle2, XCircle, Loader2, Trash2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -18,12 +21,36 @@ interface ImportStats {
   total: number;
   processed: number;
   inserted: number;
-  updated: number;
   errors: number;
   errorMessages: string[];
+  deleted?: number;
 }
 
-const CHUNK_SIZE = 500; // Process 500 records at a time
+interface ParsedRow {
+  cliente_codigo: string;
+  cliente_nome: string;
+  numero_documento: string;
+  parcela: number | null;
+  data_emissao: string | null;
+  data_vencimento: string | null;
+  data_recebimento: string | null;
+  valor_original: number | null;
+  valor_aberto: number | null;
+  valor_recebido: number | null;
+  valor_juros: number | null;
+  valor_desconto: number | null;
+  status: string;
+  empresa_id: number;
+  empresa_nome: string;
+  vendedor_codigo: string;
+  vendedor_nome: string;
+  tipo_documento: string;
+  portador: string;
+  observacoes: string;
+  dias_atraso: number | null;
+}
+
+const CHUNK_SIZE = 500;
 
 export default function ImportarContasReceberCSV({ 
   open, 
@@ -34,9 +61,13 @@ export default function ImportarContasReceberCSV({
   const [isProcessing, setIsProcessing] = useState(false);
   const [stats, setStats] = useState<ImportStats | null>(null);
   const [progress, setProgress] = useState(0);
-  const [stage, setStage] = useState<'idle' | 'reading' | 'processing' | 'done'>('idle');
+  const [stage, setStage] = useState<'idle' | 'preview' | 'deleting' | 'processing' | 'done'>('idle');
+  const [clearExisting, setClearExisting] = useState(true);
+  const [previewRows, setPreviewRows] = useState<ParsedRow[]>([]);
+  const [allParsedRows, setAllParsedRows] = useState<ParsedRow[]>([]);
+  const [headers, setHeaders] = useState<string[]>([]);
 
-  const parseCSVLine = (line: string): string[] => {
+  const parseCSVLine = (line: string, delimiter: string): string[] => {
     const result: string[] = [];
     let current = '';
     let inQuotes = false;
@@ -51,7 +82,7 @@ export default function ImportarContasReceberCSV({
         } else {
           inQuotes = !inQuotes;
         }
-      } else if ((char === ',' || char === ';') && !inQuotes) {
+      } else if (char === delimiter && !inQuotes) {
         result.push(current.trim());
         current = '';
       } else {
@@ -65,6 +96,9 @@ export default function ImportarContasReceberCSV({
   const detectDelimiter = (firstLine: string): string => {
     const semicolonCount = (firstLine.match(/;/g) || []).length;
     const commaCount = (firstLine.match(/,/g) || []).length;
+    const tabCount = (firstLine.match(/\t/g) || []).length;
+    
+    if (tabCount > semicolonCount && tabCount > commaCount) return '\t';
     return semicolonCount > commaCount ? ';' : ',';
   };
 
@@ -107,37 +141,14 @@ export default function ImportarContasReceberCSV({
     // Handle Brazilian number format (1.234,56)
     const normalized = value
       .replace(/\s/g, '')
+      .replace(/R\$/g, '')
       .replace(/\./g, '')
       .replace(',', '.');
     const num = parseFloat(normalized);
     return isNaN(num) ? null : num;
   };
 
-  type ContaReceberRecord = {
-    cliente_codigo: string;
-    cliente_nome: string;
-    numero_documento: string;
-    parcela: number | null;
-    data_emissao: string | null;
-    data_vencimento: string | null;
-    data_recebimento: string | null;
-    valor_original: number | null;
-    valor_aberto: number | null;
-    valor_recebido: number | null;
-    valor_juros: number | null;
-    valor_desconto: number | null;
-    status: string;
-    empresa_id: number;
-    empresa_nome: string;
-    vendedor_codigo: string;
-    vendedor_nome: string;
-    tipo_documento: string;
-    portador: string;
-    observacoes: string;
-    dias_atraso: number | null;
-  };
-
-  const mapRowToRecord = (row: Record<string, string>): ContaReceberRecord | null => {
+  const mapRowToRecord = (row: Record<string, string>): ParsedRow | null => {
     const getValue = (keys: string[]): string => {
       for (const key of keys) {
         const normalizedKey = normalizeColumnName(key);
@@ -150,65 +161,123 @@ export default function ImportarContasReceberCSV({
       return '';
     };
 
-    // Map common column names to database fields
-    const clienteCodigo = getValue(['cliente_codigo', 'cod_cliente', 'codigo_cliente', 'cliente', 'cod']);
-    const clienteNome = getValue(['cliente_nome', 'nome_cliente', 'razao_social', 'cliente', 'nome']);
+    const clienteCodigo = getValue(['cliente_codigo', 'cod_cliente', 'codigo_cliente', 'cliente', 'cod', 'codigo']);
+    const clienteNome = getValue(['cliente_nome', 'nome_cliente', 'razao_social', 'nome', 'razao']);
+    const numeroDocumento = getValue(['numero_documento', 'documento', 'num_doc', 'nota', 'nf', 'numero', 'nro_documento']);
     
-    if (!clienteCodigo && !clienteNome) return null;
+    // At least documento is required
+    if (!numeroDocumento) return null;
 
-    const parcelaStr = getValue(['parcela', 'parc', 'num_parcela']);
-    const parcelaNum = parcelaStr ? parseInt(parcelaStr) : null;
+    const parcelaStr = getValue(['parcela', 'parc', 'num_parcela', 'nro_parcela']);
+    const parcelaNum = parcelaStr ? parseInt(parcelaStr) : 1;
+    
+    const empresaId = parseInt(getValue(['empresa_id', 'empresa', 'cod_empresa', 'filial', 'codigo_empresa'])) || 1;
+    const tipoDocumento = getValue(['tipo_documento', 'tipo', 'tipo_doc', 'tp_documento']) || '1';
 
     return {
       cliente_codigo: clienteCodigo || 'N/D',
       cliente_nome: clienteNome || 'Não informado',
-      numero_documento: getValue(['numero_documento', 'documento', 'num_doc', 'nota', 'nf', 'numero']),
-      parcela: isNaN(parcelaNum as number) ? null : parcelaNum,
-      data_emissao: parseDate(getValue(['data_emissao', 'emissao', 'dt_emissao', 'data_nf'])),
-      data_vencimento: parseDate(getValue(['data_vencimento', 'vencimento', 'dt_vencimento', 'venc'])),
-      data_recebimento: parseDate(getValue(['data_recebimento', 'recebimento', 'dt_recebimento', 'data_pagamento', 'pagamento'])),
-      valor_original: parseNumber(getValue(['valor_original', 'valor', 'vlr_original', 'valor_titulo', 'vlr'])),
-      valor_aberto: parseNumber(getValue(['valor_aberto', 'saldo', 'vlr_aberto', 'valor_saldo'])),
+      numero_documento: numeroDocumento,
+      parcela: isNaN(parcelaNum) ? 1 : parcelaNum,
+      data_emissao: parseDate(getValue(['data_emissao', 'emissao', 'dt_emissao', 'data_nf', 'dt_emissao'])),
+      data_vencimento: parseDate(getValue(['data_vencimento', 'vencimento', 'dt_vencimento', 'venc', 'dt_venc'])),
+      data_recebimento: parseDate(getValue(['data_recebimento', 'recebimento', 'dt_recebimento', 'data_pagamento', 'pagamento', 'dt_pagto'])),
+      valor_original: parseNumber(getValue(['valor_original', 'valor', 'vlr_original', 'valor_titulo', 'vlr', 'vlr_titulo'])),
+      valor_aberto: parseNumber(getValue(['valor_aberto', 'saldo', 'vlr_aberto', 'valor_saldo', 'vlr_saldo'])),
       valor_recebido: parseNumber(getValue(['valor_recebido', 'vlr_recebido', 'valor_pago', 'vlr_pago'])),
       valor_juros: parseNumber(getValue(['valor_juros', 'juros', 'vlr_juros'])),
       valor_desconto: parseNumber(getValue(['valor_desconto', 'desconto', 'vlr_desconto'])),
       status: getValue(['status', 'situacao', 'sit']) || 'pendente',
-      empresa_id: parseInt(getValue(['empresa_id', 'empresa', 'cod_empresa', 'filial'])) || 1,
+      empresa_id: empresaId,
       empresa_nome: getValue(['empresa_nome', 'nome_empresa', 'filial_nome']),
       vendedor_codigo: getValue(['vendedor_codigo', 'cod_vendedor', 'vendedor']),
       vendedor_nome: getValue(['vendedor_nome', 'nome_vendedor']),
-      tipo_documento: getValue(['tipo_documento', 'tipo', 'tipo_doc']),
+      tipo_documento: tipoDocumento,
       portador: getValue(['portador', 'banco', 'conta']),
       observacoes: getValue(['observacoes', 'obs', 'observacao']),
       dias_atraso: parseInt(getValue(['dias_atraso', 'atraso', 'dias'])) || null,
     };
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    setFile(selectedFile);
+    setStats(null);
+    setProgress(0);
+    setStage('idle');
+    setPreviewRows([]);
+    setAllParsedRows([]);
+
+    try {
+      const text = await selectedFile.text();
+      const lines = text.split(/\r?\n/).filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        toast.error('Arquivo vazio ou sem dados');
+        return;
+      }
+
+      const delimiter = detectDelimiter(lines[0]);
+      const headerRow = parseCSVLine(lines[0], delimiter);
+      setHeaders(headerRow);
+
+      // Parse all rows
+      const parsedRows: ParsedRow[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+
+        const values = parseCSVLine(line, delimiter);
+        const row: Record<string, string> = {};
+        
+        headerRow.forEach((header, idx) => {
+          row[header] = values[idx] || '';
+        });
+
+        const record = mapRowToRecord(row);
+        if (record) {
+          parsedRows.push(record);
+        }
+      }
+
+      setAllParsedRows(parsedRows);
+      setPreviewRows(parsedRows.slice(0, 10));
+      setStage('preview');
+      
+      toast.success(`${parsedRows.length} registros encontrados no arquivo`);
+    } catch (error) {
+      console.error('Erro ao ler arquivo:', error);
+      toast.error('Erro ao ler arquivo CSV');
+    }
+  };
+
   const processChunk = async (
-    records: ContaReceberRecord[],
-    stats: ImportStats
+    records: ParsedRow[],
+    currentStats: ImportStats
   ): Promise<ImportStats> => {
-    const newStats = { ...stats };
+    const newStats = { ...currentStats };
     
     try {
+      // Generate erp_id matching existing format: empresa_id-tipo_doc-numero_doc-parcela-cliente_codigo
       const recordsWithKeys = records.map(record => ({
         ...record,
-        erp_id: `${record.cliente_codigo}_${record.numero_documento}_${record.parcela || '1'}`,
+        erp_id: `${record.empresa_id}-${record.tipo_documento}-${record.numero_documento}-${record.parcela || 1}-${record.cliente_codigo}`,
       }));
 
-      const { data, error } = await supabase
+      const { error, count } = await supabase
         .from('contas_receber')
         .upsert(recordsWithKeys, { 
           onConflict: 'erp_id',
           ignoreDuplicates: false 
-        })
-        .select('id');
+        });
 
       if (error) {
         newStats.errors += records.length;
         newStats.errorMessages.push(`Erro no chunk: ${error.message}`);
       } else {
-        newStats.inserted += data?.length || 0;
+        newStats.inserted += records.length;
       }
     } catch (err) {
       newStats.errors += records.length;
@@ -219,85 +288,50 @@ export default function ImportarContasReceberCSV({
     return newStats;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setStats(null);
-      setProgress(0);
-      setStage('idle');
-    }
-  };
-
-  const processFile = useCallback(async () => {
-    if (!file) return;
+  const processImport = useCallback(async () => {
+    if (allParsedRows.length === 0) return;
 
     setIsProcessing(true);
-    setStage('reading');
     setProgress(0);
 
     const newStats: ImportStats = {
-      total: 0,
+      total: allParsedRows.length,
       processed: 0,
       inserted: 0,
-      updated: 0,
       errors: 0,
       errorMessages: [],
+      deleted: 0,
     };
 
     try {
-      // Read file in chunks using FileReader
-      const text = await file.text();
-      const lines = text.split(/\r?\n/).filter(line => line.trim());
-      
-      if (lines.length < 2) {
-        throw new Error('Arquivo vazio ou sem dados');
+      // Clear existing data if requested
+      if (clearExisting) {
+        setStage('deleting');
+        const { count, error } = await supabase
+          .from('contas_receber')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+        if (error) {
+          newStats.errorMessages.push(`Erro ao limpar dados: ${error.message}`);
+        } else {
+          newStats.deleted = count || 0;
+          toast.info(`${count || 0} registros antigos removidos`);
+        }
       }
 
-      // Detect delimiter and parse header
-      const delimiter = detectDelimiter(lines[0]);
-      const headers = parseCSVLine(lines[0].replace(new RegExp(delimiter, 'g'), ','));
-      
-      newStats.total = lines.length - 1;
-      setStats({ ...newStats });
       setStage('processing');
+      setStats({ ...newStats });
 
-      // Process data in chunks
-      const dataLines = lines.slice(1);
-      const records: ContaReceberRecord[] = [];
-
-      for (let i = 0; i < dataLines.length; i++) {
-        const line = dataLines[i];
-        if (!line.trim()) continue;
-
-        const values = parseCSVLine(line.replace(new RegExp(delimiter, 'g'), ','));
-        const row: Record<string, string> = {};
-        
-        headers.forEach((header, idx) => {
-          row[header] = values[idx] || '';
-        });
-
-        const record = mapRowToRecord(row);
-        if (record) {
-          records.push(record);
-        }
-
-        // Process chunk when it reaches CHUNK_SIZE
-        if (records.length >= CHUNK_SIZE) {
-          const updatedStats = await processChunk(records, newStats);
-          Object.assign(newStats, updatedStats);
-          records.length = 0;
-          
-          const progressPercent = Math.round((newStats.processed / newStats.total) * 100);
-          setProgress(progressPercent);
-          setStats({ ...newStats });
-        }
-      }
-
-      // Process remaining records
-      if (records.length > 0) {
-        const updatedStats = await processChunk(records, newStats);
+      // Process in chunks
+      for (let i = 0; i < allParsedRows.length; i += CHUNK_SIZE) {
+        const chunk = allParsedRows.slice(i, i + CHUNK_SIZE);
+        const updatedStats = await processChunk(chunk, newStats);
         Object.assign(newStats, updatedStats);
+        
+        const progressPercent = Math.round((newStats.processed / newStats.total) * 100);
+        setProgress(progressPercent);
+        setStats({ ...newStats });
       }
 
       setProgress(100);
@@ -312,14 +346,14 @@ export default function ImportarContasReceberCSV({
       }
 
     } catch (error) {
-      console.error('Erro ao processar arquivo:', error);
+      console.error('Erro ao processar:', error);
       newStats.errorMessages.push(error instanceof Error ? error.message : 'Erro desconhecido');
       setStats({ ...newStats });
-      toast.error('Erro ao processar arquivo');
+      toast.error('Erro ao processar importação');
     } finally {
       setIsProcessing(false);
     }
-  }, [file, onSuccess]);
+  }, [allParsedRows, clearExisting, onSuccess]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -327,129 +361,227 @@ export default function ImportarContasReceberCSV({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const formatCurrency = (value: number | null) => {
+    if (value === null) return '-';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
+
+  const resetState = () => {
+    setFile(null);
+    setStats(null);
+    setProgress(0);
+    setStage('idle');
+    setPreviewRows([]);
+    setAllParsedRows([]);
+    setHeaders([]);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) resetState();
+      onOpenChange(isOpen);
+    }}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
             Importar Contas a Receber (CSV)
           </DialogTitle>
           <DialogDescription>
-            Suporta arquivos grandes (até 100MB). O processamento é feito em lotes.
+            Suporta arquivos grandes (até 100MB). Processamento em lotes de {CHUNK_SIZE} registros.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-auto space-y-4">
           {/* File Input */}
-          <div className="border-2 border-dashed rounded-lg p-6 text-center">
-            <input
-              type="file"
-              accept=".csv,.txt"
-              onChange={handleFileChange}
-              className="hidden"
-              id="csv-upload"
-              disabled={isProcessing}
-            />
-            <label 
-              htmlFor="csv-upload" 
-              className="cursor-pointer flex flex-col items-center gap-2"
-            >
-              <Upload className="h-10 w-10 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                Clique para selecionar ou arraste o arquivo CSV
-              </span>
-            </label>
-          </div>
+          {stage === 'idle' && (
+            <div className="border-2 border-dashed rounded-lg p-8 text-center">
+              <input
+                type="file"
+                accept=".csv,.txt"
+                onChange={handleFileChange}
+                className="hidden"
+                id="csv-upload"
+                disabled={isProcessing}
+              />
+              <label 
+                htmlFor="csv-upload" 
+                className="cursor-pointer flex flex-col items-center gap-3"
+              >
+                <Upload className="h-12 w-12 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Clique para selecionar o arquivo CSV</p>
+                  <p className="text-sm text-muted-foreground">ou arraste e solte aqui</p>
+                </div>
+              </label>
+            </div>
+          )}
 
-          {/* Selected File Info */}
-          {file && (
-            <Alert>
-              <FileSpreadsheet className="h-4 w-4" />
-              <AlertDescription className="flex items-center justify-between">
-                <span>
-                  <strong>{file.name}</strong> ({formatFileSize(file.size)})
-                </span>
-                {!isProcessing && stage === 'idle' && (
-                  <Button onClick={processFile} size="sm">
-                    Iniciar Importação
-                  </Button>
-                )}
-              </AlertDescription>
-            </Alert>
+          {/* Preview */}
+          {stage === 'preview' && previewRows.length > 0 && (
+            <>
+              <Alert>
+                <Eye className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>
+                    <strong>{file?.name}</strong> ({formatFileSize(file?.size || 0)}) - 
+                    <strong> {allParsedRows.length.toLocaleString()}</strong> registros encontrados
+                  </span>
+                </AlertDescription>
+              </Alert>
+
+              {/* Options */}
+              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="clear-existing"
+                    checked={clearExisting}
+                    onCheckedChange={setClearExisting}
+                  />
+                  <Label htmlFor="clear-existing" className="flex items-center gap-2">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                    Substituir todos os dados existentes
+                  </Label>
+                </div>
+              </div>
+
+              {/* Preview Table */}
+              <div className="border rounded-lg">
+                <div className="p-2 bg-muted text-sm font-medium">
+                  Preview (primeiros 10 registros)
+                </div>
+                <ScrollArea className="h-64">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-24">Documento</TableHead>
+                        <TableHead className="w-16">Parc.</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead className="w-28">Vencimento</TableHead>
+                        <TableHead className="w-28 text-right">Valor</TableHead>
+                        <TableHead className="w-28 text-right">Saldo</TableHead>
+                        <TableHead className="w-24">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {previewRows.map((row, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-mono text-xs">{row.numero_documento}</TableCell>
+                          <TableCell>{row.parcela}</TableCell>
+                          <TableCell className="truncate max-w-[200px]" title={row.cliente_nome}>
+                            {row.cliente_nome}
+                          </TableCell>
+                          <TableCell>{row.data_vencimento || '-'}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(row.valor_original)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(row.valor_aberto)}</TableCell>
+                          <TableCell>{row.status}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={resetState}>
+                  Cancelar
+                </Button>
+                <Button onClick={processImport} disabled={isProcessing}>
+                  {clearExisting ? 'Substituir e Importar' : 'Importar'}
+                  {` ${allParsedRows.length.toLocaleString()} registros`}
+                </Button>
+              </div>
+            </>
           )}
 
           {/* Progress */}
-          {isProcessing && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {stage === 'reading' && 'Lendo arquivo...'}
-                  {stage === 'processing' && `Processando registros...`}
-                </span>
-                <span>{progress}%</span>
+          {(stage === 'deleting' || stage === 'processing') && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {stage === 'deleting' && 'Limpando dados existentes...'}
+                    {stage === 'processing' && `Importando registros...`}
+                  </span>
+                  <span>{progress}%</span>
+                </div>
+                <Progress value={progress} />
               </div>
-              <Progress value={progress} />
+
+              {stats && (
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="bg-muted rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold">{stats.total.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Total</p>
+                  </div>
+                  <div className="bg-muted rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold">{stats.processed.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Processados</p>
+                  </div>
+                  <div className="bg-emerald-500/10 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-emerald-600">{stats.inserted.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Importados</p>
+                  </div>
+                  <div className="bg-destructive/10 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-destructive">{stats.errors.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Erros</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Stats */}
-          {stats && (
-            <div className="grid grid-cols-4 gap-3">
-              <div className="bg-muted rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold">{stats.total.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
-              </div>
-              <div className="bg-muted rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold">{stats.processed.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Processados</p>
-              </div>
-              <div className="bg-emerald-500/10 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-emerald-600">{stats.inserted.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Importados</p>
-              </div>
-              <div className="bg-destructive/10 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-destructive">{stats.errors.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Erros</p>
-              </div>
-            </div>
-          )}
-
-          {/* Error Messages */}
-          {stats?.errorMessages && stats.errorMessages.length > 0 && (
-            <ScrollArea className="h-32 border rounded-lg p-3">
-              <div className="space-y-1">
-                {stats.errorMessages.slice(0, 20).map((msg, idx) => (
-                  <p key={idx} className="text-xs text-destructive flex items-start gap-1">
-                    <XCircle className="h-3 w-3 mt-0.5 shrink-0" />
-                    {msg}
-                  </p>
-                ))}
-                {stats.errorMessages.length > 20 && (
-                  <p className="text-xs text-muted-foreground">
-                    ... e mais {stats.errorMessages.length - 20} erros
-                  </p>
+          {/* Done */}
+          {stage === 'done' && stats && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-4 gap-3">
+                {stats.deleted !== undefined && stats.deleted > 0 && (
+                  <div className="bg-orange-500/10 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-orange-600">{stats.deleted.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Removidos</p>
+                  </div>
                 )}
+                <div className="bg-muted rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold">{stats.total.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Total</p>
+                </div>
+                <div className="bg-emerald-500/10 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-emerald-600">{stats.inserted.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Importados</p>
+                </div>
+                <div className="bg-destructive/10 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-destructive">{stats.errors.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Erros</p>
+                </div>
               </div>
-            </ScrollArea>
-          )}
 
-          {/* Success */}
-          {stage === 'done' && stats?.errors === 0 && (
-            <Alert className="bg-emerald-500/10 border-emerald-500/30">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              <AlertDescription className="text-emerald-600">
-                Importação concluída com sucesso!
-              </AlertDescription>
-            </Alert>
-          )}
+              {stats.errors === 0 ? (
+                <Alert className="bg-emerald-500/10 border-emerald-500/30">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <AlertDescription className="text-emerald-600">
+                    Importação concluída com sucesso!
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <ScrollArea className="h-32 border rounded-lg p-3">
+                  <div className="space-y-1">
+                    {stats.errorMessages.slice(0, 20).map((msg, idx) => (
+                      <p key={idx} className="text-xs text-destructive flex items-start gap-1">
+                        <XCircle className="h-3 w-3 mt-0.5 shrink-0" />
+                        {msg}
+                      </p>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
 
-          {/* Column Mapping Info */}
-          <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-            <p className="font-medium mb-1">Colunas reconhecidas automaticamente:</p>
-            <p>cliente_codigo, cliente_nome, numero_documento, parcela, data_emissao, data_vencimento, data_recebimento, valor_original, valor_aberto, status, empresa_id, vendedor_codigo, vendedor_nome</p>
-          </div>
+              <div className="flex justify-end">
+                <Button onClick={() => onOpenChange(false)}>Fechar</Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
