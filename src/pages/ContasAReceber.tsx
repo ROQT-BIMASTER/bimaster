@@ -12,13 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Receipt, AlertCircle, CheckCircle, Clock, ArrowLeft, Building2, ChevronsUpDown, LayoutDashboard, CalendarDays, TableIcon, AlertTriangle, RefreshCw } from "lucide-react";
+import { Download, Receipt, AlertCircle, CheckCircle, Clock, ArrowLeft, Building2, ChevronsUpDown, LayoutDashboard, CalendarDays, TableIcon, AlertTriangle, RefreshCw, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
 import { toast } from "sonner";
 import { DashboardContasReceber } from "@/components/financeiro/DashboardContasReceber";
 import { CalendarioRecebimentos } from "@/components/financeiro/CalendarioRecebimentos";
+import ImportarContasReceberCSV from "@/components/financeiro/ImportarContasReceberCSV";
 
 interface ContaReceber {
   id: string;
@@ -53,12 +54,13 @@ export default function ContasAReceber() {
   const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
   const [filterAno, setFilterAno] = useState<string>(new Date().getFullYear().toString());
   const [filterMes, setFilterMes] = useState<string>("all");
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   // Query contas a receber
   const [page, setPage] = useState(1);
   const pageSize = 500;
 
-  const { data: contasData, isLoading } = useQuery({
+  const { data: contasData, isLoading, refetch } = useQuery({
     queryKey: ['contas-receber', searchCliente, filterStatus, filterEmpresas, filterAno, filterMes, page],
     queryFn: async () => {
       let query = supabase
@@ -313,6 +315,10 @@ export default function ContasAReceber() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button onClick={() => setShowImportDialog(true)} variant="outline" className="gap-2">
+              <Upload className="h-4 w-4" />
+              Importar CSV
+            </Button>
             <Button asChild variant="default" className="gap-2">
               <Link to="/dashboard/financeiro/contas-a-receber/sync">
                 <RefreshCw className="h-4 w-4" />
@@ -331,6 +337,16 @@ export default function ContasAReceber() {
             </Button>
           </div>
         </div>
+
+        {/* Import Dialog */}
+        <ImportarContasReceberCSV 
+          open={showImportDialog} 
+          onOpenChange={setShowImportDialog}
+          onSuccess={() => {
+            refetch();
+            setShowImportDialog(false);
+          }}
+        />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
