@@ -191,3 +191,7 @@ verify_jwt = true
 # Agente Huggs - Chat com IA integrado ao n8n
 [functions.huggs-agent-chat]
 verify_jwt = true
+
+# Nano Banana Video Engine - Geração de vídeos/criativos com IA
+[functions.nano-banana-video]
+verify_jwt = true

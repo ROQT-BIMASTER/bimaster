@@ -69,6 +69,7 @@ const InstalarApp = lazy(() => import("./pages/InstalarApp"));
 const WhatsAppMonitoring = lazy(() => import("./pages/WhatsAppMonitoring"));
 const Marketing = lazy(() => import("./pages/Marketing"));
 const MarketingMissionControlPage = lazy(() => import("./pages/MarketingMissionControlPage"));
+const NanoBananaVideo = lazy(() => import("./pages/NanoBananaVideo"));
 const AIAnalytics = lazy(() => import("./pages/AIAnalytics"));
 const QAAgent = lazy(() => import("./pages/QAAgent"));
 const AgenteHuggs = lazy(() => import("./pages/AgenteHuggs"));
@@ -202,6 +203,7 @@ function AppContent() {
             <Route path="/dashboard/marketing" element={<ProtectedRoute><MarketingModule /></ProtectedRoute>} />
             <Route path="/dashboard/marketing/social" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
             <Route path="/dashboard/marketing/whatsapp" element={<ProtectedRoute><WhatsAppMonitoring /></ProtectedRoute>} />
+            <Route path="/dashboard/marketing/nano-banana" element={<ProtectedRoute><NanoBananaVideo /></ProtectedRoute>} />
             
             <Route path="/dashboard/instalar-app" element={<ProtectedRoute><InstalarApp /></ProtectedRoute>} />
             
