@@ -18,7 +18,8 @@ import {
   Send,
   ChevronDown,
   Zap,
-  Plus
+  Plus,
+  Video
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,6 +57,7 @@ const MarketingModule = () => {
   // Módulos secundários agrupados
   const secondaryModules = {
     "Conteúdo e Planejamento": [
+      { title: "Nano Banana Video", to: "/dashboard/marketing/nano-banana", icon: Video, color: "text-yellow-600", disabled: false },
       { title: "Calendário Editorial", to: "#", icon: Calendar, color: "text-orange-600", disabled: true },
       { title: "Gerador de Imagens", to: "#", icon: Image, color: "text-purple-600", disabled: true },
       { title: "Monitoramento", to: "#", icon: Users, color: "text-green-600", disabled: true },
