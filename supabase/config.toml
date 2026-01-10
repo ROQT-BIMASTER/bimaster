@@ -195,3 +195,7 @@ verify_jwt = true
 # Nano Banana Video Engine - Geração de vídeos/criativos com IA
 [functions.nano-banana-video]
 verify_jwt = true
+
+# Generate Video - API de geração de vídeo
+[functions.generate-video]
+verify_jwt = true

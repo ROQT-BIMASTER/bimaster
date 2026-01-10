@@ -1,13 +1,13 @@
 import { useState, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Video, Image, Sparkles, Camera, Box, Film, Download, Copy, Plus, Trash2, RefreshCw } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Loader2, Video, Image, Sparkles, Camera, Box, Film, Download, Copy, Plus, Trash2, RefreshCw, Play, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -22,8 +22,8 @@ interface BrandGuidelines {
   tone: string;
 }
 
-interface GeneratedCreative {
-  imageUrl: string;
+interface GeneratedVideo {
+  videoUrl: string;
   script: {
     hook: string;
     action: string;
@@ -39,14 +39,13 @@ interface GeneratedCreative {
     productName?: string;
     generatedAt: string;
   };
-  message?: string;
 }
 
 const creativeTypes = [
   { id: 'text-to-video', label: 'Text to Video', icon: Video, description: 'Criar vídeo a partir de descrição' },
   { id: 'image-to-video', label: 'Image to Video', icon: Image, description: 'Animar foto de produto' },
   { id: 'ugc-style', label: 'UGC Style', icon: Camera, description: 'Estilo gravado por celular' },
-  { id: 'mockup-3d', label: 'Mockup 3D', icon: Box, description: 'Protótipo de embalagem' },
+  { id: 'mockup-3d', label: 'Mockup 3D', icon: Box, description: 'Rotação 3D do produto' },
   { id: 'multi-scene', label: 'Multi-Cenas', icon: Film, description: 'Vídeo com múltiplas cenas' },
 ];
 
@@ -64,14 +63,22 @@ const styles = [
   { value: 'energetic', label: 'Energético' },
 ];
 
+const durations = [
+  { value: 5, label: '5 segundos' },
+  { value: 10, label: '10 segundos' },
+];
+
 export const NanoBananaVideoEngine = () => {
   const [activeType, setActiveType] = useState('text-to-video');
   const [prompt, setPrompt] = useState('');
   const [productName, setProductName] = useState('');
   const [format, setFormat] = useState('9:16');
   const [style, setStyle] = useState('professional');
+  const [duration, setDuration] = useState(5);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedCreative, setGeneratedCreative] = useState<GeneratedCreative | null>(null);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationStatus, setGenerationStatus] = useState('');
+  const [generatedVideo, setGeneratedVideo] = useState<GeneratedVideo | null>(null);
   
   // Image upload state
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -151,15 +158,20 @@ export const NanoBananaVideoEngine = () => {
     }
   };
 
-  const generateCreative = async () => {
-    if (!prompt && !uploadedImage) {
-      toast.error('Adicione um prompt ou imagem para gerar');
+  const generateVideo = async () => {
+    if (!prompt) {
+      toast.error('Adicione um prompt para gerar o vídeo');
       return;
     }
 
     setIsGenerating(true);
+    setGenerationProgress(0);
+    setGenerationStatus('Preparando geração de vídeo...');
+
     try {
-      const imageBase64 = uploadedImage?.split(',')[1];
+      // Etapa 1: Obter prompt otimizado da edge function
+      setGenerationProgress(10);
+      setGenerationStatus('Otimizando prompt para vídeo...');
 
       const { data, error } = await supabase.functions.invoke('nano-banana-video', {
         body: {
@@ -167,33 +179,96 @@ export const NanoBananaVideoEngine = () => {
           prompt,
           productName: productName || undefined,
           brandGuidelines: brandGuidelines.colors.length > 0 || brandGuidelines.style ? brandGuidelines : undefined,
-          imageBase64: ['image-to-video', 'ugc-style'].includes(activeType) ? imageBase64 : undefined,
+          imageUrl: uploadedImage || undefined,
           scenes: activeType === 'multi-scene' ? scenes.filter(s => s.description) : undefined,
           format,
           style,
-          duration: 5
+          duration
         }
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      setGeneratedCreative(data);
-      toast.success('Criativo gerado com sucesso!');
+      setGenerationProgress(30);
+      setGenerationStatus('Gerando vídeo com IA (isso pode levar alguns minutos)...');
+
+      // Etapa 2: Gerar vídeo usando a API de geração de vídeo
+      const videoResponse = await generateVideoWithAPI(
+        data.videoPrompt,
+        format,
+        duration,
+        uploadedImage || undefined
+      );
+
+      if (!videoResponse.success || !videoResponse.videoUrl) {
+        throw new Error(videoResponse.error || 'Falha ao gerar vídeo');
+      }
+
+      setGenerationProgress(100);
+      setGenerationStatus('Vídeo gerado com sucesso!');
+
+      setGeneratedVideo({
+        videoUrl: videoResponse.videoUrl,
+        script: data.script,
+        metadata: data.metadata
+      });
+
+      toast.success('🎬 Vídeo gerado com sucesso!');
+
     } catch (error: any) {
-      console.error('Erro ao gerar:', error);
-      toast.error(error.message || 'Erro ao gerar criativo');
+      console.error('Erro ao gerar vídeo:', error);
+      toast.error(error.message || 'Erro ao gerar vídeo');
     } finally {
       setIsGenerating(false);
+      setGenerationProgress(0);
+      setGenerationStatus('');
     }
   };
 
-  const downloadImage = () => {
-    if (!generatedCreative?.imageUrl) return;
+  // Função para gerar vídeo usando edge function que chama videogen
+  const generateVideoWithAPI = async (
+    videoPrompt: string,
+    aspectRatio: string,
+    videoDuration: number,
+    startingFrame?: string
+  ): Promise<{ success: boolean; videoUrl?: string; error?: string }> => {
+    try {
+      // Chamar edge function que usa o videogen
+      const { data, error } = await supabase.functions.invoke('generate-video', {
+        body: {
+          prompt: videoPrompt,
+          aspectRatio,
+          duration: videoDuration,
+          startingFrame,
+          resolution: '1080p',
+          cameraFixed: style === 'minimal' || style === 'professional'
+        }
+      });
+
+      if (error) {
+        console.error('Erro edge function:', error);
+        return { success: false, error: error.message };
+      }
+
+      if (data.error) {
+        return { success: false, error: data.error };
+      }
+
+      return { success: true, videoUrl: data.videoUrl };
+    } catch (err: any) {
+      console.error('Erro ao chamar API de vídeo:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  const downloadVideo = () => {
+    if (!generatedVideo?.videoUrl) return;
     
     const link = document.createElement('a');
-    link.href = generatedCreative.imageUrl;
-    link.download = `nano-banana-${productName || 'creative'}-${Date.now()}.png`;
+    link.href = generatedVideo.videoUrl;
+    link.download = `nano-banana-${productName || 'video'}-${Date.now()}.mp4`;
+    link.target = '_blank';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -201,8 +276,8 @@ export const NanoBananaVideoEngine = () => {
   };
 
   const copyScript = () => {
-    if (!generatedCreative?.script?.fullScript) return;
-    navigator.clipboard.writeText(generatedCreative.script.fullScript);
+    if (!generatedVideo?.script?.fullScript) return;
+    navigator.clipboard.writeText(generatedVideo.script.fullScript);
     toast.success('Roteiro copiado!');
   };
 
@@ -210,7 +285,7 @@ export const NanoBananaVideoEngine = () => {
     setPrompt('');
     setProductName('');
     setUploadedImage(null);
-    setGeneratedCreative(null);
+    setGeneratedVideo(null);
     setScenes([
       { description: '', duration: 3 },
       { description: '', duration: 4 },
@@ -228,13 +303,13 @@ export const NanoBananaVideoEngine = () => {
             Nano Banana Video Engine
           </h2>
           <p className="text-muted-foreground">
-            Gere vídeos e criativos de produto com IA
+            Gere vídeos de produto com IA
           </p>
         </div>
-        {generatedCreative && (
+        {generatedVideo && (
           <Button variant="outline" onClick={resetAll}>
             <RefreshCw className="mr-2 h-4 w-4" />
-            Novo Criativo
+            Novo Vídeo
           </Button>
         )}
       </div>
@@ -245,7 +320,7 @@ export const NanoBananaVideoEngine = () => {
           {/* Tipo de Criativo */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Tipo de Criativo</CardTitle>
+              <CardTitle className="text-lg">Tipo de Vídeo</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -255,6 +330,7 @@ export const NanoBananaVideoEngine = () => {
                     variant={activeType === type.id ? "default" : "outline"}
                     className="h-auto py-3 flex flex-col items-center gap-1"
                     onClick={() => setActiveType(type.id)}
+                    disabled={isGenerating}
                   >
                     <type.icon className="h-5 w-5" />
                     <span className="text-xs font-medium">{type.label}</span>
@@ -280,24 +356,26 @@ export const NanoBananaVideoEngine = () => {
                   placeholder="Ex: Shampoo Premium Ruby Rose"
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
+                  disabled={isGenerating}
                 />
               </div>
               
               <div>
-                <Label htmlFor="prompt">Descrição / Prompt</Label>
+                <Label htmlFor="prompt">Descrição do Vídeo</Label>
                 <Textarea
                   id="prompt"
-                  placeholder="Descreva o que você quer ver no vídeo..."
+                  placeholder="Descreva o que você quer ver no vídeo... Ex: Produto girando lentamente com partículas douradas ao redor"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   className="min-h-[100px]"
+                  disabled={isGenerating}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label>Formato</Label>
-                  <Select value={format} onValueChange={setFormat}>
+                  <Select value={format} onValueChange={setFormat} disabled={isGenerating}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -312,7 +390,7 @@ export const NanoBananaVideoEngine = () => {
                 </div>
                 <div>
                   <Label>Estilo</Label>
-                  <Select value={style} onValueChange={setStyle}>
+                  <Select value={style} onValueChange={setStyle} disabled={isGenerating}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -320,6 +398,21 @@ export const NanoBananaVideoEngine = () => {
                       {styles.map((s) => (
                         <SelectItem key={s.value} value={s.value}>
                           {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Duração</Label>
+                  <Select value={String(duration)} onValueChange={(v) => setDuration(Number(v))} disabled={isGenerating}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {durations.map((d) => (
+                        <SelectItem key={d.value} value={String(d.value)}>
+                          {d.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -333,11 +426,11 @@ export const NanoBananaVideoEngine = () => {
           {['image-to-video', 'ugc-style'].includes(activeType) && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Imagem do Produto</CardTitle>
+                <CardTitle className="text-lg">Imagem Inicial (opcional)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors relative ${
                     isDragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
                   }`}
                   onDrop={handleDrop}
@@ -351,7 +444,7 @@ export const NanoBananaVideoEngine = () => {
                         alt="Uploaded" 
                         className="max-h-32 mx-auto rounded-lg"
                       />
-                      <Button variant="outline" size="sm" onClick={() => setUploadedImage(null)}>
+                      <Button variant="outline" size="sm" onClick={() => setUploadedImage(null)} disabled={isGenerating}>
                         <Trash2 className="mr-2 h-4 w-4" />
                         Remover
                       </Button>
@@ -367,6 +460,7 @@ export const NanoBananaVideoEngine = () => {
                         accept="image/*"
                         onChange={handleFileSelect}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled={isGenerating}
                       />
                     </>
                   )}
@@ -381,7 +475,7 @@ export const NanoBananaVideoEngine = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
                   Cenas do Vídeo
-                  <Button variant="outline" size="sm" onClick={addScene} disabled={scenes.length >= 5}>
+                  <Button variant="outline" size="sm" onClick={addScene} disabled={scenes.length >= 5 || isGenerating}>
                     <Plus className="mr-1 h-4 w-4" />
                     Cena
                   </Button>
@@ -397,6 +491,7 @@ export const NanoBananaVideoEngine = () => {
                         value={scene.description}
                         onChange={(e) => updateScene(index, 'description', e.target.value)}
                         className="min-h-[60px] text-sm"
+                        disabled={isGenerating}
                       />
                     </div>
                     <div className="w-20">
@@ -404,6 +499,7 @@ export const NanoBananaVideoEngine = () => {
                       <Select 
                         value={String(scene.duration)} 
                         onValueChange={(v) => updateScene(index, 'duration', Number(v))}
+                        disabled={isGenerating}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -421,6 +517,7 @@ export const NanoBananaVideoEngine = () => {
                         size="icon"
                         className="mt-5"
                         onClick={() => removeScene(index)}
+                        disabled={isGenerating}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -445,8 +542,9 @@ export const NanoBananaVideoEngine = () => {
                     value={newColor}
                     onChange={(e) => setNewColor(e.target.value)}
                     className="w-12 h-9 p-1 cursor-pointer"
+                    disabled={isGenerating}
                   />
-                  <Button variant="outline" size="sm" onClick={addColor}>
+                  <Button variant="outline" size="sm" onClick={addColor} disabled={isGenerating}>
                     <Plus className="mr-1 h-4 w-4" />
                     Adicionar
                   </Button>
@@ -458,7 +556,7 @@ export const NanoBananaVideoEngine = () => {
                         key={color}
                         variant="secondary"
                         className="cursor-pointer"
-                        onClick={() => removeColor(color)}
+                        onClick={() => !isGenerating && removeColor(color)}
                       >
                         <div 
                           className="w-3 h-3 rounded-full mr-1" 
@@ -477,6 +575,7 @@ export const NanoBananaVideoEngine = () => {
                   placeholder="Ex: Moderno, sofisticado, jovem..."
                   value={brandGuidelines.style}
                   onChange={(e) => setBrandGuidelines(prev => ({ ...prev, style: e.target.value }))}
+                  disabled={isGenerating}
                 />
               </div>
             </CardContent>
@@ -484,125 +583,122 @@ export const NanoBananaVideoEngine = () => {
 
           {/* Botão Gerar */}
           <Button 
-            className="w-full" 
-            size="lg" 
-            onClick={generateCreative}
-            disabled={isGenerating || (!prompt && !uploadedImage)}
+            className="w-full h-12 text-lg" 
+            onClick={generateVideo}
+            disabled={isGenerating || !prompt}
           >
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Gerando criativo...
+                Gerando Vídeo...
               </>
             ) : (
               <>
-                <Sparkles className="mr-2 h-5 w-5" />
-                Gerar Criativo
+                <Video className="mr-2 h-5 w-5" />
+                Gerar Vídeo
               </>
             )}
           </Button>
+
+          {/* Progress Bar */}
+          {isGenerating && (
+            <Card>
+              <CardContent className="pt-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{generationStatus}</span>
+                    <span className="font-medium">{generationProgress}%</span>
+                  </div>
+                  <Progress value={generationProgress} className="h-2" />
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    A geração de vídeo pode levar de 1 a 5 minutos
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Painel de Preview */}
         <div className="space-y-4">
-          <Card className="min-h-[400px]">
-            <CardHeader>
-              <CardTitle className="text-lg">Preview</CardTitle>
-              <CardDescription>
-                {generatedCreative ? 'Criativo gerado com sucesso!' : 'Configure e gere seu criativo'}
-              </CardDescription>
+          <Card className="h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Play className="h-5 w-5" />
+                Preview do Vídeo
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              {isGenerating ? (
-                <div className="flex flex-col items-center justify-center h-64 gap-4">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                  <p className="text-muted-foreground">Gerando seu criativo...</p>
-                </div>
-              ) : generatedCreative ? (
-                <div className="space-y-4">
-                  <div className={`relative rounded-lg overflow-hidden bg-muted ${
-                    format === '9:16' ? 'aspect-[9/16] max-h-[400px] mx-auto' :
-                    format === '16:9' ? 'aspect-video' : 'aspect-square max-w-[300px] mx-auto'
-                  }`}>
-                    <img
-                      src={generatedCreative.imageUrl}
-                      alt="Generated creative"
-                      className="w-full h-full object-cover"
+            <CardContent className="space-y-4">
+              {generatedVideo ? (
+                <>
+                  {/* Video Player */}
+                  <div className="aspect-[9/16] max-h-[500px] mx-auto bg-black rounded-lg overflow-hidden">
+                    <video 
+                      src={generatedVideo.videoUrl} 
+                      controls 
+                      autoPlay
+                      loop
+                      className="w-full h-full object-contain"
                     />
                   </div>
+
+                  {/* Actions */}
                   <div className="flex gap-2">
-                    <Button className="flex-1" onClick={downloadImage}>
+                    <Button onClick={downloadVideo} className="flex-1">
                       <Download className="mr-2 h-4 w-4" />
-                      Download
+                      Download MP4
                     </Button>
-                    <Button variant="outline" className="flex-1" onClick={copyScript}>
+                    <Button variant="outline" onClick={copyScript}>
                       <Copy className="mr-2 h-4 w-4" />
                       Copiar Roteiro
                     </Button>
                   </div>
-                </div>
+
+                  {/* Script */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold">Roteiro Sugerido</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-muted/50 p-3 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-1">HOOK (0-3s)</p>
+                        <p className="text-sm font-medium">{generatedVideo.script.hook}</p>
+                      </div>
+                      <div className="bg-muted/50 p-3 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-1">AÇÃO (3-8s)</p>
+                        <p className="text-sm font-medium">{generatedVideo.script.action}</p>
+                      </div>
+                      <div className="bg-muted/50 p-3 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-1">BENEFÍCIO (8-12s)</p>
+                        <p className="text-sm font-medium">{generatedVideo.script.benefit}</p>
+                      </div>
+                      <div className="bg-muted/50 p-3 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-1">CTA (12-15s)</p>
+                        <p className="text-sm font-medium">{generatedVideo.script.cta}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Metadata */}
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">{generatedVideo.metadata.type}</Badge>
+                    <Badge variant="secondary">{generatedVideo.metadata.format}</Badge>
+                    <Badge variant="secondary">{generatedVideo.metadata.style}</Badge>
+                    <Badge variant="secondary">{generatedVideo.metadata.duration}s</Badge>
+                  </div>
+                </>
               ) : (
-                <div className="flex flex-col items-center justify-center h-64 text-center">
+                <div className="aspect-[9/16] max-h-[500px] mx-auto bg-muted/50 rounded-lg flex flex-col items-center justify-center">
                   <Video className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                  <p className="text-muted-foreground">
-                    Preencha o briefing e clique em "Gerar Criativo"
+                  <p className="text-muted-foreground text-center">
+                    Configure as opções e clique em<br />
+                    <span className="font-semibold">"Gerar Vídeo"</span>
                   </p>
                 </div>
               )}
             </CardContent>
           </Card>
-
-          {/* Roteiro Gerado */}
-          {generatedCreative?.script && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">🎬 Roteiro de Vídeo</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg bg-primary/10">
-                    <p className="text-xs font-medium text-primary mb-1">HOOK (0-3s)</p>
-                    <p className="text-sm">{generatedCreative.script.hook}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-blue-500/10">
-                    <p className="text-xs font-medium text-blue-600 mb-1">AÇÃO (3-8s)</p>
-                    <p className="text-sm">{generatedCreative.script.action}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-green-500/10">
-                    <p className="text-xs font-medium text-green-600 mb-1">BENEFÍCIO (8-12s)</p>
-                    <p className="text-sm">{generatedCreative.script.benefit}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-orange-500/10">
-                    <p className="text-xs font-medium text-orange-600 mb-1">CTA (12-15s)</p>
-                    <p className="text-sm">{generatedCreative.script.cta}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Metadados */}
-          {generatedCreative?.metadata && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Metadados</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">{generatedCreative.metadata.type}</Badge>
-                  <Badge variant="outline">{generatedCreative.metadata.format}</Badge>
-                  <Badge variant="outline">{generatedCreative.metadata.style}</Badge>
-                  {generatedCreative.metadata.productName && (
-                    <Badge>{generatedCreative.metadata.productName}</Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
     </div>
   );
 };
-
-export default NanoBananaVideoEngine;
