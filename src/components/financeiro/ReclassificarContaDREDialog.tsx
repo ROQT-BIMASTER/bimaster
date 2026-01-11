@@ -10,6 +10,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, AlertTriangle, ArrowDown } from "lucide-react";
+import { PasswordConfirmDialog } from "@/components/dre/PasswordConfirmDialog";
 
 interface ContaOrigem {
   id: string;
@@ -66,6 +67,7 @@ export function ReclassificarContaDREDialog({
   const [novaContaId, setNovaContaId] = useState<string>("");
   const [justificativa, setJustificativa] = useState("");
   const [bloquearIA, setBloquearIA] = useState(true);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -147,11 +149,18 @@ export function ReclassificarContaDREDialog({
     return cat?.label || value;
   };
 
+  // Store user info from password confirmation
+  const [userInfo, setUserInfo] = useState<{ id: string; email: string; nome: string } | null>(null);
+
   // Mutation to update accounts
   const mutation = useMutation({
     mutationFn: async () => {
       if (!contaOrigem) {
         throw new Error("Dados incompletos para reclassificação");
+      }
+      
+      if (!userInfo) {
+        throw new Error("Usuário não autenticado");
       }
 
       const isFornecedorOuDept = contaOrigem.tipoDre === 'fornecedor' || contaOrigem.tipoDre === 'departamento';
@@ -182,7 +191,7 @@ export function ReclassificarContaDREDialog({
 
         if (error) throw error;
 
-        // Register in history for each lancamento
+        // Register in history for each lancamento with user info
         const historico = contaOrigem.lancamentosIds.map(contaId => ({
           conta_id: contaId,
           campo_alterado: 'plano_contas',
@@ -190,6 +199,9 @@ export function ReclassificarContaDREDialog({
           valor_novo: `${novaConta.code} - ${novaConta.name}`,
           tipo_alteracao: 'reclassificacao_dre',
           justificativa: justificativa || `Reclassificação de ${contaOrigem.tipoDre} via DRE Analítico`,
+          usuario_id: userInfo.id,
+          usuario_nome: userInfo.nome,
+          usuario_email: userInfo.email,
         }));
 
         const { error: histError } = await supabase
@@ -249,7 +261,7 @@ export function ReclassificarContaDREDialog({
 
       if (error) throw error;
 
-      // Register in history for each lancamento
+      // Register in history for each lancamento with user info
       const historico = contaOrigem.lancamentosIds.map(contaId => ({
         conta_id: contaId,
         campo_alterado: 'plano_contas',
@@ -257,6 +269,9 @@ export function ReclassificarContaDREDialog({
         valor_novo: `${novaConta.code} - ${novaConta.name}`,
         tipo_alteracao: 'reclassificacao_dre',
         justificativa: justificativa || 'Reclassificação via DRE Analítico',
+        usuario_id: userInfo.id,
+        usuario_nome: userInfo.nome,
+        usuario_email: userInfo.email,
       }));
 
       const { error: histError } = await supabase
@@ -281,13 +296,31 @@ export function ReclassificarContaDREDialog({
       }
       queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
       queryClient.invalidateQueries({ queryKey: ['plano-contas-dre'] });
+      setUserInfo(null);
       onSuccess();
     },
     onError: (error) => {
       console.error('Erro ao reclassificar:', error);
       toast.error("Erro ao reclassificar lançamentos");
+      setUserInfo(null);
     },
   });
+
+  // Handle password confirmation success
+  const handlePasswordConfirm = async (confirmedJustificativa: string, info: { id: string; email: string; nome: string }) => {
+    // Update justificativa if provided in password dialog
+    if (confirmedJustificativa && !justificativa) {
+      setJustificativa(confirmedJustificativa);
+    }
+    setUserInfo(info);
+    // Trigger mutation after state update
+    setTimeout(() => mutation.mutate(), 0);
+  };
+
+  // Request password confirmation before reclassification
+  const handleReclassificar = () => {
+    setShowPasswordDialog(true);
+  };
 
   if (!contaOrigem) return null;
 
@@ -561,7 +594,7 @@ export function ReclassificarContaDREDialog({
             Cancelar
           </Button>
           <Button 
-            onClick={() => mutation.mutate()}
+            onClick={handleReclassificar}
             disabled={
               (contaOrigem.tipoDre === 'fornecedor' || contaOrigem.tipoDre === 'departamento') 
                 ? !novaContaId || mutation.isPending
@@ -581,6 +614,16 @@ export function ReclassificarContaDREDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Password Confirmation Dialog */}
+      <PasswordConfirmDialog
+        open={showPasswordDialog}
+        onOpenChange={setShowPasswordDialog}
+        onConfirm={handlePasswordConfirm}
+        title="Confirmar Reclassificação"
+        description="Para reclassificar esta conta, confirme sua senha. Esta ação será registrada no histórico."
+        actionLabel="Confirmar Reclassificação"
+      />
     </Dialog>
   );
 }
