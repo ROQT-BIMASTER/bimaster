@@ -7,7 +7,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, FileSpreadsheet, CheckCircle2, XCircle, Loader2, Trash2, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Upload, FileSpreadsheet, CheckCircle2, XCircle, Loader2, Trash2, Eye, Sparkles, ArrowRight, AlertTriangle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -50,7 +52,46 @@ interface ParsedRow {
   dias_atraso: number | null;
 }
 
+interface ColumnMapping {
+  csv_column: string;
+  db_field: string | null;
+  confidence: 'high' | 'medium' | 'low';
+  reason?: string;
+}
+
+interface AIMapResult {
+  success: boolean;
+  mappings: ColumnMapping[];
+  document_field_found: boolean;
+  suggestions?: string[];
+  dbSchema: string[];
+  error?: string;
+}
+
 const CHUNK_SIZE = 500;
+
+const DB_FIELDS_LABELS: Record<string, string> = {
+  cliente_codigo: "Cód. Cliente",
+  cliente_nome: "Nome Cliente",
+  numero_documento: "Nº Documento *",
+  parcela: "Parcela",
+  data_emissao: "Data Emissão",
+  data_vencimento: "Data Vencimento",
+  data_recebimento: "Data Recebimento",
+  valor_original: "Valor Original",
+  valor_aberto: "Valor Aberto",
+  valor_recebido: "Valor Recebido",
+  valor_juros: "Juros",
+  valor_desconto: "Desconto",
+  status: "Status",
+  empresa_id: "ID Empresa",
+  empresa_nome: "Nome Empresa",
+  vendedor_codigo: "Cód. Vendedor",
+  vendedor_nome: "Nome Vendedor",
+  tipo_documento: "Tipo Doc.",
+  portador: "Portador",
+  dias_atraso: "Dias Atraso",
+};
 
 export default function ImportarContasReceberCSV({ 
   open, 
@@ -61,11 +102,15 @@ export default function ImportarContasReceberCSV({
   const [isProcessing, setIsProcessing] = useState(false);
   const [stats, setStats] = useState<ImportStats | null>(null);
   const [progress, setProgress] = useState(0);
-  const [stage, setStage] = useState<'idle' | 'preview' | 'deleting' | 'processing' | 'done'>('idle');
+  const [stage, setStage] = useState<'idle' | 'analyzing' | 'mapping' | 'preview' | 'deleting' | 'processing' | 'done'>('idle');
   const [clearExisting, setClearExisting] = useState(true);
   const [previewRows, setPreviewRows] = useState<ParsedRow[]>([]);
   const [allParsedRows, setAllParsedRows] = useState<ParsedRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
+  const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
+  const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [dbSchema, setDbSchema] = useState<string[]>([]);
 
   const parseCSVLine = (line: string, delimiter: string): string[] => {
     const result: string[] = [];
@@ -271,6 +316,142 @@ export default function ImportarContasReceberCSV({
     };
   };
 
+  // AI-powered column mapping
+  const analyzeWithAI = async (headerRow: string[], sampleRows: Record<string, string>[]) => {
+    setStage('analyzing');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-map-csv-columns', {
+        body: {
+          headers: headerRow,
+          sampleRows: sampleRows,
+          tableName: 'contas_receber'
+        }
+      });
+
+      if (error) throw error;
+
+      const result = data as AIMapResult;
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Erro na análise da IA');
+      }
+
+      setColumnMappings(result.mappings);
+      setAiSuggestions(result.suggestions || []);
+      setDbSchema(result.dbSchema);
+      setStage('mapping');
+
+      if (!result.document_field_found) {
+        toast.warning('Atenção: O campo "Número do Documento" não foi identificado. Verifique o mapeamento.');
+      } else {
+        toast.success('IA analisou o arquivo e sugeriu o mapeamento das colunas!');
+      }
+
+    } catch (error) {
+      console.error('[AI Map] Error:', error);
+      toast.error('Erro ao analisar com IA. Usando mapeamento manual.');
+      
+      // Fallback: create basic mappings without AI
+      const basicMappings: ColumnMapping[] = headerRow.map(col => ({
+        csv_column: col,
+        db_field: null,
+        confidence: 'low' as const
+      }));
+      setColumnMappings(basicMappings);
+      setDbSchema(Object.keys(DB_FIELDS_LABELS));
+      setStage('mapping');
+    }
+  };
+
+  // Update a single column mapping
+  const updateMapping = (csvColumn: string, dbField: string | null) => {
+    setColumnMappings(prev => 
+      prev.map(m => 
+        m.csv_column === csvColumn 
+          ? { ...m, db_field: dbField, confidence: 'high' as const } 
+          : m
+      )
+    );
+  };
+
+  // Apply mappings and parse rows
+  const applyMappingsAndParse = () => {
+    const mappingDict: Record<string, string> = {};
+    columnMappings.forEach(m => {
+      if (m.db_field) {
+        mappingDict[m.csv_column] = m.db_field;
+      }
+    });
+
+    // Check if numero_documento is mapped
+    const hasDocumento = Object.values(mappingDict).includes('numero_documento');
+    if (!hasDocumento) {
+      toast.error('O campo "Número do Documento" é obrigatório. Mapeie uma coluna para ele.');
+      return;
+    }
+
+    const parsedRows: ParsedRow[] = [];
+    
+    for (const row of rawRows) {
+      const mappedRow: Record<string, string> = {};
+      
+      // Map CSV columns to DB fields
+      for (const [csvCol, dbField] of Object.entries(mappingDict)) {
+        mappedRow[dbField] = row[csvCol] || '';
+      }
+
+      // Build the record
+      const record = buildRecordFromMappedRow(mappedRow);
+      if (record) {
+        parsedRows.push(record);
+      }
+    }
+
+    if (parsedRows.length === 0) {
+      toast.error('Nenhum registro válido após aplicar mapeamento');
+      return;
+    }
+
+    setAllParsedRows(parsedRows);
+    setPreviewRows(parsedRows.slice(0, 10));
+    setStage('preview');
+    toast.success(`${parsedRows.length} registros prontos para importar`);
+  };
+
+  // Build record from mapped row (simplified version using direct field names)
+  const buildRecordFromMappedRow = (row: Record<string, string>): ParsedRow | null => {
+    const doc = row['numero_documento'];
+    if (!doc || !doc.trim()) return null;
+
+    const parcelaNum = parseInt(row['parcela'] || '1');
+    const empresaId = parseInt(row['empresa_id'] || '1');
+
+    return {
+      numero_documento: doc,
+      cliente_codigo: row['cliente_codigo'] || 'N/D',
+      cliente_nome: row['cliente_nome'] || 'Não informado',
+      parcela: isNaN(parcelaNum) ? 1 : parcelaNum,
+      data_emissao: parseDate(row['data_emissao'] || ''),
+      data_vencimento: parseDate(row['data_vencimento'] || ''),
+      data_recebimento: parseDate(row['data_recebimento'] || ''),
+      valor_original: parseNumber(row['valor_original'] || ''),
+      valor_aberto: parseNumber(row['valor_aberto'] || ''),
+      valor_recebido: parseNumber(row['valor_recebido'] || ''),
+      valor_juros: parseNumber(row['valor_juros'] || ''),
+      valor_desconto: parseNumber(row['valor_desconto'] || ''),
+      status: row['status'] || 'pendente',
+      empresa_id: isNaN(empresaId) ? 1 : empresaId,
+      empresa_nome: row['empresa_nome'] || '',
+      vendedor_codigo: row['vendedor_codigo'] || '',
+      vendedor_nome: row['vendedor_nome'] || '',
+      tipo_documento: row['tipo_documento'] || '1',
+      portador: row['portador'] || '',
+      observacoes: row['observacoes'] || '',
+      dias_atraso: parseInt(row['dias_atraso'] || '') || null,
+    };
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
@@ -281,6 +462,8 @@ export default function ImportarContasReceberCSV({
     setStage('idle');
     setPreviewRows([]);
     setAllParsedRows([]);
+    setColumnMappings([]);
+    setRawRows([]);
 
     try {
       const text = await selectedFile.text();
@@ -295,15 +478,12 @@ export default function ImportarContasReceberCSV({
       const headerRow = parseCSVLine(lines[0], delimiter);
       setHeaders(headerRow);
 
-      // Log headers for debugging
-      console.log('[CSV Import] Delimiter detected:', delimiter === '\t' ? 'TAB' : delimiter);
-      console.log('[CSV Import] Headers found:', headerRow);
-      console.log('[CSV Import] Total lines (including header):', lines.length);
+      console.log('[CSV Import] Delimiter:', delimiter === '\t' ? 'TAB' : delimiter);
+      console.log('[CSV Import] Headers:', headerRow);
+      console.log('[CSV Import] Lines:', lines.length);
       
-      // Parse all rows
-      const parsedRows: ParsedRow[] = [];
-      let skippedRows = 0;
-      
+      // Parse all raw rows (without mapping)
+      const rawDataRows: Record<string, string>[] = [];
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
         if (!line.trim()) continue;
@@ -314,34 +494,18 @@ export default function ImportarContasReceberCSV({
         headerRow.forEach((header, idx) => {
           row[header] = values[idx] || '';
         });
-
-        const record = mapRowToRecord(row, i - 1);
-        if (record) {
-          parsedRows.push(record);
-        } else {
-          skippedRows++;
-          if (skippedRows <= 3) {
-            console.log(`[CSV Import] Row ${i} skipped - no document number found`);
-          }
-        }
+        
+        rawDataRows.push(row);
       }
 
-      console.log(`[CSV Import] Parsed ${parsedRows.length} records, skipped ${skippedRows}`);
-
-      setAllParsedRows(parsedRows);
-      setPreviewRows(parsedRows.slice(0, 10));
+      setRawRows(rawDataRows);
       
-      if (parsedRows.length === 0) {
-        // Show what columns were detected to help user understand
-        toast.error(`Nenhum registro válido encontrado. Colunas detectadas: ${headerRow.slice(0, 5).join(', ')}${headerRow.length > 5 ? '...' : ''}`);
-        console.log('[CSV Import] All headers:', headerRow);
-        setStage('idle');
-      } else {
-        setStage('preview');
-        toast.success(`${parsedRows.length} registros encontrados no arquivo`);
-      }
+      // Call AI to analyze and map columns
+      toast.info('Analisando colunas com IA...');
+      await analyzeWithAI(headerRow, rawDataRows.slice(0, 5));
+
     } catch (error) {
-      console.error('[CSV Import] Erro ao ler arquivo:', error);
+      console.error('[CSV Import] Erro:', error);
       toast.error('Erro ao ler arquivo CSV');
     }
   };
@@ -467,6 +631,21 @@ export default function ImportarContasReceberCSV({
     setPreviewRows([]);
     setAllParsedRows([]);
     setHeaders([]);
+    setRawRows([]);
+    setColumnMappings([]);
+    setAiSuggestions([]);
+    setDbSchema([]);
+  };
+
+  const getConfidenceBadge = (confidence: 'high' | 'medium' | 'low') => {
+    switch (confidence) {
+      case 'high':
+        return <Badge variant="default" className="bg-emerald-500 text-xs">Alta</Badge>;
+      case 'medium':
+        return <Badge variant="secondary" className="bg-amber-500 text-white text-xs">Média</Badge>;
+      case 'low':
+        return <Badge variant="outline" className="text-xs">Baixa</Badge>;
+    }
   };
 
   return (
@@ -491,7 +670,7 @@ export default function ImportarContasReceberCSV({
             <div className="border-2 border-dashed rounded-lg p-8 text-center">
               <input
                 type="file"
-                accept=".csv,.txt"
+                accept=".csv,.txt,.xls,.xlsx"
                 onChange={handleFileChange}
                 className="hidden"
                 id="csv-upload"
@@ -504,10 +683,133 @@ export default function ImportarContasReceberCSV({
                 <Upload className="h-12 w-12 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Clique para selecionar o arquivo CSV</p>
-                  <p className="text-sm text-muted-foreground">ou arraste e solte aqui</p>
+                  <p className="text-sm text-muted-foreground">A IA irá analisar e mapear as colunas automaticamente</p>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-primary">
+                  <Sparkles className="h-4 w-4" />
+                  Mapeamento inteligente com IA
                 </div>
               </label>
             </div>
+          )}
+
+          {/* AI Analyzing Stage */}
+          {stage === 'analyzing' && (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <div className="relative">
+                <Sparkles className="h-12 w-12 text-primary animate-pulse" />
+                <Loader2 className="h-6 w-6 text-primary animate-spin absolute -bottom-1 -right-1" />
+              </div>
+              <div className="text-center">
+                <p className="font-medium">Analisando planilha com IA...</p>
+                <p className="text-sm text-muted-foreground">
+                  Identificando colunas e mapeando para o banco de dados
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Column Mapping Stage */}
+          {stage === 'mapping' && (
+            <>
+              <Alert className="bg-primary/5 border-primary/20">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <AlertDescription>
+                  <strong>{file?.name}</strong> - {rawRows.length.toLocaleString()} registros encontrados.
+                  Revise o mapeamento sugerido pela IA abaixo.
+                </AlertDescription>
+              </Alert>
+
+              {aiSuggestions.length > 0 && (
+                <Alert variant="default" className="bg-amber-50 border-amber-200">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800">
+                    <ul className="list-disc list-inside text-sm">
+                      {aiSuggestions.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Mapping Table */}
+              <div className="border rounded-lg">
+                <div className="p-3 bg-muted text-sm font-medium flex items-center justify-between">
+                  <span>Mapeamento de Colunas</span>
+                  <span className="text-xs text-muted-foreground">
+                    {columnMappings.filter(m => m.db_field).length} de {columnMappings.length} mapeadas
+                  </span>
+                </div>
+                <ScrollArea className="h-72">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-1/3">Coluna CSV</TableHead>
+                        <TableHead className="w-8 text-center"></TableHead>
+                        <TableHead className="w-1/3">Campo no Banco</TableHead>
+                        <TableHead className="w-20 text-center">Confiança</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {columnMappings.map((mapping, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-mono text-xs">
+                            {mapping.csv_column}
+                            {rawRows[0] && (
+                              <span className="block text-muted-foreground truncate max-w-[200px]" title={rawRows[0][mapping.csv_column]}>
+                                Ex: {rawRows[0][mapping.csv_column] || '(vazio)'}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={mapping.db_field || '_none'}
+                              onValueChange={(value) => updateMapping(mapping.csv_column, value === '_none' ? null : value)}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue placeholder="Selecionar campo..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="_none">
+                                  <span className="text-muted-foreground">— Ignorar coluna —</span>
+                                </SelectItem>
+                                {Object.entries(DB_FIELDS_LABELS).map(([field, label]) => (
+                                  <SelectItem key={field} value={field}>
+                                    {label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {mapping.db_field && getConfidenceBadge(mapping.confidence)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-between">
+                <Button variant="ghost" onClick={resetState} className="gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Novo arquivo
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={resetState}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={applyMappingsAndParse} className="gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Aplicar Mapeamento
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
 
           {/* Preview */}

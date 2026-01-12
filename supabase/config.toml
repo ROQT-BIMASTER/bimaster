@@ -199,3 +199,7 @@ verify_jwt = true
 # Generate Video - API de geração de vídeo
 [functions.generate-video]
 verify_jwt = true
+
+# AI Map CSV Columns - Mapeamento inteligente de colunas CSV
+[functions.ai-map-csv-columns]
+verify_jwt = true
