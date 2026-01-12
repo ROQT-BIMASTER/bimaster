@@ -148,12 +148,13 @@ export default function ImportarContasReceberCSV({
     return isNaN(num) ? null : num;
   };
 
-  const mapRowToRecord = (row: Record<string, string>): ParsedRow | null => {
+  const mapRowToRecord = (row: Record<string, string>, rowIndex: number): ParsedRow | null => {
     const getValue = (keys: string[]): string => {
       for (const key of keys) {
         const normalizedKey = normalizeColumnName(key);
         for (const [csvCol, value] of Object.entries(row)) {
-          if (normalizeColumnName(csvCol) === normalizedKey || csvCol === key) {
+          const normalizedCsvCol = normalizeColumnName(csvCol);
+          if (normalizedCsvCol === normalizedKey || csvCol === key) {
             return value || '';
           }
         }
@@ -161,41 +162,112 @@ export default function ImportarContasReceberCSV({
       return '';
     };
 
-    const clienteCodigo = getValue(['cliente_codigo', 'cod_cliente', 'codigo_cliente', 'cliente', 'cod', 'codigo']);
-    const clienteNome = getValue(['cliente_nome', 'nome_cliente', 'razao_social', 'nome', 'razao']);
-    const numeroDocumento = getValue(['numero_documento', 'documento', 'num_doc', 'nota', 'nf', 'numero', 'nro_documento']);
+    // Extended list of aliases for common column variations
+    const clienteCodigo = getValue([
+      'cliente_codigo', 'cod_cliente', 'codigo_cliente', 'cliente', 'cod', 'codigo',
+      'codcliente', 'clientecod', 'cli', 'cli_cod', 'id_cliente', 'cliente_id',
+      'codigocliente', 'codcli', 'cod_cli'
+    ]);
     
-    // At least documento is required
-    if (!numeroDocumento) return null;
+    const clienteNome = getValue([
+      'cliente_nome', 'nome_cliente', 'razao_social', 'nome', 'razao',
+      'nomecliente', 'clientenome', 'cli_nome', 'razao_social_cliente', 'razaosocial',
+      'cliente_razao', 'fantasia', 'nome_fantasia'
+    ]);
+    
+    const numeroDocumento = getValue([
+      'numero_documento', 'documento', 'num_doc', 'nota', 'nf', 'numero', 'nro_documento',
+      'numerodocumento', 'doc', 'nr_doc', 'nr_documento', 'nota_fiscal', 'notafiscal',
+      'num_titulo', 'titulo', 'nro', 'numero_titulo', 'numerotitulo', 'nr', 'num',
+      'nro_doc', 'numero_doc', 'doc_numero', 'documento_numero', 'nr_nota',
+      'documento_nr', 'prefixo', 'num_nf', 'numnf', 'docto', 'doctto'
+    ]);
+    
+    // Debug: log first few rows to see what columns are being detected
+    if (rowIndex < 3) {
+      console.log(`[CSV Import] Row ${rowIndex} columns:`, Object.keys(row));
+      console.log(`[CSV Import] Row ${rowIndex} values:`, row);
+      console.log(`[CSV Import] Document detected:`, numeroDocumento);
+    }
+    
+    // Try to find ANY numeric/string value that could be a document if nothing found
+    if (!numeroDocumento) {
+      // Get first non-empty value as fallback
+      const values = Object.values(row).filter(v => v && v.trim());
+      if (values.length > 0 && rowIndex < 3) {
+        console.log(`[CSV Import] No document found, available values:`, values.slice(0, 5));
+      }
+      return null;
+    }
 
-    const parcelaStr = getValue(['parcela', 'parc', 'num_parcela', 'nro_parcela']);
+    const parcelaStr = getValue([
+      'parcela', 'parc', 'num_parcela', 'nro_parcela', 'parcelas',
+      'nr_parcela', 'parcela_nr', 'seq', 'sequencia', 'seq_parcela'
+    ]);
     const parcelaNum = parcelaStr ? parseInt(parcelaStr) : 1;
     
-    const empresaId = parseInt(getValue(['empresa_id', 'empresa', 'cod_empresa', 'filial', 'codigo_empresa'])) || 1;
-    const tipoDocumento = getValue(['tipo_documento', 'tipo', 'tipo_doc', 'tp_documento']) || '1';
+    const empresaIdStr = getValue([
+      'empresa_id', 'empresa', 'cod_empresa', 'filial', 'codigo_empresa',
+      'id_empresa', 'cod_filial', 'filial_id', 'emp', 'emp_id'
+    ]);
+    const empresaId = parseInt(empresaIdStr) || 1;
+    
+    const tipoDocumento = getValue([
+      'tipo_documento', 'tipo', 'tipo_doc', 'tp_documento',
+      'tipodocumento', 'tp_doc', 'tipo_titulo', 'natureza'
+    ]) || '1';
 
     return {
       cliente_codigo: clienteCodigo || 'N/D',
       cliente_nome: clienteNome || 'Não informado',
       numero_documento: numeroDocumento,
       parcela: isNaN(parcelaNum) ? 1 : parcelaNum,
-      data_emissao: parseDate(getValue(['data_emissao', 'emissao', 'dt_emissao', 'data_nf', 'dt_emissao'])),
-      data_vencimento: parseDate(getValue(['data_vencimento', 'vencimento', 'dt_vencimento', 'venc', 'dt_venc'])),
-      data_recebimento: parseDate(getValue(['data_recebimento', 'recebimento', 'dt_recebimento', 'data_pagamento', 'pagamento', 'dt_pagto'])),
-      valor_original: parseNumber(getValue(['valor_original', 'valor', 'vlr_original', 'valor_titulo', 'vlr', 'vlr_titulo'])),
-      valor_aberto: parseNumber(getValue(['valor_aberto', 'saldo', 'vlr_aberto', 'valor_saldo', 'vlr_saldo'])),
-      valor_recebido: parseNumber(getValue(['valor_recebido', 'vlr_recebido', 'valor_pago', 'vlr_pago'])),
-      valor_juros: parseNumber(getValue(['valor_juros', 'juros', 'vlr_juros'])),
-      valor_desconto: parseNumber(getValue(['valor_desconto', 'desconto', 'vlr_desconto'])),
-      status: getValue(['status', 'situacao', 'sit']) || 'pendente',
+      data_emissao: parseDate(getValue([
+        'data_emissao', 'emissao', 'dt_emissao', 'data_nf', 'dataemissao',
+        'dt_emis', 'data_emis', 'emis', 'data_lancamento', 'dtemissao'
+      ])),
+      data_vencimento: parseDate(getValue([
+        'data_vencimento', 'vencimento', 'dt_vencimento', 'venc', 'dt_venc',
+        'datavencimento', 'data_venc', 'dtvencimento', 'dt_vcto', 'vcto', 'vencto'
+      ])),
+      data_recebimento: parseDate(getValue([
+        'data_recebimento', 'recebimento', 'dt_recebimento', 'data_pagamento', 'pagamento', 'dt_pagto',
+        'datarecebimento', 'dtrecebimento', 'data_baixa', 'dt_baixa', 'baixa',
+        'data_receb', 'data_pgto', 'dtpagto', 'datapagamento'
+      ])),
+      valor_original: parseNumber(getValue([
+        'valor_original', 'valor', 'vlr_original', 'valor_titulo', 'vlr', 'vlr_titulo',
+        'valororiginal', 'vlroriginal', 'valor_bruto', 'vlr_bruto', 'vl_titulo',
+        'vl_original', 'vlr_documento', 'valor_documento'
+      ])),
+      valor_aberto: parseNumber(getValue([
+        'valor_aberto', 'saldo', 'vlr_aberto', 'valor_saldo', 'vlr_saldo',
+        'valoraberto', 'vlraberto', 'saldo_aberto', 'saldo_devedor', 'vl_aberto',
+        'vl_saldo', 'valor_restante', 'vlr_restante'
+      ])),
+      valor_recebido: parseNumber(getValue([
+        'valor_recebido', 'vlr_recebido', 'valor_pago', 'vlr_pago',
+        'valorrecebido', 'vlrrecebido', 'vl_recebido', 'vl_pago', 'pago'
+      ])),
+      valor_juros: parseNumber(getValue([
+        'valor_juros', 'juros', 'vlr_juros', 'valorjuros', 'vlrjuros', 'vl_juros'
+      ])),
+      valor_desconto: parseNumber(getValue([
+        'valor_desconto', 'desconto', 'vlr_desconto', 'valordesconto', 'vlrdesconto', 'vl_desconto', 'desc'
+      ])),
+      status: getValue([
+        'status', 'situacao', 'sit', 'estado', 'status_titulo', 'situacao_titulo'
+      ]) || 'pendente',
       empresa_id: empresaId,
-      empresa_nome: getValue(['empresa_nome', 'nome_empresa', 'filial_nome']),
-      vendedor_codigo: getValue(['vendedor_codigo', 'cod_vendedor', 'vendedor']),
-      vendedor_nome: getValue(['vendedor_nome', 'nome_vendedor']),
+      empresa_nome: getValue(['empresa_nome', 'nome_empresa', 'filial_nome', 'razao_empresa']),
+      vendedor_codigo: getValue([
+        'vendedor_codigo', 'cod_vendedor', 'vendedor', 'codvendedor', 'rep', 'representante'
+      ]),
+      vendedor_nome: getValue(['vendedor_nome', 'nome_vendedor', 'nomevendedor', 'rep_nome']),
       tipo_documento: tipoDocumento,
-      portador: getValue(['portador', 'banco', 'conta']),
-      observacoes: getValue(['observacoes', 'obs', 'observacao']),
-      dias_atraso: parseInt(getValue(['dias_atraso', 'atraso', 'dias'])) || null,
+      portador: getValue(['portador', 'banco', 'conta', 'carteira', 'cod_portador']),
+      observacoes: getValue(['observacoes', 'obs', 'observacao', 'historico', 'descricao']),
+      dias_atraso: parseInt(getValue(['dias_atraso', 'atraso', 'dias', 'dias_em_atraso'])) || null,
     };
   };
 
@@ -223,8 +295,15 @@ export default function ImportarContasReceberCSV({
       const headerRow = parseCSVLine(lines[0], delimiter);
       setHeaders(headerRow);
 
+      // Log headers for debugging
+      console.log('[CSV Import] Delimiter detected:', delimiter === '\t' ? 'TAB' : delimiter);
+      console.log('[CSV Import] Headers found:', headerRow);
+      console.log('[CSV Import] Total lines (including header):', lines.length);
+      
       // Parse all rows
       const parsedRows: ParsedRow[] = [];
+      let skippedRows = 0;
+      
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
         if (!line.trim()) continue;
@@ -236,19 +315,33 @@ export default function ImportarContasReceberCSV({
           row[header] = values[idx] || '';
         });
 
-        const record = mapRowToRecord(row);
+        const record = mapRowToRecord(row, i - 1);
         if (record) {
           parsedRows.push(record);
+        } else {
+          skippedRows++;
+          if (skippedRows <= 3) {
+            console.log(`[CSV Import] Row ${i} skipped - no document number found`);
+          }
         }
       }
 
+      console.log(`[CSV Import] Parsed ${parsedRows.length} records, skipped ${skippedRows}`);
+
       setAllParsedRows(parsedRows);
       setPreviewRows(parsedRows.slice(0, 10));
-      setStage('preview');
       
-      toast.success(`${parsedRows.length} registros encontrados no arquivo`);
+      if (parsedRows.length === 0) {
+        // Show what columns were detected to help user understand
+        toast.error(`Nenhum registro válido encontrado. Colunas detectadas: ${headerRow.slice(0, 5).join(', ')}${headerRow.length > 5 ? '...' : ''}`);
+        console.log('[CSV Import] All headers:', headerRow);
+        setStage('idle');
+      } else {
+        setStage('preview');
+        toast.success(`${parsedRows.length} registros encontrados no arquivo`);
+      }
     } catch (error) {
-      console.error('Erro ao ler arquivo:', error);
+      console.error('[CSV Import] Erro ao ler arquivo:', error);
       toast.error('Erro ao ler arquivo CSV');
     }
   };
