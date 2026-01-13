@@ -7905,79 +7905,120 @@ export type Database = {
           aprovado_em: string | null
           aprovado_por: string | null
           arquivos_urls: string[] | null
+          bloqueada: boolean | null
+          campanha_id: string | null
           created_at: string | null
           data_conclusao: string | null
           data_prazo: string | null
           dependencia_tarefa_id: string | null
           descricao: string | null
+          etapa_atual_id: string | null
           id: string
           lancamento_id: string
+          metadata: Json | null
+          motivo_bloqueio: string | null
           pontos_base: number | null
           pontos_bonus: number | null
           prioridade_ai: number | null
           responsavel_id: string | null
+          sla_deadline: string | null
+          sla_status: string | null
           status: string | null
+          template_id: string | null
           tempo_estimado_horas: number | null
           tempo_real_horas: number | null
           tipo: string
           titulo: string
           updated_at: string | null
           versao: number | null
+          workflow_status: string | null
         }
         Insert: {
           alerta_gargalo?: boolean | null
           aprovado_em?: string | null
           aprovado_por?: string | null
           arquivos_urls?: string[] | null
+          bloqueada?: boolean | null
+          campanha_id?: string | null
           created_at?: string | null
           data_conclusao?: string | null
           data_prazo?: string | null
           dependencia_tarefa_id?: string | null
           descricao?: string | null
+          etapa_atual_id?: string | null
           id?: string
           lancamento_id: string
+          metadata?: Json | null
+          motivo_bloqueio?: string | null
           pontos_base?: number | null
           pontos_bonus?: number | null
           prioridade_ai?: number | null
           responsavel_id?: string | null
+          sla_deadline?: string | null
+          sla_status?: string | null
           status?: string | null
+          template_id?: string | null
           tempo_estimado_horas?: number | null
           tempo_real_horas?: number | null
           tipo: string
           titulo: string
           updated_at?: string | null
           versao?: number | null
+          workflow_status?: string | null
         }
         Update: {
           alerta_gargalo?: boolean | null
           aprovado_em?: string | null
           aprovado_por?: string | null
           arquivos_urls?: string[] | null
+          bloqueada?: boolean | null
+          campanha_id?: string | null
           created_at?: string | null
           data_conclusao?: string | null
           data_prazo?: string | null
           dependencia_tarefa_id?: string | null
           descricao?: string | null
+          etapa_atual_id?: string | null
           id?: string
           lancamento_id?: string
+          metadata?: Json | null
+          motivo_bloqueio?: string | null
           pontos_base?: number | null
           pontos_bonus?: number | null
           prioridade_ai?: number | null
           responsavel_id?: string | null
+          sla_deadline?: string | null
+          sla_status?: string | null
           status?: string | null
+          template_id?: string | null
           tempo_estimado_horas?: number | null
           tempo_real_horas?: number | null
           tipo?: string
           titulo?: string
           updated_at?: string | null
           versao?: number | null
+          workflow_status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lancamentos_tarefas_marketing_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campanhas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lancamentos_tarefas_marketing_dependencia_tarefa_id_fkey"
             columns: ["dependencia_tarefa_id"]
             isOneToOne: false
             referencedRelation: "lancamentos_tarefas_marketing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_tarefas_marketing_etapa_atual_id_fkey"
+            columns: ["etapa_atual_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_workflow_etapas"
             referencedColumns: ["id"]
           },
           {
@@ -8000,6 +8041,111 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      marketing_alertas: {
+        Row: {
+          acao_url: string | null
+          created_at: string
+          dados: Json | null
+          destinatario_id: string | null
+          entidade_id: string | null
+          entidade_tipo: string | null
+          expires_at: string | null
+          id: string
+          lido: boolean | null
+          lido_em: string | null
+          mensagem: string | null
+          severidade: string | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          acao_url?: string | null
+          created_at?: string
+          dados?: Json | null
+          destinatario_id?: string | null
+          entidade_id?: string | null
+          entidade_tipo?: string | null
+          expires_at?: string | null
+          id?: string
+          lido?: boolean | null
+          lido_em?: string | null
+          mensagem?: string | null
+          severidade?: string | null
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          acao_url?: string | null
+          created_at?: string
+          dados?: Json | null
+          destinatario_id?: string | null
+          entidade_id?: string | null
+          entidade_tipo?: string | null
+          expires_at?: string | null
+          id?: string
+          lido?: boolean | null
+          lido_em?: string | null
+          mensagem?: string | null
+          severidade?: string | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
+      marketing_aprovacoes: {
+        Row: {
+          aprovador_id: string | null
+          comentario: string | null
+          created_at: string
+          data_resposta: string | null
+          data_solicitacao: string | null
+          etapa_id: string | null
+          id: string
+          status: string | null
+          tarefa_id: string
+          versao: number | null
+        }
+        Insert: {
+          aprovador_id?: string | null
+          comentario?: string | null
+          created_at?: string
+          data_resposta?: string | null
+          data_solicitacao?: string | null
+          etapa_id?: string | null
+          id?: string
+          status?: string | null
+          tarefa_id: string
+          versao?: number | null
+        }
+        Update: {
+          aprovador_id?: string | null
+          comentario?: string | null
+          created_at?: string
+          data_resposta?: string | null
+          data_solicitacao?: string | null
+          etapa_id?: string | null
+          id?: string
+          status?: string | null
+          tarefa_id?: string
+          versao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_aprovacoes_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_workflow_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_aprovacoes_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_tarefas_marketing"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -8069,6 +8215,98 @@ export type Database = {
           },
         ]
       }
+      marketing_automacoes: {
+        Row: {
+          acoes: Json
+          ativo: boolean | null
+          condicoes: Json
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          execucoes_count: number | null
+          id: string
+          nome: string
+          prioridade: number | null
+          tipo_gatilho: string
+          ultima_execucao: string | null
+          updated_at: string
+        }
+        Insert: {
+          acoes?: Json
+          ativo?: boolean | null
+          condicoes?: Json
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          execucoes_count?: number | null
+          id?: string
+          nome: string
+          prioridade?: number | null
+          tipo_gatilho: string
+          ultima_execucao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acoes?: Json
+          ativo?: boolean | null
+          condicoes?: Json
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          execucoes_count?: number | null
+          id?: string
+          nome?: string
+          prioridade?: number | null
+          tipo_gatilho?: string
+          ultima_execucao?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketing_automacoes_log: {
+        Row: {
+          acoes_executadas: Json | null
+          automacao_id: string | null
+          entidade_id: string
+          entidade_tipo: string
+          erro_mensagem: string | null
+          executado_em: string
+          gatilho_dados: Json | null
+          id: string
+          sucesso: boolean | null
+        }
+        Insert: {
+          acoes_executadas?: Json | null
+          automacao_id?: string | null
+          entidade_id: string
+          entidade_tipo: string
+          erro_mensagem?: string | null
+          executado_em?: string
+          gatilho_dados?: Json | null
+          id?: string
+          sucesso?: boolean | null
+        }
+        Update: {
+          acoes_executadas?: Json | null
+          automacao_id?: string | null
+          entidade_id?: string
+          entidade_tipo?: string
+          erro_mensagem?: string | null
+          executado_em?: string
+          gatilho_dados?: Json | null
+          id?: string
+          sucesso?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_automacoes_log_automacao_id_fkey"
+            columns: ["automacao_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_automacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_badges: {
         Row: {
           codigo: string
@@ -8105,6 +8343,66 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_campanhas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          descricao: string | null
+          id: string
+          kpis: Json | null
+          lancamento_id: string | null
+          nome: string
+          objetivo: string | null
+          orcamento: number | null
+          orcamento_utilizado: number | null
+          progresso: number | null
+          responsavel_id: string | null
+          status: string | null
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          id?: string
+          kpis?: Json | null
+          lancamento_id?: string | null
+          nome: string
+          objetivo?: string | null
+          orcamento?: number | null
+          orcamento_utilizado?: number | null
+          progresso?: number | null
+          responsavel_id?: string | null
+          status?: string | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          id?: string
+          kpis?: Json | null
+          lancamento_id?: string | null
+          nome?: string
+          objetivo?: string | null
+          orcamento?: number | null
+          orcamento_utilizado?: number | null
+          progresso?: number | null
+          responsavel_id?: string | null
+          status?: string | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       marketing_notifications: {
         Row: {
           created_at: string | null
@@ -8135,6 +8433,36 @@ export type Database = {
           tipo?: string
           titulo?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      marketing_papeis: {
+        Row: {
+          ativo: boolean | null
+          codigo: string
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          permissoes: Json | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          permissoes?: Json | null
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          permissoes?: Json | null
         }
         Relationships: []
       }
@@ -8169,6 +8497,86 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "marketing_points_history_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_tarefas_marketing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_sla_config: {
+        Row: {
+          ativo: boolean | null
+          created_at: string
+          etapa_id: string | null
+          horas_alerta: number | null
+          horas_limite: number
+          id: string
+          tipo_tarefa: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string
+          etapa_id?: string | null
+          horas_alerta?: number | null
+          horas_limite: number
+          id?: string
+          tipo_tarefa: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string
+          etapa_id?: string | null
+          horas_alerta?: number | null
+          horas_limite?: number
+          id?: string
+          tipo_tarefa?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_sla_config_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_workflow_etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_tarefas_dependencias: {
+        Row: {
+          created_at: string
+          depende_de_id: string
+          id: string
+          tarefa_id: string
+          tipo_dependencia: string | null
+        }
+        Insert: {
+          created_at?: string
+          depende_de_id: string
+          id?: string
+          tarefa_id: string
+          tipo_dependencia?: string | null
+        }
+        Update: {
+          created_at?: string
+          depende_de_id?: string
+          id?: string
+          tarefa_id?: string
+          tipo_dependencia?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_tarefas_dependencias_depende_de_id_fkey"
+            columns: ["depende_de_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_tarefas_marketing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_tarefas_dependencias_tarefa_id_fkey"
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "lancamentos_tarefas_marketing"
@@ -8317,6 +8725,54 @@ export type Database = {
           },
         ]
       }
+      marketing_templates: {
+        Row: {
+          ativo: boolean | null
+          checklist_padrao: Json | null
+          configuracao: Json
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          etapas_workflow: Json | null
+          id: string
+          nome: string
+          pontos_base: number | null
+          sla_dias: number | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          checklist_padrao?: Json | null
+          configuracao?: Json
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          etapas_workflow?: Json | null
+          id?: string
+          nome: string
+          pontos_base?: number | null
+          sla_dias?: number | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          checklist_padrao?: Json | null
+          configuracao?: Json
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          etapas_workflow?: Json | null
+          id?: string
+          nome?: string
+          pontos_base?: number | null
+          sla_dias?: number | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       marketing_user_badges: {
         Row: {
           badge_id: string
@@ -8425,6 +8881,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      marketing_workflow_etapas: {
+        Row: {
+          aprovador_papel: string | null
+          ativo: boolean | null
+          cor: string | null
+          created_at: string
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          ordem: number
+          requer_aprovacao: boolean | null
+          sla_horas: number | null
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          aprovador_papel?: string | null
+          ativo?: boolean | null
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          requer_aprovacao?: boolean | null
+          sla_horas?: number | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aprovador_papel?: string | null
+          ativo?: boolean | null
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          requer_aprovacao?: boolean | null
+          sla_horas?: number | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       measurement_guide_photos: {
         Row: {
