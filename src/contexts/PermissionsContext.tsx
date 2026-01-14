@@ -91,7 +91,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
 
       // Usar RPC otimizada - UMA ÚNICA CHAMADA para tudo
       const { data: permData, error } = await supabase
-        .rpc("get_all_user_permissions", { _user_id: user.id });
+        .rpc("get_all_user_permissions", { p_user_id: user.id });
 
       if (error) {
         console.error("[PermissionsContext] Erro ao buscar permissões:", error);
@@ -101,10 +101,10 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const result = permData?.[0];
-      const userRole = result?.user_role || "vendedor";
-      const userIsAdmin = userRole === "admin";
-      const modulesList = result?.module_codes || [];
-      const screensList = result?.screen_codes || [];
+      const userRole = result?.role || "vendedor";
+      const userIsAdmin = result?.is_admin || false;
+      const modulesList = result?.modules || [];
+      const screensList = result?.screens || [];
 
       // Atualizar cache
       globalPermissionsCache = {

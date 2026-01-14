@@ -14467,11 +14467,12 @@ export type Database = {
         }[]
       }
       get_all_user_permissions: {
-        Args: { _user_id: string }
+        Args: { p_user_id: string }
         Returns: {
-          module_codes: string[]
-          screen_codes: string[]
-          user_role: string
+          is_admin: boolean
+          modules: string[]
+          role: string
+          screens: string[]
         }[]
       }
       get_analise_departamentos: {

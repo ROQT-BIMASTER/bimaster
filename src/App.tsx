@@ -10,6 +10,7 @@ import { memoryManager } from "@/lib/utils/memory-manager";
 import { memoryMonitor } from "@/lib/utils/memory-monitor";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ClienteProtectedRoute } from "@/components/auth/ClienteProtectedRoute";
+import { ModuleProtectedRoute } from "@/components/auth/ModuleProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { PWAProvider, usePWA } from "@/contexts/PWAContext";
@@ -282,20 +283,20 @@ function AppContent() {
             <Route path="/dashboard/precos/aprovacao" element={<ProtectedRoute><FabricaAprovacaoPrecos /></ProtectedRoute>} />
             <Route path="/dashboard/precos/portal-cliente" element={<ProtectedRoute><PortalCliente /></ProtectedRoute>} />
             
-            {/* Módulo Financeiro */}
-            <Route path="/dashboard/financeiro" element={<ProtectedRoute><Financeiro /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/visao-departamentos" element={<ProtectedRoute><VisaoDepartamentos /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/dre-analitico" element={<ProtectedRoute><DREAnalitico /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/trade" element={<ProtectedRoute><TradeFinanceiro /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-pagar" element={<ProtectedRoute><ContasAPagar /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-pagar/sync" element={<ProtectedRoute><ContasPagarSyncPage /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-receber" element={<ProtectedRoute><ContasAReceber /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ProtectedRoute><ContasReceberAuditoria /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ProtectedRoute><ContasReceberSyncPage /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/cobranca" element={<ProtectedRoute><CobrancaInadimplentes /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ProtectedRoute><FluxoDeCaixa /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/plano-contas" element={<ProtectedRoute><PlanoContas /></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/classificar-banco" element={<ProtectedRoute><ClassificarTodoBanco /></ProtectedRoute>} />
+            {/* Módulo Financeiro - Protegido por módulo */}
+            <Route path="/dashboard/financeiro" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><Financeiro /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/visao-departamentos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><VisaoDepartamentos /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/dre-analitico" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><DREAnalitico /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/trade" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><TradeFinanceiro /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasAPagar /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar/sync" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasPagarSyncPage /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-receber" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasAReceber /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasReceberAuditoria /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasReceberSyncPage /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/cobranca" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><CobrancaInadimplentes /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><FluxoDeCaixa /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/plano-contas" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><PlanoContas /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/classificar-banco" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ClassificarTodoBanco /></ModuleProtectedRoute></ProtectedRoute>} />
             
             {/* Marketing Mission Control */}
             <Route path="/dashboard/marketing/mission-control" element={<ProtectedRoute><MarketingMissionControlPage /></ProtectedRoute>} />
