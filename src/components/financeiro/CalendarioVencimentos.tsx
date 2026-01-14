@@ -8,13 +8,14 @@ import {
 } from "@/components/ui/dialog";
 import { 
   ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertCircle, 
-  Clock, CheckCircle, Receipt 
+  Clock, CheckCircle, Receipt, ChevronsLeft, ChevronsRight
 } from "lucide-react";
 import { 
-  format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, 
-  isToday, addMonths, subMonths, parseISO, isSameDay, getDay
+  format, startOfMonth, endOfMonth, eachDayOfInterval, 
+  isToday, addMonths, subMonths, parseISO, getDay, addYears, subYears
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 
 interface ContaPagar {
   id: string;
@@ -71,7 +72,7 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
     return map;
   }, [contas]);
 
-  // Resumo do mês
+  // Resumo do mês com status calculado
   const resumoMes = useMemo(() => {
     if (!contas) return { total: 0, pendente: 0, vencido: 0, pago: 0, qtdTitulos: 0 };
     
@@ -86,21 +87,33 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
 
     return {
       total: contasDoMes.reduce((sum, c) => sum + (c.valor_original || 0), 0),
-      pendente: contasDoMes.filter(c => c.status === 'pendente').reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-      vencido: contasDoMes.filter(c => c.status === 'vencido').reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
+      pendente: contasDoMes.filter(c => {
+        const status = calculateFinancialStatus(c.data_vencimento, null, c.status);
+        return status === 'pendente';
+      }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
+      vencido: contasDoMes.filter(c => {
+        const status = calculateFinancialStatus(c.data_vencimento, null, c.status);
+        return status === 'vencido';
+      }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
       pago: contasDoMes.filter(c => c.status === 'pago').reduce((sum, c) => sum + (c.valor_original || 0), 0),
       qtdTitulos: contasDoMes.length,
     };
   }, [contas, currentDate]);
 
-  // Obter info do dia
+  // Obter info do dia com status calculado
   const getDayInfo = (date: Date) => {
     const key = format(date, 'yyyy-MM-dd');
     const contasDoDia = contasPorDia.get(key) || [];
     
     const valorTotal = contasDoDia.reduce((sum, c) => sum + (c.valor_aberto || c.valor_original || 0), 0);
-    const hasVencido = contasDoDia.some(c => c.status === 'vencido');
-    const hasPendente = contasDoDia.some(c => c.status === 'pendente');
+    const hasVencido = contasDoDia.some(c => {
+      const status = calculateFinancialStatus(c.data_vencimento, null, c.status);
+      return status === 'vencido';
+    });
+    const hasPendente = contasDoDia.some(c => {
+      const status = calculateFinancialStatus(c.data_vencimento, null, c.status);
+      return status === 'pendente';
+    });
     const allPago = contasDoDia.length > 0 && contasDoDia.every(c => c.status === 'pago');
     
     return { contasDoDia, valorTotal, hasVencido, hasPendente, allPago };
@@ -161,23 +174,46 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
               </CardTitle>
               <CardDescription>Clique em um dia para ver os títulos</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentDate(subYears(currentDate, 1))}
+                title="Ano anterior"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentDate(subMonths(currentDate, 1))}
+                title="Mês anterior"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="font-medium min-w-[140px] text-center">
+              <Button
+                variant="ghost"
+                className="font-medium min-w-[140px] text-center"
+                onClick={() => setCurrentDate(new Date())}
+                title="Ir para hoje"
+              >
                 {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
-              </span>
+              </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentDate(addMonths(currentDate, 1))}
+                title="Próximo mês"
               >
                 <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentDate(addYears(currentDate, 1))}
+                title="Próximo ano"
+              >
+                <ChevronsRight className="h-4 w-4" />
               </Button>
             </div>
           </div>

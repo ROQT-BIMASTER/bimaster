@@ -1567,6 +1567,13 @@ export type Database = {
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "competitor_comparison_photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       competitor_intelligence: {
@@ -1681,6 +1688,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_intelligence_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
           {
@@ -6751,6 +6765,7 @@ export type Database = {
           produto_presente: boolean
           quantidade_frentes: number | null
           store_id: string
+          vendedor_id: string | null
           visit_id: string | null
         }
         Insert: {
@@ -6770,6 +6785,7 @@ export type Database = {
           produto_presente?: boolean
           quantidade_frentes?: number | null
           store_id: string
+          vendedor_id?: string | null
           visit_id?: string | null
         }
         Update: {
@@ -6789,6 +6805,7 @@ export type Database = {
           produto_presente?: boolean
           quantidade_frentes?: number | null
           store_id?: string
+          vendedor_id?: string | null
           visit_id?: string | null
         }
         Relationships: [
@@ -6811,6 +6828,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gondola_audits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
           {
@@ -7695,6 +7719,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kpis_tracking_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
         ]
@@ -9483,6 +9514,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "photos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "photos_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
@@ -9945,6 +9983,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_execution_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
           {
@@ -10833,6 +10878,13 @@ export type Database = {
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sales_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       scheduled_reports: {
@@ -10957,6 +11009,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_measurements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
           {
@@ -11111,6 +11170,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "shelf_share_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "shelf_share_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
@@ -11212,6 +11278,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_share_history_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
         ]
@@ -11538,6 +11611,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "store_products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "store_products_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
@@ -11564,6 +11644,55 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      store_sellers: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_principal: boolean | null
+          store_id: string
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_principal?: boolean | null
+          store_id: string
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_principal?: boolean | null
+          store_id?: string
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_sellers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "store_sellers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_sellers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -11620,6 +11749,13 @@ export type Database = {
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "store_sellout_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       store_sellouts: {
@@ -11636,6 +11772,7 @@ export type Database = {
           store_id: string
           total_amount: number | null
           unit_price: number | null
+          vendedor_id: string | null
         }
         Insert: {
           batch_id?: string | null
@@ -11650,6 +11787,7 @@ export type Database = {
           store_id: string
           total_amount?: number | null
           unit_price?: number | null
+          vendedor_id?: string | null
         }
         Update: {
           batch_id?: string | null
@@ -11664,6 +11802,7 @@ export type Database = {
           store_id?: string
           total_amount?: number | null
           unit_price?: number | null
+          vendedor_id?: string | null
         }
         Relationships: [
           {
@@ -11685,6 +11824,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_sellouts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
         ]
@@ -11749,6 +11895,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_stock_movements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
         ]
@@ -12374,6 +12527,13 @@ export type Database = {
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "trade_bank_accounts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       trade_bank_transactions: {
@@ -12938,6 +13098,13 @@ export type Database = {
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "trade_financial_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       trade_investments: {
@@ -13040,6 +13207,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_investments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
             referencedColumns: ["id"]
           },
           {
@@ -13800,6 +13974,13 @@ export type Database = {
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "visits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       whatsapp_conversations: {
@@ -13939,6 +14120,102 @@ export type Database = {
           total_auditorias: number | null
           total_investimentos: number | null
           total_visitas: number | null
+        }
+        Relationships: []
+      }
+      stores_with_sellers: {
+        Row: {
+          address: string | null
+          category: string | null
+          chain: string | null
+          city: string | null
+          cnpj: string | null
+          code: string | null
+          created_at: string | null
+          created_by: string | null
+          email: string | null
+          id: string | null
+          latitude: number | null
+          longitude: number | null
+          manager_name: string | null
+          manager_phone: string | null
+          monthly_revenue: number | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          priority: string | null
+          size: string | null
+          state: string | null
+          status: string | null
+          supervisor_id: string | null
+          updated_at: string | null
+          vendedor_id: string | null
+          vendedor_principal_id: string | null
+          vendedores: Json | null
+          visit_frequency: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          category?: string | null
+          chain?: string | null
+          city?: string | null
+          cnpj?: string | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          manager_name?: string | null
+          manager_phone?: string | null
+          monthly_revenue?: number | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          priority?: string | null
+          size?: string | null
+          state?: string | null
+          status?: string | null
+          supervisor_id?: string | null
+          updated_at?: string | null
+          vendedor_id?: string | null
+          vendedor_principal_id?: never
+          vendedores?: never
+          visit_frequency?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          category?: string | null
+          chain?: string | null
+          city?: string | null
+          cnpj?: string | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          manager_name?: string | null
+          manager_phone?: string | null
+          monthly_revenue?: number | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          priority?: string | null
+          size?: string | null
+          state?: string | null
+          status?: string | null
+          supervisor_id?: string | null
+          updated_at?: string | null
+          vendedor_id?: string | null
+          vendedor_principal_id?: never
+          vendedores?: never
+          visit_frequency?: string | null
+          zip_code?: string | null
         }
         Relationships: []
       }
@@ -14141,6 +14418,15 @@ export type Database = {
       calcular_score_cliente: {
         Args: { p_cliente_codigo: string }
         Returns: number
+      }
+      calcular_status_financeiro: {
+        Args: {
+          p_data_pagamento: string
+          p_data_vencimento: string
+          p_valor_original: number
+          p_valor_pago: number
+        }
+        Returns: string
       }
       calculate_user_level: {
         Args: { points: number }
@@ -14460,6 +14746,10 @@ export type Database = {
       update_user_ranking: {
         Args: { p_period_key: string; p_period_type: string; p_user_id: string }
         Returns: undefined
+      }
+      user_has_store_access: {
+        Args: { p_store_id: string; p_user_id?: string }
+        Returns: boolean
       }
       user_tem_acesso_cnpj: {
         Args: { p_cnpj: string; p_user_id: string }
