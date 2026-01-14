@@ -28,6 +28,7 @@ import { AprovarOrcamentoDialog } from "@/components/trade/AprovarOrcamentoDialo
 import { ClassificarContasPagarDialog } from "@/components/configuracoes/ClassificarContasPagarDialog";
 import { EditarClassificacaoRapidaDialog } from "@/components/financeiro/EditarClassificacaoRapidaDialog";
 import { useUserRole } from "@/hooks/useUserRole";
+import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 
 interface ContaPagar {
   id: string;
@@ -237,21 +238,34 @@ export default function ContasAPagar() {
     return { data: contasTable.data, totalPages, totalItems };
   }, [contasTable, pageSize]);
 
-  // Calcular KPIs
-  const kpis = {
-    totalAPagar: contas?.filter(c => ['pendente', 'vencido', 'parcial'].includes(c.status))
-      .reduce((sum, c) => sum + (c.valor_aberto || 0), 0) || 0,
-    vencendoHoje: contas?.filter(c => c.data_vencimento === format(new Date(), 'yyyy-MM-dd'))
-      .reduce((sum, c) => sum + (c.valor_aberto || 0), 0) || 0,
-    vencidas: contas?.filter(c => c.status === 'vencido')
-      .reduce((sum, c) => sum + (c.valor_aberto || 0), 0) || 0,
-    pagasNoMes: contas?.filter(c => {
-      if (!c.data_pagamento) return false;
-      const pagamento = new Date(c.data_pagamento);
-      const hoje = new Date();
-      return pagamento.getMonth() === hoje.getMonth() && pagamento.getFullYear() === hoje.getFullYear();
-    }).reduce((sum, c) => sum + (c.valor_pago || 0), 0) || 0
-  };
+  // Calcular KPIs com status dinâmico
+  const kpis = useMemo(() => {
+    if (!contas) return { totalAPagar: 0, vencendoHoje: 0, vencidas: 0, pagasNoMes: 0 };
+    
+    const hoje = new Date();
+    const hojeStr = format(hoje, 'yyyy-MM-dd');
+    
+    return {
+      totalAPagar: contas.filter(c => {
+        const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status);
+        return ['pendente', 'vencido', 'parcial'].includes(statusCalc);
+      }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
+      
+      vencendoHoje: contas.filter(c => c.data_vencimento === hojeStr && !c.data_pagamento)
+        .reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
+      
+      vencidas: contas.filter(c => {
+        const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status);
+        return statusCalc === 'vencido';
+      }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
+      
+      pagasNoMes: contas.filter(c => {
+        if (!c.data_pagamento) return false;
+        const pagamento = new Date(c.data_pagamento);
+        return pagamento.getMonth() === hoje.getMonth() && pagamento.getFullYear() === hoje.getFullYear();
+      }).reduce((sum, c) => sum + (c.valor_pago || 0), 0)
+    };
+  }, [contas]);
 
   // Empresas únicas para filtro
   const empresas = Array.from(new Set(contas?.map(c => ({ id: c.empresa_id, nome: c.empresa_nome })) || []))
