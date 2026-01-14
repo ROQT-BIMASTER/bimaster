@@ -167,7 +167,6 @@ export default function QuickLaunchDialog({
             titulo: t.titulo,
             descricao: t.descricao,
             status: "pendente",
-            created_by: user.id,
           }));
 
         if (tarefasToCreate.length > 0) {
