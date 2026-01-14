@@ -5,13 +5,13 @@ import {
   Receipt, AlertCircle, Clock, TrendingUp, TrendingDown, Calendar, Users, 
   BarChart3, PieChart as PieChartIcon, AlertTriangle, CheckCircle2, Hourglass
 } from "lucide-react";
-import { format, differenceInDays, subDays, subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO, addDays } from "date-fns";
+import { format, differenceInDays, subDays, subMonths, startOfMonth, endOfMonth, isWithinInterval, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from "recharts";
-
+import { parseLocalDate, getDateKey, getToday } from "@/utils/dateUtils";
 interface ContaPagar {
   id: string;
   fornecedor_nome: string;
@@ -78,7 +78,7 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
       };
     }
 
-    const hoje = new Date();
+    const hoje = getToday();
     const inicioMes = startOfMonth(hoje);
     const fimMes = endOfMonth(hoje);
     const inicioMesAnterior = startOfMonth(subDays(inicioMes, 1));
@@ -88,16 +88,19 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
     const contasPagas = contas.filter(c => c.data_pagamento && c.data_emissao);
     let totalDiasPagamento = 0;
     contasPagas.forEach(c => {
-      const emissao = parseISO(c.data_emissao);
-      const pagamento = parseISO(c.data_pagamento!);
-      totalDiasPagamento += differenceInDays(pagamento, emissao);
+      const emissao = parseLocalDate(c.data_emissao);
+      const pagamento = parseLocalDate(c.data_pagamento!);
+      if (emissao && pagamento) {
+        totalDiasPagamento += differenceInDays(pagamento, emissao);
+      }
     });
     const pmp = contasPagas.length > 0 ? Math.round(totalDiasPagamento / contasPagas.length) : 0;
 
     // Índice de Pontualidade (% pagas no vencimento ou antes)
     const contasPagasNoPrazo = contasPagas.filter(c => {
-      const vencimento = parseISO(c.data_vencimento);
-      const pagamento = parseISO(c.data_pagamento!);
+      const vencimento = parseLocalDate(c.data_vencimento);
+      const pagamento = parseLocalDate(c.data_pagamento!);
+      if (!vencimento || !pagamento) return false;
       return differenceInDays(pagamento, vencimento) <= 0;
     });
     const indicePontualidade = contasPagas.length > 0 
@@ -107,17 +110,20 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
     // Concentração de vencimentos
     const vencendo7dias = contas.filter(c => {
       if (!c.data_vencimento || c.status === 'pago') return false;
-      const venc = parseISO(c.data_vencimento);
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
       return isWithinInterval(venc, { start: hoje, end: addDays(hoje, 7) });
     });
     const vencendo15dias = contas.filter(c => {
       if (!c.data_vencimento || c.status === 'pago') return false;
-      const venc = parseISO(c.data_vencimento);
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
       return isWithinInterval(venc, { start: hoje, end: addDays(hoje, 15) });
     });
     const vencendo30dias = contas.filter(c => {
       if (!c.data_vencimento || c.status === 'pago') return false;
-      const venc = parseISO(c.data_vencimento);
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
       return isWithinInterval(venc, { start: hoje, end: addDays(hoje, 30) });
     });
 
@@ -128,13 +134,15 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
     // Comparativo mensal
     const totalMesAtual = contas.filter(c => {
       if (!c.data_vencimento) return false;
-      const venc = parseISO(c.data_vencimento);
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
       return isWithinInterval(venc, { start: inicioMes, end: fimMes });
     }).reduce((sum, c) => sum + (c.valor_original || 0), 0);
 
     const totalMesAnterior = contas.filter(c => {
       if (!c.data_vencimento) return false;
-      const venc = parseISO(c.data_vencimento);
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
       return isWithinInterval(venc, { start: inicioMesAnterior, end: fimMesAnterior });
     }).reduce((sum, c) => sum + (c.valor_original || 0), 0);
 
@@ -142,12 +150,16 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
       ? Math.round(((totalMesAtual - totalMesAnterior) / totalMesAnterior) * 100) 
       : 0;
 
-    // Alertas
-    const hojeStr = format(hoje, 'yyyy-MM-dd');
-    const vencendoHoje = contas.filter(c => c.data_vencimento === hojeStr && c.status !== 'pago');
+    // Alertas - usando getDateKey para comparação consistente
+    const hojeStr = getDateKey(hoje);
+    const vencendoHoje = contas.filter(c => {
+      const vencKey = getDateKey(c.data_vencimento);
+      return vencKey === hojeStr && c.status !== 'pago';
+    });
     const vencidas30dias = contas.filter(c => {
       if (!c.data_vencimento || c.status === 'pago') return false;
-      const venc = parseISO(c.data_vencimento);
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
       return differenceInDays(hoje, venc) > 30;
     });
 
@@ -192,7 +204,8 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
 
     contas.forEach(c => {
       if (!c.data_vencimento) return;
-      const venc = parseISO(c.data_vencimento);
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return;
       
       // Encontrar o mês correspondente
       const mesIndex = meses.findIndex(m => 
