@@ -104,6 +104,7 @@ const DREAnalitico = lazy(() => import("./pages/DREAnalitico"));
 const ClassificarTodoBanco = lazy(() => import("./pages/ClassificarTodoBanco"));
 const ContasAReceber = lazy(() => import("./pages/ContasAReceber"));
 const ContasReceberAuditoria = lazy(() => import("./pages/ContasReceberAuditoria"));
+const ContasPagarAuditoria = lazy(() => import("./pages/ContasPagarAuditoria"));
 const CobrancaInadimplentes = lazy(() => import("./pages/CobrancaInadimplentes"));
 const FluxoDeCaixa = lazy(() => import("./pages/FluxoDeCaixa"));
 const ContasReceberSyncPage = lazy(() => import("./pages/financeiro/ContasReceberSyncPage"));
@@ -290,6 +291,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/trade" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><TradeFinanceiro /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasAPagar /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar/sync" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasPagarSyncPage /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar/auditoria" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasPagarAuditoria /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasAReceber /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasReceberAuditoria /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasReceberSyncPage /></ModuleProtectedRoute></ProtectedRoute>} />
