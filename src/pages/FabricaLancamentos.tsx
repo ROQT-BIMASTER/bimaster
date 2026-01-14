@@ -10,16 +10,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { 
   Calendar, Plus, Rocket, Clock, CheckCircle, AlertTriangle, List, CalendarDays, Kanban,
-  TrendingUp, ChevronLeft, ChevronRight, GitBranch, Package
+  TrendingUp, GitBranch, Package
 } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, isWithinInterval } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { isWithinInterval } from "date-fns";
+
 import NovoLancamentoDialog from "@/components/fabrica/NovoLancamentoDialog";
 import LancamentoDetailDialog from "@/components/fabrica/LancamentoDetailDialog";
 import LaunchCard from "@/components/fabrica/LaunchCard";
 import CountdownBadge from "@/components/fabrica/CountdownBadge";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import LaunchTimeline from "@/components/fabrica/LaunchTimeline";
+import LaunchCalendarView from "@/components/fabrica/LaunchCalendarView";
 import LaunchFilters, { type LaunchFiltersState } from "@/components/fabrica/LaunchFilters";
 import MilestoneProgress from "@/components/fabrica/MilestoneProgress";
 import QuickActions from "@/components/fabrica/QuickActions";
@@ -97,7 +98,6 @@ export default function FabricaLancamentos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLancamento, setSelectedLancamento] = useState<Lancamento | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [activeTab, setActiveTab] = useState("calendario");
   const [filters, setFilters] = useState<LaunchFiltersState>(initialFilters);
   
@@ -243,14 +243,6 @@ export default function FabricaLancamentos() {
     return dataEfetiva.getMonth() === new Date().getMonth() && dataEfetiva.getFullYear() === new Date().getFullYear();
   }).length || 0;
 
-  // Calendar view logic
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(currentMonth);
-  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-
-  const getLancamentosForDay = (day: Date) => {
-    return filteredLancamentos.filter((l) => isSameDay(new Date(l.data_prevista), day));
-  };
 
   const handleLancamentoClick = (lancamento: Lancamento) => {
     setSelectedLancamento(lancamento);
@@ -422,79 +414,11 @@ export default function FabricaLancamentos() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               {/* Calendar View */}
               <TabsContent value="calendario" className="mt-0">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Anterior
-                    </Button>
-                    <h3 className="text-lg font-semibold capitalize">
-                      {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
-                    </h3>
-                    <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                      Próximo
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-1">
-                    {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
-                      <div key={day} className="text-center text-sm font-medium text-muted-foreground p-2">
-                        {day}
-                      </div>
-                    ))}
-
-                    {/* Empty cells for days before month start */}
-                    {Array.from({ length: monthStart.getDay() }).map((_, i) => (
-                      <div key={`empty-start-${i}`} className="min-h-[120px] bg-muted/20 rounded-lg" />
-                    ))}
-
-                    {daysInMonth.map((day) => {
-                      const dayLancamentos = getLancamentosForDay(day);
-                      return (
-                        <div
-                          key={day.toISOString()}
-                          className={cn(
-                            "min-h-[120px] rounded-lg p-2 transition-all",
-                            isToday(day) 
-                              ? "ring-2 ring-primary bg-primary/5" 
-                              : "border border-border/50 hover:bg-muted/30"
-                          )}
-                        >
-                          <div className={cn(
-                            "text-sm font-medium mb-1.5 h-6 w-6 rounded-full flex items-center justify-center",
-                            isToday(day) ? "bg-primary text-primary-foreground" : ""
-                          )}>
-                            {format(day, "d")}
-                          </div>
-                          <div className="space-y-1">
-                            {dayLancamentos.slice(0, 2).map((l) => (
-                              <div
-                                key={l.id}
-                                onClick={() => handleLancamentoClick(l)}
-                                className={cn(
-                                  "flex items-center gap-1.5 p-1 rounded cursor-pointer transition-all hover:scale-[1.02]",
-                                  statusConfig[l.status]?.bgColor
-                                )}
-                              >
-                                <ProductThumbnail src={l.fabrica_produtos?.foto_url} size="sm" className="h-5 w-5" />
-                                <span className={cn("text-xs truncate flex-1", statusConfig[l.status]?.color)}>
-                                  {l.nome_lancamento}
-                                </span>
-                                <div className={cn("h-1.5 w-1.5 rounded-full flex-shrink-0", prioridadeConfig[l.prioridade]?.color)} />
-                              </div>
-                            ))}
-                            {dayLancamentos.length > 2 && (
-                              <div className="text-xs text-primary font-medium cursor-pointer hover:underline">
-                                +{dayLancamentos.length - 2} mais
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                <LaunchCalendarView
+                  lancamentos={filteredLancamentos}
+                  onLancamentoClick={handleLancamentoClick}
+                  isLoading={isLoading}
+                />
               </TabsContent>
 
               {/* Timeline View */}
