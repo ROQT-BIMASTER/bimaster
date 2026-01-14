@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
-  FileText as FileTemplate, Plus, Search, Copy, Pencil, Trash2,
-  FileTemplate, Plus, Search, Copy, Pencil, Trash2,
+  FileText, Plus, Search, Copy, Pencil, Trash2,
   Clock, Zap, CheckSquare, MoreVertical
 } from "lucide-react";
+
+const FileTemplate = FileText;
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { NewTemplateDialog } from "./NewTemplateDialog";
@@ -104,18 +105,19 @@ export function TemplatesManager() {
 
   const duplicateTemplate = useMutation({
     mutationFn: async (template: Template) => {
+      const newTemplate = {
+        nome: `${template.nome} (Cópia)`,
+        tipo: template.tipo,
+        descricao: template.descricao,
+        configuracao: template.configuracao,
+        etapas_workflow: template.etapas_workflow,
+        checklist_padrao: template.checklist_padrao,
+        sla_dias: template.sla_dias,
+        pontos_base: template.pontos_base,
+      };
       const { error } = await supabase
         .from('marketing_templates')
-        .insert({
-          nome: `${template.nome} (Cópia)`,
-          tipo: template.tipo,
-          descricao: template.descricao,
-          configuracao: template.configuracao,
-          etapas_workflow: template.etapas_workflow,
-          checklist_padrao: template.checklist_padrao,
-          sla_dias: template.sla_dias,
-          pontos_base: template.pontos_base,
-        });
+        .insert(newTemplate as never);
       if (error) throw error;
     },
     onSuccess: () => {
