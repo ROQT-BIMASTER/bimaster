@@ -239,11 +239,12 @@ export default function ContasAPagar() {
     return { data: contasTable.data, totalPages, totalItems };
   }, [contasTable, pageSize]);
 
-  // Calcular KPIs com status dinâmico
+  // Calcular KPIs com status dinâmico - usando getDateKey para comparação consistente
   const kpis = useMemo(() => {
     if (!contas) return { totalAPagar: 0, vencendoHoje: 0, vencidas: 0, pagasNoMes: 0 };
     
     const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
     const hojeStr = format(hoje, 'yyyy-MM-dd');
     
     return {
@@ -252,8 +253,11 @@ export default function ContasAPagar() {
         return ['pendente', 'vencido', 'parcial'].includes(statusCalc);
       }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
       
-      vencendoHoje: contas.filter(c => c.data_vencimento === hojeStr && !c.data_pagamento)
-        .reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
+      vencendoHoje: contas.filter(c => {
+        // Normaliza a data para comparação (extrai apenas YYYY-MM-DD)
+        const vencKey = c.data_vencimento ? c.data_vencimento.substring(0, 10) : '';
+        return vencKey === hojeStr && !c.data_pagamento;
+      }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
       
       vencidas: contas.filter(c => {
         const statusCalc = calculateFinancialStatus(c.data_vencimento, c.data_pagamento, c.status);
@@ -262,8 +266,9 @@ export default function ContasAPagar() {
       
       pagasNoMes: contas.filter(c => {
         if (!c.data_pagamento) return false;
-        const pagamento = new Date(c.data_pagamento);
-        return pagamento.getMonth() === hoje.getMonth() && pagamento.getFullYear() === hoje.getFullYear();
+        const pagKey = c.data_pagamento.substring(0, 7); // YYYY-MM
+        const hojeKey = format(hoje, 'yyyy-MM');
+        return pagKey === hojeKey;
       }).reduce((sum, c) => sum + (c.valor_pago || 0), 0)
     };
   }, [contas]);
