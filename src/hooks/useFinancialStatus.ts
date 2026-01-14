@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { parseLocalDate, getToday } from "@/utils/dateUtils";
 
 // Helper para calcular status financeiro baseado na data de vencimento
 export function calculateFinancialStatus(
@@ -21,10 +22,13 @@ export function calculateFinancialStatus(
     return 'pendente';
   }
   
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+  const hoje = getToday();
+  const vencimento = parseLocalDate(dataVencimento);
   
-  const vencimento = new Date(dataVencimento);
+  if (!vencimento) {
+    return 'pendente';
+  }
+  
   vencimento.setHours(0, 0, 0, 0);
   
   // Se vencimento < hoje e não pago → VENCIDO

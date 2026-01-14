@@ -12,10 +12,11 @@ import {
 } from "lucide-react";
 import { 
   format, startOfMonth, endOfMonth, eachDayOfInterval, 
-  isToday, addMonths, subMonths, parseISO, getDay, addYears, subYears
+  isToday, addMonths, subMonths, getDay, addYears, subYears
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
+import { parseLocalDate, getDateKey, formatLocalDate } from "@/utils/dateUtils";
 
 interface ContaPagar {
   id: string;
@@ -55,7 +56,7 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
   // Primeiro dia da semana do mês
   const firstDayOfWeek = getDay(startOfMonth(currentDate));
 
-  // Agrupar contas por data de vencimento
+  // Agrupar contas por data de vencimento usando getDateKey para consistência
   const contasPorDia = useMemo(() => {
     if (!contas) return new Map<string, ContaPagar[]>();
     
@@ -63,7 +64,8 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
     
     contas.forEach(conta => {
       if (!conta.data_vencimento) return;
-      const key = conta.data_vencimento;
+      // Usa getDateKey para garantir formato consistente YYYY-MM-DD
+      const key = getDateKey(conta.data_vencimento);
       const existing = map.get(key) || [];
       existing.push(conta);
       map.set(key, existing);
@@ -81,7 +83,9 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
     
     const contasDoMes = contas.filter(c => {
       if (!c.data_vencimento) return false;
-      const venc = parseISO(c.data_vencimento);
+      // Usa parseLocalDate para evitar timezone shift
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
       return venc >= start && venc <= end;
     });
 
@@ -102,7 +106,8 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
 
   // Obter info do dia com status calculado
   const getDayInfo = (date: Date) => {
-    const key = format(date, 'yyyy-MM-dd');
+    // Usa getDateKey para garantir formato consistente
+    const key = getDateKey(date);
     const contasDoDia = contasPorDia.get(key) || [];
     
     const valorTotal = contasDoDia.reduce((sum, c) => sum + (c.valor_aberto || c.valor_original || 0), 0);
@@ -122,7 +127,7 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
   // Contas do dia selecionado
   const contasDiaSelecionado = useMemo(() => {
     if (!selectedDate) return [];
-    const key = format(selectedDate, 'yyyy-MM-dd');
+    const key = getDateKey(selectedDate);
     return contasPorDia.get(key) || [];
   }, [selectedDate, contasPorDia]);
 

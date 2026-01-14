@@ -29,6 +29,7 @@ import { ClassificarContasPagarDialog } from "@/components/configuracoes/Classif
 import { EditarClassificacaoRapidaDialog } from "@/components/financeiro/EditarClassificacaoRapidaDialog";
 import { useUserRole } from "@/hooks/useUserRole";
 import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
+import { formatLocalDate } from "@/utils/dateUtils";
 
 interface ContaPagar {
   id: string;
@@ -360,8 +361,8 @@ export default function ContasAPagar() {
       'Documento': `${c.numero_documento}/${c.parcela}`,
       'Fornecedor': c.fornecedor_nome,
       'Categoria': c.categoria_nome,
-      'Emissão': c.data_emissao ? format(new Date(c.data_emissao), 'dd/MM/yyyy', { locale: ptBR }) : '',
-      'Vencimento': c.data_vencimento ? format(new Date(c.data_vencimento), 'dd/MM/yyyy', { locale: ptBR }) : '',
+      'Emissão': formatLocalDate(c.data_emissao, 'dd/MM/yyyy'),
+      'Vencimento': formatLocalDate(c.data_vencimento, 'dd/MM/yyyy'),
       'Valor Original': c.valor_original,
       'Valor Aberto': c.valor_aberto,
       'Valor Pago': c.valor_pago,
@@ -529,8 +530,8 @@ export default function ContasAPagar() {
       'Documento': `${c.numero_documento}/${c.parcela}`,
       'Fornecedor': c.fornecedor_nome,
       'Categoria': c.categoria_nome,
-      'Emissão': c.data_emissao ? format(new Date(c.data_emissao), 'dd/MM/yyyy', { locale: ptBR }) : '',
-      'Vencimento': c.data_vencimento ? format(new Date(c.data_vencimento), 'dd/MM/yyyy', { locale: ptBR }) : '',
+      'Emissão': formatLocalDate(c.data_emissao, 'dd/MM/yyyy'),
+      'Vencimento': formatLocalDate(c.data_vencimento, 'dd/MM/yyyy'),
       'Valor Original': c.valor_original,
       'Valor Aberto': c.valor_aberto,
       'Valor Pago': c.valor_pago,
@@ -1105,7 +1106,7 @@ export default function ContasAPagar() {
                               <TableCell>{conta.fornecedor_nome}</TableCell>
                               <TableCell>{conta.categoria_nome}</TableCell>
                               <TableCell>
-                                {conta.data_vencimento ? format(new Date(conta.data_vencimento), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                                {formatLocalDate(conta.data_vencimento, 'dd/MM/yyyy')}
                               </TableCell>
                               <TableCell className="text-right">
                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_original)}
@@ -1487,9 +1488,7 @@ export default function ContasAPagar() {
                                       </Badge>
                                     </TableCell>
                                     <TableCell className="text-xs">
-                                      {conta.data_vencimento 
-                                        ? format(new Date(conta.data_vencimento), 'dd/MM/yy', { locale: ptBR })
-                                        : 'N/A'}
+                                      {formatLocalDate(conta.data_vencimento, 'dd/MM/yy')}
                                     </TableCell>
                                     <TableCell className="text-right font-medium text-xs">
                                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_original || 0)}

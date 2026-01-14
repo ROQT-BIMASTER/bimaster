@@ -33,8 +33,9 @@ import {
   ExternalLink,
   Table as TableIcon
 } from "lucide-react";
-import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, subMonths, parseISO } from "date-fns";
+import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseLocalDate, formatLocalDate } from "@/utils/dateUtils";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, Cell } from "recharts";
 import { cn } from "@/lib/utils";
 import { FluxoCaixaTable } from "@/components/fluxocaixa/FluxoCaixaTable";
@@ -972,9 +973,11 @@ const MovimentacoesTable = ({
       combined = combined.filter(m => m.tipo === filter);
     }
 
-    return combined.sort((a, b) => 
-      new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime()
-    );
+    return combined.sort((a, b) => {
+      const dateA = parseLocalDate(a.data_vencimento);
+      const dateB = parseLocalDate(b.data_vencimento);
+      return (dateA?.getTime() || 0) - (dateB?.getTime() || 0);
+    });
   }, [contasReceber, contasPagar, filter]);
 
   return (
@@ -1025,7 +1028,7 @@ const MovimentacoesTable = ({
               {allMovimentos.slice(0, 50).map((mov, i) => (
                 <tr key={i} className="border-b hover:bg-muted/50">
                   <td className="py-2">
-                    {format(new Date(mov.data_vencimento), "dd/MM/yyyy")}
+                    {formatLocalDate(mov.data_vencimento, "dd/MM/yyyy")}
                   </td>
                   <td className="py-2">
                     {mov.tipo === "receber" ? (
