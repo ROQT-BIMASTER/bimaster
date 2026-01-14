@@ -19,7 +19,7 @@ import {
   ChevronDown,
   Zap,
   Plus,
-  Video
+  Volume2
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,16 +48,16 @@ const MarketingModule = () => {
       return {
         totalPosts: postsRes.count || 0,
         conversasWhatsApp: conversasRes.count || 0,
-        campanhasAtivas: 12, // Simulado
-        alcanceTotal: 15420 // Simulado
+        campanhasAtivas: 12,
+        alcanceTotal: 15420
       };
     }
   });
 
   // Módulos secundários agrupados
   const secondaryModules = {
-    "Conteúdo e Planejamento": [
-      { title: "Nano Banana Video", to: "/dashboard/marketing/nano-banana", icon: Video, color: "text-yellow-600", disabled: false },
+    "Conteúdo e Criação": [
+      { title: "ElevenLabs Studio", to: "/dashboard/marketing/elevenlabs", icon: Volume2, color: "text-purple-600", disabled: false },
       { title: "Calendário Editorial", to: "#", icon: Calendar, color: "text-orange-600", disabled: true },
       { title: "Gerador de Imagens", to: "#", icon: Image, color: "text-purple-600", disabled: true },
       { title: "Monitoramento", to: "#", icon: Users, color: "text-green-600", disabled: true },
@@ -117,13 +117,13 @@ const MarketingModule = () => {
             asChild
             size="lg"
             variant="outline"
-            className="h-14 gap-3 border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:hover:bg-blue-900 dark:text-blue-400"
+            className="h-14 gap-3 border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:hover:bg-purple-900 dark:text-purple-400"
           >
-            <Link to="/dashboard/marketing/social">
-              <div className="p-1.5 bg-blue-200 dark:bg-blue-800 rounded-lg">
-                <BarChart3 className="h-5 w-5" />
+            <Link to="/dashboard/marketing/elevenlabs">
+              <div className="p-1.5 bg-purple-200 dark:bg-purple-800 rounded-lg">
+                <Volume2 className="h-5 w-5" />
               </div>
-              <span className="font-semibold">Dashboard Social</span>
+              <span className="font-semibold">ElevenLabs Studio</span>
             </Link>
           </Button>
         </div>

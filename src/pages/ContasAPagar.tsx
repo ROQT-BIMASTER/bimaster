@@ -660,6 +660,12 @@ export default function ContasAPagar() {
                   Sincronização ERP
                 </Link>
               </Button>
+              <Button variant="default" size="sm" asChild className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
+                <Link to="/dashboard/financeiro/contas-a-pagar/auditoria">
+                  <Brain className="h-4 w-4 mr-2" />
+                  Auditoria IA
+                </Link>
+              </Button>
             </div>
           </div>
           <div className="flex gap-2">

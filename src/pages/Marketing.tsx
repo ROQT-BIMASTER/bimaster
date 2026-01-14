@@ -5,13 +5,13 @@ import { LookerStudioReports } from "@/components/marketing/LookerStudioReports"
 import { DashCortexReports } from "@/components/marketing/DashCortexReports";
 import { PowerBIReports } from "@/components/marketing/PowerBIReports";
 import { SocialMediaMonitoring } from "@/components/marketing/SocialMediaMonitoring";
-import { AIImageGenerator } from "@/components/marketing/AIImageGenerator";
+import { ElevenLabsStudio } from "@/components/marketing/ElevenLabsStudio";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Instagram, LineChart, TrendingUp, Share2, Sparkles, Video, ArrowLeft, Rocket } from "lucide-react";
+import { BarChart3, Instagram, LineChart, TrendingUp, Share2, Volume2, ArrowLeft, Rocket } from "lucide-react";
 
-type MenuSection = "menu" | "looker" | "dashcortex" | "powerbi" | "social" | "ai-images" | "pollo";
+type MenuSection = "menu" | "looker" | "dashcortex" | "powerbi" | "social" | "elevenlabs";
 
 const menuItems = [
   {
@@ -47,16 +47,11 @@ const menuItems = [
     icon: Share2,
   },
   {
-    id: "ai-images" as MenuSection,
-    title: "Gerador IA",
-    description: "Gerar imagens com inteligência artificial",
-    icon: Sparkles,
-  },
-  {
-    id: "pollo" as MenuSection,
-    title: "Pollo AI",
-    description: "Efeitos e edição de vídeo com IA",
-    icon: Video,
+    id: "elevenlabs" as MenuSection,
+    title: "ElevenLabs Studio",
+    description: "Áudio, voz e música com IA",
+    icon: Volume2,
+    isNew: true,
   },
 ];
 
@@ -74,31 +69,8 @@ export default function Marketing() {
         return <PowerBIReports />;
       case "social":
         return <SocialMediaMonitoring />;
-      case "ai-images":
-        return <AIImageGenerator />;
-      case "pollo":
-        return (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pollo AI - Efeitos de Vídeo</CardTitle>
-                <CardDescription>
-                  Para usar o Pollo AI com login do Google, é necessário abrir em uma nova aba.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button
-                  onClick={() => window.open("https://pollo.ai/pt/app/pro-effects", "_blank")}
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  <Video className="h-5 w-5" />
-                  Abrir Pollo AI em Nova Aba
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        );
+      case "elevenlabs":
+        return <ElevenLabsStudio />;
       default:
         return null;
     }
