@@ -35,10 +35,10 @@ interface Task {
 }
 
 const columns = [
-  { id: 'pendente', label: 'Pendente', icon: Clock, color: 'text-gray-500' },
-  { id: 'em_andamento', label: 'Em Andamento', icon: Play, color: 'text-blue-500' },
-  { id: 'em_revisao', label: 'Em Revisão', icon: Pause, color: 'text-amber-500' },
-  { id: 'concluida', label: 'Concluída', icon: CheckCircle, color: 'text-green-500' }
+  { id: 'pendente', label: 'Pendente', icon: Clock, color: 'text-gray-500', aliases: ['pendente'] },
+  { id: 'em_andamento', label: 'Em Andamento', icon: Play, color: 'text-blue-500', aliases: ['em_andamento'] },
+  { id: 'em_revisao', label: 'Em Revisão', icon: Pause, color: 'text-amber-500', aliases: ['em_revisao', 'revisao'] },
+  { id: 'concluida', label: 'Concluída', icon: CheckCircle, color: 'text-green-500', aliases: ['concluida', 'concluido'] }
 ];
 
 const taskTypeLabels: Record<string, string> = {
@@ -55,7 +55,7 @@ function TaskCard({ task, onStatusChange }: { task: Task; onStatusChange: (id: s
   const daysUntil = Math.ceil((new Date(task.data_prazo).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   const isOverdue = daysUntil < 0;
   const isUrgent = daysUntil <= 2 && daysUntil >= 0;
-  const currentColumnIndex = columns.findIndex(c => c.id === task.status);
+  const currentColumnIndex = columns.findIndex(c => c.aliases.includes(task.status));
   const nextColumn = columns[currentColumnIndex + 1];
 
   return (
@@ -237,7 +237,7 @@ export function SmartKanban() {
   };
 
   const tasksByColumn = columns.reduce((acc, col) => {
-    acc[col.id] = tasks?.filter(t => t.status === col.id) || [];
+    acc[col.id] = tasks?.filter(t => col.aliases.includes(t.status)) || [];
     return acc;
   }, {} as Record<string, Task[]>);
 
