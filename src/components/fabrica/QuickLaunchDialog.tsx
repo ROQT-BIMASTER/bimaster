@@ -23,6 +23,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon, Rocket, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { handleError } from "@/lib/error-handler";
 
 interface Produto {
   id: string;
@@ -145,7 +146,8 @@ export default function QuickLaunchDialog({
         .insert({
           nome_lancamento: formData.nome,
           produto_id: produto.id,
-          data_prevista: formData.data_prevista.toISOString(),
+          // coluna é DATE no banco: enviar yyyy-MM-dd evita erro de casting
+          data_prevista: format(formData.data_prevista, "yyyy-MM-dd"),
           tipo: formData.tipo,
           prioridade: formData.prioridade,
           status: "planejado",
@@ -193,8 +195,13 @@ export default function QuickLaunchDialog({
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
+      const message = handleError(error, {
+        component: "QuickLaunchDialog",
+        action: "create_launch",
+        metadata: { produtoId: produto.id },
+      });
       console.error("Error creating launch:", error);
-      toast.error("Erro ao criar lançamento");
+      toast.error(message);
     } finally {
       setLoading(false);
     }
