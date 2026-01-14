@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatLocalDate } from "@/utils/dateUtils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -272,7 +273,7 @@ export function InadimplenteDrawer({ cliente, open, onClose, onRefresh }: Props)
                         {conta.numero_documento}/{conta.parcela}
                       </TableCell>
                       <TableCell>
-                        {conta.data_vencimento ? format(new Date(conta.data_vencimento), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                        {formatLocalDate(conta.data_vencimento, 'dd/MM/yyyy')}
                       </TableCell>
                       <TableCell>
                         <Badge variant={conta.dias_atraso >= 90 ? "destructive" : conta.dias_atraso >= 60 ? "secondary" : "outline"}>
