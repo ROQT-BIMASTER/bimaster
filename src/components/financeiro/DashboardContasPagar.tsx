@@ -156,11 +156,15 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
       const vencKey = getDateKey(c.data_vencimento);
       return vencKey === hojeStr && c.status !== 'pago';
     });
+    // Vencidas há mais de 30 dias - exclui apenas 'pago', inclui 'vencido', 'parcial', 'pendente' com atraso > 30
     const vencidas30dias = contas.filter(c => {
-      if (!c.data_vencimento || c.status === 'pago') return false;
+      if (!c.data_vencimento) return false;
+      const statusLower = (c.status || '').toLowerCase();
+      if (statusLower === 'pago') return false;
       const venc = parseLocalDate(c.data_vencimento);
       if (!venc) return false;
-      return differenceInDays(hoje, venc) > 30;
+      const diasAtraso = differenceInDays(hoje, venc);
+      return diasAtraso > 30;
     });
 
     return {
