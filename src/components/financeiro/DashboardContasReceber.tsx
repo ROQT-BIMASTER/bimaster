@@ -5,12 +5,15 @@ import {
   Receipt, AlertCircle, Clock, TrendingUp, TrendingDown, Calendar, Users, 
   BarChart3, PieChart as PieChartIcon, AlertTriangle, CheckCircle2, Hourglass
 } from "lucide-react";
-import { format, differenceInDays, subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO, addDays } from "date-fns";
+import { format, differenceInDays, subMonths, startOfMonth, endOfMonth, isWithinInterval, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseLocalDate, getDateKey, getToday } from "@/utils/dateUtils";
 import { 
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, 
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  ComposedChart, Line
 } from "recharts";
+import { EvolutionChart, HorizontalBarChart, DonutChart, StatusBarChart } from "./FinanceiroChartsGrid";
 
 interface ContaReceber {
   id: string;
@@ -77,48 +80,70 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
       };
     }
 
-    const hoje = new Date();
-    const hojeStr = format(hoje, 'yyyy-MM-dd');
+    const hoje = getToday();
+    const hojeStr = getDateKey(hoje);
     const inicioMes = startOfMonth(hoje);
     const fimMes = endOfMonth(hoje);
     const inicioMesAnterior = startOfMonth(subMonths(hoje, 1));
     const fimMesAnterior = endOfMonth(subMonths(hoje, 1));
 
+    // Normalizar status (banco usa lowercase)
+    const isRecebido = (status: string) => status?.toLowerCase() === 'recebido';
+    const isPendente = (status: string) => ['pendente', 'parcial'].includes(status?.toLowerCase() || '');
+    
+    // Determinar se está vencido baseado na data
+    const isVencido = (conta: ContaReceber) => {
+      if (isRecebido(conta.status)) return false;
+      const venc = parseLocalDate(conta.data_vencimento);
+      return venc ? differenceInDays(hoje, venc) > 0 : false;
+    };
+
     // PMR - Prazo Médio de Recebimento
-    const contasRecebidas = contas.filter(c => c.data_recebimento && c.data_emissao);
+    const contasRecebidas = contas.filter(c => c.data_recebimento && c.data_emissao && isRecebido(c.status));
     let totalDiasRecebimento = 0;
     contasRecebidas.forEach(c => {
-      const emissao = parseISO(c.data_emissao);
-      const recebimento = parseISO(c.data_recebimento!);
-      totalDiasRecebimento += differenceInDays(recebimento, emissao);
+      const emissao = parseLocalDate(c.data_emissao);
+      const recebimento = parseLocalDate(c.data_recebimento!);
+      if (emissao && recebimento) {
+        totalDiasRecebimento += differenceInDays(recebimento, emissao);
+      }
     });
     const pmr = contasRecebidas.length > 0 ? Math.round(totalDiasRecebimento / contasRecebidas.length) : 0;
 
     // Índice de Pontualidade
     const recebidasNoPrazo = contasRecebidas.filter(c => {
-      const vencimento = parseISO(c.data_vencimento);
-      const recebimento = parseISO(c.data_recebimento!);
+      const vencimento = parseLocalDate(c.data_vencimento);
+      const recebimento = parseLocalDate(c.data_recebimento!);
+      if (!vencimento || !recebimento) return false;
       return differenceInDays(recebimento, vencimento) <= 0;
     });
     const indicePontualidade = contasRecebidas.length > 0 
       ? Math.round((recebidasNoPrazo.length / contasRecebidas.length) * 100) 
       : 0;
 
-    // Concentração de vencimentos
-    const vencendo7dias = contas.filter(c => {
-      if (!c.data_vencimento || c.status === 'recebido') return false;
-      const venc = parseISO(c.data_vencimento);
-      return isWithinInterval(venc, { start: hoje, end: addDays(hoje, 7) });
+    // Concentração de vencimentos (apenas pendentes, não recebidos)
+    const contasPendentes = contas.filter(c => !isRecebido(c.status));
+    
+    const vencendo7dias = contasPendentes.filter(c => {
+      if (!c.data_vencimento) return false;
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
+      const dias = differenceInDays(venc, hoje);
+      return dias >= 0 && dias <= 7;
     });
-    const vencendo15dias = contas.filter(c => {
-      if (!c.data_vencimento || c.status === 'recebido') return false;
-      const venc = parseISO(c.data_vencimento);
-      return isWithinInterval(venc, { start: hoje, end: addDays(hoje, 15) });
+    const vencendo15dias = contasPendentes.filter(c => {
+      if (!c.data_vencimento) return false;
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
+      const dias = differenceInDays(venc, hoje);
+      return dias >= 0 && dias <= 15;
     });
-    const vencendo30dias = contas.filter(c => {
-      if (!c.data_vencimento || c.status === 'recebido') return false;
-      const venc = parseISO(c.data_vencimento);
-      return isWithinInterval(venc, { start: hoje, end: addDays(hoje, 30) });
+    const vencendo30dias = contasPendentes.filter(c => {
+      if (!c.data_vencimento) return false;
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
+      const dias = differenceInDays(venc, hoje);
+      return dias >= 0 && dias <= 30;
     });
 
     const concentracao7dias = vencendo7dias.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
@@ -128,13 +153,15 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
     // Comparativo mensal
     const totalMesAtual = contas.filter(c => {
       if (!c.data_vencimento) return false;
-      const venc = parseISO(c.data_vencimento);
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
       return isWithinInterval(venc, { start: inicioMes, end: fimMes });
     }).reduce((sum, c) => sum + (c.valor_original || 0), 0);
 
     const totalMesAnterior = contas.filter(c => {
       if (!c.data_vencimento) return false;
-      const venc = parseISO(c.data_vencimento);
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
       return isWithinInterval(venc, { start: inicioMesAnterior, end: fimMesAnterior });
     }).reduce((sum, c) => sum + (c.valor_original || 0), 0);
 
@@ -143,10 +170,16 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
       : 0;
 
     // Alertas
-    const vencendoHoje = contas.filter(c => c.data_vencimento === hojeStr && c.status !== 'recebido');
-    const vencidas30dias = contas.filter(c => {
-      if (!c.data_vencimento || c.status === 'recebido') return false;
-      const venc = parseISO(c.data_vencimento);
+    const vencendoHoje = contasPendentes.filter(c => {
+      const vencKey = getDateKey(c.data_vencimento);
+      return vencKey === hojeStr;
+    });
+    
+    // Vencidas há mais de 30 dias
+    const vencidas30dias = contasPendentes.filter(c => {
+      if (!c.data_vencimento) return false;
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return false;
       return differenceInDays(hoje, venc) > 30;
     });
 
@@ -172,7 +205,7 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
   const dadosEvolucaoMensal = useMemo(() => {
     if (!contas || contas.length === 0) return [];
 
-    const hoje = new Date();
+    const hoje = getToday();
     const meses: { mes: string; recebido: number; pendente: number; inicio: Date; fim: Date }[] = [];
 
     for (let i = 5; i >= 0; i--) {
@@ -188,16 +221,20 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
       });
     }
 
+    // Normalizar status
+    const isRecebido = (status: string) => status?.toLowerCase() === 'recebido';
+
     contas.forEach(c => {
       if (!c.data_vencimento) return;
-      const venc = parseISO(c.data_vencimento);
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return;
       
       const mesIndex = meses.findIndex(m => 
         isWithinInterval(venc, { start: m.inicio, end: m.fim })
       );
       
       if (mesIndex !== -1) {
-        if (c.status === 'recebido') {
+        if (isRecebido(c.status)) {
           meses[mesIndex].recebido += c.valor_recebido || 0;
         } else {
           meses[mesIndex].pendente += c.valor_aberto || 0;
@@ -217,8 +254,9 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
     if (!contas || contas.length === 0) return [];
 
     const porCliente: { [key: string]: number } = {};
+    const isRecebido = (status: string) => status?.toLowerCase() === 'recebido';
     
-    contas.filter(c => c.status !== 'recebido').forEach(c => {
+    contas.filter(c => !isRecebido(c.status)).forEach(c => {
       const nome = c.cliente_nome || 'Não informado';
       porCliente[nome] = (porCliente[nome] || 0) + (c.valor_aberto || 0);
     });
@@ -237,7 +275,9 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
   const agingReport = useMemo(() => {
     if (!contas || contas.length === 0) return [];
 
-    const hoje = new Date();
+    const hoje = getToday();
+    const isRecebido = (status: string) => status?.toLowerCase() === 'recebido';
+    
     // Faixas de dias à frente (A Vencer)
     const faixasFuturo = [
       { nome: 'Vencido', tipo: 'vencido', min: 1, max: 9999, valor: 0, qtd: 0 },
@@ -248,8 +288,9 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
       { nome: '+90 dias', tipo: 'futuro', min: 91, max: 9999, valor: 0, qtd: 0 },
     ];
 
-    contas.filter(c => c.status !== 'recebido' && c.data_vencimento).forEach(c => {
-      const venc = parseISO(c.data_vencimento);
+    contas.filter(c => !isRecebido(c.status) && c.data_vencimento).forEach(c => {
+      const venc = parseLocalDate(c.data_vencimento);
+      if (!venc) return;
       const diasAteFuturo = differenceInDays(venc, hoje); // positivo = futuro, negativo = passado
       
       if (diasAteFuturo < 0) {
@@ -277,6 +318,7 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
   const distribuicaoStatus = useMemo(() => {
     if (!contas || contas.length === 0) return [];
 
+    const hoje = getToday();
     const porStatus: { [key: string]: { qtd: number; valor: number } } = {
       'Recebido': { qtd: 0, valor: 0 },
       'Pendente': { qtd: 0, valor: 0 },
@@ -285,10 +327,23 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
     };
     
     contas.forEach(c => {
-      const status = c.status === 'recebido' ? 'Recebido' 
-        : c.status === 'vencido' ? 'Vencido' 
-        : c.status === 'parcial' ? 'Parcial' 
-        : 'Pendente';
+      const statusLower = c.status?.toLowerCase() || 'pendente';
+      let status: string;
+      
+      if (statusLower === 'recebido') {
+        status = 'Recebido';
+      } else if (statusLower === 'parcial') {
+        status = 'Parcial';
+      } else {
+        // Verificar se está vencido baseado na data
+        const venc = parseLocalDate(c.data_vencimento);
+        if (venc && differenceInDays(hoje, venc) > 0) {
+          status = 'Vencido';
+        } else {
+          status = 'Pendente';
+        }
+      }
+      
       porStatus[status].qtd += 1;
       porStatus[status].valor += c.valor_original || 0;
     });

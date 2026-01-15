@@ -12,9 +12,10 @@ import {
 } from "lucide-react";
 import { 
   format, startOfMonth, endOfMonth, eachDayOfInterval, 
-  isToday, addMonths, subMonths, parseISO, getDay
+  isToday, addMonths, subMonths, getDay, differenceInDays
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseLocalDate, getDateKey, getToday } from "@/utils/dateUtils";
 
 interface ContaReceber {
   id: string;
@@ -80,32 +81,58 @@ export function CalendarioRecebimentos({ contas, isLoading }: CalendarioRecebime
     
     const start = startOfMonth(currentDate);
     const end = endOfMonth(currentDate);
+    const hoje = getToday();
     
     const contasDoMes = contas.filter(c => {
       if (!c.data_vencimento) return false;
-      const venc = parseISO(c.data_vencimento);
-      return venc >= start && venc <= end;
+      const venc = parseLocalDate(c.data_vencimento);
+      return venc && venc >= start && venc <= end;
     });
+
+    // Calcular status dinâmico baseado na data de vencimento
+    const getStatusEfetivo = (conta: ContaReceber) => {
+      const status = conta.status?.toLowerCase() || 'pendente';
+      if (status === 'recebido') return 'recebido';
+      if (status === 'parcial') return 'parcial';
+      
+      // Verificar se está vencido mesmo que status não indique
+      const venc = parseLocalDate(conta.data_vencimento);
+      if (venc && differenceInDays(hoje, venc) > 0) return 'vencido';
+      return status;
+    };
 
     return {
       total: contasDoMes.reduce((sum, c) => sum + (c.valor_original || 0), 0),
-      pendente: contasDoMes.filter(c => c.status === 'pendente').reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-      vencido: contasDoMes.filter(c => c.status === 'vencido').reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-      recebido: contasDoMes.filter(c => c.status === 'recebido').reduce((sum, c) => sum + (c.valor_recebido || 0), 0),
+      pendente: contasDoMes.filter(c => getStatusEfetivo(c) === 'pendente').reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
+      vencido: contasDoMes.filter(c => getStatusEfetivo(c) === 'vencido').reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
+      recebido: contasDoMes.filter(c => getStatusEfetivo(c) === 'recebido').reduce((sum, c) => sum + (c.valor_recebido || 0), 0),
       qtdTitulos: contasDoMes.length,
     };
   }, [contas, currentDate]);
 
   // Obter info do dia
   const getDayInfo = (date: Date) => {
-    const key = format(date, 'yyyy-MM-dd');
+    const key = getDateKey(date);
     const contasDoDia = contasPorDia.get(key) || [];
+    const hoje = getToday();
     
     const valorTotal = contasDoDia.reduce((sum, c) => sum + (c.valor_aberto || c.valor_original || 0), 0);
-    const hasVencido = contasDoDia.some(c => c.status === 'vencido');
-    const hasPendente = contasDoDia.some(c => c.status === 'pendente');
-    const hasParcial = contasDoDia.some(c => c.status === 'parcial');
-    const allRecebido = contasDoDia.length > 0 && contasDoDia.every(c => c.status === 'recebido');
+    
+    // Determinar status efetivo baseado na data
+    const getStatusEfetivo = (conta: ContaReceber) => {
+      const status = conta.status?.toLowerCase() || 'pendente';
+      if (status === 'recebido') return 'recebido';
+      if (status === 'parcial') return 'parcial';
+      
+      const venc = parseLocalDate(conta.data_vencimento);
+      if (venc && differenceInDays(hoje, venc) > 0) return 'vencido';
+      return status;
+    };
+    
+    const hasVencido = contasDoDia.some(c => getStatusEfetivo(c) === 'vencido');
+    const hasPendente = contasDoDia.some(c => getStatusEfetivo(c) === 'pendente');
+    const hasParcial = contasDoDia.some(c => getStatusEfetivo(c) === 'parcial');
+    const allRecebido = contasDoDia.length > 0 && contasDoDia.every(c => getStatusEfetivo(c) === 'recebido');
     
     return { contasDoDia, valorTotal, hasVencido, hasPendente, hasParcial, allRecebido };
   };
