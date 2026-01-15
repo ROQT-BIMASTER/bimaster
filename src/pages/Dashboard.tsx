@@ -249,27 +249,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Módulos Rápidos - apenas os que tem permissão */}
-        {quickModules.length > 0 && (
-          <div className={`grid gap-4 ${quickModulesGridClass}`}>
-            {quickModules.map((mod) => (
-              <Card key={mod.moduleCode} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <mod.icon className="h-5 w-5" />
-                    {mod.title}
-                  </CardTitle>
-                  <CardDescription>{mod.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button asChild className="w-full">
-                    <Link to={mod.link}>Acessar Módulo</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
       </div>
 
       <AIInsightsChat open={chatOpen} onOpenChange={setChatOpen} />
