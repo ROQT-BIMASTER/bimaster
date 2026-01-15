@@ -206,20 +206,42 @@ export default function ContasAPagar() {
     return q;
   };
 
-  // Query para DASHBOARD - busca todos os dados do período (sem paginação, limite alto)
+  // Query para DASHBOARD - busca todos os dados do período com paginação automática
   const { data: contasDashboard, isLoading: isLoadingDashboard } = useQuery({
     queryKey: ['contas-pagar-dashboard', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortador, filterDiaVencimento, filterDiaPagamento],
     queryFn: async () => {
-      let query = supabase
-        .from('contas_pagar')
-        .select('*');
+      // Função auxiliar para buscar todos os dados com paginação
+      const fetchAllData = async (): Promise<ContaPagar[]> => {
+        const PAGE_SIZE = 1000;
+        let allData: ContaPagar[] = [];
+        let from = 0;
+        let hasMore = true;
+        
+        while (hasMore) {
+          let query = supabase
+            .from('contas_pagar')
+            .select('*');
+          
+          query = buildBaseFilters(query);
+          query = query.range(from, from + PAGE_SIZE - 1);
+          
+          const { data, error } = await query;
+          
+          if (error) throw error;
+          
+          if (data && data.length > 0) {
+            allData = [...allData, ...data];
+            from += PAGE_SIZE;
+            hasMore = data.length === PAGE_SIZE;
+          } else {
+            hasMore = false;
+          }
+        }
+        
+        return allData as ContaPagar[];
+      };
       
-      query = buildBaseFilters(query);
-      
-      // Sem ordenação específica e limite maior para garantir todos os dados
-      const { data, error } = await query.limit(100000);
-      if (error) throw error;
-      return data as ContaPagar[];
+      return fetchAllData();
     }
   });
 
