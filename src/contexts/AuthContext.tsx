@@ -7,6 +7,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   approved: boolean;
+  isActive: boolean; // NEW: Track if user is active (not blocked)
   loading: boolean;
   isOnline: boolean;
   refreshAuth: () => Promise<void>;
@@ -18,17 +19,20 @@ const AuthContext = createContext<AuthContextType | null>(null);
 let globalAuthCache: {
   userId: string | null;
   approved: boolean;
+  isActive: boolean;
   timestamp: number;
 } | null = null;
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+const CACHE_DURATION = 2 * 60 * 1000; // 2 minutos (reduzido para detectar bloqueios mais rápido)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Inicializar approved com cache do localStorage para evitar flash
   const [session, setSession] = useState<Session | null>(null);
   const [approved, setApproved] = useState(() => {
-    // Inicializar com cache para usuários já aprovados
     return localStorage.getItem("user_approved_cache") === "true";
+  });
+  const [isActive, setIsActive] = useState(() => {
+    return localStorage.getItem("user_active_cache") !== "false"; // Default to true if not set
   });
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -59,40 +63,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       globalAuthCache.userId === userId &&
       now - globalAuthCache.timestamp < CACHE_DURATION
     ) {
-      return globalAuthCache.approved;
+      return { approved: globalAuthCache.approved, isActive: globalAuthCache.isActive };
     }
 
     // Verificar localStorage cache (para resposta rápida)
     const cachedApproval = localStorage.getItem("user_approved_cache");
-    if (!forceRefresh && cachedApproval === "true") {
-      // Retornar cache imediatamente, mas verificar em background
+    const cachedActive = localStorage.getItem("user_active_cache");
+    
+    // Em forceRefresh, sempre buscar do banco
+    if (!forceRefresh && cachedApproval === "true" && cachedActive !== "false") {
       globalAuthCache = {
         userId,
         approved: true,
+        isActive: true,
         timestamp: now,
       };
-      return true;
+      return { approved: true, isActive: true };
     }
 
     try {
+      // CRITICAL: Fetch both aprovado AND status fields
       const { data: profile, error } = await supabase
         .from("profiles")
-        .select("aprovado")
+        .select("aprovado, status")
         .eq("id", userId)
         .maybeSingle();
 
       if (error) {
         console.error("[AuthContext] Erro ao buscar aprovação:", error);
-        // Em caso de erro, confiar no cache
-        return cachedApproval === "true";
+        return { 
+          approved: cachedApproval === "true", 
+          isActive: cachedActive !== "false" 
+        };
       }
 
       const isApproved = profile?.aprovado || false;
+      const userIsActive = profile?.status === "ativo";
 
       // Atualizar caches
       globalAuthCache = {
         userId,
         approved: isApproved,
+        isActive: userIsActive,
         timestamp: now,
       };
 
@@ -102,10 +114,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem("user_approved_cache");
       }
 
-      return isApproved;
+      if (userIsActive) {
+        localStorage.setItem("user_active_cache", "true");
+      } else {
+        localStorage.setItem("user_active_cache", "false");
+      }
+
+      return { approved: isApproved, isActive: userIsActive };
     } catch (error) {
       console.error("[AuthContext] Erro ao verificar aprovação:", error);
-      return cachedApproval === "true";
+      return { 
+        approved: cachedApproval === "true", 
+        isActive: cachedActive !== "false" 
+      };
     }
   }, []);
 
@@ -122,6 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!isOnline && offlineManager.hasCachedSession()) {
         setSession({ user: { id: "offline" } } as Session);
         setApproved(localStorage.getItem("user_approved_cache") === "true");
+        setIsActive(localStorage.getItem("user_active_cache") !== "false");
         return;
       }
 
@@ -131,20 +153,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("[AuthContext] Erro ao obter sessão:", error);
         setSession(null);
         setApproved(false);
+        setIsActive(false);
         return;
       }
 
       if (currentSession?.user) {
         setSession(currentSession);
-        const isApproved = await fetchApprovalStatus(currentSession.user.id, forceRefresh);
+        const { approved: isApproved, isActive: userIsActive } = await fetchApprovalStatus(currentSession.user.id, forceRefresh);
         if (isMountedRef.current) {
           setApproved(isApproved);
+          setIsActive(userIsActive);
         }
       } else {
         setSession(null);
         setApproved(false);
+        setIsActive(false);
         globalAuthCache = null;
         localStorage.removeItem("user_approved_cache");
+        localStorage.removeItem("user_active_cache");
       }
       
       hasCheckedRef.current = true;
@@ -154,11 +180,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!isOnline && offlineManager.hasCachedSession()) {
         setSession({ user: { id: "offline" } } as Session);
         setApproved(localStorage.getItem("user_approved_cache") === "true");
+        setIsActive(localStorage.getItem("user_active_cache") !== "false");
       } else {
         setSession(null);
         // Manter approved do cache se já estava true
         if (localStorage.getItem("user_approved_cache") !== "true") {
           setApproved(false);
+        }
+        if (localStorage.getItem("user_active_cache") === "false") {
+          setIsActive(false);
         }
       }
     } finally {
@@ -189,9 +219,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Defer to avoid deadlock
           setTimeout(async () => {
             try {
-              const isApproved = await fetchApprovalStatus(newSession.user.id, shouldForce);
+              const { approved: isApproved, isActive: userIsActive } = await fetchApprovalStatus(newSession.user.id, shouldForce);
               if (isMountedRef.current) {
                 setApproved(isApproved);
+                setIsActive(userIsActive);
                 setLoading(false);
               }
             } catch (error) {
@@ -205,9 +236,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (event === "SIGNED_OUT") {
         setSession(null);
         setApproved(false);
+        setIsActive(false);
         globalAuthCache = null;
         hasCheckedRef.current = false;
         localStorage.removeItem("user_approved_cache");
+        localStorage.removeItem("user_active_cache");
         localStorage.removeItem("user_role_cache");
         setLoading(false);
       }
@@ -229,10 +262,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     session,
     user: session?.user || null,
     approved,
+    isActive,
     loading,
     isOnline,
     refreshAuth,
-  }), [session, approved, loading, isOnline, refreshAuth]);
+  }), [session, approved, isActive, loading, isOnline, refreshAuth]);
 
   return (
     <AuthContext.Provider value={value}>
