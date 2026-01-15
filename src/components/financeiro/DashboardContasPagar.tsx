@@ -12,6 +12,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from "recharts";
 import { parseLocalDate, getDateKey, getToday } from "@/utils/dateUtils";
+import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 interface ContaPagar {
   id: string;
   fornecedor_nome: string;
@@ -287,7 +288,7 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
       }));
   }, [contas]);
 
-  // Distribuição por status
+  // Distribuição por status - usando cálculo correto baseado em data de vencimento
   const distribuicaoStatus = useMemo(() => {
     if (!contas || contas.length === 0) return [];
 
@@ -299,12 +300,20 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
     };
     
     contas.forEach(c => {
-      const status = c.status === 'pago' ? 'Pago' 
-        : c.status === 'vencido' ? 'Vencido' 
-        : c.status === 'parcial' ? 'Parcial' 
+      // Usa o cálculo correto de status baseado na data de vencimento
+      const statusCalculado = calculateFinancialStatus(
+        c.data_vencimento,
+        c.data_pagamento,
+        c.status
+      );
+      
+      const statusLabel = statusCalculado === 'pago' ? 'Pago' 
+        : statusCalculado === 'vencido' ? 'Vencido' 
+        : statusCalculado === 'parcial' ? 'Parcial' 
         : 'Pendente';
-      porStatus[status].qtd += 1;
-      porStatus[status].valor += c.valor_original || 0;
+      
+      porStatus[statusLabel].qtd += 1;
+      porStatus[statusLabel].valor += c.valor_original || 0;
     });
 
     return Object.entries(porStatus)
