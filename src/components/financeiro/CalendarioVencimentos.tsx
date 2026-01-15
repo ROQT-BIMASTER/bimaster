@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription 
 } from "@/components/ui/dialog";
@@ -45,6 +46,14 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  // Filtrar contas por status
+  const contasFiltradas = useMemo(() => {
+    if (!contas) return [];
+    if (filterStatus === "all") return contas;
+    return contas.filter(c => (c.status || '').toLowerCase() === filterStatus.toLowerCase());
+  }, [contas, filterStatus]);
 
   // Gerar dias do mês
   const daysInMonth = useMemo(() => {
@@ -58,11 +67,11 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
 
   // Agrupar contas por data de vencimento usando getDateKey para consistência
   const contasPorDia = useMemo(() => {
-    if (!contas) return new Map<string, ContaPagar[]>();
+    if (!contasFiltradas) return new Map<string, ContaPagar[]>();
     
     const map = new Map<string, ContaPagar[]>();
     
-    contas.forEach(conta => {
+    contasFiltradas.forEach(conta => {
       if (!conta.data_vencimento) return;
       // Usa getDateKey para garantir formato consistente YYYY-MM-DD
       const key = getDateKey(conta.data_vencimento);
@@ -72,16 +81,16 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
     });
     
     return map;
-  }, [contas]);
+  }, [contasFiltradas]);
 
   // Resumo do mês com status calculado
   const resumoMes = useMemo(() => {
-    if (!contas) return { total: 0, pendente: 0, vencido: 0, pago: 0, qtdTitulos: 0 };
+    if (!contasFiltradas) return { total: 0, pendente: 0, vencido: 0, pago: 0, qtdTitulos: 0 };
     
     const start = startOfMonth(currentDate);
     const end = endOfMonth(currentDate);
     
-    const contasDoMes = contas.filter(c => {
+    const contasDoMes = contasFiltradas.filter(c => {
       if (!c.data_vencimento) return false;
       // Usa parseLocalDate para evitar timezone shift
       const venc = parseLocalDate(c.data_vencimento);
@@ -102,7 +111,7 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
       pago: contasDoMes.filter(c => c.status === 'pago').reduce((sum, c) => sum + (c.valor_original || 0), 0),
       qtdTitulos: contasDoMes.length,
     };
-  }, [contas, currentDate]);
+  }, [contasFiltradas, currentDate]);
 
   // Obter info do dia com status calculado
   const getDayInfo = (date: Date) => {
@@ -177,49 +186,63 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
                 <CalendarIcon className="h-5 w-5" />
                 Calendário de Vencimentos
               </CardTitle>
-              <CardDescription>Clique em um dia para ver os títulos</CardDescription>
+              <CardDescription>Clique em um dia para ver os títulos • Filtrar por status abaixo</CardDescription>
             </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentDate(subYears(currentDate, 1))}
-                title="Ano anterior"
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-                title="Mês anterior"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                className="font-medium min-w-[140px] text-center"
-                onClick={() => setCurrentDate(new Date())}
-                title="Ir para hoje"
-              >
-                {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-                title="Próximo mês"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentDate(addYears(currentDate, 1))}
-                title="Próximo ano"
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center gap-2">
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="vencido">Vencido</SelectItem>
+                  <SelectItem value="pago">Pago</SelectItem>
+                  <SelectItem value="parcial">Parcial</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentDate(subYears(currentDate, 1))}
+                  title="Ano anterior"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentDate(subMonths(currentDate, 1))}
+                  title="Mês anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="font-medium min-w-[140px] text-center"
+                  onClick={() => setCurrentDate(new Date())}
+                  title="Ir para hoje"
+                >
+                  {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentDate(addMonths(currentDate, 1))}
+                  title="Próximo mês"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentDate(addYears(currentDate, 1))}
+                  title="Próximo ano"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
 
