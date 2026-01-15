@@ -203,3 +203,7 @@ verify_jwt = true
 # AI Map CSV Columns - Mapeamento inteligente de colunas CSV
 [functions.ai-map-csv-columns]
 verify_jwt = true
+
+# Create Admin Users - REQUIRES ADMIN AUTHENTICATION
+[functions.create-admin-users]
+verify_jwt = false
