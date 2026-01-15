@@ -16,8 +16,9 @@ import {
   Shield, AlertTriangle, CheckCircle, XCircle, Brain, RefreshCw, 
   ArrowLeft, Download, FileText, TrendingUp, DollarSign, Clock,
   AlertOctagon, ShieldAlert, FileWarning, Banknote, Building2,
-  ChevronRight, Eye, Loader2
+  ChevronRight, Eye, Loader2, MessageCircle
 } from "lucide-react";
+import { ContasPagarAIChat } from "@/components/financeiro/ContasPagarAIChat";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -88,7 +89,7 @@ const ICON_CATEGORIA = {
 
 export default function ContasPagarAuditoria() {
   const [anoFiltro, setAnoFiltro] = useState<string>(new Date().getFullYear().toString());
-  const [tabAtiva, setTabAtiva] = useState<string>("resumo");
+  const [tabAtiva, setTabAtiva] = useState<string>("chat");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("all");
 
   // Query para análise com IA
@@ -447,7 +448,11 @@ ${idx + 1}. [${i.severidade.toUpperCase()}] ${i.titulo}
 
             {/* Main Content Tabs */}
             <Tabs value={tabAtiva} onValueChange={setTabAtiva} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+              <TabsList className="grid w-full grid-cols-5 lg:w-[750px]">
+                <TabsTrigger value="chat" className="gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Chat IA
+                </TabsTrigger>
                 <TabsTrigger value="resumo" className="gap-2">
                   <Brain className="h-4 w-4" />
                   Análise IA
@@ -465,6 +470,52 @@ ${idx + 1}. [${i.severidade.toUpperCase()}] ${i.titulo}
                   Por Categoria
                 </TabsTrigger>
               </TabsList>
+
+              {/* Tab: Chat com IA */}
+              <TabsContent value="chat">
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <ContasPagarAIChat />
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Brain className="h-5 w-5 text-primary" />
+                        Sobre a Sofia
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        A Sofia é uma assistente de IA especializada em contas a pagar. Ela pode:
+                      </p>
+                      <ul className="text-sm space-y-2">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                          Informar sobre contas vencidas e a vencer
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                          Analisar a situação financeira atual
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                          Identificar fornecedores críticos
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                          Responder com voz natural
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                          Aceitar comandos de voz
+                        </li>
+                      </ul>
+                      <Separator />
+                      <p className="text-xs text-muted-foreground">
+                        💡 Dica: Clique no microfone para falar com a Sofia ou digite sua pergunta.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
 
               {/* Tab: Análise IA */}
               <TabsContent value="resumo">

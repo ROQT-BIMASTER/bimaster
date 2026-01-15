@@ -241,7 +241,57 @@ export default function ContasAPagar() {
     }
   });
 
-  // Query para TABELA - com paginação no backend
+  // Query para CALENDÁRIO - busca ano inteiro (ignora filtro de mês)
+  const { data: contasCalendario, isLoading: isLoadingCalendario } = useQuery({
+    queryKey: ['contas-pagar-calendario', filterEmpresasKey, filterAno, filterDepartamento, filterPortadoresKey],
+    queryFn: async () => {
+      const PAGE_SIZE = 1000;
+      let allData: ContaPagar[] = [];
+      let from = 0;
+      let hasMore = true;
+      
+      while (hasMore) {
+        let query = supabase
+          .from('contas_pagar')
+          .select('*');
+        
+        // Filtros base SEM mês
+        if (filterEmpresas.length > 0) {
+          query = query.in('empresa_id', filterEmpresas);
+        }
+        if (filterDepartamento !== 'all') {
+          query = query.eq('departamento_id', filterDepartamento);
+        }
+        if (filterPortadores.length > 0) {
+          query = query.in('portador', filterPortadores);
+        }
+        
+        // Ano inteiro (ou últimos 3 anos se "Todos")
+        if (filterAno === 'all') {
+          const anoAtual = new Date().getFullYear();
+          query = query.gte('data_vencimento', `${anoAtual - 2}-01-01`).lte('data_vencimento', `${anoAtual + 1}-12-31`);
+        } else {
+          query = query.gte('data_vencimento', `${filterAno}-01-01`).lte('data_vencimento', `${filterAno}-12-31`);
+        }
+        
+        query = query.range(from, from + PAGE_SIZE - 1);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          from += PAGE_SIZE;
+          hasMore = data.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      return allData as ContaPagar[];
+    }
+  });
+
   const { data: contasTable, isLoading: isLoadingTable, refetch: refetchContas } = useQuery({
     queryKey: ['contas-pagar-table', searchFornecedor, filterStatus, filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortadoresKey, filterDiaVencimento, filterDiaPagamento, sortColumn, sortDirection, currentPage, pageSize],
     queryFn: async () => {
@@ -1133,7 +1183,7 @@ export default function ContasAPagar() {
 
           {/* Aba Calendário de Vencimentos */}
           <TabsContent value="calendario" className="space-y-6">
-            <CalendarioVencimentos contas={contas} isLoading={isLoading} />
+            <CalendarioVencimentos contas={contasCalendario || []} isLoading={isLoadingCalendario} />
           </TabsContent>
 
           {/* Aba de Contas a Pagar */}
