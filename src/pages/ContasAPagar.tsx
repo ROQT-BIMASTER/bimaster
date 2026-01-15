@@ -280,44 +280,59 @@ export default function ContasAPagar() {
   const { data: portadoresUnicos = [] } = useQuery({
     queryKey: ['portadores-unicos', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterDiaVencimento, filterDiaPagamento],
     queryFn: async () => {
-      let query = supabase
-        .from('contas_pagar')
-        .select('portador');
-      
-      // Aplica os mesmos filtros EXCETO portador
-      if (filterEmpresas.length > 0) {
-        query = query.in('empresa_id', filterEmpresas);
-      }
-      if (filterDepartamento !== 'all') {
-        query = query.eq('departamento_id', filterDepartamento);
-      }
-      if (filterDiaVencimento) {
-        query = query.eq('data_vencimento', filterDiaVencimento);
-      }
-      if (filterDiaPagamento) {
-        query = query.eq('data_pagamento', filterDiaPagamento);
-      }
-      
-      // Ano/Mês
-      if (filterAno === 'all') {
-        const hoje = new Date();
-        const anoAtual = hoje.getFullYear();
-        query = query.gte('data_vencimento', `${anoAtual - 3}-01-01`).lte('data_vencimento', `${anoAtual + 1}-12-31`);
-      } else {
-        query = query.gte('data_vencimento', `${filterAno}-01-01`).lte('data_vencimento', `${filterAno}-12-31`);
-      }
-      
-      if (filterMes !== 'all' && filterAno !== 'all') {
-        const mes = filterMes.padStart(2, '0');
-        const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
-        query = query.gte('data_vencimento', `${filterAno}-${mes}-01`).lte('data_vencimento', `${filterAno}-${mes}-${lastDay}`);
-      }
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      
+      const PAGE_SIZE = 1000;
       const set = new Set<string>();
-      data?.forEach(c => { if (c.portador) set.add(c.portador); });
+      let from = 0;
+      let hasMore = true;
+      
+      while (hasMore) {
+        let query = supabase
+          .from('contas_pagar')
+          .select('portador');
+        
+        // Aplica os mesmos filtros EXCETO portador
+        if (filterEmpresas.length > 0) {
+          query = query.in('empresa_id', filterEmpresas);
+        }
+        if (filterDepartamento !== 'all') {
+          query = query.eq('departamento_id', filterDepartamento);
+        }
+        if (filterDiaVencimento) {
+          query = query.eq('data_vencimento', filterDiaVencimento);
+        }
+        if (filterDiaPagamento) {
+          query = query.eq('data_pagamento', filterDiaPagamento);
+        }
+        
+        // Ano/Mês
+        if (filterAno === 'all') {
+          const hoje = new Date();
+          const anoAtual = hoje.getFullYear();
+          query = query.gte('data_vencimento', `${anoAtual - 3}-01-01`).lte('data_vencimento', `${anoAtual + 1}-12-31`);
+        } else {
+          query = query.gte('data_vencimento', `${filterAno}-01-01`).lte('data_vencimento', `${filterAno}-12-31`);
+        }
+        
+        if (filterMes !== 'all' && filterAno !== 'all') {
+          const mes = filterMes.padStart(2, '0');
+          const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
+          query = query.gte('data_vencimento', `${filterAno}-${mes}-01`).lte('data_vencimento', `${filterAno}-${mes}-${lastDay}`);
+        }
+        
+        query = query.range(from, from + PAGE_SIZE - 1);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          data.forEach(c => { if (c.portador) set.add(c.portador); });
+          from += PAGE_SIZE;
+          hasMore = data.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+      }
+      
       return Array.from(set).sort();
     }
   });
