@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { session, approved, loading: authLoading } = useAuth();
+  const { session, approved, isActive, loading: authLoading } = useAuth();
   const { role, loading: permLoading } = usePermissions();
 
   const loading = authLoading || permLoading;
@@ -28,6 +28,11 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   if (!approved) {
     return <Navigate to="/aguardando-aprovacao" replace />;
+  }
+
+  // SECURITY: Block inactive/blocked users
+  if (!isActive) {
+    return <Navigate to="/usuario-bloqueado" replace />;
   }
 
   // Clientes não podem acessar o dashboard - redirecionar para portal

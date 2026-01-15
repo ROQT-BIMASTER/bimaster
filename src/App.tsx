@@ -34,6 +34,7 @@ const Tarefas = lazy(() => import("./pages/Tarefas"));
 const Mapa = lazy(() => import("./pages/Mapa"));
 const Chat = lazy(() => import("./pages/Chat"));
 const AguardandoAprovacao = lazy(() => import("./pages/AguardandoAprovacao"));
+const UsuarioBloqueado = lazy(() => import("./pages/UsuarioBloqueado"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TradeModule = lazy(() => import("./pages/modules/TradeModule"));
 const TradeStores = lazy(() => import("./pages/TradeStores"));
@@ -192,6 +193,7 @@ function AppContent() {
             <Route path="/auth/login" element={<Auth />} />
             <Route path="/auth/signup" element={<Auth />} />
             <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
+            <Route path="/usuario-bloqueado" element={<UsuarioBloqueado />} />
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
