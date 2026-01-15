@@ -7,35 +7,39 @@ export function calculateFinancialStatus(
   dataPagamento: string | null | undefined,
   statusAtual?: string
 ): 'vencido' | 'pendente' | 'pago' | 'parcial' {
-  // Se já foi pago, retorna o status atual
-  if (statusAtual === 'pago' || dataPagamento) {
+  const statusLower = (statusAtual || '').toLowerCase().trim();
+
+  // 1) Se o banco informou um status reconhecido, ele é a fonte da verdade.
+  //    (Evita casos onde data_pagamento vem preenchida mesmo para títulos pendentes.)
+  if (statusLower === 'pago') return 'pago';
+  if (statusLower === 'parcial') return 'parcial';
+  if (statusLower === 'vencido') return 'vencido';
+  if (statusLower === 'pendente') return 'pendente';
+
+  // 2) Fallback: se não há status válido, inferir pelo pagamento/data.
+  if (dataPagamento) {
     return 'pago';
   }
-  
-  // Se é parcial, mantém
-  if (statusAtual === 'parcial') {
-    return 'parcial';
-  }
-  
+
   // Se não tem data de vencimento, assume pendente
   if (!dataVencimento) {
     return 'pendente';
   }
-  
+
   const hoje = getToday();
   const vencimento = parseLocalDate(dataVencimento);
-  
+
   if (!vencimento) {
     return 'pendente';
   }
-  
+
   vencimento.setHours(0, 0, 0, 0);
-  
+
   // Se vencimento < hoje e não pago → VENCIDO
   if (vencimento < hoje) {
     return 'vencido';
   }
-  
+
   // Se vencimento >= hoje e não pago → PENDENTE
   return 'pendente';
 }

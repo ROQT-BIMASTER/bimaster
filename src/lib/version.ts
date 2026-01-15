@@ -1,5 +1,5 @@
 // Versão do app - incrementar a cada deploy significativo
-export const APP_VERSION = '1.0.1';
+export const APP_VERSION = '1.0.2';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
@@ -33,7 +33,11 @@ async function clearOldCaches(): Promise<void> {
     try {
       const cacheNames = await caches.keys();
       const apiCaches = cacheNames.filter(name => 
-        name.includes('supabase-api-cache') || 
+        name.includes('supabase-api-cache') ||
+        name.includes('supabase-storage-cache') ||
+        name.includes('images-cache') ||
+        name.includes('image-assets') ||
+        name.includes('font-cache') ||
         name.includes('workbox')
       );
       

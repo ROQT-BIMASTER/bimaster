@@ -226,7 +226,26 @@ export default function ContasAPagar() {
   });
 
   // Dados para compatibilidade (usado em KPIs, exports, etc.)
-  const contas = contasDashboard;
+  const contasBase = contasDashboard;
+
+  // Aplica filtros da aba (Status + Busca) também nos dados usados por Dashboard/Calendário/KPIs.
+  // Fazemos isso em memória para não refazer uma query gigante a cada tecla.
+  const contas = useMemo(() => {
+    let list = contasBase || [];
+
+    if (filterStatus !== 'all') {
+      const status = filterStatus.toLowerCase();
+      list = list.filter(c => (c.status || '').toLowerCase() === status);
+    }
+
+    const search = searchFornecedor.trim().toLowerCase();
+    if (search) {
+      list = list.filter(c => (c.fornecedor_nome || '').toLowerCase().includes(search));
+    }
+
+    return list;
+  }, [contasBase, filterStatus, searchFornecedor]);
+
   const isLoading = isLoadingDashboard || isLoadingTable;
 
   // Dados paginados da tabela
@@ -239,13 +258,14 @@ export default function ContasAPagar() {
     return { data: contasTable.data, totalPages, totalItems };
   }, [contasTable, pageSize]);
 
-  // Calcular KPIs com status dinâmico - usando getDateKey para comparação consistente
+  // Calcular KPIs com status do banco como fonte da verdade
   const kpis = useMemo(() => {
     if (!contas) return { totalAPagar: 0, vencendoHoje: 0, vencidas: 0, pagasNoMes: 0 };
     
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const hojeStr = format(hoje, 'yyyy-MM-dd');
+    const hojeKey = format(hoje, 'yyyy-MM');
     
     return {
       totalAPagar: contas.filter(c => {
@@ -254,9 +274,9 @@ export default function ContasAPagar() {
       }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
       
       vencendoHoje: contas.filter(c => {
-        // Normaliza a data para comparação (extrai apenas YYYY-MM-DD)
         const vencKey = c.data_vencimento ? c.data_vencimento.substring(0, 10) : '';
-        return vencKey === hojeStr && !c.data_pagamento;
+        const statusLower = (c.status || '').toLowerCase();
+        return vencKey === hojeStr && statusLower !== 'pago';
       }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
       
       vencidas: contas.filter(c => {
@@ -265,16 +285,16 @@ export default function ContasAPagar() {
       }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
       
       pagasNoMes: contas.filter(c => {
+        const statusLower = (c.status || '').toLowerCase();
+        if (statusLower !== 'pago') return false;
         if (!c.data_pagamento) return false;
-        const pagKey = c.data_pagamento.substring(0, 7); // YYYY-MM
-        const hojeKey = format(hoje, 'yyyy-MM');
-        return pagKey === hojeKey;
+        return c.data_pagamento.substring(0, 7) === hojeKey;
       }).reduce((sum, c) => sum + (c.valor_pago || 0), 0)
     };
   }, [contas]);
 
-  // Empresas únicas para filtro
-  const empresas = Array.from(new Set(contas?.map(c => ({ id: c.empresa_id, nome: c.empresa_nome })) || []))
+  // Empresas únicas para filtro (somente filtros globais: ano/mês/empresa/departamento)
+  const empresas = Array.from(new Set(contasBase?.map(c => ({ id: c.empresa_id, nome: c.empresa_nome })) || []))
     .reduce((acc, curr) => {
       if (!acc.find(e => e.id === curr.id)) acc.push(curr);
       return acc;
