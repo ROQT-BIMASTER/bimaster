@@ -277,7 +277,7 @@ export default function ContasAPagar() {
   const contasBase = contasDashboard;
 
   // Query separada para lista de portadores únicos - SEM filtro de portador para evitar ciclo
-  const { data: portadoresUnicos = [] } = useQuery({
+  const { data: portadoresUnicos = [], isLoading: isLoadingPortadores } = useQuery({
     queryKey: ['portadores-unicos', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterDiaVencimento, filterDiaPagamento],
     queryFn: async () => {
       const PAGE_SIZE = 1000;
@@ -950,13 +950,20 @@ export default function ContasAPagar() {
                   <label className="text-sm font-medium mb-2 block">Portador</label>
                   <Select value={filterPortador} onValueChange={handleFilterChange(setFilterPortador)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Todos" />
+                      <SelectValue placeholder={isLoadingPortadores ? "Carregando..." : "Todos"} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos</SelectItem>
-                      {portadoresUnicos.map(p => (
-                        <SelectItem key={p} value={p}>{p}</SelectItem>
-                      ))}
+                      {isLoadingPortadores ? (
+                        <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
+                          Carregando portadores...
+                        </div>
+                      ) : (
+                        portadoresUnicos.map(p => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
