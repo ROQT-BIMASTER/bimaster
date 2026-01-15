@@ -214,14 +214,6 @@ const Dashboard = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Widget de Prospects - apenas se tiver permissão */}
-            {hasProspectsPermission && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Prospects</h3>
-                <ProspectsDashboardWidget />
-              </div>
-            )}
-
             {/* Widget de Trade - apenas se tiver permissão */}
             {hasTradePermission && (
               <div className="space-y-4">
@@ -229,21 +221,12 @@ const Dashboard = () => {
                 <TradeDashboardWidget />
               </div>
             )}
-
-            {/* Widget Financeiro - apenas se tiver permissão */}
-            {hasFinanceiroPermission && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Financeiro</h3>
-                <FinanceiroDashboardWidget />
-              </div>
-            )}
           </div>
         )}
 
-        {/* Pipeline e Atividades - apenas se tiver módulo de prospects */}
+        {/* Atividades - apenas se tiver módulo de prospects */}
         {hasProspectsPermission && (
           <div className="grid gap-6">
-            <FunilProspeccao data={pipelineData} />
 
             <Card>
               <CardHeader>
