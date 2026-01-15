@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { DashboardContasPagar } from "@/components/financeiro/DashboardContasPagar";
 import { CalendarioVencimentos } from "@/components/financeiro/CalendarioVencimentos";
+import { SofiaFloatingChat } from "@/components/financeiro/SofiaFloatingChat";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
@@ -1958,6 +1959,8 @@ export default function ContasAPagar() {
           budget={selectedBudget}
           onSuccess={refetchBudgets}
         />
+        {/* Sofia Floating Chat */}
+        <SofiaFloatingChat contasData={contas} />
       </div>
     </DashboardLayout>
   );
