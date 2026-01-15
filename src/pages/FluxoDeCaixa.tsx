@@ -28,9 +28,6 @@ import {
   ChevronsUpDown,
   Filter,
   X,
-  User,
-  FileText,
-  ExternalLink,
   Table as TableIcon
 } from "lucide-react";
 import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, subMonths } from "date-fns";
@@ -63,16 +60,16 @@ const FluxoDeCaixa = () => {
   const [period, setPeriod] = useState<PeriodType>("daily");
   const [activeTab, setActiveTab] = useState("visao-geral");
   
-  // Filtros profissionais
+  // Filtros profissionais - Amplia o range de dados para garantir carregamento completo
   const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
-  const [filterDataInicio, setFilterDataInicio] = useState<string>(format(subMonths(new Date(), 3), "yyyy-MM-dd"));
-  const [filterDataFim, setFilterDataFim] = useState<string>(format(addDays(new Date(), 90), "yyyy-MM-dd"));
+  const [filterDataInicio, setFilterDataInicio] = useState<string>(format(subMonths(new Date(), 6), "yyyy-MM-dd"));
+  const [filterDataFim, setFilterDataFim] = useState<string>(format(addDays(new Date(), 180), "yyyy-MM-dd"));
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterVendedor, setFilterVendedor] = useState<string>("todos");
   const [filterCliente, setFilterCliente] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch contas a receber
+  // Fetch contas a receber - Busca TODOS os registros não pagos (lowercase no banco)
   const { data: contasReceberRaw, isLoading: loadingReceber, refetch: refetchReceber } = useQuery({
     queryKey: ["fluxo-caixa-receber", filterDataInicio, filterDataFim, filterStatus],
     queryFn: async () => {
@@ -83,18 +80,20 @@ const FluxoDeCaixa = () => {
         .lte("data_vencimento", filterDataFim);
       
       if (filterStatus !== "todos") {
-        query = query.eq("status", filterStatus);
+        // Status específico (lowercase)
+        query = query.eq("status", filterStatus.toLowerCase());
       } else {
-        query = query.in("status", ["pendente", "parcial", "vencido"]);
+        // Busca todos os não recebidos - status em lowercase no banco
+        query = query.neq("status", "recebido");
       }
       
-      const { data, error } = await query.limit(50000);
+      const { data, error } = await query.limit(100000);
       if (error) throw error;
       return data || [];
     }
   });
 
-  // Fetch contas a pagar
+  // Fetch contas a pagar - Busca TODOS os registros não pagos (lowercase no banco)
   const { data: contasPagarRaw, isLoading: loadingPagar, refetch: refetchPagar } = useQuery({
     queryKey: ["fluxo-caixa-pagar", filterDataInicio, filterDataFim, filterStatus],
     queryFn: async () => {
@@ -105,12 +104,14 @@ const FluxoDeCaixa = () => {
         .lte("data_vencimento", filterDataFim);
       
       if (filterStatus !== "todos") {
-        query = query.eq("status", filterStatus);
+        // Status específico (lowercase)
+        query = query.eq("status", filterStatus.toLowerCase());
       } else {
-        query = query.in("status", ["pendente", "parcial", "vencido"]);
+        // Busca todos os não pagos - status em lowercase no banco
+        query = query.neq("status", "pago");
       }
       
-      const { data, error } = await query.limit(50000);
+      const { data, error } = await query.limit(100000);
       if (error) throw error;
       return data || [];
     }
@@ -185,8 +186,8 @@ const FluxoDeCaixa = () => {
     setFilterVendedor("todos");
     setFilterCliente("");
     setFilterStatus("todos");
-    setFilterDataInicio(format(subMonths(new Date(), 3), "yyyy-MM-dd"));
-    setFilterDataFim(format(addDays(new Date(), 90), "yyyy-MM-dd"));
+    setFilterDataInicio(format(subMonths(new Date(), 6), "yyyy-MM-dd"));
+    setFilterDataFim(format(addDays(new Date(), 180), "yyyy-MM-dd"));
   };
 
   // Calculate cash flow projections

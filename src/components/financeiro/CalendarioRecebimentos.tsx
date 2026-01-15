@@ -58,7 +58,7 @@ export function CalendarioRecebimentos({ contas, isLoading }: CalendarioRecebime
   // Primeiro dia da semana do mês
   const firstDayOfWeek = getDay(startOfMonth(currentDate));
 
-  // Agrupar contas por data de vencimento
+  // Agrupar contas por data de vencimento - usando getDateKey para consistência
   const contasPorDia = useMemo(() => {
     if (!contas) return new Map<string, ContaReceber[]>();
     
@@ -66,7 +66,8 @@ export function CalendarioRecebimentos({ contas, isLoading }: CalendarioRecebime
     
     contas.forEach(conta => {
       if (!conta.data_vencimento) return;
-      const key = conta.data_vencimento;
+      // Usar getDateKey para normalizar a data (YYYY-MM-DD)
+      const key = getDateKey(conta.data_vencimento);
       const existing = map.get(key) || [];
       existing.push(conta);
       map.set(key, existing);
@@ -137,10 +138,10 @@ export function CalendarioRecebimentos({ contas, isLoading }: CalendarioRecebime
     return { contasDoDia, valorTotal, hasVencido, hasPendente, hasParcial, allRecebido };
   };
 
-  // Contas do dia selecionado
+  // Contas do dia selecionado - usando getDateKey para consistência
   const contasDiaSelecionado = useMemo(() => {
     if (!selectedDate) return [];
-    const key = format(selectedDate, 'yyyy-MM-dd');
+    const key = getDateKey(selectedDate);
     return contasPorDia.get(key) || [];
   }, [selectedDate, contasPorDia]);
 

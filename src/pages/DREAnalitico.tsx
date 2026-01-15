@@ -287,7 +287,7 @@ export default function DREAnalitico() {
           .gte('data_vencimento', dataInicio)
           .lte('data_vencimento', dataFim);
       } else {
-        // Regime de competência (faturamento) usa data de emissão
+        // Regime de competência (faturamento) usa data de emissão - busca TODOS os registros
         query = query
           .gte('data_emissao', dataInicio)
           .lte('data_emissao', dataFim);
@@ -297,7 +297,7 @@ export default function DREAnalitico() {
         query = query.eq('empresa_nome', filterEmpresa);
       }
       
-      const { data, error } = await query.limit(50000);
+      const { data, error } = await query.limit(100000);
       if (error) throw error;
       return data;
     },
@@ -341,7 +341,7 @@ export default function DREAnalitico() {
         query = query.neq('ativo_dre', false);
       }
       
-      const { data, error } = await query.limit(50000);
+      const { data, error } = await query.limit(100000);
       if (error) throw error;
       
       return data;
