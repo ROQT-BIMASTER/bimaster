@@ -212,17 +212,7 @@ const Dashboard = () => {
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-32 w-full" />
           </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Widget de Trade - apenas se tiver permissão */}
-            {hasTradePermission && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Trade Marketing</h3>
-                <TradeDashboardWidget />
-              </div>
-            )}
-          </div>
-        )}
+        ) : null}
 
         {/* Atividades - apenas se tiver módulo de prospects */}
         {hasProspectsPermission && (
