@@ -162,11 +162,6 @@ export default function ContasAPagar() {
       q = q.eq('departamento_id', filterDepartamento);
     }
 
-    // Filtro Conta Bancária
-    if (filterConta !== 'all') {
-      q = q.eq('conta', filterConta);
-    }
-
     // Filtro Portador
     if (filterPortador !== 'all') {
       q = q.eq('portador', filterPortador);
@@ -281,12 +276,7 @@ export default function ContasAPagar() {
   // Dados para compatibilidade (usado em KPIs, exports, etc.)
   const contasBase = contasDashboard;
 
-  // Extrair listas únicas de Conta e Portador
-  const contasUnicas = useMemo(() => {
-    const set = new Set<string>();
-    contasDashboard?.forEach(c => { if (c.conta) set.add(c.conta); });
-    return Array.from(set).sort();
-  }, [contasDashboard]);
+  // Extrair lista única de Portadores
 
   const portadoresUnicos = useMemo(() => {
     const set = new Set<string>();
@@ -785,171 +775,183 @@ export default function ContasAPagar() {
         {/* Filtros Globais */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-8">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Ano</label>
-                <Select value={filterAno} onValueChange={(value) => {
-                  handleFilterChange(setFilterAno)(value);
-                  if (value === 'all') setFilterMes('all');
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ano" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="2024">2024</SelectItem>
-                    <SelectItem value="2025">2025</SelectItem>
-                    <SelectItem value="2026">2026</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="flex flex-col gap-4">
+              <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Ano</label>
+                  <Select value={filterAno} onValueChange={(value) => {
+                    handleFilterChange(setFilterAno)(value);
+                    if (value === 'all') setFilterMes('all');
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Ano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="2024">2024</SelectItem>
+                      <SelectItem value="2025">2025</SelectItem>
+                      <SelectItem value="2026">2026</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">Mês</label>
-                <Select 
-                  value={filterMes} 
-                  onValueChange={handleFilterChange(setFilterMes)}
-                  disabled={filterAno === 'all'}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Mês" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="1">Janeiro</SelectItem>
-                    <SelectItem value="2">Fevereiro</SelectItem>
-                    <SelectItem value="3">Março</SelectItem>
-                    <SelectItem value="4">Abril</SelectItem>
-                    <SelectItem value="5">Maio</SelectItem>
-                    <SelectItem value="6">Junho</SelectItem>
-                    <SelectItem value="7">Julho</SelectItem>
-                    <SelectItem value="8">Agosto</SelectItem>
-                    <SelectItem value="9">Setembro</SelectItem>
-                    <SelectItem value="10">Outubro</SelectItem>
-                    <SelectItem value="11">Novembro</SelectItem>
-                    <SelectItem value="12">Dezembro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Mês</label>
+                  <Select 
+                    value={filterMes} 
+                    onValueChange={handleFilterChange(setFilterMes)}
+                    disabled={filterAno === 'all'}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Mês" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="1">Janeiro</SelectItem>
+                      <SelectItem value="2">Fevereiro</SelectItem>
+                      <SelectItem value="3">Março</SelectItem>
+                      <SelectItem value="4">Abril</SelectItem>
+                      <SelectItem value="5">Maio</SelectItem>
+                      <SelectItem value="6">Junho</SelectItem>
+                      <SelectItem value="7">Julho</SelectItem>
+                      <SelectItem value="8">Agosto</SelectItem>
+                      <SelectItem value="9">Setembro</SelectItem>
+                      <SelectItem value="10">Outubro</SelectItem>
+                      <SelectItem value="11">Novembro</SelectItem>
+                      <SelectItem value="12">Dezembro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">Empresa</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                      {filterEmpresas.length === 0 
-                        ? "Todas as empresas" 
-                        : filterEmpresas.length === 1 
-                          ? empresas.find(e => e.id === filterEmpresas[0])?.nome || "1 empresa"
-                          : `${filterEmpresas.length} empresas`}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[250px] p-0" align="start">
-                    <div className="p-2 border-b">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="w-full justify-start"
-                        onClick={() => {
-                          setFilterEmpresas([]);
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <CheckCircle className={`mr-2 h-4 w-4 ${filterEmpresas.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
-                        Todas as empresas
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Empresa</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        {filterEmpresas.length === 0 
+                          ? "Todas as empresas" 
+                          : filterEmpresas.length === 1 
+                            ? empresas.find(e => e.id === filterEmpresas[0])?.nome || "1 empresa"
+                            : `${filterEmpresas.length} empresas`}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
-                    </div>
-                    <div className="max-h-[200px] overflow-auto p-2 space-y-1">
-                      {empresas.map(emp => (
-                        <div key={emp.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
-                          <Checkbox
-                            id={`emp-${emp.id}`}
-                            checked={filterEmpresas.includes(emp.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setFilterEmpresas([...filterEmpresas, emp.id]);
-                              } else {
-                                setFilterEmpresas(filterEmpresas.filter(id => id !== emp.id));
-                              }
-                              setCurrentPage(1);
-                            }}
-                          />
-                          <label htmlFor={`emp-${emp.id}`} className="text-sm cursor-pointer flex-1">
-                            {emp.nome}
-                          </label>
-                        </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[250px] p-0" align="start">
+                      <div className="p-2 border-b">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="w-full justify-start"
+                          onClick={() => {
+                            setFilterEmpresas([]);
+                            setCurrentPage(1);
+                          }}
+                        >
+                          <CheckCircle className={`mr-2 h-4 w-4 ${filterEmpresas.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
+                          Todas as empresas
+                        </Button>
+                      </div>
+                      <div className="max-h-[200px] overflow-auto p-2 space-y-1">
+                        {empresas.map(emp => (
+                          <div key={emp.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                            <Checkbox
+                              id={`emp-${emp.id}`}
+                              checked={filterEmpresas.includes(emp.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFilterEmpresas([...filterEmpresas, emp.id]);
+                                } else {
+                                  setFilterEmpresas(filterEmpresas.filter(id => id !== emp.id));
+                                }
+                                setCurrentPage(1);
+                              }}
+                            />
+                            <label htmlFor={`emp-${emp.id}`} className="text-sm cursor-pointer flex-1">
+                              {emp.nome}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Departamento</label>
+                  <Select value={filterDepartamento} onValueChange={handleFilterChange(setFilterDepartamento)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      {departamentos?.map(dept => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.nome}
+                        </SelectItem>
                       ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">Departamento</label>
-                <Select value={filterDepartamento} onValueChange={handleFilterChange(setFilterDepartamento)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    {departamentos?.map(dept => (
-                      <SelectItem key={dept.id} value={dept.id}>
-                        {dept.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Portador</label>
+                  <Select value={filterPortador} onValueChange={handleFilterChange(setFilterPortador)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      {portadoresUnicos.map(p => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">Conta</label>
-                <Select value={filterConta} onValueChange={handleFilterChange(setFilterConta)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    {contasUnicas.map(c => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Dia Vencimento</label>
+                  <Input 
+                    type="date" 
+                    value={filterDiaVencimento} 
+                    onChange={(e) => handleFilterChange(setFilterDiaVencimento)(e.target.value)}
+                    className="h-10"
+                  />
+                </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">Portador</label>
-                <Select value={filterPortador} onValueChange={handleFilterChange(setFilterPortador)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    {portadoresUnicos.map(p => (
-                      <SelectItem key={p} value={p}>{p}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Dia Pagamento</label>
+                  <Input 
+                    type="date" 
+                    value={filterDiaPagamento} 
+                    onChange={(e) => handleFilterChange(setFilterDiaPagamento)(e.target.value)}
+                    className="h-10"
+                  />
+                </div>
               </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Dia Vencimento</label>
-                <Input 
-                  type="date" 
-                  value={filterDiaVencimento} 
-                  onChange={(e) => handleFilterChange(setFilterDiaVencimento)(e.target.value)}
-                  className="h-10"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Dia Pagamento</label>
-                <Input 
-                  type="date" 
-                  value={filterDiaPagamento} 
-                  onChange={(e) => handleFilterChange(setFilterDiaPagamento)(e.target.value)}
-                  className="h-10"
-                />
+              
+              {/* Botão Limpar Filtros */}
+              <div className="flex justify-end">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setFilterAno(new Date().getFullYear().toString());
+                    setFilterMes('all');
+                    setFilterEmpresas([]);
+                    setFilterDepartamento('all');
+                    setFilterConta('all');
+                    setFilterPortador('all');
+                    setFilterDiaVencimento('');
+                    setFilterDiaPagamento('');
+                    setSearchFornecedor('');
+                    setFilterStatus('all');
+                    setCurrentPage(1);
+                  }}
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Limpar Filtros
+                </Button>
               </div>
             </div>
           </CardContent>
