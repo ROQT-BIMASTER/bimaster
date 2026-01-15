@@ -5,7 +5,7 @@ import {
   Receipt, AlertCircle, Clock, TrendingUp, TrendingDown, Calendar, Users, 
   BarChart3, PieChart as PieChartIcon, AlertTriangle, CheckCircle2, Hourglass
 } from "lucide-react";
-import { format, differenceInDays, subDays, subMonths, startOfMonth, endOfMonth, isWithinInterval, addDays } from "date-fns";
+import { format, differenceInDays, subDays, subMonths, startOfMonth, endOfMonth, isWithinInterval, addDays, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, 
@@ -188,25 +188,35 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
     };
   }, [contas]);
 
-  // Dados para gráfico de evolução mensal
+  // Dados para gráfico de evolução mensal - baseado nos dados filtrados
   const dadosEvolucaoMensal = useMemo(() => {
     if (!contas || contas.length === 0) return [];
 
-    const hoje = new Date();
-    const meses: { mes: string; pago: number; pendente: number; inicio: Date; fim: Date }[] = [];
+    // Extrair datas válidas dos dados filtrados
+    const datasValidas = contas
+      .map(c => parseLocalDate(c.data_vencimento))
+      .filter((d): d is Date => d !== null);
+    
+    if (datasValidas.length === 0) return [];
 
-    // Últimos 6 meses (usando subMonths para precisão)
-    for (let i = 5; i >= 0; i--) {
-      const data = subMonths(hoje, i);
-      const inicio = startOfMonth(data);
-      const fim = endOfMonth(data);
+    // Encontrar min e max das datas filtradas
+    const minData = datasValidas.reduce((a, b) => a < b ? a : b);
+    const maxData = datasValidas.reduce((a, b) => a > b ? a : b);
+
+    // Gerar meses entre minData e maxData (máximo 12 meses)
+    const meses: { mes: string; pago: number; pendente: number; inicio: Date; fim: Date }[] = [];
+    let current = startOfMonth(minData);
+    const fimPeriodo = startOfMonth(maxData);
+    
+    while (current <= fimPeriodo && meses.length < 12) {
       meses.push({
-        mes: format(data, 'MMM/yy', { locale: ptBR }),
+        mes: format(current, 'MMM/yy', { locale: ptBR }),
         pago: 0,
         pendente: 0,
-        inicio,
-        fim
+        inicio: startOfMonth(current),
+        fim: endOfMonth(current)
       });
+      current = addMonths(current, 1);
     }
 
     contas.forEach(c => {
