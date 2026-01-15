@@ -838,7 +838,7 @@ export type Database = {
           created_at?: string | null
           data_atividade?: string
           descricao: string
-          id?: string
+          id: string
           prospect_id: string
           proximo_followup?: string | null
           resultado?: Database["public"]["Enums"]["activity_result"] | null
@@ -9075,7 +9075,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          id?: string
+          id: string
           nome: string
           regiao: Database["public"]["Enums"]["region_type"]
           uf: string
@@ -10188,7 +10188,7 @@ export type Database = {
           faixa_funcionarios?: string | null
           faixa_score_contactability?: string | null
           faixa_score_propensao?: string | null
-          id?: string
+          id: string
           importado_planilha?: boolean | null
           logradouro?: string | null
           municipio?: string | null

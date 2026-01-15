@@ -86,7 +86,7 @@ export const CNPJBizPreview = ({ filters, totalCount, onBack, onComplete }: CNPJ
                     nome: empresa.endereco.cidade.nome,
                     uf: empresa.endereco.estado.sigla,
                     regiao: regiaoMap[empresa.endereco.estado.sigla] || 'Centro'
-                  })
+                  } as any)
                   .select('id')
                   .single();
                 municipioId = novoMunicipio?.id;
@@ -131,7 +131,7 @@ export const CNPJBizPreview = ({ filters, totalCount, onBack, onComplete }: CNPJ
               // Inserir
               await supabase
                 .from('prospects')
-                .insert(prospectData);
+                .insert(prospectData as any);
               importedTotal++;
             }
 

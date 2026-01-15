@@ -70,17 +70,15 @@ export const NovaAtividadeDialog = ({ onSuccess }: NovaAtividadeDialogProps) => 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      const { error } = await supabase.from("atividades").insert([
-        {
-          prospect_id: validatedData.prospect_id,
-          vendedor_id: user.id,
-          tipo: validatedData.tipo as "ligacao" | "email" | "reuniao" | "visita" | "proposta",
-          descricao: validatedData.descricao,
-          resultado: (validatedData.resultado || null) as "positivo" | "neutro" | "negativo" | null,
-          data_atividade: validatedData.data_atividade,
-          proximo_followup: validatedData.proximo_followup || null,
-        },
-      ]);
+      const { error } = await supabase.from("atividades").insert({
+        prospect_id: validatedData.prospect_id,
+        vendedor_id: user.id,
+        tipo: validatedData.tipo as "ligacao" | "email" | "reuniao" | "visita" | "proposta",
+        descricao: validatedData.descricao,
+        resultado: (validatedData.resultado || null) as "positivo" | "neutro" | "negativo" | null,
+        data_atividade: validatedData.data_atividade,
+        proximo_followup: validatedData.proximo_followup || null,
+      } as any);
 
       if (error) throw error;
 
