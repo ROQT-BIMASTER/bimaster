@@ -85,7 +85,10 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
     const fimMesAnterior = endOfMonth(subDays(inicioMes, 1));
 
     // PMP - Prazo Médio de Pagamento (dias entre emissão e pagamento)
-    const contasPagas = contas.filter(c => c.data_pagamento && c.data_emissao);
+    const contasPagas = contas.filter(c => {
+      const statusLower = (c.status || '').toLowerCase();
+      return statusLower === 'pago' && !!c.data_pagamento && !!c.data_emissao;
+    });
     let totalDiasPagamento = 0;
     contasPagas.forEach(c => {
       const emissao = parseLocalDate(c.data_emissao);
