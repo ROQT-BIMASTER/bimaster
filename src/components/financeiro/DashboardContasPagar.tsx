@@ -219,6 +219,18 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
       current = addMonths(current, 1);
     }
 
+    // Debug: verificar status e valores
+    const statusCount: Record<string, number> = {};
+    contas.forEach(c => {
+      statusCount[c.status || 'null'] = (statusCount[c.status || 'null'] || 0) + 1;
+    });
+    console.log('[DashboardContasPagar] Status distribution:', statusCount);
+    console.log('[DashboardContasPagar] Sample contas:', contas.slice(0, 5).map(c => ({ 
+      status: c.status, 
+      valor_aberto: c.valor_aberto, 
+      valor_pago: c.valor_pago 
+    })));
+
     contas.forEach(c => {
       if (!c.data_vencimento) return;
       const venc = parseLocalDate(c.data_vencimento);
@@ -237,6 +249,8 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
         }
       }
     });
+
+    console.log('[DashboardContasPagar] Resultado meses:', meses.map(m => ({ mes: m.mes, pago: m.pago, pendente: m.pendente })));
 
     return meses.map(m => ({
       mes: m.mes,
