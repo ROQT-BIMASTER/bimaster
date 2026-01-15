@@ -52,30 +52,28 @@ export const NovoProspectDialog = ({ onSuccess }: NovoProspectDialogProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      const { error } = await supabase.from("prospects").insert([
-        {
-          nome_empresa: validatedData.nome_empresa,
-          vendedor_id: user.id,
-          status: validatedData.status as "novo" | "em_contato" | "proposta_enviada" | "negociacao" | "ganho" | "perdido",
-          cnpj: validatedData.cnpj || null,
-          contato_principal: validatedData.contato_principal || null,
-          email: validatedData.email || null,
-          telefone: validatedData.telefone || null,
-          endereco: formData.endereco || null,
-          municipio: formData.municipio || null,
-          uf: formData.uf || null,
-          tipo_logradouro: formData.tipo_logradouro || null,
-          logradouro: formData.logradouro || null,
-          numero: formData.numero || null,
-          cep: formData.cep || null,
-          bairro: formData.bairro || null,
-          porte_empresa: formData.porte_empresa || null,
-          zona: (formData.zona as any) || null,
-          subdistrito: formData.subdistrito || null,
-          categoria: (validatedData.categoria || null) as "A" | "B" | "C" | "D" | null,
-          observacoes: validatedData.observacoes || null,
-        },
-      ]);
+      const { error } = await supabase.from("prospects").insert({
+        nome_empresa: validatedData.nome_empresa,
+        vendedor_id: user.id,
+        status: validatedData.status as "novo" | "em_contato" | "proposta_enviada" | "negociacao" | "ganho" | "perdido",
+        cnpj: validatedData.cnpj || null,
+        contato_principal: validatedData.contato_principal || null,
+        email: validatedData.email || null,
+        telefone: validatedData.telefone || null,
+        endereco: formData.endereco || null,
+        municipio: formData.municipio || null,
+        uf: formData.uf || null,
+        tipo_logradouro: formData.tipo_logradouro || null,
+        logradouro: formData.logradouro || null,
+        numero: formData.numero || null,
+        cep: formData.cep || null,
+        bairro: formData.bairro || null,
+        porte_empresa: formData.porte_empresa || null,
+        zona: (formData.zona as any) || null,
+        subdistrito: formData.subdistrito || null,
+        categoria: (validatedData.categoria || null) as "A" | "B" | "C" | "D" | null,
+        observacoes: validatedData.observacoes || null,
+      } as any);
 
       if (error) throw error;
 

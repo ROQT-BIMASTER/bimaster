@@ -48,11 +48,11 @@ export const NovoMunicipioDialog = ({ onSuccess }: NovoMunicipioDialogProps) => 
 
       const { error } = await supabase
         .from("municipios")
-        .insert([{
+        .insert({
           nome: formData.nome.trim(),
           uf: formData.uf,
           regiao: regiaoMap[formData.regiao],
-        }]);
+        } as any);
 
       if (error) throw error;
 

@@ -97,11 +97,11 @@ export function CNPJBizSearch({ onImportComplete }: CNPJBizSearchProps) {
 
         const { data: newMunicipio } = await supabase
           .from('municipios')
-          .insert([{
+          .insert({
             nome: result.endereco.cidade.nome,
             uf: result.endereco.estado.sigla,
             regiao: regiaoMap[result.endereco.estado.sigla] || 'Leste'
-          }])
+          } as any)
           .select('id')
           .single();
         
@@ -147,7 +147,7 @@ export function CNPJBizSearch({ onImportComplete }: CNPJBizSearchProps) {
       } else {
         await supabase
           .from('prospects')
-          .insert([prospectData]);
+          .insert(prospectData as any);
         toast.success("Prospect importado com sucesso!");
       }
 

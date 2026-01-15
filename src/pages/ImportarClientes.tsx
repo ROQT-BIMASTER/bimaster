@@ -445,7 +445,7 @@ const ImportarClientes = () => {
                   nome: municipioFinal,
                   uf: ufFinal || 'N/A',
                   regiao: mapearRegiaoParaZona(regiaoFinal)
-                })
+                } as any)
                 .select("id, vendedor_id")
                 .single();
 
@@ -768,7 +768,7 @@ const ImportarClientes = () => {
                 nome: p.municipio,
                 uf: p.uf,
                 regiao: 'Centro' // padrão
-              })
+              } as any)
               .select("id, vendedor_id")
               .single();
             
