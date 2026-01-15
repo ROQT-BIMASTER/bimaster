@@ -276,13 +276,51 @@ export default function ContasAPagar() {
   // Dados para compatibilidade (usado em KPIs, exports, etc.)
   const contasBase = contasDashboard;
 
-  // Extrair lista única de Portadores
-
-  const portadoresUnicos = useMemo(() => {
-    const set = new Set<string>();
-    contasDashboard?.forEach(c => { if (c.portador) set.add(c.portador); });
-    return Array.from(set).sort();
-  }, [contasDashboard]);
+  // Query separada para lista de portadores únicos - SEM filtro de portador para evitar ciclo
+  const { data: portadoresUnicos = [] } = useQuery({
+    queryKey: ['portadores-unicos', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterDiaVencimento, filterDiaPagamento],
+    queryFn: async () => {
+      let query = supabase
+        .from('contas_pagar')
+        .select('portador');
+      
+      // Aplica os mesmos filtros EXCETO portador
+      if (filterEmpresas.length > 0) {
+        query = query.in('empresa_id', filterEmpresas);
+      }
+      if (filterDepartamento !== 'all') {
+        query = query.eq('departamento_id', filterDepartamento);
+      }
+      if (filterDiaVencimento) {
+        query = query.eq('data_vencimento', filterDiaVencimento);
+      }
+      if (filterDiaPagamento) {
+        query = query.eq('data_pagamento', filterDiaPagamento);
+      }
+      
+      // Ano/Mês
+      if (filterAno === 'all') {
+        const hoje = new Date();
+        const anoAtual = hoje.getFullYear();
+        query = query.gte('data_vencimento', `${anoAtual - 3}-01-01`).lte('data_vencimento', `${anoAtual + 1}-12-31`);
+      } else {
+        query = query.gte('data_vencimento', `${filterAno}-01-01`).lte('data_vencimento', `${filterAno}-12-31`);
+      }
+      
+      if (filterMes !== 'all' && filterAno !== 'all') {
+        const mes = filterMes.padStart(2, '0');
+        const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
+        query = query.gte('data_vencimento', `${filterAno}-${mes}-01`).lte('data_vencimento', `${filterAno}-${mes}-${lastDay}`);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      const set = new Set<string>();
+      data?.forEach(c => { if (c.portador) set.add(c.portador); });
+      return Array.from(set).sort();
+    }
+  });
 
   // Aplica filtros da aba (Status + Busca) também nos dados usados por Dashboard/Calendário/KPIs.
   // Fazemos isso em memória para não refazer uma query gigante a cada tecla.
