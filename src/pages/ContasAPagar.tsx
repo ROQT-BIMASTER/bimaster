@@ -80,7 +80,7 @@ export default function ContasAPagar() {
   const [filterMes, setFilterMes] = useState<string>("all");
   const [filterDepartamento, setFilterDepartamento] = useState<string>("all");
   const [filterConta, setFilterConta] = useState<string>("all");
-  const [filterPortador, setFilterPortador] = useState<string>("all");
+  const [filterPortadores, setFilterPortadores] = useState<string[]>([]);
   const [filterDiaVencimento, setFilterDiaVencimento] = useState<string>("");
   const [filterDiaPagamento, setFilterDiaPagamento] = useState<string>("");
   
@@ -149,6 +149,7 @@ export default function ContasAPagar() {
 
   // Converte filterEmpresas para string para o queryKey detectar mudanças corretamente
   const filterEmpresasKey = filterEmpresas.length > 0 ? filterEmpresas.sort().join(',') : 'all';
+  const filterPortadoresKey = filterPortadores.length > 0 ? [...filterPortadores].sort().join(',') : 'all';
 
   // Função para construir filtros base (reutilizada em ambas queries)
   const buildBaseFilters = (query: any) => {
@@ -162,9 +163,9 @@ export default function ContasAPagar() {
       q = q.eq('departamento_id', filterDepartamento);
     }
 
-    // Filtro Portador
-    if (filterPortador !== 'all') {
-      q = q.eq('portador', filterPortador);
+    // Filtro Portador (agora suporta múltiplos)
+    if (filterPortadores.length > 0) {
+      q = q.in('portador', filterPortadores);
     }
 
     // Filtro Dia Vencimento (data específica)
@@ -203,7 +204,7 @@ export default function ContasAPagar() {
 
   // Query para DASHBOARD - busca todos os dados do período com paginação automática
   const { data: contasDashboard, isLoading: isLoadingDashboard } = useQuery({
-    queryKey: ['contas-pagar-dashboard', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortador, filterDiaVencimento, filterDiaPagamento],
+    queryKey: ['contas-pagar-dashboard', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortadoresKey, filterDiaVencimento, filterDiaPagamento],
     queryFn: async () => {
       // Função auxiliar para buscar todos os dados com paginação
       const fetchAllData = async (): Promise<ContaPagar[]> => {
@@ -242,7 +243,7 @@ export default function ContasAPagar() {
 
   // Query para TABELA - com paginação no backend
   const { data: contasTable, isLoading: isLoadingTable, refetch: refetchContas } = useQuery({
-    queryKey: ['contas-pagar-table', searchFornecedor, filterStatus, filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortador, filterDiaVencimento, filterDiaPagamento, sortColumn, sortDirection, currentPage, pageSize],
+    queryKey: ['contas-pagar-table', searchFornecedor, filterStatus, filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortadoresKey, filterDiaVencimento, filterDiaPagamento, sortColumn, sortDirection, currentPage, pageSize],
     queryFn: async () => {
       let query = supabase
         .from('contas_pagar')
@@ -948,24 +949,65 @@ export default function ContasAPagar() {
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">Portador</label>
-                  <Select value={filterPortador} onValueChange={handleFilterChange(setFilterPortador)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={isLoadingPortadores ? "Carregando..." : "Todos"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      {isLoadingPortadores ? (
-                        <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
-                          Carregando portadores...
-                        </div>
-                      ) : (
-                        portadoresUnicos.map(p => (
-                          <SelectItem key={p} value={p}>{p}</SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        {isLoadingPortadores ? (
+                          <span className="flex items-center gap-2">
+                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                            Carregando...
+                          </span>
+                        ) : filterPortadores.length === 0 
+                          ? "Todos os portadores" 
+                          : filterPortadores.length === 1 
+                            ? filterPortadores[0]
+                            : `${filterPortadores.length} portadores`}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[250px] p-0" align="start">
+                      <div className="p-2 border-b">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="w-full justify-start"
+                          onClick={() => {
+                            setFilterPortadores([]);
+                            setCurrentPage(1);
+                          }}
+                        >
+                          <CheckCircle className={`mr-2 h-4 w-4 ${filterPortadores.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
+                          Todos os portadores
+                        </Button>
+                      </div>
+                      <div className="max-h-[200px] overflow-auto p-2 space-y-1">
+                        {isLoadingPortadores ? (
+                          <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
+                            Carregando portadores...
+                          </div>
+                        ) : portadoresUnicos.map(p => (
+                          <div key={p} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                            <Checkbox
+                              id={`port-${p}`}
+                              checked={filterPortadores.includes(p)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFilterPortadores([...filterPortadores, p]);
+                                } else {
+                                  setFilterPortadores(filterPortadores.filter(id => id !== p));
+                                }
+                                setCurrentPage(1);
+                              }}
+                            />
+                            <label htmlFor={`port-${p}`} className="text-sm cursor-pointer flex-1">
+                              {p}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div>
@@ -1000,7 +1042,7 @@ export default function ContasAPagar() {
                     setFilterEmpresas([]);
                     setFilterDepartamento('all');
                     setFilterConta('all');
-                    setFilterPortador('all');
+                    setFilterPortadores([]);
                     setFilterDiaVencimento('');
                     setFilterDiaPagamento('');
                     setSearchFornecedor('');
