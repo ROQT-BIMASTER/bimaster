@@ -56,25 +56,25 @@ export default function ContasAReceber() {
   const [filterMes, setFilterMes] = useState<string>("all");
   const [showImportDialog, setShowImportDialog] = useState(false);
 
-  // Query contas a receber
+  // Query contas a receber - Limite aumentado para dashboard e calendário
   const [page, setPage] = useState(1);
-  const pageSize = 500;
+  const pageSize = 100000; // Aumentado para garantir carregamento completo
 
   const { data: contasData, isLoading, refetch } = useQuery({
-    queryKey: ['contas-receber', searchCliente, filterStatus, filterEmpresas, filterAno, filterMes, page],
+    queryKey: ['contas-receber', searchCliente, filterStatus, filterEmpresas, filterAno, filterMes],
     queryFn: async () => {
       let query = supabase
         .from('contas_receber' as any)
         .select('*', { count: 'exact' })
-        .order('data_vencimento', { ascending: false })
-        .range((page - 1) * pageSize, page * pageSize - 1);
+        .order('data_vencimento', { ascending: false });
 
       if (searchCliente) {
         query = query.ilike('cliente_nome', `%${searchCliente}%`);
       }
 
+      // Status em lowercase no banco
       if (filterStatus !== 'all') {
-        query = query.eq('status', filterStatus);
+        query = query.eq('status', filterStatus.toLowerCase());
       }
 
       if (filterEmpresas.length > 0) {
@@ -97,7 +97,7 @@ export default function ContasAReceber() {
         query = query.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
       }
 
-      const { data, error, count } = await query;
+      const { data, error, count } = await query.limit(100000);
       if (error) throw error;
       return { data: data as unknown as ContaReceber[], count: count || 0 };
     }
