@@ -212,7 +212,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { permissions, loading: permissionsLoading, hasPermission } = useScreenPermissions();
+  const { permissions, loading: permissionsLoading, hasPermission, isAdmin } = useScreenPermissions();
   const { hasModulePermission, loading: modulesLoading } = useModulePermissions();
   const { user } = useAuth();
   
@@ -311,15 +311,15 @@ export function AppSidebar() {
   ];
 
   const financeiroSubMenus = [
-    { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home, end: true },
-    { title: "DRE Analítico", url: "/dashboard/financeiro/dre-analitico", icon: FileText },
-    { title: "Visão por Departamento", url: "/dashboard/financeiro/visao-departamentos", icon: Building2 },
-    { title: "Gestão de Verbas", url: "/dashboard/financeiro/trade", icon: Store },
-    { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt },
-    { title: "Contas a Receber", url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign },
-    { title: "Fluxo de Caixa", url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp },
-    { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: List },
-    { title: "Classificar Banco", url: "/dashboard/financeiro/classificar-banco", icon: ClipboardCheck },
+    { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home, end: true, screenCode: "financeiro_dashboard" },
+    { title: "DRE Analítico", url: "/dashboard/financeiro/dre-analitico", icon: FileText, screenCode: "financeiro_dre" },
+    { title: "Visão por Departamento", url: "/dashboard/financeiro/visao-departamentos", icon: Building2, screenCode: "financeiro_departamentos" },
+    { title: "Gestão de Verbas", url: "/dashboard/financeiro/trade", icon: Store, screenCode: "financeiro_trade" },
+    { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar" },
+    { title: "Contas a Receber", url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign, screenCode: "financeiro_contas_receber" },
+    { title: "Fluxo de Caixa", url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp, screenCode: "financeiro_fluxo_caixa" },
+    { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: List, screenCode: "financeiro_plano_contas" },
+    { title: "Classificar Banco", url: "/dashboard/financeiro/classificar-banco", icon: ClipboardCheck, screenCode: "financeiro_classificar_banco" },
   ];
 
   const tradeSubMenus = [
@@ -450,16 +450,18 @@ export function AppSidebar() {
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
                   <SidebarMenu className="space-y-0.5 pl-2">
-                    {financeiroSubMenus.map((item) => (
-                      <MenuItemLink 
-                        key={item.url}
-                        to={item.url} 
-                        icon={item.icon} 
-                        title={item.title} 
-                        colorKey="financeiro"
-                        end={item.end}
-                      />
-                    ))}
+                    {financeiroSubMenus
+                      .filter((item) => isAdmin || hasPermission(item.screenCode))
+                      .map((item) => (
+                        <MenuItemLink 
+                          key={item.url}
+                          to={item.url} 
+                          icon={item.icon} 
+                          title={item.title} 
+                          colorKey="financeiro"
+                          end={item.end}
+                        />
+                      ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
