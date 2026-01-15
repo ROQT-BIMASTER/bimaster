@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +54,10 @@ export default function ContasAReceber() {
   const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
   const [filterAno, setFilterAno] = useState<string>(new Date().getFullYear().toString());
   const [filterMes, setFilterMes] = useState<string>("all");
+  const [filterConta, setFilterConta] = useState<string>("all");
+  const [filterPortador, setFilterPortador] = useState<string>("all");
+  const [filterDiaVencimento, setFilterDiaVencimento] = useState<string>("");
+  const [filterDiaRecebimento, setFilterDiaRecebimento] = useState<string>("");
   const [showImportDialog, setShowImportDialog] = useState(false);
 
   // Query contas a receber - Limite aumentado para dashboard e calendário
@@ -61,7 +65,7 @@ export default function ContasAReceber() {
   const pageSize = 100000; // Aumentado para garantir carregamento completo
 
   const { data: contasData, isLoading, refetch } = useQuery({
-    queryKey: ['contas-receber', searchCliente, filterStatus, filterEmpresas, filterAno, filterMes],
+    queryKey: ['contas-receber', searchCliente, filterStatus, filterEmpresas, filterAno, filterMes, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento],
     queryFn: async () => {
       let query = supabase
         .from('contas_receber' as any)
@@ -81,8 +85,34 @@ export default function ContasAReceber() {
         query = query.in('empresa_id', filterEmpresas);
       }
 
-      // Filtro por ano
-      if (filterAno !== 'all') {
+      // Filtro Conta Bancária
+      if (filterConta !== 'all') {
+        query = query.eq('conta', filterConta);
+      }
+
+      // Filtro Portador
+      if (filterPortador !== 'all') {
+        query = query.eq('portador', filterPortador);
+      }
+
+      // Filtro Dia Vencimento (data específica)
+      if (filterDiaVencimento) {
+        query = query.eq('data_vencimento', filterDiaVencimento);
+      }
+
+      // Filtro Dia Recebimento (data específica)
+      if (filterDiaRecebimento) {
+        query = query.eq('data_recebimento', filterDiaRecebimento);
+      }
+
+      // Filtro por ano - Quando "Todos", buscar últimos 3 anos até 1 ano no futuro
+      if (filterAno === 'all') {
+        const hoje = new Date();
+        const anoAtual = hoje.getFullYear();
+        const startDate = `${anoAtual - 3}-01-01`;
+        const endDate = `${anoAtual + 1}-12-31`;
+        query = query.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+      } else {
         const startDate = `${filterAno}-01-01`;
         const endDate = `${filterAno}-12-31`;
         query = query.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
@@ -113,6 +143,19 @@ export default function ContasAReceber() {
       if (!acc.find(e => e.id === curr.id)) acc.push(curr);
       return acc;
     }, [] as { id: number; nome: string }[]);
+
+  // Extrair listas únicas de Conta e Portador
+  const contasUnicas = useMemo(() => {
+    const set = new Set<string>();
+    contas?.forEach(c => { if (c.conta) set.add(c.conta); });
+    return Array.from(set).sort();
+  }, [contas]);
+
+  const portadoresUnicos = useMemo(() => {
+    const set = new Set<string>();
+    contas?.forEach(c => { if (c.portador) set.add(c.portador); });
+    return Array.from(set).sort();
+  }, [contas]);
 
   // Exportar para Excel
   const handleExport = () => {
@@ -166,7 +209,7 @@ export default function ContasAReceber() {
   const FiltersSection = () => (
     <Card>
       <CardContent className="pt-6">
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-9">
           <div>
             <label className="text-sm font-medium mb-2 block">Ano</label>
             <Select value={filterAno} onValueChange={(value) => {
@@ -279,6 +322,56 @@ export default function ContasAReceber() {
                 <SelectItem value="vencido">Vencido</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Conta</label>
+            <Select value={filterConta} onValueChange={setFilterConta}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {contasUnicas.map(c => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Portador</label>
+            <Select value={filterPortador} onValueChange={setFilterPortador}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {portadoresUnicos.map(p => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Dia Vencimento</label>
+            <Input 
+              type="date" 
+              value={filterDiaVencimento} 
+              onChange={(e) => setFilterDiaVencimento(e.target.value)}
+              className="h-10"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Dia Recebimento</label>
+            <Input 
+              type="date" 
+              value={filterDiaRecebimento} 
+              onChange={(e) => setFilterDiaRecebimento(e.target.value)}
+              className="h-10"
+            />
           </div>
 
           <div>

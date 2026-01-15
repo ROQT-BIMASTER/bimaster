@@ -79,6 +79,10 @@ export default function ContasAPagar() {
   const [filterAno, setFilterAno] = useState<string>(new Date().getFullYear().toString());
   const [filterMes, setFilterMes] = useState<string>("all");
   const [filterDepartamento, setFilterDepartamento] = useState<string>("all");
+  const [filterConta, setFilterConta] = useState<string>("all");
+  const [filterPortador, setFilterPortador] = useState<string>("all");
+  const [filterDiaVencimento, setFilterDiaVencimento] = useState<string>("");
+  const [filterDiaPagamento, setFilterDiaPagamento] = useState<string>("");
   
   // Paginação
   const [currentPage, setCurrentPage] = useState(1);
@@ -158,7 +162,34 @@ export default function ContasAPagar() {
       q = q.eq('departamento_id', filterDepartamento);
     }
 
-    if (filterAno !== 'all') {
+    // Filtro Conta Bancária
+    if (filterConta !== 'all') {
+      q = q.eq('conta', filterConta);
+    }
+
+    // Filtro Portador
+    if (filterPortador !== 'all') {
+      q = q.eq('portador', filterPortador);
+    }
+
+    // Filtro Dia Vencimento (data específica)
+    if (filterDiaVencimento) {
+      q = q.eq('data_vencimento', filterDiaVencimento);
+    }
+
+    // Filtro Dia Pagamento (data específica)
+    if (filterDiaPagamento) {
+      q = q.eq('data_pagamento', filterDiaPagamento);
+    }
+
+    // Ano/Mês - Quando "Todos", buscar últimos 3 anos até 1 ano no futuro
+    if (filterAno === 'all') {
+      const hoje = new Date();
+      const anoAtual = hoje.getFullYear();
+      const startDate = `${anoAtual - 3}-01-01`;
+      const endDate = `${anoAtual + 1}-12-31`;
+      q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+    } else {
       const startDate = `${filterAno}-01-01`;
       const endDate = `${filterAno}-12-31`;
       q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
@@ -177,7 +208,7 @@ export default function ContasAPagar() {
 
   // Query para DASHBOARD - busca todos os dados do período (sem paginação, limite alto)
   const { data: contasDashboard, isLoading: isLoadingDashboard } = useQuery({
-    queryKey: ['contas-pagar-dashboard', filterEmpresasKey, filterAno, filterMes, filterDepartamento],
+    queryKey: ['contas-pagar-dashboard', filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortador, filterDiaVencimento, filterDiaPagamento],
     queryFn: async () => {
       let query = supabase
         .from('contas_pagar')
@@ -194,7 +225,7 @@ export default function ContasAPagar() {
 
   // Query para TABELA - com paginação no backend
   const { data: contasTable, isLoading: isLoadingTable, refetch: refetchContas } = useQuery({
-    queryKey: ['contas-pagar-table', searchFornecedor, filterStatus, filterEmpresasKey, filterAno, filterMes, filterDepartamento, sortColumn, sortDirection, currentPage, pageSize],
+    queryKey: ['contas-pagar-table', searchFornecedor, filterStatus, filterEmpresasKey, filterAno, filterMes, filterDepartamento, filterConta, filterPortador, filterDiaVencimento, filterDiaPagamento, sortColumn, sortDirection, currentPage, pageSize],
     queryFn: async () => {
       let query = supabase
         .from('contas_pagar')
@@ -227,6 +258,19 @@ export default function ContasAPagar() {
 
   // Dados para compatibilidade (usado em KPIs, exports, etc.)
   const contasBase = contasDashboard;
+
+  // Extrair listas únicas de Conta e Portador
+  const contasUnicas = useMemo(() => {
+    const set = new Set<string>();
+    contasDashboard?.forEach(c => { if (c.conta) set.add(c.conta); });
+    return Array.from(set).sort();
+  }, [contasDashboard]);
+
+  const portadoresUnicos = useMemo(() => {
+    const set = new Set<string>();
+    contasDashboard?.forEach(c => { if (c.portador) set.add(c.portador); });
+    return Array.from(set).sort();
+  }, [contasDashboard]);
 
   // Aplica filtros da aba (Status + Busca) também nos dados usados por Dashboard/Calendário/KPIs.
   // Fazemos isso em memória para não refazer uma query gigante a cada tecla.
@@ -719,7 +763,7 @@ export default function ContasAPagar() {
         {/* Filtros Globais */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-8">
               <div>
                 <label className="text-sm font-medium mb-2 block">Ano</label>
                 <Select value={filterAno} onValueChange={(value) => {
@@ -834,6 +878,56 @@ export default function ContasAPagar() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Conta</label>
+                <Select value={filterConta} onValueChange={handleFilterChange(setFilterConta)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {contasUnicas.map(c => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Portador</label>
+                <Select value={filterPortador} onValueChange={handleFilterChange(setFilterPortador)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {portadoresUnicos.map(p => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Dia Vencimento</label>
+                <Input 
+                  type="date" 
+                  value={filterDiaVencimento} 
+                  onChange={(e) => handleFilterChange(setFilterDiaVencimento)(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Dia Pagamento</label>
+                <Input 
+                  type="date" 
+                  value={filterDiaPagamento} 
+                  onChange={(e) => handleFilterChange(setFilterDiaPagamento)(e.target.value)}
+                  className="h-10"
+                />
               </div>
             </div>
           </CardContent>
