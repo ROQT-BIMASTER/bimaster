@@ -3479,6 +3479,71 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_custos_origem: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          created_by: string | null
+          custo_base: number
+          custo_fob: number | null
+          custo_frete: number | null
+          custo_impostos: number | null
+          custo_seguro: number | null
+          data_referencia: string
+          id: string
+          moeda_origem: string | null
+          observacoes: string | null
+          origem: string
+          produto_id: string
+          taxa_cambio: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          custo_base?: number
+          custo_fob?: number | null
+          custo_frete?: number | null
+          custo_impostos?: number | null
+          custo_seguro?: number | null
+          data_referencia?: string
+          id?: string
+          moeda_origem?: string | null
+          observacoes?: string | null
+          origem: string
+          produto_id: string
+          taxa_cambio?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          custo_base?: number
+          custo_fob?: number | null
+          custo_frete?: number | null
+          custo_impostos?: number | null
+          custo_seguro?: number | null
+          data_referencia?: string
+          id?: string
+          moeda_origem?: string | null
+          observacoes?: string | null
+          origem?: string
+          produto_id?: string
+          taxa_cambio?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_custos_origem_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_custos_producao: {
         Row: {
           created_at: string | null
@@ -5552,6 +5617,7 @@ export type Database = {
           id: string
           margem_lucro_percentual: number | null
           ordem_producao_id: string | null
+          origem: string | null
           preco_calculado: number | null
           preco_final: number | null
           preco_manual: number | null
@@ -5567,6 +5633,7 @@ export type Database = {
           id?: string
           margem_lucro_percentual?: number | null
           ordem_producao_id?: string | null
+          origem?: string | null
           preco_calculado?: number | null
           preco_final?: number | null
           preco_manual?: number | null
@@ -5582,6 +5649,7 @@ export type Database = {
           id?: string
           margem_lucro_percentual?: number | null
           ordem_producao_id?: string | null
+          origem?: string | null
           preco_calculado?: number | null
           preco_final?: number | null
           preco_manual?: number | null
@@ -6219,6 +6287,7 @@ export type Database = {
           nome: string
           observacoes: string | null
           ordem: number | null
+          origem_aplicavel: string | null
           owner_cnpj: string | null
           status: string
           tabela_base_id: string | null
@@ -6242,6 +6311,7 @@ export type Database = {
           nome: string
           observacoes?: string | null
           ordem?: number | null
+          origem_aplicavel?: string | null
           owner_cnpj?: string | null
           status?: string
           tabela_base_id?: string | null
@@ -6265,6 +6335,7 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           ordem?: number | null
+          origem_aplicavel?: string | null
           owner_cnpj?: string | null
           status?: string
           tabela_base_id?: string | null
