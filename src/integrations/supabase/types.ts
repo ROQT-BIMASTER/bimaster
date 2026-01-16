@@ -14419,15 +14419,20 @@ export type Database = {
         Args: { p_cliente_codigo: string }
         Returns: number
       }
-      calcular_status_financeiro: {
-        Args: {
-          p_data_pagamento: string
-          p_data_vencimento: string
-          p_valor_original: number
-          p_valor_pago: number
-        }
-        Returns: string
-      }
+      calcular_status_financeiro:
+        | {
+            Args: {
+              p_data_pagamento: string
+              p_data_vencimento: string
+              p_valor_original: number
+              p_valor_pago: number
+            }
+            Returns: string
+          }
+        | {
+            Args: { p_dias_atraso: number; p_valor_aberto: number }
+            Returns: string
+          }
       calculate_user_level: {
         Args: { points: number }
         Returns: {
