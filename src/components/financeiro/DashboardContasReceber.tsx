@@ -359,17 +359,23 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-4">
-        {[...Array(8)].map((_, i) => (
-          <Card key={i}>
-            <CardContent className="pt-6">
-              <div className="animate-pulse space-y-2">
-                <div className="h-4 bg-muted rounded w-1/2"></div>
-                <div className="h-8 bg-muted rounded w-3/4"></div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-4">
+        <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span>Carregando dados consolidados...</span>
+        </div>
+        <div className="grid gap-4 md:grid-cols-4">
+          {[...Array(8)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="pt-6">
+                <div className="animate-pulse space-y-2">
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
+                  <div className="h-8 bg-muted rounded w-3/4"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
