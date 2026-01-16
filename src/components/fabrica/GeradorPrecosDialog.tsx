@@ -16,12 +16,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { calcularPrecosProdutos, formatarMoeda } from "@/lib/fabrica/pricing-calculator";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Factory, Ship } from "lucide-react";
 
 interface ProdutoData {
   id: string;
   codigo: string | null;
   nome: string;
+  origem: string | null;
 }
 
 interface Props {
@@ -33,7 +34,7 @@ interface Props {
 
 export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: Props) {
   const queryClient = useQueryClient();
-  const [fonteCusto, setFonteCusto] = useState<"ordem_producao" | "custo_medio" | "manual" | "tabela_anterior">("ordem_producao");
+  const [fonteCusto, setFonteCusto] = useState<"ordem_producao" | "custo_medio" | "manual" | "tabela_anterior" | "custo_origem">("ordem_producao");
   const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
   const [produtosNaTabelaBase, setProdutosNaTabelaBase] = useState<string[]>([]);
   const [custosManual, setCustosManual] = useState<Record<string, string>>({});
@@ -42,11 +43,21 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const [produtos, setProdutos] = useState<ProdutoData[]>([]);
   const [loadingProdutos, setLoadingProdutos] = useState(false);
   const [buscaProduto, setBuscaProduto] = useState("");
+  const [origemSelecionada, setOrigemSelecionada] = useState<'nacional' | 'importado' | null>(null);
 
   useEffect(() => {
     if (open && tabela) {
       loadProdutos();
       loadProdutosTabela();
+      
+      // Definir origem baseado na tabela
+      if (tabela.origem_aplicavel === 'nacional') {
+        setOrigemSelecionada('nacional');
+      } else if (tabela.origem_aplicavel === 'importado') {
+        setOrigemSelecionada('importado');
+      } else {
+        setOrigemSelecionada(null);
+      }
     } else if (!open) {
       // Reset state quando fechar o dialog
       setProdutosSelecionados([]);
@@ -54,6 +65,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       setPrecosCalculados([]);
       setCustosManual({});
       setBuscaProduto("");
+      setOrigemSelecionada(null);
     }
   }, [open, tabela]);
 
@@ -61,12 +73,18 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     setLoadingProdutos(true);
     try {
       // Buscar apenas produtos acabados finalizados
-      const response = await supabase
+      let query = supabase
         .from("fabrica_produtos")
-        .select("id, codigo, nome")
+        .select("id, codigo, nome, origem")
         .eq("tipo", "ACABADO")
-        .eq("ativo", true)
-        .order("nome");
+        .eq("ativo", true);
+
+      // Filtrar por origem se a tabela especificar
+      if (tabela?.origem_aplicavel && tabela.origem_aplicavel !== 'ambos') {
+        query = query.eq("origem", tabela.origem_aplicavel);
+      }
+
+      const response = await query.order("nome");
 
       if (response.error) throw response.error;
       setProdutos(response.data || []);
@@ -105,8 +123,10 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   useEffect(() => {
     if (tabela?.tipo_base === "tabela_anterior") {
       setFonteCusto("tabela_anterior");
+    } else if (origemSelecionada) {
+      setFonteCusto("custo_origem");
     }
-  }, [tabela]);
+  }, [tabela, origemSelecionada]);
 
   const calcularPrecosMutation = useMutation({
     mutationFn: async () => {
@@ -119,6 +139,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
           custosManual: Object.fromEntries(
             Object.entries(custosManual).map(([id, valor]) => [id, parseFloat(valor)])
           ),
+          origem: origemSelecionada || undefined,
         }
       );
 
@@ -151,6 +172,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         preco_calculado: preco.preco_calculado,
         preco_final: preco.preco_final,
         margem_lucro_percentual: preco.margem_lucro_percentual,
+        origem: origemSelecionada || 'nacional',
         ativo: true,
       }));
 
@@ -275,11 +297,38 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Indicador de Origem da Tabela */}
+          {tabela.origem_aplicavel && tabela.origem_aplicavel !== 'ambos' && (
+            <div className={`p-3 rounded-lg border flex items-center gap-2 ${
+              tabela.origem_aplicavel === 'nacional' 
+                ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' 
+                : 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800'
+            }`}>
+              {tabela.origem_aplicavel === 'nacional' ? (
+                <Factory className="h-5 w-5 text-green-600" />
+              ) : (
+                <Ship className="h-5 w-5 text-blue-600" />
+              )}
+              <span className="text-sm font-medium">
+                Esta tabela é exclusiva para produtos de origem <strong>{tabela.origem_aplicavel === 'nacional' ? 'Nacional' : 'Importada'}</strong>
+              </span>
+            </div>
+          )}
+
           {/* Fonte do Custo */}
           {tabela.tipo_base !== "tabela_anterior" && (
             <div>
               <Label>Fonte do Custo Base</Label>
               <RadioGroup value={fonteCusto} onValueChange={(value: any) => setFonteCusto(value)}>
+                {origemSelecionada && (
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="custo_origem" id="fonte_origem" />
+                    <Label htmlFor="fonte_origem" className="font-normal cursor-pointer flex items-center gap-2">
+                      {origemSelecionada === 'nacional' ? <Factory className="h-4 w-4 text-green-600" /> : <Ship className="h-4 w-4 text-blue-600" />}
+                      Custo por Origem ({origemSelecionada === 'nacional' ? 'Nacional' : 'Importado'})
+                    </Label>
+                  </div>
+                )}
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="ordem_producao" id="fonte_op" />
                   <Label htmlFor="fonte_op" className="font-normal cursor-pointer">
@@ -364,6 +413,14 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                               <div className="font-medium">{produto.nome}</div>
                               <div className="text-sm text-muted-foreground">{produto.codigo}</div>
                             </div>
+                            {produto.origem && (
+                              <Badge variant="outline" className={`flex items-center gap-1 ${
+                                produto.origem === 'nacional' ? 'border-green-300 text-green-700' : 'border-blue-300 text-blue-700'
+                              }`}>
+                                {produto.origem === 'nacional' ? <Factory className="h-3 w-3" /> : <Ship className="h-3 w-3" />}
+                                {produto.origem === 'nacional' ? 'Nac' : 'Imp'}
+                              </Badge>
+                            )}
                             {produtosNaTabelaBase.includes(produto.id) && (
                               <Badge variant="secondary" className="flex items-center gap-1">
                                 <CheckCircle2 className="h-3 w-3" />

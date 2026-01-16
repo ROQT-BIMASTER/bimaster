@@ -116,18 +116,45 @@ export async function buscarCustoMedioProduto(produtoId: string): Promise<number
  */
 export async function buscarPrecoTabelaBase(
   produtoId: string,
-  tabelaBaseId: string
+  tabelaBaseId: string,
+  origem?: string
 ): Promise<number | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('fabrica_precos_produtos')
     .select('preco_final')
     .eq('tabela_id', tabelaBaseId)
     .eq('produto_id', produtoId)
-    .eq('ativo', true)
-    .single();
+    .eq('ativo', true);
+
+  if (origem) {
+    query = query.eq('origem', origem);
+  }
+
+  const { data, error } = await query.single();
 
   if (error || !data) return null;
   return data.preco_final;
+}
+
+/**
+ * Busca o custo de um produto por origem (nacional/importado)
+ */
+export async function buscarCustoOrigem(
+  produtoId: string,
+  origem: 'nacional' | 'importado'
+): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('fabrica_custos_origem')
+    .select('custo_base')
+    .eq('produto_id', produtoId)
+    .eq('origem', origem)
+    .eq('ativo', true)
+    .order('data_referencia', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) return null;
+  return Number(data.custo_base);
 }
 
 /**
@@ -137,8 +164,9 @@ export async function calcularPrecosProdutos(
   tabelaId: string,
   produtosIds: string[],
   opcoes: {
-    fonteCusto: 'ordem_producao' | 'manual' | 'custo_medio' | 'tabela_anterior';
+    fonteCusto: 'ordem_producao' | 'manual' | 'custo_medio' | 'tabela_anterior' | 'custo_origem';
     custosManual?: Record<string, number>;
+    origem?: 'nacional' | 'importado';
   }
 ): Promise<PrecoProduto[]> {
   // Buscar configuração da tabela
@@ -160,12 +188,14 @@ export async function calcularPrecosProdutos(
     // Determinar custo base
     if (opcoes.fonteCusto === 'manual' && opcoes.custosManual?.[produtoId]) {
       custoBase = opcoes.custosManual[produtoId];
+    } else if (opcoes.fonteCusto === 'custo_origem' && opcoes.origem) {
+      custoBase = (await buscarCustoOrigem(produtoId, opcoes.origem)) || 0;
     } else if (opcoes.fonteCusto === 'ordem_producao') {
       custoBase = (await buscarCustoUltimaOP(produtoId)) || 0;
     } else if (opcoes.fonteCusto === 'custo_medio') {
       custoBase = (await buscarCustoMedioProduto(produtoId)) || 0;
     } else if (opcoes.fonteCusto === 'tabela_anterior' && tabela.tabela_base_id) {
-      custoBase = (await buscarPrecoTabelaBase(produtoId, tabela.tabela_base_id)) || 0;
+      custoBase = (await buscarPrecoTabelaBase(produtoId, tabela.tabela_base_id, opcoes.origem)) || 0;
     }
 
     // Calcular preço com markup

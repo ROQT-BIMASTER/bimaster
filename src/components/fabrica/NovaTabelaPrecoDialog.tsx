@@ -45,6 +45,7 @@ export function NovaTabelaPrecoDialog({ open, onOpenChange, tabelaEdit, onSucces
     observacoes: "",
     owner_cnpj: "",
     visivel_para_cnpjs: [] as string[],
+    origem_aplicavel: "ambos",
   });
 
   const { data: tabelasDisponiveis } = useQuery({
@@ -79,6 +80,7 @@ export function NovaTabelaPrecoDialog({ open, onOpenChange, tabelaEdit, onSucces
         observacoes: tabelaEdit.observacoes || "",
         owner_cnpj: tabelaEdit.owner_cnpj || "",
         visivel_para_cnpjs: tabelaEdit.visivel_para_cnpjs || [],
+        origem_aplicavel: tabelaEdit.origem_aplicavel || "ambos",
       });
     } else {
       setFormData({
@@ -96,6 +98,7 @@ export function NovaTabelaPrecoDialog({ open, onOpenChange, tabelaEdit, onSucces
         observacoes: "",
         owner_cnpj: "",
         visivel_para_cnpjs: [],
+        origem_aplicavel: "ambos",
       });
     }
   }, [tabelaEdit, open]);
@@ -118,6 +121,7 @@ export function NovaTabelaPrecoDialog({ open, onOpenChange, tabelaEdit, onSucces
         owner_cnpj: formData.owner_cnpj.trim() || null,
         visivel_para_cnpjs: formData.visivel_para_cnpjs.filter(c => c.trim()),
         status: 'draft', // Sempre começa como draft
+        origem_aplicavel: formData.origem_aplicavel,
       };
 
       if (tabelaEdit) {
@@ -253,6 +257,26 @@ export function NovaTabelaPrecoDialog({ open, onOpenChange, tabelaEdit, onSucces
                 </Select>
               </div>
             )}
+
+            <div>
+              <Label htmlFor="origem_aplicavel">Origem Aplicável</Label>
+              <Select
+                value={formData.origem_aplicavel}
+                onValueChange={(value) => setFormData({ ...formData, origem_aplicavel: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ambos">Ambos (Nacional e Importado)</SelectItem>
+                  <SelectItem value="nacional">Apenas Nacional</SelectItem>
+                  <SelectItem value="importado">Apenas Importado</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Define quais origens de produtos serão precificadas nesta tabela
+              </p>
+            </div>
           </div>
 
           {/* Markup */}
