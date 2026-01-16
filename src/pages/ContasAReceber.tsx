@@ -68,6 +68,7 @@ export default function ContasAReceber() {
   const [filterPortador, setFilterPortador] = useState<string>("all");
   const [filterDiaVencimento, setFilterDiaVencimento] = useState<string>("");
   const [filterDiaRecebimento, setFilterDiaRecebimento] = useState<string>("");
+  const [filterDiaEmissao, setFilterDiaEmissao] = useState<string>("");
   const [showImportDialog, setShowImportDialog] = useState(false);
 
   // Paginação
@@ -109,6 +110,11 @@ export default function ContasAReceber() {
     // Filtro Dia Recebimento (data específica)
     if (filterDiaRecebimento) {
       q = q.eq('data_recebimento', filterDiaRecebimento);
+    }
+
+    // Filtro Dia Emissão (data específica)
+    if (filterDiaEmissao) {
+      q = q.eq('data_emissao', filterDiaEmissao);
     }
 
     // Filtro por ano - múltiplos anos ou últimos 3 anos + 1 futuro se vazio
@@ -612,7 +618,17 @@ export default function ContasAReceber() {
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">Dia Vencimento</label>
+            <label className="text-sm font-medium mb-2 block">Data Emissão</label>
+            <Input 
+              type="date" 
+              value={filterDiaEmissao} 
+              onChange={(e) => { setFilterDiaEmissao(e.target.value); setCurrentPage(1); }}
+              className="h-10"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Data Vencimento</label>
             <Input 
               type="date" 
               value={filterDiaVencimento} 
@@ -622,7 +638,7 @@ export default function ContasAReceber() {
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">Dia Recebimento</label>
+            <label className="text-sm font-medium mb-2 block">Data Recebimento</label>
             <Input 
               type="date" 
               value={filterDiaRecebimento} 
@@ -654,6 +670,7 @@ export default function ContasAReceber() {
               setFilterPortador('all');
               setFilterDiaVencimento('');
               setFilterDiaRecebimento('');
+              setFilterDiaEmissao('');
               setSearchCliente('');
               setFilterStatus('all');
               setCurrentPage(1);
