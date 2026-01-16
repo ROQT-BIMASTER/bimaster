@@ -133,16 +133,17 @@ export default function ContasAReceber() {
     return q;
   };
 
-  // Query para DASHBOARD - busca todos os dados do período com paginação automática
+  // Query para DASHBOARD - busca dados com limite para performance
   const { data: contasDashboard, isLoading: isLoadingDashboard } = useQuery({
     queryKey: ['contas-receber-dashboard', filterEmpresasKey, filterAno, filterMes, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento],
     queryFn: async () => {
       const PAGE_SIZE = 1000;
+      const MAX_RECORDS = 50000; // Limite máximo para evitar timeout
       let allData: ContaReceber[] = [];
       let from = 0;
       let hasMore = true;
       
-      while (hasMore) {
+      while (hasMore && allData.length < MAX_RECORDS) {
         let query = supabase
           .from('contas_receber' as any)
           .select('*');
@@ -172,11 +173,12 @@ export default function ContasAReceber() {
     queryKey: ['contas-receber-calendario', filterEmpresasKey, filterAno, filterConta, filterPortador],
     queryFn: async () => {
       const PAGE_SIZE = 1000;
+      const MAX_RECORDS = 50000; // Limite máximo para evitar timeout
       let allData: ContaReceber[] = [];
       let from = 0;
       let hasMore = true;
       
-      while (hasMore) {
+      while (hasMore && allData.length < MAX_RECORDS) {
         let query = supabase
           .from('contas_receber' as any)
           .select('*');
