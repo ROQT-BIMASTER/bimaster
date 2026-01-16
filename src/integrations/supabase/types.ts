@@ -14764,8 +14764,16 @@ export type Database = {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
       }
+      usuario_tem_acesso_modulo: {
+        Args: { _modulo_codigo: string; _user_id: string }
+        Returns: boolean
+      }
       usuario_tem_acesso_prospect: {
         Args: { _prospect_id: string; _user_id: string }
+        Returns: boolean
+      }
+      usuario_tem_acesso_tela: {
+        Args: { _tela_codigo: string; _user_id: string }
         Returns: boolean
       }
       usuario_tem_permissao_modulo: {
