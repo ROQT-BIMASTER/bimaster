@@ -152,7 +152,7 @@ export default function ContasAReceber() {
 
   // Query para DASHBOARD - busca dados com limite para performance
   const { data: contasDashboard, isLoading: isLoadingDashboard } = useQuery({
-    queryKey: ['contas-receber-dashboard', filterEmpresasKey, filterAnosKey, filterMesesKey, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento],
+    queryKey: ['contas-receber-dashboard', filterEmpresasKey, filterAnosKey, filterMesesKey, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento, filterDiaEmissao],
     queryFn: async () => {
       const PAGE_SIZE = 1000;
       const MAX_RECORDS = 800000; // Limite máximo para evitar timeout
@@ -243,8 +243,9 @@ export default function ContasAReceber() {
 
   // Query para TABELA - paginação no backend
   const { data: contasTable, isLoading: isLoadingTable, refetch } = useQuery({
-    queryKey: ['contas-receber-table', searchCliente, filterStatus, filterEmpresasKey, filterAnosKey, filterMesesKey, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento, sortColumn, sortDirection, currentPage, pageSize],
+    queryKey: ['contas-receber-table', searchCliente, filterStatus, filterEmpresasKey, filterAnosKey, filterMesesKey, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento, filterDiaEmissao, sortColumn, sortDirection, currentPage, pageSize],
     queryFn: async () => {
+      // Query para dados paginados
       let query = supabase
         .from('contas_receber' as any)
         .select('*', { count: 'exact' });
@@ -271,7 +272,32 @@ export default function ContasAReceber() {
 
       const { data, error, count } = await query;
       if (error) throw error;
-      return { data: data as unknown as ContaReceber[], count: count || 0 };
+
+      // Query para totais (sem paginação)
+      let totaisQuery = supabase
+        .from('contas_receber' as any)
+        .select('valor_original, valor_aberto, valor_recebido');
+
+      if (searchCliente) {
+        totaisQuery = totaisQuery.ilike('cliente_nome', `%${searchCliente}%`);
+      }
+      if (filterStatus !== 'all') {
+        totaisQuery = totaisQuery.eq('status', filterStatus.toLowerCase());
+      }
+      totaisQuery = buildBaseFilters(totaisQuery);
+
+      const { data: totaisData, error: totaisError } = await totaisQuery;
+      
+      let totais = { valorOriginal: 0, valorAberto: 0, valorRecebido: 0 };
+      if (!totaisError && totaisData) {
+        totais = (totaisData as any[]).reduce((acc, item) => ({
+          valorOriginal: acc.valorOriginal + (item.valor_original || 0),
+          valorAberto: acc.valorAberto + (item.valor_aberto || 0),
+          valorRecebido: acc.valorRecebido + (item.valor_recebido || 0),
+        }), { valorOriginal: 0, valorAberto: 0, valorRecebido: 0 });
+      }
+
+      return { data: data as unknown as ContaReceber[], count: count || 0, totais };
     }
   });
 
@@ -299,12 +325,13 @@ export default function ContasAReceber() {
 
   // Dados paginados da tabela
   const sortedAndPaginatedData = useMemo(() => {
-    if (!contasTable) return { data: [], totalPages: 0, totalItems: 0 };
+    if (!contasTable) return { data: [], totalPages: 0, totalItems: 0, totais: { valorOriginal: 0, valorAberto: 0, valorRecebido: 0 } };
     
     const totalItems = contasTable.count;
     const totalPages = Math.ceil(totalItems / pageSize);
+    const totais = contasTable.totais || { valorOriginal: 0, valorAberto: 0, valorRecebido: 0 };
     
-    return { data: contasTable.data, totalPages, totalItems };
+    return { data: contasTable.data, totalPages, totalItems, totais };
   }, [contasTable, pageSize]);
 
   // Empresas únicas para filtro (do dashboard para ter mais dados)
@@ -869,6 +896,24 @@ export default function ContasAReceber() {
                           <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                             Nenhuma conta encontrada
                           </TableCell>
+                        </TableRow>
+                      )}
+                      {/* Linha de Totais */}
+                      {sortedAndPaginatedData.data && sortedAndPaginatedData.data.length > 0 && (
+                        <TableRow className="bg-muted/50 font-semibold border-t-2">
+                          <TableCell colSpan={6} className="text-right">
+                            Subtotal ({sortedAndPaginatedData.totalItems.toLocaleString()} títulos):
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sortedAndPaginatedData.totais.valorOriginal)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sortedAndPaginatedData.totais.valorAberto)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sortedAndPaginatedData.totais.valorRecebido)}
+                          </TableCell>
+                          <TableCell colSpan={2}></TableCell>
                         </TableRow>
                       )}
                     </TableBody>
