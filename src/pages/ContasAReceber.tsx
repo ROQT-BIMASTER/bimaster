@@ -555,6 +555,30 @@ export default function ContasAReceber() {
             />
           </div>
         </div>
+
+        {/* Botão Limpar Filtros */}
+        <div className="flex justify-end mt-4">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              setFilterAno(new Date().getFullYear().toString());
+              setFilterMes('all');
+              setFilterEmpresas([]);
+              setFilterConta('all');
+              setFilterPortador('all');
+              setFilterDiaVencimento('');
+              setFilterDiaRecebimento('');
+              setSearchCliente('');
+              setFilterStatus('all');
+              setCurrentPage(1);
+            }}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Limpar Filtros
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
