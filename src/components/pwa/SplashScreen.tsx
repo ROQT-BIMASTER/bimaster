@@ -51,10 +51,10 @@ export function SplashScreen({ progress, status, onComplete }: SplashScreenProps
         
         {/* Título */}
         <h1 className="text-2xl font-bold text-foreground mb-2">
-          BiMaster
+          Sistema de Gestão Huggs
         </h1>
         <p className="text-sm text-muted-foreground mb-8">
-          Trade Marketing & CRM
+          Gestão Integrada de Negócios
         </p>
         
         {/* Progress bar */}

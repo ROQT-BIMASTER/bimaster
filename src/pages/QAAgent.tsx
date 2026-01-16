@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 const QAAgent = () => {
   useEffect(() => {
-    document.title = "Agente de QA | BiMaster";
+    document.title = "Agente de QA | Sistema de Gestão Huggs";
   }, []);
 
   return (

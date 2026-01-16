@@ -43,7 +43,7 @@ export default function InstalarApp() {
         <div className="text-center">
           <h1 className="text-3xl font-bold">Instalar Aplicativo</h1>
           <p className="text-muted-foreground mt-2">
-            Instale o BiMaster no seu dispositivo para acesso rápido e modo offline
+            Instale o Sistema de Gestão Huggs no seu dispositivo para acesso rápido e modo offline
           </p>
         </div>
 
@@ -132,7 +132,7 @@ export default function InstalarApp() {
                   <Download className="h-8 w-8 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">Instale o BiMaster</h3>
+                  <h3 className="text-xl font-semibold mb-2">Instale o Sistema Huggs</h3>
                   <p className="text-muted-foreground mb-4">
                     Tenha acesso rápido direto da tela inicial do seu dispositivo
                   </p>

@@ -18,9 +18,9 @@ export default defineConfig(({ mode }) => ({
       injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'robots.txt', '**/*.png'],
       manifest: {
-        name: 'BiMaster - Trade Marketing',
-        short_name: 'BiMaster',
-        description: 'Sistema de gestão de trade marketing e prospecção com modo offline',
+        name: 'Sistema de Gestão Huggs',
+        short_name: 'Huggs',
+        description: 'Sistema de Gestão Integrada de Negócios',
         theme_color: '#1a1a1a',
         background_color: '#ffffff',
         display: 'standalone',
