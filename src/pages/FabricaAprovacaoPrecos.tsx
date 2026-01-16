@@ -141,7 +141,7 @@ export default function FabricaAprovacaoPrecos() {
 
   // Buscar preços da versão selecionada com nomes dos produtos
   const { data: precosVersao } = useQuery({
-    queryKey: ["precos-versao", versaoSelecionada?.id],
+    queryKey: ["precos-versao", versaoSelecionada?.id, tabelaSelecionada?.tabela_base_id],
     queryFn: async () => {
       if (!versaoSelecionada?.precos_snapshot) return [];
       
@@ -159,17 +159,44 @@ export default function FabricaAprovacaoPrecos() {
         .select("id, nome, codigo")
         .in("id", produtoIds);
       
+      // Buscar preços da tabela base se existir
+      let precosTabelaBase: Record<string, number> = {};
+      if (tabelaSelecionada?.tabela_base_id) {
+        const { data: precosBase } = await supabase
+          .from("fabrica_precos_produtos")
+          .select("produto_id, preco_final")
+          .eq("tabela_id", tabelaSelecionada.tabela_base_id)
+          .eq("ativo", true);
+        
+        if (precosBase) {
+          precosTabelaBase = Object.fromEntries(
+            precosBase.map(p => [p.produto_id, p.preco_final || 0])
+          );
+        }
+      }
+      
       // Criar mapa de produtos
       const produtosMap = new Map(
         (produtos || []).map((p: any) => [p.id, { nome: p.nome, codigo: p.codigo }])
       );
       
-      // Enriquecer snapshot com nomes
-      return snapshot.map((preco: any) => ({
-        ...preco,
-        produto_nome: produtosMap.get(preco.produto_id)?.nome || preco.produto_id,
-        produto_codigo: produtosMap.get(preco.produto_id)?.codigo || '-'
-      }));
+      // Enriquecer snapshot com nomes e calcular margem
+      return snapshot.map((preco: any) => {
+        const precoBase = precosTabelaBase[preco.produto_id];
+        const referencia = precoBase && precoBase > 0 ? precoBase : (preco.custo_base || 0);
+        const precoFinal = preco.preco_final || 0;
+        const margemCalculada = precoFinal > 0 && referencia > 0
+          ? ((precoFinal - referencia) / precoFinal) * 100
+          : (preco.margem_lucro_percentual || 0);
+
+        return {
+          ...preco,
+          produto_nome: produtosMap.get(preco.produto_id)?.nome || preco.produto_id,
+          produto_codigo: produtosMap.get(preco.produto_id)?.codigo || '-',
+          preco_tabela_base: precoBase || null,
+          margem_calculada: margemCalculada
+        };
+      });
     },
     enabled: !!versaoSelecionada && (showPrecos || showImpacto),
   });
@@ -479,31 +506,40 @@ export default function FabricaAprovacaoPrecos() {
               <thead className="bg-muted">
                 <tr>
                   <th className="p-3 text-left">Produto</th>
-                  <th className="p-3 text-right">Custo Base</th>
+                  <th className="p-3 text-right">
+                    {tabelaSelecionada?.tabela_base_id ? "Preço Base" : "Custo Base"}
+                  </th>
                   <th className="p-3 text-right">Preço Final</th>
                   <th className="p-3 text-right">Margem</th>
                 </tr>
               </thead>
               <tbody>
-                {precosVersao?.map((preco: any) => (
-                  <tr key={preco.produto_id} className="border-t">
-                    <td className="p-3">
-                      <div>
-                        <span className="font-medium">{preco.produto_nome}</span>
-                        {preco.produto_codigo && preco.produto_codigo !== '-' && (
-                          <span className="text-xs text-muted-foreground ml-2">
-                            ({preco.produto_codigo})
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3 text-right">{formatarMoeda(preco.custo_base)}</td>
-                    <td className="p-3 text-right font-semibold">{formatarMoeda(preco.preco_final)}</td>
-                    <td className="p-3 text-right text-green-600">
-                      {(preco.margem_lucro_percentual ?? preco.margem_lucro ?? 0).toFixed(2)}%
-                    </td>
-                  </tr>
-                ))}
+                {precosVersao?.map((preco: any) => {
+                  const referencia = preco.preco_tabela_base && preco.preco_tabela_base > 0
+                    ? preco.preco_tabela_base
+                    : preco.custo_base;
+                  const margem = preco.margem_calculada ?? preco.margem_lucro_percentual ?? 0;
+                  
+                  return (
+                    <tr key={preco.produto_id} className="border-t">
+                      <td className="p-3">
+                        <div>
+                          <span className="font-medium">{preco.produto_nome}</span>
+                          {preco.produto_codigo && preco.produto_codigo !== '-' && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({preco.produto_codigo})
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-right">{formatarMoeda(referencia)}</td>
+                      <td className="p-3 text-right font-semibold">{formatarMoeda(preco.preco_final)}</td>
+                      <td className="p-3 text-right text-green-600">
+                        {margem.toFixed(2)}%
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -1,15 +1,22 @@
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, TrendingUp, PercentCircle, Tag } from "lucide-react";
+import { DollarSign, TrendingUp, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { 
+  calcularMargemComTabelaBase, 
+  getLabelReferenciaMargem, 
+  getValorReferenciaMargem 
+} from "@/lib/fabrica/margem-calculator";
 
 interface PriceInfo {
   id: string;
   custo_base?: number | null;
   preco_final?: number | null;
   margem_lucro_percentual?: number | null;
+  preco_tabela_base?: number | null;
   tabela?: {
     nome: string;
     codigo?: string;
+    tabela_base_id?: string | null;
   } | null;
 }
 
@@ -37,6 +44,16 @@ export function ProductPricing({ precos }: ProductPricingProps) {
 
   // Pegar o primeiro preço como principal
   const mainPrice = precos[0];
+  
+  // Calcular margem usando a tabela base se disponível
+  const temTabelaBase = !!(mainPrice.tabela?.tabela_base_id && mainPrice.preco_tabela_base);
+  const margemCalculada = calcularMargemComTabelaBase({
+    precoFinal: mainPrice.preco_final || 0,
+    precoTabelaBase: mainPrice.preco_tabela_base,
+    custoBase: mainPrice.custo_base
+  });
+  const labelReferencia = getLabelReferenciaMargem(temTabelaBase);
+  const valorReferencia = getValorReferenciaMargem(mainPrice.preco_tabela_base, mainPrice.custo_base);
 
   return (
     <div className="space-y-3">
@@ -48,9 +65,9 @@ export function ProductPricing({ precos }: ProductPricingProps) {
       {/* Cards de preço principal */}
       <div className="grid grid-cols-3 gap-3">
         <div className="p-3 rounded-lg bg-muted/50 border">
-          <p className="text-xs text-muted-foreground mb-1">Custo Base</p>
+          <p className="text-xs text-muted-foreground mb-1">{labelReferencia}</p>
           <p className="text-lg font-semibold text-foreground">
-            {formatCurrency(mainPrice.custo_base)}
+            {formatCurrency(valorReferencia)}
           </p>
         </div>
         <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
@@ -64,15 +81,15 @@ export function ProductPricing({ precos }: ProductPricingProps) {
           <div className="flex items-center gap-1">
             <TrendingUp className={cn(
               "h-4 w-4",
-              (mainPrice.margem_lucro_percentual || 0) >= 50 ? "text-green-500" : 
-              (mainPrice.margem_lucro_percentual || 0) >= 30 ? "text-amber-500" : "text-red-500"
+              margemCalculada >= 50 ? "text-green-500" : 
+              margemCalculada >= 30 ? "text-amber-500" : "text-red-500"
             )} />
             <p className={cn(
               "text-lg font-semibold",
-              (mainPrice.margem_lucro_percentual || 0) >= 50 ? "text-green-500" : 
-              (mainPrice.margem_lucro_percentual || 0) >= 30 ? "text-amber-500" : "text-red-500"
+              margemCalculada >= 50 ? "text-green-500" : 
+              margemCalculada >= 30 ? "text-amber-500" : "text-red-500"
             )}>
-              {mainPrice.margem_lucro_percentual?.toFixed(1) || '-'}%
+              {margemCalculada.toFixed(1)}%
             </p>
           </div>
         </div>
@@ -83,21 +100,26 @@ export function ProductPricing({ precos }: ProductPricingProps) {
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">Outras tabelas de preço:</p>
           <div className="flex flex-wrap gap-2">
-            {precos.slice(1).map((preco) => (
-              <Badge 
-                key={preco.id} 
-                variant="outline"
-                className="text-xs flex items-center gap-1"
-              >
-                <Tag className="h-3 w-3" />
-                {preco.tabela?.nome || 'Tabela'}: {formatCurrency(preco.preco_final)}
-                {preco.margem_lucro_percentual && (
+            {precos.slice(1).map((preco) => {
+              const margemOutra = calcularMargemComTabelaBase({
+                precoFinal: preco.preco_final || 0,
+                precoTabelaBase: preco.preco_tabela_base,
+                custoBase: preco.custo_base
+              });
+              return (
+                <Badge 
+                  key={preco.id} 
+                  variant="outline"
+                  className="text-xs flex items-center gap-1"
+                >
+                  <Tag className="h-3 w-3" />
+                  {preco.tabela?.nome || 'Tabela'}: {formatCurrency(preco.preco_final)}
                   <span className="text-muted-foreground">
-                    ({preco.margem_lucro_percentual.toFixed(0)}%)
+                    ({margemOutra.toFixed(0)}%)
                   </span>
-                )}
-              </Badge>
-            ))}
+                </Badge>
+              );
+            })}
           </div>
         </div>
       )}
