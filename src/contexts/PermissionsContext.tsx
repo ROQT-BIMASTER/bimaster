@@ -24,7 +24,7 @@ let globalPermissionsCache: {
   timestamp: number;
 } | null = null;
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+const CACHE_DURATION = 30 * 1000; // 30 segundos - para garantir que mudanças de permissões sejam refletidas rapidamente
 
 export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
   const [modules, setModules] = useState<string[]>([]);
@@ -194,14 +194,49 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    // Listener para atualizações de permissões
+    // Listener para atualizações de permissões via eventos globais
     const handlePermissionsUpdate = () => {
+      console.log("[PermissionsContext] Atualizando permissões via evento global");
       globalPermissionsCache = null;
       fetchPermissions(true);
     };
 
     window.addEventListener("permissions-updated", handlePermissionsUpdate);
     window.addEventListener("modules-updated", handlePermissionsUpdate);
+
+    // Realtime listeners para mudanças nas tabelas de permissões
+    const getCurrentUserId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user?.id;
+    };
+
+    getCurrentUserId().then(userId => {
+      if (!userId || !isMountedRef.current) return;
+
+      const channel = supabase
+        .channel('permissions-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'usuario_permissoes_modulos', filter: `usuario_id=eq.${userId}` },
+          () => {
+            console.log("[PermissionsContext] Módulos do usuário atualizados - recarregando");
+            handlePermissionsUpdate();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'usuario_permissoes_telas', filter: `usuario_id=eq.${userId}` },
+          () => {
+            console.log("[PermissionsContext] Telas do usuário atualizadas - recarregando");
+            handlePermissionsUpdate();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    });
 
     return () => {
       isMountedRef.current = false;
