@@ -92,14 +92,25 @@ export function ExportarTabelaPDF({ open, onOpenChange, tabela, precos }: Props)
       config.mostrarMargem && { header: "Margem", key: "margem" },
     ].filter(Boolean);
 
-    const linhas = precos.map(p => ({
-      codigo: p.produto?.codigo || "-",
-      nome: p.produto?.nome || "-",
-      categoria: p.produto?.categoria || "-",
-      custo: formatarMoeda(p.custo_base || 0),
-      preco: formatarMoeda(p.preco_final || 0),
-      margem: `${(p.margem_lucro_percentual || 0).toFixed(1)}%`,
-    }));
+    const linhas = precos.map(p => {
+      // Calcular margem baseada na tabela base se disponível
+      const precoFinal = p.preco_final || 0;
+      const precoBase = p.preco_tabela_base || 0;
+      const custoBase = p.custo_base || 0;
+      const referencia = precoBase > 0 ? precoBase : custoBase;
+      const margemCalculada = precoFinal > 0 && referencia > 0
+        ? ((precoFinal - referencia) / precoFinal) * 100
+        : (p.margem_lucro_percentual || 0);
+
+      return {
+        codigo: p.produto?.codigo || "-",
+        nome: p.produto?.nome || "-",
+        categoria: p.produto?.categoria || "-",
+        custo: formatarMoeda(referencia),
+        preco: formatarMoeda(precoFinal),
+        margem: `${margemCalculada.toFixed(1)}%`,
+      };
+    });
 
     const isCondensado = config.layout === "condensado";
 

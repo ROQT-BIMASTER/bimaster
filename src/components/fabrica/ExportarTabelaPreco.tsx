@@ -16,9 +16,10 @@ import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 interface Props {
   tabelaId: string;
   tabelaNome: string;
+  tabelaBaseId?: string | null;
 }
 
-export function ExportarTabelaPreco({ tabelaId, tabelaNome }: Props) {
+export function ExportarTabelaPreco({ tabelaId, tabelaNome, tabelaBaseId }: Props) {
   const [exportando, setExportando] = useState(false);
 
   const buscarDadosExportacao = async () => {
@@ -33,23 +34,49 @@ export function ExportarTabelaPreco({ tabelaId, tabelaNome }: Props) {
       .order("produto(nome)");
 
     if (error) throw error;
-    return precos;
+    
+    // Buscar preços da tabela base se existir
+    let precosTabelaBase: Record<string, number> = {};
+    if (tabelaBaseId) {
+      const { data: precosBase } = await supabase
+        .from("fabrica_precos_produtos")
+        .select("produto_id, preco_final")
+        .eq("tabela_id", tabelaBaseId)
+        .eq("ativo", true);
+      
+      if (precosBase) {
+        precosTabelaBase = Object.fromEntries(
+          precosBase.map(p => [p.produto_id, p.preco_final || 0])
+        );
+      }
+    }
+    
+    return { precos, precosTabelaBase };
   };
 
   const exportarExcelMutation = useMutation({
     mutationFn: async () => {
       setExportando(true);
-      const dados = await buscarDadosExportacao();
+      const { precos: dados, precosTabelaBase } = await buscarDadosExportacao();
 
-      const linhas = dados.map((preco: any) => ({
-        "Código": preco.produto.codigo,
-        "Produto": preco.produto.nome,
-        "Descrição": preco.produto.descricao || "",
-        "Custo Base": preco.custo_base || 0,
-        "Preço Calculado": preco.preco_calculado || 0,
-        "Preço Final": preco.preco_final || 0,
-        "Margem (%)": preco.margem_lucro_percentual || 0,
-      }));
+      const linhas = dados.map((preco: any) => {
+        const precoBase = precosTabelaBase[preco.produto_id];
+        const referencia = precoBase && precoBase > 0 ? precoBase : (preco.custo_base || 0);
+        const precoFinal = preco.preco_final || 0;
+        const margemCalculada = precoFinal > 0 && referencia > 0
+          ? ((precoFinal - referencia) / precoFinal) * 100
+          : (preco.margem_lucro_percentual || 0);
+
+        return {
+          "Código": preco.produto.codigo,
+          "Produto": preco.produto.nome,
+          "Descrição": preco.produto.descricao || "",
+          [tabelaBaseId ? "Preço Base" : "Custo Base"]: referencia,
+          "Preço Calculado": preco.preco_calculado || 0,
+          "Preço Final": precoFinal,
+          "Margem (%)": margemCalculada.toFixed(2),
+        };
+      });
 
       const worksheet = XLSX.utils.json_to_sheet(linhas);
       const workbook = XLSX.utils.book_new();
@@ -80,15 +107,24 @@ export function ExportarTabelaPreco({ tabelaId, tabelaNome }: Props) {
   const exportarCSVMutation = useMutation({
     mutationFn: async () => {
       setExportando(true);
-      const dados = await buscarDadosExportacao();
+      const { precos: dados, precosTabelaBase } = await buscarDadosExportacao();
 
-      const linhas = dados.map((preco: any) => ({
-        "Código": preco.produto.codigo,
-        "Produto": preco.produto.nome,
-        "Custo Base": preco.custo_base || 0,
-        "Preço Final": preco.preco_final || 0,
-        "Margem": preco.margem_lucro_percentual || 0,
-      }));
+      const linhas = dados.map((preco: any) => {
+        const precoBase = precosTabelaBase[preco.produto_id];
+        const referencia = precoBase && precoBase > 0 ? precoBase : (preco.custo_base || 0);
+        const precoFinal = preco.preco_final || 0;
+        const margemCalculada = precoFinal > 0 && referencia > 0
+          ? ((precoFinal - referencia) / precoFinal) * 100
+          : (preco.margem_lucro_percentual || 0);
+
+        return {
+          "Código": preco.produto.codigo,
+          "Produto": preco.produto.nome,
+          [tabelaBaseId ? "Preço Base" : "Custo Base"]: referencia,
+          "Preço Final": precoFinal,
+          "Margem": margemCalculada.toFixed(2),
+        };
+      });
 
       const worksheet = XLSX.utils.json_to_sheet(linhas);
       const csv = XLSX.utils.sheet_to_csv(worksheet);
@@ -111,7 +147,7 @@ export function ExportarTabelaPreco({ tabelaId, tabelaNome }: Props) {
   const exportarPDFMutation = useMutation({
     mutationFn: async () => {
       setExportando(true);
-      const dados = await buscarDadosExportacao();
+      const { precos: dados, precosTabelaBase } = await buscarDadosExportacao();
 
       // Criar HTML para impressão
       const html = `
@@ -139,24 +175,31 @@ export function ExportarTabelaPreco({ tabelaId, tabelaNome }: Props) {
               <tr>
                 <th>Código</th>
                 <th>Produto</th>
-                <th class="right">Custo Base</th>
+                <th class="right">${tabelaBaseId ? "Preço Base" : "Custo Base"}</th>
                 <th class="right">Preço Final</th>
                 <th class="right">Margem (%)</th>
               </tr>
             </thead>
             <tbody>
               ${dados
-                .map(
-                  (preco: any) => `
+                .map((preco: any) => {
+                  const precoBase = precosTabelaBase[preco.produto_id];
+                  const referencia = precoBase && precoBase > 0 ? precoBase : (preco.custo_base || 0);
+                  const precoFinal = preco.preco_final || 0;
+                  const margemCalculada = precoFinal > 0 && referencia > 0
+                    ? ((precoFinal - referencia) / precoFinal) * 100
+                    : (preco.margem_lucro_percentual || 0);
+
+                  return `
                 <tr>
                   <td>${preco.produto.codigo}</td>
                   <td>${preco.produto.nome}</td>
-                  <td class="right">${formatarMoeda(preco.custo_base || 0)}</td>
-                  <td class="right"><strong>${formatarMoeda(preco.preco_final || 0)}</strong></td>
-                  <td class="right">${(preco.margem_lucro_percentual || 0).toFixed(2)}%</td>
+                  <td class="right">${formatarMoeda(referencia)}</td>
+                  <td class="right"><strong>${formatarMoeda(precoFinal)}</strong></td>
+                  <td class="right">${margemCalculada.toFixed(2)}%</td>
                 </tr>
-              `
-                )
+              `;
+                })
                 .join("")}
             </tbody>
           </table>

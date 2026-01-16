@@ -158,14 +158,36 @@ export function ReajusteEmLoteDialog({ open, onOpenChange, tabela, onSuccess }: 
   // Mutation para aplicar reajuste
   const reajusteMutation = useMutation({
     mutationFn: async () => {
-      const updates = previewPrecos.map(p => ({
-        id: p.id,
-        preco_final: p.precoNovo,
-        preco_manual: p.precoNovo,
-        margem_lucro_percentual: p.custo_base > 0 
-          ? ((p.precoNovo - p.custo_base) / p.custo_base) * 100 
-          : 0,
-      }));
+      // Buscar preço da tabela base se existir
+      let precosTabelaBase: Record<string, number> = {};
+      if (tabela?.tabela_base_id) {
+        const { data: precosBase } = await supabase
+          .from("fabrica_precos_produtos")
+          .select("produto_id, preco_final")
+          .eq("tabela_id", tabela.tabela_base_id)
+          .eq("ativo", true);
+        
+        if (precosBase) {
+          precosTabelaBase = Object.fromEntries(
+            precosBase.map(p => [p.produto_id, p.preco_final || 0])
+          );
+        }
+      }
+
+      const updates = previewPrecos.map(p => {
+        const precoBase = precosTabelaBase[p.produto_id];
+        const referencia = precoBase && precoBase > 0 ? precoBase : (p.custo_base || 0);
+        const margem = p.precoNovo > 0 && referencia > 0
+          ? ((p.precoNovo - referencia) / p.precoNovo) * 100
+          : 0;
+        
+        return {
+          id: p.id,
+          preco_final: p.precoNovo,
+          preco_manual: p.precoNovo,
+          margem_lucro_percentual: margem,
+        };
+      });
 
       for (const update of updates) {
         const { error } = await supabase
