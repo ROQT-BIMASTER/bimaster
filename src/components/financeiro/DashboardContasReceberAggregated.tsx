@@ -15,8 +15,8 @@ import {
 
 interface DashboardContasReceberAggregatedProps {
   filterEmpresas: number[];
-  filterAno: string;
-  filterMes: string;
+  filterAnos: number[];
+  filterMeses: number[];
   filterConta: string;
   filterPortador: string;
 }
@@ -47,8 +47,8 @@ const formatCompact = (value: number) =>
 
 export function DashboardContasReceberAggregated({ 
   filterEmpresas, 
-  filterAno, 
-  filterMes, 
+  filterAnos, 
+  filterMeses, 
   filterConta, 
   filterPortador 
 }: DashboardContasReceberAggregatedProps) {
@@ -56,11 +56,13 @@ export function DashboardContasReceberAggregated({
   // Preparar parâmetros para as RPCs
   const rpcParams = useMemo(() => ({
     p_empresas: filterEmpresas.length > 0 ? filterEmpresas : null,
-    p_ano: filterAno !== 'all' ? parseInt(filterAno) : null,
-    p_mes: filterMes !== 'all' ? parseInt(filterMes) : null,
+    p_ano: filterAnos.length === 1 ? filterAnos[0] : null,
+    p_mes: filterMeses.length === 1 ? filterMeses[0] : null,
     p_conta: filterConta !== 'all' ? filterConta : null,
     p_portador: filterPortador !== 'all' ? filterPortador : null,
-  }), [filterEmpresas, filterAno, filterMes, filterConta, filterPortador]);
+    p_anos: filterAnos.length > 0 ? filterAnos : null,
+    p_meses: filterMeses.length > 0 ? filterMeses : null,
+  }), [filterEmpresas, filterAnos, filterMeses, filterConta, filterPortador]);
 
   // Query KPIs
   const { data: kpis, isLoading: isLoadingKpis } = useQuery({
