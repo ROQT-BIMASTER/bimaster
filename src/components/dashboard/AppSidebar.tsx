@@ -352,7 +352,7 @@ export function AppSidebar() {
     <Sidebar className="border-r border-sidebar-border">
       {/* Header with logo */}
       <div className="p-4 border-b border-sidebar-border bg-gradient-to-b from-sidebar-background to-sidebar-accent/30">
-        <img src={logoUnion} alt="Logo Union - Sistema BiMaster" className="w-28 mx-auto" />
+        <img src={logoUnion} alt="Logo Union - Sistema de Gestão Huggs" className="w-28 mx-auto" />
       </div>
 
       <SidebarContent className="scrollbar-thin">

@@ -1,12 +1,13 @@
-import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { AccessDenied } from "@/components/common/AccessDenied";
 
 interface ModuleProtectedRouteProps {
   children: React.ReactNode;
   moduleCode: string;
   redirectTo?: string;
+  showAccessDenied?: boolean;
 }
 
 /**
@@ -16,7 +17,8 @@ interface ModuleProtectedRouteProps {
 export const ModuleProtectedRoute = ({ 
   children, 
   moduleCode,
-  redirectTo = "/dashboard"
+  redirectTo = "/dashboard",
+  showAccessDenied = true
 }: ModuleProtectedRouteProps) => {
   const { session } = useAuth();
   const { hasModulePermission, loading } = usePermissions();
@@ -36,7 +38,7 @@ export const ModuleProtectedRoute = ({
 
   if (!hasModulePermission(moduleCode)) {
     console.log(`[ModuleProtectedRoute] Usuário sem permissão ao módulo: ${moduleCode}`);
-    return <Navigate to={redirectTo} replace />;
+    return <AccessDenied message="Você não tem permissão para acessar este módulo." />;
   }
 
   return <>{children}</>;

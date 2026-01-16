@@ -75,7 +75,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
             <div className="flex items-center gap-4">
               <NotificationBell />
-              <img src={logoUnion} alt="Logo Union - Sistema de Gestão BiMaster" className="h-10" />
+              <img src={logoUnion} alt="Logo Union - Sistema de Gestão Huggs" className="h-10" />
             </div>
           </header>
           {connectionQuality === 'offline' && (

@@ -1,12 +1,13 @@
-import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { AccessDenied } from "@/components/common/AccessDenied";
 
 interface ScreenProtectedRouteProps {
   children: React.ReactNode;
   screenCode: string;
   redirectTo?: string;
+  showAccessDenied?: boolean;
 }
 
 /**
@@ -16,7 +17,8 @@ interface ScreenProtectedRouteProps {
 export const ScreenProtectedRoute = ({ 
   children, 
   screenCode,
-  redirectTo = "/dashboard"
+  redirectTo = "/dashboard",
+  showAccessDenied = true
 }: ScreenProtectedRouteProps) => {
   const { session } = useAuth();
   const { hasScreenPermission, loading } = usePermissions();
@@ -36,7 +38,7 @@ export const ScreenProtectedRoute = ({
 
   if (!hasScreenPermission(screenCode)) {
     console.log(`[ScreenProtectedRoute] Usuário sem permissão à tela: ${screenCode}`);
-    return <Navigate to={redirectTo} replace />;
+    return <AccessDenied message="Você não tem permissão para acessar esta tela." />;
   }
 
   return <>{children}</>;
