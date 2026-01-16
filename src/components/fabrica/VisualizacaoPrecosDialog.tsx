@@ -110,12 +110,41 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
         ]) || []
       );
 
-      // Combinar dados e ordenar
+      // Se a tabela tem uma tabela base, buscar os preços da tabela base para calcular a margem
+      let precosTabelaBaseMap = new Map<string, number>();
+      if (tabela.tabela_base_id) {
+        const { data: precosTabelaBase } = await supabase
+          .from("fabrica_precos_produtos")
+          .select("produto_id, preco_final")
+          .eq("tabela_id", tabela.tabela_base_id)
+          .eq("ativo", true)
+          .in("produto_id", produtoIds);
+
+        if (precosTabelaBase) {
+          precosTabelaBaseMap = new Map(
+            precosTabelaBase.map(p => [p.produto_id, p.preco_final])
+          );
+        }
+      }
+
+      // Combinar dados e calcular margem baseada na tabela anterior
       const resultado = precosData
-        .map(preco => ({
-          ...preco,
-          produto: produtosMap.get(preco.produto_id)
-        }))
+        .map(preco => {
+          const precoTabelaBase = precosTabelaBaseMap.get(preco.produto_id);
+          // Calcular margem: se tem tabela base, usa o preço da tabela base como referência
+          // Fórmula: ((preço_atual - preço_base) / preço_atual) * 100
+          let margemCalculada = preco.margem_lucro_percentual || 0;
+          if (tabela.tabela_base_id && precoTabelaBase && precoTabelaBase > 0 && preco.preco_final > 0) {
+            margemCalculada = ((preco.preco_final - precoTabelaBase) / preco.preco_final) * 100;
+          }
+          
+          return {
+            ...preco,
+            produto: produtosMap.get(preco.produto_id),
+            preco_tabela_base: precoTabelaBase || null,
+            margem_calculada: margemCalculada,
+          };
+        })
         .sort((a: any, b: any) => 
           (a.produto?.nome || '').localeCompare(b.produto?.nome || '')
         );
@@ -158,9 +187,9 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
 
   const estatisticas = {
     totalProdutos: precosFiltrados?.length || 0,
-    custoMedio: precosFiltrados?.reduce((acc, p) => acc + (p.custo_base || 0), 0) / (precosFiltrados?.length || 1),
+    custoMedio: precosFiltrados?.reduce((acc, p) => acc + (p.preco_tabela_base || p.custo_base || 0), 0) / (precosFiltrados?.length || 1),
     precoMedio: precosFiltrados?.reduce((acc, p) => acc + (p.preco_final || 0), 0) / (precosFiltrados?.length || 1),
-    margemMedia: precosFiltrados?.reduce((acc, p) => acc + (p.margem_lucro_percentual || 0), 0) / (precosFiltrados?.length || 1),
+    margemMedia: precosFiltrados?.reduce((acc, p) => acc + (p.margem_calculada || 0), 0) / (precosFiltrados?.length || 1),
   };
 
   const handleExportar = () => {
@@ -180,9 +209,9 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
       "Linha": preco.produto?.linha || "",
       "Modelo": preco.produto?.modelo || "",
       "Unidade": preco.produto?.unidade_medida?.sigla || "",
-      "Custo Base": preco.custo_base || 0,
+      "Preço Tabela Base": preco.preco_tabela_base || preco.custo_base || 0,
       "Preço Final": preco.preco_final || 0,
-      "Margem (%)": preco.margem_lucro_percentual || 0,
+      "Margem (%)": preco.margem_calculada || 0,
       "Origem Custo": preco.custo_base_origem || "",
     }));
 
@@ -268,7 +297,7 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
               <div className="flex items-center gap-2">
                 <DollarSign className="h-8 w-8 text-blue-600" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Custo Médio</p>
+                  <p className="text-xs text-muted-foreground">{tabela.tabela_base_id ? "Preço Base Médio" : "Custo Médio"}</p>
                   <p className="text-xl font-bold">{formatarMoeda(estatisticas.custoMedio)}</p>
                 </div>
               </div>
@@ -333,7 +362,7 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
                   <TableHead className="w-[120px]">Categoria</TableHead>
                   <TableHead className="w-[100px]">Marca</TableHead>
                   <TableHead className="w-[80px]">Unid.</TableHead>
-                  <TableHead className="w-[110px] text-right">Custo Base</TableHead>
+                  <TableHead className="w-[110px] text-right">{tabela.tabela_base_id ? "Preço Base" : "Custo Base"}</TableHead>
                   <TableHead className="w-[110px] text-right">Preço Final</TableHead>
                   <TableHead className="w-[100px] text-center">Margem</TableHead>
                   <TableHead className="w-[120px]">Origem</TableHead>
@@ -381,13 +410,13 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
                       {preco.produto?.unidade_medida?.sigla || "-"}
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
-                      {formatarMoeda(preco.custo_base || 0)}
+                      {formatarMoeda(preco.preco_tabela_base || preco.custo_base || 0)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm font-semibold">
                       {formatarMoeda(preco.preco_final || 0)}
                     </TableCell>
                     <TableCell className="text-center">
-                      {getMargemBadge(preco.margem_lucro_percentual || 0)}
+                      {getMargemBadge(preco.margem_calculada || 0)}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">
