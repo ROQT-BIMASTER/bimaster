@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3 } from "lucide-react";
+import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3, HelpCircle } from "lucide-react";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovaTabelaPrecoDialog } from "@/components/fabrica/NovaTabelaPrecoDialog";
 import { CadeiaPrecificacaoVisual } from "@/components/fabrica/CadeiaPrecificacaoVisual";
@@ -26,6 +26,7 @@ import { DashboardPrecosAnalytics } from "@/components/fabrica/DashboardPrecosAn
 import { ReajusteEmLoteDialog } from "@/components/fabrica/ReajusteEmLoteDialog";
 import { AlertasPrecos } from "@/components/fabrica/AlertasPrecos";
 import { MatrizPrecosComparativa } from "@/components/fabrica/MatrizPrecosComparativa";
+import { ManualTabelasPrecoDialog } from "@/components/fabrica/ManualTabelasPrecoDialog";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -38,6 +39,7 @@ export default function FabricaTabelasPreco() {
   const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
   const [dialogExcluir, setDialogExcluir] = useState(false);
   const [dialogReajuste, setDialogReajuste] = useState(false);
+  const [dialogManual, setDialogManual] = useState(false);
   const [tabelaSelecionada, setTabelaSelecionada] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("lista");
 
@@ -187,13 +189,19 @@ export default function FabricaTabelasPreco() {
               Gerencie tabelas de preço encadeadas com markups personalizados
             </p>
           </div>
-          <Button onClick={() => {
-            setTabelaSelecionada(null);
-            setDialogNovaTabela(true);
-          }}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Tabela
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setDialogManual(true)}>
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Manual de Uso
+            </Button>
+            <Button onClick={() => {
+              setTabelaSelecionada(null);
+              setDialogNovaTabela(true);
+            }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Tabela
+            </Button>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -449,6 +457,11 @@ export default function FabricaTabelasPreco() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ManualTabelasPrecoDialog
+        open={dialogManual}
+        onOpenChange={setDialogManual}
+      />
     </DashboardLayout>
   );
 }
