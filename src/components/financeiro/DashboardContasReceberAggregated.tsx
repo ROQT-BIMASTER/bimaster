@@ -177,6 +177,42 @@ export function DashboardContasReceberAggregated({
 
   return (
     <div className="space-y-6">
+      {/* Cards Principais - Resumo de Valores no Topo */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-green-700 dark:text-green-400">Total Recebido</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(kpisData.valor_recebido_total)}</div>
+            <p className="text-xs text-muted-foreground">{kpisData.qtd_recebido.toLocaleString()} títulos</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Total Pendente</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{formatCurrency(kpisData.valor_pendente)}</div>
+            <p className="text-xs text-muted-foreground">{kpisData.qtd_pendente.toLocaleString()} títulos</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-red-700 dark:text-red-400">Total Vencido</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(kpisData.valor_vencido)}</div>
+            <p className="text-xs text-muted-foreground">{kpisData.qtd_vencido.toLocaleString()} títulos</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* KPIs Estratégicos */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
@@ -401,41 +437,6 @@ export function DashboardContasReceberAggregated({
         </Card>
       </div>
 
-      {/* Resumo de Valores */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-green-50/50 dark:bg-green-950/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Recebido</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(kpisData.valor_recebido_total)}</div>
-            <p className="text-xs text-muted-foreground">{kpisData.qtd_recebido.toLocaleString()} títulos</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-yellow-50/50 dark:bg-yellow-950/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pendente</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{formatCurrency(kpisData.valor_pendente)}</div>
-            <p className="text-xs text-muted-foreground">{kpisData.qtd_pendente.toLocaleString()} títulos</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-red-50/50 dark:bg-red-950/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Vencido</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(kpisData.valor_vencido)}</div>
-            <p className="text-xs text-muted-foreground">{kpisData.qtd_vencido.toLocaleString()} títulos</p>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
