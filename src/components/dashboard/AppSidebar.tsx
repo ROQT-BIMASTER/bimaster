@@ -88,51 +88,51 @@ const fabricaGroups = [
   {
     label: "Entrada",
     items: [
-      { title: "Recebimento NF-e", url: "/dashboard/fabrica/recebimentos", icon: Upload },
-      { title: "Matérias-Primas", url: "/dashboard/fabrica/materias-primas", icon: Package },
+      { title: "Recebimento NF-e", url: "/dashboard/fabrica/recebimentos", icon: Upload, screenCode: "fabrica_recebimentos" },
+      { title: "Matérias-Primas", url: "/dashboard/fabrica/materias-primas", icon: Package, screenCode: "fabrica_mps" },
     ]
   },
   {
     label: "Produção",
     items: [
-      { title: "Fórmulas (BOM)", url: "/dashboard/fabrica/formulas", icon: FileText },
-      { title: "Planejamento MRP", url: "/dashboard/fabrica/planejamento", icon: Calendar },
-      { title: "Ordens de Produção", url: "/dashboard/fabrica/ordens-producao", icon: ClipboardCheck },
-      { title: "Apontamentos", url: "/dashboard/fabrica/apontamentos", icon: Clock },
+      { title: "Fórmulas (BOM)", url: "/dashboard/fabrica/formulas", icon: FileText, screenCode: "fabrica_formulas" },
+      { title: "Planejamento MRP", url: "/dashboard/fabrica/planejamento", icon: Calendar, screenCode: "fabrica_planejamento" },
+      { title: "Ordens de Produção", url: "/dashboard/fabrica/ordens-producao", icon: ClipboardCheck, screenCode: "fabrica_producao" },
+      { title: "Apontamentos", url: "/dashboard/fabrica/apontamentos", icon: Clock, screenCode: "fabrica_apontamentos" },
     ]
   },
   {
     label: "Qualidade",
     items: [
-      { title: "Qualidade", url: "/dashboard/fabrica/qualidade", icon: AlertCircle },
-      { title: "Paradas", url: "/dashboard/fabrica/paradas", icon: Pause },
+      { title: "Qualidade", url: "/dashboard/fabrica/qualidade", icon: AlertCircle, screenCode: "fabrica_qualidade" },
+      { title: "Paradas", url: "/dashboard/fabrica/paradas", icon: Pause, screenCode: "fabrica_paradas" },
     ]
   },
   {
     label: "Recursos",
     items: [
-      { title: "Máquinas", url: "/dashboard/fabrica/maquinas", icon: Wrench },
-      { title: "Operadores", url: "/dashboard/fabrica/operadores", icon: UserCircle },
+      { title: "Máquinas", url: "/dashboard/fabrica/maquinas", icon: Wrench, screenCode: "fabrica_maquinas" },
+      { title: "Operadores", url: "/dashboard/fabrica/operadores", icon: UserCircle, screenCode: "fabrica_operadores" },
     ]
   },
   {
     label: "Fiscal",
     items: [
-      { title: "Fiscal", url: "/dashboard/fabrica/fiscal", icon: Receipt },
-      { title: "Tabela de Impostos", url: "/dashboard/fabrica/tabela-impostos", icon: FileText },
+      { title: "Fiscal", url: "/dashboard/fabrica/fiscal", icon: Receipt, screenCode: "fabrica_fiscal" },
+      { title: "Tabela de Impostos", url: "/dashboard/fabrica/tabela-impostos", icon: FileText, screenCode: "fabrica_impostos" },
     ]
   },
   {
     label: "Saída",
     items: [
-      { title: "Produtos Acabados", url: "/dashboard/fabrica/produtos-acabados", icon: Package },
+      { title: "Produtos Acabados", url: "/dashboard/fabrica/produtos-acabados", icon: Package, screenCode: "fabrica_produtos" },
     ]
   },
   {
     label: "Ferramentas",
     items: [
-      { title: "Agente Huggs", url: "/dashboard/agente-huggs", icon: Bot },
-      { title: "Agente de QA", url: "/dashboard/qa-agent", icon: Shield },
+      { title: "Agente Huggs", url: "/dashboard/agente-huggs", icon: Bot, screenCode: "agente_huggs" },
+      { title: "Agente de QA", url: "/dashboard/qa-agent", icon: Shield, screenCode: "qa_agent" },
     ]
   },
 ];
@@ -304,48 +304,48 @@ export function AppSidebar() {
   }
 
   const prospectsSubMenus = [
-    { title: "Lista de Prospects", url: "/dashboard/prospects/list", icon: Users },
-    { title: "Kanban", url: "/dashboard/prospects/kanban", icon: LayoutGrid },
-    { title: "Atividades", url: "/dashboard/prospects/atividades", icon: Activity },
-    { title: "Mapa", url: "/dashboard/prospects/mapa", icon: MapPin },
+    { title: "Lista de Prospects", url: "/dashboard/prospects/list", icon: Users, screenCode: "PROSPECTS_LISTA" },
+    { title: "Kanban", url: "/dashboard/prospects/kanban", icon: LayoutGrid, screenCode: "PROSPECTS_KANBAN" },
+    { title: "Atividades", url: "/dashboard/prospects/atividades", icon: Activity, screenCode: "PROSPECTS_ATIVIDADES" },
+    { title: "Mapa", url: "/dashboard/prospects/mapa", icon: MapPin, screenCode: "PROSPECTS_MAPA" },
   ];
 
   const financeiroSubMenus = [
-    { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home, end: true },
-    { title: "DRE Analítico", url: "/dashboard/financeiro/dre-analitico", icon: FileText },
-    { title: "Visão por Departamento", url: "/dashboard/financeiro/visao-departamentos", icon: Building2 },
-    { title: "Gestão de Verbas", url: "/dashboard/financeiro/trade", icon: Store },
-    { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt },
-    { title: "Contas a Receber", url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign },
-    { title: "Fluxo de Caixa", url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp },
-    { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: List },
-    { title: "Classificar Banco", url: "/dashboard/financeiro/classificar-banco", icon: ClipboardCheck },
+    { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home, end: true, screenCode: "financeiro_dashboard" },
+    { title: "DRE Analítico", url: "/dashboard/financeiro/dre-analitico", icon: FileText, screenCode: "financeiro_dre" },
+    { title: "Visão por Departamento", url: "/dashboard/financeiro/visao-departamentos", icon: Building2, screenCode: "financeiro_departamentos" },
+    { title: "Gestão de Verbas", url: "/dashboard/financeiro/trade", icon: Store, screenCode: "financeiro_verbas" },
+    { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar" },
+    { title: "Contas a Receber", url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign, screenCode: "financeiro_contas_receber" },
+    { title: "Fluxo de Caixa", url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp, screenCode: "financeiro_fluxo_caixa" },
+    { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: List, screenCode: "financeiro_plano_contas" },
+    { title: "Classificar Banco", url: "/dashboard/financeiro/classificar-banco", icon: ClipboardCheck, screenCode: "financeiro_classificar" },
   ];
 
   const tradeSubMenus = [
-    { title: "PDVs", url: "/dashboard/trade/stores", icon: Store },
-    { title: "Visitas", url: "/dashboard/trade/visits", icon: Calendar },
-    { title: "Sell Out", url: "/dashboard/trade/sellout", icon: DollarSign },
-    { title: "Medição Prateleiras", url: "/dashboard/trade/shelf-measurements", icon: Activity },
-    { title: "Nossas Marcas", url: "/dashboard/trade/our-brands", icon: Tag },
-    { title: "Fotos", url: "/dashboard/trade/photos", icon: Camera },
-    { title: "Fotos Ideais", url: "/dashboard/trade/ideal-photos", icon: Image },
-    { title: "Auditoria Gôndola", url: "/dashboard/trade/auditorias", icon: ClipboardCheck },
-    { title: "Análise Competitiva", url: "/dashboard/trade/relatorio-competitivo", icon: BarChart3 },
-    { title: "Premiações", url: "/dashboard/trade/rewards", icon: Trophy },
-    { title: "WhatsApp", url: "/dashboard/trade/whatsapp", icon: MessageSquare },
-    { title: "Insights IA", url: "/dashboard/trade/insights", icon: Sparkles },
+    { title: "PDVs", url: "/dashboard/trade/stores", icon: Store, screenCode: "TRADE_LOJAS" },
+    { title: "Visitas", url: "/dashboard/trade/visits", icon: Calendar, screenCode: "TRADE_VISITAS" },
+    { title: "Sell Out", url: "/dashboard/trade/sellout", icon: DollarSign, screenCode: "trade_sellout" },
+    { title: "Medição Prateleiras", url: "/dashboard/trade/shelf-measurements", icon: Activity, screenCode: "trade_shelf" },
+    { title: "Nossas Marcas", url: "/dashboard/trade/our-brands", icon: Tag, screenCode: "trade_brands" },
+    { title: "Fotos", url: "/dashboard/trade/photos", icon: Camera, screenCode: "TRADE_FOTOS" },
+    { title: "Fotos Ideais", url: "/dashboard/trade/ideal-photos", icon: Image, screenCode: "trade_ideal_photos" },
+    { title: "Auditoria Gôndola", url: "/dashboard/trade/auditorias", icon: ClipboardCheck, screenCode: "TRADE_AUDITORIAS" },
+    { title: "Análise Competitiva", url: "/dashboard/trade/relatorio-competitivo", icon: BarChart3, screenCode: "trade_competitors" },
+    { title: "Premiações", url: "/dashboard/trade/rewards", icon: Trophy, screenCode: "trade_rewards" },
+    { title: "WhatsApp", url: "/dashboard/trade/whatsapp", icon: MessageSquare, screenCode: "trade_whatsapp" },
+    { title: "Insights IA", url: "/dashboard/trade/insights", icon: Sparkles, screenCode: "trade_insights" },
   ];
 
   const marketingSubMenus = [
-    { title: "Dashboards & IA", url: "/dashboard/marketing/social", icon: BarChart3 },
+    { title: "Dashboards & IA", url: "/dashboard/marketing/social", icon: BarChart3, screenCode: "MARKETING_SOCIAL" },
   ];
 
   const precosSubMenus = [
-    { title: "Dashboard", url: "/dashboard/precos", icon: Home, end: true },
-    { title: "Gerenciar Tabelas", url: "/dashboard/precos/tabelas", icon: Receipt },
-    { title: "Aprovação", url: "/dashboard/precos/aprovacao", icon: CheckSquare },
-    { title: "Portal Cliente", url: "/dashboard/precos/portal-cliente", icon: Users },
+    { title: "Dashboard", url: "/dashboard/precos", icon: Home, end: true, screenCode: "precos_dashboard" },
+    { title: "Gerenciar Tabelas", url: "/dashboard/precos/tabelas", icon: Receipt, screenCode: "precos_tabelas" },
+    { title: "Aprovação", url: "/dashboard/precos/aprovacao", icon: CheckSquare, screenCode: "precos_aprovacao" },
+    { title: "Portal Cliente", url: "/dashboard/precos/portal-cliente", icon: Users, screenCode: "precos_portal" },
   ];
 
   return (
@@ -412,22 +412,26 @@ export function AppSidebar() {
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
                   <SidebarMenu className="space-y-0.5 pl-2">
-                    <MenuItemLink 
-                      to="/dashboard/prospects" 
-                      icon={Home} 
-                      title="Visão Geral" 
-                      colorKey="prospects"
-                      end 
-                    />
-                    {prospectsSubMenus.map((item) => (
+                    {hasPermission("PROSPECTS_DASHBOARD") && (
                       <MenuItemLink 
-                        key={item.url}
-                        to={item.url} 
-                        icon={item.icon} 
-                        title={item.title} 
+                        to="/dashboard/prospects" 
+                        icon={Home} 
+                        title="Visão Geral" 
                         colorKey="prospects"
+                        end 
                       />
-                    ))}
+                    )}
+                    {prospectsSubMenus
+                      .filter((item) => hasPermission(item.screenCode))
+                      .map((item) => (
+                        <MenuItemLink 
+                          key={item.url}
+                          to={item.url} 
+                          icon={item.icon} 
+                          title={item.title} 
+                          colorKey="prospects"
+                        />
+                      ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
@@ -450,16 +454,18 @@ export function AppSidebar() {
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
                   <SidebarMenu className="space-y-0.5 pl-2">
-                    {financeiroSubMenus.map((item) => (
-                      <MenuItemLink 
-                        key={item.url}
-                        to={item.url} 
-                        icon={item.icon} 
-                        title={item.title} 
-                        colorKey="financeiro"
-                        end={item.end}
-                      />
-                    ))}
+                    {financeiroSubMenus
+                      .filter((item) => hasPermission(item.screenCode))
+                      .map((item) => (
+                        <MenuItemLink 
+                          key={item.url}
+                          to={item.url} 
+                          icon={item.icon} 
+                          title={item.title} 
+                          colorKey="financeiro"
+                          end={item.end}
+                        />
+                      ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
@@ -482,22 +488,26 @@ export function AppSidebar() {
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
                   <SidebarMenu className="space-y-0.5 pl-2">
-                    <MenuItemLink 
-                      to="/dashboard/marketing" 
-                      icon={Home} 
-                      title="Visão Geral" 
-                      colorKey="marketing"
-                      end 
-                    />
-                    {marketingSubMenus.map((item) => (
+                    {hasPermission("MARKETING_DASHBOARD") && (
                       <MenuItemLink 
-                        key={item.url}
-                        to={item.url} 
-                        icon={item.icon} 
-                        title={item.title} 
+                        to="/dashboard/marketing" 
+                        icon={Home} 
+                        title="Visão Geral" 
                         colorKey="marketing"
+                        end 
                       />
-                    ))}
+                    )}
+                    {marketingSubMenus
+                      .filter((item) => hasPermission(item.screenCode))
+                      .map((item) => (
+                        <MenuItemLink 
+                          key={item.url}
+                          to={item.url} 
+                          icon={item.icon} 
+                          title={item.title} 
+                          colorKey="marketing"
+                        />
+                      ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
@@ -521,22 +531,26 @@ export function AppSidebar() {
                 <SidebarGroupContent className="mt-1">
                   <ScrollArea className="max-h-64">
                     <SidebarMenu className="space-y-0.5 pl-2">
-                      <MenuItemLink 
-                        to="/dashboard/trade" 
-                        icon={Home} 
-                        title="Visão Geral" 
-                        colorKey="trade"
-                        end 
-                      />
-                      {tradeSubMenus.map((item) => (
+                      {hasPermission("TRADE_DASHBOARD") && (
                         <MenuItemLink 
-                          key={item.url}
-                          to={item.url} 
-                          icon={item.icon} 
-                          title={item.title} 
+                          to="/dashboard/trade" 
+                          icon={Home} 
+                          title="Visão Geral" 
                           colorKey="trade"
+                          end 
                         />
-                      ))}
+                      )}
+                      {tradeSubMenus
+                        .filter((item) => hasPermission(item.screenCode))
+                        .map((item) => (
+                          <MenuItemLink 
+                            key={item.url}
+                            to={item.url} 
+                            icon={item.icon} 
+                            title={item.title} 
+                            colorKey="trade"
+                          />
+                        ))}
                     </SidebarMenu>
                   </ScrollArea>
                 </SidebarGroupContent>
@@ -561,30 +575,37 @@ export function AppSidebar() {
                 <SidebarGroupContent className="mt-1">
                   <ScrollArea className="max-h-72">
                     <SidebarMenu className="space-y-0.5 pl-2">
-                      <MenuItemLink 
-                        to="/dashboard/fabrica" 
-                        icon={Home} 
-                        title="Dashboard" 
-                        colorKey="fabrica"
-                        end 
-                      />
+                      {hasPermission("fabrica_dashboard") && (
+                        <MenuItemLink 
+                          to="/dashboard/fabrica" 
+                          icon={Home} 
+                          title="Dashboard" 
+                          colorKey="fabrica"
+                          end 
+                        />
+                      )}
                       
-                      {fabricaGroups.map((group, groupIndex) => (
-                        <div key={group.label} className="mt-2 first:mt-0">
-                          <span className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                            {group.label}
-                          </span>
-                          {group.items.map((item) => (
-                            <MenuItemLink 
-                              key={item.url}
-                              to={item.url} 
-                              icon={item.icon} 
-                              title={item.title} 
-                              colorKey="fabrica"
-                            />
-                          ))}
-                        </div>
-                      ))}
+                      {fabricaGroups.map((group) => {
+                        const filteredItems = group.items.filter((item) => hasPermission(item.screenCode));
+                        if (filteredItems.length === 0) return null;
+                        
+                        return (
+                          <div key={group.label} className="mt-2 first:mt-0">
+                            <span className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                              {group.label}
+                            </span>
+                            {filteredItems.map((item) => (
+                              <MenuItemLink 
+                                key={item.url}
+                                to={item.url} 
+                                icon={item.icon} 
+                                title={item.title} 
+                                colorKey="fabrica"
+                              />
+                            ))}
+                          </div>
+                        );
+                      })}
                     </SidebarMenu>
                   </ScrollArea>
                 </SidebarGroupContent>
@@ -608,23 +629,25 @@ export function AppSidebar() {
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
                   <SidebarMenu className="space-y-0.5 pl-2">
-                    {precosSubMenus.map((item) => (
-                      <MenuItemLink 
-                        key={item.url}
-                        to={item.url} 
-                        icon={item.icon} 
-                        title={item.title} 
-                        colorKey="precos"
-                        end={item.end}
-                        badge={
-                          item.title === "Aprovação" && tabelasPendentes > 0 ? (
-                            <Badge className="ml-auto bg-yellow-500 hover:bg-yellow-600 text-xs h-5 min-w-5 flex items-center justify-center">
-                              {tabelasPendentes}
-                            </Badge>
-                          ) : undefined
-                        }
-                      />
-                    ))}
+                    {precosSubMenus
+                      .filter((item) => hasPermission(item.screenCode))
+                      .map((item) => (
+                        <MenuItemLink 
+                          key={item.url}
+                          to={item.url} 
+                          icon={item.icon} 
+                          title={item.title} 
+                          colorKey="precos"
+                          end={item.end}
+                          badge={
+                            item.title === "Aprovação" && tabelasPendentes > 0 ? (
+                              <Badge className="ml-auto bg-yellow-500 hover:bg-yellow-600 text-xs h-5 min-w-5 flex items-center justify-center">
+                                {tabelasPendentes}
+                              </Badge>
+                            ) : undefined
+                          }
+                        />
+                      ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
