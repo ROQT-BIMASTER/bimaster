@@ -22,8 +22,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
 import { toast } from "sonner";
-import { DashboardContasReceber } from "@/components/financeiro/DashboardContasReceber";
-import { CalendarioRecebimentos } from "@/components/financeiro/CalendarioRecebimentos";
+import { DashboardContasReceberAggregated } from "@/components/financeiro/DashboardContasReceberAggregated";
+import { CalendarioRecebimentosAggregated } from "@/components/financeiro/CalendarioRecebimentosAggregated";
 import ImportarContasReceberCSV from "@/components/financeiro/ImportarContasReceberCSV";
 
 interface ContaReceber {
@@ -659,13 +659,24 @@ export default function ContasAReceber() {
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
             <FiltersSection />
-            <DashboardContasReceber contas={contas} isLoading={isLoadingDashboard} />
+            <DashboardContasReceberAggregated 
+              filterEmpresas={filterEmpresas}
+              filterAno={filterAno}
+              filterMes={filterMes}
+              filterConta={filterConta}
+              filterPortador={filterPortador}
+            />
           </TabsContent>
 
           {/* Calendário Tab */}
           <TabsContent value="calendario" className="space-y-6">
             <FiltersSection />
-            <CalendarioRecebimentos contas={contasCalendario || []} isLoading={isLoadingCalendario} />
+            <CalendarioRecebimentosAggregated 
+              filterEmpresas={filterEmpresas}
+              filterAno={filterAno}
+              filterConta={filterConta}
+              filterPortador={filterPortador}
+            />
           </TabsContent>
 
           {/* Tabela Tab */}
