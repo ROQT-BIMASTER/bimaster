@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { 
   format, startOfMonth, endOfMonth, eachDayOfInterval, 
-  isToday, addMonths, subMonths, getDay
+  isToday, addMonths, subMonths, getDay, parseISO
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getDateKey, getToday } from "@/utils/dateUtils";
@@ -25,6 +25,7 @@ interface CalendarioRecebimentosAggregatedProps {
   filterAnos: number[];
   filterConta: string;
   filterPortador: string;
+  filterDiaVencimento?: string;
 }
 
 interface ContaReceber {
@@ -63,11 +64,27 @@ export function CalendarioRecebimentosAggregated({
   filterEmpresas, 
   filterAnos, 
   filterConta, 
-  filterPortador 
+  filterPortador,
+  filterDiaVencimento
 }: CalendarioRecebimentosAggregatedProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Navegar para o mês da data de vencimento selecionada
+  useEffect(() => {
+    if (filterDiaVencimento) {
+      try {
+        const targetDate = parseISO(filterDiaVencimento);
+        setCurrentDate(targetDate);
+        // Abrir automaticamente o diálogo com detalhes do dia
+        setSelectedDate(targetDate);
+        setIsDialogOpen(true);
+      } catch (e) {
+        console.error('Erro ao parsear data de vencimento:', e);
+      }
+    }
+  }, [filterDiaVencimento]);
 
   // Memoizar filtros para garantir atualização correta
   const filterKey = useMemo(() => ({

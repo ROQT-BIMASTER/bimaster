@@ -19,6 +19,8 @@ interface DashboardContasReceberAggregatedProps {
   filterMeses: number[];
   filterConta: string;
   filterPortador: string;
+  filterDiaVencimento?: string;
+  filterDiaRecebimento?: string;
 }
 
 const COLORS = [
@@ -50,7 +52,9 @@ export function DashboardContasReceberAggregated({
   filterAnos, 
   filterMeses, 
   filterConta, 
-  filterPortador 
+  filterPortador,
+  filterDiaVencimento,
+  filterDiaRecebimento
 }: DashboardContasReceberAggregatedProps) {
   
   // Preparar parâmetros para as RPCs
@@ -66,20 +70,34 @@ export function DashboardContasReceberAggregated({
     // Para mês: só aplicar se também tiver 1 ano selecionado
     const mesParam = filterAnos.length === 1 && filterMeses.length === 1 ? filterMeses[0] : null;
     
+    // Se tem filtro de dia específico, extrair ano e mês dele
+    let finalAnoParam = anoParam;
+    let finalMesParam = mesParam;
+    
+    if (filterDiaVencimento) {
+      const dateParts = filterDiaVencimento.split('-');
+      if (dateParts.length === 3) {
+        finalAnoParam = parseInt(dateParts[0], 10);
+        finalMesParam = parseInt(dateParts[1], 10);
+      }
+    }
+    
     return {
       p_empresas: filterEmpresas.length > 0 ? filterEmpresas : null,
-      p_ano: anoParam,
-      p_mes: mesParam,
+      p_ano: finalAnoParam,
+      p_mes: finalMesParam,
       p_conta: filterConta !== 'all' ? filterConta : null,
       p_portador: filterPortador !== 'all' ? filterPortador : null,
+      p_data_vencimento: filterDiaVencimento || null,
+      p_data_recebimento: filterDiaRecebimento || null,
     };
-  }, [filterEmpresas, filterAnos, filterMeses, filterConta, filterPortador]);
+  }, [filterEmpresas, filterAnos, filterMeses, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento]);
 
   // Query KPIs
   const { data: kpis, isLoading: isLoadingKpis } = useQuery({
     queryKey: ['contas-receber-kpis', rpcParams],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_contas_receber_dashboard_kpis', rpcParams);
+      const { data, error } = await supabase.rpc('get_contas_receber_dashboard_kpis', rpcParams as any);
       if (error) throw error;
       return data as {
         total_titulos: number;
