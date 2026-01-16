@@ -5,8 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription 
+} from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
   ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertCircle, 
-  Clock, CheckCircle, Receipt
+  Clock, CheckCircle, Receipt, X
 } from "lucide-react";
 import { 
   format, startOfMonth, endOfMonth, eachDayOfInterval, 
@@ -20,6 +25,18 @@ interface CalendarioRecebimentosAggregatedProps {
   filterAno: string;
   filterConta: string;
   filterPortador: string;
+}
+
+interface ContaReceber {
+  id: string;
+  numero_documento: string;
+  parcela: number;
+  cliente_nome: string;
+  empresa_nome: string;
+  valor_original: number;
+  valor_aberto: number;
+  status: string;
+  data_vencimento: string;
 }
 
 const formatCurrency = (value: number) => 
@@ -49,6 +66,53 @@ export function CalendarioRecebimentosAggregated({
   filterPortador 
 }: CalendarioRecebimentosAggregatedProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Query para buscar detalhes do dia selecionado
+  const { data: detalheDia, isLoading: isLoadingDetalhe } = useQuery({
+    queryKey: ['contas-receber-dia', selectedDate?.toISOString(), filterEmpresas.sort().join(','), filterConta, filterPortador],
+    queryFn: async () => {
+      if (!selectedDate) return [];
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      
+      let query = supabase
+        .from('contas_receber')
+        .select('id, numero_documento, parcela, cliente_nome, empresa_nome, valor_original, valor_aberto, status, data_vencimento')
+        .eq('data_vencimento', dateStr)
+        .order('cliente_nome');
+      
+      if (filterEmpresas.length > 0) {
+        query = query.in('empresa_id', filterEmpresas);
+      }
+      if (filterConta !== 'all') {
+        query = query.eq('conta', filterConta);
+      }
+      if (filterPortador !== 'all') {
+        query = query.eq('portador', filterPortador);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data as unknown as ContaReceber[]) || [];
+    },
+    enabled: !!selectedDate && isDialogOpen,
+  });
+
+  const handleDayClick = (date: Date, hasData: boolean) => {
+    if (hasData) {
+      setSelectedDate(date);
+      setIsDialogOpen(true);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusLower = (status || '').toLowerCase();
+    if (statusLower === 'recebido') return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Recebido</Badge>;
+    if (statusLower === 'vencido') return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Vencido</Badge>;
+    if (statusLower === 'parcial') return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Parcial</Badge>;
+    return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Pendente</Badge>;
+  };
 
   // Query calendário agregado
   const { data: calendarioData, isLoading } = useQuery({
@@ -242,8 +306,10 @@ export function CalendarioRecebimentosAggregated({
               return (
                 <div
                   key={date.toISOString()}
+                  onClick={() => handleDayClick(date, info.valorTotal > 0)}
                   className={`
                     h-20 p-1 rounded-lg border transition-colors
+                    ${info.valorTotal > 0 ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''}
                     ${isHoje ? 'ring-2 ring-primary' : ''}
                     ${info.status === 'danger' ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800' : ''}
                     ${info.status === 'warning' ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-800' : ''}
@@ -302,6 +368,72 @@ export function CalendarioRecebimentosAggregated({
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog com detalhes do dia */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5" />
+              Títulos do dia {selectedDate ? format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : ''}
+            </DialogTitle>
+            <DialogDescription>
+              {detalheDia?.length || 0} títulos encontrados
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ScrollArea className="h-[60vh]">
+            {isLoadingDetalhe ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <span className="ml-2 text-muted-foreground">Carregando...</span>
+              </div>
+            ) : detalheDia && detalheDia.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Documento</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead className="text-right">Valor Original</TableHead>
+                    <TableHead className="text-right">Valor Aberto</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {detalheDia.map((conta) => (
+                    <TableRow key={conta.id}>
+                      <TableCell className="font-medium">
+                        {conta.numero_documento}/{conta.parcela}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate" title={conta.cliente_nome}>
+                        {conta.cliente_nome}
+                      </TableCell>
+                      <TableCell className="max-w-[150px] truncate" title={conta.empresa_nome}>
+                        {conta.empresa_nome}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(conta.valor_original || 0)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(conta.valor_aberto || 0)}
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(conta.status)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <Receipt className="h-12 w-12 mb-2 opacity-50" />
+                <span>Nenhum título encontrado para este dia</span>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
