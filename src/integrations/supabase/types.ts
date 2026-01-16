@@ -14635,7 +14635,11 @@ export type Database = {
           p_empresas?: number[]
           p_portador?: string
         }
-        Returns: Json
+        Returns: {
+          mes: string
+          pendente: number
+          recebido: number
+        }[]
       }
       get_contas_receber_filtros: { Args: { p_ano?: number }; Returns: Json }
       get_contas_receber_status_dist: {
