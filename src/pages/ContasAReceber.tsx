@@ -12,7 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Receipt, AlertCircle, CheckCircle, Clock, ArrowLeft, Building2, ChevronsUpDown, LayoutDashboard, CalendarDays, TableIcon, AlertTriangle, RefreshCw, Upload } from "lucide-react";
+import { 
+  Download, Receipt, AlertCircle, CheckCircle, Clock, ArrowLeft, Building2, ChevronsUpDown, 
+  LayoutDashboard, CalendarDays, TableIcon, AlertTriangle, RefreshCw, Upload,
+  ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+} from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -48,6 +52,9 @@ interface ContaReceber {
   created_at: string;
 }
 
+type SortColumn = 'empresa_nome' | 'numero_documento' | 'cliente_nome' | 'vendedor_nome' | 'data_vencimento' | 'valor_original' | 'valor_aberto' | 'status';
+type SortDirection = 'asc' | 'desc';
+
 export default function ContasAReceber() {
   const { isAdmin } = useUserRole();
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -62,17 +69,162 @@ export default function ContasAReceber() {
   const [filterDiaRecebimento, setFilterDiaRecebimento] = useState<string>("");
   const [showImportDialog, setShowImportDialog] = useState(false);
 
-  // Query contas a receber - Limite aumentado para dashboard e calendário
-  const [page, setPage] = useState(1);
-  const pageSize = 100000; // Aumentado para garantir carregamento completo
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  
+  // Ordenação
+  const [sortColumn, setSortColumn] = useState<SortColumn>('data_vencimento');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  const { data: contasData, isLoading, refetch } = useQuery({
-    queryKey: ['contas-receber', searchCliente, filterStatus, filterEmpresas, filterAno, filterMes, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento],
+  // Converte filterEmpresas para string para o queryKey detectar mudanças corretamente
+  const filterEmpresasKey = filterEmpresas.length > 0 ? filterEmpresas.sort().join(',') : 'all';
+
+  // Função para construir filtros base (reutilizada em todas queries)
+  const buildBaseFilters = (query: any) => {
+    let q = query;
+
+    if (filterEmpresas.length > 0) {
+      q = q.in('empresa_id', filterEmpresas);
+    }
+
+    // Filtro Conta Bancária
+    if (filterConta !== 'all') {
+      q = q.eq('conta', filterConta);
+    }
+
+    // Filtro Portador
+    if (filterPortador !== 'all') {
+      q = q.eq('portador', filterPortador);
+    }
+
+    // Filtro Dia Vencimento (data específica)
+    if (filterDiaVencimento) {
+      q = q.eq('data_vencimento', filterDiaVencimento);
+    }
+
+    // Filtro Dia Recebimento (data específica)
+    if (filterDiaRecebimento) {
+      q = q.eq('data_recebimento', filterDiaRecebimento);
+    }
+
+    // Filtro por ano - Quando "Todos", buscar últimos 3 anos até 1 ano no futuro
+    if (filterAno === 'all') {
+      const hoje = new Date();
+      const anoAtual = hoje.getFullYear();
+      const startDate = `${anoAtual - 3}-01-01`;
+      const endDate = `${anoAtual + 1}-12-31`;
+      q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+    } else {
+      const startDate = `${filterAno}-01-01`;
+      const endDate = `${filterAno}-12-31`;
+      q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+    }
+
+    // Filtro por mês (se ano estiver selecionado)
+    if (filterMes !== 'all' && filterAno !== 'all') {
+      const mes = filterMes.padStart(2, '0');
+      const startDate = `${filterAno}-${mes}-01`;
+      const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
+      const endDate = `${filterAno}-${mes}-${lastDay}`;
+      q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+    }
+
+    return q;
+  };
+
+  // Query para DASHBOARD - busca todos os dados do período com paginação automática
+  const { data: contasDashboard, isLoading: isLoadingDashboard } = useQuery({
+    queryKey: ['contas-receber-dashboard', filterEmpresasKey, filterAno, filterMes, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento],
+    queryFn: async () => {
+      const PAGE_SIZE = 1000;
+      let allData: ContaReceber[] = [];
+      let from = 0;
+      let hasMore = true;
+      
+      while (hasMore) {
+        let query = supabase
+          .from('contas_receber' as any)
+          .select('*');
+        
+        query = buildBaseFilters(query);
+        query = query.range(from, from + PAGE_SIZE - 1);
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allData = [...allData, ...data as unknown as ContaReceber[]];
+          from += PAGE_SIZE;
+          hasMore = data.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      return allData;
+    }
+  });
+
+  // Query para CALENDÁRIO - busca ano inteiro (ignora filtro de mês)
+  const { data: contasCalendario, isLoading: isLoadingCalendario } = useQuery({
+    queryKey: ['contas-receber-calendario', filterEmpresasKey, filterAno, filterConta, filterPortador],
+    queryFn: async () => {
+      const PAGE_SIZE = 1000;
+      let allData: ContaReceber[] = [];
+      let from = 0;
+      let hasMore = true;
+      
+      while (hasMore) {
+        let query = supabase
+          .from('contas_receber' as any)
+          .select('*');
+        
+        // Filtros base SEM mês
+        if (filterEmpresas.length > 0) {
+          query = query.in('empresa_id', filterEmpresas);
+        }
+        if (filterConta !== 'all') {
+          query = query.eq('conta', filterConta);
+        }
+        if (filterPortador !== 'all') {
+          query = query.eq('portador', filterPortador);
+        }
+        
+        // Ano inteiro (ou últimos 3 anos se "Todos")
+        if (filterAno === 'all') {
+          const anoAtual = new Date().getFullYear();
+          query = query.gte('data_vencimento', `${anoAtual - 2}-01-01`).lte('data_vencimento', `${anoAtual + 1}-12-31`);
+        } else {
+          query = query.gte('data_vencimento', `${filterAno}-01-01`).lte('data_vencimento', `${filterAno}-12-31`);
+        }
+        
+        query = query.range(from, from + PAGE_SIZE - 1);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allData = [...allData, ...data as unknown as ContaReceber[]];
+          from += PAGE_SIZE;
+          hasMore = data.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      return allData;
+    }
+  });
+
+  // Query para TABELA - paginação no backend
+  const { data: contasTable, isLoading: isLoadingTable, refetch } = useQuery({
+    queryKey: ['contas-receber-table', searchCliente, filterStatus, filterEmpresasKey, filterAno, filterMes, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento, sortColumn, sortDirection, currentPage, pageSize],
     queryFn: async () => {
       let query = supabase
         .from('contas_receber' as any)
-        .select('*', { count: 'exact' })
-        .order('data_vencimento', { ascending: false });
+        .select('*', { count: 'exact' });
 
       if (searchCliente) {
         query = query.ilike('cliente_nome', `%${searchCliente}%`);
@@ -83,81 +235,95 @@ export default function ContasAReceber() {
         query = query.eq('status', filterStatus.toLowerCase());
       }
 
-      if (filterEmpresas.length > 0) {
-        query = query.in('empresa_id', filterEmpresas);
-      }
+      query = buildBaseFilters(query);
 
-      // Filtro Conta Bancária
-      if (filterConta !== 'all') {
-        query = query.eq('conta', filterConta);
-      }
+      // Ordenação no backend
+      const ascending = sortDirection === 'asc';
+      query = query.order(sortColumn, { ascending });
 
-      // Filtro Portador
-      if (filterPortador !== 'all') {
-        query = query.eq('portador', filterPortador);
-      }
+      // Paginação no backend
+      const from = (currentPage - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
 
-      // Filtro Dia Vencimento (data específica)
-      if (filterDiaVencimento) {
-        query = query.eq('data_vencimento', filterDiaVencimento);
-      }
-
-      // Filtro Dia Recebimento (data específica)
-      if (filterDiaRecebimento) {
-        query = query.eq('data_recebimento', filterDiaRecebimento);
-      }
-
-      // Filtro por ano - Quando "Todos", buscar últimos 3 anos até 1 ano no futuro
-      if (filterAno === 'all') {
-        const hoje = new Date();
-        const anoAtual = hoje.getFullYear();
-        const startDate = `${anoAtual - 3}-01-01`;
-        const endDate = `${anoAtual + 1}-12-31`;
-        query = query.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
-      } else {
-        const startDate = `${filterAno}-01-01`;
-        const endDate = `${filterAno}-12-31`;
-        query = query.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
-      }
-
-      // Filtro por mês (se ano estiver selecionado)
-      if (filterMes !== 'all' && filterAno !== 'all') {
-        const mes = filterMes.padStart(2, '0');
-        const startDate = `${filterAno}-${mes}-01`;
-        const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
-        const endDate = `${filterAno}-${mes}-${lastDay}`;
-        query = query.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
-      }
-
-      const { data, error, count } = await query.limit(100000);
+      const { data, error, count } = await query;
       if (error) throw error;
       return { data: data as unknown as ContaReceber[], count: count || 0 };
     }
   });
 
-  const contas = contasData?.data;
-  const totalCount = contasData?.count || 0;
-  const totalPages = Math.ceil(totalCount / pageSize);
+  // Dados base para compatibilidade (usado em KPIs, exports, etc.)
+  const contasBase = contasDashboard;
 
-  // Empresas únicas para filtro
-  const empresas = Array.from(new Set(contas?.map(c => ({ id: c.empresa_id, nome: c.empresa_nome })) || []))
-    .reduce((acc, curr) => {
-      if (!acc.find(e => e.id === curr.id)) acc.push(curr);
-      return acc;
-    }, [] as { id: number; nome: string }[]);
+  // Aplica filtros da aba (Status + Busca) também nos dados usados por Dashboard/Calendário
+  const contas = useMemo(() => {
+    let list = contasBase || [];
+
+    if (filterStatus !== 'all') {
+      const status = filterStatus.toLowerCase();
+      list = list.filter(c => (c.status || '').toLowerCase() === status);
+    }
+
+    const search = searchCliente.trim().toLowerCase();
+    if (search) {
+      list = list.filter(c => (c.cliente_nome || '').toLowerCase().includes(search));
+    }
+
+    return list;
+  }, [contasBase, filterStatus, searchCliente]);
+
+  const isLoading = isLoadingDashboard || isLoadingTable;
+
+  // Dados paginados da tabela
+  const sortedAndPaginatedData = useMemo(() => {
+    if (!contasTable) return { data: [], totalPages: 0, totalItems: 0 };
+    
+    const totalItems = contasTable.count;
+    const totalPages = Math.ceil(totalItems / pageSize);
+    
+    return { data: contasTable.data, totalPages, totalItems };
+  }, [contasTable, pageSize]);
+
+  // Empresas únicas para filtro (do dashboard para ter mais dados)
+  const empresas = useMemo(() => {
+    const list = contasDashboard || [];
+    const map = new Map<number, string>();
+    list.forEach(c => {
+      if (c.empresa_id && c.empresa_nome && !map.has(c.empresa_id)) {
+        map.set(c.empresa_id, c.empresa_nome);
+      }
+    });
+    return Array.from(map.entries()).map(([id, nome]) => ({ id, nome }));
+  }, [contasDashboard]);
 
   // Extrair listas únicas de Conta e Portador
   const contasUnicas = useMemo(() => {
     const set = new Set<string>();
-    contas?.forEach(c => { if (c.conta) set.add(c.conta); });
+    (contasDashboard || []).forEach(c => { if (c.conta) set.add(c.conta); });
     return Array.from(set).sort();
-  }, [contas]);
+  }, [contasDashboard]);
 
   const portadoresUnicos = useMemo(() => {
     const set = new Set<string>();
-    contas?.forEach(c => { if (c.portador) set.add(c.portador); });
+    (contasDashboard || []).forEach(c => { if (c.portador) set.add(c.portador); });
     return Array.from(set).sort();
-  }, [contas]);
+  }, [contasDashboard]);
+
+  // Ordenação clicável
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) return <ArrowUpDown className="h-4 w-4 ml-1" />;
+    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />;
+  };
 
   // Exportar para Excel
   const handleExport = () => {
@@ -217,6 +383,7 @@ export default function ContasAReceber() {
             <Select value={filterAno} onValueChange={(value) => {
               setFilterAno(value);
               if (value === 'all') setFilterMes('all');
+              setCurrentPage(1);
             }}>
               <SelectTrigger>
                 <SelectValue placeholder="Ano" />
@@ -234,7 +401,7 @@ export default function ContasAReceber() {
             <label className="text-sm font-medium mb-2 block">Mês</label>
             <Select 
               value={filterMes} 
-              onValueChange={setFilterMes}
+              onValueChange={(val) => { setFilterMes(val); setCurrentPage(1); }}
               disabled={filterAno === 'all'}
             >
               <SelectTrigger>
@@ -280,7 +447,7 @@ export default function ContasAReceber() {
                     variant="ghost" 
                     size="sm" 
                     className="w-full justify-start"
-                    onClick={() => setFilterEmpresas([])}
+                    onClick={() => { setFilterEmpresas([]); setCurrentPage(1); }}
                   >
                     <CheckCircle className={`mr-2 h-4 w-4 ${filterEmpresas.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
                     Todas as empresas
@@ -298,6 +465,7 @@ export default function ContasAReceber() {
                           } else {
                             setFilterEmpresas(filterEmpresas.filter(id => id !== emp.id));
                           }
+                          setCurrentPage(1);
                         }}
                       />
                       <label htmlFor={`receber-emp-${emp.id}`} className="text-sm cursor-pointer flex-1">
@@ -312,7 +480,7 @@ export default function ContasAReceber() {
 
           <div>
             <label className="text-sm font-medium mb-2 block">Status</label>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(val) => { setFilterStatus(val); setCurrentPage(1); }}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -328,7 +496,7 @@ export default function ContasAReceber() {
 
           <div>
             <label className="text-sm font-medium mb-2 block">Conta</label>
-            <Select value={filterConta} onValueChange={setFilterConta}>
+            <Select value={filterConta} onValueChange={(val) => { setFilterConta(val); setCurrentPage(1); }}>
               <SelectTrigger>
                 <SelectValue placeholder="Todas" />
               </SelectTrigger>
@@ -343,7 +511,7 @@ export default function ContasAReceber() {
 
           <div>
             <label className="text-sm font-medium mb-2 block">Portador</label>
-            <Select value={filterPortador} onValueChange={setFilterPortador}>
+            <Select value={filterPortador} onValueChange={(val) => { setFilterPortador(val); setCurrentPage(1); }}>
               <SelectTrigger>
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
@@ -361,7 +529,7 @@ export default function ContasAReceber() {
             <Input 
               type="date" 
               value={filterDiaVencimento} 
-              onChange={(e) => setFilterDiaVencimento(e.target.value)}
+              onChange={(e) => { setFilterDiaVencimento(e.target.value); setCurrentPage(1); }}
               className="h-10"
             />
           </div>
@@ -371,7 +539,7 @@ export default function ContasAReceber() {
             <Input 
               type="date" 
               value={filterDiaRecebimento} 
-              onChange={(e) => setFilterDiaRecebimento(e.target.value)}
+              onChange={(e) => { setFilterDiaRecebimento(e.target.value); setCurrentPage(1); }}
               className="h-10"
             />
           </div>
@@ -381,7 +549,7 @@ export default function ContasAReceber() {
             <Input
               placeholder="Buscar cliente..."
               value={searchCliente}
-              onChange={(e) => setSearchCliente(e.target.value)}
+              onChange={(e) => { setSearchCliente(e.target.value); setCurrentPage(1); }}
             />
           </div>
         </div>
@@ -465,13 +633,13 @@ export default function ContasAReceber() {
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
             <FiltersSection />
-            <DashboardContasReceber contas={contas} isLoading={isLoading} />
+            <DashboardContasReceber contas={contas} isLoading={isLoadingDashboard} />
           </TabsContent>
 
           {/* Calendário Tab */}
           <TabsContent value="calendario" className="space-y-6">
             <FiltersSection />
-            <CalendarioRecebimentos contas={contas} isLoading={isLoading} />
+            <CalendarioRecebimentos contas={contasCalendario || []} isLoading={isLoadingCalendario} />
           </TabsContent>
 
           {/* Tabela Tab */}
@@ -480,35 +648,56 @@ export default function ContasAReceber() {
             
             <Card>
               <CardHeader>
-                <CardTitle>Contas a Receber</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Contas a Receber</span>
+                  <span className="text-sm font-normal text-muted-foreground">
+                    {sortedAndPaginatedData.totalItems.toLocaleString()} registros
+                  </span>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Empresa</TableHead>
-                        <TableHead>Documento</TableHead>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead>Vendedor</TableHead>
+                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('empresa_nome')}>
+                          <div className="flex items-center">Empresa <SortIcon column="empresa_nome" /></div>
+                        </TableHead>
+                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('numero_documento')}>
+                          <div className="flex items-center">Documento <SortIcon column="numero_documento" /></div>
+                        </TableHead>
+                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('cliente_nome')}>
+                          <div className="flex items-center">Cliente <SortIcon column="cliente_nome" /></div>
+                        </TableHead>
+                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('vendedor_nome')}>
+                          <div className="flex items-center">Vendedor <SortIcon column="vendedor_nome" /></div>
+                        </TableHead>
                         <TableHead>Emissão</TableHead>
-                        <TableHead>Vencimento</TableHead>
-                        <TableHead className="text-right">Valor Original</TableHead>
-                        <TableHead className="text-right">Valor Aberto</TableHead>
+                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('data_vencimento')}>
+                          <div className="flex items-center">Vencimento <SortIcon column="data_vencimento" /></div>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('valor_original')}>
+                          <div className="flex items-center justify-end">Valor Original <SortIcon column="valor_original" /></div>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('valor_aberto')}>
+                          <div className="flex items-center justify-end">Valor Aberto <SortIcon column="valor_aberto" /></div>
+                        </TableHead>
                         <TableHead className="text-right">Valor Recebido</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('status')}>
+                          <div className="flex items-center">Status <SortIcon column="status" /></div>
+                        </TableHead>
                         <TableHead>Portador</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {isLoading ? (
+                      {isLoadingTable ? (
                         <TableRow>
                           <TableCell colSpan={11} className="text-center py-8">
                             Carregando...
                           </TableCell>
                         </TableRow>
-                      ) : contas && contas.length > 0 ? (
-                        contas.map((conta) => (
+                      ) : sortedAndPaginatedData.data && sortedAndPaginatedData.data.length > 0 ? (
+                        sortedAndPaginatedData.data.map((conta) => (
                           <TableRow key={conta.id}>
                             <TableCell className="font-medium">{conta.empresa_nome}</TableCell>
                             <TableCell>{conta.numero_documento}/{conta.parcela}</TableCell>
@@ -544,35 +733,62 @@ export default function ContasAReceber() {
                   </Table>
                 </div>
                 
-                {/* Paginação */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4">
+                {/* Paginação Melhorada */}
+                <div className="flex items-center justify-between mt-4">
+                  <div className="flex items-center gap-4">
                     <p className="text-sm text-muted-foreground">
-                      Mostrando {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, totalCount)} de {totalCount.toLocaleString()} registros
+                      Mostrando {Math.min((currentPage - 1) * pageSize + 1, sortedAndPaginatedData.totalItems)} - {Math.min(currentPage * pageSize, sortedAndPaginatedData.totalItems)} de {sortedAndPaginatedData.totalItems.toLocaleString()} registros
                     </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        Anterior
-                      </Button>
-                      <span className="flex items-center px-3 text-sm">
-                        Página {page} de {totalPages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        disabled={page >= totalPages}
-                      >
-                        Próxima
-                      </Button>
-                    </div>
+                    <Select value={pageSize.toString()} onValueChange={(val) => { setPageSize(Number(val)); setCurrentPage(1); }}>
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="flex items-center px-3 text-sm">
+                      Página {currentPage} de {sortedAndPaginatedData.totalPages || 1}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(sortedAndPaginatedData.totalPages, p + 1))}
+                      disabled={currentPage >= sortedAndPaginatedData.totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(sortedAndPaginatedData.totalPages)}
+                      disabled={currentPage >= sortedAndPaginatedData.totalPages}
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
