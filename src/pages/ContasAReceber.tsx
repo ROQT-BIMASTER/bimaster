@@ -148,7 +148,7 @@ export default function ContasAReceber() {
           .select('*');
         
         query = buildBaseFilters(query);
-        query = query.range(from, from + PAGE_SIZE - 1);
+        query = query.order('id', { ascending: true }).range(from, from + PAGE_SIZE - 1);
         
         const { data, error } = await query;
         
@@ -200,7 +200,7 @@ export default function ContasAReceber() {
           query = query.gte('data_vencimento', `${filterAno}-01-01`).lte('data_vencimento', `${filterAno}-12-31`);
         }
         
-        query = query.range(from, from + PAGE_SIZE - 1);
+        query = query.order('id', { ascending: true }).range(from, from + PAGE_SIZE - 1);
         
         const { data, error } = await query;
         if (error) throw error;
