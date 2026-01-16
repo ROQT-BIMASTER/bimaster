@@ -138,7 +138,7 @@ export default function ContasAReceber() {
     queryKey: ['contas-receber-dashboard', filterEmpresasKey, filterAno, filterMes, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento],
     queryFn: async () => {
       const PAGE_SIZE = 1000;
-      const MAX_RECORDS = 50000; // Limite máximo para evitar timeout
+      const MAX_RECORDS = 800000; // Limite máximo para evitar timeout
       let allData: ContaReceber[] = [];
       let from = 0;
       let hasMore = true;
@@ -173,7 +173,7 @@ export default function ContasAReceber() {
     queryKey: ['contas-receber-calendario', filterEmpresasKey, filterAno, filterConta, filterPortador],
     queryFn: async () => {
       const PAGE_SIZE = 1000;
-      const MAX_RECORDS = 50000; // Limite máximo para evitar timeout
+      const MAX_RECORDS = 800000; // Limite máximo para evitar timeout
       let allData: ContaReceber[] = [];
       let from = 0;
       let hasMore = true;
