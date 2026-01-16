@@ -45,7 +45,9 @@ import {
   X,
   Layers,
   AlertTriangle,
-  History
+  History,
+  FileText,
+  Printer
 } from "lucide-react";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import * as XLSX from "xlsx";
@@ -571,6 +573,212 @@ export function MatrizPrecosComparativa() {
     toast.success("Arquivo exportado com sucesso!");
   };
 
+  const exportarPDF = () => {
+    if (!matrizDados.length || !tabelasOrdenadas.length) {
+      toast.error("Não há dados para exportar");
+      return;
+    }
+
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+    
+    const getMargemColorCSS = (margem: number): string => {
+      if (margem <= 0) return 'color: #ef4444;';
+      if (margem < 15) return 'color: #f59e0b;';
+      return 'color: #22c55e;';
+    };
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Matriz Comparativa de Preços</title>
+        <style>
+          @page {
+            size: landscape;
+            margin: 10mm;
+          }
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 9px;
+            line-height: 1.3;
+            color: #1a1a1a;
+            background: white;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3b82f6;
+          }
+          .header h1 {
+            font-size: 18px;
+            color: #1e40af;
+            margin-bottom: 5px;
+          }
+          .header .subtitle {
+            font-size: 11px;
+            color: #64748b;
+          }
+          .meta-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 9px;
+            color: #64748b;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8px;
+          }
+          th, td {
+            border: 1px solid #e2e8f0;
+            padding: 5px 4px;
+            text-align: left;
+          }
+          th {
+            background: #1e40af;
+            color: white;
+            font-weight: 600;
+            text-align: center;
+            font-size: 8px;
+          }
+          th.product-header {
+            background: #1e3a8a;
+            text-align: left;
+            min-width: 180px;
+          }
+          th.code-header {
+            background: #1e3a8a;
+            min-width: 70px;
+          }
+          td.product-cell {
+            font-weight: 500;
+          }
+          td.code-cell {
+            font-family: monospace;
+            font-size: 8px;
+          }
+          td.price-cell {
+            text-align: center;
+          }
+          .price-value {
+            font-weight: 600;
+          }
+          .margin-value {
+            font-size: 7px;
+            margin-top: 2px;
+          }
+          tr:nth-child(even) {
+            background-color: #f8fafc;
+          }
+          tr:hover {
+            background-color: #f1f5f9;
+          }
+          .footer {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 8px;
+            color: #64748b;
+          }
+          .legend {
+            display: flex;
+            gap: 15px;
+          }
+          .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          }
+          .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+          }
+          .legend-red { background: #ef4444; }
+          .legend-yellow { background: #f59e0b; }
+          .legend-green { background: #22c55e; }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Matriz Comparativa de Preços</h1>
+          <div class="subtitle">${matrizDados.length} produto(s) · ${tabelasOrdenadas.length} tabela(s)</div>
+        </div>
+        
+        <div class="meta-info">
+          <span>Gerado em: ${dataAtual}</span>
+          <span>Total de itens: ${matrizDados.length}</span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th class="product-header">Produto</th>
+              <th class="code-header">Código</th>
+              ${tabelasOrdenadas.map(t => `<th>${t.nome}<br/><small>${t.codigo}</small></th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${matrizDados.map(row => `
+              <tr>
+                <td class="product-cell">${row.produto.nome}</td>
+                <td class="code-cell">${row.produto.codigo}</td>
+                ${tabelasOrdenadas.map(tabela => {
+                  const preco = row.precos[tabela.id];
+                  if (preco) {
+                    return `
+                      <td class="price-cell">
+                        <div class="price-value">${formatarMoeda(preco.preco)}</div>
+                        <div class="margin-value" style="${getMargemColorCSS(preco.margem)}">${preco.margem.toFixed(1)}%</div>
+                      </td>
+                    `;
+                  }
+                  return '<td class="price-cell">-</td>';
+                }).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <div class="legend">
+            <div class="legend-item"><span class="legend-dot legend-red"></span> Margem ≤ 0%</div>
+            <div class="legend-item"><span class="legend-dot legend-yellow"></span> Margem &lt; 15%</div>
+            <div class="legend-item"><span class="legend-dot legend-green"></span> Margem ≥ 15%</div>
+          </div>
+          <span>Documento gerado automaticamente pelo sistema</span>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 250);
+      };
+    } else {
+      toast.error("Não foi possível abrir a janela de impressão. Verifique se popups estão habilitados.");
+    }
+  };
+
   const isLoading = loadingTabelas || loadingPrecos;
 
   const renderTableRows = (rows: MatrizRow[]) => {
@@ -626,10 +834,16 @@ export function MatrizPrecosComparativa() {
               <Grid3X3 className="h-5 w-5 text-primary" />
               <CardTitle>Matriz Comparativa de Preços</CardTitle>
             </div>
-            <Button variant="outline" onClick={exportarExcel}>
-              <Download className="h-4 w-4 mr-2" />
-              Exportar Excel
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={exportarPDF}>
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir PDF
+              </Button>
+              <Button variant="outline" onClick={exportarExcel}>
+                <Download className="h-4 w-4 mr-2" />
+                Exportar Excel
+              </Button>
+            </div>
           </div>
           <p className="text-sm text-muted-foreground">
             Arraste as colunas para reordenar. Clique no ícone de paleta para mudar a cor. Clique em um preço para ver o histórico.
