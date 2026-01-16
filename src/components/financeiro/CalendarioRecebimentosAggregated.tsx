@@ -69,9 +69,16 @@ export function CalendarioRecebimentosAggregated({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Memoizar filtros para garantir atualização correta
+  const filterKey = useMemo(() => ({
+    empresas: filterEmpresas.sort().join(','),
+    conta: filterConta,
+    portador: filterPortador
+  }), [filterEmpresas, filterConta, filterPortador]);
+
   // Query para buscar detalhes do dia selecionado
   const { data: detalheDia, isLoading: isLoadingDetalhe } = useQuery({
-    queryKey: ['contas-receber-dia', selectedDate?.toISOString(), filterEmpresas.sort().join(','), filterConta, filterPortador],
+    queryKey: ['contas-receber-dia', selectedDate?.toISOString(), filterKey],
     queryFn: async () => {
       if (!selectedDate) return [];
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
@@ -114,16 +121,19 @@ export function CalendarioRecebimentosAggregated({
     return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Pendente</Badge>;
   };
 
+  // Preparar parâmetros para as RPCs - garante atualização quando filtros mudam
+  const rpcParams = useMemo(() => ({
+    p_empresas: filterEmpresas.length > 0 ? filterEmpresas : null,
+    p_ano: filterAno !== 'all' ? parseInt(filterAno) : null,
+    p_conta: filterConta !== 'all' ? filterConta : null,
+    p_portador: filterPortador !== 'all' ? filterPortador : null,
+  }), [filterEmpresas, filterAno, filterConta, filterPortador]);
+
   // Query calendário agregado
   const { data: calendarioData, isLoading } = useQuery({
-    queryKey: ['contas-receber-calendario-agg', filterEmpresas.sort().join(','), filterAno, filterConta, filterPortador],
+    queryKey: ['contas-receber-calendario-agg', rpcParams],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_contas_receber_calendario', {
-        p_empresas: filterEmpresas.length > 0 ? filterEmpresas : null,
-        p_ano: filterAno !== 'all' ? parseInt(filterAno) : null,
-        p_conta: filterConta !== 'all' ? filterConta : null,
-        p_portador: filterPortador !== 'all' ? filterPortador : null,
-      });
+      const { data, error } = await supabase.rpc('get_contas_receber_calendario', rpcParams);
       if (error) throw error;
       return (data as unknown as DiaCalendario[]) || [];
     }
