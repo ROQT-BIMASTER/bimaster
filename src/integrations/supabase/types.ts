@@ -14618,16 +14618,29 @@ export type Database = {
         }
         Returns: Json
       }
-      get_contas_receber_dashboard_kpis: {
-        Args: {
-          p_ano?: number
-          p_conta?: string
-          p_empresas?: number[]
-          p_mes?: number
-          p_portador?: string
-        }
-        Returns: Json
-      }
+      get_contas_receber_dashboard_kpis:
+        | {
+            Args: {
+              p_ano?: number
+              p_conta?: string
+              p_empresas?: number[]
+              p_mes?: number
+              p_portador?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_ano?: number
+              p_conta?: string
+              p_data_recebimento?: string
+              p_data_vencimento?: string
+              p_empresas?: number[]
+              p_mes?: number
+              p_portador?: string
+            }
+            Returns: Json
+          }
       get_contas_receber_evolucao_mensal: {
         Args: {
           p_ano?: number

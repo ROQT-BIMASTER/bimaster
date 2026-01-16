@@ -750,6 +750,8 @@ export default function ContasAReceber() {
               filterMeses={filterMeses}
               filterConta={filterConta}
               filterPortador={filterPortador}
+              filterDiaVencimento={filterDiaVencimento}
+              filterDiaRecebimento={filterDiaRecebimento}
             />
           </TabsContent>
 
@@ -761,6 +763,7 @@ export default function ContasAReceber() {
               filterAnos={filterAnos}
               filterConta={filterConta}
               filterPortador={filterPortador}
+              filterDiaVencimento={filterDiaVencimento}
             />
           </TabsContent>
 
