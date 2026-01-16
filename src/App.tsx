@@ -11,6 +11,7 @@ import { memoryMonitor } from "@/lib/utils/memory-monitor";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ClienteProtectedRoute } from "@/components/auth/ClienteProtectedRoute";
 import { ModuleProtectedRoute } from "@/components/auth/ModuleProtectedRoute";
+import { ScreenProtectedRoute } from "@/components/auth/ScreenProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { PWAProvider, usePWA } from "@/contexts/PWAContext";
@@ -306,8 +307,20 @@ function AppContent() {
             <Route path="/dashboard/marketing/mission-control" element={<ProtectedRoute><MarketingMissionControlPage /></ProtectedRoute>} />
             
             {/* Rotas antigas mantidas para compatibilidade */}
-            <Route path="/dashboard/contas-a-pagar" element={<ProtectedRoute><ContasAPagar /></ProtectedRoute>} />
-            <Route path="/dashboard/plano-contas" element={<ProtectedRoute><PlanoContas /></ProtectedRoute>} />
+            <Route path="/dashboard/contas-a-pagar" element={
+              <ProtectedRoute>
+                <ScreenProtectedRoute screenCode="financeiro_contas_pagar" redirectTo="/dashboard/financeiro/contas-a-pagar">
+                  <ContasAPagar />
+                </ScreenProtectedRoute>
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/plano-contas" element={
+              <ProtectedRoute>
+                <ScreenProtectedRoute screenCode="financeiro_plano_contas" redirectTo="/dashboard/financeiro/contas-a-pagar">
+                  <PlanoContas />
+                </ScreenProtectedRoute>
+              </ProtectedRoute>
+            } />
             <Route path="/dashboard/configuracoes/api-health" element={<ProtectedRoute><APIHealthCheck /></ProtectedRoute>} />
             
             {/* Portal do Cliente - Rotas isoladas */}
