@@ -54,15 +54,26 @@ export function DashboardContasReceberAggregated({
 }: DashboardContasReceberAggregatedProps) {
   
   // Preparar parâmetros para as RPCs
-  const rpcParams = useMemo(() => ({
-    p_empresas: filterEmpresas.length > 0 ? filterEmpresas : null,
-    p_ano: filterAnos.length === 1 ? filterAnos[0] : null,
-    p_mes: filterMeses.length === 1 ? filterMeses[0] : null,
-    p_conta: filterConta !== 'all' ? filterConta : null,
-    p_portador: filterPortador !== 'all' ? filterPortador : null,
-    p_anos: filterAnos.length > 0 ? filterAnos : null,
-    p_meses: filterMeses.length > 0 ? filterMeses : null,
-  }), [filterEmpresas, filterAnos, filterMeses, filterConta, filterPortador]);
+  // IMPORTANTE: As RPCs usam p_ano (single) e p_mes (single)
+  // Se não houver filtro de ano, deixar null para usar o range padrão da RPC
+  // Se houver 1 ano, passar o ano específico
+  // Se houver múltiplos anos, passar null (RPC usará range padrão que é mais amplo)
+  const rpcParams = useMemo(() => {
+    // Para ano: se nenhum selecionado ou múltiplos, deixar null (RPC usa últimos 3 anos + 1 futuro)
+    // Se apenas 1 selecionado, passar esse ano
+    const anoParam = filterAnos.length === 1 ? filterAnos[0] : null;
+    
+    // Para mês: só aplicar se também tiver 1 ano selecionado
+    const mesParam = filterAnos.length === 1 && filterMeses.length === 1 ? filterMeses[0] : null;
+    
+    return {
+      p_empresas: filterEmpresas.length > 0 ? filterEmpresas : null,
+      p_ano: anoParam,
+      p_mes: mesParam,
+      p_conta: filterConta !== 'all' ? filterConta : null,
+      p_portador: filterPortador !== 'all' ? filterPortador : null,
+    };
+  }, [filterEmpresas, filterAnos, filterMeses, filterConta, filterPortador]);
 
   // Query KPIs
   const { data: kpis, isLoading: isLoadingKpis } = useQuery({
