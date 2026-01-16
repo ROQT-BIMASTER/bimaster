@@ -96,9 +96,9 @@ export function DashboardContasReceberAggregated({
     }
   });
 
-  // Query Evolução Mensal
+  // Query Evolução Mensal - usando rpcParams como dependência
   const { data: evolucao, isLoading: isLoadingEvolucao } = useQuery({
-    queryKey: ['contas-receber-evolucao', rpcParams.p_empresas, rpcParams.p_ano, rpcParams.p_conta, rpcParams.p_portador],
+    queryKey: ['contas-receber-evolucao', rpcParams],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_contas_receber_evolucao_mensal', {
         p_empresas: rpcParams.p_empresas,
