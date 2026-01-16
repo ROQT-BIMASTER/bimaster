@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, Receipt, AlertCircle, CheckCircle, Clock, ArrowLeft, Building2, ChevronsUpDown, LayoutDashboard, CalendarDays, TableIcon, AlertTriangle, RefreshCw, Upload } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
@@ -48,6 +49,7 @@ interface ContaReceber {
 }
 
 export default function ContasAReceber() {
+  const { isAdmin } = useUserRole();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchCliente, setSearchCliente] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -412,12 +414,14 @@ export default function ContasAReceber() {
               <Upload className="h-4 w-4" />
               Importar CSV
             </Button>
-            <Button asChild variant="default" className="gap-2">
-              <Link to="/dashboard/financeiro/contas-a-receber/sync">
-                <RefreshCw className="h-4 w-4" />
-                Sincronizar ERP
-              </Link>
-            </Button>
+            {isAdmin && (
+              <Button asChild variant="default" className="gap-2">
+                <Link to="/dashboard/financeiro/contas-a-receber/sync">
+                  <RefreshCw className="h-4 w-4" />
+                  Sincronizar ERP
+                </Link>
+              </Button>
+            )}
             <Button asChild variant="outline" className="gap-2">
               <Link to="/dashboard/financeiro/contas-a-receber/auditoria">
                 <AlertTriangle className="h-4 w-4" />

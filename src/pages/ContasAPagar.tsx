@@ -835,12 +835,14 @@ export default function ContasAPagar() {
                   Plano de Contas
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/dashboard/financeiro/contas-a-pagar/sync">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Sincronização ERP
-                </Link>
-              </Button>
+              {isAdmin && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/dashboard/financeiro/contas-a-pagar/sync">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Sincronização ERP
+                  </Link>
+                </Button>
+              )}
               <Button variant="default" size="sm" asChild className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
                 <Link to="/dashboard/financeiro/contas-a-pagar/auditoria">
                   <Brain className="h-4 w-4 mr-2" />
