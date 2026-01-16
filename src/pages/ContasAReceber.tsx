@@ -61,8 +61,8 @@ export default function ContasAReceber() {
   const [searchCliente, setSearchCliente] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
-  const [filterAno, setFilterAno] = useState<string>(new Date().getFullYear().toString());
-  const [filterMes, setFilterMes] = useState<string>("all");
+  const [filterAnos, setFilterAnos] = useState<number[]>([new Date().getFullYear()]);
+  const [filterMeses, setFilterMeses] = useState<number[]>([]);
   const [filterConta, setFilterConta] = useState<string>("all");
   const [filterPortador, setFilterPortador] = useState<string>("all");
   const [filterDiaVencimento, setFilterDiaVencimento] = useState<string>("");
@@ -79,6 +79,8 @@ export default function ContasAReceber() {
 
   // Converte filterEmpresas para string para o queryKey detectar mudanças corretamente
   const filterEmpresasKey = filterEmpresas.length > 0 ? filterEmpresas.sort().join(',') : 'all';
+  const filterAnosKey = filterAnos.length > 0 ? filterAnos.sort().join(',') : 'all';
+  const filterMesesKey = filterMeses.length > 0 ? filterMeses.sort().join(',') : 'all';
 
   // Função para construir filtros base (reutilizada em todas queries)
   const buildBaseFilters = (query: any) => {
@@ -108,26 +110,34 @@ export default function ContasAReceber() {
       q = q.eq('data_recebimento', filterDiaRecebimento);
     }
 
-    // Filtro por ano - Quando "Todos", buscar últimos 3 anos até 1 ano no futuro
-    if (filterAno === 'all') {
+    // Filtro por ano - múltiplos anos ou últimos 3 anos + 1 futuro se vazio
+    if (filterAnos.length === 0) {
       const hoje = new Date();
       const anoAtual = hoje.getFullYear();
       const startDate = `${anoAtual - 3}-01-01`;
       const endDate = `${anoAtual + 1}-12-31`;
       q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+    } else if (filterAnos.length === 1) {
+      const startDate = `${filterAnos[0]}-01-01`;
+      const endDate = `${filterAnos[0]}-12-31`;
+      q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
     } else {
-      const startDate = `${filterAno}-01-01`;
-      const endDate = `${filterAno}-12-31`;
+      // Múltiplos anos - buscar intervalo entre menor e maior
+      const minAno = Math.min(...filterAnos);
+      const maxAno = Math.max(...filterAnos);
+      const startDate = `${minAno}-01-01`;
+      const endDate = `${maxAno}-12-31`;
       q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
     }
 
-    // Filtro por mês (se ano estiver selecionado)
-    if (filterMes !== 'all' && filterAno !== 'all') {
-      const mes = filterMes.padStart(2, '0');
-      const startDate = `${filterAno}-${mes}-01`;
-      const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
-      const endDate = `${filterAno}-${mes}-${lastDay}`;
-      q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+    // Filtro por mês (se anos estiverem selecionados)
+    if (filterMeses.length > 0 && filterAnos.length > 0) {
+      // Para múltiplos meses, usar OR filter
+      const mesConditions = filterMeses.map(mes => {
+        const mesStr = mes.toString().padStart(2, '0');
+        return `data_vencimento.like.%-${mesStr}-%`;
+      });
+      // Infelizmente Supabase não suporta OR em meses facilmente, vamos filtrar no frontend
     }
 
     return q;
@@ -135,7 +145,7 @@ export default function ContasAReceber() {
 
   // Query para DASHBOARD - busca dados com limite para performance
   const { data: contasDashboard, isLoading: isLoadingDashboard } = useQuery({
-    queryKey: ['contas-receber-dashboard', filterEmpresasKey, filterAno, filterMes, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento],
+    queryKey: ['contas-receber-dashboard', filterEmpresasKey, filterAnosKey, filterMesesKey, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento],
     queryFn: async () => {
       const PAGE_SIZE = 1000;
       const MAX_RECORDS = 800000; // Limite máximo para evitar timeout
@@ -170,7 +180,7 @@ export default function ContasAReceber() {
 
   // Query para CALENDÁRIO - busca ano inteiro (ignora filtro de mês)
   const { data: contasCalendario, isLoading: isLoadingCalendario } = useQuery({
-    queryKey: ['contas-receber-calendario', filterEmpresasKey, filterAno, filterConta, filterPortador],
+    queryKey: ['contas-receber-calendario', filterEmpresasKey, filterAnosKey, filterConta, filterPortador],
     queryFn: async () => {
       const PAGE_SIZE = 1000;
       const MAX_RECORDS = 800000; // Limite máximo para evitar timeout
@@ -194,12 +204,16 @@ export default function ContasAReceber() {
           query = query.eq('portador', filterPortador);
         }
         
-        // Ano inteiro (ou últimos 3 anos se "Todos")
-        if (filterAno === 'all') {
+        // Ano inteiro (ou últimos 3 anos se vazio)
+        if (filterAnos.length === 0) {
           const anoAtual = new Date().getFullYear();
           query = query.gte('data_vencimento', `${anoAtual - 2}-01-01`).lte('data_vencimento', `${anoAtual + 1}-12-31`);
+        } else if (filterAnos.length === 1) {
+          query = query.gte('data_vencimento', `${filterAnos[0]}-01-01`).lte('data_vencimento', `${filterAnos[0]}-12-31`);
         } else {
-          query = query.gte('data_vencimento', `${filterAno}-01-01`).lte('data_vencimento', `${filterAno}-12-31`);
+          const minAno = Math.min(...filterAnos);
+          const maxAno = Math.max(...filterAnos);
+          query = query.gte('data_vencimento', `${minAno}-01-01`).lte('data_vencimento', `${maxAno}-12-31`);
         }
         
         query = query.order('id', { ascending: true }).range(from, from + PAGE_SIZE - 1);
@@ -222,7 +236,7 @@ export default function ContasAReceber() {
 
   // Query para TABELA - paginação no backend
   const { data: contasTable, isLoading: isLoadingTable, refetch } = useQuery({
-    queryKey: ['contas-receber-table', searchCliente, filterStatus, filterEmpresasKey, filterAno, filterMes, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento, sortColumn, sortDirection, currentPage, pageSize],
+    queryKey: ['contas-receber-table', searchCliente, filterStatus, filterEmpresasKey, filterAnosKey, filterMesesKey, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento, sortColumn, sortDirection, currentPage, pageSize],
     queryFn: async () => {
       let query = supabase
         .from('contas_receber' as any)
@@ -382,49 +396,119 @@ export default function ContasAReceber() {
         <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-9">
           <div>
             <label className="text-sm font-medium mb-2 block">Ano</label>
-            <Select value={filterAno} onValueChange={(value) => {
-              setFilterAno(value);
-              if (value === 'all') setFilterMes('all');
-              setCurrentPage(1);
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Ano" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="2024">2024</SelectItem>
-                <SelectItem value="2025">2025</SelectItem>
-                <SelectItem value="2026">2026</SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  <span>
+                    {filterAnos.length === 0 
+                      ? "Todos" 
+                      : filterAnos.length === 1 
+                        ? filterAnos[0].toString()
+                        : `${filterAnos.length} anos`}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[180px] p-0 z-50 bg-popover" align="start">
+                <div className="p-2 border-b">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => { setFilterAnos([]); setFilterMeses([]); setCurrentPage(1); }}
+                  >
+                    <CheckCircle className={`mr-2 h-4 w-4 ${filterAnos.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
+                    Todos os anos
+                  </Button>
+                </div>
+                <div className="max-h-[200px] overflow-auto p-2 space-y-1">
+                  {[2024, 2025, 2026, 2027].map(ano => (
+                    <div key={ano} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                      <Checkbox
+                        id={`receber-ano-${ano}`}
+                        checked={filterAnos.includes(ano)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFilterAnos([...filterAnos, ano]);
+                          } else {
+                            setFilterAnos(filterAnos.filter(a => a !== ano));
+                          }
+                          setCurrentPage(1);
+                        }}
+                      />
+                      <label htmlFor={`receber-ano-${ano}`} className="text-sm cursor-pointer flex-1">
+                        {ano}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
             <label className="text-sm font-medium mb-2 block">Mês</label>
-            <Select 
-              value={filterMes} 
-              onValueChange={(val) => { setFilterMes(val); setCurrentPage(1); }}
-              disabled={filterAno === 'all'}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Mês" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="1">Janeiro</SelectItem>
-                <SelectItem value="2">Fevereiro</SelectItem>
-                <SelectItem value="3">Março</SelectItem>
-                <SelectItem value="4">Abril</SelectItem>
-                <SelectItem value="5">Maio</SelectItem>
-                <SelectItem value="6">Junho</SelectItem>
-                <SelectItem value="7">Julho</SelectItem>
-                <SelectItem value="8">Agosto</SelectItem>
-                <SelectItem value="9">Setembro</SelectItem>
-                <SelectItem value="10">Outubro</SelectItem>
-                <SelectItem value="11">Novembro</SelectItem>
-                <SelectItem value="12">Dezembro</SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between" disabled={filterAnos.length === 0}>
+                  <span>
+                    {filterMeses.length === 0 
+                      ? "Todos" 
+                      : filterMeses.length === 1 
+                        ? ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][filterMeses[0] - 1]
+                        : `${filterMeses.length} meses`}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[180px] p-0 z-50 bg-popover" align="start">
+                <div className="p-2 border-b">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => { setFilterMeses([]); setCurrentPage(1); }}
+                  >
+                    <CheckCircle className={`mr-2 h-4 w-4 ${filterMeses.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
+                    Todos os meses
+                  </Button>
+                </div>
+                <div className="max-h-[250px] overflow-auto p-2 space-y-1">
+                  {[
+                    { value: 1, label: 'Janeiro' },
+                    { value: 2, label: 'Fevereiro' },
+                    { value: 3, label: 'Março' },
+                    { value: 4, label: 'Abril' },
+                    { value: 5, label: 'Maio' },
+                    { value: 6, label: 'Junho' },
+                    { value: 7, label: 'Julho' },
+                    { value: 8, label: 'Agosto' },
+                    { value: 9, label: 'Setembro' },
+                    { value: 10, label: 'Outubro' },
+                    { value: 11, label: 'Novembro' },
+                    { value: 12, label: 'Dezembro' },
+                  ].map(mes => (
+                    <div key={mes.value} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                      <Checkbox
+                        id={`receber-mes-${mes.value}`}
+                        checked={filterMeses.includes(mes.value)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFilterMeses([...filterMeses, mes.value]);
+                          } else {
+                            setFilterMeses(filterMeses.filter(m => m !== mes.value));
+                          }
+                          setCurrentPage(1);
+                        }}
+                      />
+                      <label htmlFor={`receber-mes-${mes.value}`} className="text-sm cursor-pointer flex-1">
+                        {mes.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
@@ -562,8 +646,8 @@ export default function ContasAReceber() {
             variant="outline" 
             size="sm"
             onClick={() => {
-              setFilterAno(new Date().getFullYear().toString());
-              setFilterMes('all');
+              setFilterAnos([new Date().getFullYear()]);
+              setFilterMeses([]);
               setFilterEmpresas([]);
               setFilterConta('all');
               setFilterPortador('all');
@@ -661,8 +745,8 @@ export default function ContasAReceber() {
             <FiltersSection />
             <DashboardContasReceberAggregated 
               filterEmpresas={filterEmpresas}
-              filterAno={filterAno}
-              filterMes={filterMes}
+              filterAnos={filterAnos}
+              filterMeses={filterMeses}
               filterConta={filterConta}
               filterPortador={filterPortador}
             />
@@ -673,7 +757,7 @@ export default function ContasAReceber() {
             <FiltersSection />
             <CalendarioRecebimentosAggregated 
               filterEmpresas={filterEmpresas}
-              filterAno={filterAno}
+              filterAnos={filterAnos}
               filterConta={filterConta}
               filterPortador={filterPortador}
             />

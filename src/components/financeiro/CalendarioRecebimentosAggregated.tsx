@@ -22,7 +22,7 @@ import { getDateKey, getToday } from "@/utils/dateUtils";
 
 interface CalendarioRecebimentosAggregatedProps {
   filterEmpresas: number[];
-  filterAno: string;
+  filterAnos: number[];
   filterConta: string;
   filterPortador: string;
 }
@@ -61,7 +61,7 @@ interface DiaCalendario {
 
 export function CalendarioRecebimentosAggregated({ 
   filterEmpresas, 
-  filterAno, 
+  filterAnos, 
   filterConta, 
   filterPortador 
 }: CalendarioRecebimentosAggregatedProps) {
@@ -124,10 +124,10 @@ export function CalendarioRecebimentosAggregated({
   // Preparar parâmetros para as RPCs - garante atualização quando filtros mudam
   const rpcParams = useMemo(() => ({
     p_empresas: filterEmpresas.length > 0 ? filterEmpresas : null,
-    p_ano: filterAno !== 'all' ? parseInt(filterAno) : null,
+    p_ano: filterAnos.length === 1 ? filterAnos[0] : null,
     p_conta: filterConta !== 'all' ? filterConta : null,
     p_portador: filterPortador !== 'all' ? filterPortador : null,
-  }), [filterEmpresas, filterAno, filterConta, filterPortador]);
+  }), [filterEmpresas, filterAnos, filterConta, filterPortador]);
 
   // Query calendário agregado
   const { data: calendarioData, isLoading } = useQuery({
