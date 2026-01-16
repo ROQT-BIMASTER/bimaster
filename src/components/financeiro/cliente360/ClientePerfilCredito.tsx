@@ -12,8 +12,7 @@ import {
   Calendar, DollarSign, Clock, AlertTriangle, CheckCircle2,
   XCircle, Target, Activity, BarChart3, History, Shield
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatLocalDate } from "@/utils/dateUtils";
 import ScoreGauge from "./ScoreGauge";
 import ClienteHistoricoPagamentos from "./ClienteHistoricoPagamentos";
 import ClienteAlertasCredito from "./ClienteAlertasCredito";
@@ -307,9 +306,7 @@ export default function ClientePerfilCredito({ clienteCodigo, onClose }: Cliente
               <span className="text-xs">Primeira Compra</span>
             </div>
             <p className="text-sm font-medium">
-              {dados.primeira_compra 
-                ? format(parseISO(dados.primeira_compra), 'dd/MM/yyyy', { locale: ptBR })
-                : '-'}
+              {formatLocalDate(dados.primeira_compra)}
             </p>
           </CardContent>
         </Card>
@@ -320,9 +317,7 @@ export default function ClientePerfilCredito({ clienteCodigo, onClose }: Cliente
               <span className="text-xs">Última Compra</span>
             </div>
             <p className="text-sm font-medium">
-              {dados.ultima_compra 
-                ? format(parseISO(dados.ultima_compra), 'dd/MM/yyyy', { locale: ptBR })
-                : '-'}
+              {formatLocalDate(dados.ultima_compra)}
             </p>
           </CardContent>
         </Card>

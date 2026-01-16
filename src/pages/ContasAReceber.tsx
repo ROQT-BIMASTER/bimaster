@@ -20,6 +20,7 @@ import {
 import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatLocalDate } from "@/utils/dateUtils";
 import * as XLSX from 'xlsx';
 import { toast } from "sonner";
 import { DashboardContasReceberAggregated } from "@/components/financeiro/DashboardContasReceberAggregated";
@@ -353,8 +354,8 @@ export default function ContasAReceber() {
       'Documento': `${c.numero_documento}/${c.parcela}`,
       'Cliente': c.cliente_nome,
       'Vendedor': c.vendedor_nome,
-      'Emissão': c.data_emissao ? format(new Date(c.data_emissao), 'dd/MM/yyyy', { locale: ptBR }) : '',
-      'Vencimento': c.data_vencimento ? format(new Date(c.data_vencimento), 'dd/MM/yyyy', { locale: ptBR }) : '',
+      'Emissão': formatLocalDate(c.data_emissao),
+      'Vencimento': formatLocalDate(c.data_vencimento),
       'Valor Original': c.valor_original,
       'Valor Aberto': c.valor_aberto,
       'Valor Recebido': c.valor_recebido,
@@ -825,10 +826,10 @@ export default function ContasAReceber() {
                             <TableCell>{conta.cliente_nome}</TableCell>
                             <TableCell>{conta.vendedor_nome}</TableCell>
                             <TableCell>
-                              {conta.data_emissao ? format(new Date(conta.data_emissao), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                              {formatLocalDate(conta.data_emissao)}
                             </TableCell>
                             <TableCell>
-                              {conta.data_vencimento ? format(new Date(conta.data_vencimento), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                              {formatLocalDate(conta.data_vencimento)}
                             </TableCell>
                             <TableCell className="text-right">
                               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor_original)}

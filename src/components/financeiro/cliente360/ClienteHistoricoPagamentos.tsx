@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
-import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatLocalDate } from "@/utils/dateUtils";
 
 interface ClienteHistoricoPagamentosProps {
   clienteCodigo: string;
@@ -110,13 +109,11 @@ export default function ClienteHistoricoPagamentos({ clienteCodigo }: ClienteHis
                     </div>
                     <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                       <span>
-                        Venc: {titulo.data_vencimento 
-                          ? format(parseISO(titulo.data_vencimento), 'dd/MM/yyyy', { locale: ptBR })
-                          : '-'}
+                        Venc: {formatLocalDate(titulo.data_vencimento)}
                       </span>
                       {titulo.data_recebimento && (
                         <span>
-                          Pago: {format(parseISO(titulo.data_recebimento), 'dd/MM/yyyy', { locale: ptBR })}
+                          Pago: {formatLocalDate(titulo.data_recebimento)}
                         </span>
                       )}
                       {titulo.dias_atraso && titulo.dias_atraso > 0 && (

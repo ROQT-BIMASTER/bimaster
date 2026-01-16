@@ -17,6 +17,7 @@ import {
 import { PowerQueryInstructions } from '@/components/financeiro/PowerQueryInstructions';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatLocalDate } from "@/utils/dateUtils";
 
 export default function ContasReceberSyncPage() {
   const {
@@ -515,9 +516,7 @@ export default function ContasReceberSyncPage() {
                           }).format(record.valor_aberto || 0)}
                         </TableCell>
                         <TableCell>
-                          {record.data_vencimento
-                            ? new Date(record.data_vencimento).toLocaleDateString('pt-BR')
-                            : '-'}
+                          {formatLocalDate(record.data_vencimento)}
                         </TableCell>
                         <TableCell>
                           <Badge variant={record.status === 'pago' ? 'default' : 'secondary'}>
