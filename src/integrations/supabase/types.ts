@@ -14599,6 +14599,65 @@ export type Database = {
               valor_total: number
             }[]
           }
+      get_contas_receber_aging: {
+        Args: {
+          p_ano?: number
+          p_conta?: string
+          p_empresas?: number[]
+          p_mes?: number
+          p_portador?: string
+        }
+        Returns: Json
+      }
+      get_contas_receber_calendario: {
+        Args: {
+          p_ano?: number
+          p_conta?: string
+          p_empresas?: number[]
+          p_portador?: string
+        }
+        Returns: Json
+      }
+      get_contas_receber_dashboard_kpis: {
+        Args: {
+          p_ano?: number
+          p_conta?: string
+          p_empresas?: number[]
+          p_mes?: number
+          p_portador?: string
+        }
+        Returns: Json
+      }
+      get_contas_receber_evolucao_mensal: {
+        Args: {
+          p_ano?: number
+          p_conta?: string
+          p_empresas?: number[]
+          p_portador?: string
+        }
+        Returns: Json
+      }
+      get_contas_receber_filtros: { Args: { p_ano?: number }; Returns: Json }
+      get_contas_receber_status_dist: {
+        Args: {
+          p_ano?: number
+          p_conta?: string
+          p_empresas?: number[]
+          p_mes?: number
+          p_portador?: string
+        }
+        Returns: Json
+      }
+      get_contas_receber_top_clientes: {
+        Args: {
+          p_ano?: number
+          p_conta?: string
+          p_empresas?: number[]
+          p_mes?: number
+          p_portador?: string
+        }
+        Returns: Json
+      }
       get_conversion_funnel: {
         Args: never
         Returns: {
