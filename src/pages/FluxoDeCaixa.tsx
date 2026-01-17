@@ -1,40 +1,30 @@
 import React, { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { 
   TrendingUp, 
   TrendingDown, 
   AlertTriangle, 
-  DollarSign,
   Calendar,
-  ArrowDownCircle,
-  ArrowUpCircle,
-  Clock,
-  BarChart3,
   RefreshCw,
-  Building2,
-  CheckCircle,
-  ChevronsUpDown,
   Filter,
-  X,
   Table as TableIcon
 } from "lucide-react";
-import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, subMonths } from "date-fns";
+import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { parseLocalDate, formatLocalDate } from "@/utils/dateUtils";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, Cell } from "recharts";
 import { cn } from "@/lib/utils";
+
+// Custom hooks and components
+import { useFluxoCaixaData } from "@/hooks/useFluxoCaixaData";
+import { FluxoCaixaFilters } from "@/components/fluxocaixa/FluxoCaixaFilters";
+import { FluxoCaixaKPIsAdvanced } from "@/components/fluxocaixa/FluxoCaixaKPIsAdvanced";
+import { FluxoCaixaYearlyChart } from "@/components/fluxocaixa/FluxoCaixaYearlyChart";
+import { FluxoCaixaMovimentacoesTable } from "@/components/fluxocaixa/FluxoCaixaMovimentacoesTable";
 import { FluxoCaixaTable } from "@/components/fluxocaixa/FluxoCaixaTable";
 import { CashGapAlertsDialog } from "@/components/fluxocaixa/CashGapAlertsDialog";
 
@@ -60,134 +50,53 @@ const FluxoDeCaixa = () => {
   const [period, setPeriod] = useState<PeriodType>("daily");
   const [activeTab, setActiveTab] = useState("visao-geral");
   
-  // Filtros profissionais - Amplia o range de dados para garantir carregamento completo
+  // Filtros - Agora com anos e meses
+  const [filterAnos, setFilterAnos] = useState<number[]>([new Date().getFullYear()]);
+  const [filterMeses, setFilterMeses] = useState<number[]>([]);
   const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
-  const [filterDataInicio, setFilterDataInicio] = useState<string>(format(subMonths(new Date(), 6), "yyyy-MM-dd"));
-  const [filterDataFim, setFilterDataFim] = useState<string>(format(addDays(new Date(), 180), "yyyy-MM-dd"));
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterVendedor, setFilterVendedor] = useState<string>("todos");
   const [filterCliente, setFilterCliente] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch contas a receber - Busca TODOS os registros não pagos (lowercase no banco)
-  const { data: contasReceberRaw, isLoading: loadingReceber, refetch: refetchReceber } = useQuery({
-    queryKey: ["fluxo-caixa-receber", filterDataInicio, filterDataFim, filterStatus],
-    queryFn: async () => {
-      let query = supabase
-        .from("contas_receber")
-        .select("*")
-        .gte("data_vencimento", filterDataInicio)
-        .lte("data_vencimento", filterDataFim);
-      
-      if (filterStatus !== "todos") {
-        // Status específico (lowercase)
-        query = query.eq("status", filterStatus.toLowerCase());
-      } else {
-        // Busca todos os não recebidos - status em lowercase no banco
-        query = query.neq("status", "recebido");
-      }
-      
-      const { data, error } = await query.limit(100000);
-      if (error) throw error;
-      return data || [];
-    }
+  // Use custom hook for data fetching
+  const {
+    contasReceber,
+    contasPagar,
+    isLoading,
+    refetch,
+    empresas,
+    vendedores,
+    anosDisponiveis,
+    totalRecordsReceber,
+    totalRecordsPagar
+  } = useFluxoCaixaData({
+    filterAnos,
+    filterMeses,
+    filterEmpresas,
+    filterStatus,
+    filterVendedor,
+    filterCliente
   });
-
-  // Fetch contas a pagar - Busca TODOS os registros não pagos (lowercase no banco)
-  const { data: contasPagarRaw, isLoading: loadingPagar, refetch: refetchPagar } = useQuery({
-    queryKey: ["fluxo-caixa-pagar", filterDataInicio, filterDataFim, filterStatus],
-    queryFn: async () => {
-      let query = supabase
-        .from("contas_pagar")
-        .select("*")
-        .gte("data_vencimento", filterDataInicio)
-        .lte("data_vencimento", filterDataFim);
-      
-      if (filterStatus !== "todos") {
-        // Status específico (lowercase)
-        query = query.eq("status", filterStatus.toLowerCase());
-      } else {
-        // Busca todos os não pagos - status em lowercase no banco
-        query = query.neq("status", "pago");
-      }
-      
-      const { data, error } = await query.limit(100000);
-      if (error) throw error;
-      return data || [];
-    }
-  });
-
-  const isLoading = loadingReceber || loadingPagar;
-
-  // Extrair empresas únicas
-  const empresas = useMemo(() => {
-    const all = [...(contasReceberRaw || []), ...(contasPagarRaw || [])];
-    const seen = new Map<number, string>();
-    all.forEach(c => {
-      if (c.empresa_id && c.empresa_nome && !seen.has(c.empresa_id)) {
-        seen.set(c.empresa_id, c.empresa_nome);
-      }
-    });
-    return Array.from(seen.entries()).map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [contasReceberRaw, contasPagarRaw]);
-
-  // Extrair vendedores únicos
-  const vendedores = useMemo(() => {
-    const all = contasReceberRaw || [];
-    const seen = new Set<string>();
-    all.forEach(c => {
-      if (c.vendedor_nome) seen.add(c.vendedor_nome);
-    });
-    return Array.from(seen).sort();
-  }, [contasReceberRaw]);
-
-  // Filtrar dados
-  const contasReceber = useMemo(() => {
-    if (!contasReceberRaw) return [];
-    let filtered = contasReceberRaw;
-    
-    if (filterEmpresas.length > 0) {
-      filtered = filtered.filter(c => filterEmpresas.includes(c.empresa_id));
-    }
-    if (filterVendedor !== "todos") {
-      filtered = filtered.filter(c => c.vendedor_nome === filterVendedor);
-    }
-    if (filterCliente.trim()) {
-      const search = filterCliente.toLowerCase();
-      filtered = filtered.filter(c => 
-        c.cliente_nome?.toLowerCase().includes(search) ||
-        c.cliente_codigo?.toLowerCase().includes(search)
-      );
-    }
-    return filtered;
-  }, [contasReceberRaw, filterEmpresas, filterVendedor, filterCliente]);
-
-  const contasPagar = useMemo(() => {
-    if (!contasPagarRaw) return [];
-    let filtered = contasPagarRaw;
-    
-    if (filterEmpresas.length > 0) {
-      filtered = filtered.filter(c => filterEmpresas.includes(c.empresa_id));
-    }
-    return filtered;
-  }, [contasPagarRaw, filterEmpresas]);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
+    if (filterAnos.length > 0) count++;
+    if (filterMeses.length > 0) count++;
     if (filterEmpresas.length > 0) count++;
     if (filterVendedor !== "todos") count++;
     if (filterCliente.trim()) count++;
     if (filterStatus !== "todos") count++;
     return count;
-  }, [filterEmpresas, filterVendedor, filterCliente, filterStatus]);
+  }, [filterAnos, filterMeses, filterEmpresas, filterVendedor, filterCliente, filterStatus]);
 
   const clearFilters = () => {
+    setFilterAnos([new Date().getFullYear()]);
+    setFilterMeses([]);
     setFilterEmpresas([]);
     setFilterVendedor("todos");
     setFilterCliente("");
     setFilterStatus("todos");
-    setFilterDataInicio(format(subMonths(new Date(), 6), "yyyy-MM-dd"));
-    setFilterDataFim(format(addDays(new Date(), 180), "yyyy-MM-dd"));
   };
 
   // Calculate cash flow projections
@@ -202,7 +111,7 @@ const FluxoDeCaixa = () => {
       switch (period) {
         case "daily": return 30;
         case "weekly": return 12;
-        case "monthly": return 6;
+        case "monthly": return 12;
         default: return 30;
       }
     };
@@ -228,14 +137,16 @@ const FluxoDeCaixa = () => {
       
       const entradas = contasReceber
         .filter(c => {
-          const venc = new Date(c.data_vencimento!);
+          if (!c.data_vencimento) return false;
+          const venc = new Date(c.data_vencimento);
           return venc >= start && venc <= end;
         })
         .reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
 
       const saidas = contasPagar
         .filter(c => {
-          const venc = new Date(c.data_vencimento!);
+          if (!c.data_vencimento) return false;
+          const venc = new Date(c.data_vencimento);
           return venc >= start && venc <= end;
         })
         .reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
@@ -270,7 +181,8 @@ const FluxoDeCaixa = () => {
 
     return buckets.map(bucket => {
       const filtered = contasReceber.filter(c => {
-        const venc = new Date(c.data_vencimento!);
+        if (!c.data_vencimento) return false;
+        const venc = new Date(c.data_vencimento);
         const diff = differenceInDays(bucket.future ? venc : today, bucket.future ? today : venc);
         return diff >= bucket.min && diff <= bucket.max;
       });
@@ -300,7 +212,8 @@ const FluxoDeCaixa = () => {
 
     return buckets.map(bucket => {
       const filtered = contasPagar.filter(c => {
-        const venc = new Date(c.data_vencimento!);
+        if (!c.data_vencimento) return false;
+        const venc = new Date(c.data_vencimento);
         const diff = differenceInDays(bucket.future ? venc : today, bucket.future ? today : venc);
         return diff >= bucket.min && diff <= bucket.max;
       });
@@ -314,41 +227,6 @@ const FluxoDeCaixa = () => {
       };
     });
   }, [contasPagar]);
-
-  // Calculate KPIs
-  const kpis = useMemo(() => {
-    if (!contasReceber || !contasPagar) {
-      return { dso: 0, dpo: 0, ciclo: 0, totalReceber: 0, totalPagar: 0, saldoProjetado: 0 };
-    }
-
-    const today = new Date();
-    
-    // DSO - Days Sales Outstanding
-    const receberVencidos = contasReceber.filter(c => new Date(c.data_vencimento!) < today);
-    const totalVencidoReceber = receberVencidos.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
-    const diasVencidosReceber = receberVencidos.reduce((sum, c) => {
-      return sum + differenceInDays(today, new Date(c.data_vencimento!)) * (c.valor_aberto || 0);
-    }, 0);
-    const dso = totalVencidoReceber > 0 ? Math.round(diasVencidosReceber / totalVencidoReceber) : 0;
-
-    // DPO - Days Payable Outstanding
-    const pagarVencidos = contasPagar.filter(c => new Date(c.data_vencimento!) < today);
-    const totalVencidoPagar = pagarVencidos.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
-    const diasVencidosPagar = pagarVencidos.reduce((sum, c) => {
-      return sum + differenceInDays(today, new Date(c.data_vencimento!)) * (c.valor_aberto || 0);
-    }, 0);
-    const dpo = totalVencidoPagar > 0 ? Math.round(diasVencidosPagar / totalVencidoPagar) : 0;
-
-    // Ciclo Financeiro
-    const ciclo = dso - dpo;
-
-    // Totals
-    const totalReceber = contasReceber.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
-    const totalPagar = contasPagar.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
-    const saldoProjetado = totalReceber - totalPagar;
-
-    return { dso, dpo, ciclo, totalReceber, totalPagar, saldoProjetado };
-  }, [contasReceber, contasPagar]);
 
   // Cash gap alerts
   const cashGapAlerts = useMemo(() => {
@@ -370,9 +248,18 @@ const FluxoDeCaixa = () => {
     }).format(value);
   };
 
-  const handleRefresh = () => {
-    refetchReceber();
-    refetchPagar();
+  // Period label for display
+  const getPeriodLabel = () => {
+    if (filterAnos.length === 0) return "Últimos 3 anos + 1 futuro";
+    const anos = filterAnos.sort((a, b) => a - b);
+    if (filterMeses.length > 0) {
+      const meses = filterMeses.map(m => {
+        const labels = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+        return labels[m - 1];
+      }).join(", ");
+      return `${anos.join(", ")} • ${meses}`;
+    }
+    return anos.join(", ");
   };
 
   if (isLoading) {
@@ -398,7 +285,9 @@ const FluxoDeCaixa = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Fluxo de Caixa</h1>
-            <p className="text-muted-foreground">Projeção de entradas e saídas</p>
+            <p className="text-muted-foreground">
+              Projeção de entradas e saídas • {getPeriodLabel()}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Button 
@@ -414,7 +303,7 @@ const FluxoDeCaixa = () => {
                 </Badge>
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
+            <Button variant="outline" size="sm" onClick={refetch}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Atualizar
             </Button>
@@ -423,225 +312,35 @@ const FluxoDeCaixa = () => {
 
         {/* Painel de Filtros Profissional */}
         {showFilters && (
-          <Card className="border-primary/20 bg-muted/30">
-            <CardContent className="pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                {/* Data Início */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Data Início</Label>
-                  <Input
-                    type="date"
-                    value={filterDataInicio}
-                    onChange={(e) => setFilterDataInicio(e.target.value)}
-                    className="h-9"
-                  />
-                </div>
-
-                {/* Data Fim */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Data Fim</Label>
-                  <Input
-                    type="date"
-                    value={filterDataFim}
-                    onChange={(e) => setFilterDataFim(e.target.value)}
-                    className="h-9"
-                  />
-                </div>
-
-                {/* Empresa */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Empresa</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-between h-9 text-sm">
-                        <div className="flex items-center gap-2 truncate">
-                          <Building2 className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">
-                            {filterEmpresas.length === 0 
-                              ? "Todas" 
-                              : `${filterEmpresas.length} selecionada(s)`}
-                          </span>
-                        </div>
-                        <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[280px] p-0" align="start">
-                      <div className="p-2 border-b">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="w-full justify-start text-sm"
-                          onClick={() => setFilterEmpresas([])}
-                        >
-                          <CheckCircle className={`mr-2 h-4 w-4 ${filterEmpresas.length === 0 ? 'opacity-100' : 'opacity-0'}`} />
-                          Todas as empresas
-                        </Button>
-                      </div>
-                      <div className="max-h-[200px] overflow-auto p-2 space-y-1">
-                        {empresas.map(emp => (
-                          <div key={emp.id} className="flex items-center space-x-2 p-1.5 hover:bg-muted rounded">
-                            <Checkbox
-                              id={`filter-emp-${emp.id}`}
-                              checked={filterEmpresas.includes(emp.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) setFilterEmpresas([...filterEmpresas, emp.id]);
-                                else setFilterEmpresas(filterEmpresas.filter(id => id !== emp.id));
-                              }}
-                            />
-                            <label htmlFor={`filter-emp-${emp.id}`} className="text-sm cursor-pointer flex-1 truncate">
-                              {emp.nome}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                {/* Status */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Status</Label>
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos</SelectItem>
-                      <SelectItem value="pendente">Pendente</SelectItem>
-                      <SelectItem value="parcial">Parcial</SelectItem>
-                      <SelectItem value="vencido">Vencido</SelectItem>
-                      <SelectItem value="pago">Pago</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Vendedor */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Vendedor</Label>
-                  <Select value={filterVendedor} onValueChange={setFilterVendedor}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos</SelectItem>
-                      {vendedores.map(v => (
-                        <SelectItem key={v} value={v}>{v}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Cliente/Fornecedor */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Cliente/Fornecedor</Label>
-                  <div className="relative">
-                    <Input
-                      placeholder="Buscar..."
-                      value={filterCliente}
-                      onChange={(e) => setFilterCliente(e.target.value)}
-                      className="h-9 pr-8"
-                    />
-                    {filterCliente && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0 h-9 w-8"
-                        onClick={() => setFilterCliente("")}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Botões de Ação */}
-              <div className="flex items-center justify-between mt-4 pt-3 border-t">
-                <div className="text-xs text-muted-foreground">
-                  {contasReceber.length} entradas • {contasPagar.length} saídas
-                </div>
-                <div className="flex gap-2">
-                  {activeFiltersCount > 0 && (
-                    <Button variant="ghost" size="sm" onClick={clearFilters}>
-                      <X className="h-4 w-4 mr-1" />
-                      Limpar filtros
-                    </Button>
-                  )}
-                  <Button size="sm" onClick={() => { refetchReceber(); refetchPagar(); }}>
-                    Aplicar
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <FluxoCaixaFilters
+            filterAnos={filterAnos}
+            setFilterAnos={setFilterAnos}
+            filterMeses={filterMeses}
+            setFilterMeses={setFilterMeses}
+            filterEmpresas={filterEmpresas}
+            setFilterEmpresas={setFilterEmpresas}
+            filterStatus={filterStatus}
+            setFilterStatus={setFilterStatus}
+            filterVendedor={filterVendedor}
+            setFilterVendedor={setFilterVendedor}
+            filterCliente={filterCliente}
+            setFilterCliente={setFilterCliente}
+            empresas={empresas}
+            vendedores={vendedores}
+            onClearFilters={clearFilters}
+            onApply={refetch}
+            totalReceber={contasReceber.length}
+            totalPagar={contasPagar.length}
+            anosDisponiveis={anosDisponiveis}
+          />
         )}
 
-        {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <ArrowUpCircle className="h-4 w-4 text-emerald-500" />
-                <span className="text-xs text-muted-foreground">Total a Receber</span>
-              </div>
-              <p className="text-lg font-bold text-emerald-600">{formatCurrency(kpis.totalReceber)}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <ArrowDownCircle className="h-4 w-4 text-rose-500" />
-                <span className="text-xs text-muted-foreground">Total a Pagar</span>
-              </div>
-              <p className="text-lg font-bold text-rose-600">{formatCurrency(kpis.totalPagar)}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="h-4 w-4 text-primary" />
-                <span className="text-xs text-muted-foreground">Saldo Projetado</span>
-              </div>
-              <p className={cn("text-lg font-bold", kpis.saldoProjetado >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                {formatCurrency(kpis.saldoProjetado)}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="h-4 w-4 text-blue-500" />
-                <span className="text-xs text-muted-foreground">DSO (Receber)</span>
-              </div>
-              <p className="text-lg font-bold">{kpis.dso} dias</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="h-4 w-4 text-orange-500" />
-                <span className="text-xs text-muted-foreground">DPO (Pagar)</span>
-              </div>
-              <p className="text-lg font-bold">{kpis.dpo} dias</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <BarChart3 className="h-4 w-4 text-purple-500" />
-                <span className="text-xs text-muted-foreground">Ciclo Financeiro</span>
-              </div>
-              <p className={cn("text-lg font-bold", kpis.ciclo <= 0 ? "text-emerald-600" : "text-amber-600")}>
-                {kpis.ciclo} dias
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* KPIs Avançados */}
+        <FluxoCaixaKPIsAdvanced
+          contasReceber={contasReceber}
+          contasPagar={contasPagar}
+          filterAnos={filterAnos}
+        />
 
         {/* Cash Gap Alerts */}
         {cashGapAlerts.length > 0 && (
@@ -693,6 +392,7 @@ const FluxoDeCaixa = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
+            <TabsTrigger value="analise-comparativa">Análise Comparativa</TabsTrigger>
             <TabsTrigger value="aging-receber">Aging Receber</TabsTrigger>
             <TabsTrigger value="aging-pagar">Aging Pagar</TabsTrigger>
             <TabsTrigger value="movimentacoes">Movimentações</TabsTrigger>
@@ -813,8 +513,17 @@ const FluxoDeCaixa = () => {
               </CardContent>
             </Card>
 
-            {/* Cash Flow Table - Similar to CIGAM */}
+            {/* Cash Flow Table */}
             <FluxoCaixaTable projections={projections} period={period} />
+          </TabsContent>
+
+          {/* Análise Comparativa Tab */}
+          <TabsContent value="analise-comparativa" className="space-y-4">
+            <FluxoCaixaYearlyChart
+              contasReceber={contasReceber}
+              contasPagar={contasPagar}
+              filterAnos={filterAnos}
+            />
           </TabsContent>
 
           <TabsContent value="aging-receber">
@@ -834,9 +543,9 @@ const FluxoDeCaixa = () => {
           </TabsContent>
 
           <TabsContent value="movimentacoes">
-            <MovimentacoesTable 
-              contasReceber={contasReceber || []}
-              contasPagar={contasPagar || []}
+            <FluxoCaixaMovimentacoesTable 
+              contasReceber={contasReceber}
+              contasPagar={contasPagar}
             />
           </TabsContent>
         </Tabs>
@@ -933,143 +642,6 @@ const AgingReport = ({
         </CardContent>
       </Card>
     </div>
-  );
-};
-
-// Movimentações Table Component
-const MovimentacoesTable = ({ 
-  contasReceber, 
-  contasPagar 
-}: { 
-  contasReceber: any[];
-  contasPagar: any[];
-}) => {
-  const [filter, setFilter] = useState<"all" | "receber" | "pagar">("all");
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL"
-    }).format(value);
-  };
-
-  const allMovimentos = useMemo(() => {
-    const receber = contasReceber.map(c => ({
-      ...c,
-      tipo: "receber" as const,
-      nome: c.cliente_nome,
-      valor: c.valor_aberto
-    }));
-    
-    const pagar = contasPagar.map(c => ({
-      ...c,
-      tipo: "pagar" as const,
-      nome: c.fornecedor_nome,
-      valor: c.valor_aberto
-    }));
-
-    let combined = [...receber, ...pagar];
-    
-    if (filter !== "all") {
-      combined = combined.filter(m => m.tipo === filter);
-    }
-
-    return combined.sort((a, b) => {
-      const dateA = parseLocalDate(a.data_vencimento);
-      const dateB = parseLocalDate(b.data_vencimento);
-      return (dateA?.getTime() || 0) - (dateB?.getTime() || 0);
-    });
-  }, [contasReceber, contasPagar, filter]);
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-          <CardTitle className="text-base">Movimentações Previstas</CardTitle>
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              variant={filter === "all" ? "default" : "outline"}
-              onClick={() => setFilter("all")}
-            >
-              Todas
-            </Button>
-            <Button 
-              size="sm" 
-              variant={filter === "receber" ? "default" : "outline"}
-              onClick={() => setFilter("receber")}
-            >
-              Entradas
-            </Button>
-            <Button 
-              size="sm" 
-              variant={filter === "pagar" ? "default" : "outline"}
-              onClick={() => setFilter("pagar")}
-            >
-              Saídas
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-muted-foreground">
-                <th className="text-left py-2">Vencimento</th>
-                <th className="text-left py-2">Tipo</th>
-                <th className="text-left py-2">Empresa</th>
-                <th className="text-left py-2">Nome</th>
-                <th className="text-left py-2">Documento</th>
-                <th className="text-right py-2">Valor</th>
-                <th className="text-center py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allMovimentos.slice(0, 50).map((mov, i) => (
-                <tr key={i} className="border-b hover:bg-muted/50">
-                  <td className="py-2">
-                    {formatLocalDate(mov.data_vencimento, "dd/MM/yyyy")}
-                  </td>
-                  <td className="py-2">
-                    {mov.tipo === "receber" ? (
-                      <Badge variant="outline" className="text-emerald-600 border-emerald-200">
-                        <ArrowUpCircle className="h-3 w-3 mr-1" />
-                        Entrada
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-rose-600 border-rose-200">
-                        <ArrowDownCircle className="h-3 w-3 mr-1" />
-                        Saída
-                      </Badge>
-                    )}
-                  </td>
-                  <td className="py-2 text-muted-foreground text-xs">{mov.empresa_nome || "-"}</td>
-                  <td className="py-2 max-w-[200px] truncate">{mov.nome || "-"}</td>
-                  <td className="py-2 text-muted-foreground">{mov.numero_documento || "-"}</td>
-                  <td className={cn(
-                    "py-2 text-right font-medium",
-                    mov.tipo === "receber" ? "text-emerald-600" : "text-rose-600"
-                  )}>
-                    {formatCurrency(mov.valor || 0)}
-                  </td>
-                  <td className="py-2 text-center">
-                    <Badge variant={mov.status === "vencido" ? "destructive" : "secondary"}>
-                      {mov.status}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {allMovimentos.length > 50 && (
-            <p className="text-center text-muted-foreground text-sm mt-4">
-              Mostrando 50 de {allMovimentos.length} movimentações
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 
