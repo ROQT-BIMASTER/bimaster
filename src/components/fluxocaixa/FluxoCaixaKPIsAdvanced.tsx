@@ -21,26 +21,29 @@ import { differenceInDays } from "date-fns";
 interface FluxoCaixaKPIsAdvancedProps {
   contasReceber: any[];
   contasPagar: any[];
+  contasReceberRaw: any[];
   filterAnos: number[];
 }
 
 export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
   contasReceber,
   contasPagar,
+  contasReceberRaw,
   filterAnos
 }: FluxoCaixaKPIsAdvancedProps) {
   const [showYoYDialog, setShowYoYDialog] = useState(false);
   const [showInadimplenciaDialog, setShowInadimplenciaDialog] = useState(false);
 
-  // Dados detalhados para YoY
+  // Dados detalhados para YoY - USA DADOS RAW PARA GARANTIR COMPLETUDE
   const yoyDetails = useMemo(() => {
     const anoAtual = filterAnos.length > 0 ? Math.max(...filterAnos) : new Date().getFullYear();
     const anoAnterior = anoAtual - 1;
     
-    const dadosAnoAtual = contasReceber.filter(c => 
+    // Usa contasReceberRaw para ter todos os dados
+    const dadosAnoAtual = contasReceberRaw.filter(c => 
       c.data_vencimento && new Date(c.data_vencimento).getFullYear() === anoAtual
     );
-    const dadosAnoAnterior = contasReceber.filter(c => 
+    const dadosAnoAnterior = contasReceberRaw.filter(c => 
       c.data_vencimento && new Date(c.data_vencimento).getFullYear() === anoAnterior
     );
     
@@ -48,6 +51,16 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     const totalAnoAnterior = dadosAnoAnterior.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
     const qtdAnoAtual = dadosAnoAtual.length;
     const qtdAnoAnterior = dadosAnoAnterior.length;
+    
+    console.log('[YoY] Dados RAW carregados:', {
+      totalRaw: contasReceberRaw.length,
+      anoAtual,
+      qtdAnoAtual,
+      totalAnoAtual,
+      anoAnterior,
+      qtdAnoAnterior,
+      totalAnoAnterior
+    });
     
     const variacao = totalAnoAnterior > 0 
       ? ((totalAnoAtual - totalAnoAnterior) / totalAnoAnterior) * 100 
@@ -90,9 +103,9 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
       diferencaAbsoluta,
       comparativoMensal
     };
-  }, [contasReceber, filterAnos]);
+  }, [contasReceberRaw, filterAnos]);
 
-  // Dados detalhados para Inadimplência
+  // Dados detalhados para Inadimplência - USA DADOS RAW PARA GARANTIR COMPLETUDE
   const inadimplenciaDetails = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -105,7 +118,8 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     const vencidos: any[] = [];
     const aVencer: any[] = [];
     
-    contasReceber.forEach(c => {
+    // Usa contasReceberRaw para ter todos os dados
+    contasReceberRaw.forEach(c => {
       if (!c.data_vencimento) return;
       const valorAberto = c.valor_aberto || 0;
       if (valorAberto <= 0) return;
@@ -123,6 +137,15 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     const totalAVencer = aVencer.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
     const totalGeral = totalVencido + totalAVencer;
     const percentual = totalGeral > 0 ? (totalVencido / totalGeral) * 100 : 0;
+    
+    console.log('[Inadimplência] Dados RAW carregados:', {
+      totalRaw: contasReceberRaw.length,
+      vencidos: vencidos.length,
+      aVencer: aVencer.length,
+      totalVencido,
+      totalAVencer,
+      percentual: percentual.toFixed(2) + '%'
+    });
     
     // Faixas de atraso
     const faixas = {
@@ -177,7 +200,7 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
       faixas,
       topClientes
     };
-  }, [contasReceber]);
+  }, [contasReceberRaw]);
 
   const kpis = useMemo(() => {
     if (!contasReceber || !contasPagar) {
