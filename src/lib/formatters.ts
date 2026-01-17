@@ -16,6 +16,74 @@ export function formatCurrency(value: number, showCents: boolean = true): string
 }
 
 /**
+ * Formata valor monetário de forma inteligente com sufixo M (milhões) ou K (milhares)
+ * Ideal para dashboards e cards onde o espaço é limitado
+ * 
+ * @param value - Valor numérico a ser formatado
+ * @param options - Opções de formatação
+ * @returns String formatada (ex: "R$ 76,8M" ou "R$ 568,2K")
+ */
+export function formatCurrencySmart(
+  value: number, 
+  options: { 
+    showFullOnHover?: boolean; 
+    decimals?: number;
+    threshold?: { millions?: number; thousands?: number };
+  } = {}
+): { formatted: string; full: string; suffix: string | null } {
+  const { 
+    decimals = 1, 
+    threshold = { millions: 1000000, thousands: 1000 } 
+  } = options;
+  
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  
+  const fullFormatted = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+  
+  if (absValue >= (threshold.millions || 1000000)) {
+    const millions = value / 1000000;
+    return {
+      formatted: `${sign}R$ ${Math.abs(millions).toFixed(decimals).replace('.', ',')}M`,
+      full: fullFormatted,
+      suffix: 'M'
+    };
+  }
+  
+  if (absValue >= (threshold.thousands || 1000)) {
+    const thousands = value / 1000;
+    return {
+      formatted: `${sign}R$ ${Math.abs(thousands).toFixed(decimals).replace('.', ',')}K`,
+      full: fullFormatted,
+      suffix: 'K'
+    };
+  }
+  
+  return {
+    formatted: new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value),
+    full: fullFormatted,
+    suffix: null
+  };
+}
+
+/**
+ * Versão simplificada que retorna apenas a string formatada
+ */
+export function formatCurrencyCompact(value: number, decimals: number = 1): string {
+  return formatCurrencySmart(value, { decimals }).formatted;
+}
+
+/**
  * Formata número com separadores de milhar
  */
 export function formatNumber(value: number, decimals: number = 0): string {

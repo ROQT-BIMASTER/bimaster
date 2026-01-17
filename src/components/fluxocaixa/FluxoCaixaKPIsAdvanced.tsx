@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
+import { SmartValue, ValueLegend } from "@/components/ui/smart-value";
+import { formatCurrencyCompact } from "@/lib/formatters";
 
 interface FluxoCaixaKPIsAdvancedProps {
   contasReceber: any[];
@@ -284,7 +286,8 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     };
   }, [contasReceber, contasPagar, yoyDetails, inadimplenciaDetails]);
 
-  const formatCurrency = (value: number) => {
+  // Usar formatCurrencyCompact para exibição resumida
+  const formatCurrencyFull = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
@@ -303,43 +306,54 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     {
       icon: <ArrowUpCircle className="h-4 w-4 text-emerald-500" />,
       label: "Total a Receber",
-      value: formatCurrency(kpis.totalReceber),
-      color: "text-emerald-600"
+      rawValue: kpis.totalReceber,
+      color: "text-emerald-600",
+      isMonetary: true
     },
     {
       icon: <ArrowDownCircle className="h-4 w-4 text-rose-500" />,
       label: "Total a Pagar",
-      value: formatCurrency(kpis.totalPagar),
-      color: "text-rose-600"
+      rawValue: kpis.totalPagar,
+      color: "text-rose-600",
+      isMonetary: true
     },
     {
       icon: <DollarSign className="h-4 w-4 text-primary" />,
       label: "Saldo Projetado",
-      value: formatCurrency(kpis.saldoProjetado),
-      color: kpis.saldoProjetado >= 0 ? "text-emerald-600" : "text-rose-600"
+      rawValue: kpis.saldoProjetado,
+      color: kpis.saldoProjetado >= 0 ? "text-emerald-600" : "text-rose-600",
+      isMonetary: true
     },
     {
       icon: <Clock className="h-4 w-4 text-blue-500" />,
       label: "DSO (Receber)",
       value: `${kpis.dso} dias`,
-      color: ""
+      color: "",
+      isMonetary: false
     },
     {
       icon: <Clock className="h-4 w-4 text-orange-500" />,
       label: "DPO (Pagar)",
       value: `${kpis.dpo} dias`,
-      color: ""
+      color: "",
+      isMonetary: false
     },
     {
       icon: <BarChart3 className="h-4 w-4 text-purple-500" />,
       label: "Ciclo Financeiro",
       value: `${kpis.ciclo} dias`,
-      color: kpis.ciclo <= 0 ? "text-emerald-600" : "text-amber-600"
+      color: kpis.ciclo <= 0 ? "text-emerald-600" : "text-amber-600",
+      isMonetary: false
     }
   ];
 
   return (
     <div className="space-y-4">
+      {/* Legenda M/K */}
+      <div className="flex justify-end">
+        <ValueLegend />
+      </div>
+
       {/* KPIs Principais */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {kpiCards.map((kpi, i) => (
@@ -349,7 +363,11 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                 {kpi.icon}
                 <span className="text-xs text-muted-foreground">{kpi.label}</span>
               </div>
-              <p className={cn("text-lg font-bold", kpi.color)}>{kpi.value}</p>
+              {kpi.isMonetary ? (
+                <SmartValue value={kpi.rawValue!} className={cn("text-lg font-bold", kpi.color)} />
+              ) : (
+                <p className={cn("text-lg font-bold", kpi.color)}>{kpi.value}</p>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -395,12 +413,12 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-lg bg-muted/50">
                   <p className="text-sm text-muted-foreground">{yoyDetails.anoAnterior}</p>
-                  <p className="text-2xl font-bold">{formatCurrency(yoyDetails.totalAnoAnterior)}</p>
+                  <SmartValue value={yoyDetails.totalAnoAnterior} className="text-2xl font-bold" />
                   <p className="text-xs text-muted-foreground">{yoyDetails.qtdAnoAnterior.toLocaleString('pt-BR')} títulos</p>
                 </div>
                 <div className="p-4 rounded-lg bg-primary/10">
                   <p className="text-sm text-muted-foreground">{yoyDetails.anoAtual}</p>
-                  <p className="text-2xl font-bold">{formatCurrency(yoyDetails.totalAnoAtual)}</p>
+                  <SmartValue value={yoyDetails.totalAnoAtual} className="text-2xl font-bold" />
                   <p className="text-xs text-muted-foreground">{yoyDetails.qtdAnoAtual.toLocaleString('pt-BR')} títulos</p>
                 </div>
               </div>
@@ -417,7 +435,7 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Diferença Absoluta</p>
                     <p className={cn("text-xl font-bold", yoyDetails.diferencaAbsoluta >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                      {yoyDetails.diferencaAbsoluta >= 0 ? '+' : ''}{formatCurrency(yoyDetails.diferencaAbsoluta)}
+                      {yoyDetails.diferencaAbsoluta >= 0 ? '+' : ''}<SmartValue value={yoyDetails.diferencaAbsoluta} className="inline" showTooltip={false} />
                     </p>
                   </div>
                 </div>
@@ -430,8 +448,8 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                   {yoyDetails.comparativoMensal.map((m, i) => (
                     <div key={i} className="grid grid-cols-4 gap-2 text-sm py-2 border-b last:border-0">
                       <span className="font-medium">{m.mes}</span>
-                      <span className="text-right text-muted-foreground">{formatCurrency(m.anoAnterior)}</span>
-                      <span className="text-right">{formatCurrency(m.anoAtual)}</span>
+                      <span className="text-right text-muted-foreground">{formatCurrencyCompact(m.anoAnterior)}</span>
+                      <span className="text-right">{formatCurrencyCompact(m.anoAtual)}</span>
                       <span className={cn("text-right font-medium", m.variacao !== null && m.variacao >= 0 ? "text-emerald-600" : "text-rose-600")}>
                         {m.variacao !== null ? `${m.variacao >= 0 ? '+' : ''}${m.variacao.toFixed(1)}%` : "-"}
                       </span>
@@ -459,7 +477,7 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
               <AlertTriangle className="h-4 w-4 text-amber-500" />
               <span className="text-xs text-muted-foreground">Maior Gap</span>
             </div>
-            <p className="text-lg font-bold text-amber-600">{formatCurrency(kpis.maiorGap)}</p>
+            <SmartValue value={kpis.maiorGap} className="text-lg font-bold text-amber-600" />
             <p className="text-xs text-muted-foreground mt-1">
               {kpis.maiorGapData ? formatDate(kpis.maiorGapData) : "Sem gaps"}
             </p>
@@ -500,12 +518,12 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
               <div className="grid grid-cols-3 gap-4">
                 <div className="p-4 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800">
                   <p className="text-sm text-rose-600">Vencido</p>
-                  <p className="text-2xl font-bold text-rose-600">{formatCurrency(inadimplenciaDetails.totalVencido)}</p>
+                  <SmartValue value={inadimplenciaDetails.totalVencido} className="text-2xl font-bold text-rose-600" />
                   <p className="text-xs text-rose-600/70">{inadimplenciaDetails.qtdVencidos.toLocaleString('pt-BR')} títulos</p>
                 </div>
                 <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
                   <p className="text-sm text-emerald-600">A Vencer</p>
-                  <p className="text-2xl font-bold text-emerald-600">{formatCurrency(inadimplenciaDetails.totalAVencer)}</p>
+                  <SmartValue value={inadimplenciaDetails.totalAVencer} className="text-2xl font-bold text-emerald-600" />
                   <p className="text-xs text-emerald-600/70">{inadimplenciaDetails.qtdAVencer.toLocaleString('pt-BR')} títulos</p>
                 </div>
                 <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
@@ -540,7 +558,7 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                         <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                           <div className={cn("h-full", f.color)} style={{ width: `${percentFaixa}%` }} />
                         </div>
-                        <span className="text-sm font-medium w-28 text-right">{formatCurrency(f.valor)}</span>
+                        <span className="text-sm font-medium w-28 text-right">{formatCurrencyCompact(f.valor)}</span>
                         <span className="text-xs text-muted-foreground w-16 text-right">({f.qtd})</span>
                       </div>
                     );
@@ -560,7 +578,7 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                           <span className="text-sm truncate max-w-[200px]">{c.nome}</span>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-rose-600">{formatCurrency(c.valor)}</p>
+                          <p className="text-sm font-semibold text-rose-600">{formatCurrencyCompact(c.valor)}</p>
                           <p className="text-xs text-muted-foreground">{c.qtd} títulos</p>
                         </div>
                       </div>
@@ -588,9 +606,10 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
               <Calendar className="h-4 w-4 text-blue-500" />
               <span className="text-xs text-muted-foreground">Previsão 12 meses</span>
             </div>
-            <p className={cn("text-lg font-bold", kpis.previsao12m >= 0 ? "text-emerald-600" : "text-rose-600")}>
-              {formatCurrency(kpis.previsao12m)}
-            </p>
+            <SmartValue 
+              value={kpis.previsao12m} 
+              className={cn("text-lg font-bold", kpis.previsao12m >= 0 ? "text-emerald-600" : "text-rose-600")} 
+            />
             <p className="text-xs text-muted-foreground mt-1">saldo projetado</p>
           </CardContent>
         </Card>
