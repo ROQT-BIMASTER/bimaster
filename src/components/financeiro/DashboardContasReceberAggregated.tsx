@@ -87,7 +87,7 @@ export function DashboardContasReceberAggregated({
       }
     }
     
-    return {
+    const params = {
       p_empresas: filterEmpresas.length > 0 ? filterEmpresas : null,
       p_ano: finalAnoParam,
       p_mes: finalMesParam,
@@ -96,14 +96,35 @@ export function DashboardContasReceberAggregated({
       p_data_vencimento: filterDiaVencimento || null,
       p_data_recebimento: filterDiaRecebimento || null,
     };
+    
+    console.log('[Dashboard] Filtros recebidos:', { filterEmpresas, filterAnos, filterMeses, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento });
+    console.log('[Dashboard] rpcParams:', params);
+    
+    return params;
   }, [filterEmpresas, filterAnos, filterMeses, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento]);
+
+  // Chaves serializáveis para queryKey (evita problemas de referência de objeto)
+  const queryKeyBase = useMemo(() => [
+    rpcParams.p_empresas?.join(',') ?? 'all',
+    rpcParams.p_ano ?? 'all',
+    rpcParams.p_mes ?? 'all',
+    rpcParams.p_conta ?? 'all',
+    rpcParams.p_portador ?? 'all',
+    rpcParams.p_data_vencimento ?? '',
+    rpcParams.p_data_recebimento ?? '',
+  ], [rpcParams]);
 
   // Query KPIs
   const { data: kpis, isLoading: isLoadingKpis } = useQuery({
-    queryKey: ['contas-receber-kpis', rpcParams],
+    queryKey: ['contas-receber-kpis', ...queryKeyBase],
     queryFn: async () => {
+      console.log('[Dashboard] Chamando get_contas_receber_dashboard_kpis com:', rpcParams);
       const { data, error } = await supabase.rpc('get_contas_receber_dashboard_kpis', rpcParams as any);
-      if (error) throw error;
+      if (error) {
+        console.error('[Dashboard] Erro em KPIs:', error);
+        throw error;
+      }
+      console.log('[Dashboard] KPIs recebidos:', data);
       return data as {
         total_titulos: number;
         total_valor_original: number;
@@ -134,61 +155,94 @@ export function DashboardContasReceberAggregated({
 
   // Query Evolução Mensal - usando rpcParams como dependência
   const { data: evolucao, isLoading: isLoadingEvolucao } = useQuery({
-    queryKey: ['contas-receber-evolucao', rpcParams],
+    queryKey: ['contas-receber-evolucao', ...queryKeyBase],
     queryFn: async () => {
+      console.log('[Dashboard] Chamando get_contas_receber_evolucao_mensal');
       const { data, error } = await supabase.rpc('get_contas_receber_evolucao_mensal', {
         p_empresas: rpcParams.p_empresas,
         p_ano: rpcParams.p_ano,
         p_conta: rpcParams.p_conta,
         p_portador: rpcParams.p_portador,
       });
-      if (error) throw error;
+      if (error) {
+        console.error('[Dashboard] Erro em Evolução:', error);
+        throw error;
+      }
+      console.log('[Dashboard] Evolução recebida:', data);
       return (data || []) as { mes: string; recebido: number; pendente: number }[];
     }
   });
 
   // Parâmetros simplificados para RPCs que não suportam p_data_vencimento e p_data_recebimento
-  const rpcParamsSimple = useMemo(() => ({
-    p_empresas: rpcParams.p_empresas,
-    p_ano: rpcParams.p_ano,
-    p_mes: rpcParams.p_mes,
-    p_conta: rpcParams.p_conta,
-    p_portador: rpcParams.p_portador,
-  }), [rpcParams]);
+  const rpcParamsSimple = useMemo(() => {
+    const params = {
+      p_empresas: rpcParams.p_empresas,
+      p_ano: rpcParams.p_ano,
+      p_mes: rpcParams.p_mes,
+      p_conta: rpcParams.p_conta,
+      p_portador: rpcParams.p_portador,
+    };
+    console.log('[Dashboard] rpcParamsSimple:', params);
+    return params;
+  }, [rpcParams.p_empresas, rpcParams.p_ano, rpcParams.p_mes, rpcParams.p_conta, rpcParams.p_portador]);
+
+  // Chave simplificada para queries que usam rpcParamsSimple
+  const queryKeySimple = useMemo(() => [
+    rpcParamsSimple.p_empresas?.join(',') ?? 'all',
+    rpcParamsSimple.p_ano ?? 'all',
+    rpcParamsSimple.p_mes ?? 'all',
+    rpcParamsSimple.p_conta ?? 'all',
+    rpcParamsSimple.p_portador ?? 'all',
+  ], [rpcParamsSimple]);
 
   // Query Top Clientes
   const { data: topClientes, isLoading: isLoadingTop } = useQuery({
-    queryKey: ['contas-receber-top', rpcParamsSimple],
+    queryKey: ['contas-receber-top', ...queryKeySimple],
     queryFn: async () => {
+      console.log('[Dashboard] Chamando get_contas_receber_top_clientes');
       const { data, error } = await supabase.rpc('get_contas_receber_top_clientes', rpcParamsSimple as any);
-      if (error) throw error;
+      if (error) {
+        console.error('[Dashboard] Erro em Top Clientes:', error);
+        throw error;
+      }
+      console.log('[Dashboard] Top Clientes recebidos:', data);
       return (data || []) as { nome: string; nomeCompleto: string; valor: number }[];
     }
   });
 
   // Query Aging Report
   const { data: aging, isLoading: isLoadingAging } = useQuery({
-    queryKey: ['contas-receber-aging', rpcParamsSimple],
+    queryKey: ['contas-receber-aging', ...queryKeySimple],
     queryFn: async () => {
+      console.log('[Dashboard] Chamando get_contas_receber_aging');
       const { data, error } = await supabase.rpc('get_contas_receber_aging', rpcParamsSimple as any);
-      if (error) throw error;
+      if (error) {
+        console.error('[Dashboard] Erro em Aging:', error);
+        throw error;
+      }
+      console.log('[Dashboard] Aging recebido:', data);
       return (data || []) as { nome: string; valor: number; qtd: number }[];
     }
   });
 
   // Query Status Distribution
   const { data: statusDist, isLoading: isLoadingStatus } = useQuery({
-    queryKey: ['contas-receber-status', rpcParamsSimple],
+    queryKey: ['contas-receber-status', ...queryKeySimple],
     queryFn: async () => {
+      console.log('[Dashboard] Chamando get_contas_receber_status_dist');
       const { data, error } = await supabase.rpc('get_contas_receber_status_dist', rpcParamsSimple as any);
-      if (error) throw error;
+      if (error) {
+        console.error('[Dashboard] Erro em Status Dist:', error);
+        throw error;
+      }
+      console.log('[Dashboard] Status Dist recebido:', data);
       return (data || []) as { nome: string; valor: number; qtd: number }[];
     }
   });
 
   // Query PMR Detalhes (carrega sob demanda quando modal abre)
   const { data: pmrDetalhes, isLoading: isLoadingPmr, refetch: refetchPmr } = useQuery({
-    queryKey: ['contas-receber-pmr-detalhes', rpcParamsSimple],
+    queryKey: ['contas-receber-pmr-detalhes', ...queryKeySimple],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_contas_receber_pmr_detalhes', rpcParamsSimple as any);
       if (error) throw error;
