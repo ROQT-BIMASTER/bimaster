@@ -27,6 +27,7 @@ import { FluxoCaixaYearlyChart } from "@/components/fluxocaixa/FluxoCaixaYearlyC
 import { FluxoCaixaMovimentacoesTable } from "@/components/fluxocaixa/FluxoCaixaMovimentacoesTable";
 import { FluxoCaixaTable } from "@/components/fluxocaixa/FluxoCaixaTable";
 import { CashGapAlertsDialog } from "@/components/fluxocaixa/CashGapAlertsDialog";
+import { AnaliseInadimplencia } from "@/components/fluxocaixa/AnaliseInadimplencia";
 
 type PeriodType = "daily" | "weekly" | "monthly";
 
@@ -336,7 +337,6 @@ const FluxoDeCaixa = () => {
         <FluxoCaixaKPIsAdvanced
           contasReceber={contasReceber}
           contasPagar={contasPagar}
-          contasReceberRaw={contasReceberRaw}
           filterAnos={filterAnos}
         />
 
@@ -547,6 +547,9 @@ const FluxoDeCaixa = () => {
             />
           </TabsContent>
         </Tabs>
+
+        {/* Análise de Inadimplência - Sempre no final da página com TODOS os dados */}
+        <AnaliseInadimplencia contasReceberRaw={contasReceberRaw} />
       </div>
     </DashboardLayout>
   );
