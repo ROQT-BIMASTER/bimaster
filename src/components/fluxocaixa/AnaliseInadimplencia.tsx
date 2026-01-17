@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
+import { SmartValue, ValueLegend } from "@/components/ui/smart-value";
+import { formatCurrencyCompact } from "@/lib/formatters";
 
 interface AnaliseInadimplenciaProps {
   contasReceberRaw: any[];
@@ -18,15 +20,6 @@ interface AnaliseInadimplenciaProps {
 export const AnaliseInadimplencia = memo(function AnaliseInadimplencia({
   contasReceberRaw
 }: AnaliseInadimplenciaProps) {
-  
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
 
   // Análise detalhada de inadimplência vs a vencer - usa TODOS os dados RAW
   const analiseInadimplencia = useMemo(() => {
@@ -159,10 +152,13 @@ export const AnaliseInadimplencia = memo(function AnaliseInadimplencia({
   return (
     <Card className="border-2">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <BarChart3 className="h-5 w-5 text-primary" />
-          Análise de Inadimplência vs A Vencer
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            Análise de Inadimplência vs A Vencer
+          </CardTitle>
+          <ValueLegend />
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Visão Geral */}
@@ -173,7 +169,7 @@ export const AnaliseInadimplencia = memo(function AnaliseInadimplencia({
               <XCircle className="h-5 w-5 text-rose-600" />
               <span className="text-sm font-medium text-rose-700 dark:text-rose-400">Em Atraso (Vencido)</span>
             </div>
-            <p className="text-2xl font-bold text-rose-600">{formatCurrency(analiseInadimplencia.totalVencido)}</p>
+            <SmartValue value={analiseInadimplencia.totalVencido} className="text-2xl font-bold text-rose-600" />
             <p className="text-xs text-rose-600/70 mt-1">{analiseInadimplencia.qtdVencidos.toLocaleString('pt-BR')} títulos</p>
           </div>
           
@@ -183,7 +179,7 @@ export const AnaliseInadimplencia = memo(function AnaliseInadimplencia({
               <CheckCircle2 className="h-5 w-5 text-emerald-600" />
               <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">A Vencer (Futuro)</span>
             </div>
-            <p className="text-2xl font-bold text-emerald-600">{formatCurrency(analiseInadimplencia.totalAVencer)}</p>
+            <SmartValue value={analiseInadimplencia.totalAVencer} className="text-2xl font-bold text-emerald-600" />
             <p className="text-xs text-emerald-600/70 mt-1">{analiseInadimplencia.qtdAVencer.toLocaleString('pt-BR')} títulos</p>
           </div>
           
@@ -241,7 +237,7 @@ export const AnaliseInadimplencia = memo(function AnaliseInadimplencia({
                     <span className="text-sm">{faixa.label}</span>
                     <span className="text-xs text-muted-foreground">({faixa.qtd.toLocaleString('pt-BR')})</span>
                   </div>
-                  <span className="font-semibold text-rose-600">{formatCurrency(faixa.value)}</span>
+                  <span className="font-semibold text-rose-600">{formatCurrencyCompact(faixa.value)}</span>
                 </div>
               ))}
             </div>
@@ -266,7 +262,7 @@ export const AnaliseInadimplencia = memo(function AnaliseInadimplencia({
                     <span className="text-sm">{faixa.label}</span>
                     <span className="text-xs text-muted-foreground">({faixa.qtd.toLocaleString('pt-BR')})</span>
                   </div>
-                  <span className="font-semibold text-emerald-600">{formatCurrency(faixa.value)}</span>
+                  <span className="font-semibold text-emerald-600">{formatCurrencyCompact(faixa.value)}</span>
                 </div>
               ))}
             </div>
