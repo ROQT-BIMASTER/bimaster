@@ -63,6 +63,7 @@ const FluxoDeCaixa = () => {
   const {
     contasReceber,
     contasPagar,
+    contasReceberRaw,
     isLoading,
     refetch,
     empresas,
@@ -335,6 +336,7 @@ const FluxoDeCaixa = () => {
         <FluxoCaixaKPIsAdvanced
           contasReceber={contasReceber}
           contasPagar={contasPagar}
+          contasReceberRaw={contasReceberRaw}
           filterAnos={filterAnos}
         />
 

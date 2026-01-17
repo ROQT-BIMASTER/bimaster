@@ -21,12 +21,14 @@ import { differenceInDays } from "date-fns";
 interface FluxoCaixaKPIsAdvancedProps {
   contasReceber: any[];
   contasPagar: any[];
+  contasReceberRaw?: any[]; // Dados brutos sem filtro de ano para análise de inadimplência
   filterAnos: number[];
 }
 
 export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
   contasReceber,
   contasPagar,
+  contasReceberRaw,
   filterAnos
 }: FluxoCaixaKPIsAdvancedProps) {
   const kpis = useMemo(() => {
@@ -182,9 +184,12 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     };
   }, [contasReceber, contasPagar, filterAnos]);
 
-  // Análise detalhada de inadimplência vs a vencer
+  // Análise detalhada de inadimplência vs a vencer - usa dados RAW sem filtro de ano
   const analiseInadimplencia = useMemo(() => {
-    if (!contasReceber || contasReceber.length === 0) {
+    // Usa dados raw se disponíveis, senão usa dados filtrados
+    const dadosAnalise = contasReceberRaw && contasReceberRaw.length > 0 ? contasReceberRaw : contasReceber;
+    
+    if (!dadosAnalise || dadosAnalise.length === 0) {
       return {
         totalVencido: 0,
         totalAVencer: 0,
@@ -194,19 +199,22 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
         faixasVencido: { ate30: 0, de31a60: 0, de61a90: 0, mais90: 0 },
         faixasAVencer: { ate30: 0, de31a60: 0, de61a90: 0, mais90: 0 },
         faixasVencidoQtd: { ate30: 0, de31a60: 0, de61a90: 0, mais90: 0 },
-        faixasAVencerQtd: { ate30: 0, de31a60: 0, de61a90: 0, mais90: 0 }
+        faixasAVencerQtd: { ate30: 0, de31a60: 0, de61a90: 0, mais90: 0 },
+        totalTitulos: 0
       };
     }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Separar vencidos de a vencer
+    // Separar vencidos de a vencer - considera apenas títulos com valor_aberto > 0
     const vencidos: any[] = [];
     const aVencer: any[] = [];
 
-    contasReceber.forEach(c => {
+    dadosAnalise.forEach(c => {
       if (!c.data_vencimento) return;
+      if ((c.valor_aberto || 0) <= 0) return; // Ignora títulos já quitados
+      
       const venc = new Date(c.data_vencimento);
       venc.setHours(0, 0, 0, 0);
       
@@ -277,9 +285,10 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
       faixasVencido,
       faixasAVencer,
       faixasVencidoQtd,
-      faixasAVencerQtd
+      faixasAVencerQtd,
+      totalTitulos: vencidos.length + aVencer.length
     };
-  }, [contasReceber]);
+  }, [contasReceberRaw, contasReceber]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
