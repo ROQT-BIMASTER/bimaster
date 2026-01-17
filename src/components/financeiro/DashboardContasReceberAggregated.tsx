@@ -142,11 +142,20 @@ export function DashboardContasReceberAggregated({
     }
   });
 
+  // Parâmetros simplificados para RPCs que não suportam p_data_vencimento e p_data_recebimento
+  const rpcParamsSimple = useMemo(() => ({
+    p_empresas: rpcParams.p_empresas,
+    p_ano: rpcParams.p_ano,
+    p_mes: rpcParams.p_mes,
+    p_conta: rpcParams.p_conta,
+    p_portador: rpcParams.p_portador,
+  }), [rpcParams]);
+
   // Query Top Clientes
   const { data: topClientes, isLoading: isLoadingTop } = useQuery({
-    queryKey: ['contas-receber-top', rpcParams],
+    queryKey: ['contas-receber-top', rpcParamsSimple],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_contas_receber_top_clientes', rpcParams);
+      const { data, error } = await supabase.rpc('get_contas_receber_top_clientes', rpcParamsSimple as any);
       if (error) throw error;
       return (data || []) as { nome: string; nomeCompleto: string; valor: number }[];
     }
@@ -154,9 +163,9 @@ export function DashboardContasReceberAggregated({
 
   // Query Aging Report
   const { data: aging, isLoading: isLoadingAging } = useQuery({
-    queryKey: ['contas-receber-aging', rpcParams],
+    queryKey: ['contas-receber-aging', rpcParamsSimple],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_contas_receber_aging', rpcParams);
+      const { data, error } = await supabase.rpc('get_contas_receber_aging', rpcParamsSimple as any);
       if (error) throw error;
       return (data || []) as { nome: string; valor: number; qtd: number }[];
     }
@@ -164,9 +173,9 @@ export function DashboardContasReceberAggregated({
 
   // Query Status Distribution
   const { data: statusDist, isLoading: isLoadingStatus } = useQuery({
-    queryKey: ['contas-receber-status', rpcParams],
+    queryKey: ['contas-receber-status', rpcParamsSimple],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_contas_receber_status_dist', rpcParams);
+      const { data, error } = await supabase.rpc('get_contas_receber_status_dist', rpcParamsSimple as any);
       if (error) throw error;
       return (data || []) as { nome: string; valor: number; qtd: number }[];
     }
