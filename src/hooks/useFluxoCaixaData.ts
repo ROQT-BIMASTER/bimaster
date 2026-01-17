@@ -45,10 +45,10 @@ const buildDateRange = (filterAnos: number[], filterMeses: number[]) => {
   const hoje = new Date();
   const anoAtual = hoje.getFullYear();
   
-  // Default: 3 anos passados até 1 ano futuro
+  // Default: 5 anos passados até 1 ano futuro para capturar todos os vencidos
   if (filterAnos.length === 0) {
     return {
-      startDate: `${anoAtual - 3}-01-01`,
+      startDate: `${anoAtual - 5}-01-01`,
       endDate: `${anoAtual + 1}-12-31`
     };
   }
@@ -72,9 +72,9 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
   
   const { startDate, endDate } = buildDateRange(filterAnos, filterMeses);
   
-  // Fetch Contas a Receber - simplified approach
+  // Fetch Contas a Receber - buscar TUDO sem filtro de data para aging completo
   const { data: contasReceberRaw, isLoading: loadingReceber, refetch: refetchReceber } = useQuery({
-    queryKey: ["fluxo-caixa-receber-v3", anosKey, empresasKey, filterStatus, startDate, endDate],
+    queryKey: ["fluxo-caixa-receber-v4", empresasKey, filterStatus],
     queryFn: async () => {
       const PAGE_SIZE = 1000;
       let allData: ContaReceber[] = [];
@@ -84,14 +84,13 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
       while (hasMore && allData.length < 100000) {
         let query = supabase
           .from('contas_receber')
-          .select('*')
-          .gte('data_vencimento', startDate)
-          .lte('data_vencimento', endDate);
+          .select('*');
         
         if (filterEmpresas.length > 0) {
           query = query.in('empresa_id', filterEmpresas);
         }
         
+        // Filtrar apenas por status - não por data - para capturar todos os vencidos
         if (filterStatus !== "todos") {
           query = query.eq('status', filterStatus.toLowerCase());
         } else {
@@ -116,14 +115,14 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
         }
       }
       
-      console.log(`Fetched ${allData.length} contas a receber`);
+      console.log(`Fetched ${allData.length} contas a receber (all)`);
       return allData;
     }
   });
   
-  // Fetch Contas a Pagar - simplified approach
+  // Fetch Contas a Pagar - buscar TUDO sem filtro de data para aging completo
   const { data: contasPagarRaw, isLoading: loadingPagar, refetch: refetchPagar } = useQuery({
-    queryKey: ["fluxo-caixa-pagar-v3", anosKey, empresasKey, filterStatus, startDate, endDate],
+    queryKey: ["fluxo-caixa-pagar-v4", empresasKey, filterStatus],
     queryFn: async () => {
       const PAGE_SIZE = 1000;
       let allData: ContaPagar[] = [];
@@ -133,14 +132,13 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
       while (hasMore && allData.length < 100000) {
         let query = supabase
           .from('contas_pagar')
-          .select('*')
-          .gte('data_vencimento', startDate)
-          .lte('data_vencimento', endDate);
+          .select('*');
         
         if (filterEmpresas.length > 0) {
           query = query.in('empresa_id', filterEmpresas);
         }
         
+        // Filtrar apenas por status - não por data - para capturar todos os vencidos
         if (filterStatus !== "todos") {
           query = query.eq('status', filterStatus.toLowerCase());
         } else {
@@ -165,7 +163,7 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
         }
       }
       
-      console.log(`Fetched ${allData.length} contas a pagar`);
+      console.log(`Fetched ${allData.length} contas a pagar (all)`);
       return allData;
     }
   });
