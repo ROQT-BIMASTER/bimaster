@@ -262,24 +262,20 @@ const FluxoDeCaixa = () => {
     return anos.join(", ");
   };
 
-  if (isLoading) {
+  // Render loading state with skeleton but keep page visible
+  const renderLoadingOverlay = () => {
+    if (!isLoading) return null;
     return (
-      <DashboardLayout>
-        <div className="space-y-6">
-          <Skeleton className="h-10 w-64" />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-32" />
-            ))}
-          </div>
-          <Skeleton className="h-96" />
-        </div>
-      </DashboardLayout>
+      <div className="fixed top-4 right-4 z-50 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border flex items-center gap-2">
+        <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <span className="text-sm text-muted-foreground">Carregando dados...</span>
+      </div>
     );
-  }
+  };
 
   return (
     <DashboardLayout>
+      {renderLoadingOverlay()}
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

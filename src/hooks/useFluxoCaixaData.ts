@@ -56,70 +56,10 @@ const buildDateRange = (filterAnos: number[], filterMeses: number[]) => {
   const minAno = Math.min(...filterAnos);
   const maxAno = Math.max(...filterAnos);
   
-  // Se meses específicos
-  if (filterMeses.length > 0 && filterAnos.length === 1) {
-    const minMes = Math.min(...filterMeses);
-    const maxMes = Math.max(...filterMeses);
-    return {
-      startDate: `${minAno}-${String(minMes).padStart(2, '0')}-01`,
-      endDate: `${maxAno}-${String(maxMes).padStart(2, '0')}-31`
-    };
-  }
-  
   return {
     startDate: `${minAno}-01-01`,
     endDate: `${maxAno}-12-31`
   };
-};
-
-// Fetch all data in batches
-const fetchAllInBatches = async <T>(
-  tableName: string,
-  startDate: string,
-  endDate: string,
-  filterEmpresas: number[],
-  filterStatus: string
-): Promise<T[]> => {
-  const PAGE_SIZE = 1000;
-  const MAX_RECORDS = 800000;
-  let allData: T[] = [];
-  let from = 0;
-  let hasMore = true;
-  
-  while (hasMore && allData.length < MAX_RECORDS) {
-    let query = supabase
-      .from(tableName as any)
-      .select('*')
-      .gte('data_vencimento', startDate)
-      .lte('data_vencimento', endDate);
-    
-    if (filterEmpresas.length > 0) {
-      query = query.in('empresa_id', filterEmpresas);
-    }
-    
-    // Status filter
-    const statusField = tableName === 'contas_receber' ? 'recebido' : 'pago';
-    if (filterStatus !== "todos") {
-      query = query.eq('status', filterStatus.toLowerCase());
-    } else {
-      query = query.neq('status', statusField);
-    }
-    
-    query = query.order('id', { ascending: true }).range(from, from + PAGE_SIZE - 1);
-    
-    const { data, error } = await query;
-    if (error) throw error;
-    
-    if (data && data.length > 0) {
-      allData = [...allData, ...data as unknown as T[]];
-      from += PAGE_SIZE;
-      hasMore = data.length === PAGE_SIZE;
-    } else {
-      hasMore = false;
-    }
-  }
-  
-  return allData;
 };
 
 export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
@@ -132,34 +72,108 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
   
   const { startDate, endDate } = buildDateRange(filterAnos, filterMeses);
   
-  // Fetch Contas a Receber
+  // Fetch Contas a Receber - simplified approach
   const { data: contasReceberRaw, isLoading: loadingReceber, refetch: refetchReceber } = useQuery({
-    queryKey: ["fluxo-caixa-receber-v2", anosKey, mesesKey, empresasKey, filterStatus],
-    queryFn: () => fetchAllInBatches<ContaReceber>(
-      'contas_receber',
-      startDate,
-      endDate,
-      filterEmpresas,
-      filterStatus
-    )
+    queryKey: ["fluxo-caixa-receber-v3", anosKey, empresasKey, filterStatus, startDate, endDate],
+    queryFn: async () => {
+      const PAGE_SIZE = 1000;
+      let allData: ContaReceber[] = [];
+      let offset = 0;
+      let hasMore = true;
+      
+      while (hasMore && allData.length < 100000) {
+        let query = supabase
+          .from('contas_receber')
+          .select('*')
+          .gte('data_vencimento', startDate)
+          .lte('data_vencimento', endDate);
+        
+        if (filterEmpresas.length > 0) {
+          query = query.in('empresa_id', filterEmpresas);
+        }
+        
+        if (filterStatus !== "todos") {
+          query = query.eq('status', filterStatus.toLowerCase());
+        } else {
+          query = query.neq('status', 'recebido');
+        }
+        
+        query = query.order('id', { ascending: true }).range(offset, offset + PAGE_SIZE - 1);
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error('Error fetching contas_receber:', error);
+          break;
+        }
+        
+        if (data && data.length > 0) {
+          allData = [...allData, ...data as unknown as ContaReceber[]];
+          offset += PAGE_SIZE;
+          hasMore = data.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`Fetched ${allData.length} contas a receber`);
+      return allData;
+    }
   });
   
-  // Fetch Contas a Pagar
+  // Fetch Contas a Pagar - simplified approach
   const { data: contasPagarRaw, isLoading: loadingPagar, refetch: refetchPagar } = useQuery({
-    queryKey: ["fluxo-caixa-pagar-v2", anosKey, mesesKey, empresasKey, filterStatus],
-    queryFn: () => fetchAllInBatches<ContaPagar>(
-      'contas_pagar',
-      startDate,
-      endDate,
-      filterEmpresas,
-      filterStatus
-    )
+    queryKey: ["fluxo-caixa-pagar-v3", anosKey, empresasKey, filterStatus, startDate, endDate],
+    queryFn: async () => {
+      const PAGE_SIZE = 1000;
+      let allData: ContaPagar[] = [];
+      let offset = 0;
+      let hasMore = true;
+      
+      while (hasMore && allData.length < 100000) {
+        let query = supabase
+          .from('contas_pagar')
+          .select('*')
+          .gte('data_vencimento', startDate)
+          .lte('data_vencimento', endDate);
+        
+        if (filterEmpresas.length > 0) {
+          query = query.in('empresa_id', filterEmpresas);
+        }
+        
+        if (filterStatus !== "todos") {
+          query = query.eq('status', filterStatus.toLowerCase());
+        } else {
+          query = query.neq('status', 'pago');
+        }
+        
+        query = query.order('id', { ascending: true }).range(offset, offset + PAGE_SIZE - 1);
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error('Error fetching contas_pagar:', error);
+          break;
+        }
+        
+        if (data && data.length > 0) {
+          allData = [...allData, ...data as unknown as ContaPagar[]];
+          offset += PAGE_SIZE;
+          hasMore = data.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`Fetched ${allData.length} contas a pagar`);
+      return allData;
+    }
   });
   
-  // Filter data by vendedor/cliente on frontend (more flexible)
+  // Filter data by vendedor/cliente and month on frontend
   const contasReceber = useMemo(() => {
     if (!contasReceberRaw) return [];
-    let filtered = contasReceberRaw;
+    let filtered = [...contasReceberRaw];
     
     // Month filter on frontend
     if (filterMeses.length > 0) {
@@ -170,7 +184,7 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
       });
     }
     
-    // Year filter on frontend (for multiple years not in range)
+    // Year filter on frontend (for multiple years)
     if (filterAnos.length > 1) {
       filtered = filtered.filter(c => {
         if (!c.data_vencimento) return false;
@@ -196,7 +210,7 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
   
   const contasPagar = useMemo(() => {
     if (!contasPagarRaw) return [];
-    let filtered = contasPagarRaw;
+    let filtered = [...contasPagarRaw];
     
     // Month filter
     if (filterMeses.length > 0) {
@@ -268,8 +282,8 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
   return {
     contasReceber,
     contasPagar,
-    contasReceberRaw,
-    contasPagarRaw,
+    contasReceberRaw: contasReceberRaw || [],
+    contasPagarRaw: contasPagarRaw || [],
     isLoading: loadingReceber || loadingPagar,
     refetch,
     empresas,
