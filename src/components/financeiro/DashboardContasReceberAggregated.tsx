@@ -398,38 +398,37 @@ export function DashboardContasReceberAggregated({
         </Card>
       </div>
 
-      {/* Gráficos */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Evolução Mensal */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Evolução Mensal
-            </CardTitle>
-            <CardDescription>Recebido vs Pendente (últimos 6 meses)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={evolucao || []}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="mes" className="text-xs" />
-                  <YAxis tickFormatter={(v) => formatCompact(v)} className="text-xs" />
-                  <Tooltip 
-                    formatter={(value: number) => formatCurrency(value)}
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
-                  />
-                  <Legend />
-                  <Bar dataKey="recebido" name="Recebido" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="pendente" name="Pendente" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Evolução Mensal - Full Width */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Evolução Mensal
+          </CardTitle>
+          <CardDescription>Recebido vs Pendente (últimos 6 meses)</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={evolucao || []}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="mes" className="text-xs" />
+                <YAxis tickFormatter={(v) => formatCompact(v)} className="text-xs" />
+                <Tooltip 
+                  formatter={(value: number) => formatCurrency(value)}
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                />
+                <Legend />
+                <Bar dataKey="recebido" name="Recebido" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="pendente" name="Pendente" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Distribuição por Status */}
+      {/* Distribuição por Status - Moved below */}
+      <div className="grid gap-6 md:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -464,10 +463,7 @@ export function DashboardContasReceberAggregated({
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Aging e Top Clientes */}
-      <div className="grid gap-6 md:grid-cols-2">
         {/* Aging Report */}
         <Card>
           <CardHeader>
