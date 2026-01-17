@@ -62,94 +62,111 @@ const buildDateRange = (filterAnos: number[], filterMeses: number[]) => {
   };
 };
 
-// Função auxiliar para buscar dados paginados com retry e logs detalhados
+// Função auxiliar para buscar dados paginados com busca PARALELA
 async function fetchPaginatedData<T>(
   tableName: 'contas_receber' | 'contas_pagar',
   filterEmpresas: number[],
   filterStatus: string,
   statusExclude: string
 ): Promise<T[]> {
-  const PAGE_SIZE = 2000; // Aumentado para 2000 para menos requisições
-  const MAX_RECORDS = 150000;
-  let allData: T[] = [];
-  let offset = 0;
-  let hasMore = true;
-  let batchNumber = 0;
-  let consecutiveErrors = 0;
-  const MAX_CONSECUTIVE_ERRORS = 3;
+  const PAGE_SIZE = 2000;
+  const MAX_CONCURRENT = 5; // Limite de requisições paralelas
   
-  console.log(`[${tableName}] Iniciando busca paginada...`);
+  console.log(`[${tableName}] Iniciando busca paralela...`);
   
   try {
-    while (hasMore && allData.length < MAX_RECORDS) {
-      batchNumber++;
-      
-      try {
-        let query = supabase
-          .from(tableName)
-          .select('*');
-        
-        if (filterEmpresas.length > 0) {
-          query = query.in('empresa_id', filterEmpresas);
-        }
-        
-        // Filtrar apenas por status - não por data - para capturar todos os vencidos
-        if (filterStatus !== "todos") {
-          query = query.eq('status', filterStatus.toLowerCase());
-        } else {
-          query = query.neq('status', statusExclude);
-        }
-        
-        query = query.order('id', { ascending: true }).range(offset, offset + PAGE_SIZE - 1);
-        
-        console.log(`[${tableName}] Batch ${batchNumber}: offset=${offset}, pageSize=${PAGE_SIZE}`);
-        
-        const { data, error } = await query;
-        
-        if (error) {
-          consecutiveErrors++;
-          console.error(`[${tableName}] Erro no batch ${batchNumber}:`, error);
-          
-          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-            console.error(`[${tableName}] Máximo de erros consecutivos atingido. Retornando ${allData.length} registros.`);
-            break;
-          }
-          
-          // Retry com delay
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          continue;
-        }
-        
-        consecutiveErrors = 0; // Reset on success
-        
-        if (data && data.length > 0) {
-          allData = [...allData, ...data as unknown as T[]];
-          offset += PAGE_SIZE;
-          hasMore = data.length === PAGE_SIZE;
-          console.log(`[${tableName}] Batch ${batchNumber} OK: +${data.length} registros (total: ${allData.length})`);
-        } else {
-          hasMore = false;
-          console.log(`[${tableName}] Batch ${batchNumber}: Nenhum registro retornado, finalizando.`);
-        }
-        
-      } catch (batchError) {
-        consecutiveErrors++;
-        console.error(`[${tableName}] Exceção no batch ${batchNumber}:`, batchError);
-        
-        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-          console.error(`[${tableName}] Máximo de exceções consecutivas. Retornando ${allData.length} registros.`);
-          break;
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+    // PASSO 1: Obter contagem total primeiro
+    let countQuery = supabase
+      .from(tableName)
+      .select('*', { count: 'exact', head: true });
+    
+    if (filterEmpresas.length > 0) {
+      countQuery = countQuery.in('empresa_id', filterEmpresas);
     }
-  } catch (outerError) {
-    console.error(`[${tableName}] Erro crítico na busca:`, outerError);
+    
+    if (filterStatus !== "todos") {
+      countQuery = countQuery.eq('status', filterStatus.toLowerCase());
+    } else {
+      countQuery = countQuery.neq('status', statusExclude);
+    }
+    
+    const { count, error: countError } = await countQuery;
+    
+    if (countError) {
+      console.error(`[${tableName}] Erro ao obter contagem:`, countError);
+      return [];
+    }
+    
+    const totalCount = count || 0;
+    console.log(`[${tableName}] Total de registros: ${totalCount}`);
+    
+    if (totalCount === 0) {
+      return [];
+    }
+    
+    // PASSO 2: Calcular batches necessários
+    const totalBatches = Math.ceil(totalCount / PAGE_SIZE);
+    console.log(`[${tableName}] Total de batches necessários: ${totalBatches}`);
+    
+    // PASSO 3: Criar função para buscar um batch
+    const fetchBatch = async (batchIndex: number): Promise<T[]> => {
+      const offset = batchIndex * PAGE_SIZE;
+      
+      let query = supabase
+        .from(tableName)
+        .select('*');
+      
+      if (filterEmpresas.length > 0) {
+        query = query.in('empresa_id', filterEmpresas);
+      }
+      
+      if (filterStatus !== "todos") {
+        query = query.eq('status', filterStatus.toLowerCase());
+      } else {
+        query = query.neq('status', statusExclude);
+      }
+      
+      query = query.order('id', { ascending: true }).range(offset, offset + PAGE_SIZE - 1);
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error(`[${tableName}] Erro no batch ${batchIndex + 1}:`, error);
+        return [];
+      }
+      
+      console.log(`[${tableName}] Batch ${batchIndex + 1}/${totalBatches}: ${data?.length || 0} registros`);
+      return (data || []) as unknown as T[];
+    };
+    
+    // PASSO 4: Buscar em paralelo com limite de concorrência
+    const allData: T[] = [];
+    
+    for (let i = 0; i < totalBatches; i += MAX_CONCURRENT) {
+      const batchPromises: Promise<T[]>[] = [];
+      
+      for (let j = 0; j < MAX_CONCURRENT && (i + j) < totalBatches; j++) {
+        batchPromises.push(fetchBatch(i + j));
+      }
+      
+      console.log(`[${tableName}] Executando batches ${i + 1} a ${Math.min(i + MAX_CONCURRENT, totalBatches)}...`);
+      
+      const results = await Promise.all(batchPromises);
+      
+      results.forEach(batch => {
+        allData.push(...batch);
+      });
+      
+      console.log(`[${tableName}] Progresso: ${allData.length}/${totalCount} registros`);
+    }
+    
+    console.log(`[${tableName}] ✅ CONCLUÍDO: ${allData.length} registros carregados`);
+    return allData;
+    
+  } catch (error) {
+    console.error(`[${tableName}] Erro crítico:`, error);
+    return [];
   }
-  
-  console.log(`[${tableName}] CONCLUÍDO: ${allData.length} registros em ${batchNumber} batches`);
-  return allData;
 }
 
 export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
@@ -162,7 +179,7 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
   
   // Fetch Contas a Receber - buscar TUDO sem filtro de data para aging completo
   const { data: contasReceberRaw, isLoading: loadingReceber, refetch: refetchReceber } = useQuery({
-    queryKey: ["fluxo-caixa-receber-v5", empresasKey, filterStatus],
+    queryKey: ["fluxo-caixa-receber-v6-parallel", empresasKey, filterStatus],
     queryFn: async () => {
       return fetchPaginatedData<ContaReceber>(
         'contas_receber',
@@ -171,13 +188,13 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
         'recebido'
       );
     },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    gcTime: 15 * 60 * 1000, // 15 minutos
   });
   
   // Fetch Contas a Pagar - buscar TUDO sem filtro de data para aging completo
   const { data: contasPagarRaw, isLoading: loadingPagar, refetch: refetchPagar } = useQuery({
-    queryKey: ["fluxo-caixa-pagar-v5", empresasKey, filterStatus],
+    queryKey: ["fluxo-caixa-pagar-v6-parallel", empresasKey, filterStatus],
     queryFn: async () => {
       return fetchPaginatedData<ContaPagar>(
         'contas_pagar',
@@ -186,8 +203,8 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
         'pago'
       );
     },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    gcTime: 15 * 60 * 1000, // 15 minutos
   });
   
   // Filter data by vendedor/cliente and month on frontend
