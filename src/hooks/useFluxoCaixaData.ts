@@ -69,8 +69,8 @@ async function fetchPaginatedData<T>(
   filterStatus: string,
   statusExclude: string
 ): Promise<T[]> {
-  const PAGE_SIZE = 2000;
-  const MAX_CONCURRENT = 5; // Limite de requisições paralelas
+  const PAGE_SIZE = 1000; // Supabase limita a 1000 registros por requisição
+  const MAX_CONCURRENT = 8; // Aumentar concorrência para compensar batches menores
   
   console.log(`[${tableName}] Iniciando busca paralela...`);
   
