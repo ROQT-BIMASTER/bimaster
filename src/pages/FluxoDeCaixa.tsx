@@ -65,6 +65,7 @@ const FluxoDeCaixa = () => {
     contasReceber,
     contasPagar,
     contasReceberRaw,
+    contasPagarRaw,
     isLoading,
     refetch,
     empresas,
@@ -518,9 +519,11 @@ const FluxoDeCaixa = () => {
 
           {/* Análise Comparativa Tab */}
           <TabsContent value="analise-comparativa" className="space-y-4">
-            <FluxoCaixaYearlyChart
+<FluxoCaixaYearlyChart
               contasReceber={contasReceber}
               contasPagar={contasPagar}
+              contasReceberRaw={contasReceberRaw}
+              contasPagarRaw={contasPagarRaw}
               filterAnos={filterAnos}
             />
           </TabsContent>
