@@ -160,7 +160,13 @@ async function fetchPaginatedData<T>(
       console.log(`[${tableName}] Progresso: ${allData.length}/${totalCount} registros`);
     }
     
-    console.log(`[${tableName}] ✅ CONCLUÍDO: ${allData.length} registros carregados`);
+    // Validação: verificar se carregou todos os registros esperados
+    const loadedPercentage = (allData.length / totalCount) * 100;
+    if (loadedPercentage < 95) {
+      console.warn(`[${tableName}] ⚠️ ALERTA: Apenas ${loadedPercentage.toFixed(1)}% dos registros carregados (${allData.length}/${totalCount})`);
+    }
+    
+    console.log(`[${tableName}] ✅ CONCLUÍDO: ${allData.length}/${totalCount} registros carregados (${loadedPercentage.toFixed(1)}%)`);
     return allData;
     
   } catch (error) {
