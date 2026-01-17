@@ -24,6 +24,8 @@ type ChartType = "bar" | "line" | "area";
 interface FluxoCaixaYearlyChartProps {
   contasReceber: any[];
   contasPagar: any[];
+  contasReceberRaw: any[];
+  contasPagarRaw: any[];
   filterAnos: number[];
 }
 
@@ -33,27 +35,35 @@ const TRIMESTRE_LABELS = ["1º Tri", "2º Tri", "3º Tri", "4º Tri"];
 export const FluxoCaixaYearlyChart = memo(function FluxoCaixaYearlyChart({
   contasReceber,
   contasPagar,
+  contasReceberRaw,
+  contasPagarRaw,
   filterAnos
 }: FluxoCaixaYearlyChartProps) {
   const [viewType, setViewType] = useState<ViewType>("monthly");
   const [chartType, setChartType] = useState<ChartType>("bar");
 
-  // Group data by year
+  // Group data by year - USA DADOS RAW para completude
   const yearlyData = useMemo(() => {
     const data: Record<number, { entradas: number; saidas: number; saldo: number }> = {};
     
-    contasReceber.forEach(c => {
+    contasReceberRaw.forEach(c => {
       if (!c.data_vencimento) return;
       const ano = new Date(c.data_vencimento).getFullYear();
       if (!data[ano]) data[ano] = { entradas: 0, saidas: 0, saldo: 0 };
       data[ano].entradas += c.valor_aberto || 0;
     });
     
-    contasPagar.forEach(c => {
+    contasPagarRaw.forEach(c => {
       if (!c.data_vencimento) return;
       const ano = new Date(c.data_vencimento).getFullYear();
       if (!data[ano]) data[ano] = { entradas: 0, saidas: 0, saldo: 0 };
       data[ano].saidas += c.valor_aberto || 0;
+    });
+
+    console.log('[YearlyChart] Dados por ano carregados:', {
+      totalReceberRaw: contasReceberRaw.length,
+      totalPagarRaw: contasPagarRaw.length,
+      anos: Object.keys(data)
     });
     
     return Object.entries(data)
@@ -65,13 +75,13 @@ export const FluxoCaixaYearlyChart = memo(function FluxoCaixaYearlyChart({
         saldo: vals.entradas - vals.saidas
       }))
       .sort((a, b) => a.ano - b.ano);
-  }, [contasReceber, contasPagar]);
+  }, [contasReceberRaw, contasPagarRaw]);
 
-  // Group data by month
+  // Group data by month - USA DADOS RAW para completude
   const monthlyData = useMemo(() => {
     const data: Record<string, { entradas: number; saidas: number; ano: number; mes: number }> = {};
     
-    contasReceber.forEach(c => {
+    contasReceberRaw.forEach(c => {
       if (!c.data_vencimento) return;
       const date = new Date(c.data_vencimento);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -79,7 +89,7 @@ export const FluxoCaixaYearlyChart = memo(function FluxoCaixaYearlyChart({
       data[key].entradas += c.valor_aberto || 0;
     });
     
-    contasPagar.forEach(c => {
+    contasPagarRaw.forEach(c => {
       if (!c.data_vencimento) return;
       const date = new Date(c.data_vencimento);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -98,13 +108,13 @@ export const FluxoCaixaYearlyChart = memo(function FluxoCaixaYearlyChart({
         saldo: vals.entradas - vals.saidas
       }))
       .sort((a, b) => a.key.localeCompare(b.key));
-  }, [contasReceber, contasPagar]);
+  }, [contasReceberRaw, contasPagarRaw]);
 
-  // Group data by quarter
+  // Group data by quarter - USA DADOS RAW para completude
   const quarterlyData = useMemo(() => {
     const data: Record<string, { entradas: number; saidas: number; ano: number; trimestre: number }> = {};
     
-    contasReceber.forEach(c => {
+    contasReceberRaw.forEach(c => {
       if (!c.data_vencimento) return;
       const date = new Date(c.data_vencimento);
       const trimestre = Math.floor(date.getMonth() / 3) + 1;
@@ -113,7 +123,7 @@ export const FluxoCaixaYearlyChart = memo(function FluxoCaixaYearlyChart({
       data[key].entradas += c.valor_aberto || 0;
     });
     
-    contasPagar.forEach(c => {
+    contasPagarRaw.forEach(c => {
       if (!c.data_vencimento) return;
       const date = new Date(c.data_vencimento);
       const trimestre = Math.floor(date.getMonth() / 3) + 1;
@@ -133,7 +143,7 @@ export const FluxoCaixaYearlyChart = memo(function FluxoCaixaYearlyChart({
         saldo: vals.entradas - vals.saidas
       }))
       .sort((a, b) => a.key.localeCompare(b.key));
-  }, [contasReceber, contasPagar]);
+  }, [contasReceberRaw, contasPagarRaw]);
 
   const chartData = useMemo(() => {
     switch (viewType) {
