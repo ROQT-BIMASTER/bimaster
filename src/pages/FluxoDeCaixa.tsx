@@ -334,9 +334,10 @@ const FluxoDeCaixa = () => {
         )}
 
         {/* KPIs Avançados */}
-        <FluxoCaixaKPIsAdvanced
+<FluxoCaixaKPIsAdvanced
           contasReceber={contasReceber}
           contasPagar={contasPagar}
+          contasReceberRaw={contasReceberRaw}
           filterAnos={filterAnos}
         />
 
