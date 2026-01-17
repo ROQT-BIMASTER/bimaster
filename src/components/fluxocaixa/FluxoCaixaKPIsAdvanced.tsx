@@ -200,28 +200,46 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
         faixasAVencer: { ate30: 0, de31a60: 0, de61a90: 0, mais90: 0 },
         faixasVencidoQtd: { ate30: 0, de31a60: 0, de61a90: 0, mais90: 0 },
         faixasAVencerQtd: { ate30: 0, de31a60: 0, de61a90: 0, mais90: 0 },
-        totalTitulos: 0
+        totalTitulos: 0,
+        totalGeralCarteira: 0
       };
     }
 
+    // Data de hoje sem hora (usando timezone local consistente)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    // Função para parsear data de forma consistente
+    const parseDate = (dateStr: string): Date => {
+      // Formato: YYYY-MM-DD - parsear como data local
+      const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+      return new Date(year, month - 1, day);
+    };
 
     // Separar vencidos de a vencer - considera apenas títulos com valor_aberto > 0
     const vencidos: any[] = [];
     const aVencer: any[] = [];
+    let titulosIgnorados = 0;
+    let titulosSemData = 0;
 
     dadosAnalise.forEach(c => {
-      if (!c.data_vencimento) return;
-      if ((c.valor_aberto || 0) <= 0) return; // Ignora títulos já quitados
+      if (!c.data_vencimento) {
+        titulosSemData++;
+        return;
+      }
       
-      const venc = new Date(c.data_vencimento);
-      venc.setHours(0, 0, 0, 0);
+      const valorAberto = c.valor_aberto || 0;
+      if (valorAberto <= 0) {
+        titulosIgnorados++;
+        return;
+      }
+      
+      const venc = parseDate(c.data_vencimento);
       
       if (venc < today) {
-        vencidos.push(c);
+        vencidos.push({ ...c, _diasAtraso: differenceInDays(today, venc) });
       } else {
-        aVencer.push(c);
+        aVencer.push({ ...c, _diasParaVencer: differenceInDays(venc, today) });
       }
     });
 
@@ -235,7 +253,7 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     const faixasVencidoQtd = { ate30: 0, de31a60: 0, de61a90: 0, mais90: 0 };
     
     vencidos.forEach(c => {
-      const diasAtraso = differenceInDays(today, new Date(c.data_vencimento!));
+      const diasAtraso = c._diasAtraso;
       const valor = c.valor_aberto || 0;
       
       if (diasAtraso <= 30) {
@@ -258,7 +276,7 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     const faixasAVencerQtd = { ate30: 0, de31a60: 0, de61a90: 0, mais90: 0 };
     
     aVencer.forEach(c => {
-      const diasParaVencer = differenceInDays(new Date(c.data_vencimento!), today);
+      const diasParaVencer = c._diasParaVencer;
       const valor = c.valor_aberto || 0;
       
       if (diasParaVencer <= 30) {
@@ -276,6 +294,17 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
       }
     });
 
+    // Log para validação
+    console.log('[FluxoCaixa KPIs] Análise de Inadimplência:', {
+      totalRegistrosAnalisados: dadosAnalise.length,
+      titulosComValorAberto: vencidos.length + aVencer.length,
+      titulosIgnorados,
+      titulosSemData,
+      vencidos: { qtd: vencidos.length, valor: totalVencido },
+      aVencer: { qtd: aVencer.length, valor: totalAVencer },
+      totalCarteira: totalGeral
+    });
+
     return {
       totalVencido,
       totalAVencer,
@@ -286,7 +315,8 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
       faixasAVencer,
       faixasVencidoQtd,
       faixasAVencerQtd,
-      totalTitulos: vencidos.length + aVencer.length
+      totalTitulos: vencidos.length + aVencer.length,
+      totalGeralCarteira: totalGeral
     };
   }, [contasReceberRaw, contasReceber]);
 
