@@ -62,110 +62,132 @@ const buildDateRange = (filterAnos: number[], filterMeses: number[]) => {
   };
 };
 
+// Função auxiliar para buscar dados paginados com retry e logs detalhados
+async function fetchPaginatedData<T>(
+  tableName: 'contas_receber' | 'contas_pagar',
+  filterEmpresas: number[],
+  filterStatus: string,
+  statusExclude: string
+): Promise<T[]> {
+  const PAGE_SIZE = 2000; // Aumentado para 2000 para menos requisições
+  const MAX_RECORDS = 150000;
+  let allData: T[] = [];
+  let offset = 0;
+  let hasMore = true;
+  let batchNumber = 0;
+  let consecutiveErrors = 0;
+  const MAX_CONSECUTIVE_ERRORS = 3;
+  
+  console.log(`[${tableName}] Iniciando busca paginada...`);
+  
+  try {
+    while (hasMore && allData.length < MAX_RECORDS) {
+      batchNumber++;
+      
+      try {
+        let query = supabase
+          .from(tableName)
+          .select('*');
+        
+        if (filterEmpresas.length > 0) {
+          query = query.in('empresa_id', filterEmpresas);
+        }
+        
+        // Filtrar apenas por status - não por data - para capturar todos os vencidos
+        if (filterStatus !== "todos") {
+          query = query.eq('status', filterStatus.toLowerCase());
+        } else {
+          query = query.neq('status', statusExclude);
+        }
+        
+        query = query.order('id', { ascending: true }).range(offset, offset + PAGE_SIZE - 1);
+        
+        console.log(`[${tableName}] Batch ${batchNumber}: offset=${offset}, pageSize=${PAGE_SIZE}`);
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          consecutiveErrors++;
+          console.error(`[${tableName}] Erro no batch ${batchNumber}:`, error);
+          
+          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+            console.error(`[${tableName}] Máximo de erros consecutivos atingido. Retornando ${allData.length} registros.`);
+            break;
+          }
+          
+          // Retry com delay
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+        
+        consecutiveErrors = 0; // Reset on success
+        
+        if (data && data.length > 0) {
+          allData = [...allData, ...data as unknown as T[]];
+          offset += PAGE_SIZE;
+          hasMore = data.length === PAGE_SIZE;
+          console.log(`[${tableName}] Batch ${batchNumber} OK: +${data.length} registros (total: ${allData.length})`);
+        } else {
+          hasMore = false;
+          console.log(`[${tableName}] Batch ${batchNumber}: Nenhum registro retornado, finalizando.`);
+        }
+        
+      } catch (batchError) {
+        consecutiveErrors++;
+        console.error(`[${tableName}] Exceção no batch ${batchNumber}:`, batchError);
+        
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          console.error(`[${tableName}] Máximo de exceções consecutivas. Retornando ${allData.length} registros.`);
+          break;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  } catch (outerError) {
+    console.error(`[${tableName}] Erro crítico na busca:`, outerError);
+  }
+  
+  console.log(`[${tableName}] CONCLUÍDO: ${allData.length} registros em ${batchNumber} batches`);
+  return allData;
+}
+
 export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
   const { filterAnos, filterMeses, filterEmpresas, filterStatus, filterVendedor, filterCliente } = options;
   
   // Keys for query caching
-  const anosKey = filterAnos.length > 0 ? filterAnos.sort().join(',') : 'all';
-  const mesesKey = filterMeses.length > 0 ? filterMeses.sort().join(',') : 'all';
   const empresasKey = filterEmpresas.length > 0 ? filterEmpresas.sort().join(',') : 'all';
   
   const { startDate, endDate } = buildDateRange(filterAnos, filterMeses);
   
   // Fetch Contas a Receber - buscar TUDO sem filtro de data para aging completo
   const { data: contasReceberRaw, isLoading: loadingReceber, refetch: refetchReceber } = useQuery({
-    queryKey: ["fluxo-caixa-receber-v4", empresasKey, filterStatus],
+    queryKey: ["fluxo-caixa-receber-v5", empresasKey, filterStatus],
     queryFn: async () => {
-      const PAGE_SIZE = 1000;
-      let allData: ContaReceber[] = [];
-      let offset = 0;
-      let hasMore = true;
-      
-      while (hasMore && allData.length < 100000) {
-        let query = supabase
-          .from('contas_receber')
-          .select('*');
-        
-        if (filterEmpresas.length > 0) {
-          query = query.in('empresa_id', filterEmpresas);
-        }
-        
-        // Filtrar apenas por status - não por data - para capturar todos os vencidos
-        if (filterStatus !== "todos") {
-          query = query.eq('status', filterStatus.toLowerCase());
-        } else {
-          query = query.neq('status', 'recebido');
-        }
-        
-        query = query.order('id', { ascending: true }).range(offset, offset + PAGE_SIZE - 1);
-        
-        const { data, error } = await query;
-        
-        if (error) {
-          console.error('Error fetching contas_receber:', error);
-          break;
-        }
-        
-        if (data && data.length > 0) {
-          allData = [...allData, ...data as unknown as ContaReceber[]];
-          offset += PAGE_SIZE;
-          hasMore = data.length === PAGE_SIZE;
-        } else {
-          hasMore = false;
-        }
-      }
-      
-      console.log(`Fetched ${allData.length} contas a receber (all)`);
-      return allData;
-    }
+      return fetchPaginatedData<ContaReceber>(
+        'contas_receber',
+        filterEmpresas,
+        filterStatus,
+        'recebido'
+      );
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos
   });
   
   // Fetch Contas a Pagar - buscar TUDO sem filtro de data para aging completo
   const { data: contasPagarRaw, isLoading: loadingPagar, refetch: refetchPagar } = useQuery({
-    queryKey: ["fluxo-caixa-pagar-v4", empresasKey, filterStatus],
+    queryKey: ["fluxo-caixa-pagar-v5", empresasKey, filterStatus],
     queryFn: async () => {
-      const PAGE_SIZE = 1000;
-      let allData: ContaPagar[] = [];
-      let offset = 0;
-      let hasMore = true;
-      
-      while (hasMore && allData.length < 100000) {
-        let query = supabase
-          .from('contas_pagar')
-          .select('*');
-        
-        if (filterEmpresas.length > 0) {
-          query = query.in('empresa_id', filterEmpresas);
-        }
-        
-        // Filtrar apenas por status - não por data - para capturar todos os vencidos
-        if (filterStatus !== "todos") {
-          query = query.eq('status', filterStatus.toLowerCase());
-        } else {
-          query = query.neq('status', 'pago');
-        }
-        
-        query = query.order('id', { ascending: true }).range(offset, offset + PAGE_SIZE - 1);
-        
-        const { data, error } = await query;
-        
-        if (error) {
-          console.error('Error fetching contas_pagar:', error);
-          break;
-        }
-        
-        if (data && data.length > 0) {
-          allData = [...allData, ...data as unknown as ContaPagar[]];
-          offset += PAGE_SIZE;
-          hasMore = data.length === PAGE_SIZE;
-        } else {
-          hasMore = false;
-        }
-      }
-      
-      console.log(`Fetched ${allData.length} contas a pagar (all)`);
-      return allData;
-    }
+      return fetchPaginatedData<ContaPagar>(
+        'contas_pagar',
+        filterEmpresas,
+        filterStatus,
+        'pago'
+      );
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos
   });
   
   // Filter data by vendedor/cliente and month on frontend
@@ -182,8 +204,8 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
       });
     }
     
-    // Year filter on frontend (for multiple years)
-    if (filterAnos.length > 1) {
+    // Year filter on frontend - CORRIGIDO: aplica para 1+ anos selecionados
+    if (filterAnos.length >= 1) {
       filtered = filtered.filter(c => {
         if (!c.data_vencimento) return false;
         const ano = new Date(c.data_vencimento).getFullYear();
@@ -219,8 +241,8 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
       });
     }
     
-    // Year filter
-    if (filterAnos.length > 1) {
+    // Year filter - CORRIGIDO: aplica para 1+ anos selecionados
+    if (filterAnos.length >= 1) {
       filtered = filtered.filter(c => {
         if (!c.data_vencimento) return false;
         const ano = new Date(c.data_vencimento).getFullYear();
