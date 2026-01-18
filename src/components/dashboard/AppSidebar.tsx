@@ -347,6 +347,7 @@ export function AppSidebar() {
     { title: "Gerenciar Tabelas", url: "/dashboard/precos/tabelas", icon: Receipt, screenCode: "precos_tabelas" },
     { title: "Aprovação", url: "/dashboard/precos/aprovacao", icon: CheckSquare, screenCode: "precos_aprovacao" },
     { title: "Portal Cliente", url: "/dashboard/precos/portal-cliente", icon: Users, screenCode: "precos_portal" },
+    { title: "Controle de Acesso", url: "/dashboard/precos/acesso", icon: Shield, screenCode: "precos_acesso" },
   ];
 
   return (

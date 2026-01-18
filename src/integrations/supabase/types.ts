@@ -13644,6 +13644,50 @@ export type Database = {
         }
         Relationships: []
       }
+      user_price_table_access: {
+        Row: {
+          can_approve: boolean | null
+          can_edit: boolean | null
+          can_view: boolean | null
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          notes: string | null
+          tabela_id: string
+          user_id: string
+        }
+        Insert: {
+          can_approve?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          notes?: string | null
+          tabela_id: string
+          user_id: string
+        }
+        Update: {
+          can_approve?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          notes?: string | null
+          tabela_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_price_table_access_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_rankings: {
         Row: {
           badges: Json | null
@@ -14959,6 +15003,18 @@ export type Database = {
       update_user_ranking: {
         Args: { p_period_key: string; p_period_type: string; p_user_id: string }
         Returns: undefined
+      }
+      user_can_access_price_table: {
+        Args: {
+          _permission_type?: string
+          _tabela_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      user_can_approve_price_table: {
+        Args: { _tabela_id: string; _user_id: string }
+        Returns: boolean
       }
       user_has_store_access: {
         Args: { p_store_id: string; p_user_id?: string }
