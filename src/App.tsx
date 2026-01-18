@@ -96,6 +96,7 @@ const TabelasPrecosModule = lazy(() => import("./pages/modules/TabelasPrecosModu
 const FabricaTabelasPreco = lazy(() => import("./pages/FabricaTabelasPreco"));
 const FabricaAprovacaoPrecos = lazy(() => import("./pages/FabricaAprovacaoPrecos"));
 const FabricaLancamentos = lazy(() => import("./pages/FabricaLancamentos"));
+const GerenciamentoAcessoPrecos = lazy(() => import("./pages/GerenciamentoAcessoPrecos"));
 const PortalCliente = lazy(() => import("./pages/PortalCliente"));
 const APIHealthCheck = lazy(() => import("./pages/APIHealthCheck"));
 const ContasAPagar = lazy(() => import("./pages/ContasAPagar"));
@@ -287,6 +288,7 @@ function AppContent() {
             <Route path="/dashboard/precos/tabelas" element={<ProtectedRoute><FabricaTabelasPreco /></ProtectedRoute>} />
             <Route path="/dashboard/precos/aprovacao" element={<ProtectedRoute><FabricaAprovacaoPrecos /></ProtectedRoute>} />
             <Route path="/dashboard/precos/portal-cliente" element={<ProtectedRoute><PortalCliente /></ProtectedRoute>} />
+            <Route path="/dashboard/precos/acesso" element={<ProtectedRoute><GerenciamentoAcessoPrecos /></ProtectedRoute>} />
             
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><Financeiro /></ModuleProtectedRoute></ProtectedRoute>} />
