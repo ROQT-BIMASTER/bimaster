@@ -12607,6 +12607,56 @@ export type Database = {
           },
         ]
       }
+      trade_bank_daily_balances: {
+        Row: {
+          balance_date: string
+          bank_account_id: string | null
+          closing_balance: number
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          opening_balance: number
+          total_credits: number
+          total_debits: number
+          updated_at: string
+        }
+        Insert: {
+          balance_date: string
+          bank_account_id?: string | null
+          closing_balance?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          opening_balance?: number
+          total_credits?: number
+          total_debits?: number
+          updated_at?: string
+        }
+        Update: {
+          balance_date?: string
+          bank_account_id?: string | null
+          closing_balance?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          opening_balance?: number
+          total_credits?: number
+          total_debits?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_bank_daily_balances_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "trade_bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_bank_transactions: {
         Row: {
           amount: number
