@@ -596,7 +596,7 @@ async function handleStatus(supabase: any) {
   try {
     const { response, method } = await fetchN8nWithFallback(1, 0, undefined, {
       maxRetries: 1,
-      timeoutMs: 8000,
+      timeoutMs: 25000,
     });
 
     probeMethod = method;
