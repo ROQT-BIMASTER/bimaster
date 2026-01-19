@@ -14,7 +14,7 @@ const MAX_BATCH_SIZE = 100;          // Máximo para evitar timeout no N8N/SQL S
 const UPSERT_BATCH_SIZE = 100;       // Batch de upsert
 const MAX_RETRIES = 10;              // 10 retries para grande volume
 const RETRY_DELAY_MS = 3000;         // 3s entre retries
-const FETCH_TIMEOUT_MS = 120000;     // 120s timeout - N8N/SQL Server pode demorar bastante
+const FETCH_TIMEOUT_MS = 300000;     // 300s (5min) timeout - SQL Server com ROW_NUMBER demora muito
 const SUPABASE_BATCH_DELAY_MS = 50;  // Delay entre upserts
 
 // ============= PROTEÇÕES BALANCEADAS PARA GRANDE VOLUME =============
