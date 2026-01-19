@@ -391,8 +391,8 @@ export function useN8NSync() {
       
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       
-      // PAGINAÇÃO SEGURA: Buscar em lotes de 500 (não 100000!)
-      const SAFE_BATCH_SIZE = 500;
+      // PAGINAÇÃO SEGURA: Buscar em lotes de 100 (alinhado com MAX_BATCH_SIZE do backend)
+      const SAFE_BATCH_SIZE = 100;
       let allRecords: any[] = [];
       let currentPage = 1;
       let hasMore = true;
