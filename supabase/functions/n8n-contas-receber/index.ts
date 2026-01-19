@@ -14,7 +14,7 @@ const MAX_BATCH_SIZE = 100;          // Máximo para evitar timeout no N8N/SQL S
 const UPSERT_BATCH_SIZE = 100;       // Batch de upsert
 const MAX_RETRIES = 10;              // 10 retries para grande volume
 const RETRY_DELAY_MS = 3000;         // 3s entre retries
-const FETCH_TIMEOUT_MS = 60000;      // 60s timeout para batches pequenos
+const FETCH_TIMEOUT_MS = 120000;     // 120s timeout - N8N/SQL Server pode demorar bastante
 const SUPABASE_BATCH_DELAY_MS = 50;  // Delay entre upserts
 
 // ============= PROTEÇÕES BALANCEADAS PARA GRANDE VOLUME =============
@@ -136,7 +136,67 @@ async function checkDatabaseHealth(supabase: any): Promise<{ healthy: boolean; r
   }
 }
 
-// Transform ERP data format to local format
+// ============= FUNÇÕES DE CONTROLE E HISTÓRICO =============
+
+// Limpar syncs travados (in_progress há mais de 30 minutos)
+async function cleanupStaleSyncs(supabase: any) {
+  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  
+  // Atualizar sync_logs travados
+  const { data: staleLogsData, error: staleLogsError } = await supabase
+    .from('sync_logs')
+    .update({ 
+      status: 'timeout',
+      erro_mensagem: 'Sync timeout - marcado automaticamente após 30min sem conclusão'
+    })
+    .eq('tipo', 'contas_receber')
+    .eq('status', 'in_progress')
+    .lt('created_at', thirtyMinutesAgo)
+    .select('id');
+  
+  if (staleLogsData?.length > 0) {
+    console.log(`🧹 Cleaned up ${staleLogsData.length} stale sync_logs entries`);
+  }
+  
+  return staleLogsData?.length || 0;
+}
+
+// Registrar no sync_control para aparecer no histórico
+async function recordSyncControl(supabase: any, data: {
+  status: 'success' | 'error' | 'timeout' | 'partial';
+  totalRegistros: number;
+  registrosInseridos: number;
+  registrosAtualizados: number;
+  registrosIgnorados: number;
+  duracaoMs: number;
+  erroMensagem?: string;
+  empresaId?: number;
+}) {
+  const { error } = await supabase
+    .from('sync_control')
+    .insert({
+      entidade: 'contas_receber',
+      empresa_id: data.empresaId || 1,
+      ultima_sync: new Date().toISOString(),
+      total_registros: data.totalRegistros,
+      registros_inseridos: data.registrosInseridos,
+      registros_atualizados: data.registrosAtualizados,
+      registros_ignorados: data.registrosIgnorados,
+      duracao_ms: data.duracaoMs,
+      status: data.status,
+      erro_mensagem: data.erroMensagem || null,
+    });
+  
+  if (error) {
+    console.error('❌ Failed to record sync_control:', error.message);
+  } else {
+    console.log(`✅ Recorded sync_control: status=${data.status}, records=${data.totalRegistros}`);
+  }
+  
+  return !error;
+}
+
+
 // SUPORTA DOIS FORMATOS:
 // 1. Formato ANTIGO (campos em português com espaços): ID Empresa, Valor em Aberto, etc.
 // 2. Formato NOVO (campos snake_case já formatados): erp_id, valor_aberto, empresa_id, etc.
@@ -1278,6 +1338,12 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
   const syncStartTime = Date.now();
   const syncSessionId = `auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+  // Limpar syncs travados antes de começar
+  const cleanedSyncs = await cleanupStaleSyncs(supabase);
+  if (cleanedSyncs > 0) {
+    console.log(`🧹 Cleaned ${cleanedSyncs} stale syncs before starting`);
+  }
+
   // Verificar saúde do banco (pode ser ignorado com skipHealthCheck)
   if (!skipHealthCheck) {
     const dbHealth = await checkDatabaseHealth(supabase);
@@ -1463,6 +1529,17 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
         .eq('id', syncLog.id);
     }
 
+    // NOVO: Registrar em sync_control para aparecer no histórico
+    await recordSyncControl(supabase, {
+      status: errors.length > 0 ? 'partial' : 'success',
+      totalRegistros: totalProcessed,
+      registrosInseridos: totalProcessed, // Aproximação - upsert não diferencia
+      registrosAtualizados: 0,
+      registrosIgnorados: 0,
+      duracaoMs: duration,
+      erroMensagem: errors.length > 0 ? `${errors.length} erros durante processamento` : undefined,
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -1480,6 +1557,7 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
 
   } catch (error: unknown) {
     const err = error as Error;
+    const duration = Date.now() - syncStartTime;
     console.error(`❌ SYNC-AUTO failed:`, err.message);
     
     removeSyncFromActive(syncSessionId);
@@ -1487,12 +1565,27 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
     if (syncLog?.id) {
       await supabase
         .from('sync_logs')
-        .update({ status: 'failed', detalhes: { error: err.message, pagesProcessed, totalProcessed } })
+        .update({ 
+          status: 'failed', 
+          erro_mensagem: err.message,
+          detalhes: { error: err.message, pagesProcessed, totalProcessed, duration_ms: duration } 
+        })
         .eq('id', syncLog.id);
     }
 
+    // NOVO: Registrar falha em sync_control para aparecer no histórico
+    await recordSyncControl(supabase, {
+      status: 'error',
+      totalRegistros: totalProcessed,
+      registrosInseridos: 0,
+      registrosAtualizados: 0,
+      registrosIgnorados: 0,
+      duracaoMs: duration,
+      erroMensagem: err.message,
+    });
+
     return new Response(
-      JSON.stringify({ success: false, error: err.message, totalProcessed, pagesProcessed }),
+      JSON.stringify({ success: false, error: err.message, totalProcessed, pagesProcessed, duration_ms: duration }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
