@@ -329,9 +329,9 @@ async function fetchWithRetry(
   throw lastError || new Error('Max retries exceeded');
 }
 
-// ============= FETCH N8N COM PAGINAÇÃO (FORMATO QUE FUNCIONAVA) =============
-// IMPORTANTE: O workflow N8N espera NumeroPagina e batchSize para paginação do SQL Server
-// Formato: { tableName, limit, offset, batchSize, NumeroPagina, filters }
+// ============= FETCH N8N COM QUERY STRING (FORMATO QUE O N8N ESPERA) =============
+// CRÍTICO: O workflow N8N lê parâmetros da QUERY STRING ($node["Webhook Trigger"].json.query.*)
+// NÃO do body da requisição. Descoberto via análise do workflow em 2026-01-19.
 async function fetchN8nWithFallback(
   limit: number,
   offset: number,
@@ -342,36 +342,39 @@ async function fetchN8nWithFallback(
   const batchSize = limit;
   const numeroPagina = Math.floor(offset / batchSize) + 1;
 
-  const payload: Record<string, any> = {
-    tableName: 'ConsultaPowerBIReceber',
-    limit,
-    offset,
-    batchSize,
-    NumeroPagina: numeroPagina,
-  };
+  // QUERY STRING - O N8N lê de $node["Webhook Trigger"].json.query.*
+  const queryParams = new URLSearchParams({
+    NumeroPagina: String(numeroPagina),
+    batchSize: String(batchSize),
+  });
 
-  // Adicionar filtros se existirem
-  if (filters && Object.keys(filters).length > 0) {
-    payload.filters = filters;
+  // Adicionar filtros se existirem (ex: ultimaData)
+  if (filters) {
+    if (filters.ultimaData) {
+      queryParams.append('ultimaData', filters.ultimaData);
+    }
+    // Outros filtros podem ser adicionados aqui
   }
 
-  console.log(`🔗 Fetching N8N webhook (POST): NumeroPagina=${numeroPagina}, batchSize=${batchSize}, limit=${limit}, offset=${offset}`);
+  const urlWithParams = `${N8N_WEBHOOK_URL}?${queryParams.toString()}`;
+
+  console.log(`🔗 Fetching N8N webhook: ${urlWithParams}`);
 
   const response = await fetchWithRetry(
-    N8N_WEBHOOK_URL,
+    urlWithParams,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({}), // Body vazio, parâmetros vão na query string
     },
     retryConfig ?? MAX_RETRIES,
   );
 
   if (response.ok) {
-    console.log(`✅ POST successful (${response.status})`);
+    console.log(`✅ N8N request successful (${response.status})`);
   } else {
     const responseText = await response.clone().text();
-    console.error(`❌ POST failed (${response.status}): ${responseText.substring(0, 200)}`);
+    console.error(`❌ N8N request failed (${response.status}): ${responseText.substring(0, 200)}`);
   }
 
   return { response, method: 'POST' };
