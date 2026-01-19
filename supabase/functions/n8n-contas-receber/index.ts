@@ -265,98 +265,135 @@ async function generateHash(data: any): Promise<string> {
 }
 
 // Fetch with retry logic and timeout
-async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MAX_RETRIES): Promise<Response> {
+type FetchRetryConfig = {
+  maxRetries?: number;
+  timeoutMs?: number;
+};
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetriesOrConfig: number | FetchRetryConfig = MAX_RETRIES,
+): Promise<Response> {
   let lastError: Error | null = null;
-  
+
+  const maxRetries =
+    typeof maxRetriesOrConfig === 'number'
+      ? maxRetriesOrConfig
+      : (maxRetriesOrConfig.maxRetries ?? MAX_RETRIES);
+
+  const timeoutMs =
+    typeof maxRetriesOrConfig === 'number'
+      ? FETCH_TIMEOUT_MS
+      : (maxRetriesOrConfig.timeoutMs ?? FETCH_TIMEOUT_MS);
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-      
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
       const response = await fetch(url, {
         ...options,
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
-      
+
+      // Não fazer retry para 4xx; retry só em 5xx
       if (response.status < 500) {
         return response;
       }
-      
+
       console.log(`⚠️ Attempt ${attempt}/${maxRetries} failed with status ${response.status}`);
       lastError = new Error(`HTTP ${response.status}`);
-      
+
       if (attempt < maxRetries) {
         const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
         console.log(`⏳ Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     } catch (error) {
       const err = error as Error;
       const isTimeout = err.name === 'AbortError';
       console.log(`⚠️ Attempt ${attempt}/${maxRetries} ${isTimeout ? 'TIMEOUT' : 'failed'}:`, err.message);
-      lastError = isTimeout ? new Error(`Request timeout after ${FETCH_TIMEOUT_MS}ms`) : err;
-      
+      lastError = isTimeout ? new Error(`Request timeout after ${timeoutMs}ms`) : err;
+
       if (attempt < maxRetries) {
         const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
         console.log(`⏳ Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
   }
-  
+
   throw lastError || new Error('Max retries exceeded');
 }
 
-// ============= FETCH N8N - POST COM QUERY PARAMS =============
-// O webhook N8N aceita POST mas lê parâmetros da query string ($node["Webhook Trigger"].json.query)
-// IMPORTANTE: O workflow N8N usa NumeroPagina e batchSize via query params
+// ============= FETCH N8N - POST COM QUERY PARAMS (E BODY COMPATÍVEL) =============
+// O webhook N8N aceita POST e pode ler parâmetros tanto da query string quanto do body.
+// IMPORTANTE: O workflow usa NumeroPagina e batchSize (paginação) e alguns nós ainda esperam limit/offset no body.
 async function fetchN8nWithFallback(
-  limit: number, 
-  offset: number, 
-  filters?: Record<string, any>
+  limit: number,
+  offset: number,
+  filters?: Record<string, any>,
+  retryConfig?: number | FetchRetryConfig,
 ): Promise<{ response: Response; method: string }> {
   // Converter offset/limit para NumeroPagina/batchSize que o N8N espera
   const batchSize = limit;
   const numeroPagina = Math.floor(offset / batchSize) + 1;
-  
-  // IMPORTANTE: O N8N lê parâmetros da query string, não do body!
-  // Construir URL com query params
+
+  // Query params (compatível com workflow que lê req.query)
   const queryParams = new URLSearchParams({
     tableName: 'ConsultaPowerBIReceber',
-    batchSize: batchSize.toString(),
-    NumeroPagina: numeroPagina.toString(),
+    limit: String(limit),
+    offset: String(offset),
+    batchSize: String(batchSize),
+    NumeroPagina: String(numeroPagina),
   });
-  
-  // Adicionar filtros se existirem (ex: ultimaData para sync incremental)
+
+  // Adicionar filtros simples também na query (ex: since, anoMinimo)
   if (filters) {
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        queryParams.append(key, String(value));
+        queryParams.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
       }
     });
   }
-  
+
   const urlWithParams = `${N8N_WEBHOOK_URL}?${queryParams.toString()}`;
-  
-  console.log(`🔗 Fetching N8N webhook (POST with query params): NumeroPagina=${numeroPagina}, batchSize=${batchSize}`);
-  console.log(`🔗 Full URL: ${urlWithParams}`);
-  
-  // Usar fetchWithRetry com POST - body vazio, params na query string
-  const response = await fetchWithRetry(urlWithParams, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}), // Body vazio, params já estão na URL
-  });
-  
+
+  // Body (compatível com workflow/nós que leem req.body)
+  const payload: Record<string, any> = {
+    tableName: 'ConsultaPowerBIReceber',
+    limit,
+    offset,
+    batchSize,
+    NumeroPagina: numeroPagina,
+  };
+
+  if (filters && Object.keys(filters).length > 0) {
+    payload.filters = filters;
+  }
+
+  console.log(`🔗 Fetching N8N webhook (POST): NumeroPagina=${numeroPagina}, batchSize=${batchSize}, limit=${limit}, offset=${offset}`);
+
+  const response = await fetchWithRetry(
+    urlWithParams,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+    retryConfig ?? MAX_RETRIES,
+  );
+
   if (response.ok) {
     console.log(`✅ POST successful (${response.status})`);
   } else {
     const responseText = await response.clone().text();
     console.error(`❌ POST failed (${response.status}): ${responseText.substring(0, 200)}`);
   }
-  
+
   return { response, method: 'POST' };
 }
 
