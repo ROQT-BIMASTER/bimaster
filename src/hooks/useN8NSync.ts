@@ -362,6 +362,7 @@ export function useN8NSync() {
     return syncWithScope('full', batchSize);
   }, [syncWithScope]);
 
+  // Sync Incremental com paginação segura (não baixa tudo de uma vez)
   const syncIncremental = useCallback(async () => {
     setIsSyncing(true);
     setSyncResult(null);
@@ -375,7 +376,11 @@ export function useN8NSync() {
     
     try {
       const lastSync = await getLastSyncTimestamp('incremental');
-      const since = lastSync?.last_sync_timestamp || new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+      // Usar ultimaData no formato YYYY-MM-DD que o N8N espera
+      const sinceDate = lastSync?.last_sync_timestamp 
+        ? new Date(lastSync.last_sync_timestamp)
+        : new Date(Date.now() - 6 * 60 * 60 * 1000);
+      const ultimaData = sinceDate.toISOString().split('T')[0]; // YYYY-MM-DD
       
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
@@ -386,34 +391,68 @@ export function useN8NSync() {
       
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       
-      const queryResponse = await fetch(`${supabaseUrl}/functions/v1/n8n-contas-receber/query`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ 
-          limit: 100000,
-          filters: { since }
-        }),
-      });
+      // PAGINAÇÃO SEGURA: Buscar em lotes de 500 (não 100000!)
+      const SAFE_BATCH_SIZE = 500;
+      let allRecords: any[] = [];
+      let currentPage = 1;
+      let hasMore = true;
       
-      if (!queryResponse.ok) {
-        const errorData = await queryResponse.json().catch(() => ({ error: 'Erro ao buscar dados' }));
-        throw new Error(errorData.error || `HTTP ${queryResponse.status}`);
+      while (hasMore) {
+        const offset = (currentPage - 1) * SAFE_BATCH_SIZE;
+        
+        const queryResponse = await fetch(`${supabaseUrl}/functions/v1/n8n-contas-receber/query`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ 
+            limit: SAFE_BATCH_SIZE,
+            offset,
+            filters: { ultimaData } // Usar ultimaData ao invés de since
+          }),
+        });
+        
+        if (!queryResponse.ok) {
+          const errorData = await queryResponse.json().catch(() => ({ error: 'Erro ao buscar dados' }));
+          throw new Error(errorData.error || `HTTP ${queryResponse.status}`);
+        }
+        
+        const pageData = await queryResponse.json();
+        const pageRecords = pageData?.data || [];
+        
+        allRecords = [...allRecords, ...pageRecords];
+        
+        // Verificar se há mais páginas
+        hasMore = pageData?.metadata?.hasMoreData === true && pageRecords.length === SAFE_BATCH_SIZE;
+        currentPage++;
+        
+        // Limite de segurança: máximo 20 páginas (10.000 registros) por sync incremental
+        if (currentPage > 20) {
+          console.warn('⚠️ Limite de páginas atingido no sync incremental');
+          hasMore = false;
+        }
+        
+        // Atualizar progresso
+        setSyncProgress(prev => ({
+          ...(prev || { startTime: Date.now(), isRunning: true }),
+          currentPage,
+          recordsProcessed: allRecords.length,
+          recordsInCurrentBatch: pageRecords.length,
+          isRunning: true,
+        }));
       }
       
-      const n8nData = await queryResponse.json();
-      
-      if (!n8nData?.data?.length) {
+      if (allRecords.length === 0) {
         toast({
           title: 'Nenhuma alteração',
-          description: 'Não há registros novos desde a última sincronização.',
+          description: `Não há registros novos desde ${ultimaData}.`,
         });
         setSyncResult({ success: true, mode: 'incremental', statistics: { total_received: 0, processed: 0, errors: 0, rate_per_second: 0 } });
         return { success: true, processed: 0 };
       }
       
+      // Enviar para processamento
       const syncResponse = await fetch(`${supabaseUrl}/functions/v1/contas-receber-api/sync-incremental`, {
         method: 'POST',
         headers: {
@@ -421,7 +460,7 @@ export function useN8NSync() {
           'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ 
-          contas: n8nData.data,
+          contas: allRecords,
           skip_unchanged: true
         }),
       });
@@ -463,6 +502,7 @@ export function useN8NSync() {
       return null;
     } finally {
       setIsSyncing(false);
+      setSyncProgress(null);
       setEta(null);
     }
   }, [toast, getLastSyncTimestamp]);
