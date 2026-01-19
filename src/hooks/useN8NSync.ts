@@ -362,131 +362,67 @@ export function useN8NSync() {
     return syncWithScope('full', batchSize);
   }, [syncWithScope]);
 
-  // Sync Incremental com paginação segura (não baixa tudo de uma vez)
-  const syncIncremental = useCallback(async () => {
+  // Sync Incremental 100% BACKEND - busca dados antigos (até 30 dias) para capturar pagamentos de títulos em atraso
+  const syncIncremental = useCallback(async (diasRetroativos = 30) => {
     setIsSyncing(true);
     setSyncResult(null);
     setError(null);
     setEta(null);
     
+    const startTime = Date.now();
+    
+    setSyncProgress({
+      currentPage: 0,
+      recordsProcessed: 0,
+      recordsInCurrentBatch: 0,
+      startTime,
+      isRunning: true,
+      scope: 'incremental',
+    });
+    
     toast({
       title: 'Sincronização INCREMENTAL iniciada',
-      description: 'Buscando apenas registros alterados...',
+      description: `Buscando dados dos últimos ${diasRetroativos} dias (pagamentos de títulos antigos)...`,
     });
     
     try {
-      const lastSync = await getLastSyncTimestamp('incremental');
-      // Usar ultimaData no formato YYYY-MM-DD que o N8N espera
-      const sinceDate = lastSync?.last_sync_timestamp 
-        ? new Date(lastSync.last_sync_timestamp)
-        : new Date(Date.now() - 6 * 60 * 60 * 1000);
-      const ultimaData = sinceDate.toISOString().split('T')[0]; // YYYY-MM-DD
-      
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('Não autenticado');
-      }
-      
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      
-      // PAGINAÇÃO SEGURA: Buscar em lotes de 100 (alinhado com MAX_BATCH_SIZE do backend)
-      const SAFE_BATCH_SIZE = 100;
-      let allRecords: any[] = [];
-      let currentPage = 1;
-      let hasMore = true;
-      
-      while (hasMore) {
-        const offset = (currentPage - 1) * SAFE_BATCH_SIZE;
-        
-        const queryResponse = await fetch(`${supabaseUrl}/functions/v1/n8n-contas-receber/query`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ 
-            limit: SAFE_BATCH_SIZE,
-            offset,
-            filters: { ultimaData } // Usar ultimaData ao invés de since
-          }),
-        });
-        
-        if (!queryResponse.ok) {
-          const errorData = await queryResponse.json().catch(() => ({ error: 'Erro ao buscar dados' }));
-          throw new Error(errorData.error || `HTTP ${queryResponse.status}`);
-        }
-        
-        const pageData = await queryResponse.json();
-        const pageRecords = pageData?.data || [];
-        
-        allRecords = [...allRecords, ...pageRecords];
-        
-        // Verificar se há mais páginas
-        hasMore = pageData?.metadata?.hasMoreData === true && pageRecords.length === SAFE_BATCH_SIZE;
-        currentPage++;
-        
-        // Limite de segurança: máximo 20 páginas (10.000 registros) por sync incremental
-        if (currentPage > 20) {
-          console.warn('⚠️ Limite de páginas atingido no sync incremental');
-          hasMore = false;
-        }
-        
-        // Atualizar progresso
-        setSyncProgress(prev => ({
-          ...(prev || { startTime: Date.now(), isRunning: true }),
-          currentPage,
-          recordsProcessed: allRecords.length,
-          recordsInCurrentBatch: pageRecords.length,
-          isRunning: true,
-        }));
-      }
-      
-      if (allRecords.length === 0) {
-        toast({
-          title: 'Nenhuma alteração',
-          description: `Não há registros novos desde ${ultimaData}.`,
-        });
-        setSyncResult({ success: true, mode: 'incremental', statistics: { total_received: 0, processed: 0, errors: 0, rate_per_second: 0 } });
-        return { success: true, processed: 0 };
-      }
-      
-      // Enviar para processamento
-      const syncResponse = await fetch(`${supabaseUrl}/functions/v1/contas-receber-api/sync-incremental`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ 
-          contas: allRecords,
-          skip_unchanged: true
-        }),
+      // Chamar endpoint 100% backend
+      const { data, error: fnError } = await supabase.functions.invoke('n8n-contas-receber/sync-incremental', {
+        body: { diasRetroativos, batchSize: 100, maxPages: 50 },
       });
       
-      if (!syncResponse.ok) {
-        const errorData = await syncResponse.json().catch(() => ({ error: 'Erro desconhecido' }));
-        throw new Error(errorData.error || `HTTP ${syncResponse.status}`);
+      if (fnError) throw fnError;
+      
+      if (!data.success) {
+        throw new Error(data.error || data.message || 'Falha na sincronização incremental');
       }
       
-      const data = await syncResponse.json();
+      setSyncResult({
+        success: true,
+        mode: 'incremental',
+        summary: {
+          totalProcessed: data.summary?.totalProcessed || 0,
+          pagesProcessed: data.summary?.pagesProcessed || 0,
+          duration: data.summary?.duration_ms || 0,
+          durationFormatted: data.summary?.durationFormatted || '0s',
+          recordsPerSecond: Math.round((data.summary?.totalProcessed || 0) / ((data.summary?.duration_ms || 1) / 1000)),
+          errors: data.summary?.errors || 0,
+        },
+        statistics: {
+          total_received: data.summary?.totalProcessed || 0,
+          processed: data.summary?.totalProcessed || 0,
+          inserted: data.summary?.totalInserted || 0,
+          updated: data.summary?.totalUpdated || 0,
+          skipped: 0,
+          errors: data.summary?.errors || 0,
+          rate_per_second: Math.round((data.summary?.totalProcessed || 0) / ((data.summary?.duration_ms || 1) / 1000)),
+        },
+      });
       
-      setSyncResult(data);
-      
-      if (data.success) {
-        const stats = data.statistics;
-        toast({
-          title: 'Sincronização INCREMENTAL concluída',
-          description: `${stats.processed} processados, ${stats.skipped || 0} sem alteração (${stats.rate_per_second} rec/s)`,
-        });
-      } else {
-        toast({
-          title: 'Sincronização falhou',
-          description: data.error || 'Erro desconhecido',
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: 'Sincronização INCREMENTAL concluída',
+        description: `${data.summary?.totalUpdated || 0} atualizados, ${data.summary?.totalInserted || 0} novos (${data.summary?.durationFormatted || '0s'})`,
+      });
       
       await getLastSyncTimestamp('incremental');
       

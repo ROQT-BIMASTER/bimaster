@@ -607,6 +607,9 @@ serve(async (req) => {
       case 'sync-auto':
         return await handleSyncAuto(req, supabase, userId);
       
+      case 'sync-incremental':
+        return await handleSyncIncremental(req, supabase, userId);
+      
       // Mantém sync-all para compatibilidade mas marca como deprecated
       case 'sync-all':
         return await handleSyncPage(req, supabase, userId);
@@ -615,7 +618,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             error: 'Unknown endpoint', 
-            availableEndpoints: ['status', 'query', 'sync-start', 'sync-page', 'sync-finish', 'preview', 'health', 'sync-auto'] 
+            availableEndpoints: ['status', 'query', 'sync-start', 'sync-page', 'sync-finish', 'preview', 'health', 'sync-auto', 'sync-incremental'] 
           }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -1322,6 +1325,307 @@ async function handleSyncFinish(req: Request, supabase: any) {
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
+}
+
+// ============= SYNC-INCREMENTAL: SINCRONIZAÇÃO INCREMENTAL 100% BACKEND =============
+// Busca títulos alterados nos últimos N dias (padrão: 30 dias)
+// Permite atualizar pagamentos de títulos antigos que estavam em atraso
+async function handleSyncIncremental(req: Request, supabase: any, userId: string) {
+  const body = await req.json().catch(() => ({}));
+  const diasRetroativos = body.diasRetroativos || 30; // Padrão: 30 dias para pegar pagamentos de títulos em atraso
+  const batchSize = Math.min(body.batchSize || DEFAULT_BATCH_SIZE, MAX_BATCH_SIZE);
+  const maxPages = body.maxPages || 50; // Máximo 50 páginas para incremental
+
+  console.log(`🔄 SYNC-INCREMENTAL iniciado: diasRetroativos=${diasRetroativos}, batchSize=${batchSize}, maxPages=${maxPages}`);
+  
+  const syncStartTime = Date.now();
+  const syncSessionId = `incr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // Calcular data de corte (X dias atrás)
+  const dataCorte = new Date();
+  dataCorte.setDate(dataCorte.getDate() - diasRetroativos);
+  const ultimaData = toDateOnly(dataCorte);
+  
+  console.log(`📅 Buscando dados desde: ${ultimaData} (${diasRetroativos} dias atrás)`);
+
+  // Limpar syncs travados
+  await cleanupStaleSyncs(supabase);
+
+  // Verificar syncs simultâneos
+  const concurrentCheck = checkConcurrentSyncs(syncSessionId);
+  if (!concurrentCheck.allowed) {
+    console.warn(`🚫 Incremental sync blocked: ${concurrentCheck.message}`);
+    return new Response(
+      JSON.stringify({ success: false, error: 'Sync in progress', message: concurrentCheck.message }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Criar log de sync
+  const { data: syncLog } = await supabase
+    .from('sync_logs')
+    .insert({
+      tipo: 'contas_receber',
+      status: 'in_progress',
+      detalhes: { 
+        source: 'incremental-backend', 
+        batchSize, 
+        syncSessionId, 
+        diasRetroativos,
+        ultimaData,
+        startedAt: new Date().toISOString() 
+      },
+    })
+    .select()
+    .single();
+
+  let totalProcessed = 0;
+  let pagesProcessed = 0;
+  let offset = 0;
+  let hasMore = true;
+  const errors: any[] = [];
+  let totalUpdated = 0;
+  let totalInserted = 0;
+
+  try {
+    // Loop por páginas com filtro de data
+    while (hasMore && pagesProcessed < maxPages) {
+      pagesProcessed++;
+      console.log(`📄 Incremental page ${pagesProcessed}, offset: ${offset}, ultimaData: ${ultimaData}`);
+
+      // Buscar dados do N8N com filtro ultimaData
+      const { response, method } = await fetchN8nWithFallback(
+        batchSize, 
+        offset, 
+        { ultimaData },
+        { maxRetries: 3, timeoutMs: FETCH_TIMEOUT_MS }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'No response body');
+        console.error(`❌ Webhook returned ${response.status} via ${method}: ${errorText}`);
+        throw new Error(`Webhook error ${response.status} (${method}): ${errorText.substring(0, 200)}`);
+      }
+
+      const responseText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error(`❌ Failed to parse webhook response:`, responseText.substring(0, 500));
+        throw new Error(`Invalid JSON from webhook: ${responseText.substring(0, 100)}`);
+      }
+
+      // Extrair records
+      let records: any[] = [];
+      if (Array.isArray(data)) {
+        records = data;
+      } else if (data.data && Array.isArray(data.data)) {
+        records = data.data;
+      } else if (data.records && Array.isArray(data.records)) {
+        records = data.records;
+      } else {
+        const firstArrayProp = Object.values(data).find(v => Array.isArray(v));
+        if (firstArrayProp) {
+          records = firstArrayProp as any[];
+        }
+      }
+
+      console.log(`📥 Page ${pagesProcessed}: received ${records.length} records`);
+
+      if (records.length === 0) {
+        console.log(`📭 No more records, finishing incremental sync`);
+        hasMore = false;
+        break;
+      }
+
+      // Transformar e inserir
+      const transformedRecords: any[] = [];
+      for (const erpRecord of records) {
+        const transformed = transformErpData(erpRecord);
+        transformed.data_hash = await generateHash({
+          erp_id: transformed.erp_id,
+          valor_original: transformed.valor_original,
+          valor_aberto: transformed.valor_aberto,
+          status: transformed.status,
+        });
+        transformedRecords.push(transformed);
+      }
+
+      // Verificar quais registros já existem para contar updates vs inserts
+      const erpIds = transformedRecords.map(r => r.erp_id);
+      const { data: existingRecords } = await supabase
+        .from('contas_receber')
+        .select('erp_id')
+        .in('erp_id', erpIds);
+      
+      const existingErpIds = new Set((existingRecords || []).map((r: any) => r.erp_id));
+
+      // Upsert em batches
+      for (let i = 0; i < transformedRecords.length; i += UPSERT_BATCH_SIZE) {
+        const batch = transformedRecords.slice(i, i + UPSERT_BATCH_SIZE);
+        
+        const { error: upsertError } = await supabase
+          .from('contas_receber')
+          .upsert(batch, { onConflict: 'erp_id', ignoreDuplicates: false });
+
+        if (upsertError) {
+          console.error(`❌ Upsert error page ${pagesProcessed}:`, upsertError.message);
+          errors.push({ page: pagesProcessed, error: upsertError.message });
+        } else {
+          totalProcessed += batch.length;
+          // Contar updates vs inserts
+          for (const record of batch) {
+            if (existingErpIds.has(record.erp_id)) {
+              totalUpdated++;
+            } else {
+              totalInserted++;
+            }
+          }
+        }
+
+        await new Promise(r => setTimeout(r, SUPABASE_BATCH_DELAY_MS));
+      }
+
+      // Próxima página
+      offset = data.metadata?.nextOffset || (offset + records.length);
+      hasMore = records.length >= batchSize;
+
+      // Atualizar log
+      if (syncLog?.id) {
+        await supabase
+          .from('sync_logs')
+          .update({
+            registros_processados: totalProcessed,
+            detalhes: { 
+              source: 'incremental-backend', 
+              pagesProcessed, 
+              currentOffset: offset,
+              totalUpdated,
+              totalInserted,
+              lastUpdate: new Date().toISOString() 
+            },
+          })
+          .eq('id', syncLog.id);
+      }
+
+      // Delay entre páginas
+      await new Promise(r => setTimeout(r, PAGE_DELAY_MS));
+    }
+
+    const duration = Date.now() - syncStartTime;
+    console.log(`✅ SYNC-INCREMENTAL completo: ${totalProcessed} records (${totalUpdated} updates, ${totalInserted} inserts) em ${pagesProcessed} páginas (${duration}ms)`);
+
+    // Remover sync ativo
+    removeSyncFromActive(syncSessionId);
+
+    // Atualizar log final
+    if (syncLog?.id) {
+      await supabase
+        .from('sync_logs')
+        .update({
+          status: errors.length > 0 ? 'completed_with_errors' : 'completed',
+          registros_processados: totalProcessed,
+          detalhes: { 
+            source: 'incremental-backend', 
+            pagesProcessed, 
+            duration_ms: duration, 
+            errors: errors.length,
+            totalUpdated,
+            totalInserted,
+            diasRetroativos,
+            finishedAt: new Date().toISOString(),
+          },
+        })
+        .eq('id', syncLog.id);
+    }
+
+    // Registrar em sync_control para histórico
+    await recordSyncControl(supabase, {
+      status: errors.length > 0 ? 'partial' : 'success',
+      totalRegistros: totalProcessed,
+      registrosInseridos: totalInserted,
+      registrosAtualizados: totalUpdated,
+      registrosIgnorados: 0,
+      duracaoMs: duration,
+      erroMensagem: errors.length > 0 ? `${errors.length} erros durante processamento` : undefined,
+    });
+
+    // Atualizar sync_tracking para incremental
+    await supabase
+      .from('sync_tracking')
+      .upsert({
+        entidade: 'contas_receber',
+        tipo_sync: 'incremental',
+        last_sync_at: new Date().toISOString(),
+        records_processed: totalProcessed,
+        records_inserted: totalInserted,
+        records_updated: totalUpdated,
+        records_skipped: 0,
+        duration_ms: duration,
+        status: errors.length > 0 ? 'completed_with_errors' : 'completed',
+        metadata: { diasRetroativos, pagesProcessed, errors: errors.length },
+      }, { onConflict: 'entidade,tipo_sync' });
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        mode: 'incremental',
+        message: `Sincronização incremental concluída: ${totalUpdated} atualizados, ${totalInserted} novos`,
+        summary: {
+          totalProcessed,
+          totalUpdated,
+          totalInserted,
+          pagesProcessed,
+          duration_ms: duration,
+          durationFormatted: `${Math.round(duration / 1000)}s`,
+          errors: errors.length,
+          diasRetroativos,
+          syncSessionId,
+        },
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: unknown) {
+    const err = error as Error;
+    const duration = Date.now() - syncStartTime;
+    console.error(`❌ SYNC-INCREMENTAL failed:`, err.message);
+    
+    removeSyncFromActive(syncSessionId);
+    
+    if (syncLog?.id) {
+      await supabase
+        .from('sync_logs')
+        .update({ 
+          status: 'failed', 
+          erro_mensagem: err.message,
+          detalhes: { error: err.message, pagesProcessed, totalProcessed, duration_ms: duration } 
+        })
+        .eq('id', syncLog.id);
+    }
+
+    await recordSyncControl(supabase, {
+      status: 'error',
+      totalRegistros: totalProcessed,
+      registrosInseridos: totalInserted,
+      registrosAtualizados: totalUpdated,
+      registrosIgnorados: 0,
+      duracaoMs: duration,
+      erroMensagem: err.message,
+    });
+
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: err.message, 
+        totalProcessed, 
+        pagesProcessed, 
+        duration_ms: duration 
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
 }
 
 // ============= SYNC-AUTO: SINCRONIZAÇÃO COMPLETA AUTOMÁTICA (CRON) =============
