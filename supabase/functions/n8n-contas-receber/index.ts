@@ -582,35 +582,43 @@ async function handleHealthCheck(supabase: any) {
 
 // Test connection
 async function handleStatus(supabase: any) {
-  console.log('🔍 Testing N8N webhook connection...');
-  
-  const startTime = Date.now();
-  let n8nConnected = false;
-  let responseData: any = null;
-  
-  try {
-    // Usar fallback POST -> GET
-    const { response, method } = await fetchN8nWithFallback(1, 0);
+  // IMPORTANTE: status precisa responder rápido (UI chama com frequência).
+  // Então fazemos um probe bem curto no webhook e, se falhar, usamos o "último sync recente" como fallback.
+  console.log('🔍 Testing N8N webhook connection (quick probe)...');
 
-    const duration = Date.now() - startTime;
+  const startTime = Date.now();
+  let n8nProbeOk = false;
+  let probeResponseTimeMs: number | null = null;
+  let probeMethod: string | null = null;
+  let probeError: string | null = null;
+  let responseData: any = null;
+
+  try {
+    const { response, method } = await fetchN8nWithFallback(1, 0, undefined, {
+      maxRetries: 1,
+      timeoutMs: 8000,
+    });
+
+    probeMethod = method;
+    probeResponseTimeMs = Date.now() - startTime;
+
     const responseText = await response.text();
-    
     try {
       responseData = JSON.parse(responseText);
     } catch {
       responseData = { raw: responseText };
     }
 
-    n8nConnected = response.ok && (
-      responseData?.success === true || 
-      Array.isArray(responseData?.data) || 
+    n8nProbeOk = response.ok && (
+      responseData?.success === true ||
+      Array.isArray(responseData?.data) ||
       Array.isArray(responseData)
     );
-    
-    console.log(`✅ N8N connection test: ${n8nConnected ? 'SUCCESS' : 'FAILED'} via ${method} in ${duration}ms`);
 
+    console.log(`✅ N8N probe: ${n8nProbeOk ? 'OK' : 'NOT OK'} via ${method} in ${probeResponseTimeMs}ms`);
   } catch (error: unknown) {
-    console.error('❌ N8N connection error:', (error as Error).message);
+    probeError = (error as Error)?.message || 'Erro desconhecido';
+    console.warn('⚠️ N8N probe failed (will fallback):', probeError);
   }
 
   const { data: lastSync } = await supabase
