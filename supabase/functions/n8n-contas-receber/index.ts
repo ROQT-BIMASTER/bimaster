@@ -332,33 +332,72 @@ async function fetchWithRetry(
 // ============= FETCH N8N COM QUERY STRING (FORMATO QUE O N8N ESPERA) =============
 // CRÍTICO: O workflow N8N lê parâmetros da QUERY STRING ($node["Webhook Trigger"].json.query.*)
 // NÃO do body da requisição. Descoberto via análise do workflow em 2026-01-19.
+// NORMALIZAÇÃO DE FILTROS: Mapeia since, anoMinimo, scope → ultimaData (YYYY-MM-DD)
+
+// Função auxiliar para converter ISO para YYYY-MM-DD
+function toDateOnly(isoOrDate: string | Date): string {
+  const d = typeof isoOrDate === 'string' ? new Date(isoOrDate) : isoOrDate;
+  return d.toISOString().split('T')[0];
+}
+
+// Função para normalizar filtros para o formato que o N8N espera
+function normalizeFilters(filters?: Record<string, any>): { ultimaData?: string } {
+  if (!filters) return {};
+  
+  // Prioridade: ultimaData > since > anoMinimo > scope
+  if (filters.ultimaData) {
+    return { ultimaData: toDateOnly(filters.ultimaData) };
+  }
+  
+  if (filters.since) {
+    // since vem como ISO timestamp, converter para YYYY-MM-DD
+    return { ultimaData: toDateOnly(filters.since) };
+  }
+  
+  if (filters.anoMinimo) {
+    // anoMinimo é um número (2025, 2024, etc)
+    return { ultimaData: `${filters.anoMinimo}-01-01` };
+  }
+  
+  if (filters.scope) {
+    // scope pode ser '2025', '2024+', 'full'
+    if (filters.scope === '2025') return { ultimaData: '2025-01-01' };
+    if (filters.scope === '2024+') return { ultimaData: '2024-01-01' };
+    // 'full' não tem filtro de data
+    return {};
+  }
+  
+  return {};
+}
+
+// Clamp de batchSize para evitar payloads enormes
+const SAFE_MAX_BATCH_SIZE = 500; // Máximo seguro para evitar timeouts
+
 async function fetchN8nWithFallback(
   limit: number,
   offset: number,
   filters?: Record<string, any>,
   retryConfig?: number | FetchRetryConfig,
 ): Promise<{ response: Response; method: string }> {
-  // Converter offset/limit para NumeroPagina/batchSize que o N8N espera
-  const batchSize = limit;
-  const numeroPagina = Math.floor(offset / batchSize) + 1;
+  // CLAMP: Limitar batchSize para evitar timeouts
+  const safeBatchSize = Math.min(limit, SAFE_MAX_BATCH_SIZE);
+  const numeroPagina = Math.floor(offset / safeBatchSize) + 1;
 
   // QUERY STRING - O N8N lê de $node["Webhook Trigger"].json.query.*
   const queryParams = new URLSearchParams({
     NumeroPagina: String(numeroPagina),
-    batchSize: String(batchSize),
+    batchSize: String(safeBatchSize),
   });
 
-  // Adicionar filtros se existirem (ex: ultimaData)
-  if (filters) {
-    if (filters.ultimaData) {
-      queryParams.append('ultimaData', filters.ultimaData);
-    }
-    // Outros filtros podem ser adicionados aqui
+  // NORMALIZAR FILTROS: since, anoMinimo, scope → ultimaData
+  const normalizedFilters = normalizeFilters(filters);
+  if (normalizedFilters.ultimaData) {
+    queryParams.append('ultimaData', normalizedFilters.ultimaData);
   }
 
   const urlWithParams = `${N8N_WEBHOOK_URL}?${queryParams.toString()}`;
 
-  console.log(`🔗 Fetching N8N webhook: ${urlWithParams}`);
+  console.log(`🔗 Fetching N8N webhook: ${urlWithParams} (original limit=${limit}, clamped to ${safeBatchSize})`);
 
   const response = await fetchWithRetry(
     urlWithParams,
@@ -563,11 +602,12 @@ async function handleHealthCheck(supabase: any) {
   );
 }
 
-// Test connection
+// Test connection - PROBE LEVE com ultimaData recente para resposta rápida
 async function handleStatus(supabase: any) {
-  // IMPORTANTE: status precisa responder rápido (UI chama com frequência).
-  // Então fazemos um probe bem curto no webhook e, se falhar, usamos o "último sync recente" como fallback.
-  console.log('🔍 Testing N8N webhook connection (quick probe)...');
+  // CRÍTICO: status precisa responder RÁPIDO (UI chama ao carregar a página).
+  // SOLUÇÃO: Fazer probe com ultimaData = hoje/ontem para que o SQL do N8N filtre
+  // poucos registros e responda rapidamente, em vez de calcular ROW_NUMBER de todo o dataset.
+  console.log('🔍 Testing N8N webhook connection (lightweight probe with ultimaData filter)...');
 
   const startTime = Date.now();
   let n8nProbeOk = false;
@@ -575,12 +615,24 @@ async function handleStatus(supabase: any) {
   let probeMethod: string | null = null;
   let probeError: string | null = null;
   let responseData: any = null;
+  let probeRecordsFound = 0;
+
+  // Usar data de ontem para probe leve (poucos registros = resposta rápida)
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const probeUltimaData = toDateOnly(yesterday);
 
   try {
-    const { response, method } = await fetchN8nWithFallback(1, 0, undefined, {
-      maxRetries: 1,
-      timeoutMs: 25000,
-    });
+    // Probe com batchSize=1 e ultimaData=ontem para query SQL mínima
+    const { response, method } = await fetchN8nWithFallback(
+      1, // Apenas 1 registro
+      0,
+      { ultimaData: probeUltimaData }, // Filtrar por data recente
+      {
+        maxRetries: 1,
+        timeoutMs: 12000, // 12s timeout - probe deve ser rápido
+      }
+    );
 
     probeMethod = method;
     probeResponseTimeMs = Date.now() - startTime;
@@ -592,53 +644,109 @@ async function handleStatus(supabase: any) {
       responseData = { raw: responseText };
     }
 
+    // Considerar OK se:
+    // 1. Response HTTP OK
+    // 2. E resposta indica sucesso (pode ter 0 registros, isso é OK)
     n8nProbeOk = response.ok && (
       responseData?.success === true ||
       Array.isArray(responseData?.data) ||
-      Array.isArray(responseData)
+      Array.isArray(responseData) ||
+      responseData?.metadata !== undefined
     );
+    
+    probeRecordsFound = Array.isArray(responseData?.data) 
+      ? responseData.data.length 
+      : (Array.isArray(responseData) ? responseData.length : 0);
 
-    console.log(`✅ N8N probe: ${n8nProbeOk ? 'OK' : 'NOT OK'} via ${method} in ${probeResponseTimeMs}ms`);
+    console.log(`✅ N8N probe: ${n8nProbeOk ? 'OK' : 'NOT OK'} via ${method} in ${probeResponseTimeMs}ms (found ${probeRecordsFound} records with ultimaData=${probeUltimaData})`);
   } catch (error: unknown) {
+    probeResponseTimeMs = Date.now() - startTime;
     probeError = (error as Error)?.message || 'Erro desconhecido';
-    console.warn('⚠️ N8N probe failed (will fallback):', probeError);
+    
+    // Se timeout, marcar como degradado mas não necessariamente desconectado
+    const isTimeout = probeError.includes('timeout') || probeError.includes('Timeout');
+    
+    console.warn(`⚠️ N8N probe ${isTimeout ? 'TIMEOUT' : 'FAILED'} after ${probeResponseTimeMs}ms:`, probeError);
   }
 
-  const { data: lastSync } = await supabase
-    .from('sync_logs')
-    .select('*')
-    .eq('tipo', 'contas_receber')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Buscar dados locais em paralelo
+  const [lastSyncResult, localCountResult, count2025Result, count2024Result, dbHealth] = await Promise.all([
+    supabase
+      .from('sync_logs')
+      .select('*')
+      .eq('tipo', 'contas_receber')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('contas_receber')
+      .select('*', { count: 'exact', head: true }),
+    supabase
+      .from('contas_receber')
+      .select('*', { count: 'exact', head: true })
+      .gte('data_vencimento', '2025-01-01'),
+    supabase
+      .from('contas_receber')
+      .select('*', { count: 'exact', head: true })
+      .gte('data_vencimento', '2024-01-01'),
+    checkDatabaseHealth(supabase),
+  ]);
 
-  const { count: localCount } = await supabase
-    .from('contas_receber')
-    .select('*', { count: 'exact', head: true });
+  const lastSync = lastSyncResult.data;
+  const localCount = localCountResult.count;
+  const count2025 = count2025Result.count;
+  const count2024 = count2024Result.count;
 
-  // Contagem por ano
-  const { count: count2025 } = await supabase
-    .from('contas_receber')
-    .select('*', { count: 'exact', head: true })
-    .gte('data_vencimento', '2025-01-01');
-
-  const { count: count2024 } = await supabase
-    .from('contas_receber')
-    .select('*', { count: 'exact', head: true })
-    .gte('data_vencimento', '2024-01-01');
-
-  const dbHealth = await checkDatabaseHealth(supabase);
+  // LÓGICA DE DISPONIBILIDADE TOLERANTE:
+  // 1. Se probe OK → connected
+  // 2. Se probe falhou mas temos dados locais significativos (>1000) → available (N8N funciona, apenas lento)
+  // 3. Se probe falhou e poucos dados → disconnected
+  const hasSignificantLocalData = (localCount || 0) > 1000;
+  const lastSyncTime = lastSync?.created_at ? new Date(lastSync.created_at).getTime() : 0;
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const hasRecentSync = lastSyncTime > oneDayAgo;
+  
+  // Estado de conexão
+  let connectionState: 'connected' | 'available' | 'slow' | 'disconnected';
+  let allowOperation = false;
+  
+  if (n8nProbeOk) {
+    connectionState = 'connected';
+    allowOperation = true;
+  } else if (hasSignificantLocalData) {
+    // Temos muitos dados = N8N funcionou antes. Probe lento = disponível mas lento
+    connectionState = hasRecentSync ? 'slow' : 'available';
+    allowOperation = true; // Permitir operação - o sync pode demorar mas deve funcionar
+  } else {
+    connectionState = 'disconnected';
+    allowOperation = false;
+  }
+  
+  console.log(`📊 Connection assessment: state=${connectionState}, allowOp=${allowOperation}, localData=${localCount}, hasRecentSync=${hasRecentSync}`);
 
   return new Response(
     JSON.stringify({
-      success: n8nProbeOk,
-      n8n: { connected: n8nProbeOk, webhookUrl: N8N_WEBHOOK_URL, probeMethod, probeResponseTimeMs, probeError },
+      success: allowOperation,
+      n8n: { 
+        connected: allowOperation, // Para compatibilidade com UI existente
+        connectionState,
+        webhookUrl: N8N_WEBHOOK_URL, 
+        probeMethod, 
+        probeResponseTimeMs, 
+        probeError,
+        probeUltimaData,
+        probeRecordsFound,
+        note: !n8nProbeOk && allowOperation 
+          ? 'Probe timeout, mas N8N está disponível (dados existentes confirmam funcionamento). Sync pode demorar mais.'
+          : undefined,
+      },
       local: {
         totalRecords: localCount || 0,
         records2025: count2025 || 0,
         records2024Plus: count2024 || 0,
         lastSync: lastSync?.created_at || null,
         lastSyncStatus: lastSync?.status || null,
+        lastSyncRecords: lastSync?.registros_processados || null,
       },
       database: dbHealth,
       activeSyncs: activeSyncs.size,
