@@ -1328,11 +1328,11 @@ async function handleSyncFinish(req: Request, supabase: any) {
 }
 
 // ============= SYNC-INCREMENTAL: SINCRONIZAÇÃO INCREMENTAL 100% BACKEND =============
-// Busca títulos alterados nos últimos N dias (padrão: 30 dias)
+// Busca títulos alterados nos últimos N dias (padrão: 180 dias = 6 meses)
 // Permite atualizar pagamentos de títulos antigos que estavam em atraso
 async function handleSyncIncremental(req: Request, supabase: any, userId: string) {
   const body = await req.json().catch(() => ({}));
-  const diasRetroativos = body.diasRetroativos || 30; // Padrão: 30 dias para pegar pagamentos de títulos em atraso
+  const diasRetroativos = body.diasRetroativos || 180; // Padrão: 180 dias (6 meses) para pegar pagamentos de títulos em atraso
   const batchSize = Math.min(body.batchSize || DEFAULT_BATCH_SIZE, MAX_BATCH_SIZE);
   const maxPages = body.maxPages || 50; // Máximo 50 páginas para incremental
 
