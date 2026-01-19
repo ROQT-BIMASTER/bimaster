@@ -386,9 +386,9 @@ export function useN8NSync() {
     });
     
     try {
-      // Chamar endpoint 100% backend
+      // Chamar endpoint 100% backend com estratégia date-based
       const { data, error: fnError } = await supabase.functions.invoke('n8n-contas-receber/sync-incremental', {
-        body: { diasRetroativos, batchSize: 50, maxPages: 100 },
+        body: { diasRetroativos, batchSize: 500, maxPages: 200 },
       });
       
       if (fnError) throw fnError;
