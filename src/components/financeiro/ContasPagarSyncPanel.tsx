@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useContasPagarSync, SyncMode } from '@/hooks/useContasPagarSync';
+import { N8NTabContent } from './N8NTabContent';
 import { 
   RefreshCw, 
   Database, 
@@ -241,65 +242,11 @@ export function ContasPagarSyncPanel() {
 
         {/* Tab N8N */}
         <TabsContent value="n8n" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Configuração do N8N
-              </CardTitle>
-              <CardDescription>
-                O N8N envia dados automaticamente para este endpoint
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Endpoint de Sincronização</h4>
-                <code className="text-sm bg-background px-2 py-1 rounded block overflow-x-auto">
-                  POST /functions/v1/contas-pagar-api/sync
-                </code>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Header: <code className="bg-background px-1 rounded">x-api-key: [N8N_API_KEY]</code>
-                </p>
-              </div>
-              
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Payload Esperado</h4>
-                <pre className="text-xs bg-background p-2 rounded overflow-x-auto">
-{`{
-  "contas": [
-    {
-      "ID Empresa": 1,
-      "Empresa": "Nome Empresa",
-      "Tipo": "NF",
-      "Nota": "12345",
-      "Seq": 1,
-      "Código": "FORN001",
-      "Cliente": "Fornecedor",
-      "Valor_Trc": 1000.00,
-      "Valor em Aberto": 500.00,
-      "Emissão": "2025-01-01",
-      "Vencimento": "2025-02-01"
-    }
-  ]
-}`}
-                </pre>
-              </div>
-
-              <div className="p-4 border border-amber-500/30 bg-amber-500/10 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-amber-700">Importante</h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      O N8N envia os dados automaticamente para este endpoint. 
-                      Este painel apenas monitora as sincronizações recebidas.
-                      Para disparar uma nova sync, execute o workflow no N8N.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <N8NTabContent 
+            stats={stats}
+            isSyncing={isSyncing}
+            onRefresh={handleRefreshAll}
+          />
         </TabsContent>
 
         {/* Tab API Direta */}
