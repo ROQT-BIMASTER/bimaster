@@ -309,35 +309,45 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = MA
   throw lastError || new Error('Max retries exceeded');
 }
 
-// ============= FETCH N8N - SOMENTE POST COM RETRY ROBUSTO =============
-// O webhook N8N só aceita POST - não fazer fallback para GET
-// IMPORTANTE: O workflow N8N usa NumeroPagina e batchSize ao invés de offset/limit
+// ============= FETCH N8N - POST COM QUERY PARAMS =============
+// O webhook N8N aceita POST mas lê parâmetros da query string ($node["Webhook Trigger"].json.query)
+// IMPORTANTE: O workflow N8N usa NumeroPagina e batchSize via query params
 async function fetchN8nWithFallback(
   limit: number, 
   offset: number, 
   filters?: Record<string, any>
 ): Promise<{ response: Response; method: string }> {
   // Converter offset/limit para NumeroPagina/batchSize que o N8N espera
-  // Fórmula: NumeroPagina = (offset / batchSize) + 1
   const batchSize = limit;
   const numeroPagina = Math.floor(offset / batchSize) + 1;
   
-  const payload = { 
-    tableName: 'ConsultaPowerBIReceber', 
-    limit, 
-    offset,
-    batchSize,
-    NumeroPagina: numeroPagina,
-    ...(filters && Object.keys(filters).length > 0 ? { filters } : {})
-  };
-
-  console.log(`🔗 Fetching N8N webhook (POST only): limit=${limit}, offset=${offset}, NumeroPagina=${numeroPagina}, batchSize=${batchSize}`);
+  // IMPORTANTE: O N8N lê parâmetros da query string, não do body!
+  // Construir URL com query params
+  const queryParams = new URLSearchParams({
+    tableName: 'ConsultaPowerBIReceber',
+    batchSize: batchSize.toString(),
+    NumeroPagina: numeroPagina.toString(),
+  });
   
-  // Usar fetchWithRetry com POST - sem fallback para GET
-  const response = await fetchWithRetry(N8N_WEBHOOK_URL, {
+  // Adicionar filtros se existirem (ex: ultimaData para sync incremental)
+  if (filters) {
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, String(value));
+      }
+    });
+  }
+  
+  const urlWithParams = `${N8N_WEBHOOK_URL}?${queryParams.toString()}`;
+  
+  console.log(`🔗 Fetching N8N webhook (POST with query params): NumeroPagina=${numeroPagina}, batchSize=${batchSize}`);
+  console.log(`🔗 Full URL: ${urlWithParams}`);
+  
+  // Usar fetchWithRetry com POST - body vazio, params na query string
+  const response = await fetchWithRetry(urlWithParams, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({}), // Body vazio, params já estão na URL
   });
   
   if (response.ok) {
