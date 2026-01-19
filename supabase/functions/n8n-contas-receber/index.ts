@@ -8,14 +8,15 @@ const corsHeaders = {
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
 
-// ============= CONFIGURAÇÕES OTIMIZADAS PARA SQL SERVER LENTO =============
-const DEFAULT_BATCH_SIZE = 50;       // Batch muito pequeno - SQL Server com ROW_NUMBER é lento
-const MAX_BATCH_SIZE = 50;           // Máximo absoluto para evitar timeout no N8N
-const UPSERT_BATCH_SIZE = 50;        // Batch de upsert
-const MAX_RETRIES = 5;               // Menos retries, mais tolerância
-const RETRY_DELAY_MS = 5000;         // 5s entre retries
-const FETCH_TIMEOUT_MS = 600000;     // 600s (10min) timeout - SQL Server muito lento
-const SUPABASE_BATCH_DELAY_MS = 30;  // Delay entre upserts
+// ============= CONFIGURAÇÕES OTIMIZADAS PARA SQL SERVER SEM ROW_NUMBER =============
+// Query otimizada usa TOP + ORDER BY ao invés de ROW_NUMBER (muito mais rápido)
+const DEFAULT_BATCH_SIZE = 500;      // Batch maior agora que não usa ROW_NUMBER
+const MAX_BATCH_SIZE = 500;          // Limite seguro com TOP
+const UPSERT_BATCH_SIZE = 100;       // Batch de upsert no Supabase
+const MAX_RETRIES = 3;               // Menos retries - query é rápida
+const RETRY_DELAY_MS = 3000;         // 3s entre retries
+const FETCH_TIMEOUT_MS = 300000;     // 300s (5min) timeout - suficiente com TOP
+const SUPABASE_BATCH_DELAY_MS = 20;  // Delay entre upserts
 
 // ============= PROTEÇÕES BALANCEADAS PARA GRANDE VOLUME =============
 const RATE_LIMIT_WINDOW_MS = 60000;  // Janela de 1 minuto
@@ -1328,15 +1329,16 @@ async function handleSyncFinish(req: Request, supabase: any) {
 }
 
 // ============= SYNC-INCREMENTAL: SINCRONIZAÇÃO INCREMENTAL 100% BACKEND =============
-// Busca títulos alterados nos últimos N dias (padrão: 180 dias = 6 meses)
-// Permite atualizar pagamentos de títulos antigos que estavam em atraso
+// ESTRATÉGIA DATE-BASED: Usa ultimaData para buscar registros novos/modificados
+// Query no N8N usa TOP + ORDER BY (rápido), não ROW_NUMBER (lento)
+// Loop continua até hasMoreData = false (não depende de offset)
 async function handleSyncIncremental(req: Request, supabase: any, userId: string) {
   const body = await req.json().catch(() => ({}));
-  const diasRetroativos = body.diasRetroativos || 30; // 30 dias padrão para incremental rápido
+  const diasRetroativos = body.diasRetroativos || 90; // 90 dias (3 meses) para pegar pagamentos de títulos em atraso
   const batchSize = Math.min(body.batchSize || DEFAULT_BATCH_SIZE, MAX_BATCH_SIZE);
-  const maxPages = body.maxPages || 100; // Até 100 páginas (50 registros cada = 5000 registros)
+  const maxPages = body.maxPages || 200; // Até 200 páginas (500 registros cada = 100k registros)
 
-  console.log(`🔄 SYNC-INCREMENTAL iniciado: diasRetroativos=${diasRetroativos}, batchSize=${batchSize}, maxPages=${maxPages}`);
+  console.log(`🔄 SYNC-INCREMENTAL v3 iniciado: diasRetroativos=${diasRetroativos}, batchSize=${batchSize}, maxPages=${maxPages}`);
   
   const syncStartTime = Date.now();
   const syncSessionId = `incr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -1344,9 +1346,9 @@ async function handleSyncIncremental(req: Request, supabase: any, userId: string
   // Calcular data de corte (X dias atrás)
   const dataCorte = new Date();
   dataCorte.setDate(dataCorte.getDate() - diasRetroativos);
-  const ultimaData = toDateOnly(dataCorte);
+  let currentUltimaData = toDateOnly(dataCorte); // Muda a cada batch com base no lastDate retornado
   
-  console.log(`📅 Buscando dados desde: ${ultimaData} (${diasRetroativos} dias atrás)`);
+  console.log(`📅 Buscando dados desde: ${currentUltimaData} (${diasRetroativos} dias atrás)`);
 
   // Limpar syncs travados
   await cleanupStaleSyncs(supabase);
@@ -1368,11 +1370,11 @@ async function handleSyncIncremental(req: Request, supabase: any, userId: string
       tipo: 'contas_receber',
       status: 'in_progress',
       detalhes: { 
-        source: 'incremental-backend', 
+        source: 'incremental-backend-v3', 
         batchSize, 
         syncSessionId, 
         diasRetroativos,
-        ultimaData,
+        initialUltimaData: currentUltimaData,
         startedAt: new Date().toISOString() 
       },
     })
@@ -1381,24 +1383,23 @@ async function handleSyncIncremental(req: Request, supabase: any, userId: string
 
   let totalProcessed = 0;
   let pagesProcessed = 0;
-  let offset = 0;
   let hasMore = true;
   const errors: any[] = [];
   let totalUpdated = 0;
   let totalInserted = 0;
 
   try {
-    // Loop por páginas com filtro de data
+    // Loop por páginas usando hasMoreData do response (não offset)
     while (hasMore && pagesProcessed < maxPages) {
       pagesProcessed++;
-      console.log(`📄 Incremental page ${pagesProcessed}, offset: ${offset}, ultimaData: ${ultimaData}`);
+      console.log(`📄 Incremental page ${pagesProcessed}, ultimaData: ${currentUltimaData}`);
 
-      // Buscar dados do N8N com filtro ultimaData
+      // Buscar dados do N8N com filtro ultimaData (offset=0 pois paginação é por data)
       const { response, method } = await fetchN8nWithFallback(
         batchSize, 
-        offset, 
-        { ultimaData },
-        { maxRetries: 3, timeoutMs: FETCH_TIMEOUT_MS }
+        0, // offset sempre 0 - paginação baseada em ultimaData
+        { ultimaData: currentUltimaData },
+        { maxRetries: MAX_RETRIES, timeoutMs: FETCH_TIMEOUT_MS }
       );
 
       if (!response.ok) {
@@ -1487,9 +1488,16 @@ async function handleSyncIncremental(req: Request, supabase: any, userId: string
         await new Promise(r => setTimeout(r, SUPABASE_BATCH_DELAY_MS));
       }
 
-      // Próxima página
-      offset = data.metadata?.nextOffset || (offset + records.length);
-      hasMore = records.length >= batchSize;
+      // ESTRATÉGIA DATE-BASED: Próxima página usa lastDate do response
+      // Se N8N retornou lastDate, usar como próximo ultimaData
+      const lastDateFromN8n = data.metadata?.lastDate;
+      if (lastDateFromN8n && lastDateFromN8n > currentUltimaData) {
+        console.log(`📆 Avançando ultimaData: ${currentUltimaData} → ${lastDateFromN8n}`);
+        currentUltimaData = lastDateFromN8n;
+      }
+      
+      // hasMore vem do N8N (true se retornou exatamente o limite)
+      hasMore = data.metadata?.hasMoreData ?? (records.length >= batchSize);
 
       // Atualizar log
       if (syncLog?.id) {
@@ -1498,9 +1506,9 @@ async function handleSyncIncremental(req: Request, supabase: any, userId: string
           .update({
             registros_processados: totalProcessed,
             detalhes: { 
-              source: 'incremental-backend', 
+              source: 'incremental-backend-v3', 
               pagesProcessed, 
-              currentOffset: offset,
+              currentUltimaData,
               totalUpdated,
               totalInserted,
               lastUpdate: new Date().toISOString() 
@@ -1514,7 +1522,7 @@ async function handleSyncIncremental(req: Request, supabase: any, userId: string
     }
 
     const duration = Date.now() - syncStartTime;
-    console.log(`✅ SYNC-INCREMENTAL completo: ${totalProcessed} records (${totalUpdated} updates, ${totalInserted} inserts) em ${pagesProcessed} páginas (${duration}ms)`);
+    console.log(`✅ SYNC-INCREMENTAL v3 completo: ${totalProcessed} records (${totalUpdated} updates, ${totalInserted} inserts) em ${pagesProcessed} páginas (${duration}ms)`);
 
     // Remover sync ativo
     removeSyncFromActive(syncSessionId);
@@ -1527,13 +1535,14 @@ async function handleSyncIncremental(req: Request, supabase: any, userId: string
           status: errors.length > 0 ? 'completed_with_errors' : 'completed',
           registros_processados: totalProcessed,
           detalhes: { 
-            source: 'incremental-backend', 
+            source: 'incremental-backend-v3', 
             pagesProcessed, 
             duration_ms: duration, 
             errors: errors.length,
             totalUpdated,
             totalInserted,
             diasRetroativos,
+            finalUltimaData: currentUltimaData,
             finishedAt: new Date().toISOString(),
           },
         })
