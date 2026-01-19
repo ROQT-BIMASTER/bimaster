@@ -58,7 +58,7 @@ export function SyncControlPanel() {
   
   const [config, setConfig] = useState<SyncConfig>({
     scope: '2025',
-    batchSize: 500,
+    batchSize: 100, // Alinhado com MAX_BATCH_SIZE do backend
     pageDelay: 3,
   });
   

@@ -371,7 +371,8 @@ function normalizeFilters(filters?: Record<string, any>): { ultimaData?: string 
 }
 
 // Clamp de batchSize para evitar payloads enormes
-const SAFE_MAX_BATCH_SIZE = 500; // Máximo seguro para evitar timeouts
+// Alinhado com MAX_BATCH_SIZE definido nas configurações principais
+const SAFE_MAX_BATCH_SIZE = MAX_BATCH_SIZE; // Usa o mesmo limite (100)
 
 async function fetchN8nWithFallback(
   limit: number,

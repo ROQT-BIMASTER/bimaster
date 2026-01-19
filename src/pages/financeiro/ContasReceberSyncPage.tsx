@@ -48,7 +48,7 @@ export default function ContasReceberSyncPage() {
 
   const handleSyncFull = async () => {
     setActiveSync('full');
-    await syncAll(5000); // Batch de 5000 registros - otimizado para 500k+ registros
+    await syncAll(100); // Backend clipa para MAX_BATCH_SIZE (100) - SQL Server limitado
     setActiveSync(null);
   };
 
