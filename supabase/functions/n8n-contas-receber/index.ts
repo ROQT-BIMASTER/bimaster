@@ -329,56 +329,27 @@ async function fetchWithRetry(
   throw lastError || new Error('Max retries exceeded');
 }
 
-// ============= FETCH N8N - POST COM QUERY PARAMS (E BODY COMPATÍVEL) =============
-// O webhook N8N aceita POST e pode ler parâmetros tanto da query string quanto do body.
-// IMPORTANTE: O workflow usa NumeroPagina e batchSize (paginação) e alguns nós ainda esperam limit/offset no body.
+// ============= FETCH N8N (COMPATÍVEL COM DOC) =============
+// Envia exatamente o payload documentado:
+// { tableName, limit, offset, filters }
+// Mantemos POST (webhook) e retries/timeout configuráveis.
 async function fetchN8nWithFallback(
   limit: number,
   offset: number,
   filters?: Record<string, any>,
   retryConfig?: number | FetchRetryConfig,
 ): Promise<{ response: Response; method: string }> {
-  // Converter offset/limit para NumeroPagina/batchSize que o N8N espera
-  const batchSize = limit;
-  const numeroPagina = Math.floor(offset / batchSize) + 1;
-
-  // Query params (compatível com workflow que lê req.query)
-  const queryParams = new URLSearchParams({
-    tableName: 'ConsultaPowerBIReceber',
-    limit: String(limit),
-    offset: String(offset),
-    batchSize: String(batchSize),
-    NumeroPagina: String(numeroPagina),
-  });
-
-  // Adicionar filtros simples também na query (ex: since, anoMinimo)
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        queryParams.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
-      }
-    });
-  }
-
-  const urlWithParams = `${N8N_WEBHOOK_URL}?${queryParams.toString()}`;
-
-  // Body (compatível com workflow/nós que leem req.body)
   const payload: Record<string, any> = {
     tableName: 'ConsultaPowerBIReceber',
     limit,
     offset,
-    batchSize,
-    NumeroPagina: numeroPagina,
+    filters: filters ?? {},
   };
 
-  if (filters && Object.keys(filters).length > 0) {
-    payload.filters = filters;
-  }
-
-  console.log(`🔗 Fetching N8N webhook (POST): NumeroPagina=${numeroPagina}, batchSize=${batchSize}, limit=${limit}, offset=${offset}`);
+  console.log(`🔗 Fetching N8N webhook (POST): limit=${limit}, offset=${offset}`);
 
   const response = await fetchWithRetry(
-    urlWithParams,
+    N8N_WEBHOOK_URL,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
