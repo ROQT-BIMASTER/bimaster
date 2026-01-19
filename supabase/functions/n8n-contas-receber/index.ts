@@ -648,8 +648,8 @@ async function handleStatus(supabase: any) {
 
   return new Response(
     JSON.stringify({
-      success: n8nConnected,
-      n8n: { connected: n8nConnected, webhookUrl: N8N_WEBHOOK_URL },
+      success: n8nProbeOk,
+      n8n: { connected: n8nProbeOk, webhookUrl: N8N_WEBHOOK_URL, probeMethod, probeResponseTimeMs, probeError },
       local: {
         totalRecords: localCount || 0,
         records2025: count2025 || 0,
