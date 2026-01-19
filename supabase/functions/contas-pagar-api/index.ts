@@ -547,6 +547,129 @@ Deno.serve(async (req) => {
       });
     }
 
+    // =====================================================
+    // GET /last-sync - Data da última sincronização bem-sucedida
+    // =====================================================
+    if (path.endsWith('/last-sync') && req.method === 'GET') {
+      // Endpoint público para N8N consultar a última data
+      const apiKey = req.headers.get('x-api-key');
+      const expectedKey = Deno.env.get('N8N_API_KEY');
+      
+      if (apiKey !== expectedKey && !await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Buscar última sync bem-sucedida
+      const { data: lastSync, error } = await supabase
+        .from('sync_control')
+        .select('ultima_sync, total_registros, registros_inseridos, registros_atualizados')
+        .eq('entidade', 'contas_pagar')
+        .eq('status', 'success')
+        .order('ultima_sync', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+        throw error;
+      }
+
+      // Se não há sync anterior, retornar data de 7 dias atrás
+      const defaultDate = new Date();
+      defaultDate.setDate(defaultDate.getDate() - 7);
+
+      const lastSyncDate = lastSync?.ultima_sync 
+        ? new Date(lastSync.ultima_sync).toISOString().split('T')[0]
+        : defaultDate.toISOString().split('T')[0];
+
+      return new Response(JSON.stringify({
+        lastSyncDate,
+        lastSync: lastSync || null,
+        message: lastSync 
+          ? `Última sync: ${lastSync.total_registros} registros` 
+          : 'Nenhuma sync anterior encontrada, usando 7 dias como padrão'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // =====================================================
+    // POST /trigger-n8n - Disparar sincronização via N8N
+    // =====================================================
+    if (path.endsWith('/trigger-n8n') && req.method === 'POST') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const n8nWebhookUrl = Deno.env.get('N8N_CONTAS_PAGAR_WEBHOOK');
+      
+      if (!n8nWebhookUrl) {
+        return new Response(JSON.stringify({ 
+          error: 'N8N webhook não configurado',
+          message: 'Configure o secret N8N_CONTAS_PAGAR_WEBHOOK no backend'
+        }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Buscar última data de sync
+      const { data: lastSync } = await supabase
+        .from('sync_control')
+        .select('ultima_sync')
+        .eq('entidade', 'contas_pagar')
+        .eq('status', 'success')
+        .order('ultima_sync', { ascending: false })
+        .limit(1)
+        .single();
+
+      const defaultDate = new Date();
+      defaultDate.setDate(defaultDate.getDate() - 7);
+      const lastSyncDate = lastSync?.ultima_sync 
+        ? new Date(lastSync.ultima_sync).toISOString().split('T')[0]
+        : defaultDate.toISOString().split('T')[0];
+
+      try {
+        // Disparar o webhook N8N
+        const response = await fetch(n8nWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trigger: 'manual',
+            lastSyncDate,
+            timestamp: new Date().toISOString()
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`N8N retornou status ${response.status}`);
+        }
+
+        console.log('✅ N8N workflow disparado com sucesso');
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Sincronização disparada via N8N',
+          lastSyncDate,
+          n8n_status: response.status
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+
+      } catch (n8nError) {
+        console.error('❌ Erro ao disparar N8N:', n8nError);
+        return new Response(JSON.stringify({
+          success: false,
+          error: n8nError instanceof Error ? n8nError.message : 'Erro ao disparar N8N',
+          message: 'Verifique se o workflow N8N está ativo'
+        }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     return new Response(JSON.stringify({ error: 'Not found' }), {
       status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
