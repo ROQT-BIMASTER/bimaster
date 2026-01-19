@@ -8,14 +8,14 @@ const corsHeaders = {
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
 
-// ============= CONFIGURAÇÕES PARA BATCHES MENORES (SQL SERVER LIMITADO) =============
-const DEFAULT_BATCH_SIZE = 100;      // Batch pequeno - SQL Server não suporta mais
-const MAX_BATCH_SIZE = 100;          // Máximo para evitar timeout no N8N/SQL Server
-const UPSERT_BATCH_SIZE = 100;       // Batch de upsert
-const MAX_RETRIES = 10;              // 10 retries para grande volume
-const RETRY_DELAY_MS = 3000;         // 3s entre retries
-const FETCH_TIMEOUT_MS = 300000;     // 300s (5min) timeout - SQL Server com ROW_NUMBER demora muito
-const SUPABASE_BATCH_DELAY_MS = 50;  // Delay entre upserts
+// ============= CONFIGURAÇÕES OTIMIZADAS PARA SQL SERVER LENTO =============
+const DEFAULT_BATCH_SIZE = 50;       // Batch muito pequeno - SQL Server com ROW_NUMBER é lento
+const MAX_BATCH_SIZE = 50;           // Máximo absoluto para evitar timeout no N8N
+const UPSERT_BATCH_SIZE = 50;        // Batch de upsert
+const MAX_RETRIES = 5;               // Menos retries, mais tolerância
+const RETRY_DELAY_MS = 5000;         // 5s entre retries
+const FETCH_TIMEOUT_MS = 600000;     // 600s (10min) timeout - SQL Server muito lento
+const SUPABASE_BATCH_DELAY_MS = 30;  // Delay entre upserts
 
 // ============= PROTEÇÕES BALANCEADAS PARA GRANDE VOLUME =============
 const RATE_LIMIT_WINDOW_MS = 60000;  // Janela de 1 minuto
@@ -1332,9 +1332,9 @@ async function handleSyncFinish(req: Request, supabase: any) {
 // Permite atualizar pagamentos de títulos antigos que estavam em atraso
 async function handleSyncIncremental(req: Request, supabase: any, userId: string) {
   const body = await req.json().catch(() => ({}));
-  const diasRetroativos = body.diasRetroativos || 180; // Padrão: 180 dias (6 meses) para pegar pagamentos de títulos em atraso
+  const diasRetroativos = body.diasRetroativos || 30; // 30 dias padrão para incremental rápido
   const batchSize = Math.min(body.batchSize || DEFAULT_BATCH_SIZE, MAX_BATCH_SIZE);
-  const maxPages = body.maxPages || 50; // Máximo 50 páginas para incremental
+  const maxPages = body.maxPages || 100; // Até 100 páginas (50 registros cada = 5000 registros)
 
   console.log(`🔄 SYNC-INCREMENTAL iniciado: diasRetroativos=${diasRetroativos}, batchSize=${batchSize}, maxPages=${maxPages}`);
   
