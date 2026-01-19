@@ -329,24 +329,33 @@ async function fetchWithRetry(
   throw lastError || new Error('Max retries exceeded');
 }
 
-// ============= FETCH N8N (COMPATÍVEL COM DOC) =============
-// Envia exatamente o payload documentado:
-// { tableName, limit, offset, filters }
-// Mantemos POST (webhook) e retries/timeout configuráveis.
+// ============= FETCH N8N COM PAGINAÇÃO (FORMATO QUE FUNCIONAVA) =============
+// IMPORTANTE: O workflow N8N espera NumeroPagina e batchSize para paginação do SQL Server
+// Formato: { tableName, limit, offset, batchSize, NumeroPagina, filters }
 async function fetchN8nWithFallback(
   limit: number,
   offset: number,
   filters?: Record<string, any>,
   retryConfig?: number | FetchRetryConfig,
 ): Promise<{ response: Response; method: string }> {
+  // Converter offset/limit para NumeroPagina/batchSize que o N8N espera
+  const batchSize = limit;
+  const numeroPagina = Math.floor(offset / batchSize) + 1;
+
   const payload: Record<string, any> = {
     tableName: 'ConsultaPowerBIReceber',
     limit,
     offset,
-    filters: filters ?? {},
+    batchSize,
+    NumeroPagina: numeroPagina,
   };
 
-  console.log(`🔗 Fetching N8N webhook (POST): limit=${limit}, offset=${offset}`);
+  // Adicionar filtros se existirem
+  if (filters && Object.keys(filters).length > 0) {
+    payload.filters = filters;
+  }
+
+  console.log(`🔗 Fetching N8N webhook (POST): NumeroPagina=${numeroPagina}, batchSize=${batchSize}, limit=${limit}, offset=${offset}`);
 
   const response = await fetchWithRetry(
     N8N_WEBHOOK_URL,
