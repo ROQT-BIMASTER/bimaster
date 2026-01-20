@@ -9,11 +9,78 @@ const corsHeaders = {
 // =====================================================
 // CONFIGURAÇÕES DE PERFORMANCE
 // =====================================================
-const BULK_BATCH_SIZE = 10000;      // Registros por operação SQL
-const MAX_PAYLOAD_SIZE = 100000;    // Máximo de registros por requisição
-const RECOMMENDED_CHUNK_SIZE = 25000; // Tamanho recomendado para chunks N8N
+const BULK_BATCH_SIZE = 10000;
+const MAX_PAYLOAD_SIZE = 100000;
+const RECOMMENDED_CHUNK_SIZE = 25000;
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
 
-// Calcular hash MD5 dos dados para detectar alterações
+// =====================================================
+// UTILITÁRIOS DE RETRY E LOGGING
+// =====================================================
+interface RetryOptions {
+  maxRetries?: number;
+  delayMs?: number;
+  operationName?: string;
+}
+
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  options: RetryOptions = {}
+): Promise<T> {
+  const { maxRetries = MAX_RETRIES, delayMs = RETRY_DELAY_MS, operationName = 'operation' } = options;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const errorMessage = lastError.message.toLowerCase();
+      
+      // Erros que podem ser recuperados com retry
+      const isRetryable = 
+        errorMessage.includes('pldbgapi2') ||
+        errorMessage.includes('statement call stack') ||
+        errorMessage.includes('deadlock') ||
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('connection') ||
+        errorMessage.includes('network') ||
+        errorMessage.includes('too many connections');
+
+      if (!isRetryable || attempt === maxRetries) {
+        console.error(`❌ [${operationName}] Falha após ${attempt} tentativa(s):`, lastError.message);
+        throw lastError;
+      }
+
+      const backoffDelay = delayMs * Math.pow(2, attempt - 1);
+      console.warn(`⚠️ [${operationName}] Tentativa ${attempt}/${maxRetries} falhou: ${lastError.message}. Retry em ${backoffDelay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, backoffDelay));
+    }
+  }
+
+  throw lastError || new Error('Retry failed');
+}
+
+function logRequest(method: string, path: string, details?: Record<string, any>) {
+  const timestamp = new Date().toISOString();
+  console.log(`📥 [${timestamp}] ${method} ${path}`, details ? JSON.stringify(details) : '');
+}
+
+function logSuccess(operation: string, details?: Record<string, any>) {
+  const timestamp = new Date().toISOString();
+  console.log(`✅ [${timestamp}] ${operation}`, details ? JSON.stringify(details) : '');
+}
+
+function logError(operation: string, error: any, context?: Record<string, any>) {
+  const timestamp = new Date().toISOString();
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  console.error(`❌ [${timestamp}] ${operation}: ${errorMessage}`, context ? JSON.stringify(context) : '');
+}
+
+// =====================================================
+// FUNÇÕES DE TRANSFORMAÇÃO
+// =====================================================
 async function calculateHash(data: any): Promise<string> {
   const dataToHash = [
     data.valor_original,
@@ -33,7 +100,6 @@ async function calculateHash(data: any): Promise<string> {
   return hashHex;
 }
 
-// Transformar dados do ERP para o formato do banco
 function transformErpData(erpRecord: any) {
   return {
     empresa_id: erpRecord['ID Empresa'] || erpRecord.empresa_id,
@@ -79,19 +145,58 @@ function generateErpId(record: any): string {
   return `${empresaId}-${tipo}-${nota}-${seq}-${codigo}`;
 }
 
+// =====================================================
+// PROCESSAMENTO DE REGISTROS COM RETRY
+// =====================================================
+async function processRecordsWithRetry(
+  supabase: any,
+  records: any[],
+  operationName: string
+): Promise<{ inserted: number; updated: number; skipped: number; total: number }> {
+  // Preparar dados com erp_id e hash
+  const preparedRecords = await Promise.all(records.map(async (conta: any) => {
+    const transformed = transformErpData(conta);
+    const erpId = generateErpId(conta);
+    const dataHash = await calculateHash(transformed);
+    return {
+      erp_id: erpId,
+      data_hash: dataHash,
+      ...transformed
+    };
+  }));
+
+  // Executar com retry automático
+  const result = await withRetry(
+    async () => {
+      const { data, error } = await supabase.rpc('bulk_upsert_contas_pagar_v2', {
+        p_records: preparedRecords
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    { operationName, maxRetries: MAX_RETRIES }
+  );
+
+  return result;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  const url = new URL(req.url);
+  const path = url.pathname;
+
+  logRequest(req.method, path);
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-
-    const url = new URL(req.url);
-    const path = url.pathname;
 
     // Validar API Key para endpoints de sincronização
     const validateApiKey = () => {
@@ -123,12 +228,13 @@ Deno.serve(async (req) => {
     if (path.endsWith('/status') && req.method === 'GET') {
       return new Response(JSON.stringify({
         status: 'online',
-        version: '2.0.0',
+        version: '2.1.0',
         timestamp: new Date().toISOString(),
         config: {
           bulk_batch_size: BULK_BATCH_SIZE,
           max_payload_size: MAX_PAYLOAD_SIZE,
-          recommended_chunk_size: RECOMMENDED_CHUNK_SIZE
+          recommended_chunk_size: RECOMMENDED_CHUNK_SIZE,
+          max_retries: MAX_RETRIES
         }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -140,12 +246,12 @@ Deno.serve(async (req) => {
     // =====================================================
     if (path.endsWith('/bulk-sync') && req.method === 'POST') {
       if (!validateApiKey()) {
+        logError('bulk-sync', 'Unauthorized - API Key inválida');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      const startTime = Date.now();
       const body = await req.json();
       const contas = body.contas || body.data || body;
       const syncId = body.sync_id || crypto.randomUUID();
@@ -153,12 +259,14 @@ Deno.serve(async (req) => {
       const totalChunks = body.total_chunks;
 
       if (!Array.isArray(contas) || contas.length === 0) {
+        logError('bulk-sync', 'Payload inválido - array esperado');
         return new Response(JSON.stringify({ error: 'Invalid payload - array expected' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
       if (contas.length > MAX_PAYLOAD_SIZE) {
+        logError('bulk-sync', `Payload muito grande: ${contas.length}`);
         return new Response(JSON.stringify({ 
           error: `Payload too large. Max: ${MAX_PAYLOAD_SIZE}, received: ${contas.length}` 
         }), {
@@ -166,84 +274,92 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`📦 bulk-sync: Recebidos ${contas.length} registros (chunk ${chunkNumber})`);
+      console.log(`📦 [bulk-sync] Chunk ${chunkNumber}/${totalChunks || '?'}: ${contas.length} registros`);
 
-      // Preparar dados com erp_id e hash
-      const preparedRecords = await Promise.all(contas.map(async (conta: any) => {
-        const transformed = transformErpData(conta);
-        const erpId = generateErpId(conta);
-        const dataHash = await calculateHash(transformed);
-        return {
-          erp_id: erpId,
-          data_hash: dataHash,
-          ...transformed
-        };
-      }));
+      try {
+        const result = await processRecordsWithRetry(supabase, contas, 'bulk-sync');
+        const duration = Date.now() - startTime;
 
-      // Chamar função SQL otimizada
-      const { data: result, error } = await supabase.rpc('bulk_upsert_contas_pagar_v2', {
-        p_records: preparedRecords
-      });
+        // Registrar chunk processado
+        try {
+          await supabase.from('sync_chunks_tracking').insert({
+            sync_id: syncId,
+            entidade: 'contas_pagar',
+            chunk_number: chunkNumber,
+            total_chunks: totalChunks,
+            records_in_chunk: contas.length,
+            records_processed: result.total,
+            records_inserted: result.inserted,
+            records_updated: result.updated,
+            records_skipped: result.skipped,
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            duration_ms: duration
+          });
+        } catch (trackingErr) {
+          console.warn('⚠️ Erro ao registrar chunk:', trackingErr);
+        }
 
-      if (error) {
-        console.error('❌ Erro bulk_upsert:', error);
-        
-        // Registrar chunk com erro
-        await supabase.from('sync_chunks_tracking').insert({
-          sync_id: syncId,
-          entidade: 'contas_pagar',
-          chunk_number: chunkNumber,
-          total_chunks: totalChunks,
-          records_in_chunk: contas.length,
-          status: 'error',
-          error_message: error.message,
-          completed_at: new Date().toISOString(),
-          duration_ms: Date.now() - startTime
-        });
-
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      const duration = Date.now() - startTime;
-
-      // Registrar chunk processado
-      await supabase.from('sync_chunks_tracking').insert({
-        sync_id: syncId,
-        entidade: 'contas_pagar',
-        chunk_number: chunkNumber,
-        total_chunks: totalChunks,
-        records_in_chunk: contas.length,
-        records_processed: result.total,
-        records_inserted: result.inserted,
-        records_updated: result.updated,
-        records_skipped: result.skipped,
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        duration_ms: duration
-      });
-
-      console.log(`✅ bulk-sync: Chunk ${chunkNumber} processado em ${duration}ms - I:${result.inserted} U:${result.updated} S:${result.skipped}`);
-
-      return new Response(JSON.stringify({
-        success: true,
-        sync_id: syncId,
-        chunk_number: chunkNumber,
-        statistics: {
-          total_received: contas.length,
+        logSuccess('bulk-sync', {
+          chunk: chunkNumber,
+          total: contas.length,
           inserted: result.inserted,
           updated: result.updated,
           skipped: result.skipped,
-          errors: 0
-        },
-        duration_ms: duration,
-        performance: {
-          records_per_second: Math.round(contas.length / (duration / 1000))
+          duration_ms: duration
+        });
+
+        return new Response(JSON.stringify({
+          success: true,
+          sync_id: syncId,
+          chunk_number: chunkNumber,
+          statistics: {
+            total_received: contas.length,
+            inserted: result.inserted,
+            updated: result.updated,
+            skipped: result.skipped,
+            errors: 0
+          },
+          duration_ms: duration,
+          performance: {
+            records_per_second: Math.round(contas.length / (duration / 1000))
+          }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        
+        logError('bulk-sync', error, { chunk: chunkNumber, records: contas.length });
+
+        // Registrar chunk com erro
+        try {
+          await supabase.from('sync_chunks_tracking').insert({
+            sync_id: syncId,
+            entidade: 'contas_pagar',
+            chunk_number: chunkNumber,
+            total_chunks: totalChunks,
+            records_in_chunk: contas.length,
+            status: 'error',
+            error_message: errorMessage,
+            completed_at: new Date().toISOString(),
+            duration_ms: duration
+          });
+        } catch (trackingErr) {
+          console.warn('⚠️ Erro ao registrar chunk com erro:', trackingErr);
         }
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: errorMessage,
+          chunk_number: chunkNumber,
+          duration_ms: duration
+        }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     // =====================================================
@@ -251,12 +367,12 @@ Deno.serve(async (req) => {
     // =====================================================
     if (path.endsWith('/sync-incremental') && req.method === 'POST') {
       if (!validateApiKey()) {
+        logError('sync-incremental', 'Unauthorized');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      const startTime = Date.now();
       const body = await req.json();
       const contas = body.contas || body.data || body;
 
@@ -266,64 +382,49 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`🔄 sync-incremental: Processando ${contas.length} registros`);
+      console.log(`🔄 [sync-incremental] Processando ${contas.length} registros`);
 
-      // Preparar dados
-      const preparedRecords = await Promise.all(contas.map(async (conta: any) => {
-        const transformed = transformErpData(conta);
-        const erpId = generateErpId(conta);
-        const dataHash = await calculateHash(transformed);
-        return {
-          erp_id: erpId,
-          data_hash: dataHash,
-          ...transformed
-        };
-      }));
+      try {
+        const result = await processRecordsWithRetry(supabase, contas, 'sync-incremental');
+        const duration = Date.now() - startTime;
+        const empresaId = contas[0] ? (contas[0]['ID Empresa'] || contas[0].empresa_id) : null;
 
-      // Chamar função SQL otimizada
-      const { data: result, error } = await supabase.rpc('bulk_upsert_contas_pagar_v2', {
-        p_records: preparedRecords
-      });
+        // Registrar no sync_control
+        await supabase.from('sync_control').insert({
+          entidade: 'contas_pagar',
+          empresa_id: empresaId,
+          ultima_sync: new Date().toISOString(),
+          total_registros: contas.length,
+          registros_inseridos: result.inserted,
+          registros_atualizados: result.updated,
+          registros_ignorados: result.skipped,
+          duracao_ms: duration,
+          status: 'success'
+        });
 
-      if (error) {
-        console.error('❌ Erro sync-incremental:', error);
-        return new Response(JSON.stringify({ error: error.message }), {
+        logSuccess('sync-incremental', { total: contas.length, duration_ms: duration });
+
+        return new Response(JSON.stringify({
+          success: true,
+          statistics: {
+            total_received: contas.length,
+            inserted: result.inserted,
+            updated: result.updated,
+            skipped: result.skipped,
+            errors: 0
+          },
+          duration_ms: duration,
+          message: `${result.skipped} registros ignorados (sem alterações)`
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+
+      } catch (error) {
+        logError('sync-incremental', error);
+        return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
           status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-
-      const duration = Date.now() - startTime;
-      const empresaId = contas[0] ? (contas[0]['ID Empresa'] || contas[0].empresa_id) : null;
-
-      // Registrar no sync_control
-      await supabase.from('sync_control').insert({
-        entidade: 'contas_pagar',
-        empresa_id: empresaId,
-        ultima_sync: new Date().toISOString(),
-        total_registros: contas.length,
-        registros_inseridos: result.inserted,
-        registros_atualizados: result.updated,
-        registros_ignorados: result.skipped,
-        duracao_ms: duration,
-        status: 'success'
-      });
-
-      console.log(`✅ sync-incremental: ${contas.length} registros em ${duration}ms`);
-
-      return new Response(JSON.stringify({
-        success: true,
-        statistics: {
-          total_received: contas.length,
-          inserted: result.inserted,
-          updated: result.updated,
-          skipped: result.skipped,
-          errors: 0
-        },
-        duration_ms: duration,
-        message: `${result.skipped} registros ignorados (sem alterações)`
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
     }
 
     // =====================================================
@@ -381,7 +482,7 @@ Deno.serve(async (req) => {
         status: progress?.overall_status === 'completed' ? 'success' : 'partial'
       });
 
-      console.log(`✅ sync-complete: Sincronização ${sync_id} finalizada`);
+      logSuccess('sync-complete', { sync_id });
 
       return new Response(JSON.stringify({
         success: true,
@@ -429,12 +530,12 @@ Deno.serve(async (req) => {
     // =====================================================
     if (path.endsWith('/sync') && req.method === 'POST') {
       if (!validateApiKey()) {
+        logError('sync', 'Unauthorized');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      const startTime = Date.now();
       const { contas } = await req.json();
 
       if (!contas || !Array.isArray(contas)) {
@@ -443,61 +544,48 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`📦 sync (legado): Processando ${contas.length} registros`);
+      console.log(`📦 [sync-legado] Processando ${contas.length} registros`);
 
-      // Preparar dados
-      const preparedRecords = await Promise.all(contas.map(async (conta: any) => {
-        const transformed = transformErpData(conta);
-        const erpId = generateErpId(conta);
-        const dataHash = await calculateHash(transformed);
-        return {
-          erp_id: erpId,
-          data_hash: dataHash,
-          ...transformed
-        };
-      }));
+      try {
+        const result = await processRecordsWithRetry(supabase, contas, 'sync-legado');
+        const duration = Date.now() - startTime;
+        const empresaId = contas[0] ? contas[0]['ID Empresa'] : null;
 
-      // Chamar função SQL otimizada
-      const { data: result, error } = await supabase.rpc('bulk_upsert_contas_pagar_v2', {
-        p_records: preparedRecords
-      });
+        await supabase.from('sync_control').insert({
+          entidade: 'contas_pagar',
+          empresa_id: empresaId,
+          ultima_sync: new Date().toISOString(),
+          total_registros: contas.length,
+          registros_inseridos: result.inserted,
+          registros_atualizados: result.updated,
+          registros_ignorados: result.skipped,
+          duracao_ms: duration,
+          status: 'success'
+        });
 
-      if (error) {
-        console.error('❌ Erro sync legado:', error);
-        return new Response(JSON.stringify({ error: error.message }), {
+        logSuccess('sync-legado', { total: contas.length, duration_ms: duration });
+
+        return new Response(JSON.stringify({
+          success: true,
+          statistics: {
+            total_received: contas.length,
+            inserted: result.inserted,
+            updated: result.updated,
+            skipped: result.skipped,
+            errors: 0
+          },
+          duration_ms: duration,
+          message: `${result.skipped} registros ignorados (sem alterações)`
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+
+      } catch (error) {
+        logError('sync-legado', error);
+        return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
           status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-
-      const duration = Date.now() - startTime;
-      const empresaId = contas[0] ? contas[0]['ID Empresa'] : null;
-
-      await supabase.from('sync_control').insert({
-        entidade: 'contas_pagar',
-        empresa_id: empresaId,
-        ultima_sync: new Date().toISOString(),
-        total_registros: contas.length,
-        registros_inseridos: result.inserted,
-        registros_atualizados: result.updated,
-        registros_ignorados: result.skipped,
-        duracao_ms: duration,
-        status: 'success'
-      });
-
-      return new Response(JSON.stringify({
-        success: true,
-        statistics: {
-          total_received: contas.length,
-          inserted: result.inserted,
-          updated: result.updated,
-          skipped: result.skipped,
-          errors: 0
-        },
-        duration_ms: duration,
-        message: `${result.skipped} registros ignorados (sem alterações)`
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
     }
 
     // =====================================================
@@ -551,7 +639,6 @@ Deno.serve(async (req) => {
     // GET /last-sync - Data da última sincronização bem-sucedida
     // =====================================================
     if (path.endsWith('/last-sync') && req.method === 'GET') {
-      // Endpoint público para N8N consultar a última data
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
       
@@ -571,11 +658,10 @@ Deno.serve(async (req) => {
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+      if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
-      // Se não há sync anterior, retornar data de 7 dias atrás
       const defaultDate = new Date();
       defaultDate.setDate(defaultDate.getDate() - 7);
 
@@ -632,22 +718,28 @@ Deno.serve(async (req) => {
         : defaultDate.toISOString().split('T')[0];
 
       try {
-        // Disparar o webhook N8N
-        const response = await fetch(n8nWebhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            trigger: 'manual',
-            lastSyncDate,
-            timestamp: new Date().toISOString()
-          })
-        });
+        // Disparar o webhook N8N com retry
+        const response = await withRetry(
+          async () => {
+            const resp = await fetch(n8nWebhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                trigger: 'manual',
+                lastSyncDate,
+                timestamp: new Date().toISOString()
+              })
+            });
 
-        if (!response.ok) {
-          throw new Error(`N8N retornou status ${response.status}`);
-        }
+            if (!resp.ok) {
+              throw new Error(`N8N retornou status ${resp.status}`);
+            }
+            return resp;
+          },
+          { operationName: 'trigger-n8n', maxRetries: 2 }
+        );
 
-        console.log('✅ N8N workflow disparado com sucesso');
+        logSuccess('trigger-n8n', { lastSyncDate, status: response.status });
 
         return new Response(JSON.stringify({
           success: true,
@@ -659,7 +751,7 @@ Deno.serve(async (req) => {
         });
 
       } catch (n8nError) {
-        console.error('❌ Erro ao disparar N8N:', n8nError);
+        logError('trigger-n8n', n8nError);
         return new Response(JSON.stringify({
           success: false,
           error: n8nError instanceof Error ? n8nError.message : 'Erro ao disparar N8N',
@@ -675,9 +767,12 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('❌ Error:', error);
+    const duration = Date.now() - startTime;
+    logError('global-handler', error, { path, duration_ms: duration });
+    
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      duration_ms: duration
     }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
