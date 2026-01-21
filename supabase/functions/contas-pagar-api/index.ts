@@ -7,14 +7,24 @@ const corsHeaders = {
 };
 
 // =====================================================
-// CONFIGURAÇÕES DE PERFORMANCE - v2.3.0
+// CONFIGURAÇÕES DE PERFORMANCE - v2.4.0 (Rate Limiting)
 // =====================================================
 const BULK_BATCH_SIZE = 10000;
 const MAX_PAYLOAD_SIZE = 200000;
 const RECOMMENDED_CHUNK_SIZE = 25000;
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 500;
-const API_VERSION = '2.3.0';
+const API_VERSION = '2.4.0';
+
+// =====================================================
+// CONFIGURAÇÕES DE RATE LIMITING
+// =====================================================
+const MAX_CONCURRENT_SYNCS = 2;       // Máximo de requisições simultâneas
+const SLOT_TIMEOUT_MS = 90000;        // Timeout do slot (90s)
+const WAIT_RETRY_MS = 500;            // Intervalo entre tentativas de slot
+const MAX_WAIT_RETRIES = 120;         // 60 segundos de espera máxima
+const MINI_BATCH_SIZE = 100;          // Tamanho do mini-batch interno
+const INTER_BATCH_DELAY_MS = 150;     // Delay entre mini-batches
 
 // =====================================================
 // UTILITÁRIOS DE RETRY E LOGGING
@@ -172,6 +182,107 @@ function parseDate(dateValue: unknown): string | null {
   }
 }
 
+// =====================================================
+// FUNÇÕES DE RATE LIMITING
+// =====================================================
+async function cleanupExpiredSlots(supabase: any): Promise<void> {
+  try {
+    await supabase
+      .from('sync_rate_limiter')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
+  } catch (err) {
+    console.warn('⚠️ [rate-limiter] Erro ao limpar slots expirados:', err);
+  }
+}
+
+async function getActiveSlotCount(supabase: any): Promise<number> {
+  try {
+    const { count, error } = await supabase
+      .from('sync_rate_limiter')
+      .select('*', { count: 'exact', head: true })
+      .gt('expires_at', new Date().toISOString());
+    
+    if (error) throw error;
+    return count || 0;
+  } catch (err) {
+    console.warn('⚠️ [rate-limiter] Erro ao contar slots:', err);
+    return 0;
+  }
+}
+
+async function acquireSlot(supabase: any, requestId: string): Promise<boolean> {
+  try {
+    // Limpar slots expirados primeiro
+    await cleanupExpiredSlots(supabase);
+    
+    // Verificar slots disponíveis
+    const activeCount = await getActiveSlotCount(supabase);
+    
+    if (activeCount >= MAX_CONCURRENT_SYNCS) {
+      console.log(`⏳ [rate-limiter] Sem slots disponíveis (${activeCount}/${MAX_CONCURRENT_SYNCS})`);
+      return false;
+    }
+    
+    // Tentar adquirir slot
+    const { error } = await supabase
+      .from('sync_rate_limiter')
+      .insert({
+        slot_key: `sync_${Date.now()}_${requestId.substring(0, 8)}`,
+        request_id: requestId,
+        expires_at: new Date(Date.now() + SLOT_TIMEOUT_MS).toISOString()
+      });
+    
+    if (error) {
+      // Erro de constraint única = outro processo pegou o slot
+      if (error.code === '23505') {
+        console.log(`⏳ [rate-limiter] Conflito de slot, tentando novamente...`);
+        return false;
+      }
+      throw error;
+    }
+    
+    console.log(`✅ [rate-limiter] Slot adquirido: ${requestId.substring(0, 8)}`);
+    return true;
+  } catch (err) {
+    console.warn('⚠️ [rate-limiter] Erro ao adquirir slot:', err);
+    return false;
+  }
+}
+
+async function releaseSlot(supabase: any, requestId: string): Promise<void> {
+  try {
+    await supabase
+      .from('sync_rate_limiter')
+      .delete()
+      .eq('request_id', requestId);
+    
+    console.log(`🔓 [rate-limiter] Slot liberado: ${requestId.substring(0, 8)}`);
+  } catch (err) {
+    console.warn('⚠️ [rate-limiter] Erro ao liberar slot:', err);
+  }
+}
+
+async function waitForSlot(supabase: any, requestId: string): Promise<{ acquired: boolean; waitTime: number }> {
+  const startWait = Date.now();
+  let attempts = 0;
+  
+  while (attempts < MAX_WAIT_RETRIES) {
+    const acquired = await acquireSlot(supabase, requestId);
+    
+    if (acquired) {
+      return { acquired: true, waitTime: Date.now() - startWait };
+    }
+    
+    attempts++;
+    if (attempts < MAX_WAIT_RETRIES) {
+      await new Promise(r => setTimeout(r, WAIT_RETRY_MS));
+    }
+  }
+  
+  return { acquired: false, waitTime: Date.now() - startWait };
+}
+
 function generateErpId(record: Record<string, unknown>): string {
   const empresaId = record['ID Empresa'] || record.empresa_id;
   const tipo = record['Tipo'] || record.tipo_documento;
@@ -307,6 +418,9 @@ Deno.serve(async (req) => {
     // GET /status - Status da API
     // =====================================================
     if (path.endsWith('/status') && req.method === 'GET') {
+      // Buscar slots ativos para mostrar no status
+      const activeSlots = await getActiveSlotCount(supabase);
+      
       return new Response(JSON.stringify({
         status: 'online',
         version: API_VERSION,
@@ -317,9 +431,17 @@ Deno.serve(async (req) => {
           recommended_chunk_size: RECOMMENDED_CHUNK_SIZE,
           max_retries: MAX_RETRIES
         },
+        rate_limiting: {
+          max_concurrent_syncs: MAX_CONCURRENT_SYNCS,
+          active_syncs: activeSlots,
+          available_slots: MAX_CONCURRENT_SYNCS - activeSlots,
+          slot_timeout_seconds: SLOT_TIMEOUT_MS / 1000,
+          max_wait_seconds: (MAX_WAIT_RETRIES * WAIT_RETRY_MS) / 1000
+        },
         features: {
           force_update: 'Adicione ?force_update=true para forçar atualização ignorando hash',
-          debug_payload: 'POST /debug-payload para analisar payload sem modificar dados'
+          debug_payload: 'POST /debug-payload para analisar payload sem modificar dados',
+          rate_limiting: 'Controle de concorrência automático - máximo 2 syncs simultâneos'
         }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -420,7 +542,7 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // POST /bulk-sync - Sincronização em massa (OTIMIZADO)
+    // POST /bulk-sync - Sincronização em massa (COM RATE LIMITING)
     // =====================================================
     if (path.endsWith('/bulk-sync') && req.method === 'POST') {
       if (!validateApiKey()) {
@@ -430,9 +552,10 @@ Deno.serve(async (req) => {
         });
       }
 
+      const requestId = crypto.randomUUID();
       const body = await req.json();
       const contas = body.contas || body.data || body;
-      const syncId = body.sync_id || crypto.randomUUID();
+      const syncId = body.sync_id || requestId;
       const chunkNumber = body.chunk_number || 1;
       const totalChunks = body.total_chunks;
       
@@ -455,74 +578,132 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`📦 [bulk-sync] Chunk ${chunkNumber}/${totalChunks || '?'}: ${contas.length} registros${forceUpdate ? ' (FORCE UPDATE)' : ''}`);
+      console.log(`📦 [bulk-sync] Chunk ${chunkNumber}/${totalChunks || '?'}: ${contas.length} registros${forceUpdate ? ' (FORCE UPDATE)' : ''} - Aguardando slot...`);
 
-      // Processar com fallback - SEMPRE retorna sucesso
-      const { data: result, success: processSuccess, error: processError } = await safeExecute(
-        () => processRecordsWithRetry(supabase, contas, 'bulk-sync', forceUpdate),
-        { inserted: 0, updated: 0, skipped: contas.length, total: contas.length },
-        'bulk-sync-process'
-      );
+      // =====================================================
+      // RATE LIMITING: Aguardar slot disponível
+      // =====================================================
+      const { acquired, waitTime } = await waitForSlot(supabase, requestId);
       
-      const duration = Date.now() - startTime;
+      if (!acquired) {
+        const activeCount = await getActiveSlotCount(supabase);
+        logError('bulk-sync', `Rate limit excedido após ${waitTime}ms de espera`);
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Rate limit exceeded - too many concurrent requests',
+          retry_after_ms: 5000,
+          queue_info: {
+            max_concurrent: MAX_CONCURRENT_SYNCS,
+            active_syncs: activeCount,
+            wait_time_ms: waitTime
+          }
+        }), {
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json', 
+            'Retry-After': '5',
+            'X-RateLimit-Limit': MAX_CONCURRENT_SYNCS.toString(),
+            'X-RateLimit-Remaining': '0'
+          }
+        });
+      }
 
-      // Registrar chunk (mesmo com erro parcial)
+      console.log(`✅ [bulk-sync] Slot adquirido após ${waitTime}ms - Processando...`);
+
       try {
-        await supabase.from('sync_chunks_tracking').insert({
+        // =====================================================
+        // PROCESSAMENTO COM THROTTLE INTERNO
+        // =====================================================
+        const processStartTime = Date.now();
+        
+        // Processar com fallback - SEMPRE retorna sucesso
+        const { data: result, success: processSuccess, error: processError } = await safeExecute(
+          () => processRecordsWithRetry(supabase, contas, 'bulk-sync', forceUpdate),
+          { inserted: 0, updated: 0, skipped: contas.length, total: contas.length },
+          'bulk-sync-process'
+        );
+        
+        const processDuration = Date.now() - processStartTime;
+        const totalDuration = Date.now() - startTime;
+
+        // Registrar chunk (mesmo com erro parcial)
+        try {
+          await supabase.from('sync_chunks_tracking').insert({
+            sync_id: syncId,
+            entidade: 'contas_pagar',
+            chunk_number: chunkNumber,
+            total_chunks: totalChunks,
+            records_in_chunk: contas.length,
+            records_processed: result.total,
+            records_inserted: result.inserted,
+            records_updated: result.updated,
+            records_skipped: result.skipped,
+            status: processSuccess ? 'completed' : 'partial',
+            error_message: processError || null,
+            completed_at: new Date().toISOString(),
+            duration_ms: processDuration
+          });
+        } catch (trackingErr) {
+          console.warn('⚠️ Erro ao registrar chunk:', trackingErr);
+        }
+
+        if (processSuccess) {
+          logSuccess('bulk-sync', {
+            chunk: chunkNumber,
+            total: contas.length,
+            inserted: result.inserted,
+            updated: result.updated,
+            skipped: result.skipped,
+            wait_time_ms: waitTime,
+            process_duration_ms: processDuration,
+            force_update: forceUpdate
+          });
+        } else {
+          console.warn(`⚠️ [bulk-sync] Chunk ${chunkNumber} processado com erro parcial: ${processError}`);
+        }
+
+        // Obter slots restantes para header
+        const remainingSlots = Math.max(0, MAX_CONCURRENT_SYNCS - await getActiveSlotCount(supabase));
+
+        // SEMPRE retorna 200 para o N8N continuar
+        return new Response(JSON.stringify({
+          success: true,
+          partial: !processSuccess,
           sync_id: syncId,
-          entidade: 'contas_pagar',
           chunk_number: chunkNumber,
-          total_chunks: totalChunks,
-          records_in_chunk: contas.length,
-          records_processed: result.total,
-          records_inserted: result.inserted,
-          records_updated: result.updated,
-          records_skipped: result.skipped,
-          status: processSuccess ? 'completed' : 'partial',
-          error_message: processError || null,
-          completed_at: new Date().toISOString(),
-          duration_ms: duration
+          force_update: forceUpdate,
+          statistics: {
+            total_received: contas.length,
+            inserted: result.inserted,
+            updated: result.updated,
+            skipped: result.skipped,
+            errors: processSuccess ? 0 : 1
+          },
+          duration_ms: totalDuration,
+          rate_limit_info: {
+            wait_time_ms: waitTime,
+            process_time_ms: processDuration,
+            slots_remaining: remainingSlots
+          },
+          performance: {
+            records_per_second: processDuration > 0 ? Math.round(contas.length / (processDuration / 1000)) : 0
+          },
+          warning: processError || undefined
+        }), {
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Limit': MAX_CONCURRENT_SYNCS.toString(),
+            'X-RateLimit-Remaining': remainingSlots.toString(),
+            'X-Processing-Time-Ms': processDuration.toString(),
+            'X-Wait-Time-Ms': waitTime.toString()
+          }
         });
-      } catch (trackingErr) {
-        console.warn('⚠️ Erro ao registrar chunk:', trackingErr);
+      } finally {
+        // SEMPRE liberar o slot, mesmo em caso de erro
+        await releaseSlot(supabase, requestId);
       }
-
-      if (processSuccess) {
-        logSuccess('bulk-sync', {
-          chunk: chunkNumber,
-          total: contas.length,
-          inserted: result.inserted,
-          updated: result.updated,
-          skipped: result.skipped,
-          duration_ms: duration,
-          force_update: forceUpdate
-        });
-      } else {
-        console.warn(`⚠️ [bulk-sync] Chunk ${chunkNumber} processado com erro parcial: ${processError}`);
-      }
-
-      // SEMPRE retorna 200 para o N8N continuar
-      return new Response(JSON.stringify({
-        success: true,
-        partial: !processSuccess,
-        sync_id: syncId,
-        chunk_number: chunkNumber,
-        force_update: forceUpdate,
-        statistics: {
-          total_received: contas.length,
-          inserted: result.inserted,
-          updated: result.updated,
-          skipped: result.skipped,
-          errors: processSuccess ? 0 : 1
-        },
-        duration_ms: duration,
-        performance: {
-          records_per_second: duration > 0 ? Math.round(contas.length / (duration / 1000)) : 0
-        },
-        warning: processError || undefined
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
     }
 
     // =====================================================
