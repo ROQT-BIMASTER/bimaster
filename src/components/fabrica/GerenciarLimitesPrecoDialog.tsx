@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Save, AlertTriangle, Shield, X, Filter, ChevronDown, ChevronRight, TableIcon, Calculator, TrendingDown, TrendingUp, ArrowRight, Loader2 } from "lucide-react";
+import { Search, Save, AlertTriangle, Shield, X, Filter, ChevronDown, ChevronRight, TableIcon, Calculator, TrendingDown, TrendingUp, ArrowRight, Loader2, ListTodo, Play } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,16 @@ import { formatarMoeda, simularCalculoReverso, SimulacaoPrecoReverso } from "@/l
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   open: boolean;
@@ -59,6 +69,8 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
   const [categoriasAbertas, setCategoriasAbertas] = useState<Set<string>>(new Set());
   const [simulacao, setSimulacao] = useState<SimulacaoState | null>(null);
   const [tabelaSimulacaoOrigem, setTabelaSimulacaoOrigem] = useState<string>("");
+  const [dialogCriarTarefas, setDialogCriarTarefas] = useState(false);
+  const [criandoTarefas, setCriandoTarefas] = useState(false);
 
   // Buscar tabelas de preço
   const { data: tabelas, isLoading: isLoadingTabelas } = useQuery({
@@ -179,6 +191,8 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
       setTabelaSelecionada("");
       setSimulacao(null);
       setTabelaSimulacaoOrigem("");
+      setDialogCriarTarefas(false);
+      setCriandoTarefas(false);
     }
   }, [open]);
 
@@ -288,6 +302,71 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
   // Fechar painel de simulação
   const fecharSimulacao = () => {
     setSimulacao(null);
+  };
+
+  // Criar tarefas de ajuste a partir da simulação
+  const criarTarefasAjuste = async () => {
+    if (!simulacao || simulacao.resultados.length === 0 || !tabelaSelecionada) {
+      toast({ title: "Nenhuma simulação ativa", variant: "destructive" });
+      return;
+    }
+
+    setCriandoTarefas(true);
+
+    try {
+      // Buscar custo base do produto (da tabela raiz/fábrica)
+      const { data: custoData } = await supabase
+        .from("fabrica_precos_produtos")
+        .select("custo_base")
+        .eq("produto_id", simulacao.produtoId)
+        .eq("ativo", true)
+        .order("data_atualizacao", { ascending: true })
+        .limit(1)
+        .single();
+
+      const custoBase = custoData?.custo_base || 0;
+
+      // Criar tarefas para cada tabela na cadeia (exceto a última que é o limite)
+      const tarefas = simulacao.resultados
+        .filter((_, idx) => idx < simulacao.resultados.length - 1) // Excluir a tabela do limite
+        .map((resultado, index) => ({
+          produto_id: simulacao.produtoId,
+          tabela_id: resultado.tabela_id,
+          tabela_limite_id: tabelaSelecionada,
+          preco_atual: resultado.preco_atual,
+          preco_sugerido: resultado.preco_sugerido,
+          diferenca_percentual: resultado.diferenca_percentual,
+          margem_resultante: resultado.margem_resultante,
+          custo_base: custoBase,
+          status: "pendente",
+          ordem_na_cadeia: index,
+        }));
+
+      if (tarefas.length === 0) {
+        toast({ title: "Nenhuma tarefa a criar", description: "A simulação não gerou tarefas de ajuste", variant: "destructive" });
+        setCriandoTarefas(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from("fabrica_tarefas_ajuste_preco")
+        .insert(tarefas);
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Tarefas criadas com sucesso!", 
+        description: `${tarefas.length} tarefa(s) de ajuste criada(s)` 
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["fabrica-tarefas-ajuste"] });
+      setDialogCriarTarefas(false);
+      setSimulacao(null);
+    } catch (error: any) {
+      toast({ title: "Erro ao criar tarefas", description: error.message, variant: "destructive" });
+    } finally {
+      setCriandoTarefas(false);
+    }
   };
 
   // Filtrar produtos
@@ -511,6 +590,19 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
                             Atenção: Algumas tabelas teriam margem negativa com esses ajustes
                           </div>
                         )}
+
+                        {/* Botão para criar tarefas */}
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => setDialogCriarTarefas(true)}
+                            disabled={simulacao.resultados.length <= 1}
+                          >
+                            <ListTodo className="h-4 w-4 mr-2" />
+                            Criar Tarefas de Ajuste ({simulacao.resultados.length - 1})
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -710,6 +802,62 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
             {salvarMutation.isPending ? "Salvando..." : "Salvar Limites"}
           </Button>
         </DialogFooter>
+
+        {/* Dialog de confirmação para criar tarefas */}
+        <AlertDialog open={dialogCriarTarefas} onOpenChange={setDialogCriarTarefas}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <ListTodo className="h-5 w-5 text-primary" />
+                Criar Tarefas de Ajuste
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p>
+                    Você está prestes a criar <strong>{(simulacao?.resultados.length || 1) - 1}</strong> tarefa(s) de ajuste 
+                    para o produto <strong>{simulacao?.produtoNome}</strong>.
+                  </p>
+                  <p className="text-sm">
+                    As tarefas ficarão pendentes para aprovação e aplicação posterior.
+                    Quando aplicadas, os preços serão ajustados automaticamente em cada tabela da cadeia.
+                  </p>
+                  <div className="bg-muted p-3 rounded-lg text-sm">
+                    <p className="font-medium mb-2">Tabelas que serão ajustadas:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {simulacao?.resultados.slice(0, -1).map(r => (
+                        <li key={r.tabela_id}>
+                          <strong>{r.tabela_nome}</strong>: {formatarMoeda(r.preco_atual)} → {formatarMoeda(r.preco_sugerido)}
+                          <span className={r.diferenca_percentual < 0 ? "text-destructive" : "text-green-600"}>
+                            {" "}({r.diferenca_percentual > 0 ? "+" : ""}{r.diferenca_percentual.toFixed(1)}%)
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={criandoTarefas}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={criarTarefasAjuste}
+                disabled={criandoTarefas}
+              >
+                {criandoTarefas ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Criando...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Criar Tarefas
+                  </>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

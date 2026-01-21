@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3, HelpCircle, Shield } from "lucide-react";
+import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3, HelpCircle, Shield, ListTodo } from "lucide-react";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovaTabelaPrecoDialog } from "@/components/fabrica/NovaTabelaPrecoDialog";
 import { CadeiaPrecificacaoVisual } from "@/components/fabrica/CadeiaPrecificacaoVisual";
@@ -28,6 +28,7 @@ import { AlertasPrecos } from "@/components/fabrica/AlertasPrecos";
 import { MatrizPrecosComparativa } from "@/components/fabrica/MatrizPrecosComparativa";
 import { ManualTabelasPrecoDialog } from "@/components/fabrica/ManualTabelasPrecoDialog";
 import { GerenciarLimitesPrecoDialog } from "@/components/fabrica/GerenciarLimitesPrecoDialog";
+import { TarefasAjustePrecoPanel } from "@/components/fabrica/TarefasAjustePrecoPanel";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -73,6 +74,20 @@ export default function FabricaTabelasPreco() {
 
       if (error) throw error;
       return data || [];
+    },
+  });
+
+  // Buscar contagem de tarefas pendentes
+  const { data: tarefasPendentes } = useQuery({
+    queryKey: ["fabrica-tarefas-pendentes-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("fabrica_tarefas_ajuste_preco")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pendente");
+
+      if (error) throw error;
+      return count || 0;
     },
   });
 
@@ -217,6 +232,15 @@ export default function FabricaTabelasPreco() {
               <List className="h-4 w-4" />
               Tabelas
             </TabsTrigger>
+            <TabsTrigger value="tarefas" className="gap-2">
+              <ListTodo className="h-4 w-4" />
+              Tarefas de Ajuste
+              {tarefasPendentes && tarefasPendentes > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  {tarefasPendentes}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="matriz" className="gap-2">
               <Grid3X3 className="h-4 w-4" />
               Matriz Comparativa
@@ -230,6 +254,10 @@ export default function FabricaTabelasPreco() {
               Alertas
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="tarefas" className="mt-6">
+            <TarefasAjustePrecoPanel />
+          </TabsContent>
 
           <TabsContent value="matriz" className="mt-6">
             <MatrizPrecosComparativa />
