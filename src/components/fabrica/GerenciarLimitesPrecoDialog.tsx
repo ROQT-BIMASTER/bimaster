@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Save, AlertTriangle, Shield, X, Filter, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, Save, AlertTriangle, Shield, X, Filter, ChevronDown, ChevronRight, TableIcon } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface TabelaPreco {
+  id: string;
+  nome: string;
+  status: string | null;
 }
 
 interface ProdutoComLimites {
@@ -34,11 +40,27 @@ interface ProdutoComLimites {
 export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [tabelaSelecionada, setTabelaSelecionada] = useState<string>("");
   const [busca, setBusca] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("all");
   const [limitesEditados, setLimitesEditados] = useState<Record<string, { preco_maximo: string; preco_minimo: string }>>({});
   const [produtosAlterados, setProdutosAlterados] = useState<Set<string>>(new Set());
   const [categoriasAbertas, setCategoriasAbertas] = useState<Set<string>>(new Set());
+
+  // Buscar tabelas de preço
+  const { data: tabelas, isLoading: isLoadingTabelas } = useQuery({
+    queryKey: ['fabrica-tabelas-limites'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fabrica_tabelas_preco')
+        .select('id, nome, status')
+        .order('nome');
+
+      if (error) throw error;
+      return data as TabelaPreco[];
+    },
+    enabled: open,
+  });
 
   // Buscar produtos acabados com limites - corrigido para ACABADO maiúsculo e também incluir acabado minúsculo
   const { data: produtos, isLoading } = useQuery({
@@ -66,13 +88,16 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
     enabled: open,
   });
 
-  // Buscar preços atuais dos produtos
+  // Buscar preços atuais dos produtos da tabela selecionada
   const { data: precosAtuais } = useQuery({
-    queryKey: ['fabrica-precos-atuais'],
+    queryKey: ['fabrica-precos-atuais', tabelaSelecionada],
     queryFn: async () => {
+      if (!tabelaSelecionada) return {};
+      
       const { data, error } = await supabase
         .from('fabrica_precos_produtos')
         .select('produto_id, preco_final')
+        .eq('tabela_id', tabelaSelecionada)
         .eq('ativo', true)
         .order('created_at', { ascending: false });
 
@@ -87,7 +112,7 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
       });
       return precosPorProduto;
     },
-    enabled: open,
+    enabled: open && !!tabelaSelecionada,
   });
 
   // Buscar categorias únicas para filtro
@@ -131,6 +156,7 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
       setBusca("");
       setCategoriaFiltro("all");
       setCategoriasAbertas(new Set());
+      setTabelaSelecionada("");
     }
   }, [open]);
 
@@ -265,43 +291,73 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Filtros */}
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar produto..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
-              <SelectTrigger className="w-[200px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Categoria" />
+          {/* Seletor de Tabela de Preços */}
+          <div className="bg-muted/50 p-4 rounded-lg space-y-3">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <TableIcon className="h-4 w-4" />
+              Selecione a Tabela de Preços
+            </label>
+            <Select value={tabelaSelecionada} onValueChange={setTabelaSelecionada}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Escolha uma tabela de preços..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas as categorias</SelectItem>
-                {categorias.map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
+                {isLoadingTabelas ? (
+                  <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                ) : (
+                  tabelas?.map(tabela => (
+                    <SelectItem key={tabela.id} value={tabela.id}>
+                      {tabela.nome} {tabela.status === 'ativa' && <Badge variant="outline" className="ml-2">Ativa</Badge>}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Info */}
-          <div className="bg-muted/50 p-3 rounded-lg text-sm">
-            <p className="text-muted-foreground">
-              Defina limites de preço máximo e mínimo para cada produto. 
-              Ao gerar preços, valores que excedam esses limites serão automaticamente ajustados.
-            </p>
-          </div>
+          {!tabelaSelecionada ? (
+            <div className="flex items-center justify-center h-40 text-muted-foreground border rounded-lg">
+              Selecione uma tabela de preços para gerenciar os limites
+            </div>
+          ) : (
+            <>
+              {/* Filtros */}
+              <div className="flex gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar produto..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
+                  <SelectTrigger className="w-[200px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as categorias</SelectItem>
+                    {categorias.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Tabela agrupada por categoria */}
-          <ScrollArea className="h-[450px] border rounded-lg">
-            {isLoading ? (
-              <div className="p-4 space-y-2">
+              {/* Info */}
+              <div className="bg-muted/50 p-3 rounded-lg text-sm">
+                <p className="text-muted-foreground">
+                  Defina limites de preço máximo e mínimo para cada produto. 
+                  Ao gerar preços, valores que excedam esses limites serão automaticamente ajustados.
+                </p>
+              </div>
+
+              {/* Tabela agrupada por categoria */}
+              <ScrollArea className="h-[380px] border rounded-lg">
+                {isLoading ? (
+                  <div className="p-4 space-y-2">
                 {[...Array(5)].map((_, i) => (
                   <Skeleton key={i} className="h-12 w-full" />
                 ))}
@@ -419,36 +475,38 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
                   </Collapsible>
                 ))}
               </div>
-            )}
-          </ScrollArea>
+                )}
+              </ScrollArea>
 
-          {/* Resumo */}
-          {produtosAlterados.size > 0 && (
-            <div className="flex items-center justify-between bg-primary/10 p-3 rounded-lg">
-              <span className="text-sm font-medium">
-                {produtosAlterados.size} produto(s) com alterações pendentes
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setProdutosAlterados(new Set());
-                  // Reinicializar limites
-                  if (produtos) {
-                    const limites: Record<string, { preco_maximo: string; preco_minimo: string }> = {};
-                    produtos.forEach(p => {
-                      limites[p.id] = {
-                        preco_maximo: p.preco_maximo?.toString() || "",
-                        preco_minimo: p.preco_minimo?.toString() || "",
-                      };
-                    });
-                    setLimitesEditados(limites);
-                  }
-                }}
-              >
-                Desfazer alterações
-              </Button>
-            </div>
+              {/* Resumo */}
+              {produtosAlterados.size > 0 && (
+                <div className="flex items-center justify-between bg-primary/10 p-3 rounded-lg">
+                  <span className="text-sm font-medium">
+                    {produtosAlterados.size} produto(s) com alterações pendentes
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setProdutosAlterados(new Set());
+                      // Reinicializar limites
+                      if (produtos) {
+                        const limites: Record<string, { preco_maximo: string; preco_minimo: string }> = {};
+                        produtos.forEach(p => {
+                          limites[p.id] = {
+                            preco_maximo: p.preco_maximo?.toString() || "",
+                            preco_minimo: p.preco_minimo?.toString() || "",
+                          };
+                        });
+                        setLimitesEditados(limites);
+                      }
+                    }}
+                  >
+                    Desfazer alterações
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
