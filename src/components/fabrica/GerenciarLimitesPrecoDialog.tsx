@@ -4,16 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Save, AlertTriangle, Shield, X, Filter, ChevronDown, ChevronRight, TableIcon } from "lucide-react";
+import { Search, Save, AlertTriangle, Shield, X, Filter, ChevronDown, ChevronRight, TableIcon, Calculator, TrendingDown, TrendingUp, ArrowRight, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
+import { formatarMoeda, simularCalculoReverso, SimulacaoPrecoReverso } from "@/lib/fabrica/pricing-calculator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Props {
   open: boolean;
@@ -24,6 +25,7 @@ interface TabelaPreco {
   id: string;
   nome: string;
   status: string | null;
+  ordem: number;
 }
 
 interface ProdutoComLimites {
@@ -37,6 +39,15 @@ interface ProdutoComLimites {
   preco_atual?: number | null;
 }
 
+interface SimulacaoState {
+  produtoId: string;
+  produtoNome: string;
+  precoDesejado: number;
+  tabelaOrigemId: string;
+  resultados: SimulacaoPrecoReverso[];
+  carregando: boolean;
+}
+
 export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -46,6 +57,8 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
   const [limitesEditados, setLimitesEditados] = useState<Record<string, { preco_maximo: string; preco_minimo: string }>>({});
   const [produtosAlterados, setProdutosAlterados] = useState<Set<string>>(new Set());
   const [categoriasAbertas, setCategoriasAbertas] = useState<Set<string>>(new Set());
+  const [simulacao, setSimulacao] = useState<SimulacaoState | null>(null);
+  const [tabelaSimulacaoOrigem, setTabelaSimulacaoOrigem] = useState<string>("");
 
   // Buscar tabelas de preço
   const { data: tabelas, isLoading: isLoadingTabelas } = useQuery({
@@ -53,14 +66,22 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fabrica_tabelas_preco')
-        .select('id, nome, status')
-        .order('nome');
+        .select('id, nome, status, ordem')
+        .order('ordem');
 
       if (error) throw error;
       return data as TabelaPreco[];
     },
     enabled: open,
   });
+
+  // Tabelas anteriores à selecionada (para o select de simulação)
+  const tabelasAnteriores = useMemo(() => {
+    if (!tabelas || !tabelaSelecionada) return [];
+    const tabelaAtual = tabelas.find(t => t.id === tabelaSelecionada);
+    if (!tabelaAtual) return [];
+    return tabelas.filter(t => t.ordem < tabelaAtual.ordem);
+  }, [tabelas, tabelaSelecionada]);
 
   // Buscar produtos acabados com limites - corrigido para ACABADO maiúsculo e também incluir acabado minúsculo
   const { data: produtos, isLoading } = useQuery({
@@ -157,6 +178,8 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
       setCategoriaFiltro("all");
       setCategoriasAbertas(new Set());
       setTabelaSelecionada("");
+      setSimulacao(null);
+      setTabelaSimulacaoOrigem("");
     }
   }, [open]);
 
@@ -230,6 +253,42 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
       [produtoId]: { preco_maximo: "", preco_minimo: "" },
     }));
     setProdutosAlterados(prev => new Set(prev).add(produtoId));
+  };
+
+  // Executar simulação de cálculo reverso
+  const executarSimulacao = async (produtoId: string, produtoNome: string, precoMaximo: number) => {
+    if (!tabelaSelecionada || !tabelaSimulacaoOrigem || precoMaximo <= 0) {
+      toast({ title: "Selecione a tabela de origem para simulação", variant: "destructive" });
+      return;
+    }
+
+    setSimulacao({
+      produtoId,
+      produtoNome,
+      precoDesejado: precoMaximo,
+      tabelaOrigemId: tabelaSimulacaoOrigem,
+      resultados: [],
+      carregando: true,
+    });
+
+    try {
+      const resultados = await simularCalculoReverso(
+        tabelaSelecionada,
+        tabelaSimulacaoOrigem,
+        produtoId,
+        precoMaximo
+      );
+
+      setSimulacao(prev => prev ? { ...prev, resultados, carregando: false } : null);
+    } catch (error) {
+      toast({ title: "Erro ao simular", description: "Não foi possível calcular a simulação", variant: "destructive" });
+      setSimulacao(null);
+    }
+  };
+
+  // Fechar painel de simulação
+  const fecharSimulacao = () => {
+    setSimulacao(null);
   };
 
   // Filtrar produtos
@@ -354,6 +413,111 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
                 </p>
               </div>
 
+              {/* Seletor de tabela para simulação */}
+              {tabelasAnteriores.length > 0 && (
+                <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <Calculator className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Simulação de Cálculo Reverso</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">Simule ajustes necessários nas tabelas anteriores para atingir o preço limite</p>
+                  </div>
+                  <Select value={tabelaSimulacaoOrigem} onValueChange={setTabelaSimulacaoOrigem}>
+                    <SelectTrigger className="w-[200px] bg-background">
+                      <SelectValue placeholder="Simular a partir de..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tabelasAnteriores.map(tabela => (
+                        <SelectItem key={tabela.id} value={tabela.id}>
+                          {tabela.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Painel de Simulação */}
+              {simulacao && (
+                <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Calculator className="h-4 w-4 text-blue-600" />
+                        Simulação para: {simulacao.produtoNome}
+                      </CardTitle>
+                      <Button variant="ghost" size="icon" onClick={fecharSimulacao}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Para atingir {formatarMoeda(simulacao.precoDesejado)} na tabela selecionada
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {simulacao.carregando ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                        <span className="ml-2 text-sm">Calculando...</span>
+                      </div>
+                    ) : simulacao.resultados.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Não foi possível calcular a simulação. Verifique se existem preços cadastrados.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Tabela</TableHead>
+                              <TableHead className="text-right">Preço Atual</TableHead>
+                              <TableHead className="text-center"><ArrowRight className="h-4 w-4 mx-auto" /></TableHead>
+                              <TableHead className="text-right">Preço Sugerido</TableHead>
+                              <TableHead className="text-right">Diferença</TableHead>
+                              <TableHead className="text-right">Margem</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {simulacao.resultados.map((resultado, index) => (
+                              <TableRow key={resultado.tabela_id}>
+                                <TableCell className="font-medium">{resultado.tabela_nome}</TableCell>
+                                <TableCell className="text-right">{formatarMoeda(resultado.preco_atual)}</TableCell>
+                                <TableCell className="text-center">
+                                  <ArrowRight className="h-4 w-4 mx-auto text-muted-foreground" />
+                                </TableCell>
+                                <TableCell className="text-right font-medium text-blue-600">
+                                  {formatarMoeda(resultado.preco_sugerido)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span className={`flex items-center justify-end gap-1 ${resultado.diferenca_percentual < 0 ? 'text-red-600' : resultado.diferenca_percentual > 0 ? 'text-green-600' : ''}`}>
+                                    {resultado.diferenca_percentual < 0 ? (
+                                      <TrendingDown className="h-3 w-3" />
+                                    ) : resultado.diferenca_percentual > 0 ? (
+                                      <TrendingUp className="h-3 w-3" />
+                                    ) : null}
+                                    {resultado.diferenca_percentual.toFixed(1)}%
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span className={resultado.margem_resultante < 0 ? 'text-red-600 font-medium' : ''}>
+                                    {resultado.margem_resultante.toFixed(1)}%
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        {simulacao.resultados.some(r => r.margem_resultante < 0) && (
+                          <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 dark:bg-red-950/30 p-2 rounded">
+                            <AlertTriangle className="h-4 w-4" />
+                            Atenção: Algumas tabelas teriam margem negativa com esses ajustes
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Tabela agrupada por categoria */}
               <ScrollArea className="h-[380px] border rounded-lg">
                 {isLoading ? (
@@ -395,7 +559,7 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
                             <TableHead className="w-[110px]">Preço Atual</TableHead>
                             <TableHead className="w-[110px] text-center">Mínimo (R$)</TableHead>
                             <TableHead className="w-[110px] text-center">Máximo (R$)</TableHead>
-                            <TableHead className="w-[50px]"></TableHead>
+                            <TableHead className="w-[80px] text-center">Ações</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -456,15 +620,40 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
                                   />
                                 </TableCell>
                                 <TableCell>
-                                  {(limitesEditados[produto.id]?.preco_maximo || limitesEditados[produto.id]?.preco_minimo) && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => limparLimite(produto.id)}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  )}
+                                  <div className="flex items-center gap-1">
+                                    {limitesEditados[produto.id]?.preco_maximo && tabelaSimulacaoOrigem && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              onClick={() => executarSimulacao(
+                                                produto.id, 
+                                                produto.nome, 
+                                                parseFloat(limitesEditados[produto.id].preco_maximo)
+                                              )}
+                                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                            >
+                                              <Calculator className="h-4 w-4" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            Simular ajustes para atingir este limite
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                    {(limitesEditados[produto.id]?.preco_maximo || limitesEditados[produto.id]?.preco_minimo) && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => limparLimite(produto.id)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             );
