@@ -7,14 +7,14 @@ const corsHeaders = {
 };
 
 // =====================================================
-// CONFIGURAÇÕES DE PERFORMANCE - v2.2.0
+// CONFIGURAÇÕES DE PERFORMANCE - v2.3.0
 // =====================================================
 const BULK_BATCH_SIZE = 10000;
-const MAX_PAYLOAD_SIZE = 200000; // Aumentado para aceitar mais registros
+const MAX_PAYLOAD_SIZE = 200000;
 const RECOMMENDED_CHUNK_SIZE = 25000;
-const MAX_RETRIES = 5; // Aumentado de 3 para 5
-const RETRY_DELAY_MS = 500; // Reduzido para retry mais rápido
-const API_VERSION = '2.2.0';
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 500;
+const API_VERSION = '2.3.0';
 
 // =====================================================
 // UTILITÁRIOS DE RETRY E LOGGING
@@ -23,7 +23,7 @@ interface RetryOptions {
   maxRetries?: number;
   delayMs?: number;
   operationName?: string;
-  alwaysSucceed?: boolean; // Se true, retorna resultado parcial em vez de erro
+  alwaysSucceed?: boolean;
 }
 
 async function withRetry<T>(
@@ -45,7 +45,6 @@ async function withRetry<T>(
       lastError = error instanceof Error ? error : new Error(String(error));
       const errorMessage = lastError.message.toLowerCase();
       
-      // Lista expandida de erros recuperáveis
       const isRetryable = 
         errorMessage.includes('pldbgapi2') ||
         errorMessage.includes('statement call stack') ||
@@ -74,7 +73,6 @@ async function withRetry<T>(
         throw lastError;
       }
 
-      // Backoff exponencial com jitter para evitar thundering herd
       const jitter = Math.random() * 200;
       const backoffDelay = Math.min(delayMs * Math.pow(2, attempt - 1) + jitter, 10000);
       console.warn(`⚠️ [${operationName}] Tentativa ${attempt}/${maxRetries} falhou: ${lastError.message}. Retry em ${Math.round(backoffDelay)}ms...`);
@@ -85,7 +83,6 @@ async function withRetry<T>(
   throw lastError || new Error('Retry failed');
 }
 
-// Wrapper que SEMPRE retorna sucesso (para endpoints críticos)
 async function safeExecute<T>(
   operation: () => Promise<T>,
   fallbackValue: T,
@@ -101,17 +98,17 @@ async function safeExecute<T>(
   }
 }
 
-function logRequest(method: string, path: string, details?: Record<string, any>) {
+function logRequest(method: string, path: string, details?: Record<string, unknown>) {
   const timestamp = new Date().toISOString();
   console.log(`📥 [${timestamp}] ${method} ${path}`, details ? JSON.stringify(details) : '');
 }
 
-function logSuccess(operation: string, details?: Record<string, any>) {
+function logSuccess(operation: string, details?: Record<string, unknown>) {
   const timestamp = new Date().toISOString();
   console.log(`✅ [${timestamp}] ${operation}`, details ? JSON.stringify(details) : '');
 }
 
-function logError(operation: string, error: any, context?: Record<string, any>) {
+function logError(operation: string, error: unknown, context?: Record<string, unknown>) {
   const timestamp = new Date().toISOString();
   const errorMessage = error instanceof Error ? error.message : String(error);
   console.error(`❌ [${timestamp}] ${operation}: ${errorMessage}`, context ? JSON.stringify(context) : '');
@@ -120,7 +117,7 @@ function logError(operation: string, error: any, context?: Record<string, any>) 
 // =====================================================
 // FUNÇÕES DE TRANSFORMAÇÃO
 // =====================================================
-async function calculateHash(data: any): Promise<string> {
+async function calculateHash(data: Record<string, unknown>): Promise<string> {
   const dataToHash = [
     data.valor_original,
     data.valor_aberto,
@@ -139,7 +136,7 @@ async function calculateHash(data: any): Promise<string> {
   return hashHex;
 }
 
-function transformErpData(erpRecord: any) {
+function transformErpData(erpRecord: Record<string, unknown>) {
   return {
     empresa_id: erpRecord['ID Empresa'] || erpRecord.empresa_id,
     empresa_nome: erpRecord['Empresa'] || erpRecord.empresa_nome,
@@ -164,10 +161,10 @@ function transformErpData(erpRecord: any) {
   };
 }
 
-function parseDate(dateValue: any): string | null {
+function parseDate(dateValue: unknown): string | null {
   if (!dateValue) return null;
   try {
-    const date = new Date(dateValue);
+    const date = new Date(dateValue as string);
     if (isNaN(date.getTime())) return null;
     return date.toISOString().split('T')[0];
   } catch {
@@ -175,7 +172,7 @@ function parseDate(dateValue: any): string | null {
   }
 }
 
-function generateErpId(record: any): string {
+function generateErpId(record: Record<string, unknown>): string {
   const empresaId = record['ID Empresa'] || record.empresa_id;
   const tipo = record['Tipo'] || record.tipo_documento;
   const nota = record['Nota'] || record.numero_documento;
@@ -189,11 +186,36 @@ function generateErpId(record: any): string {
 // =====================================================
 async function processRecordsWithRetry(
   supabase: any,
-  records: any[],
-  operationName: string
-): Promise<{ inserted: number; updated: number; skipped: number; total: number }> {
+  records: Record<string, unknown>[],
+  operationName: string,
+  forceUpdate: boolean = false
+): Promise<{ inserted: number; updated: number; skipped: number; total: number; force_update?: boolean }> {
+  // Log detalhado dos primeiros registros para debug
+  if (records.length > 0) {
+    const sampleSize = Math.min(3, records.length);
+    console.log(`📊 [${operationName}] Amostra de ${sampleSize} registros recebidos do N8N:`);
+    for (let i = 0; i < sampleSize; i++) {
+      const r = records[i];
+      console.log(`  📄 Registro ${i + 1}:`, JSON.stringify({
+        erp_id_campos: {
+          'ID Empresa': r['ID Empresa'],
+          'Tipo': r['Tipo'],
+          'Nota': r['Nota'],
+          'Seq': r['Seq'],
+          'Código': r['Código']
+        },
+        valores: {
+          'Valor_Trc': r['Valor_Trc'],
+          'Valor em Aberto': r['Valor em Aberto'],
+          'Valor Pago': r['Valor Pago'],
+          'Data Pgto': r['Data Pgto']
+        }
+      }));
+    }
+  }
+
   // Preparar dados com erp_id e hash
-  const preparedRecords = await Promise.all(records.map(async (conta: any) => {
+  const preparedRecords = await Promise.all(records.map(async (conta) => {
     const transformed = transformErpData(conta);
     const erpId = generateErpId(conta);
     const dataHash = await calculateHash(transformed);
@@ -204,18 +226,38 @@ async function processRecordsWithRetry(
     };
   }));
 
+  // Log do primeiro registro transformado
+  if (preparedRecords.length > 0) {
+    console.log(`📊 [${operationName}] Primeiro registro TRANSFORMADO:`, JSON.stringify({
+      erp_id: preparedRecords[0].erp_id,
+      valor_aberto: preparedRecords[0].valor_aberto,
+      valor_pago: preparedRecords[0].valor_pago,
+      data_pagamento: preparedRecords[0].data_pagamento,
+      data_hash: preparedRecords[0].data_hash
+    }));
+  }
+
+  // Log do force_update
+  if (forceUpdate) {
+    console.log(`🔄 [${operationName}] FORCE UPDATE ATIVADO - Ignorando comparação de hash`);
+  }
+
   // Executar com retry automático
   const result = await withRetry(
     async () => {
       const { data, error } = await supabase.rpc('bulk_upsert_contas_pagar_v2', {
-        p_records: preparedRecords
+        p_records: preparedRecords,
+        p_force_update: forceUpdate
       });
       
       if (error) throw error;
-      return data;
+      return data as { inserted: number; updated: number; skipped: number; total: number; force_update?: boolean };
     },
     { operationName, maxRetries: MAX_RETRIES }
   );
+
+  // Log do resultado
+  console.log(`📊 [${operationName}] Resultado do upsert:`, JSON.stringify(result));
 
   return result;
 }
@@ -274,7 +316,104 @@ Deno.serve(async (req) => {
           max_payload_size: MAX_PAYLOAD_SIZE,
           recommended_chunk_size: RECOMMENDED_CHUNK_SIZE,
           max_retries: MAX_RETRIES
+        },
+        features: {
+          force_update: 'Adicione ?force_update=true para forçar atualização ignorando hash',
+          debug_payload: 'POST /debug-payload para analisar payload sem modificar dados'
         }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // =====================================================
+    // POST /debug-payload - Analisar payload sem processar
+    // =====================================================
+    if (path.endsWith('/debug-payload') && req.method === 'POST') {
+      if (!validateApiKey()) {
+        logError('debug-payload', 'Unauthorized - API Key inválida');
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const contas = body.contas || body.data || body;
+
+      if (!Array.isArray(contas)) {
+        return new Response(JSON.stringify({ error: 'Invalid payload - array expected' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // IDs específicos para buscar
+      const targetErpIds = ['8-2-1-1-4006', '8-2-12-1-2630'];
+      
+      // Analisar registros recebidos
+      const analysis = {
+        total_received: contas.length,
+        sample_raw: contas.slice(0, 3).map((c: Record<string, unknown>) => ({
+          raw: {
+            'ID Empresa': c['ID Empresa'],
+            'Tipo': c['Tipo'],
+            'Nota': c['Nota'],
+            'Seq': c['Seq'],
+            'Código': c['Código'],
+            'Valor_Trc': c['Valor_Trc'],
+            'Valor em Aberto': c['Valor em Aberto'],
+            'Valor Pago': c['Valor Pago'],
+            'Data Pgto': c['Data Pgto'],
+            'Cliente': c['Cliente']
+          },
+          generated_erp_id: generateErpId(c),
+          transformed: transformErpData(c)
+        })),
+        target_records: [] as Array<{
+          erp_id: string;
+          found: boolean;
+          raw?: Record<string, unknown>;
+          transformed?: Record<string, unknown>;
+        }>,
+        campos_disponiveis: contas.length > 0 ? Object.keys(contas[0]) : []
+      };
+
+      // Buscar registros específicos
+      for (const targetId of targetErpIds) {
+        const found = contas.find((c: Record<string, unknown>) => generateErpId(c) === targetId);
+        if (found) {
+          analysis.target_records.push({
+            erp_id: targetId,
+            found: true,
+            raw: {
+              'Valor_Trc': found['Valor_Trc'],
+              'Valor em Aberto': found['Valor em Aberto'],
+              'Valor Pago': found['Valor Pago'],
+              'Data Pgto': found['Data Pgto'],
+              'Cliente': found['Cliente']
+            },
+            transformed: transformErpData(found)
+          });
+        } else {
+          analysis.target_records.push({
+            erp_id: targetId,
+            found: false
+          });
+        }
+      }
+
+      // Buscar o que está no banco para comparar
+      const { data: dbRecords } = await supabase
+        .from('contas_pagar')
+        .select('erp_id, valor_aberto, valor_pago, data_pagamento, data_hash, status')
+        .in('erp_id', targetErpIds);
+
+      logSuccess('debug-payload', { total: contas.length, targets_found: analysis.target_records.filter(r => r.found).length });
+
+      return new Response(JSON.stringify({
+        success: true,
+        analysis,
+        database_records: dbRecords || [],
+        message: 'Use esses dados para comparar o que o N8N envia vs o que está no banco'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -296,6 +435,9 @@ Deno.serve(async (req) => {
       const syncId = body.sync_id || crypto.randomUUID();
       const chunkNumber = body.chunk_number || 1;
       const totalChunks = body.total_chunks;
+      
+      // Flag force_update via query param ou body
+      const forceUpdate = url.searchParams.get('force_update') === 'true' || body.force_update === true;
 
       if (!Array.isArray(contas) || contas.length === 0) {
         logError('bulk-sync', 'Payload inválido - array esperado');
@@ -313,11 +455,11 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`📦 [bulk-sync] Chunk ${chunkNumber}/${totalChunks || '?'}: ${contas.length} registros`);
+      console.log(`📦 [bulk-sync] Chunk ${chunkNumber}/${totalChunks || '?'}: ${contas.length} registros${forceUpdate ? ' (FORCE UPDATE)' : ''}`);
 
       // Processar com fallback - SEMPRE retorna sucesso
       const { data: result, success: processSuccess, error: processError } = await safeExecute(
-        () => processRecordsWithRetry(supabase, contas, 'bulk-sync'),
+        () => processRecordsWithRetry(supabase, contas, 'bulk-sync', forceUpdate),
         { inserted: 0, updated: 0, skipped: contas.length, total: contas.length },
         'bulk-sync-process'
       );
@@ -352,7 +494,8 @@ Deno.serve(async (req) => {
           inserted: result.inserted,
           updated: result.updated,
           skipped: result.skipped,
-          duration_ms: duration
+          duration_ms: duration,
+          force_update: forceUpdate
         });
       } else {
         console.warn(`⚠️ [bulk-sync] Chunk ${chunkNumber} processado com erro parcial: ${processError}`);
@@ -360,10 +503,11 @@ Deno.serve(async (req) => {
 
       // SEMPRE retorna 200 para o N8N continuar
       return new Response(JSON.stringify({
-        success: true, // Sempre true para o N8N
+        success: true,
         partial: !processSuccess,
         sync_id: syncId,
         chunk_number: chunkNumber,
+        force_update: forceUpdate,
         statistics: {
           total_received: contas.length,
           inserted: result.inserted,
@@ -394,6 +538,7 @@ Deno.serve(async (req) => {
 
       const body = await req.json();
       const contas = body.contas || body.data || body;
+      const forceUpdate = url.searchParams.get('force_update') === 'true' || body.force_update === true;
 
       if (!Array.isArray(contas) || contas.length === 0) {
         return new Response(JSON.stringify({ error: 'Invalid payload' }), {
@@ -401,10 +546,10 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`🔄 [sync-incremental] Processando ${contas.length} registros`);
+      console.log(`🔄 [sync-incremental] Processando ${contas.length} registros${forceUpdate ? ' (FORCE UPDATE)' : ''}`);
 
       try {
-        const result = await processRecordsWithRetry(supabase, contas, 'sync-incremental');
+        const result = await processRecordsWithRetry(supabase, contas, 'sync-incremental', forceUpdate);
         const duration = Date.now() - startTime;
         const empresaId = contas[0] ? (contas[0]['ID Empresa'] || contas[0].empresa_id) : null;
 
@@ -421,10 +566,11 @@ Deno.serve(async (req) => {
           status: 'success'
         });
 
-        logSuccess('sync-incremental', { total: contas.length, duration_ms: duration });
+        logSuccess('sync-incremental', { total: contas.length, duration_ms: duration, force_update: forceUpdate });
 
         return new Response(JSON.stringify({
           success: true,
+          force_update: forceUpdate,
           statistics: {
             total_received: contas.length,
             inserted: result.inserted,
@@ -433,7 +579,9 @@ Deno.serve(async (req) => {
             errors: 0
           },
           duration_ms: duration,
-          message: `${result.skipped} registros ignorados (sem alterações)`
+          message: forceUpdate 
+            ? `${result.updated} registros atualizados (force_update ativado)`
+            : `${result.skipped} registros ignorados (sem alterações)`
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -545,7 +693,7 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // POST /sync - Sincronização legada (compatibilidade) - SEMPRE ACEITA
+    // POST /sync - Sincronização legada (compatibilidade)
     // =====================================================
     if (path.endsWith('/sync') && req.method === 'POST') {
       if (!validateApiKey()) {
@@ -555,18 +703,20 @@ Deno.serve(async (req) => {
         });
       }
 
-      let contas: any[] = [];
+      let contas: Record<string, unknown>[] = [];
+      let bodyData: Record<string, unknown> = {};
       try {
-        const body = await req.json();
-        contas = body.contas || body.data || body;
+        bodyData = await req.json();
+        contas = (bodyData.contas || bodyData.data || bodyData) as Record<string, unknown>[];
         if (!Array.isArray(contas)) contas = [];
       } catch (parseErr) {
         console.warn('⚠️ [sync] Erro ao fazer parse do body, tentando como array direto');
         contas = [];
       }
 
+      const forceUpdate = url.searchParams.get('force_update') === 'true' || bodyData.force_update === true;
+
       if (contas.length === 0) {
-        // Aceita requisição vazia com sucesso
         return new Response(JSON.stringify({ 
           success: true, 
           statistics: { total_received: 0, inserted: 0, updated: 0, skipped: 0, errors: 0 },
@@ -576,11 +726,11 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`📦 [sync-legado] Processando ${contas.length} registros`);
+      console.log(`📦 [sync-legado] Processando ${contas.length} registros${forceUpdate ? ' (FORCE UPDATE)' : ''}`);
 
       // Processar com fallback - SEMPRE retorna sucesso
       const { data: result, success: processSuccess, error: processError } = await safeExecute(
-        () => processRecordsWithRetry(supabase, contas, 'sync-legado'),
+        () => processRecordsWithRetry(supabase, contas, 'sync-legado', forceUpdate),
         { inserted: 0, updated: 0, skipped: contas.length, total: contas.length },
         'sync-legado-process'
       );
@@ -606,7 +756,7 @@ Deno.serve(async (req) => {
       }
 
       if (processSuccess) {
-        logSuccess('sync-legado', { total: contas.length, duration_ms: duration });
+        logSuccess('sync-legado', { total: contas.length, duration_ms: duration, force_update: forceUpdate });
       } else {
         console.warn(`⚠️ [sync-legado] Processado com erro parcial: ${processError}`);
       }
@@ -615,6 +765,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         partial: !processSuccess,
+        force_update: forceUpdate,
         statistics: {
           total_received: contas.length,
           inserted: result.inserted,
@@ -624,7 +775,9 @@ Deno.serve(async (req) => {
         },
         duration_ms: duration,
         message: processSuccess 
-          ? `${result.skipped} registros ignorados (sem alterações)`
+          ? (forceUpdate 
+              ? `${result.updated} registros atualizados (force_update)` 
+              : `${result.skipped} registros ignorados (sem alterações)`)
           : `Processado com erro parcial: ${processError}`,
         warning: processError || undefined
       }), {
@@ -680,7 +833,7 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // GET /last-sync - Data da última sincronização bem-sucedida
+    // GET /last-sync - Data da última sincronização
     // =====================================================
     if (path.endsWith('/last-sync') && req.method === 'GET') {
       const apiKey = req.headers.get('x-api-key');
@@ -692,7 +845,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Buscar última sync bem-sucedida
       const { data: lastSync, error } = await supabase
         .from('sync_control')
         .select('ultima_sync, total_registros, registros_inseridos, registros_atualizados')
@@ -745,7 +897,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Buscar última data de sync
       const { data: lastSync } = await supabase
         .from('sync_control')
         .select('ultima_sync')
@@ -762,7 +913,6 @@ Deno.serve(async (req) => {
         : defaultDate.toISOString().split('T')[0];
 
       try {
-        // Disparar o webhook N8N com retry
         const response = await withRetry(
           async () => {
             const resp = await fetch(n8nWebhookUrl, {
