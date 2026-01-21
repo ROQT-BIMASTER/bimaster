@@ -6501,6 +6501,118 @@ export type Database = {
           },
         ]
       }
+      fabrica_tarefas_ajuste_preco: {
+        Row: {
+          aplicada_em: string | null
+          aplicada_por: string | null
+          aprovada_em: string | null
+          aprovada_por: string | null
+          created_at: string
+          custo_base: number | null
+          diferenca_percentual: number | null
+          id: string
+          margem_resultante: number | null
+          motivo_rejeicao: string | null
+          ordem_na_cadeia: number
+          preco_atual: number
+          preco_sugerido: number
+          produto_id: string
+          rejeitada_em: string | null
+          rejeitada_por: string | null
+          status: string
+          tabela_id: string
+          tabela_limite_id: string
+          updated_at: string
+        }
+        Insert: {
+          aplicada_em?: string | null
+          aplicada_por?: string | null
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          created_at?: string
+          custo_base?: number | null
+          diferenca_percentual?: number | null
+          id?: string
+          margem_resultante?: number | null
+          motivo_rejeicao?: string | null
+          ordem_na_cadeia?: number
+          preco_atual: number
+          preco_sugerido: number
+          produto_id: string
+          rejeitada_em?: string | null
+          rejeitada_por?: string | null
+          status?: string
+          tabela_id: string
+          tabela_limite_id: string
+          updated_at?: string
+        }
+        Update: {
+          aplicada_em?: string | null
+          aplicada_por?: string | null
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          created_at?: string
+          custo_base?: number | null
+          diferenca_percentual?: number | null
+          id?: string
+          margem_resultante?: number | null
+          motivo_rejeicao?: string | null
+          ordem_na_cadeia?: number
+          preco_atual?: number
+          preco_sugerido?: number
+          produto_id?: string
+          rejeitada_em?: string | null
+          rejeitada_por?: string | null
+          status?: string
+          tabela_id?: string
+          tabela_limite_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_tarefas_ajuste_preco_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_tarefas_ajuste_preco_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_tarefas_ajuste_preco_tabela_limite_id_fkey"
+            columns: ["tabela_limite_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_produto"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tabela"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tabela_limite"
+            columns: ["tabela_limite_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_templates_lancamento: {
         Row: {
           ativo: boolean | null
