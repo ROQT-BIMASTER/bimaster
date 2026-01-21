@@ -14323,6 +14323,78 @@ export type Database = {
         }
         Relationships: []
       }
+      clientes_safe: {
+        Row: {
+          celular_masked: string | null
+          cidade: string | null
+          classificacao: number | null
+          cnpj: string | null
+          codigo: string | null
+          conceito: string | null
+          created_at: string | null
+          data_maior_compra: string | null
+          data_ultima_compra: string | null
+          email_masked: string | null
+          empresa_id: number | null
+          id: string | null
+          limite_credito: number | null
+          nome: string | null
+          nome_abreviado: string | null
+          status_bloqueio: string | null
+          telefone_masked: string | null
+          uf: string | null
+          updated_at: string | null
+          valor_maior_compra: number | null
+          valor_ultima_compra: number | null
+        }
+        Insert: {
+          celular_masked?: never
+          cidade?: string | null
+          classificacao?: number | null
+          cnpj?: string | null
+          codigo?: string | null
+          conceito?: string | null
+          created_at?: string | null
+          data_maior_compra?: string | null
+          data_ultima_compra?: string | null
+          email_masked?: never
+          empresa_id?: number | null
+          id?: string | null
+          limite_credito?: number | null
+          nome?: string | null
+          nome_abreviado?: string | null
+          status_bloqueio?: string | null
+          telefone_masked?: never
+          uf?: string | null
+          updated_at?: string | null
+          valor_maior_compra?: number | null
+          valor_ultima_compra?: number | null
+        }
+        Update: {
+          celular_masked?: never
+          cidade?: string | null
+          classificacao?: number | null
+          cnpj?: string | null
+          codigo?: string | null
+          conceito?: string | null
+          created_at?: string | null
+          data_maior_compra?: string | null
+          data_ultima_compra?: string | null
+          email_masked?: never
+          empresa_id?: number | null
+          id?: string | null
+          limite_credito?: number | null
+          nome?: string | null
+          nome_abreviado?: string | null
+          status_bloqueio?: string | null
+          telefone_masked?: never
+          uf?: string | null
+          updated_at?: string | null
+          valor_maior_compra?: number | null
+          valor_ultima_compra?: number | null
+        }
+        Relationships: []
+      }
       mv_analise_departamentos: {
         Row: {
           classificacoes_automaticas: number | null
@@ -14703,6 +14775,11 @@ export type Database = {
       calculate_visit_points: { Args: { visit_id: string }; Returns: number }
       can_access_ads_account: {
         Args: { account_user_id: string; viewer_id: string }
+        Returns: boolean
+      }
+      can_access_cliente: { Args: { viewer_id: string }; Returns: boolean }
+      can_access_notas_fiscais: {
+        Args: { viewer_id: string }
         Returns: boolean
       }
       can_view_profile: {
