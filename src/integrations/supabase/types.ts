@@ -14635,6 +14635,10 @@ export type Database = {
         }[]
       }
       calculate_visit_points: { Args: { visit_id: string }; Returns: number }
+      can_view_profile: {
+        Args: { _profile_id: string; _viewer_id: string }
+        Returns: boolean
+      }
       cleanup_expired_rate_limiter_slots: { Args: never; Returns: undefined }
       complete_sync: {
         Args: {
@@ -14939,6 +14943,7 @@ export type Database = {
           tela_codigo: string
         }[]
       }
+      has_finance_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
