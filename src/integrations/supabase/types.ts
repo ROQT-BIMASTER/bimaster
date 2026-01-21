@@ -12247,6 +12247,33 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_rate_limiter: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          locked_at: string | null
+          request_id: string
+          slot_key: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          locked_at?: string | null
+          request_id: string
+          slot_key: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          locked_at?: string | null
+          request_id?: string
+          slot_key?: string
+        }
+        Relationships: []
+      }
       sync_sessions: {
         Row: {
           chunks_processados: number | null
@@ -14608,6 +14635,7 @@ export type Database = {
         }[]
       }
       calculate_visit_points: { Args: { visit_id: string }; Returns: number }
+      cleanup_expired_rate_limiter_slots: { Args: never; Returns: undefined }
       complete_sync: {
         Args: {
           p_duration_ms?: number
