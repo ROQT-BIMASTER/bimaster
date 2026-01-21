@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -71,6 +71,7 @@ type SortColumnIA = 'fornecedor_nome' | 'numero_documento' | 'data_vencimento' |
 type SortDirection = 'asc' | 'desc';
 
 export default function ContasAPagar() {
+  const queryClient = useQueryClient();
   const { userType, isAdmin } = useUserRole();
   
   // Filtros
@@ -493,6 +494,13 @@ export default function ContasAPagar() {
 
   const pendingBudgetsCount = budgets?.filter(b => b.approval_status === 'pending').length || 0;
 
+  // Função para invalidar todas as queries de contas a pagar
+  const invalidateContasQueries = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['contas-pagar-dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['contas-pagar-table'] });
+    queryClient.invalidateQueries({ queryKey: ['contas-pagar-calendario'] });
+  }, [queryClient]);
+
   // Funções de ordenação
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -592,7 +600,7 @@ export default function ContasAPagar() {
       toast.success(`${selectedIds.size} contas atualizadas!`);
       setSelectedIds(new Set());
       setBatchDepartamento("");
-      refetchContas();
+      invalidateContasQueries();
     } catch (error) {
       console.error('Erro ao atualizar em lote:', error);
       toast.error('Erro ao atualizar contas');
@@ -667,7 +675,7 @@ export default function ContasAPagar() {
       toast.success(`${selectedIdsIA.size} contas atualizadas!`);
       setSelectedIdsIA(new Set());
       setBatchDepartamentoIA("");
-      refetchContas();
+      invalidateContasQueries();
     } catch (error) {
       console.error('Erro ao atualizar em lote:', error);
       toast.error('Erro ao atualizar contas');
@@ -697,7 +705,7 @@ export default function ContasAPagar() {
       toast.success(`${selectedIdsIA.size} contas atualizadas!`);
       setSelectedIdsIA(new Set());
       setBatchPlanoContasIA("");
-      refetchContas();
+      invalidateContasQueries();
     } catch (error) {
       console.error('Erro ao atualizar em lote:', error);
       toast.error('Erro ao atualizar contas');
@@ -786,7 +794,7 @@ export default function ContasAPagar() {
       if (error) throw error;
 
       toast.success('Classificação atualizada com sucesso!');
-      refetchContas();
+      invalidateContasQueries();
     } catch (error) {
       console.error('Erro ao atualizar classificação:', error);
       toast.error('Erro ao atualizar classificação');
@@ -1936,8 +1944,10 @@ export default function ContasAPagar() {
           open={classificarIAOpen}
           onOpenChange={setClassificarIAOpen}
           onComplete={() => {
-            refetchContas();
+            // Invalida todas as queries de contas a pagar para garantir atualização
+            invalidateContasQueries();
             setSelectedIds(new Set());
+            setSelectedIdsIA(new Set());
             toast.success("Classificação concluída! Atualizando lista...");
           }}
         />
@@ -1946,7 +1956,7 @@ export default function ContasAPagar() {
           open={editarClassificacaoOpen}
           onOpenChange={setEditarClassificacaoOpen}
           conta={selectedContaClassificacao}
-          onSuccess={refetchContas}
+          onSuccess={invalidateContasQueries}
         />
 
         <SolicitarOrcamentoDialog
