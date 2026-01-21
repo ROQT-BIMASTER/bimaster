@@ -5,12 +5,20 @@ export interface MarkupConfig {
   valor: number;
 }
 
+export interface LimitePreco {
+  preco_maximo?: number | null;
+  preco_minimo?: number | null;
+}
+
 export interface PrecoProduto {
   produto_id: string;
   custo_base: number;
   preco_calculado: number;
   preco_final: number;
   margem_lucro_percentual: number;
+  preco_limitado?: boolean;
+  preco_original_calculado?: number;
+  motivo_limite?: string;
 }
 
 /**
@@ -158,6 +166,61 @@ export async function buscarCustoOrigem(
 }
 
 /**
+ * Busca os limites de preço de um produto
+ */
+export async function buscarLimitesProduto(produtoId: string): Promise<LimitePreco | null> {
+  const { data, error } = await supabase
+    .from('fabrica_produtos')
+    .select('preco_maximo, preco_minimo')
+    .eq('id', produtoId)
+    .single();
+
+  if (error || !data) return null;
+  return {
+    preco_maximo: data.preco_maximo ? Number(data.preco_maximo) : null,
+    preco_minimo: data.preco_minimo ? Number(data.preco_minimo) : null,
+  };
+}
+
+/**
+ * Aplica limites de preço (máximo e mínimo) e retorna informações sobre a limitação
+ */
+export function aplicarLimitesPreco(
+  precoCalculado: number,
+  limites: LimitePreco | null,
+  custoBase: number
+): { precoFinal: number; limitado: boolean; precoOriginal?: number; motivo?: string } {
+  if (!limites) {
+    return { precoFinal: precoCalculado, limitado: false };
+  }
+
+  let precoFinal = precoCalculado;
+  let limitado = false;
+  let motivo: string | undefined;
+
+  // Verificar limite máximo
+  if (limites.preco_maximo && precoCalculado > limites.preco_maximo) {
+    precoFinal = limites.preco_maximo;
+    limitado = true;
+    motivo = `Preço ajustado de R$ ${precoCalculado.toFixed(2)} para R$ ${limites.preco_maximo.toFixed(2)} (limite máximo)`;
+  }
+
+  // Verificar limite mínimo (só aplica se não estiver limitado pelo máximo)
+  if (!limitado && limites.preco_minimo && precoCalculado < limites.preco_minimo) {
+    precoFinal = limites.preco_minimo;
+    limitado = true;
+    motivo = `Preço ajustado de R$ ${precoCalculado.toFixed(2)} para R$ ${limites.preco_minimo.toFixed(2)} (limite mínimo)`;
+  }
+
+  return {
+    precoFinal,
+    limitado,
+    precoOriginal: limitado ? precoCalculado : undefined,
+    motivo,
+  };
+}
+
+/**
  * Calcula preços de produtos para uma tabela
  */
 export async function calcularPrecosProdutos(
@@ -167,6 +230,7 @@ export async function calcularPrecosProdutos(
     fonteCusto: 'ordem_producao' | 'manual' | 'custo_medio' | 'tabela_anterior' | 'custo_origem';
     custosManual?: Record<string, number>;
     origem?: 'nacional' | 'importado';
+    aplicarLimites?: boolean; // Nova opção para aplicar limites
   }
 ): Promise<PrecoProduto[]> {
   // Buscar configuração da tabela
@@ -178,6 +242,27 @@ export async function calcularPrecosProdutos(
 
   if (tabelaError || !tabela) {
     throw new Error('Tabela de preço não encontrada');
+  }
+
+  // Buscar limites de todos os produtos de uma vez se necessário
+  const aplicarLimites = opcoes.aplicarLimites !== false; // Por padrão, aplica limites
+  let limitesMap: Record<string, LimitePreco> = {};
+
+  if (aplicarLimites) {
+    const { data: produtos } = await supabase
+      .from('fabrica_produtos')
+      .select('id, preco_maximo, preco_minimo')
+      .in('id', produtosIds);
+
+    if (produtos) {
+      limitesMap = produtos.reduce((acc, p) => {
+        acc[p.id] = {
+          preco_maximo: p.preco_maximo ? Number(p.preco_maximo) : null,
+          preco_minimo: p.preco_minimo ? Number(p.preco_minimo) : null,
+        };
+        return acc;
+      }, {} as Record<string, LimitePreco>);
+    }
   }
 
   const resultados: PrecoProduto[] = [];
@@ -204,14 +289,21 @@ export async function calcularPrecosProdutos(
       valor: tabela.valor_markup,
     });
 
-    const margemLucro = calcularMargemLucro(custoBase, precoCalculado);
+    // Aplicar limites de preço se configurados
+    const limites = limitesMap[produtoId] || null;
+    const resultadoLimite = aplicarLimitesPreco(precoCalculado, limites, custoBase);
+
+    const margemLucro = calcularMargemLucro(custoBase, resultadoLimite.precoFinal);
 
     resultados.push({
       produto_id: produtoId,
       custo_base: custoBase,
       preco_calculado: precoCalculado,
-      preco_final: precoCalculado,
+      preco_final: resultadoLimite.precoFinal,
       margem_lucro_percentual: margemLucro,
+      preco_limitado: resultadoLimite.limitado,
+      preco_original_calculado: resultadoLimite.precoOriginal,
+      motivo_limite: resultadoLimite.motivo,
     });
   }
 

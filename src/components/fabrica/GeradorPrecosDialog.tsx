@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { calcularPrecosProdutos, formatarMoeda } from "@/lib/fabrica/pricing-calculator";
-import { Loader2, CheckCircle2, Factory, Ship } from "lucide-react";
+import { Loader2, CheckCircle2, Factory, Ship, AlertTriangle, Check } from "lucide-react";
 
 interface ProdutoData {
   id: string;
@@ -473,6 +473,12 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
           {precosCalculados.length > 0 && (
             <div>
               <Label className="mb-2 block">Prévia dos Preços</Label>
+              {precosCalculados.some(p => p.preco_limitado) && (
+                <div className="mb-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg flex items-center gap-2 text-sm">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <span>Alguns preços foram ajustados para respeitar os limites máximos definidos</span>
+                </div>
+              )}
               <div className="border rounded-lg max-h-64 overflow-y-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50 sticky top-0">
@@ -481,20 +487,41 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                       <th className="p-2 text-right">Custo Base</th>
                       <th className="p-2 text-right">Preço Calculado</th>
                       <th className="p-2 text-right">Margem</th>
+                      <th className="p-2 text-center">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {precosCalculados.map((preco) => {
                       const produto = produtos?.find(p => p.id === preco.produto_id);
                       return (
-                        <tr key={preco.produto_id} className="border-t">
+                        <tr key={preco.produto_id} className={`border-t ${preco.preco_limitado ? 'bg-yellow-500/5' : ''}`}>
                           <td className="p-2">{produto?.nome}</td>
                           <td className="p-2 text-right">{formatarMoeda(preco.custo_base)}</td>
-                          <td className="p-2 text-right font-semibold">
-                            {formatarMoeda(preco.preco_final)}
+                          <td className="p-2 text-right">
+                            <div className="flex flex-col items-end">
+                              <span className="font-semibold">{formatarMoeda(preco.preco_final)}</span>
+                              {preco.preco_limitado && preco.preco_original_calculado && (
+                                <span className="text-xs text-muted-foreground line-through">
+                                  {formatarMoeda(preco.preco_original_calculado)}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="p-2 text-right text-green-600">
                             {preco.margem_lucro_percentual.toFixed(2)}%
+                          </td>
+                          <td className="p-2 text-center">
+                            {preco.preco_limitado ? (
+                              <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Limitado
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-green-600 border-green-600">
+                                <Check className="h-3 w-3 mr-1" />
+                                OK
+                              </Badge>
+                            )}
                           </td>
                         </tr>
                       );
