@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Save, AlertTriangle, Shield, X, Filter } from "lucide-react";
+import { Search, Save, AlertTriangle, Shield, X, Filter, ChevronDown, ChevronRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Props {
   open: boolean;
@@ -24,6 +25,7 @@ interface ProdutoComLimites {
   codigo: string;
   nome: string;
   linha: string | null;
+  categoria: string | null;
   preco_maximo: number | null;
   preco_minimo: number | null;
   preco_atual?: number | null;
@@ -33,11 +35,12 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
-  const [linhaFiltro, setLinhaFiltro] = useState<string>("all");
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string>("all");
   const [limitesEditados, setLimitesEditados] = useState<Record<string, { preco_maximo: string; preco_minimo: string }>>({});
   const [produtosAlterados, setProdutosAlterados] = useState<Set<string>>(new Set());
+  const [categoriasAbertas, setCategoriasAbertas] = useState<Set<string>>(new Set());
 
-  // Buscar produtos acabados com limites
+  // Buscar produtos acabados com limites - corrigido para ACABADO maiúsculo e também incluir acabado minúsculo
   const { data: produtos, isLoading } = useQuery({
     queryKey: ['fabrica-produtos-limites'],
     queryFn: async () => {
@@ -48,11 +51,13 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
           codigo,
           nome,
           linha,
+          categoria,
           preco_maximo,
           preco_minimo
         `)
         .eq('ativo', true)
-        .eq('tipo', 'acabado')
+        .or('tipo.eq.ACABADO,tipo.eq.acabado')
+        .order('categoria', { ascending: true, nullsFirst: false })
         .order('nome');
 
       if (error) throw error;
@@ -85,8 +90,24 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
     enabled: open,
   });
 
-  // Buscar linhas únicas para filtro
-  const linhas = [...new Set(produtos?.map(p => p.linha).filter(Boolean))] as string[];
+  // Buscar categorias únicas para filtro
+  const categorias = useMemo(() => {
+    return [...new Set(produtos?.map(p => p.categoria || "Sem Categoria"))].sort();
+  }, [produtos]);
+
+  // Agrupar produtos por categoria
+  const produtosAgrupados = useMemo(() => {
+    if (!produtos) return new Map<string, ProdutoComLimites[]>();
+    
+    const grupos = new Map<string, ProdutoComLimites[]>();
+    produtos.forEach(p => {
+      const cat = p.categoria || "Sem Categoria";
+      if (!grupos.has(cat)) grupos.set(cat, []);
+      grupos.get(cat)!.push(p);
+    });
+    
+    return grupos;
+  }, [produtos]);
 
   // Inicializar limites editados quando produtos carregam
   useEffect(() => {
@@ -108,9 +129,17 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
       setLimitesEditados({});
       setProdutosAlterados(new Set());
       setBusca("");
-      setLinhaFiltro("all");
+      setCategoriaFiltro("all");
+      setCategoriasAbertas(new Set());
     }
   }, [open]);
+
+  // Abrir todas categorias por padrão ao carregar
+  useEffect(() => {
+    if (produtos && categoriasAbertas.size === 0) {
+      setCategoriasAbertas(new Set(categorias));
+    }
+  }, [categorias, produtos]);
 
   // Mutation para salvar limites
   const salvarMutation = useMutation({
@@ -178,13 +207,41 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
   };
 
   // Filtrar produtos
-  const produtosFiltrados = produtos?.filter(p => {
-    const matchBusca = !busca || 
-      p.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      p.codigo.toLowerCase().includes(busca.toLowerCase());
-    const matchLinha = linhaFiltro === "all" || p.linha === linhaFiltro;
-    return matchBusca && matchLinha;
-  });
+  const produtosFiltrados = useMemo(() => {
+    return produtos?.filter(p => {
+      const matchBusca = !busca || 
+        p.nome.toLowerCase().includes(busca.toLowerCase()) ||
+        p.codigo.toLowerCase().includes(busca.toLowerCase());
+      const matchCategoria = categoriaFiltro === "all" || (p.categoria || "Sem Categoria") === categoriaFiltro;
+      return matchBusca && matchCategoria;
+    });
+  }, [produtos, busca, categoriaFiltro]);
+
+  // Agrupar produtos filtrados por categoria
+  const produtosFiltradosAgrupados = useMemo(() => {
+    if (!produtosFiltrados) return new Map<string, ProdutoComLimites[]>();
+    
+    const grupos = new Map<string, ProdutoComLimites[]>();
+    produtosFiltrados.forEach(p => {
+      const cat = p.categoria || "Sem Categoria";
+      if (!grupos.has(cat)) grupos.set(cat, []);
+      grupos.get(cat)!.push(p);
+    });
+    
+    return grupos;
+  }, [produtosFiltrados]);
+
+  const toggleCategoria = (categoria: string) => {
+    setCategoriasAbertas(prev => {
+      const novo = new Set(prev);
+      if (novo.has(categoria)) {
+        novo.delete(categoria);
+      } else {
+        novo.add(categoria);
+      }
+      return novo;
+    });
+  };
 
   // Verificar se preço atual excede limite
   const verificarExcedeLimite = (produtoId: string) => {
@@ -219,15 +276,15 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
                 className="pl-10"
               />
             </div>
-            <Select value={linhaFiltro} onValueChange={setLinhaFiltro}>
-              <SelectTrigger className="w-[180px]">
+            <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
+              <SelectTrigger className="w-[200px]">
                 <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Linha" />
+                <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas as linhas</SelectItem>
-                {linhas.map(linha => (
-                  <SelectItem key={linha} value={linha}>{linha}</SelectItem>
+                <SelectItem value="all">Todas as categorias</SelectItem>
+                {categorias.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -241,107 +298,127 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
             </p>
           </div>
 
-          {/* Tabela */}
-          <ScrollArea className="h-[400px] border rounded-lg">
+          {/* Tabela agrupada por categoria */}
+          <ScrollArea className="h-[450px] border rounded-lg">
             {isLoading ? (
               <div className="p-4 space-y-2">
                 {[...Array(5)].map((_, i) => (
                   <Skeleton key={i} className="h-12 w-full" />
                 ))}
               </div>
+            ) : produtosFiltrados?.length === 0 ? (
+              <div className="flex items-center justify-center h-40 text-muted-foreground">
+                Nenhum produto encontrado
+              </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Produto</TableHead>
-                    <TableHead>Linha</TableHead>
-                    <TableHead>Preço Atual</TableHead>
-                    <TableHead className="text-center">Preço Mínimo (R$)</TableHead>
-                    <TableHead className="text-center">Preço Máximo (R$)</TableHead>
-                    <TableHead className="w-[60px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {produtosFiltrados?.map((produto) => {
-                    const excedeLimite = verificarExcedeLimite(produto.id);
-                    const alterado = produtosAlterados.has(produto.id);
-                    
-                    return (
-                      <TableRow 
-                        key={produto.id} 
-                        className={alterado ? "bg-primary/5" : excedeLimite ? "bg-destructive/5" : ""}
-                      >
-                        <TableCell className="font-mono text-sm">{produto.codigo}</TableCell>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {produto.nome}
-                            {excedeLimite && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    Preço atual excede o limite máximo
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {produto.linha && <Badge variant="outline">{produto.linha}</Badge>}
-                        </TableCell>
-                        <TableCell>
-                          {precosAtuais?.[produto.id] 
-                            ? formatarMoeda(precosAtuais[produto.id])
-                            : <span className="text-muted-foreground">-</span>
-                          }
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="text"
-                            inputMode="decimal"
-                            placeholder="0,00"
-                            value={limitesEditados[produto.id]?.preco_minimo || ""}
-                            onChange={(e) => handleLimiteChange(produto.id, 'preco_minimo', e.target.value)}
-                            className="w-24 text-center"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="text"
-                            inputMode="decimal"
-                            placeholder="0,00"
-                            value={limitesEditados[produto.id]?.preco_maximo || ""}
-                            onChange={(e) => handleLimiteChange(produto.id, 'preco_maximo', e.target.value)}
-                            className="w-24 text-center"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {(limitesEditados[produto.id]?.preco_maximo || limitesEditados[produto.id]?.preco_minimo) && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => limparLimite(produto.id)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {produtosFiltrados?.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        Nenhum produto encontrado
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <div className="p-2 space-y-2">
+                {Array.from(produtosFiltradosAgrupados.entries()).map(([categoria, produtosCategoria]) => (
+                  <Collapsible 
+                    key={categoria} 
+                    open={categoriasAbertas.has(categoria)}
+                    onOpenChange={() => toggleCategoria(categoria)}
+                  >
+                    <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                      {categoriasAbertas.has(categoria) ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                      <span className="font-medium">{categoria}</span>
+                      <Badge variant="secondary" className="ml-auto">
+                        {produtosCategoria.length} produto(s)
+                      </Badge>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[100px]">Código</TableHead>
+                            <TableHead>Produto</TableHead>
+                            <TableHead className="w-[100px]">Linha</TableHead>
+                            <TableHead className="w-[110px]">Preço Atual</TableHead>
+                            <TableHead className="w-[110px] text-center">Mínimo (R$)</TableHead>
+                            <TableHead className="w-[110px] text-center">Máximo (R$)</TableHead>
+                            <TableHead className="w-[50px]"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {produtosCategoria.map((produto) => {
+                            const excedeLimite = verificarExcedeLimite(produto.id);
+                            const alterado = produtosAlterados.has(produto.id);
+                            
+                            return (
+                              <TableRow 
+                                key={produto.id} 
+                                className={alterado ? "bg-primary/5" : excedeLimite ? "bg-destructive/5" : ""}
+                              >
+                                <TableCell className="font-mono text-sm">{produto.codigo}</TableCell>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-2">
+                                    {produto.nome}
+                                    {excedeLimite && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger>
+                                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            Preço atual excede o limite máximo
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {produto.linha && <Badge variant="outline" className="text-xs">{produto.linha}</Badge>}
+                                </TableCell>
+                                <TableCell>
+                                  {precosAtuais?.[produto.id] 
+                                    ? formatarMoeda(precosAtuais[produto.id])
+                                    : <span className="text-muted-foreground">-</span>
+                                  }
+                                </TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="0,00"
+                                    value={limitesEditados[produto.id]?.preco_minimo || ""}
+                                    onChange={(e) => handleLimiteChange(produto.id, 'preco_minimo', e.target.value)}
+                                    className="w-24 text-center"
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="0,00"
+                                    value={limitesEditados[produto.id]?.preco_maximo || ""}
+                                    onChange={(e) => handleLimiteChange(produto.id, 'preco_maximo', e.target.value)}
+                                    className="w-24 text-center"
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  {(limitesEditados[produto.id]?.preco_maximo || limitesEditados[produto.id]?.preco_minimo) && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => limparLimite(produto.id)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ))}
+              </div>
             )}
           </ScrollArea>
 

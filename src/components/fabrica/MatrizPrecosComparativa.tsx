@@ -256,6 +256,9 @@ export function MatrizPrecosComparativa() {
   // Agrupamento
   const [agruparHabilitado, setAgruparHabilitado] = useState(false);
   const [agruparPor, setAgruparPor] = useState<"marca" | "linha">("marca");
+  
+  // Opção de cálculo de margem
+  const [baseMargemCalculo, setBaseMargemCalculo] = useState<"origem" | "anterior">("anterior");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -374,7 +377,27 @@ export function MatrizPrecosComparativa() {
     return [...ordenadas, ...novasTabelas];
   }, [tabelas, columnOrder]);
 
-  // Transformar dados em formato matricial
+  // Encontrar tabela de origem (primeira da cadeia)
+  const tabelaOrigem = useMemo(() => {
+    if (!tabelas) return null;
+    // Tabela de origem é aquela que não tem tabela_base_id
+    return tabelas.find(t => !t.tabela_base_id) || tabelas[0];
+  }, [tabelas]);
+
+  // Mapa de preços da tabela de origem para cálculo de margem
+  const precosOrigem = useMemo(() => {
+    if (!precosData || !tabelaOrigem) return new Map<string, number>();
+    
+    const map = new Map<string, number>();
+    precosData.forEach((preco: any) => {
+      if (preco.tabela_id === tabelaOrigem.id) {
+        map.set(preco.produto_id, preco.preco_final);
+      }
+    });
+    return map;
+  }, [precosData, tabelaOrigem]);
+
+  // Transformar dados em formato matricial com cálculo de margem baseado na opção selecionada
   const matrizDados = useMemo(() => {
     if (!precosData || !tabelas) return [];
 
@@ -400,10 +423,23 @@ export function MatrizPrecosComparativa() {
       }
 
       const row = produtosMap.get(produtoId)!;
+      
+      // Calcular margem baseado na opção selecionada
+      let margemCalculada = preco.margem_lucro_percentual || 0;
+      
+      if (baseMargemCalculo === "origem") {
+        // Calcular margem a partir da tabela de origem
+        const precoOrigem = precosOrigem.get(produtoId);
+        if (precoOrigem && precoOrigem > 0 && preco.preco_final > 0) {
+          margemCalculada = ((preco.preco_final - precoOrigem) / preco.preco_final) * 100;
+        }
+      }
+      // Para "anterior", usa a margem já calculada que vem do banco
+      
       row.precos[preco.tabela_id] = {
         preco: preco.preco_final,
         custo: preco.custo_base,
-        margem: preco.margem_lucro_percentual,
+        margem: margemCalculada,
       };
     });
 
@@ -452,7 +488,7 @@ export function MatrizPrecosComparativa() {
     });
 
     return resultado;
-  }, [precosData, tabelas, busca, ordenarPor, ordenarAsc, filtroMarca, filtroLinha, filtroTabela]);
+  }, [precosData, tabelas, busca, ordenarPor, ordenarAsc, filtroMarca, filtroLinha, filtroTabela, baseMargemCalculo, precosOrigem]);
 
   // Agrupar dados se habilitado
   const dadosAgrupados = useMemo(() => {
@@ -909,7 +945,21 @@ export function MatrizPrecosComparativa() {
               </Button>
             )}
 
-            <div className="ml-auto flex items-center gap-3 pl-4 border-l">
+            <div className="ml-auto flex items-center gap-4 pl-4 border-l">
+              {/* Opção de cálculo de margem */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Margem:</span>
+                <Select value={baseMargemCalculo} onValueChange={(v) => setBaseMargemCalculo(v as "origem" | "anterior")}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="anterior">Tabela Anterior</SelectItem>
+                    <SelectItem value="origem">Tabela de Origem</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex items-center gap-2">
                 <Layers className="h-4 w-4 text-muted-foreground" />
                 <Switch
