@@ -158,39 +158,42 @@ export type Database = {
           account_name: string
           created_at: string
           credentials: Json | null
+          credentials_encrypted: string | null
           id: string
           is_active: boolean | null
           last_sync_at: string | null
           platform: string
           sync_status: string | null
           updated_at: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           account_id: string
           account_name: string
           created_at?: string
           credentials?: Json | null
+          credentials_encrypted?: string | null
           id?: string
           is_active?: boolean | null
           last_sync_at?: string | null
           platform: string
           sync_status?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           account_id?: string
           account_name?: string
           created_at?: string
           credentials?: Json | null
+          credentials_encrypted?: string | null
           id?: string
           is_active?: boolean | null
           last_sync_at?: string | null
           platform?: string
           sync_status?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -301,6 +304,13 @@ export type Database = {
             referencedRelation: "ads_accounts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ads_campaigns_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "ads_accounts_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ads_metrics: {
@@ -370,6 +380,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "ads_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ads_metrics_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "ads_accounts_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -681,6 +698,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "ads_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_metrics_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "ads_accounts_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -14257,6 +14281,48 @@ export type Database = {
       }
     }
     Views: {
+      ads_accounts_safe: {
+        Row: {
+          account_id: string | null
+          account_name: string | null
+          created_at: string | null
+          has_credentials: boolean | null
+          id: string | null
+          is_active: boolean | null
+          last_sync_at: string | null
+          platform: string | null
+          sync_status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          account_name?: string | null
+          created_at?: string | null
+          has_credentials?: never
+          id?: string | null
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          platform?: string | null
+          sync_status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          account_name?: string | null
+          created_at?: string | null
+          has_credentials?: never
+          id?: string | null
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          platform?: string | null
+          sync_status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       mv_analise_departamentos: {
         Row: {
           classificacoes_automaticas: number | null
@@ -14635,8 +14701,12 @@ export type Database = {
         }[]
       }
       calculate_visit_points: { Args: { visit_id: string }; Returns: number }
+      can_access_ads_account: {
+        Args: { account_user_id: string; viewer_id: string }
+        Returns: boolean
+      }
       can_view_profile: {
-        Args: { _profile_id: string; _viewer_id: string }
+        Args: { target_profile_id: string; viewer_id: string }
         Returns: boolean
       }
       cleanup_expired_rate_limiter_slots: { Args: never; Returns: undefined }
