@@ -110,7 +110,7 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
   });
 
   // Buscar preços atuais dos produtos da tabela selecionada
-  const { data: precosAtuais } = useQuery({
+  const { data: precosAtuais, isLoading: isLoadingPrecos } = useQuery({
     queryKey: ['fabrica-precos-atuais', tabelaSelecionada],
     queryFn: async () => {
       if (!tabelaSelecionada) return {};
@@ -119,18 +119,17 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
         .from('fabrica_precos_produtos')
         .select('produto_id, preco_final')
         .eq('tabela_id', tabelaSelecionada)
-        .eq('ativo', true)
-        .order('created_at', { ascending: false });
+        .eq('ativo', true);
 
       if (error) throw error;
       
-      // Agrupar por produto, pegando o mais recente
+      // Agrupar por produto
       const precosPorProduto: Record<string, number> = {};
       data?.forEach(p => {
-        if (!precosPorProduto[p.produto_id]) {
-          precosPorProduto[p.produto_id] = Number(p.preco_final);
-        }
+        precosPorProduto[p.produto_id] = Number(p.preco_final);
       });
+      
+      console.log('Preços carregados para tabela', tabelaSelecionada, ':', precosPorProduto);
       return precosPorProduto;
     },
     enabled: open && !!tabelaSelecionada,
