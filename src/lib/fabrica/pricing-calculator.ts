@@ -379,3 +379,160 @@ export function formatarMoeda(valor: number): string {
 export function formatarPercentual(valor: number): string {
   return `${valor.toFixed(2)}%`;
 }
+
+/**
+ * Interface para simulação de cálculo reverso
+ */
+export interface SimulacaoPrecoReverso {
+  tabela_id: string;
+  tabela_nome: string;
+  preco_atual: number;
+  preco_sugerido: number;
+  diferenca_percentual: number;
+  tipo_markup: string;
+  valor_markup: number;
+  margem_resultante: number;
+}
+
+/**
+ * Calcula o preço reverso (de trás para frente) para atingir um preço final desejado
+ * Dado um preço final desejado, calcula qual deveria ser o preço na tabela anterior
+ */
+export function calcularPrecoReversoMarkup(
+  precoDesejado: number,
+  tipoMarkup: 'percentual' | 'multiplicador' | 'valor_fixo',
+  valorMarkup: number
+): number {
+  if (precoDesejado <= 0) return 0;
+
+  switch (tipoMarkup) {
+    case 'percentual':
+      // precoFinal = precoBase * (1 + percentual/100)
+      // precoBase = precoFinal / (1 + percentual/100)
+      return precoDesejado / (1 + valorMarkup / 100);
+    case 'multiplicador':
+      // precoFinal = precoBase * multiplicador
+      // precoBase = precoFinal / multiplicador
+      return valorMarkup > 0 ? precoDesejado / valorMarkup : 0;
+    case 'valor_fixo':
+      // precoFinal = precoBase + valorFixo
+      // precoBase = precoFinal - valorFixo
+      return precoDesejado - valorMarkup;
+    default:
+      return precoDesejado;
+  }
+}
+
+/**
+ * Busca a cadeia de tabelas de preço entre a origem e o alvo
+ * Retorna as tabelas em ordem, da origem ao alvo
+ */
+export async function buscarCadeiaTabelas(
+  tabelaOrigemId: string,
+  tabelaAlvoId: string
+): Promise<Array<{
+  id: string;
+  nome: string;
+  ordem: number;
+  tipo_markup: string;
+  valor_markup: number;
+  tabela_base_id: string | null;
+}>> {
+  // Buscar todas as tabelas
+  const { data: todasTabelas, error } = await supabase
+    .from('fabrica_tabelas_preco')
+    .select('id, nome, ordem, tipo_markup, valor_markup, tabela_base_id')
+    .order('ordem', { ascending: true });
+
+  if (error || !todasTabelas) return [];
+
+  // Encontrar a cadeia de tabelas
+  const cadeia: typeof todasTabelas = [];
+  let tabelaAtual = todasTabelas.find(t => t.id === tabelaAlvoId);
+
+  // Construir a cadeia de trás para frente
+  while (tabelaAtual) {
+    cadeia.unshift(tabelaAtual);
+    if (tabelaAtual.id === tabelaOrigemId) break;
+    tabelaAtual = todasTabelas.find(t => t.id === tabelaAtual?.tabela_base_id);
+  }
+
+  return cadeia;
+}
+
+/**
+ * Simula o cálculo reverso para atingir um preço desejado
+ * Calcula quais deveriam ser os preços em cada tabela da cadeia
+ */
+export async function simularCalculoReverso(
+  tabelaAlvoId: string,
+  tabelaOrigemId: string,
+  produtoId: string,
+  precoDesejado: number
+): Promise<SimulacaoPrecoReverso[]> {
+  // Buscar cadeia de tabelas
+  const cadeia = await buscarCadeiaTabelas(tabelaOrigemId, tabelaAlvoId);
+  if (cadeia.length === 0) return [];
+
+  // Buscar preços atuais do produto em cada tabela da cadeia
+  const tabelaIds = cadeia.map(t => t.id);
+  const { data: precosAtuais } = await supabase
+    .from('fabrica_precos_produtos')
+    .select('tabela_id, preco_final, custo_base')
+    .eq('produto_id', produtoId)
+    .eq('ativo', true)
+    .in('tabela_id', tabelaIds);
+
+  const precosMap = new Map(precosAtuais?.map(p => [p.tabela_id, p]) || []);
+
+  // Calcular preços sugeridos de trás para frente
+  const simulacao: SimulacaoPrecoReverso[] = [];
+  let precoAlvo = precoDesejado;
+
+  // Percorrer a cadeia de trás para frente
+  for (let i = cadeia.length - 1; i >= 0; i--) {
+    const tabela = cadeia[i];
+    const precoAtual = precosMap.get(tabela.id)?.preco_final || 0;
+    const custoBase = precosMap.get(tabela.id)?.custo_base || 0;
+    
+    // Para a última tabela (alvo), o preço sugerido é o preço desejado
+    // Para as demais, calcular o preço reverso baseado no markup da próxima tabela
+    let precoSugerido: number;
+    
+    if (i === cadeia.length - 1) {
+      precoSugerido = precoDesejado;
+    } else {
+      // O preço sugerido para esta tabela deve resultar no preço da próxima
+      const proximaTabela = cadeia[i + 1];
+      precoSugerido = calcularPrecoReversoMarkup(
+        precoAlvo,
+        proximaTabela.tipo_markup as 'percentual' | 'multiplicador' | 'valor_fixo',
+        proximaTabela.valor_markup
+      );
+    }
+
+    const diferencaPercentual = precoAtual > 0 
+      ? ((precoSugerido - precoAtual) / precoAtual) * 100 
+      : 0;
+
+    // Calcular margem resultante baseada no custo base original
+    const margemResultante = custoBase > 0 && precoSugerido > 0
+      ? ((precoSugerido - custoBase) / precoSugerido) * 100
+      : 0;
+
+    simulacao.unshift({
+      tabela_id: tabela.id,
+      tabela_nome: tabela.nome,
+      preco_atual: precoAtual,
+      preco_sugerido: precoSugerido,
+      diferenca_percentual: diferencaPercentual,
+      tipo_markup: tabela.tipo_markup,
+      valor_markup: tabela.valor_markup,
+      margem_resultante: margemResultante,
+    });
+
+    precoAlvo = precoSugerido;
+  }
+
+  return simulacao;
+}
