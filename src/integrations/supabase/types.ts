@@ -5640,11 +5640,14 @@ export type Database = {
           data_atualizacao: string | null
           id: string
           margem_lucro_percentual: number | null
+          motivo_limite: string | null
           ordem_producao_id: string | null
           origem: string | null
           preco_calculado: number | null
           preco_final: number | null
+          preco_limitado: boolean | null
           preco_manual: number | null
+          preco_original_calculado: number | null
           produto_id: string
           tabela_id: string
         }
@@ -5656,11 +5659,14 @@ export type Database = {
           data_atualizacao?: string | null
           id?: string
           margem_lucro_percentual?: number | null
+          motivo_limite?: string | null
           ordem_producao_id?: string | null
           origem?: string | null
           preco_calculado?: number | null
           preco_final?: number | null
+          preco_limitado?: boolean | null
           preco_manual?: number | null
+          preco_original_calculado?: number | null
           produto_id: string
           tabela_id: string
         }
@@ -5672,11 +5678,14 @@ export type Database = {
           data_atualizacao?: string | null
           id?: string
           margem_lucro_percentual?: number | null
+          motivo_limite?: string | null
           ordem_producao_id?: string | null
           origem?: string | null
           preco_calculado?: number | null
           preco_final?: number | null
+          preco_limitado?: boolean | null
           preco_manual?: number | null
+          preco_original_calculado?: number | null
           produto_id?: string
           tabela_id?: string
         }
@@ -5767,6 +5776,8 @@ export type Database = {
           nome: string
           nome_comercial: string | null
           origem: string | null
+          preco_maximo: number | null
+          preco_minimo: number | null
           rendimento: number | null
           sku: string | null
           status: string | null
@@ -5799,6 +5810,8 @@ export type Database = {
           nome: string
           nome_comercial?: string | null
           origem?: string | null
+          preco_maximo?: number | null
+          preco_minimo?: number | null
           rendimento?: number | null
           sku?: string | null
           status?: string | null
@@ -5831,6 +5844,8 @@ export type Database = {
           nome?: string
           nome_comercial?: string | null
           origem?: string | null
+          preco_maximo?: number | null
+          preco_minimo?: number | null
           rendimento?: number | null
           sku?: string | null
           status?: string | null

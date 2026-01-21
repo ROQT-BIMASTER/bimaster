@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatarMoeda, formatarPercentual } from "@/lib/fabrica/pricing-calculator";
-import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag, Edit, Trash2, FileText, History } from "lucide-react";
+import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag, Edit, Trash2, FileText, History, Shield, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { EditarPrecosProdutoDialog } from "./EditarPrecosProdutoDialog";
@@ -190,6 +190,7 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
     custoMedio: precosFiltrados?.reduce((acc, p) => acc + (p.preco_tabela_base || p.custo_base || 0), 0) / (precosFiltrados?.length || 1),
     precoMedio: precosFiltrados?.reduce((acc, p) => acc + (p.preco_final || 0), 0) / (precosFiltrados?.length || 1),
     margemMedia: precosFiltrados?.reduce((acc, p) => acc + (p.margem_calculada || 0), 0) / (precosFiltrados?.length || 1),
+    produtosLimitados: precosFiltrados?.filter(p => p.preco_limitado)?.length || 0,
   };
 
   const handleExportar = () => {
@@ -327,6 +328,20 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
               </div>
             </CardContent>
           </Card>
+
+          {estatisticas.produtosLimitados > 0 && (
+            <Card className="bg-yellow-500/10 border-yellow-500/30">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-8 w-8 text-yellow-600" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Preços Limitados</p>
+                    <p className="text-xl font-bold text-yellow-700">{estatisticas.produtosLimitados}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Busca */}
@@ -413,7 +428,19 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
                       {formatarMoeda(preco.preco_tabela_base || preco.custo_base || 0)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm font-semibold">
-                      {formatarMoeda(preco.preco_final || 0)}
+                      <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-1">
+                          {formatarMoeda(preco.preco_final || 0)}
+                          {preco.preco_limitado && (
+                            <Shield className="h-3 w-3 text-yellow-600" />
+                          )}
+                        </div>
+                        {preco.preco_limitado && preco.preco_original_calculado && (
+                          <span className="text-xs text-muted-foreground line-through">
+                            {formatarMoeda(preco.preco_original_calculado)}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-center">
                       {getMargemBadge(preco.margem_calculada || 0)}

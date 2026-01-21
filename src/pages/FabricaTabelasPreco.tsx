@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3, HelpCircle } from "lucide-react";
+import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3, HelpCircle, Shield } from "lucide-react";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovaTabelaPrecoDialog } from "@/components/fabrica/NovaTabelaPrecoDialog";
 import { CadeiaPrecificacaoVisual } from "@/components/fabrica/CadeiaPrecificacaoVisual";
@@ -27,6 +27,7 @@ import { ReajusteEmLoteDialog } from "@/components/fabrica/ReajusteEmLoteDialog"
 import { AlertasPrecos } from "@/components/fabrica/AlertasPrecos";
 import { MatrizPrecosComparativa } from "@/components/fabrica/MatrizPrecosComparativa";
 import { ManualTabelasPrecoDialog } from "@/components/fabrica/ManualTabelasPrecoDialog";
+import { GerenciarLimitesPrecoDialog } from "@/components/fabrica/GerenciarLimitesPrecoDialog";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -40,6 +41,7 @@ export default function FabricaTabelasPreco() {
   const [dialogExcluir, setDialogExcluir] = useState(false);
   const [dialogReajuste, setDialogReajuste] = useState(false);
   const [dialogManual, setDialogManual] = useState(false);
+  const [dialogLimites, setDialogLimites] = useState(false);
   const [tabelaSelecionada, setTabelaSelecionada] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("lista");
 
@@ -190,6 +192,10 @@ export default function FabricaTabelasPreco() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setDialogLimites(true)}>
+              <Shield className="h-4 w-4 mr-2" />
+              Limites de Preço
+            </Button>
             <Button variant="outline" onClick={() => setDialogManual(true)}>
               <HelpCircle className="h-4 w-4 mr-2" />
               Manual de Uso
@@ -461,6 +467,11 @@ export default function FabricaTabelasPreco() {
       <ManualTabelasPrecoDialog
         open={dialogManual}
         onOpenChange={setDialogManual}
+      />
+
+      <GerenciarLimitesPrecoDialog
+        open={dialogLimites}
+        onOpenChange={setDialogLimites}
       />
     </DashboardLayout>
   );
