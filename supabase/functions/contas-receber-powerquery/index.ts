@@ -176,8 +176,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Limite de segurança
-    const MAX_RECORDS = 10000;
+    // Limite de segurança - AUMENTADO para suportar grandes volumes
+    const MAX_RECORDS = 50000;
     if (records.length > MAX_RECORDS) {
       return new Response(
         JSON.stringify({ 
