@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { checkAndUpdateVersion, APP_VERSION } from '@/lib/version';
+import { checkAndUpdateVersion, APP_VERSION, forceCleanReload } from '@/lib/version';
 
 interface PWAState {
   needRefresh: boolean;
@@ -9,7 +9,7 @@ interface PWAState {
   canInstall: boolean;
   installProgress: number;
   installStatus: string;
-  wasUpdated: boolean; // Nova flag para indicar atualização automática
+  wasUpdated: boolean;
   appVersion: string;
 }
 
@@ -17,6 +17,7 @@ interface PWAContextType extends PWAState {
   updateServiceWorker: () => void;
   promptInstall: () => Promise<boolean>;
   dismissUpdateNotice: () => void;
+  forceUpdate: () => Promise<void>;
 }
 
 const PWAContext = createContext<PWAContextType | null>(null);
@@ -220,8 +221,13 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, wasUpdated: false }));
   }, []);
 
+  const forceUpdate = useCallback(async () => {
+    console.log('[PWA] Forçando atualização completa...');
+    await forceCleanReload();
+  }, []);
+
   return (
-    <PWAContext.Provider value={{ ...state, updateServiceWorker, promptInstall, dismissUpdateNotice }}>
+    <PWAContext.Provider value={{ ...state, updateServiceWorker, promptInstall, dismissUpdateNotice, forceUpdate }}>
       {children}
     </PWAContext.Provider>
   );
@@ -243,6 +249,7 @@ export function usePWA(): PWAContextType {
       updateServiceWorker: () => {},
       promptInstall: async () => false,
       dismissUpdateNotice: () => {},
+      forceUpdate: async () => {},
     };
   }
   return context;
