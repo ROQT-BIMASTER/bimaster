@@ -746,7 +746,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============ POST /sync - Sincronizar dados do n8n (COM RATE LIMITING ROBUSTO) ============
+    // ============ POST /sync - Sincronizar dados do n8n (SEM RATE LIMITING - PROCESSAMENTO DIRETO) ============
     if (path.endsWith('/sync') && req.method === 'POST') {
       if (!validateApiKey()) {
         console.error('[contas-receber-api] Unauthorized - Invalid API key');
@@ -755,18 +755,18 @@ Deno.serve(async (req) => {
         });
       }
 
-      const requestId = crypto.randomUUID();
       const startTime = Date.now();
       
       let body;
       try {
         const text = await req.text();
-        console.log(`[contas-receber-api] Received payload size: ${text.length} bytes`);
+        console.log(`[contas-receber-api] Received ${text.length} bytes`);
         body = JSON.parse(text);
       } catch (parseError) {
         console.error('[contas-receber-api] JSON parse error:', parseError);
+        // SEMPRE retorna 200 para N8N continuar
         return new Response(JSON.stringify({ 
-          success: true, // Retorna sucesso para N8N continuar
+          success: true,
           error: 'Invalid JSON payload',
           statistics: { total_received: 0, processed: 0, errors: 1 }
         }), {
@@ -787,9 +787,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.log(`[contas-receber-api] Extracted ${contas.length} records to process`);
+      console.log(`[sync] Extracted ${contas.length} records`);
 
-      // Retornar sucesso mesmo sem registros (para N8N continuar)
+      // Retornar sucesso mesmo sem registros
       if (contas.length === 0) {
         return new Response(JSON.stringify({ 
           success: true, 
@@ -800,110 +800,79 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Log amostra do primeiro registro
-      if (contas.length > 0) {
-        const sample = contas[0];
-        console.log(`[contas-receber-api] Sample: Nota=${sample['Nota']}, Cliente=${sample['Cliente']?.substring(0,20)}`);
-      }
-
-      console.log(`📦 [sync] Processing ${contas.length} records - Aguardando slot...`);
-
       // =====================================================
-      // RATE LIMITING: Aguardar slot disponível
+      // PROCESSAMENTO DIRETO COM THROTTLING INTERNO
       // =====================================================
-      const { acquired, waitTime } = await waitForSlot(supabase, requestId);
-      
-      console.log(`✅ [sync] Slot obtido após ${waitTime}ms - Processando...`);
+      console.log(`📦 [sync] Processing ${contas.length} records directly`);
 
-      try {
-        // =====================================================
-        // PROCESSAMENTO COM SAFE EXECUTE (sempre retorna sucesso)
-        // =====================================================
-        const processStartTime = Date.now();
-        
-        const { data: result, success: processSuccess, error: processError } = await safeExecute(
-          async () => {
-            let totalProcessed = 0;
-            const allErrors: any[] = [];
-            const totalMiniBatches = Math.ceil(contas.length / MINI_BATCH_SIZE);
+      const { data: result, success: processSuccess, error: processError } = await safeExecute(
+        async () => {
+          let totalProcessed = 0;
+          const allErrors: any[] = [];
+          const totalMiniBatches = Math.ceil(contas.length / MINI_BATCH_SIZE);
+          
+          for (let i = 0; i < contas.length; i += MINI_BATCH_SIZE) {
+            const miniBatchNum = Math.floor(i / MINI_BATCH_SIZE) + 1;
+            const miniBatch = contas.slice(i, i + MINI_BATCH_SIZE);
             
-            for (let i = 0; i < contas.length; i += MINI_BATCH_SIZE) {
-              const miniBatchNum = Math.floor(i / MINI_BATCH_SIZE) + 1;
-              const miniBatch = contas.slice(i, i + MINI_BATCH_SIZE);
-              
-              const { processed, errors } = await processWithUpsert(supabase, miniBatch);
-              totalProcessed += processed;
-              allErrors.push(...errors);
-              
-              if (miniBatchNum % 5 === 0 || miniBatchNum === totalMiniBatches) {
-                console.log(`[sync] Mini-batch ${miniBatchNum}/${totalMiniBatches}: ${totalProcessed} total`);
-              }
-              
-              if (i + MINI_BATCH_SIZE < contas.length) {
-                await sleep(MINI_BATCH_DELAY_MS);
-              }
+            const { processed, errors } = await processWithUpsert(supabase, miniBatch);
+            totalProcessed += processed;
+            allErrors.push(...errors);
+            
+            // Log progresso
+            if (miniBatchNum % 3 === 0 || miniBatchNum === totalMiniBatches) {
+              console.log(`[sync] Batch ${miniBatchNum}/${totalMiniBatches}: ${totalProcessed} total`);
             }
             
-            return { processed: totalProcessed, errors: allErrors.length };
-          },
-          { processed: 0, errors: contas.length },
-          'sync-process'
-        );
-
-        const processDuration = Date.now() - processStartTime;
-        const totalDuration = Date.now() - startTime;
-        const rate = processDuration > 0 ? Math.round(result.processed / (processDuration / 1000)) : 0;
-
-        // Registrar sync no controle (async, não bloqueia resposta)
-        void supabase.from('sync_control').insert({
-          entidade: 'contas_receber',
-          empresa_id: contas[0] ? contas[0]['ID Empresa'] : null,
-          ultima_sync: new Date().toISOString(),
-          total_registros: contas.length,
-          registros_inseridos: result.processed,
-          registros_atualizados: 0,
-          registros_ignorados: 0,
-          duracao_ms: totalDuration,
-          status: processSuccess ? 'success' : 'partial',
-          erro_mensagem: processError || null
-        });
-
-        console.log(`[sync] Completed: ${result.processed}/${contas.length} in ${totalDuration}ms (${rate} rec/sec)`);
-
-        // Obter slots restantes para header
-        const remainingSlots = Math.max(0, MAX_CONCURRENT_SYNCS - await getActiveSlotCount(supabase));
-
-        // SEMPRE retorna 200 para o N8N continuar
-        return new Response(JSON.stringify({
-          success: true,
-          partial: !processSuccess,
-          statistics: { 
-            total_received: contas.length, 
-            processed: result.processed, 
-            errors: result.errors, 
-            rate_per_second: rate 
-          },
-          duration_ms: totalDuration,
-          rate_limit_info: {
-            wait_time_ms: waitTime,
-            process_time_ms: processDuration,
-            slots_remaining: remainingSlots
-          },
-          message: `OK: ${result.processed} registros processados`,
-          warning: processError || undefined
-        }), {
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'X-Processing-Time-Ms': String(processDuration),
-            'X-Wait-Time-Ms': String(waitTime),
-            'X-RateLimit-Remaining': String(remainingSlots)
+            // Delay entre mini-batches
+            if (i + MINI_BATCH_SIZE < contas.length) {
+              await sleep(MINI_BATCH_DELAY_MS);
+            }
           }
-        });
-      } finally {
-        // SEMPRE liberar o slot, mesmo em caso de erro
-        await releaseSlot(supabase, requestId);
-      }
+          
+          return { processed: totalProcessed, errors: allErrors.length };
+        },
+        { processed: 0, errors: contas.length },
+        'sync-process'
+      );
+
+      const duration = Date.now() - startTime;
+      const rate = duration > 0 ? Math.round(result.processed / (duration / 1000)) : 0;
+
+      // Registrar sync (async)
+      void supabase.from('sync_control').insert({
+        entidade: 'contas_receber',
+        empresa_id: contas[0] ? contas[0]['ID Empresa'] : null,
+        ultima_sync: new Date().toISOString(),
+        total_registros: contas.length,
+        registros_inseridos: result.processed,
+        duracao_ms: duration,
+        status: processSuccess ? 'success' : 'partial',
+        erro_mensagem: processError || null
+      });
+
+      console.log(`✅ [sync] Completed: ${result.processed}/${contas.length} in ${duration}ms (${rate} rec/sec)`);
+
+      // SEMPRE retorna 200 para o N8N continuar o loop
+      return new Response(JSON.stringify({
+        success: true,
+        partial: !processSuccess,
+        statistics: { 
+          total_received: contas.length, 
+          processed: result.processed, 
+          errors: result.errors, 
+          rate_per_second: rate 
+        },
+        duration_ms: duration,
+        message: `OK: ${result.processed} registros processados`,
+        warning: processError || undefined
+      }), {
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-Processing-Time-Ms': String(duration)
+        }
+      });
     }
 
     // ============ POST /sync-chunk - Sincronização em chunks (APRIMORADO) ============
