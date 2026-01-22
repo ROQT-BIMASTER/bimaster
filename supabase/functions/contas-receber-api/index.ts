@@ -46,12 +46,40 @@ function parseDate(dateValue: any): string | null {
   }
 }
 
+// Extrai dados reais do registro (desempacota formato N8N $items())
+function unwrapN8nItem(item: any): any {
+  // Se o item tem propriedade 'json', é formato N8N - extrair conteúdo
+  if (item && typeof item === 'object' && item.json && typeof item.json === 'object') {
+    console.log(`[unwrapN8nItem] Unwrapping N8N item format`);
+    return item.json;
+  }
+  return item;
+}
+
 // Transforma dados do ERP - suporta múltiplos formatos de campos
-function transformErpData(erpRecord: any) {
-  // Valores financeiros - suporta múltiplos nomes de campo
-  const valorAberto = parseAmount(erpRecord['Valor em Aberto'] || erpRecord.valor_aberto || 0);
-  const valorPago = parseAmount(erpRecord['Valor Pago'] || erpRecord.valor_recebido || erpRecord.valor_pago || 0);
-  const valorOriginal = parseAmount(erpRecord['Valor_Trc'] || erpRecord.valor_original || 0);
+function transformErpData(rawRecord: any) {
+  // Primeiro desempacota se for formato N8N
+  const erpRecord = unwrapN8nItem(rawRecord);
+  
+  // DEBUG: Log primeiro registro para identificar campos
+  const keys = Object.keys(erpRecord);
+  if (keys.length > 0) {
+    console.log(`[transformErpData] Record keys: ${keys.slice(0, 15).join(', ')}${keys.length > 15 ? '...' : ''}`);
+  }
+
+  // Valores financeiros - suporta múltiplos nomes de campo (inclui snake_case e camelCase)
+  const valorAberto = parseAmount(
+    erpRecord['Valor em Aberto'] || erpRecord['valor_em_aberto'] || erpRecord.valorEmAberto ||
+    erpRecord['Valor Aberto'] || erpRecord.valor_aberto || 0
+  );
+  const valorPago = parseAmount(
+    erpRecord['Valor Pago'] || erpRecord.valor_pago || erpRecord.valorPago ||
+    erpRecord.valor_recebido || erpRecord.valorRecebido || 0
+  );
+  const valorOriginal = parseAmount(
+    erpRecord['Valor_Trc'] || erpRecord['Valor Trc'] || erpRecord.valorTrc ||
+    erpRecord['Valor Original'] || erpRecord.valor_original || erpRecord.valorOriginal || 0
+  );
 
   // Calcular status baseado nos valores
   let status = 'aberto';
@@ -61,27 +89,36 @@ function transformErpData(erpRecord: any) {
     status = 'parcial';
   }
 
+  // Campos de identificação - suporta múltiplos formatos
+  const empresaId = erpRecord['ID Empresa'] || erpRecord.id_empresa || erpRecord.empresaId || erpRecord.empresa_id || 1;
+  const empresaNome = erpRecord['Empresa'] || erpRecord.empresa || erpRecord.empresa_nome || erpRecord.empresaNome;
+  const tipoDoc = String(erpRecord['Tipo'] || erpRecord.tipo || erpRecord.tipo_documento || erpRecord.tipoDocumento || '');
+  const numDoc = String(erpRecord['Nota'] || erpRecord.nota || erpRecord.numero_documento || erpRecord.numeroDocumento || '');
+  const parcela = parseInt(erpRecord['Seq'] || erpRecord.seq || erpRecord.parcela || erpRecord.sequencia) || 1;
+  const clienteCod = String(erpRecord['Código'] || erpRecord['Codigo'] || erpRecord.codigo || erpRecord.cliente_codigo || erpRecord.clienteCodigo || '');
+  const clienteNome = erpRecord['Cliente'] || erpRecord.cliente || erpRecord.cliente_nome || erpRecord.clienteNome;
+
   return {
-    empresa_id: erpRecord['ID Empresa'] || erpRecord.empresa_id || 1,
-    empresa_nome: erpRecord['Empresa'] || erpRecord.empresa_nome,
-    tipo_documento: String(erpRecord['Tipo'] || erpRecord.tipo_documento || ''),
-    numero_documento: String(erpRecord['Nota'] || erpRecord.numero_documento || ''),
-    parcela: parseInt(erpRecord['Seq'] || erpRecord.parcela) || 1,
-    cliente_codigo: String(erpRecord['Código'] || erpRecord['Codigo'] || erpRecord.cliente_codigo || ''),
-    cliente_nome: erpRecord['Cliente'] || erpRecord.cliente_nome,
+    empresa_id: empresaId,
+    empresa_nome: empresaNome,
+    tipo_documento: tipoDoc,
+    numero_documento: numDoc,
+    parcela: parcela,
+    cliente_codigo: clienteCod,
+    cliente_nome: clienteNome,
     valor_original: valorOriginal,
     valor_aberto: valorAberto,
     valor_recebido: valorPago,
-    valor_juros: parseAmount(erpRecord['Valor Juros'] || erpRecord.valor_juros || 0),
-    valor_desconto: parseAmount(erpRecord['Valor Desconto'] || erpRecord.valor_desconto || 0),
-    valor_ajustes: parseAmount(erpRecord['Valor Ajustes'] || erpRecord.valor_ajustes || 0),
-    data_emissao: parseDate(erpRecord['Emissão'] || erpRecord['Emissao'] || erpRecord.data_emissao),
-    data_vencimento: parseDate(erpRecord['Vencimento'] || erpRecord.data_vencimento),
-    data_recebimento: parseDate(erpRecord['Data Pgto'] || erpRecord['Pigto de dados'] || erpRecord.data_pagamento || erpRecord.data_recebimento),
-    tabela_preco: erpRecord['Tabela'] || erpRecord.tabela || null,
-    vendedor_nome: erpRecord['Vendedor'] || erpRecord.vendedor || null,
-    vendedor_codigo: erpRecord['Cód Vendedor'] || erpRecord.vendedor_codigo || null,
-    portador_id: erpRecord['ID Portador'] || erpRecord.portador_id || null,
+    valor_juros: parseAmount(erpRecord['Valor Juros'] || erpRecord.valor_juros || erpRecord.valorJuros || 0),
+    valor_desconto: parseAmount(erpRecord['Valor Desconto'] || erpRecord.valor_desconto || erpRecord.valorDesconto || 0),
+    valor_ajustes: parseAmount(erpRecord['Valor Ajustes'] || erpRecord.valor_ajustes || erpRecord.valorAjustes || 0),
+    data_emissao: parseDate(erpRecord['Emissão'] || erpRecord['Emissao'] || erpRecord.emissao || erpRecord.data_emissao || erpRecord.dataEmissao),
+    data_vencimento: parseDate(erpRecord['Vencimento'] || erpRecord.vencimento || erpRecord.data_vencimento || erpRecord.dataVencimento),
+    data_recebimento: parseDate(erpRecord['Data Pgto'] || erpRecord['Pigto de dados'] || erpRecord['Pagamento'] || erpRecord.pagamento || erpRecord.data_pagamento || erpRecord.data_recebimento || erpRecord.dataRecebimento),
+    tabela_preco: erpRecord['Tabela'] || erpRecord.tabela || erpRecord.tabela_preco || null,
+    vendedor_nome: erpRecord['Vendedor'] || erpRecord.vendedor || erpRecord.vendedor_nome || null,
+    vendedor_codigo: erpRecord['Cód Vendedor'] || erpRecord['Cod Vendedor'] || erpRecord.vendedor_codigo || erpRecord.codVendedor || null,
+    portador_id: erpRecord['ID Portador'] || erpRecord.id_portador || erpRecord.portador_id || null,
     portador: erpRecord['Nome Portador'] || erpRecord['Portador'] || erpRecord.portador || 'SEM PORTADOR',
     conta: erpRecord['Conta'] || erpRecord.conta || 'SEM CONTA',
     status,
@@ -95,13 +132,18 @@ function parseAmount(value: any): number {
   return parseFloat(cleanValue) || 0;
 }
 
-function generateErpId(conta: any): string {
-  const empresaId = conta['ID Empresa'] || conta.empresa_id || 1;
-  const tipo = conta['Tipo'] || conta.tipo_documento || '';
-  const nota = conta['Nota'] || conta.numero_documento || '';
-  const seq = conta['Seq'] || conta.parcela || 1;
-  const codigo = conta['Código'] || conta['Codigo'] || conta.cliente_codigo || '';
-  return `${empresaId}-${tipo}-${nota}-${seq}-${codigo}`.replace(/\s+/g, '');
+function generateErpId(rawConta: any): string {
+  // Primeiro desempacota se for formato N8N
+  const conta = unwrapN8nItem(rawConta);
+  
+  const empresaId = conta['ID Empresa'] || conta.id_empresa || conta.empresaId || conta.empresa_id || 1;
+  const tipo = conta['Tipo'] || conta.tipo || conta.tipo_documento || conta.tipoDocumento || '';
+  const nota = conta['Nota'] || conta.nota || conta.numero_documento || conta.numeroDocumento || '';
+  const seq = conta['Seq'] || conta.seq || conta.parcela || conta.sequencia || 1;
+  const codigo = conta['Código'] || conta['Codigo'] || conta.codigo || conta.cliente_codigo || conta.clienteCodigo || '';
+  const erpId = `${empresaId}-${tipo}-${nota}-${seq}-${codigo}`.replace(/\s+/g, '');
+  console.log(`[generateErpId] Generated: ${erpId} from empresa=${empresaId}, tipo=${tipo}, nota=${nota}, seq=${seq}`);
+  return erpId;
 }
 
 function isRetryableError(error: any): boolean {
@@ -302,14 +344,24 @@ Deno.serve(async (req) => {
     async function validateAuth(): Promise<boolean> {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
-      if (apiKey && apiKey === expectedKey) return true;
+      const polloKey = Deno.env.get('POLLO_API_KEY');
+      
+      // Accept either N8N_API_KEY or POLLO_API_KEY
+      if (apiKey && (apiKey === expectedKey || apiKey === polloKey)) {
+        console.log('[auth] API key validated successfully');
+        return true;
+      }
       
       const authHeader = req.headers.get('Authorization');
       if (authHeader) {
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (!authError && user) return true;
+        if (!authError && user) {
+          console.log('[auth] JWT validated successfully');
+          return true;
+        }
       }
+      console.error('[auth] Authentication failed - no valid API key or JWT');
       return false;
     }
 
@@ -317,7 +369,15 @@ Deno.serve(async (req) => {
     function validateApiKey(): boolean {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
-      return !!(apiKey && apiKey === expectedKey);
+      const polloKey = Deno.env.get('POLLO_API_KEY');
+      
+      const isValid = !!(apiKey && (apiKey === expectedKey || apiKey === polloKey));
+      if (isValid) {
+        console.log('[validateApiKey] API key validated');
+      } else {
+        console.error('[validateApiKey] Invalid API key provided');
+      }
+      return isValid;
     }
 
     // ============ GET /sync-status - Status da última sync ============
@@ -512,6 +572,8 @@ Deno.serve(async (req) => {
       try {
         const text = await req.text();
         console.log(`[contas-receber-api] Received payload size: ${text.length} bytes`);
+        // Log first 500 chars for debug
+        console.log(`[contas-receber-api] Payload preview: ${text.substring(0, 500)}`);
         body = JSON.parse(text);
       } catch (parseError) {
         console.error('[contas-receber-api] JSON parse error:', parseError);
@@ -520,13 +582,20 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Aceita múltiplos formatos: { contas: [...] } ou { data: [...] } ou [...] ou objeto único
-      let contas = body.contas || body.data || body;
+      // Log body structure for debugging
+      console.log(`[contas-receber-api] Body type: ${typeof body}, isArray: ${Array.isArray(body)}, keys: ${typeof body === 'object' && body ? Object.keys(body).slice(0, 10).join(', ') : 'N/A'}`);
+
+      // Aceita múltiplos formatos: { contas: [...] } ou { data: [...] } ou { items: [...] } ou [...] ou objeto único
+      let contas = body.contas || body.data || body.items || body.records || body;
       
       // Se for um objeto único (não array), converte para array
       if (!Array.isArray(contas)) {
         // Verifica se é um objeto com campos do ERP (indica registro único)
-        if (contas && typeof contas === 'object' && (contas['Nota'] || contas.numero_documento || contas['Cliente'] || contas.cliente_nome)) {
+        const hasErpFields = contas && typeof contas === 'object' && (
+          contas['Nota'] || contas.nota || contas.numero_documento ||
+          contas['Cliente'] || contas.cliente || contas.cliente_nome
+        );
+        if (hasErpFields) {
           console.log(`[contas-receber-api] Single record received, converting to array`);
           contas = [contas];
         } else {
@@ -535,6 +604,13 @@ Deno.serve(async (req) => {
       }
 
       console.log(`[contas-receber-api] Extracted ${contas.length} records to process`);
+      
+      // Log sample record for debugging field mapping
+      if (contas.length > 0) {
+        const sampleKeys = Object.keys(contas[0]).slice(0, 20);
+        console.log(`[contas-receber-api] Sample record keys: ${sampleKeys.join(', ')}`);
+        console.log(`[contas-receber-api] Sample record values: Nota=${contas[0]['Nota'] || contas[0].nota}, Cliente=${contas[0]['Cliente'] || contas[0].cliente}, Tipo=${contas[0]['Tipo'] || contas[0].tipo}`);
+      }
 
       if (contas.length === 0) {
         console.warn(`[contas-receber-api] No valid records found in payload. Body keys: ${Object.keys(body).join(', ')}`);
