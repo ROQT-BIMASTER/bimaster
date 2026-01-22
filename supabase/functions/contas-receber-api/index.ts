@@ -7,13 +7,17 @@ const corsHeaders = {
 };
 
 // Configurações OTIMIZADAS para 1 MILHÃO+ de registros
-const BULK_BATCH_SIZE = 10000;      // AUMENTADO: 10k por batch SQL
+const BULK_BATCH_SIZE = 10000;      // 10k por batch SQL
 const MAX_PAYLOAD_SIZE = 100000;    // 100k registros max por request
-const UPSERT_BATCH_SIZE = 1000;     // AUMENTADO: fallback mais rápido
-const BATCH_DELAY_MS = 5;           // REDUZIDO: menos delay entre batches
+const UPSERT_BATCH_SIZE = 500;      // REDUZIDO: batches menores para evitar timeout
+const BATCH_DELAY_MS = 50;          // AUMENTADO: mais delay entre batches para evitar sobrecarga
 const MAX_RETRIES = 5;
-const RETRY_BASE_DELAY_MS = 100;
-const RECOMMENDED_CHUNK_SIZE = 25000; // AUMENTADO: 25k por chunk N8N
+const RETRY_BASE_DELAY_MS = 200;    // AUMENTADO: mais tempo entre retries
+const RECOMMENDED_CHUNK_SIZE = 500; // REDUZIDO: 500 por chunk N8N para evitar timeout
+const MAX_CONCURRENT_SYNCS = 2;     // Limite de syncs paralelas
+const QUEUE_WAIT_TIMEOUT_MS = 90000; // 90s timeout na fila
+const MINI_BATCH_SIZE = 100;        // Mini-batches para throttling interno
+const MINI_BATCH_DELAY_MS = 100;    // Delay entre mini-batches
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -185,6 +189,60 @@ function escapeSql(value: any): string {
   if (typeof value === 'number') return String(value);
   if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
   return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+// ============ RATE LIMITING E FILA ============
+async function acquireSyncSlot(supabase: any): Promise<{ acquired: boolean; slotId?: string; waitedMs?: number }> {
+  const slotId = crypto.randomUUID();
+  const startWait = Date.now();
+  
+  for (let attempt = 0; attempt < 30; attempt++) { // 30 tentativas x 3s = 90s max wait
+    // Limpar slots expirados (> 5 minutos)
+    await supabase
+      .from('sync_rate_limiter')
+      .delete()
+      .lt('acquired_at', new Date(Date.now() - 300000).toISOString());
+    
+    // Contar slots ativos
+    const { count } = await supabase
+      .from('sync_rate_limiter')
+      .select('*', { count: 'exact', head: true })
+      .eq('entidade', 'contas_receber');
+    
+    if ((count || 0) < MAX_CONCURRENT_SYNCS) {
+      // Tentar adquirir slot
+      const { error } = await supabase
+        .from('sync_rate_limiter')
+        .insert({
+          id: slotId,
+          entidade: 'contas_receber',
+          acquired_at: new Date().toISOString()
+        });
+      
+      if (!error) {
+        console.log(`[RateLimit] Slot acquired: ${slotId} after ${Date.now() - startWait}ms`);
+        return { acquired: true, slotId, waitedMs: Date.now() - startWait };
+      }
+    }
+    
+    console.log(`[RateLimit] Waiting for slot... attempt ${attempt + 1}/30 (${count || 0}/${MAX_CONCURRENT_SYNCS} active)`);
+    await sleep(3000); // Espera 3s entre tentativas
+  }
+  
+  console.warn(`[RateLimit] Queue timeout after ${Date.now() - startWait}ms`);
+  return { acquired: false, waitedMs: Date.now() - startWait };
+}
+
+async function releaseSyncSlot(supabase: any, slotId: string): Promise<void> {
+  try {
+    await supabase
+      .from('sync_rate_limiter')
+      .delete()
+      .eq('id', slotId);
+    console.log(`[RateLimit] Slot released: ${slotId}`);
+  } catch (err) {
+    console.error(`[RateLimit] Failed to release slot ${slotId}:`, err);
+  }
 }
 
 // ============ BULK INSERT SEGURO ============
@@ -607,7 +665,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============ POST /sync - Sincronizar dados do n8n ============
+    // ============ POST /sync - Sincronizar dados do n8n (COM RATE LIMITING) ============
     if (path.endsWith('/sync') && req.method === 'POST') {
       if (!validateApiKey()) {
         console.error('[contas-receber-api] Unauthorized - Invalid API key');
@@ -618,104 +676,154 @@ Deno.serve(async (req) => {
 
       const startTime = Date.now();
       
-      let body;
+      // RATE LIMITING: Adquirir slot na fila
+      const slotResult = await acquireSyncSlot(supabase);
+      if (!slotResult.acquired) {
+        console.warn(`[contas-receber-api] Rate limit exceeded - queue timeout`);
+        return new Response(JSON.stringify({ 
+          error: 'Too Many Requests - Server busy',
+          message: 'Servidor ocupado processando outras sincronizações. Tente novamente em alguns segundos.',
+          retry_after_seconds: 10,
+          hint: 'Configure N8N com delay de 5s entre requisições'
+        }), {
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': '10',
+            'X-RateLimit-Limit': String(MAX_CONCURRENT_SYNCS)
+          }
+        });
+      }
+      
+      const slotId = slotResult.slotId!;
+      
       try {
-        const text = await req.text();
-        console.log(`[contas-receber-api] Received payload size: ${text.length} bytes`);
-        // Log first 500 chars for debug
-        console.log(`[contas-receber-api] Payload preview: ${text.substring(0, 500)}`);
-        body = JSON.parse(text);
-      } catch (parseError) {
-        console.error('[contas-receber-api] JSON parse error:', parseError);
-        return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      // Log body structure for debugging
-      console.log(`[contas-receber-api] Body type: ${typeof body}, isArray: ${Array.isArray(body)}, keys: ${typeof body === 'object' && body ? Object.keys(body).slice(0, 10).join(', ') : 'N/A'}`);
-
-      // Aceita múltiplos formatos: { contas: [...] } ou { data: [...] } ou { items: [...] } ou [...] ou objeto único
-      let contas = body.contas || body.data || body.items || body.records || body;
-      
-      // Se for um objeto único (não array), converte para array
-      if (!Array.isArray(contas)) {
-        // Verifica se é um objeto com campos do ERP (indica registro único)
-        const hasErpFields = contas && typeof contas === 'object' && (
-          contas['Nota'] || contas.nota || contas.numero_documento ||
-          contas['Cliente'] || contas.cliente || contas.cliente_nome
-        );
-        if (hasErpFields) {
-          console.log(`[contas-receber-api] Single record received, converting to array`);
-          contas = [contas];
-        } else {
-          contas = [];
+        let body;
+        try {
+          const text = await req.text();
+          console.log(`[contas-receber-api] Received payload size: ${text.length} bytes (waited ${slotResult.waitedMs}ms for slot)`);
+          console.log(`[contas-receber-api] Payload preview: ${text.substring(0, 500)}`);
+          body = JSON.parse(text);
+        } catch (parseError) {
+          console.error('[contas-receber-api] JSON parse error:', parseError);
+          return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
         }
-      }
 
-      console.log(`[contas-receber-api] Extracted ${contas.length} records to process`);
-      
-      // Log sample record for debugging field mapping
-      if (contas.length > 0) {
-        const sampleKeys = Object.keys(contas[0]).slice(0, 20);
-        console.log(`[contas-receber-api] Sample record keys: ${sampleKeys.join(', ')}`);
-        console.log(`[contas-receber-api] Sample record values: Nota=${contas[0]['Nota'] || contas[0].nota}, Cliente=${contas[0]['Cliente'] || contas[0].cliente}, Tipo=${contas[0]['Tipo'] || contas[0].tipo}`);
-      }
+        console.log(`[contas-receber-api] Body type: ${typeof body}, isArray: ${Array.isArray(body)}, keys: ${typeof body === 'object' && body ? Object.keys(body).slice(0, 10).join(', ') : 'N/A'}`);
 
-      if (contas.length === 0) {
-        console.warn(`[contas-receber-api] No valid records found in payload. Body keys: ${Object.keys(body).join(', ')}`);
-        return new Response(JSON.stringify({ 
-          success: true, 
-          statistics: { total_received: 0, processed: 0, errors: 0 },
-          message: 'Nenhum registro recebido',
-          debug: { received_keys: Object.keys(body) }
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        let contas = body.contas || body.data || body.items || body.records || body;
+        
+        if (!Array.isArray(contas)) {
+          const hasErpFields = contas && typeof contas === 'object' && (
+            contas['Nota'] || contas.nota || contas.numero_documento ||
+            contas['Cliente'] || contas.cliente || contas.cliente_nome
+          );
+          if (hasErpFields) {
+            console.log(`[contas-receber-api] Single record received, converting to array`);
+            contas = [contas];
+          } else {
+            contas = [];
+          }
+        }
+
+        console.log(`[contas-receber-api] Extracted ${contas.length} records to process`);
+        
+        if (contas.length > 0) {
+          const sampleKeys = Object.keys(contas[0]).slice(0, 20);
+          console.log(`[contas-receber-api] Sample record keys: ${sampleKeys.join(', ')}`);
+          console.log(`[contas-receber-api] Sample record values: Nota=${contas[0]['Nota'] || contas[0].nota}, Cliente=${contas[0]['Cliente'] || contas[0].cliente}, Tipo=${contas[0]['Tipo'] || contas[0].tipo}`);
+        }
+
+        if (contas.length === 0) {
+          console.warn(`[contas-receber-api] No valid records found in payload. Body keys: ${Object.keys(body).join(', ')}`);
+          return new Response(JSON.stringify({ 
+            success: true, 
+            statistics: { total_received: 0, processed: 0, errors: 0 },
+            message: 'Nenhum registro recebido',
+            debug: { received_keys: Object.keys(body) }
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        if (contas.length > MAX_PAYLOAD_SIZE) {
+          console.warn(`[contas-receber-api] Payload too large: ${contas.length} records (max: ${MAX_PAYLOAD_SIZE})`);
+          return new Response(JSON.stringify({ 
+            error: `Payload muito grande. Máximo: ${MAX_PAYLOAD_SIZE} registros.`,
+            max_allowed: MAX_PAYLOAD_SIZE,
+            received: contas.length,
+            hint: 'Configure N8N para dividir em chunks de 500 registros com delay de 5s entre chunks'
+          }), {
+            status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        console.log(`[contas-receber-api] Processing ${contas.length} records with THROTTLED UPSERT`);
+
+        // Processar em mini-batches com throttling interno
+        let totalProcessed = 0;
+        const allErrors: any[] = [];
+        const totalMiniBatches = Math.ceil(contas.length / MINI_BATCH_SIZE);
+        
+        for (let i = 0; i < contas.length; i += MINI_BATCH_SIZE) {
+          const miniBatchNum = Math.floor(i / MINI_BATCH_SIZE) + 1;
+          const miniBatch = contas.slice(i, i + MINI_BATCH_SIZE);
+          
+          const { processed, errors } = await processWithUpsert(supabase, miniBatch);
+          totalProcessed += processed;
+          allErrors.push(...errors);
+          
+          // Log progresso a cada 5 mini-batches
+          if (miniBatchNum % 5 === 0 || miniBatchNum === totalMiniBatches) {
+            console.log(`[contas-receber-api] Mini-batch ${miniBatchNum}/${totalMiniBatches}: ${totalProcessed} total processed`);
+          }
+          
+          // Delay entre mini-batches para evitar sobrecarga
+          if (i + MINI_BATCH_SIZE < contas.length) {
+            await sleep(MINI_BATCH_DELAY_MS);
+          }
+        }
+
+        const duration = Date.now() - startTime;
+        const rate = duration > 0 ? Math.round(totalProcessed / (duration / 1000)) : 0;
+
+        const empresaId = contas[0] ? contas[0]['ID Empresa'] : null;
+        void supabase.from('sync_control').insert({
+          entidade: 'contas_receber',
+          empresa_id: empresaId,
+          ultima_sync: new Date().toISOString(),
+          total_registros: contas.length,
+          registros_inseridos: totalProcessed,
+          registros_atualizados: 0,
+          registros_ignorados: 0,
+          duracao_ms: duration,
+          status: allErrors.length === 0 ? 'success' : 'partial',
+          erro_mensagem: allErrors.length > 0 ? JSON.stringify(allErrors.slice(0, 5)) : null
         });
-      }
 
-      if (contas.length > MAX_PAYLOAD_SIZE) {
-        console.warn(`[contas-receber-api] Payload too large: ${contas.length} records (max: ${MAX_PAYLOAD_SIZE})`);
-        return new Response(JSON.stringify({ 
-          error: `Payload muito grande. Máximo: ${MAX_PAYLOAD_SIZE} registros. Use chunking com /sync-chunk.`,
-          max_allowed: MAX_PAYLOAD_SIZE,
-          received: contas.length,
-          hint: 'Configure N8N para dividir em chunks de 5000 registros com delay de 3s entre chunks'
+        console.log(`[contas-receber-api] Sync completed: ${totalProcessed} processed, ${allErrors.length} errors in ${duration}ms (${rate} rec/sec)`);
+
+        return new Response(JSON.stringify({
+          success: true,
+          statistics: { total_received: contas.length, processed: totalProcessed, errors: allErrors.length, rate_per_second: rate },
+          duration_ms: duration,
+          queue_wait_ms: slotResult.waitedMs,
+          message: `OK: ${totalProcessed} registros processados via UPSERT throttled`
         }), {
-          status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-Processing-Time-Ms': String(duration),
+            'X-Queue-Wait-Ms': String(slotResult.waitedMs || 0)
+          }
         });
+      } finally {
+        // SEMPRE liberar o slot, mesmo em caso de erro
+        await releaseSyncSlot(supabase, slotId);
       }
-
-      console.log(`[contas-receber-api] Processing ${contas.length} records with sequential UPSERT`);
-
-      const { processed, errors } = await processWithUpsert(supabase, contas);
-
-      const duration = Date.now() - startTime;
-
-      const empresaId = contas[0] ? contas[0]['ID Empresa'] : null;
-      void supabase.from('sync_control').insert({
-        entidade: 'contas_receber',
-        empresa_id: empresaId,
-        ultima_sync: new Date().toISOString(),
-        total_registros: contas.length,
-        registros_inseridos: processed,
-        registros_atualizados: 0,
-        registros_ignorados: 0,
-        duracao_ms: duration,
-        status: errors.length === 0 ? 'success' : 'partial',
-        erro_mensagem: errors.length > 0 ? JSON.stringify(errors.slice(0, 5)) : null
-      });
-
-      console.log(`[contas-receber-api] Sync completed: ${processed} processed, ${errors.length} errors in ${duration}ms`);
-
-      return new Response(JSON.stringify({
-        success: true,
-        statistics: { total_received: contas.length, processed, errors: errors.length },
-        duration_ms: duration,
-        message: `OK: ${processed} registros processados via UPSERT sequencial`
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
     }
 
     // ============ POST /sync-chunk - Sincronização em chunks (APRIMORADO) ============
