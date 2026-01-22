@@ -15018,7 +15018,17 @@ export type Database = {
           p_empresas?: number[]
           p_portador?: string
         }
-        Returns: Json
+        Returns: {
+          data_vencimento: string
+          qtd_pendente: number
+          qtd_recebido: number
+          qtd_titulos: number
+          qtd_vencido: number
+          valor_pendente: number
+          valor_recebido: number
+          valor_total: number
+          valor_vencido: number
+        }[]
       }
       get_contas_receber_dashboard_kpis:
         | {
@@ -15075,7 +15085,12 @@ export type Database = {
           p_mes?: number
           p_portador?: string
         }
-        Returns: Json
+        Returns: {
+          percentual: number
+          quantidade: number
+          status: string
+          valor: number
+        }[]
       }
       get_contas_receber_top_clientes: {
         Args: {

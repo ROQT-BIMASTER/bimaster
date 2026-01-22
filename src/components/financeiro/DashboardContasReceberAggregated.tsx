@@ -236,7 +236,7 @@ export function DashboardContasReceberAggregated({
         throw error;
       }
       console.log('[Dashboard] Status Dist recebido:', data);
-      return (data || []) as { nome: string; valor: number; qtd: number }[];
+      return (data || []).map((d: any) => ({ nome: d.status, valor: d.valor, qtd: d.quantidade })) as { nome: string; valor: number; qtd: number }[];
     }
   });
 
