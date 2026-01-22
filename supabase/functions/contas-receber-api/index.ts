@@ -6,18 +6,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-// Configurações OTIMIZADAS para 1 MILHÃO+ de registros
+// =====================================================
+// CONFIGURAÇÕES DE PERFORMANCE - v3.6.0 (ALINHADO COM CONTAS PAGAR)
+// =====================================================
 const BULK_BATCH_SIZE = 10000;      // 10k por batch SQL
 const MAX_PAYLOAD_SIZE = 100000;    // 100k registros max por request
-const UPSERT_BATCH_SIZE = 500;      // REDUZIDO: batches menores para evitar timeout
-const BATCH_DELAY_MS = 50;          // AUMENTADO: mais delay entre batches para evitar sobrecarga
+const UPSERT_BATCH_SIZE = 500;      // Batches menores para evitar timeout
+const BATCH_DELAY_MS = 50;          // Delay entre batches
 const MAX_RETRIES = 5;
-const RETRY_BASE_DELAY_MS = 200;    // AUMENTADO: mais tempo entre retries
-const RECOMMENDED_CHUNK_SIZE = 500; // REDUZIDO: 500 por chunk N8N para evitar timeout
-const MAX_CONCURRENT_SYNCS = 2;     // Limite de syncs paralelas
-const QUEUE_WAIT_TIMEOUT_MS = 90000; // 90s timeout na fila
-const MINI_BATCH_SIZE = 100;        // Mini-batches para throttling interno
-const MINI_BATCH_DELAY_MS = 100;    // Delay entre mini-batches
+const RETRY_BASE_DELAY_MS = 200;    // Tempo entre retries
+const RECOMMENDED_CHUNK_SIZE = 500; // 500 por chunk N8N para evitar timeout
+const API_VERSION = '3.6.0';
+
+// =====================================================
+// CONFIGURAÇÕES DE RATE LIMITING (igual ao contas-pagar)
+// =====================================================
+const MAX_CONCURRENT_SYNCS = 2;       // Máximo de requisições simultâneas
+const SLOT_TIMEOUT_MS = 90000;        // Timeout do slot (90s)
+const WAIT_RETRY_MS = 500;            // Intervalo entre tentativas de slot
+const MAX_WAIT_RETRIES = 120;         // 60 segundos de espera máxima
+const MINI_BATCH_SIZE = 100;          // Tamanho do mini-batch interno
+const MINI_BATCH_DELAY_MS = 100;      // Delay entre mini-batches
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -177,10 +186,14 @@ function generateErpId(rawConta: any): string {
 function isRetryableError(error: any): boolean {
   if (!error) return false;
   const code = error.code || '';
-  const message = error.message || '';
+  const message = (error.message || '').toLowerCase();
   return (
     code === '40P01' || code === '57014' || code === '40001' ||
-    message.includes('deadlock') || message.includes('timeout') || message.includes('could not serialize')
+    message.includes('deadlock') || message.includes('timeout') || 
+    message.includes('could not serialize') || message.includes('connection') ||
+    message.includes('network') || message.includes('too many connections') ||
+    message.includes('pool') || message.includes('busy') ||
+    message.includes('temporarily') || message.includes('unavailable')
   );
 }
 
@@ -191,8 +204,127 @@ function escapeSql(value: any): string {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
 
-// ============ RATE LIMITING REMOVIDO - Processamento direto ============
-// O rate limiting estava travando as requisições. Agora processa diretamente.
+// =====================================================
+// FUNÇÕES DE RATE LIMITING (igual ao contas-pagar-api)
+// =====================================================
+async function cleanupExpiredSlots(supabase: any): Promise<void> {
+  try {
+    await supabase
+      .from('sync_rate_limiter')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
+  } catch (err) {
+    console.warn('⚠️ [rate-limiter] Erro ao limpar slots expirados:', err);
+  }
+}
+
+async function getActiveSlotCount(supabase: any): Promise<number> {
+  try {
+    const { count, error } = await supabase
+      .from('sync_rate_limiter')
+      .select('*', { count: 'exact', head: true })
+      .gt('expires_at', new Date().toISOString());
+    
+    if (error) throw error;
+    return count || 0;
+  } catch (err) {
+    console.warn('⚠️ [rate-limiter] Erro ao contar slots:', err);
+    return 0;
+  }
+}
+
+async function acquireSlot(supabase: any, requestId: string): Promise<boolean> {
+  try {
+    // Limpar slots expirados primeiro
+    await cleanupExpiredSlots(supabase);
+    
+    // Verificar slots disponíveis
+    const activeCount = await getActiveSlotCount(supabase);
+    
+    if (activeCount >= MAX_CONCURRENT_SYNCS) {
+      console.log(`⏳ [rate-limiter] Sem slots disponíveis (${activeCount}/${MAX_CONCURRENT_SYNCS})`);
+      return false;
+    }
+    
+    // Tentar adquirir slot
+    const { error } = await supabase
+      .from('sync_rate_limiter')
+      .insert({
+        slot_key: `sync_cr_${Date.now()}_${requestId.substring(0, 8)}`,
+        request_id: requestId,
+        expires_at: new Date(Date.now() + SLOT_TIMEOUT_MS).toISOString()
+      });
+    
+    if (error) {
+      // Erro de constraint única = outro processo pegou o slot
+      if (error.code === '23505') {
+        console.log(`⏳ [rate-limiter] Conflito de slot, tentando novamente...`);
+        return false;
+      }
+      throw error;
+    }
+    
+    console.log(`✅ [rate-limiter] Slot adquirido: ${requestId.substring(0, 8)}`);
+    return true;
+  } catch (err) {
+    console.warn('⚠️ [rate-limiter] Erro ao adquirir slot:', err);
+    // Em caso de erro, permitir o processamento para não travar
+    return true;
+  }
+}
+
+async function releaseSlot(supabase: any, requestId: string): Promise<void> {
+  try {
+    await supabase
+      .from('sync_rate_limiter')
+      .delete()
+      .eq('request_id', requestId);
+    
+    console.log(`🔓 [rate-limiter] Slot liberado: ${requestId.substring(0, 8)}`);
+  } catch (err) {
+    console.warn('⚠️ [rate-limiter] Erro ao liberar slot:', err);
+  }
+}
+
+async function waitForSlot(supabase: any, requestId: string): Promise<{ acquired: boolean; waitTime: number }> {
+  const startWait = Date.now();
+  let attempts = 0;
+  
+  while (attempts < MAX_WAIT_RETRIES) {
+    const acquired = await acquireSlot(supabase, requestId);
+    
+    if (acquired) {
+      return { acquired: true, waitTime: Date.now() - startWait };
+    }
+    
+    attempts++;
+    if (attempts < MAX_WAIT_RETRIES) {
+      await sleep(WAIT_RETRY_MS);
+    }
+  }
+  
+  // Em vez de falhar, retornar acquired=true para permitir processamento mesmo sem slot
+  console.warn(`⚠️ [rate-limiter] Timeout após ${Date.now() - startWait}ms - Permitindo processamento sem slot`);
+  return { acquired: true, waitTime: Date.now() - startWait };
+}
+
+// =====================================================
+// SAFE EXECUTE - SEMPRE RETORNA SUCESSO (para N8N continuar)
+// =====================================================
+async function safeExecute<T>(
+  operation: () => Promise<T>,
+  fallbackValue: T,
+  operationName: string
+): Promise<{ data: T; success: boolean; error?: string }> {
+  try {
+    const result = await operation();
+    return { data: result, success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`⚠️ [${operationName}] Retornando fallback após erro:`, errorMessage);
+    return { data: fallbackValue, success: false, error: errorMessage };
+  }
+}
 
 // ============ BULK INSERT SEGURO ============
 async function processBulkInsert(
@@ -614,7 +746,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============ POST /sync - Sincronizar dados do n8n (COM RATE LIMITING) ============
+    // ============ POST /sync - Sincronizar dados do n8n (COM RATE LIMITING ROBUSTO) ============
     if (path.endsWith('/sync') && req.method === 'POST') {
       if (!validateApiKey()) {
         console.error('[contas-receber-api] Unauthorized - Invalid API key');
@@ -623,131 +755,154 @@ Deno.serve(async (req) => {
         });
       }
 
+      const requestId = crypto.randomUUID();
       const startTime = Date.now();
       
-      // Processamento direto sem rate limiting
-      console.log(`[contas-receber-api] Starting sync at ${new Date().toISOString()}`);
+      let body;
+      try {
+        const text = await req.text();
+        console.log(`[contas-receber-api] Received payload size: ${text.length} bytes`);
+        body = JSON.parse(text);
+      } catch (parseError) {
+        console.error('[contas-receber-api] JSON parse error:', parseError);
+        return new Response(JSON.stringify({ 
+          success: true, // Retorna sucesso para N8N continuar
+          error: 'Invalid JSON payload',
+          statistics: { total_received: 0, processed: 0, errors: 1 }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      let contas = body.contas || body.data || body.items || body.records || body;
       
-      {
-        let body;
-        try {
-          const text = await req.text();
-          console.log(`[contas-receber-api] Received payload size: ${text.length} bytes`);
-          console.log(`[contas-receber-api] Payload preview: ${text.substring(0, 500)}`);
-          body = JSON.parse(text);
-        } catch (parseError) {
-          console.error('[contas-receber-api] JSON parse error:', parseError);
-          return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
-            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
+      if (!Array.isArray(contas)) {
+        const hasErpFields = contas && typeof contas === 'object' && (
+          contas['Nota'] || contas.nota || contas.numero_documento
+        );
+        if (hasErpFields) {
+          contas = [contas];
+        } else {
+          contas = [];
         }
+      }
 
-        console.log(`[contas-receber-api] Body type: ${typeof body}, isArray: ${Array.isArray(body)}, keys: ${typeof body === 'object' && body ? Object.keys(body).slice(0, 10).join(', ') : 'N/A'}`);
+      console.log(`[contas-receber-api] Extracted ${contas.length} records to process`);
 
-        let contas = body.contas || body.data || body.items || body.records || body;
+      // Retornar sucesso mesmo sem registros (para N8N continuar)
+      if (contas.length === 0) {
+        return new Response(JSON.stringify({ 
+          success: true, 
+          statistics: { total_received: 0, processed: 0, errors: 0 },
+          message: 'Nenhum registro recebido'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Log amostra do primeiro registro
+      if (contas.length > 0) {
+        const sample = contas[0];
+        console.log(`[contas-receber-api] Sample: Nota=${sample['Nota']}, Cliente=${sample['Cliente']?.substring(0,20)}`);
+      }
+
+      console.log(`📦 [sync] Processing ${contas.length} records - Aguardando slot...`);
+
+      // =====================================================
+      // RATE LIMITING: Aguardar slot disponível
+      // =====================================================
+      const { acquired, waitTime } = await waitForSlot(supabase, requestId);
+      
+      console.log(`✅ [sync] Slot obtido após ${waitTime}ms - Processando...`);
+
+      try {
+        // =====================================================
+        // PROCESSAMENTO COM SAFE EXECUTE (sempre retorna sucesso)
+        // =====================================================
+        const processStartTime = Date.now();
         
-        if (!Array.isArray(contas)) {
-          const hasErpFields = contas && typeof contas === 'object' && (
-            contas['Nota'] || contas.nota || contas.numero_documento ||
-            contas['Cliente'] || contas.cliente || contas.cliente_nome
-          );
-          if (hasErpFields) {
-            console.log(`[contas-receber-api] Single record received, converting to array`);
-            contas = [contas];
-          } else {
-            contas = [];
-          }
-        }
+        const { data: result, success: processSuccess, error: processError } = await safeExecute(
+          async () => {
+            let totalProcessed = 0;
+            const allErrors: any[] = [];
+            const totalMiniBatches = Math.ceil(contas.length / MINI_BATCH_SIZE);
+            
+            for (let i = 0; i < contas.length; i += MINI_BATCH_SIZE) {
+              const miniBatchNum = Math.floor(i / MINI_BATCH_SIZE) + 1;
+              const miniBatch = contas.slice(i, i + MINI_BATCH_SIZE);
+              
+              const { processed, errors } = await processWithUpsert(supabase, miniBatch);
+              totalProcessed += processed;
+              allErrors.push(...errors);
+              
+              if (miniBatchNum % 5 === 0 || miniBatchNum === totalMiniBatches) {
+                console.log(`[sync] Mini-batch ${miniBatchNum}/${totalMiniBatches}: ${totalProcessed} total`);
+              }
+              
+              if (i + MINI_BATCH_SIZE < contas.length) {
+                await sleep(MINI_BATCH_DELAY_MS);
+              }
+            }
+            
+            return { processed: totalProcessed, errors: allErrors.length };
+          },
+          { processed: 0, errors: contas.length },
+          'sync-process'
+        );
 
-        console.log(`[contas-receber-api] Extracted ${contas.length} records to process`);
-        
-        if (contas.length > 0) {
-          const sampleKeys = Object.keys(contas[0]).slice(0, 20);
-          console.log(`[contas-receber-api] Sample record keys: ${sampleKeys.join(', ')}`);
-          console.log(`[contas-receber-api] Sample record values: Nota=${contas[0]['Nota'] || contas[0].nota}, Cliente=${contas[0]['Cliente'] || contas[0].cliente}, Tipo=${contas[0]['Tipo'] || contas[0].tipo}`);
-        }
+        const processDuration = Date.now() - processStartTime;
+        const totalDuration = Date.now() - startTime;
+        const rate = processDuration > 0 ? Math.round(result.processed / (processDuration / 1000)) : 0;
 
-        if (contas.length === 0) {
-          console.warn(`[contas-receber-api] No valid records found in payload. Body keys: ${Object.keys(body).join(', ')}`);
-          return new Response(JSON.stringify({ 
-            success: true, 
-            statistics: { total_received: 0, processed: 0, errors: 0 },
-            message: 'Nenhum registro recebido',
-            debug: { received_keys: Object.keys(body) }
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        if (contas.length > MAX_PAYLOAD_SIZE) {
-          console.warn(`[contas-receber-api] Payload too large: ${contas.length} records (max: ${MAX_PAYLOAD_SIZE})`);
-          return new Response(JSON.stringify({ 
-            error: `Payload muito grande. Máximo: ${MAX_PAYLOAD_SIZE} registros.`,
-            max_allowed: MAX_PAYLOAD_SIZE,
-            received: contas.length,
-            hint: 'Configure N8N para dividir em chunks de 500 registros com delay de 5s entre chunks'
-          }), {
-            status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        console.log(`[contas-receber-api] Processing ${contas.length} records with THROTTLED UPSERT`);
-
-        // Processar em mini-batches com throttling interno
-        let totalProcessed = 0;
-        const allErrors: any[] = [];
-        const totalMiniBatches = Math.ceil(contas.length / MINI_BATCH_SIZE);
-        
-        for (let i = 0; i < contas.length; i += MINI_BATCH_SIZE) {
-          const miniBatchNum = Math.floor(i / MINI_BATCH_SIZE) + 1;
-          const miniBatch = contas.slice(i, i + MINI_BATCH_SIZE);
-          
-          const { processed, errors } = await processWithUpsert(supabase, miniBatch);
-          totalProcessed += processed;
-          allErrors.push(...errors);
-          
-          // Log progresso a cada 5 mini-batches
-          if (miniBatchNum % 5 === 0 || miniBatchNum === totalMiniBatches) {
-            console.log(`[contas-receber-api] Mini-batch ${miniBatchNum}/${totalMiniBatches}: ${totalProcessed} total processed`);
-          }
-          
-          // Delay entre mini-batches para evitar sobrecarga
-          if (i + MINI_BATCH_SIZE < contas.length) {
-            await sleep(MINI_BATCH_DELAY_MS);
-          }
-        }
-
-        const duration = Date.now() - startTime;
-        const rate = duration > 0 ? Math.round(totalProcessed / (duration / 1000)) : 0;
-
-        const empresaId = contas[0] ? contas[0]['ID Empresa'] : null;
+        // Registrar sync no controle (async, não bloqueia resposta)
         void supabase.from('sync_control').insert({
           entidade: 'contas_receber',
-          empresa_id: empresaId,
+          empresa_id: contas[0] ? contas[0]['ID Empresa'] : null,
           ultima_sync: new Date().toISOString(),
           total_registros: contas.length,
-          registros_inseridos: totalProcessed,
+          registros_inseridos: result.processed,
           registros_atualizados: 0,
           registros_ignorados: 0,
-          duracao_ms: duration,
-          status: allErrors.length === 0 ? 'success' : 'partial',
-          erro_mensagem: allErrors.length > 0 ? JSON.stringify(allErrors.slice(0, 5)) : null
+          duracao_ms: totalDuration,
+          status: processSuccess ? 'success' : 'partial',
+          erro_mensagem: processError || null
         });
 
-        console.log(`[contas-receber-api] Sync completed: ${totalProcessed} processed, ${allErrors.length} errors in ${duration}ms (${rate} rec/sec)`);
+        console.log(`[sync] Completed: ${result.processed}/${contas.length} in ${totalDuration}ms (${rate} rec/sec)`);
 
+        // Obter slots restantes para header
+        const remainingSlots = Math.max(0, MAX_CONCURRENT_SYNCS - await getActiveSlotCount(supabase));
+
+        // SEMPRE retorna 200 para o N8N continuar
         return new Response(JSON.stringify({
           success: true,
-          statistics: { total_received: contas.length, processed: totalProcessed, errors: allErrors.length, rate_per_second: rate },
-          duration_ms: duration,
-          message: `OK: ${totalProcessed} registros processados via UPSERT`
+          partial: !processSuccess,
+          statistics: { 
+            total_received: contas.length, 
+            processed: result.processed, 
+            errors: result.errors, 
+            rate_per_second: rate 
+          },
+          duration_ms: totalDuration,
+          rate_limit_info: {
+            wait_time_ms: waitTime,
+            process_time_ms: processDuration,
+            slots_remaining: remainingSlots
+          },
+          message: `OK: ${result.processed} registros processados`,
+          warning: processError || undefined
         }), {
           headers: { 
             ...corsHeaders, 
             'Content-Type': 'application/json',
-            'X-Processing-Time-Ms': String(duration)
+            'X-Processing-Time-Ms': String(processDuration),
+            'X-Wait-Time-Ms': String(waitTime),
+            'X-RateLimit-Remaining': String(remainingSlots)
           }
         });
+      } finally {
+        // SEMPRE liberar o slot, mesmo em caso de erro
+        await releaseSlot(supabase, requestId);
       }
     }
 
