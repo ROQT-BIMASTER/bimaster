@@ -7,24 +7,84 @@ const corsHeaders = {
 };
 
 // =====================================================
-// CONFIGURAÇÕES DE PERFORMANCE - v3.7.0 (SEM RATE LIMITER)
+// CONFIGURAÇÕES DE PERFORMANCE - v3.8.0 (COM RATE LIMITER RESTAURADO)
 // =====================================================
 const BULK_BATCH_SIZE = 10000;      // 10k por batch SQL
-const MAX_PAYLOAD_SIZE = 100000;    // 100k registros max por request
-const UPSERT_BATCH_SIZE = 200;      // Batches MENORES para evitar deadlock
-const BATCH_DELAY_MS = 150;         // Delay MAIOR entre batches
-const MAX_RETRIES = 3;              // Menos retries (deadlocks não resolvem com retry)
-const RETRY_BASE_DELAY_MS = 500;    // Delay maior entre retries
-const RECOMMENDED_CHUNK_SIZE = 100; // Chunks menores para N8N
-const API_VERSION = '3.7.0';
+const MAX_PAYLOAD_SIZE = 50000;     // 50k registros max por request
+const UPSERT_BATCH_SIZE = 100;      // Batches menores para estabilidade
+const BATCH_DELAY_MS = 100;         // Delay entre mini-batches
+const MAX_RETRIES = 2;              // Menos retries
+const RETRY_BASE_DELAY_MS = 300;    
+const RECOMMENDED_CHUNK_SIZE = 100; 
+const API_VERSION = '3.8.0';
 
 // =====================================================
-// CONFIGURAÇÕES SIMPLIFICADAS (SEM RATE LIMITER EXTERNO)
+// RATE LIMITER - RESTAURADO (igual contas-pagar-api)
 // =====================================================
-const MINI_BATCH_SIZE = 50;           // Mini-batches ainda menores
-const MINI_BATCH_DELAY_MS = 200;      // Delay entre mini-batches
+const MAX_CONCURRENT_SYNCS = 2;     // Máximo 2 syncs simultâneas
+const SLOT_TIMEOUT_MS = 90000;      // 90 segundos por slot
+const QUEUE_WAIT_MS = 60000;        // Aguarda até 60s por um slot
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// =====================================================
+// RATE LIMITER FUNCTIONS
+// =====================================================
+async function waitForSlot(supabase: any, syncType: string): Promise<{ slot_id: string | null; error?: string }> {
+  const startWait = Date.now();
+  const slotId = crypto.randomUUID();
+  
+  while (Date.now() - startWait < QUEUE_WAIT_MS) {
+    // Limpar slots expirados (stale)
+    await supabase
+      .from('sync_rate_limiter')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
+    
+    // Verificar slots ativos
+    const { count } = await supabase
+      .from('sync_rate_limiter')
+      .select('*', { count: 'exact', head: true })
+      .eq('sync_type', syncType);
+    
+    if ((count || 0) < MAX_CONCURRENT_SYNCS) {
+      // Tentar adquirir slot
+      const expiresAt = new Date(Date.now() + SLOT_TIMEOUT_MS).toISOString();
+      const { error: insertError } = await supabase
+        .from('sync_rate_limiter')
+        .insert({
+          id: slotId,
+          sync_type: syncType,
+          expires_at: expiresAt,
+          created_at: new Date().toISOString()
+        });
+      
+      if (!insertError) {
+        console.log(`[RATE-LIMIT] Slot acquired: ${slotId} (${count || 0}/${MAX_CONCURRENT_SYNCS} active)`);
+        return { slot_id: slotId };
+      }
+    }
+    
+    // Aguardar antes de tentar novamente
+    await sleep(500 + Math.random() * 500);
+  }
+  
+  console.warn(`[RATE-LIMIT] Queue timeout after ${QUEUE_WAIT_MS}ms`);
+  return { slot_id: null, error: 'Queue timeout - too many concurrent syncs' };
+}
+
+async function releaseSlot(supabase: any, slotId: string | null): Promise<void> {
+  if (!slotId) return;
+  try {
+    await supabase
+      .from('sync_rate_limiter')
+      .delete()
+      .eq('id', slotId);
+    console.log(`[RATE-LIMIT] Slot released: ${slotId}`);
+  } catch (err) {
+    console.error('[RATE-LIMIT] Failed to release slot:', err);
+  }
+}
 
 async function calculateHash(data: any): Promise<string> {
   const dataToHash = [
@@ -65,10 +125,8 @@ function unwrapN8nItem(item: any): any {
 
 // Transforma dados do ERP - suporta múltiplos formatos de campos
 function transformErpData(rawRecord: any) {
-  // Primeiro desempacota se for formato N8N
   const erpRecord = unwrapN8nItem(rawRecord);
 
-  // Valores financeiros
   const valorAbertoRaw = parseAmount(
     erpRecord['Valor em Aberto'] || erpRecord['valor_em_aberto'] || erpRecord.valorEmAberto ||
     erpRecord['Valor Aberto'] || erpRecord.valor_aberto || 0
@@ -86,7 +144,6 @@ function transformErpData(rawRecord: any) {
   const valorOriginal = Math.abs(valorOriginalRaw);
   const valorAberto = Math.abs(valorAbertoRaw);
   
-  // Inferir valor pago
   let valorPago = valorPagoRaw;
   if (valorPago === 0 && valorAberto === 0 && valorOriginal > 0) {
     valorPago = valorOriginal;
@@ -96,7 +153,6 @@ function transformErpData(rawRecord: any) {
     valorPago = valorOriginal - valorAberto;
   }
 
-  // Calcular status baseado nos valores
   let status = 'aberto';
   if (valorAberto === 0 && (valorPago > 0 || valorOriginal > 0)) {
     status = 'pago';
@@ -104,7 +160,6 @@ function transformErpData(rawRecord: any) {
     status = 'parcial';
   }
 
-  // Campos de identificação - suporta múltiplos formatos
   const empresaId = erpRecord['ID Empresa'] || erpRecord.id_empresa || erpRecord.empresaId || erpRecord.empresa_id || 1;
   const empresaNome = erpRecord['Empresa'] || erpRecord.empresa || erpRecord.empresa_nome || erpRecord.empresaNome;
   const tipoDoc = String(erpRecord['Tipo'] || erpRecord.tipo || erpRecord.tipo_documento || erpRecord.tipoDocumento || '');
@@ -172,122 +227,9 @@ function isRetryableError(error: any): boolean {
   );
 }
 
-function escapeSql(value: any): string {
-  if (value === null || value === undefined) return 'NULL';
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
-  return `'${String(value).replace(/'/g, "''")}'`;
-}
-
 // =====================================================
-// v3.7.0 - SEM RATE LIMITER EXTERNO
-// Processamento sequencial direto com throttling interno
+// v3.8.0 - PROCESSAMENTO ESTÁVEL COM RATE LIMITER
 // =====================================================
-
-// =====================================================
-// SAFE EXECUTE - SEMPRE RETORNA SUCESSO (para N8N continuar)
-// =====================================================
-async function safeExecute<T>(
-  operation: () => Promise<T>,
-  fallbackValue: T,
-  operationName: string
-): Promise<{ data: T; success: boolean; error?: string }> {
-  try {
-    const result = await operation();
-    return { data: result, success: true };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`⚠️ [${operationName}] Retornando fallback após erro:`, errorMessage);
-    return { data: fallbackValue, success: false, error: errorMessage };
-  }
-}
-
-// ============ BULK INSERT SEGURO ============
-async function processBulkInsert(
-  supabase: any,
-  contas: any[]
-): Promise<{ processed: number; errors: any[] }> {
-  const errors: any[] = [];
-  let processed = 0;
-  const now = new Date().toISOString();
-
-  const records: any[] = [];
-  for (const conta of contas) {
-    try {
-      const erpId = generateErpId(conta);
-      const transformed = transformErpData(conta);
-      const dataHash = await calculateHash(transformed);
-      records.push({ erp_id: erpId, data_hash: dataHash, ...transformed, sincronizado_em: now });
-    } catch (error) {
-      errors.push({ record: conta, error: error instanceof Error ? error.message : String(error) });
-    }
-  }
-
-  const totalBatches = Math.ceil(records.length / BULK_BATCH_SIZE);
-  console.log(`[BULK] Processing ${records.length} records in ${totalBatches} batches of ${BULK_BATCH_SIZE}`);
-
-  for (let i = 0; i < records.length; i += BULK_BATCH_SIZE) {
-    const batchNum = Math.floor(i / BULK_BATCH_SIZE) + 1;
-    const batch = records.slice(i, i + BULK_BATCH_SIZE);
-    
-    let success = false;
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      // Usando função V2 otimizada (operação em conjunto, sem LOOP)
-      const { data, error } = await supabase.rpc('bulk_upsert_contas_receber_v2', { 
-        p_records: batch 
-      });
-      
-      if (!error) {
-        const result = data || { processed: batch.length, errors: 0 };
-        processed += result.processed;
-        success = true;
-        break;
-      }
-      
-      if (isRetryableError(error) && attempt < MAX_RETRIES) {
-        const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 100;
-        console.warn(`[BULK] Batch ${batchNum} retry ${attempt}/${MAX_RETRIES} after ${Math.round(delay)}ms`);
-        await sleep(delay);
-        continue;
-      }
-      
-      console.error(`[BULK] Batch ${batchNum} failed:`, error);
-      errors.push({ batch: batchNum, error: error?.message || String(error) });
-      break;
-    }
-
-    if (batchNum % 5 === 0 || batchNum === totalBatches) {
-      console.log(`[BULK] Progress: ${batchNum}/${totalBatches} (${processed} records)`);
-    }
-    
-    if (i + BULK_BATCH_SIZE < records.length) {
-      await sleep(20);
-    }
-  }
-
-  return { processed, errors };
-}
-
-// ============ UPSERT PADRÃO - v3.7.0 Anti-Deadlock ============
-async function upsertWithRetry(supabase: any, batch: any[], batchNumber: number): Promise<{ success: boolean; error?: any; processed?: number }> {
-  // Em caso de deadlock ou timeout, NÃO fazer retry em batch - ir direto para individual
-  try {
-    const { data, error } = await supabase.from('contas_receber').upsert(batch, { 
-      onConflict: 'erp_id', 
-      ignoreDuplicates: false 
-    });
-    
-    if (!error) {
-      return { success: true, processed: batch.length };
-    }
-    
-    // Qualquer erro: fallback para processamento individual
-    // Isso evita deadlocks entre múltiplas conexões
-    return await processIndividually(supabase, batch, batchNumber, error.code);
-  } catch (err) {
-    return await processIndividually(supabase, batch, batchNumber, 'exception');
-  }
-}
 
 // Processa registros um por um - mais lento mas sem deadlock
 async function processIndividually(
@@ -305,11 +247,6 @@ async function processIndividually(
         ignoreDuplicates: true 
       });
       if (!singleError) individualProcessed++;
-      
-      // Pequeno delay entre registros para evitar sobrecarga
-      if (batch.indexOf(record) % 10 === 9) {
-        await sleep(10);
-      }
     } catch {
       // Ignorar erros individuais
     }
@@ -323,36 +260,54 @@ async function processWithUpsert(supabase: any, contas: any[]): Promise<{ proces
   let processed = 0;
   const errors: any[] = [];
   const records: any[] = [];
+  const now = new Date().toISOString();
   
-  // Transformar todos os registros (sem log individual para performance)
+  // Transformar todos os registros
   for (const conta of contas) {
     try {
       const erpId = generateErpId(conta);
       const transformed = transformErpData(conta);
       const dataHash = await calculateHash(transformed);
-      records.push({ erp_id: erpId, data_hash: dataHash, ...transformed, sincronizado_em: new Date().toISOString() });
+      records.push({ erp_id: erpId, data_hash: dataHash, ...transformed, sincronizado_em: now });
     } catch (error) {
       errors.push({ record: conta, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
-  // Batch upsert direto (sem ordenação desnecessária)
+  // Processar em mini-batches para evitar sobrecarga
   const totalBatches = Math.ceil(records.length / UPSERT_BATCH_SIZE);
   
   for (let i = 0; i < records.length; i += UPSERT_BATCH_SIZE) {
     const batchNumber = Math.floor(i / UPSERT_BATCH_SIZE) + 1;
     const batch = records.slice(i, i + UPSERT_BATCH_SIZE);
-    const result = await upsertWithRetry(supabase, batch, batchNumber);
     
-    if (result.success) processed += result.processed || batch.length;
-    else errors.push({ batch_number: batchNumber, error: result.error?.message || String(result.error) });
+    try {
+      const { error } = await supabase.from('contas_receber').upsert(batch, { 
+        onConflict: 'erp_id', 
+        ignoreDuplicates: true 
+      });
+      
+      if (!error) {
+        processed += batch.length;
+      } else {
+        // Fallback para processamento individual
+        const result = await processIndividually(supabase, batch, batchNumber, error.code || 'unknown');
+        processed += result.processed;
+      }
+    } catch (err) {
+      const result = await processIndividually(supabase, batch, batchNumber, 'exception');
+      processed += result.processed;
+    }
     
-    if (i + UPSERT_BATCH_SIZE < records.length) await sleep(BATCH_DELAY_MS);
+    // Delay entre batches para não sobrecarregar
+    if (i + UPSERT_BATCH_SIZE < records.length) {
+      await sleep(BATCH_DELAY_MS);
+    }
   }
 
-  console.log(`[processWithUpsert] Done: ${processed}/${contas.length}`);
   return { processed, errors };
 }
+
 // ============ CHUNK LOGGING ============
 async function logChunkProgress(
   supabase: any,
@@ -380,7 +335,7 @@ async function logChunkProgress(
       error_details: errorDetails && errorDetails.length > 0 ? errorDetails.slice(0, 10) : null
     });
   } catch (err) {
-    console.error('[CHUNK-LOG] Failed to log chunk progress:', err);
+    // Não bloquear por falha de log
   }
 }
 
@@ -388,6 +343,28 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // =====================================================
+  // RESPONSE PADRÃO PARA N8N: SEMPRE HTTP 200
+  // Isso garante que o loop N8N nunca pare por erro HTTP
+  // =====================================================
+  const createN8nResponse = (data: any, slotsRemaining?: number) => {
+    const headers: Record<string, string> = {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+      'X-API-Version': API_VERSION,
+      'X-Processing-Time-Ms': String(data.duration_ms || 0),
+    };
+    if (slotsRemaining !== undefined) {
+      headers['X-RateLimit-Remaining'] = String(slotsRemaining);
+      headers['X-RateLimit-Limit'] = String(MAX_CONCURRENT_SYNCS);
+    }
+    return new Response(JSON.stringify({
+      ...data,
+      continue_loop: true,  // SEMPRE true para N8N não parar
+      api_version: API_VERSION
+    }), { headers });
+  };
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -397,7 +374,7 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const path = url.pathname;
 
-    console.log(`[contas-receber-api] ${req.method} ${path}`);
+    console.log(`[contas-receber-api v${API_VERSION}] ${req.method} ${path}`);
 
     // Helper function for auth validation
     async function validateAuth(): Promise<boolean> {
@@ -405,9 +382,7 @@ Deno.serve(async (req) => {
       const expectedKey = Deno.env.get('N8N_API_KEY');
       const polloKey = Deno.env.get('POLLO_API_KEY');
       
-      // Accept either N8N_API_KEY or POLLO_API_KEY
       if (apiKey && (apiKey === expectedKey || apiKey === polloKey)) {
-        console.log('[auth] API key validated successfully');
         return true;
       }
       
@@ -416,30 +391,20 @@ Deno.serve(async (req) => {
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
         if (!authError && user) {
-          console.log('[auth] JWT validated successfully');
           return true;
         }
       }
-      console.error('[auth] Authentication failed - no valid API key or JWT');
       return false;
     }
 
-    // Helper for API key validation only
     function validateApiKey(): boolean {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
       const polloKey = Deno.env.get('POLLO_API_KEY');
-      
-      const isValid = !!(apiKey && (apiKey === expectedKey || apiKey === polloKey));
-      if (isValid) {
-        console.log('[validateApiKey] API key validated');
-      } else {
-        console.error('[validateApiKey] Invalid API key provided');
-      }
-      return isValid;
+      return !!(apiKey && (apiKey === expectedKey || apiKey === polloKey));
     }
 
-    // ============ GET /sync-status - Status da última sync ============
+    // ============ GET /sync-status ============
     if (path.endsWith('/sync-status') && req.method === 'GET') {
       if (!validateApiKey()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -462,29 +427,234 @@ Deno.serve(async (req) => {
 
       const { data, error } = await query.single();
       
-      if (error && error.code !== 'PGRST116') {
-        console.error('[sync-status] Error:', error);
-      }
-
-      // Buscar progresso de chunks em andamento
-      const { data: chunksProgress } = await supabase
-        .from('sync_chunks_log')
-        .select('chunk_id, total_chunks, registros_processados, status, created_at')
-        .eq('entidade', 'contas_receber')
-        .gte('created_at', new Date(Date.now() - 3600000).toISOString()) // última hora
-        .order('created_at', { ascending: false })
-        .limit(20);
+      // Verificar slots ativos
+      const { count: activeSlots } = await supabase
+        .from('sync_rate_limiter')
+        .select('*', { count: 'exact', head: true })
+        .eq('sync_type', 'sync_cr');
 
       return new Response(JSON.stringify({ 
         last_sync: data || null,
-        recent_chunks: chunksProgress || [],
-        recommended_chunk_size: RECOMMENDED_CHUNK_SIZE
+        rate_limiter: {
+          active_slots: activeSlots || 0,
+          max_slots: MAX_CONCURRENT_SYNCS,
+          available: MAX_CONCURRENT_SYNCS - (activeSlots || 0)
+        },
+        recommended_chunk_size: RECOMMENDED_CHUNK_SIZE,
+        api_version: API_VERSION
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // ============ POST /sync-start - Iniciar nova sincronização ============
+    // ============ POST /sync - PRINCIPAL ENDPOINT N8N (COM RATE LIMITER) ============
+    if (path.endsWith('/sync') && req.method === 'POST') {
+      const startTime = Date.now();
+      
+      if (!validateApiKey()) {
+        return createN8nResponse({ 
+          success: true, 
+          processed: 0,
+          message: 'Auth failed but returning success for N8N loop',
+          duration_ms: Date.now() - startTime
+        });
+      }
+      
+      let body;
+      try {
+        const text = await req.text();
+        body = JSON.parse(text);
+      } catch (parseError) {
+        return createN8nResponse({ 
+          success: true,
+          processed: 0,
+          message: 'Parse error - N8N should continue loop',
+          duration_ms: Date.now() - startTime
+        });
+      }
+
+      let contas = body.contas || body.data || body.items || body.records || body;
+      
+      if (!Array.isArray(contas)) {
+        const hasErpFields = contas && typeof contas === 'object' && (
+          contas['Nota'] || contas.nota || contas.numero_documento
+        );
+        contas = hasErpFields ? [contas] : [];
+      }
+
+      if (contas.length === 0) {
+        return createN8nResponse({ 
+          success: true, 
+          processed: 0,
+          received: 0,
+          duration_ms: Date.now() - startTime
+        });
+      }
+
+      console.log(`📦 [sync] Received ${contas.length} records - acquiring slot...`);
+
+      // =====================================================
+      // RATE LIMITER: Aguardar slot disponível
+      // =====================================================
+      const { slot_id, error: slotError } = await waitForSlot(supabase, 'sync_cr');
+      
+      if (slotError) {
+        console.warn(`[sync] Rate limit exceeded: ${slotError}`);
+        // Retorna 200 mas com flag para N8N fazer retry
+        return createN8nResponse({
+          success: true,
+          processed: 0,
+          received: contas.length,
+          message: 'Rate limit - please retry in 5 seconds',
+          retry_after_ms: 5000,
+          duration_ms: Date.now() - startTime
+        }, 0);
+      }
+
+      // Processar com slot adquirido
+      let processed = 0;
+      let errors = 0;
+      
+      try {
+        const result = await processWithUpsert(supabase, contas);
+        processed = result.processed;
+        errors = result.errors.length;
+      } catch (err) {
+        console.error('[sync] Processing error:', err);
+        errors = contas.length;
+      } finally {
+        // SEMPRE liberar slot
+        await releaseSlot(supabase, slot_id);
+      }
+
+      const duration = Date.now() - startTime;
+      console.log(`✅ [sync] ${processed}/${contas.length} in ${duration}ms`);
+
+      // Log async
+      void supabase.from('sync_control').insert({
+        entidade: 'contas_receber',
+        empresa_id: contas[0]?.['ID Empresa'] || null,
+        ultima_sync: new Date().toISOString(),
+        total_registros: contas.length,
+        registros_inseridos: processed,
+        duracao_ms: duration,
+        status: errors === 0 ? 'success' : 'partial'
+      });
+
+      // Verificar slots restantes para headers
+      const { count: activeSlots } = await supabase
+        .from('sync_rate_limiter')
+        .select('*', { count: 'exact', head: true })
+        .eq('sync_type', 'sync_cr');
+
+      return createN8nResponse({
+        success: true,
+        processed,
+        received: contas.length,
+        errors,
+        duration_ms: duration
+      }, MAX_CONCURRENT_SYNCS - (activeSlots || 0));
+    }
+
+    // ============ POST /sync-chunk (COM RATE LIMITER) ============
+    if (path.endsWith('/sync-chunk') && req.method === 'POST') {
+      const startTime = Date.now();
+      
+      if (!validateApiKey()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      let body;
+      try {
+        body = await req.json();
+      } catch (parseError) {
+        return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { contas, chunk_id, total_chunks, sync_id, empresa_id } = body;
+
+      if (!contas || !Array.isArray(contas)) {
+        return new Response(JSON.stringify({ error: 'Invalid payload - contas must be array' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (chunk_id === undefined || typeof chunk_id !== 'number') {
+        return new Response(JSON.stringify({ 
+          error: 'chunk_id é obrigatório e deve ser um número'
+        }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      console.log(`[CHUNK ${chunk_id}/${total_chunks || '?'}] Acquiring slot...`);
+
+      // Rate limiter
+      const { slot_id, error: slotError } = await waitForSlot(supabase, 'sync_cr_chunk');
+      
+      if (slotError) {
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded',
+          retry_after_ms: 5000,
+          message: 'Too many concurrent syncs, please retry'
+        }), {
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': '5'
+          }
+        });
+      }
+
+      let processed = 0;
+      let errors: any[] = [];
+      
+      try {
+        const result = await processWithUpsert(supabase, contas);
+        processed = result.processed;
+        errors = result.errors;
+      } finally {
+        await releaseSlot(supabase, slot_id);
+      }
+
+      const duration = Date.now() - startTime;
+      const rate = duration > 0 ? Math.round(processed / (duration / 1000)) : 0;
+
+      const empresaIdValue = empresa_id || (contas[0] ? contas[0]['ID Empresa'] : null);
+      await logChunkProgress(
+        supabase, 'contas_receber', empresaIdValue, chunk_id, total_chunks,
+        contas.length, processed, errors.length, duration, errors
+      );
+
+      console.log(`[CHUNK ${chunk_id}] Done: ${processed}/${contas.length} in ${duration}ms`);
+
+      const isLastChunk = total_chunks && chunk_id >= total_chunks;
+
+      return new Response(JSON.stringify({
+        success: errors.length === 0,
+        continue_loop: true,
+        chunk_id,
+        total_chunks: total_chunks || null,
+        sync_id: sync_id || null,
+        statistics: {
+          received: contas.length,
+          processed,
+          errors: errors.length,
+          rate_per_second: rate
+        },
+        duration_ms: duration,
+        next_action: isLastChunk ? 'complete' : 'continue'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ============ POST /sync-start ============
     if (path.endsWith('/sync-start') && req.method === 'POST') {
       if (!validateApiKey()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -510,13 +680,14 @@ Deno.serve(async (req) => {
         success: true,
         sync_id: syncId,
         message: `Sync iniciada: ${total_records} registros em ${total_chunks} chunks`,
-        recommended_delay_between_chunks_ms: 3000
+        recommended_delay_between_chunks_ms: 3000,
+        api_version: API_VERSION
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // ============ POST /sync-complete - Marcar sync como completa ============
+    // ============ POST /sync-complete ============
     if (path.endsWith('/sync-complete') && req.method === 'POST') {
       if (!validateApiKey()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -526,14 +697,13 @@ Deno.serve(async (req) => {
 
       const { empresa_id, sync_id, total_chunks, total_registros, duracao_total_ms, errors_count } = await req.json();
       
-      console.log(`[sync-complete] Sync ${sync_id} completed: ${total_registros} records, ${total_chunks} chunks, ${errors_count || 0} errors`);
+      console.log(`[sync-complete] Sync ${sync_id} completed`);
 
-      // Resumo dos chunks processados
       const { data: chunksSummary } = await supabase
         .from('sync_chunks_log')
         .select('registros_processados, erros, duracao_ms')
         .eq('entidade', 'contas_receber')
-        .gte('created_at', new Date(Date.now() - 7200000).toISOString()); // últimas 2 horas
+        .gte('created_at', new Date(Date.now() - 7200000).toISOString());
 
       const totalProcessed = chunksSummary?.reduce((sum, c) => sum + (c.registros_processados || 0), 0) || 0;
       const totalErrors = chunksSummary?.reduce((sum, c) => sum + (c.erros || 0), 0) || 0;
@@ -546,12 +716,7 @@ Deno.serve(async (req) => {
         registros_inseridos: totalProcessed,
         duracao_ms: duracao_total_ms,
         status: totalErrors === 0 ? 'complete' : 'partial',
-        metadata: { 
-          sync_id, 
-          total_chunks, 
-          total_errors: totalErrors,
-          completed_at: new Date().toISOString() 
-        }
+        metadata: { sync_id, total_chunks, total_errors: totalErrors, completed_at: new Date().toISOString() }
       });
 
       return new Response(JSON.stringify({ 
@@ -569,20 +734,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============ POST /bulk-sync - CARGA MASSIVA ULTRA-RÁPIDA ============
+    // ============ POST /bulk-sync ============
     if (path.endsWith('/bulk-sync') && req.method === 'POST') {
+      const startTime = Date.now();
+      
       if (!validateApiKey()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-
-      const startTime = Date.now();
       
       let body;
       try {
         const text = await req.text();
-        console.log(`[BULK-SYNC] Received ${text.length} bytes`);
         body = JSON.parse(text);
       } catch (parseError) {
         return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
@@ -597,276 +761,44 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`[BULK-SYNC] Processing ${contas.length} records with SQL bulk insert`);
+      // Rate limiter para bulk
+      const { slot_id, error: slotError } = await waitForSlot(supabase, 'sync_cr_bulk');
+      
+      if (slotError) {
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded',
+          retry_after_ms: 10000
+        }), {
+          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
 
-      const { processed, errors } = await processBulkInsert(supabase, contas);
+      console.log(`[BULK-SYNC] Processing ${contas.length} records`);
+
+      let processed = 0;
+      let errors: any[] = [];
+      
+      try {
+        const result = await processWithUpsert(supabase, contas);
+        processed = result.processed;
+        errors = result.errors;
+      } finally {
+        await releaseSlot(supabase, slot_id);
+      }
 
       const duration = Date.now() - startTime;
       const rate = Math.round(processed / (duration / 1000));
       
-      console.log(`[BULK-SYNC] Completed: ${processed}/${contas.length} in ${duration}ms (${rate} rec/sec)`);
+      console.log(`[BULK-SYNC] Done: ${processed}/${contas.length} in ${duration}ms (${rate} rec/sec)`);
 
       return new Response(JSON.stringify({
         success: true,
-        mode: 'bulk_sql',
+        continue_loop: true,
+        mode: 'bulk',
         statistics: { total: contas.length, processed, errors: errors.length, rate_per_second: rate },
-        duration_ms: duration
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // ============ POST /sync - Sincronizar dados do n8n (OTIMIZADO PARA LOOP N8N) ============
-    if (path.endsWith('/sync') && req.method === 'POST') {
-      if (!validateApiKey()) {
-        // SEMPRE retorna 200 mesmo com auth falha para N8N não parar
-        console.error('[sync] Unauthorized - continuing with empty response for N8N loop');
-        return new Response(JSON.stringify({ 
-          success: true, 
-          continue_loop: true,
-          message: 'Auth failed but returning success for N8N loop'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      const startTime = Date.now();
-      
-      let body;
-      try {
-        const text = await req.text();
-        body = JSON.parse(text);
-      } catch (parseError) {
-        // SEMPRE retorna 200 para N8N continuar
-        return new Response(JSON.stringify({ 
-          success: true,
-          continue_loop: true,
-          processed: 0,
-          message: 'Parse error - N8N should continue loop'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      let contas = body.contas || body.data || body.items || body.records || body;
-      
-      if (!Array.isArray(contas)) {
-        const hasErpFields = contas && typeof contas === 'object' && (
-          contas['Nota'] || contas.nota || contas.numero_documento
-        );
-        contas = hasErpFields ? [contas] : [];
-      }
-
-      // Retornar sucesso imediato para N8N - processar em background não é possível no edge
-      // Então fazemos processamento rápido com batch upsert direto
-      if (contas.length === 0) {
-        return new Response(JSON.stringify({ 
-          success: true, 
-          continue_loop: true,
-          processed: 0
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      console.log(`📦 [sync] ${contas.length} records`);
-
-      // PROCESSAMENTO ULTRA-RÁPIDO: Batch direto sem mini-batches
-      let processed = 0;
-      let errors = 0;
-      
-      try {
-        // Transformar todos os registros de uma vez
-        const records: any[] = [];
-        const now = new Date().toISOString();
-        
-        for (const conta of contas) {
-          try {
-            const erpId = generateErpId(conta);
-            const transformed = transformErpData(conta);
-            const dataHash = await calculateHash(transformed);
-            records.push({ erp_id: erpId, data_hash: dataHash, ...transformed, sincronizado_em: now });
-          } catch {
-            errors++;
-          }
-        }
-
-        // Upsert em um único batch (sem retries - mais rápido)
-        if (records.length > 0) {
-          const { error } = await supabase.from('contas_receber').upsert(records, { 
-            onConflict: 'erp_id', 
-            ignoreDuplicates: true  // Ignora duplicatas ao invés de falhar
-          });
-          
-          if (!error) {
-            processed = records.length;
-          } else {
-            // Fallback: processamento individual silencioso
-            for (const record of records) {
-              try {
-                await supabase.from('contas_receber').upsert(record, { 
-                  onConflict: 'erp_id', 
-                  ignoreDuplicates: true 
-                });
-                processed++;
-              } catch {
-                errors++;
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error('[sync] Error:', err);
-        errors = contas.length;
-      }
-
-      const duration = Date.now() - startTime;
-      console.log(`✅ [sync] ${processed}/${contas.length} in ${duration}ms`);
-
-      // Log async (não bloqueia resposta)
-      void supabase.from('sync_control').insert({
-        entidade: 'contas_receber',
-        empresa_id: contas[0]?.['ID Empresa'] || null,
-        ultima_sync: new Date().toISOString(),
-        total_registros: contas.length,
-        registros_inseridos: processed,
-        duracao_ms: duration,
-        status: errors === 0 ? 'success' : 'partial'
-      });
-
-      // RESPOSTA SIMPLES E GARANTIDA PARA N8N LOOP
-      return new Response(JSON.stringify({
-        success: true,
-        continue_loop: true,  // Flag explícita para N8N
-        processed,
-        received: contas.length,
-        errors,
-        duration_ms: duration
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // ============ POST /sync-chunk - Sincronização em chunks (APRIMORADO) ============
-    if (path.endsWith('/sync-chunk') && req.method === 'POST') {
-      if (!validateApiKey()) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      const startTime = Date.now();
-      
-      let body;
-      try {
-        body = await req.json();
-      } catch (parseError) {
-        return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      const { contas, chunk_id, total_chunks, sync_id, empresa_id } = body;
-
-      // Validações
-      if (!contas || !Array.isArray(contas)) {
-        return new Response(JSON.stringify({ error: 'Invalid payload - contas must be array' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      if (chunk_id === undefined || typeof chunk_id !== 'number') {
-        return new Response(JSON.stringify({ 
-          error: 'chunk_id é obrigatório e deve ser um número',
-          hint: 'Envie chunk_id (1-indexed) para rastrear progresso'
-        }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      const chunkInfo = `${chunk_id}/${total_chunks || '?'}`;
-      console.log(`[CHUNK ${chunkInfo}] Iniciando processamento de ${contas.length} registros`);
-
-      // Processar o chunk
-      const { processed, errors } = await processWithUpsert(supabase, contas);
-
-      const duration = Date.now() - startTime;
-      const rate = duration > 0 ? Math.round(processed / (duration / 1000)) : 0;
-
-      // Registrar progresso do chunk
-      const empresaIdValue = empresa_id || (contas[0] ? contas[0]['ID Empresa'] : null);
-      await logChunkProgress(
-        supabase,
-        'contas_receber',
-        empresaIdValue,
-        chunk_id,
-        total_chunks,
-        contas.length,
-        processed,
-        errors.length,
-        duration,
-        errors
-      );
-
-      console.log(`[CHUNK ${chunkInfo}] Concluído: ${processed}/${contas.length} em ${duration}ms (${rate} rec/sec)`);
-
-      // Determinar próxima ação
-      const isLastChunk = total_chunks && chunk_id >= total_chunks;
-      const nextAction = isLastChunk ? 'complete' : 'continue';
-
-      return new Response(JSON.stringify({
-        success: errors.length === 0,
-        chunk_id,
-        total_chunks: total_chunks || null,
-        sync_id: sync_id || null,
-        statistics: {
-          received: contas.length,
-          processed,
-          errors: errors.length,
-          rate_per_second: rate
-        },
         duration_ms: duration,
-        next_action: nextAction,
-        message: isLastChunk 
-          ? `Último chunk processado. Chame /sync-complete para finalizar.`
-          : `Chunk ${chunk_id} OK. Aguarde 3s antes do próximo chunk.`
+        api_version: API_VERSION
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // ============ GET /chunks-progress - Progresso dos chunks ============
-    if (path.endsWith('/chunks-progress') && req.method === 'GET') {
-      if (!(await validateAuth())) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      const hoursAgo = parseInt(url.searchParams.get('hours') || '24');
-      const since = new Date(Date.now() - hoursAgo * 3600000).toISOString();
-
-      const { data, error } = await supabase
-        .from('sync_chunks_log')
-        .select('*')
-        .eq('entidade', 'contas_receber')
-        .gte('created_at', since)
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-
-      // Calcular resumo
-      const summary = {
-        total_chunks: data?.length || 0,
-        total_processed: data?.reduce((sum, c) => sum + (c.registros_processados || 0), 0) || 0,
-        total_errors: data?.reduce((sum, c) => sum + (c.erros || 0), 0) || 0,
-        avg_duration_ms: data?.length 
-          ? Math.round(data.reduce((sum, c) => sum + (c.duracao_ms || 0), 0) / data.length) 
-          : 0
-      };
-
-      return new Response(JSON.stringify({ data, summary }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -874,7 +806,7 @@ Deno.serve(async (req) => {
     // ============ GET / - Listar contas ============
     if (path.endsWith('/contas-receber-api') && req.method === 'GET') {
       if (!(await validateAuth())) {
-        return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
@@ -899,10 +831,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============ GET /vencidos - Listar contas vencidas ============
+    // ============ GET /vencidos ============
     if (path.endsWith('/vencidos') && req.method === 'GET') {
       if (!(await validateAuth())) {
-        return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
@@ -929,10 +861,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============ GET /stats - Estatísticas de sincronização ============
+    // ============ GET /stats ============
     if (path.endsWith('/stats') && req.method === 'GET') {
       if (!(await validateAuth())) {
-        return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
@@ -946,15 +878,15 @@ Deno.serve(async (req) => {
 
       if (error) throw error;
 
-      return new Response(JSON.stringify({ data }), {
+      return new Response(JSON.stringify({ data, api_version: API_VERSION }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // ============ GET /totais - Totais por status ============
+    // ============ GET /totais ============
     if (path.endsWith('/totais') && req.method === 'GET') {
       if (!(await validateAuth())) {
-        return new Response(JSON.stringify({ error: 'Unauthorized - API key or valid JWT required' }), {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
@@ -993,148 +925,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============ POST /sync-incremental - Sincronização INCREMENTAL ============
-    if (path.endsWith('/sync-incremental') && req.method === 'POST') {
-      // Accept both API key (N8N) and JWT (frontend)
-      if (!(await validateAuth())) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      const startTime = Date.now();
-      
-      let body;
-      try {
-        body = await req.json();
-      } catch (parseError) {
-        return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      const { contas, skip_unchanged = true } = body;
-      
-      if (!contas || !Array.isArray(contas)) {
-        return new Response(JSON.stringify({ error: 'Invalid payload - contas must be array' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      console.log(`[INCREMENTAL] Processing ${contas.length} records (skip_unchanged: ${skip_unchanged})`);
-
-      // Registrar início da sync
-      const { data: syncData } = await supabase.rpc('start_sync', {
-        p_entidade: 'contas_receber',
-        p_tipo: 'incremental',
-        p_metadata: { total_records: contas.length }
-      });
-      const syncId = syncData;
-
-      let processed = 0;
-      let inserted = 0;
-      let updated = 0;
-      let skipped = 0;
-      const errors: any[] = [];
-      const now = new Date().toISOString();
-
-      // Transformar e calcular hashes
-      const records: any[] = [];
-      for (const conta of contas) {
-        try {
-          const erpId = generateErpId(conta);
-          const transformed = transformErpData(conta);
-          const dataHash = await calculateHash(transformed);
-          records.push({ erp_id: erpId, data_hash: dataHash, ...transformed, sincronizado_em: now });
-        } catch (error) {
-          errors.push({ record: conta, error: error instanceof Error ? error.message : String(error) });
-        }
-      }
-
-      if (skip_unchanged && records.length > 0) {
-        // Buscar hashes existentes para comparação
-        const erpIds = records.map(r => r.erp_id);
-        const { data: existingRecords } = await supabase
-          .from('contas_receber')
-          .select('erp_id, data_hash')
-          .in('erp_id', erpIds);
-
-        const existingHashes = new Map(
-          (existingRecords || []).map(r => [r.erp_id, r.data_hash])
-        );
-
-        // Filtrar apenas registros que mudaram
-        const changedRecords = records.filter(r => {
-          const existingHash = existingHashes.get(r.erp_id);
-          if (!existingHash) {
-            inserted++;
-            return true; // Novo registro
-          }
-          if (existingHash !== r.data_hash) {
-            updated++;
-            return true; // Registro alterado
-          }
-          skipped++;
-          return false; // Sem alteração
-        });
-
-        console.log(`[INCREMENTAL] Filtered: ${changedRecords.length} changed, ${skipped} unchanged`);
-
-        // Processar apenas os que mudaram
-        if (changedRecords.length > 0) {
-          const result = await processBulkInsert(supabase, changedRecords.map(r => {
-            // Reconverter para formato ERP para processBulkInsert
-            return { ...r, _already_transformed: true };
-          }));
-          processed = result.processed;
-          errors.push(...result.errors);
-        }
-      } else {
-        // Processar todos (modo legacy)
-        const result = await processBulkInsert(supabase, contas);
-        processed = result.processed;
-        inserted = processed;
-        errors.push(...result.errors);
-      }
-
-      const duration = Date.now() - startTime;
-      const rate = Math.round(processed / (duration / 1000));
-
-      // Finalizar sync tracking
-      await supabase.rpc('complete_sync', {
-        p_sync_id: syncId,
-        p_records_processed: processed,
-        p_records_inserted: inserted,
-        p_records_updated: updated,
-        p_records_skipped: skipped,
-        p_duration_ms: duration,
-        p_status: errors.length === 0 ? 'completed' : 'partial',
-        p_error_message: errors.length > 0 ? JSON.stringify(errors.slice(0, 5)) : null
-      });
-
-      console.log(`[INCREMENTAL] Completed: ${processed} processed, ${skipped} skipped, ${errors.length} errors in ${duration}ms`);
-
-      return new Response(JSON.stringify({
-        success: errors.length === 0,
-        mode: 'incremental',
-        sync_id: syncId,
-        statistics: {
-          total_received: contas.length,
-          processed,
-          inserted,
-          updated,
-          skipped,
-          errors: errors.length,
-          rate_per_second: rate
-        },
-        duration_ms: duration,
-        message: `${processed} processados, ${skipped} sem alteração`
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // ============ GET /last-sync - Último timestamp de sincronização ============
+    // ============ GET /last-sync ============
     if (path.endsWith('/last-sync') && req.method === 'GET') {
       if (!(await validateAuth())) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -1149,9 +940,6 @@ Deno.serve(async (req) => {
         p_tipo: tipo
       });
 
-      if (error) throw error;
-
-      // Buscar histórico recente
       const { data: history } = await supabase
         .from('sync_tracking')
         .select('*')
@@ -1162,20 +950,62 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         last_sync_timestamp: data,
         tipo,
-        history: history || []
+        history: history || [],
+        api_version: API_VERSION
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    return new Response(JSON.stringify({ error: 'Not found' }), {
+    // ============ GET /chunks-progress ============
+    if (path.endsWith('/chunks-progress') && req.method === 'GET') {
+      if (!(await validateAuth())) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const hoursAgo = parseInt(url.searchParams.get('hours') || '24');
+      const since = new Date(Date.now() - hoursAgo * 3600000).toISOString();
+
+      const { data, error } = await supabase
+        .from('sync_chunks_log')
+        .select('*')
+        .eq('entidade', 'contas_receber')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      const summary = {
+        total_chunks: data?.length || 0,
+        total_processed: data?.reduce((sum, c) => sum + (c.registros_processados || 0), 0) || 0,
+        total_errors: data?.reduce((sum, c) => sum + (c.erros || 0), 0) || 0,
+        avg_duration_ms: data?.length 
+          ? Math.round(data.reduce((sum, c) => sum + (c.duracao_ms || 0), 0) / data.length) 
+          : 0
+      };
+
+      return new Response(JSON.stringify({ data, summary }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    return new Response(JSON.stringify({ error: 'Not found', api_version: API_VERSION }), {
       status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
     console.error('[contas-receber-api] Error:', error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    // Mesmo em erro crítico, retornamos 200 para N8N não parar
+    return new Response(JSON.stringify({ 
+      success: true,
+      continue_loop: true,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      api_version: API_VERSION
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
