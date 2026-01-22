@@ -46,35 +46,62 @@ function parseDate(dateValue: any): string | null {
   }
 }
 
+// Transforma dados do ERP - suporta múltiplos formatos de campos
 function transformErpData(erpRecord: any) {
+  // Valores financeiros - suporta múltiplos nomes de campo
+  const valorAberto = parseAmount(erpRecord['Valor em Aberto'] || erpRecord.valor_aberto || 0);
+  const valorPago = parseAmount(erpRecord['Valor Pago'] || erpRecord.valor_recebido || erpRecord.valor_pago || 0);
+  const valorOriginal = parseAmount(erpRecord['Valor_Trc'] || erpRecord.valor_original || 0);
+
+  // Calcular status baseado nos valores
+  let status = 'aberto';
+  if (valorAberto === 0 && valorPago > 0) {
+    status = 'pago';
+  } else if (valorPago > 0 && valorAberto > 0) {
+    status = 'parcial';
+  }
+
   return {
-    empresa_id: erpRecord['ID Empresa'],
-    empresa_nome: erpRecord['Empresa'],
-    tipo_documento: String(erpRecord['Tipo'] || ''),
-    numero_documento: erpRecord['Nota'],
-    parcela: erpRecord['Seq'] || 1,
-    cliente_codigo: erpRecord['Código'],
-    cliente_nome: erpRecord['Cliente'],
-    valor_original: erpRecord['Valor_Trc'] || 0,
-    valor_aberto: erpRecord['Valor em Aberto'] || 0,
-    valor_recebido: erpRecord['Valor Pago'] || 0,
-    valor_juros: erpRecord['Valor Juros'] || 0,
-    valor_desconto: erpRecord['Valor Desconto'] || 0,
-    valor_ajustes: erpRecord['Valor Ajustes'] || 0,
-    data_emissao: parseDate(erpRecord['Emissão']),
-    data_vencimento: parseDate(erpRecord['Vencimento']),
-    data_recebimento: parseDate(erpRecord['Pigto de dados']),
-    tabela_preco: erpRecord['Tabela'] || null,
-    vendedor_nome: erpRecord['Vendedor'] || null,
-    vendedor_codigo: erpRecord['Cód Vendedor'] || null,
-    portador_id: erpRecord['ID Portador'] || null,
-    portador: erpRecord['Nome Portador'] || 'SEM PORTADOR',
-    conta: erpRecord['Conta'] || 'SEM CONTA',
+    empresa_id: erpRecord['ID Empresa'] || erpRecord.empresa_id || 1,
+    empresa_nome: erpRecord['Empresa'] || erpRecord.empresa_nome,
+    tipo_documento: String(erpRecord['Tipo'] || erpRecord.tipo_documento || ''),
+    numero_documento: String(erpRecord['Nota'] || erpRecord.numero_documento || ''),
+    parcela: parseInt(erpRecord['Seq'] || erpRecord.parcela) || 1,
+    cliente_codigo: String(erpRecord['Código'] || erpRecord['Codigo'] || erpRecord.cliente_codigo || ''),
+    cliente_nome: erpRecord['Cliente'] || erpRecord.cliente_nome,
+    valor_original: valorOriginal,
+    valor_aberto: valorAberto,
+    valor_recebido: valorPago,
+    valor_juros: parseAmount(erpRecord['Valor Juros'] || erpRecord.valor_juros || 0),
+    valor_desconto: parseAmount(erpRecord['Valor Desconto'] || erpRecord.valor_desconto || 0),
+    valor_ajustes: parseAmount(erpRecord['Valor Ajustes'] || erpRecord.valor_ajustes || 0),
+    data_emissao: parseDate(erpRecord['Emissão'] || erpRecord['Emissao'] || erpRecord.data_emissao),
+    data_vencimento: parseDate(erpRecord['Vencimento'] || erpRecord.data_vencimento),
+    data_recebimento: parseDate(erpRecord['Data Pgto'] || erpRecord['Pigto de dados'] || erpRecord.data_pagamento || erpRecord.data_recebimento),
+    tabela_preco: erpRecord['Tabela'] || erpRecord.tabela || null,
+    vendedor_nome: erpRecord['Vendedor'] || erpRecord.vendedor || null,
+    vendedor_codigo: erpRecord['Cód Vendedor'] || erpRecord.vendedor_codigo || null,
+    portador_id: erpRecord['ID Portador'] || erpRecord.portador_id || null,
+    portador: erpRecord['Nome Portador'] || erpRecord['Portador'] || erpRecord.portador || 'SEM PORTADOR',
+    conta: erpRecord['Conta'] || erpRecord.conta || 'SEM CONTA',
+    status,
   };
 }
 
+function parseAmount(value: any): number {
+  if (typeof value === 'number') return value;
+  if (!value) return 0;
+  const cleanValue = String(value).replace(/\./g, '').replace(',', '.');
+  return parseFloat(cleanValue) || 0;
+}
+
 function generateErpId(conta: any): string {
-  return `${conta['ID Empresa']}-${conta['Tipo']}-${conta['Nota']}-${conta['Seq']}-${conta['Código']}`;
+  const empresaId = conta['ID Empresa'] || conta.empresa_id || 1;
+  const tipo = conta['Tipo'] || conta.tipo_documento || '';
+  const nota = conta['Nota'] || conta.numero_documento || '';
+  const seq = conta['Seq'] || conta.parcela || 1;
+  const codigo = conta['Código'] || conta['Codigo'] || conta.cliente_codigo || '';
+  return `${empresaId}-${tipo}-${nota}-${seq}-${codigo}`.replace(/\s+/g, '');
 }
 
 function isRetryableError(error: any): boolean {
@@ -480,12 +507,19 @@ Deno.serve(async (req) => {
         });
       }
 
-      const contas = body.contas;
+      // Aceita múltiplos formatos: { contas: [...] } ou { data: [...] } ou [...]
+      let contas = body.contas || body.data || body;
+      if (!Array.isArray(contas)) {
+        contas = [];
+      }
 
-      if (!contas || !Array.isArray(contas)) {
-        console.error('[contas-receber-api] Invalid payload - contas is not an array');
-        return new Response(JSON.stringify({ error: 'Invalid payload - contas must be array' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      if (contas.length === 0) {
+        return new Response(JSON.stringify({ 
+          success: true, 
+          statistics: { total_received: 0, processed: 0, errors: 0 },
+          message: 'Nenhum registro recebido'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
