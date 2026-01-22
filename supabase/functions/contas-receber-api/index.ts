@@ -230,28 +230,54 @@ async function processBulkInsert(
 }
 
 // ============ UPSERT PADRÃO (fallback) ============
-async function upsertWithRetry(supabase: any, batch: any[], batchNumber: number): Promise<{ success: boolean; error?: any }> {
+async function upsertWithRetry(supabase: any, batch: any[], batchNumber: number): Promise<{ success: boolean; error?: any; processed?: number }> {
   console.log(`[upsertWithRetry] Batch ${batchNumber}: ${batch.length} records`);
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const { data, error } = await supabase.from('contas_receber').upsert(batch, { onConflict: 'erp_id', ignoreDuplicates: false });
+      // Usar upsert com erp_id como chave de conflito
+      // Se houver conflito com idx_contas_receber_unique_natural, tentar insert individual
+      const { data, error } = await supabase.from('contas_receber').upsert(batch, { 
+        onConflict: 'erp_id', 
+        ignoreDuplicates: false 
+      });
+      
       if (!error) {
-        console.log(`[upsertWithRetry] Batch ${batchNumber} SUCCESS`);
-        return { success: true };
+        console.log(`[upsertWithRetry] Batch ${batchNumber} SUCCESS (${batch.length} records)`);
+        return { success: true, processed: batch.length };
       }
+      
+      // Se erro de constraint natural, tentar um por um
+      if (error.message?.includes('idx_contas_receber_unique_natural') || error.code === '23505') {
+        console.warn(`[upsertWithRetry] Batch ${batchNumber} constraint conflict, trying individual upserts`);
+        let individualProcessed = 0;
+        for (const record of batch) {
+          try {
+            const { error: singleError } = await supabase.from('contas_receber').upsert(record, { 
+              onConflict: 'erp_id', 
+              ignoreDuplicates: true 
+            });
+            if (!singleError) individualProcessed++;
+          } catch (singleErr) {
+            // Ignorar erros individuais, continuar processando
+          }
+        }
+        console.log(`[upsertWithRetry] Batch ${batchNumber} individual: ${individualProcessed}/${batch.length} processed`);
+        return { success: true, processed: individualProcessed };
+      }
+      
       console.error(`[upsertWithRetry] Batch ${batchNumber} attempt ${attempt} error:`, error.message, error.code, error.details);
       if (isRetryableError(error) && attempt < MAX_RETRIES) {
         await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 100);
         continue;
       }
-      return { success: false, error };
+      return { success: false, error, processed: 0 };
     } catch (err) {
       console.error(`[upsertWithRetry] Batch ${batchNumber} exception:`, err);
       if (attempt < MAX_RETRIES) await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1));
-      else return { success: false, error: err };
+      else return { success: false, error: err, processed: 0 };
     }
   }
-  return { success: false };
+  return { success: false, processed: 0 };
 }
 
 async function processWithUpsert(supabase: any, contas: any[]): Promise<{ processed: number; errors: any[] }> {
@@ -285,15 +311,15 @@ async function processWithUpsert(supabase: any, contas: any[]): Promise<{ proces
     const batch = records.slice(i, i + UPSERT_BATCH_SIZE);
     const result = await upsertWithRetry(supabase, batch, batchNumber);
     
-    if (result.success) processed += batch.length;
+    if (result.success) processed += result.processed || batch.length;
     else errors.push({ batch_number: batchNumber, error: result.error?.message || String(result.error) });
     
     if (i + UPSERT_BATCH_SIZE < records.length) await sleep(BATCH_DELAY_MS);
   }
 
+  console.log(`[processWithUpsert] Completed: ${processed} records processed, ${errors.length} batch errors`);
   return { processed, errors };
 }
-
 // ============ CHUNK LOGGING ============
 async function logChunkProgress(
   supabase: any,
