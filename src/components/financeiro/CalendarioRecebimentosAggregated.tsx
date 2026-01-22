@@ -49,8 +49,8 @@ const formatCompact = (value: number) =>
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 interface DiaCalendario {
-  data: string;
-  qtd: number;
+  data_vencimento: string;
+  qtd_titulos: number;
   valor_total: number;
   qtd_recebido: number;
   valor_recebido: number;
@@ -170,7 +170,7 @@ export function CalendarioRecebimentosAggregated({
   const dadosPorDia = useMemo(() => {
     const map = new Map<string, DiaCalendario>();
     (calendarioData || []).forEach(d => {
-      map.set(d.data, d);
+      map.set(d.data_vencimento, d);
     });
     return map;
   }, [calendarioData]);
@@ -185,8 +185,8 @@ export function CalendarioRecebimentosAggregated({
     let total = 0, pendente = 0, vencido = 0, recebido = 0, qtdTitulos = 0;
 
     (calendarioData || []).forEach(d => {
-      if (d.data >= startKey && d.data <= endKey) {
-        qtdTitulos += d.qtd;
+      if (d.data_vencimento >= startKey && d.data_vencimento <= endKey) {
+        qtdTitulos += d.qtd_titulos || 0;
         total += d.valor_total || 0;
         recebido += d.valor_recebido || 0;
         pendente += d.valor_pendente || 0;
