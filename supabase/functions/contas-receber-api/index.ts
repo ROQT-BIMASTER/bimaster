@@ -7,26 +7,22 @@ const corsHeaders = {
 };
 
 // =====================================================
-// CONFIGURAÇÕES DE PERFORMANCE - v3.6.0 (ALINHADO COM CONTAS PAGAR)
+// CONFIGURAÇÕES DE PERFORMANCE - v3.7.0 (SEM RATE LIMITER)
 // =====================================================
 const BULK_BATCH_SIZE = 10000;      // 10k por batch SQL
 const MAX_PAYLOAD_SIZE = 100000;    // 100k registros max por request
-const UPSERT_BATCH_SIZE = 500;      // Batches menores para evitar timeout
-const BATCH_DELAY_MS = 50;          // Delay entre batches
-const MAX_RETRIES = 5;
-const RETRY_BASE_DELAY_MS = 200;    // Tempo entre retries
-const RECOMMENDED_CHUNK_SIZE = 500; // 500 por chunk N8N para evitar timeout
-const API_VERSION = '3.6.0';
+const UPSERT_BATCH_SIZE = 200;      // Batches MENORES para evitar deadlock
+const BATCH_DELAY_MS = 150;         // Delay MAIOR entre batches
+const MAX_RETRIES = 3;              // Menos retries (deadlocks não resolvem com retry)
+const RETRY_BASE_DELAY_MS = 500;    // Delay maior entre retries
+const RECOMMENDED_CHUNK_SIZE = 100; // Chunks menores para N8N
+const API_VERSION = '3.7.0';
 
 // =====================================================
-// CONFIGURAÇÕES DE RATE LIMITING (igual ao contas-pagar)
+// CONFIGURAÇÕES SIMPLIFICADAS (SEM RATE LIMITER EXTERNO)
 // =====================================================
-const MAX_CONCURRENT_SYNCS = 2;       // Máximo de requisições simultâneas
-const SLOT_TIMEOUT_MS = 90000;        // Timeout do slot (90s)
-const WAIT_RETRY_MS = 500;            // Intervalo entre tentativas de slot
-const MAX_WAIT_RETRIES = 120;         // 60 segundos de espera máxima
-const MINI_BATCH_SIZE = 100;          // Tamanho do mini-batch interno
-const MINI_BATCH_DELAY_MS = 100;      // Delay entre mini-batches
+const MINI_BATCH_SIZE = 50;           // Mini-batches ainda menores
+const MINI_BATCH_DELAY_MS = 200;      // Delay entre mini-batches
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -184,108 +180,9 @@ function escapeSql(value: any): string {
 }
 
 // =====================================================
-// FUNÇÕES DE RATE LIMITING (igual ao contas-pagar-api)
+// v3.7.0 - SEM RATE LIMITER EXTERNO
+// Processamento sequencial direto com throttling interno
 // =====================================================
-async function cleanupExpiredSlots(supabase: any): Promise<void> {
-  try {
-    await supabase
-      .from('sync_rate_limiter')
-      .delete()
-      .lt('expires_at', new Date().toISOString());
-  } catch (err) {
-    console.warn('⚠️ [rate-limiter] Erro ao limpar slots expirados:', err);
-  }
-}
-
-async function getActiveSlotCount(supabase: any): Promise<number> {
-  try {
-    const { count, error } = await supabase
-      .from('sync_rate_limiter')
-      .select('*', { count: 'exact', head: true })
-      .gt('expires_at', new Date().toISOString());
-    
-    if (error) throw error;
-    return count || 0;
-  } catch (err) {
-    console.warn('⚠️ [rate-limiter] Erro ao contar slots:', err);
-    return 0;
-  }
-}
-
-async function acquireSlot(supabase: any, requestId: string): Promise<boolean> {
-  try {
-    // Limpar slots expirados primeiro
-    await cleanupExpiredSlots(supabase);
-    
-    // Verificar slots disponíveis
-    const activeCount = await getActiveSlotCount(supabase);
-    
-    if (activeCount >= MAX_CONCURRENT_SYNCS) {
-      console.log(`⏳ [rate-limiter] Sem slots disponíveis (${activeCount}/${MAX_CONCURRENT_SYNCS})`);
-      return false;
-    }
-    
-    // Tentar adquirir slot
-    const { error } = await supabase
-      .from('sync_rate_limiter')
-      .insert({
-        slot_key: `sync_cr_${Date.now()}_${requestId.substring(0, 8)}`,
-        request_id: requestId,
-        expires_at: new Date(Date.now() + SLOT_TIMEOUT_MS).toISOString()
-      });
-    
-    if (error) {
-      // Erro de constraint única = outro processo pegou o slot
-      if (error.code === '23505') {
-        console.log(`⏳ [rate-limiter] Conflito de slot, tentando novamente...`);
-        return false;
-      }
-      throw error;
-    }
-    
-    console.log(`✅ [rate-limiter] Slot adquirido: ${requestId.substring(0, 8)}`);
-    return true;
-  } catch (err) {
-    console.warn('⚠️ [rate-limiter] Erro ao adquirir slot:', err);
-    // Em caso de erro, permitir o processamento para não travar
-    return true;
-  }
-}
-
-async function releaseSlot(supabase: any, requestId: string): Promise<void> {
-  try {
-    await supabase
-      .from('sync_rate_limiter')
-      .delete()
-      .eq('request_id', requestId);
-    
-    console.log(`🔓 [rate-limiter] Slot liberado: ${requestId.substring(0, 8)}`);
-  } catch (err) {
-    console.warn('⚠️ [rate-limiter] Erro ao liberar slot:', err);
-  }
-}
-
-async function waitForSlot(supabase: any, requestId: string): Promise<{ acquired: boolean; waitTime: number }> {
-  const startWait = Date.now();
-  let attempts = 0;
-  
-  while (attempts < MAX_WAIT_RETRIES) {
-    const acquired = await acquireSlot(supabase, requestId);
-    
-    if (acquired) {
-      return { acquired: true, waitTime: Date.now() - startWait };
-    }
-    
-    attempts++;
-    if (attempts < MAX_WAIT_RETRIES) {
-      await sleep(WAIT_RETRY_MS);
-    }
-  }
-  
-  // Em vez de falhar, retornar acquired=true para permitir processamento mesmo sem slot
-  console.warn(`⚠️ [rate-limiter] Timeout após ${Date.now() - startWait}ms - Permitindo processamento sem slot`);
-  return { acquired: true, waitTime: Date.now() - startWait };
-}
 
 // =====================================================
 // SAFE EXECUTE - SEMPRE RETORNA SUCESSO (para N8N continuar)
@@ -371,55 +268,55 @@ async function processBulkInsert(
   return { processed, errors };
 }
 
-// ============ UPSERT PADRÃO (fallback) ============
+// ============ UPSERT PADRÃO - v3.7.0 Anti-Deadlock ============
 async function upsertWithRetry(supabase: any, batch: any[], batchNumber: number): Promise<{ success: boolean; error?: any; processed?: number }> {
-  console.log(`[upsertWithRetry] Batch ${batchNumber}: ${batch.length} records`);
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+  // Em caso de deadlock ou timeout, NÃO fazer retry em batch - ir direto para individual
+  try {
+    const { data, error } = await supabase.from('contas_receber').upsert(batch, { 
+      onConflict: 'erp_id', 
+      ignoreDuplicates: false 
+    });
+    
+    if (!error) {
+      return { success: true, processed: batch.length };
+    }
+    
+    // Qualquer erro: fallback para processamento individual
+    // Isso evita deadlocks entre múltiplas conexões
+    return await processIndividually(supabase, batch, batchNumber, error.code);
+  } catch (err) {
+    return await processIndividually(supabase, batch, batchNumber, 'exception');
+  }
+}
+
+// Processa registros um por um - mais lento mas sem deadlock
+async function processIndividually(
+  supabase: any, 
+  batch: any[], 
+  batchNumber: number,
+  errorCode: string
+): Promise<{ success: boolean; processed: number; error?: any }> {
+  let individualProcessed = 0;
+  
+  for (const record of batch) {
     try {
-      // Usar upsert com erp_id como chave de conflito
-      // Se houver conflito com idx_contas_receber_unique_natural, tentar insert individual
-      const { data, error } = await supabase.from('contas_receber').upsert(batch, { 
+      const { error: singleError } = await supabase.from('contas_receber').upsert(record, { 
         onConflict: 'erp_id', 
-        ignoreDuplicates: false 
+        ignoreDuplicates: true 
       });
+      if (!singleError) individualProcessed++;
       
-      if (!error) {
-        console.log(`[upsertWithRetry] Batch ${batchNumber} SUCCESS (${batch.length} records)`);
-        return { success: true, processed: batch.length };
+      // Pequeno delay entre registros para evitar sobrecarga
+      if (batch.indexOf(record) % 10 === 9) {
+        await sleep(10);
       }
-      
-      // Se erro de constraint natural, tentar um por um
-      if (error.message?.includes('idx_contas_receber_unique_natural') || error.code === '23505') {
-        console.warn(`[upsertWithRetry] Batch ${batchNumber} constraint conflict, trying individual upserts`);
-        let individualProcessed = 0;
-        for (const record of batch) {
-          try {
-            const { error: singleError } = await supabase.from('contas_receber').upsert(record, { 
-              onConflict: 'erp_id', 
-              ignoreDuplicates: true 
-            });
-            if (!singleError) individualProcessed++;
-          } catch (singleErr) {
-            // Ignorar erros individuais, continuar processando
-          }
-        }
-        console.log(`[upsertWithRetry] Batch ${batchNumber} individual: ${individualProcessed}/${batch.length} processed`);
-        return { success: true, processed: individualProcessed };
-      }
-      
-      console.error(`[upsertWithRetry] Batch ${batchNumber} attempt ${attempt} error:`, error.message, error.code, error.details);
-      if (isRetryableError(error) && attempt < MAX_RETRIES) {
-        await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 100);
-        continue;
-      }
-      return { success: false, error, processed: 0 };
-    } catch (err) {
-      console.error(`[upsertWithRetry] Batch ${batchNumber} exception:`, err);
-      if (attempt < MAX_RETRIES) await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1));
-      else return { success: false, error: err, processed: 0 };
+    } catch {
+      // Ignorar erros individuais
     }
   }
-  return { success: false, processed: 0 };
+  
+  console.log(`[upsert] Batch ${batchNumber}: ${individualProcessed}/${batch.length} (individual mode, trigger: ${errorCode})`);
+  return { success: true, processed: individualProcessed };
 }
 
 async function processWithUpsert(supabase: any, contas: any[]): Promise<{ processed: number; errors: any[] }> {
