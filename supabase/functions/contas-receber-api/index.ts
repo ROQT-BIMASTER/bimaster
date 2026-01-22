@@ -61,9 +61,7 @@ function parseDate(dateValue: any): string | null {
 
 // Extrai dados reais do registro (desempacota formato N8N $items())
 function unwrapN8nItem(item: any): any {
-  // Se o item tem propriedade 'json', é formato N8N - extrair conteúdo
   if (item && typeof item === 'object' && item.json && typeof item.json === 'object') {
-    console.log(`[unwrapN8nItem] Unwrapping N8N item format`);
     return item.json;
   }
   return item;
@@ -73,14 +71,8 @@ function unwrapN8nItem(item: any): any {
 function transformErpData(rawRecord: any) {
   // Primeiro desempacota se for formato N8N
   const erpRecord = unwrapN8nItem(rawRecord);
-  
-  // DEBUG: Log primeiro registro para identificar campos
-  const keys = Object.keys(erpRecord);
-  if (keys.length > 0) {
-    console.log(`[transformErpData] Record keys: ${keys.slice(0, 15).join(', ')}${keys.length > 15 ? '...' : ''}`);
-  }
 
-  // Valores financeiros - suporta múltiplos nomes de campo (inclui snake_case e camelCase)
+  // Valores financeiros
   const valorAbertoRaw = parseAmount(
     erpRecord['Valor em Aberto'] || erpRecord['valor_em_aberto'] || erpRecord.valorEmAberto ||
     erpRecord['Valor Aberto'] || erpRecord.valor_aberto || 0
@@ -95,27 +87,17 @@ function transformErpData(rawRecord: any) {
   );
   const valorAjustes = parseAmount(erpRecord['Valor Ajustes'] || erpRecord.valor_ajustes || erpRecord.valorAjustes || 0);
 
-  // Normalizar valores (usar absoluto para valores negativos que representam créditos)
   const valorOriginal = Math.abs(valorOriginalRaw);
   const valorAberto = Math.abs(valorAbertoRaw);
   
-  // Calcular valor pago: Se ERP não enviou, inferir da diferença entre original e aberto
-  // ou do valor de ajustes quando disponível
+  // Inferir valor pago
   let valorPago = valorPagoRaw;
   if (valorPago === 0 && valorAberto === 0 && valorOriginal > 0) {
-    // Título foi totalmente pago, mas ERP não enviou valor_pago
     valorPago = valorOriginal;
   } else if (valorPago === 0 && valorAjustes > 0 && valorAberto < 1) {
-    // Título foi pago via ajuste
     valorPago = Math.abs(valorAjustes);
   } else if (valorPago === 0 && valorOriginal > valorAberto) {
-    // Calcular pagamento parcial
     valorPago = valorOriginal - valorAberto;
-  }
-
-  // DEBUG: Log valores extraídos para diagnóstico
-  if (valorPago > 0 || valorAberto === 0) {
-    console.log(`[transformErpData] VALUES: original=${valorOriginal}, pago=${valorPago}, aberto=${valorAberto}, raw_pago=${valorPagoRaw}, ajustes=${valorAjustes}`);
   }
 
   // Calcular status baseado nos valores
@@ -170,7 +152,6 @@ function parseAmount(value: any): number {
 }
 
 function generateErpId(rawConta: any): string {
-  // Primeiro desempacota se for formato N8N
   const conta = unwrapN8nItem(rawConta);
   
   const empresaId = conta['ID Empresa'] || conta.id_empresa || conta.empresaId || conta.empresa_id || 1;
@@ -178,9 +159,7 @@ function generateErpId(rawConta: any): string {
   const nota = conta['Nota'] || conta.nota || conta.numero_documento || conta.numeroDocumento || '';
   const seq = conta['Seq'] || conta.seq || conta.parcela || conta.sequencia || 1;
   const codigo = conta['Código'] || conta['Codigo'] || conta.codigo || conta.cliente_codigo || conta.clienteCodigo || '';
-  const erpId = `${empresaId}-${tipo}-${nota}-${seq}-${codigo}`.replace(/\s+/g, '');
-  console.log(`[generateErpId] Generated: ${erpId} from empresa=${empresaId}, tipo=${tipo}, nota=${nota}, seq=${seq}`);
-  return erpId;
+  return `${empresaId}-${tipo}-${nota}-${seq}-${codigo}`.replace(/\s+/g, '');
 }
 
 function isRetryableError(error: any): boolean {
@@ -448,25 +427,19 @@ async function processWithUpsert(supabase: any, contas: any[]): Promise<{ proces
   const errors: any[] = [];
   const records: any[] = [];
   
-  console.log(`[processWithUpsert] Starting transformation of ${contas.length} records`);
-  
+  // Transformar todos os registros (sem log individual para performance)
   for (const conta of contas) {
     try {
       const erpId = generateErpId(conta);
       const transformed = transformErpData(conta);
       const dataHash = await calculateHash(transformed);
-      const record = { erp_id: erpId, data_hash: dataHash, ...transformed, sincronizado_em: new Date().toISOString() };
-      console.log(`[processWithUpsert] Transformed record: erp_id=${erpId}, cliente=${transformed.cliente_nome?.substring(0, 20)}`);
-      records.push(record);
+      records.push({ erp_id: erpId, data_hash: dataHash, ...transformed, sincronizado_em: new Date().toISOString() });
     } catch (error) {
-      console.error(`[processWithUpsert] Transform error:`, error);
       errors.push({ record: conta, error: error instanceof Error ? error.message : String(error) });
     }
   }
-  
-  console.log(`[processWithUpsert] Transformed ${records.length} records, ${errors.length} transform errors`);
 
-  records.sort((a, b) => a.erp_id.localeCompare(b.erp_id));
+  // Batch upsert direto (sem ordenação desnecessária)
   const totalBatches = Math.ceil(records.length / UPSERT_BATCH_SIZE);
   
   for (let i = 0; i < records.length; i += UPSERT_BATCH_SIZE) {
@@ -480,7 +453,7 @@ async function processWithUpsert(supabase: any, contas: any[]): Promise<{ proces
     if (i + UPSERT_BATCH_SIZE < records.length) await sleep(BATCH_DELAY_MS);
   }
 
-  console.log(`[processWithUpsert] Completed: ${processed} records processed, ${errors.length} batch errors`);
+  console.log(`[processWithUpsert] Done: ${processed}/${contas.length}`);
   return { processed, errors };
 }
 // ============ CHUNK LOGGING ============
