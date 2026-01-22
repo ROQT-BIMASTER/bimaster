@@ -189,16 +189,22 @@ async function processBulkInsert(
 
 // ============ UPSERT PADRÃO (fallback) ============
 async function upsertWithRetry(supabase: any, batch: any[], batchNumber: number): Promise<{ success: boolean; error?: any }> {
+  console.log(`[upsertWithRetry] Batch ${batchNumber}: ${batch.length} records`);
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const { error } = await supabase.from('contas_receber').upsert(batch, { onConflict: 'erp_id', ignoreDuplicates: false });
-      if (!error) return { success: true };
+      const { data, error } = await supabase.from('contas_receber').upsert(batch, { onConflict: 'erp_id', ignoreDuplicates: false });
+      if (!error) {
+        console.log(`[upsertWithRetry] Batch ${batchNumber} SUCCESS`);
+        return { success: true };
+      }
+      console.error(`[upsertWithRetry] Batch ${batchNumber} attempt ${attempt} error:`, error.message, error.code, error.details);
       if (isRetryableError(error) && attempt < MAX_RETRIES) {
         await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 100);
         continue;
       }
       return { success: false, error };
     } catch (err) {
+      console.error(`[upsertWithRetry] Batch ${batchNumber} exception:`, err);
       if (attempt < MAX_RETRIES) await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1));
       else return { success: false, error: err };
     }
@@ -211,16 +217,23 @@ async function processWithUpsert(supabase: any, contas: any[]): Promise<{ proces
   const errors: any[] = [];
   const records: any[] = [];
   
+  console.log(`[processWithUpsert] Starting transformation of ${contas.length} records`);
+  
   for (const conta of contas) {
     try {
       const erpId = generateErpId(conta);
       const transformed = transformErpData(conta);
       const dataHash = await calculateHash(transformed);
-      records.push({ erp_id: erpId, data_hash: dataHash, ...transformed, sincronizado_em: new Date().toISOString() });
+      const record = { erp_id: erpId, data_hash: dataHash, ...transformed, sincronizado_em: new Date().toISOString() };
+      console.log(`[processWithUpsert] Transformed record: erp_id=${erpId}, cliente=${transformed.cliente_nome?.substring(0, 20)}`);
+      records.push(record);
     } catch (error) {
+      console.error(`[processWithUpsert] Transform error:`, error);
       errors.push({ record: conta, error: error instanceof Error ? error.message : String(error) });
     }
   }
+  
+  console.log(`[processWithUpsert] Transformed ${records.length} records, ${errors.length} transform errors`);
 
   records.sort((a, b) => a.erp_id.localeCompare(b.erp_id));
   const totalBatches = Math.ceil(records.length / UPSERT_BATCH_SIZE);
@@ -507,17 +520,29 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Aceita múltiplos formatos: { contas: [...] } ou { data: [...] } ou [...]
+      // Aceita múltiplos formatos: { contas: [...] } ou { data: [...] } ou [...] ou objeto único
       let contas = body.contas || body.data || body;
+      
+      // Se for um objeto único (não array), converte para array
       if (!Array.isArray(contas)) {
-        contas = [];
+        // Verifica se é um objeto com campos do ERP (indica registro único)
+        if (contas && typeof contas === 'object' && (contas['Nota'] || contas.numero_documento || contas['Cliente'] || contas.cliente_nome)) {
+          console.log(`[contas-receber-api] Single record received, converting to array`);
+          contas = [contas];
+        } else {
+          contas = [];
+        }
       }
 
+      console.log(`[contas-receber-api] Extracted ${contas.length} records to process`);
+
       if (contas.length === 0) {
+        console.warn(`[contas-receber-api] No valid records found in payload. Body keys: ${Object.keys(body).join(', ')}`);
         return new Response(JSON.stringify({ 
           success: true, 
           statistics: { total_received: 0, processed: 0, errors: 0 },
-          message: 'Nenhum registro recebido'
+          message: 'Nenhum registro recebido',
+          debug: { received_keys: Object.keys(body) }
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
