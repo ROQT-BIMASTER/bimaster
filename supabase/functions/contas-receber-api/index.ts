@@ -68,22 +68,46 @@ function transformErpData(rawRecord: any) {
   }
 
   // Valores financeiros - suporta múltiplos nomes de campo (inclui snake_case e camelCase)
-  const valorAberto = parseAmount(
+  const valorAbertoRaw = parseAmount(
     erpRecord['Valor em Aberto'] || erpRecord['valor_em_aberto'] || erpRecord.valorEmAberto ||
     erpRecord['Valor Aberto'] || erpRecord.valor_aberto || 0
   );
-  const valorPago = parseAmount(
+  const valorPagoRaw = parseAmount(
     erpRecord['Valor Pago'] || erpRecord.valor_pago || erpRecord.valorPago ||
     erpRecord.valor_recebido || erpRecord.valorRecebido || 0
   );
-  const valorOriginal = parseAmount(
+  const valorOriginalRaw = parseAmount(
     erpRecord['Valor_Trc'] || erpRecord['Valor Trc'] || erpRecord.valorTrc ||
     erpRecord['Valor Original'] || erpRecord.valor_original || erpRecord.valorOriginal || 0
   );
+  const valorAjustes = parseAmount(erpRecord['Valor Ajustes'] || erpRecord.valor_ajustes || erpRecord.valorAjustes || 0);
+
+  // Normalizar valores (usar absoluto para valores negativos que representam créditos)
+  const valorOriginal = Math.abs(valorOriginalRaw);
+  const valorAberto = Math.abs(valorAbertoRaw);
+  
+  // Calcular valor pago: Se ERP não enviou, inferir da diferença entre original e aberto
+  // ou do valor de ajustes quando disponível
+  let valorPago = valorPagoRaw;
+  if (valorPago === 0 && valorAberto === 0 && valorOriginal > 0) {
+    // Título foi totalmente pago, mas ERP não enviou valor_pago
+    valorPago = valorOriginal;
+  } else if (valorPago === 0 && valorAjustes > 0 && valorAberto < 1) {
+    // Título foi pago via ajuste
+    valorPago = Math.abs(valorAjustes);
+  } else if (valorPago === 0 && valorOriginal > valorAberto) {
+    // Calcular pagamento parcial
+    valorPago = valorOriginal - valorAberto;
+  }
+
+  // DEBUG: Log valores extraídos para diagnóstico
+  if (valorPago > 0 || valorAberto === 0) {
+    console.log(`[transformErpData] VALUES: original=${valorOriginal}, pago=${valorPago}, aberto=${valorAberto}, raw_pago=${valorPagoRaw}, ajustes=${valorAjustes}`);
+  }
 
   // Calcular status baseado nos valores
   let status = 'aberto';
-  if (valorAberto === 0 && valorPago > 0) {
+  if (valorAberto === 0 && (valorPago > 0 || valorOriginal > 0)) {
     status = 'pago';
   } else if (valorPago > 0 && valorAberto > 0) {
     status = 'parcial';
@@ -111,7 +135,7 @@ function transformErpData(rawRecord: any) {
     valor_recebido: valorPago,
     valor_juros: parseAmount(erpRecord['Valor Juros'] || erpRecord.valor_juros || erpRecord.valorJuros || 0),
     valor_desconto: parseAmount(erpRecord['Valor Desconto'] || erpRecord.valor_desconto || erpRecord.valorDesconto || 0),
-    valor_ajustes: parseAmount(erpRecord['Valor Ajustes'] || erpRecord.valor_ajustes || erpRecord.valorAjustes || 0),
+    valor_ajustes: valorAjustes,
     data_emissao: parseDate(erpRecord['Emissão'] || erpRecord['Emissao'] || erpRecord.emissao || erpRecord.data_emissao || erpRecord.dataEmissao),
     data_vencimento: parseDate(erpRecord['Vencimento'] || erpRecord.vencimento || erpRecord.data_vencimento || erpRecord.dataVencimento),
     data_recebimento: parseDate(erpRecord['Data Pgto'] || erpRecord['Pigto de dados'] || erpRecord['Pagamento'] || erpRecord.pagamento || erpRecord.data_pagamento || erpRecord.data_recebimento || erpRecord.dataRecebimento),
