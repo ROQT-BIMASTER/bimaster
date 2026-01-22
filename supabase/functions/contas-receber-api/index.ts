@@ -191,59 +191,8 @@ function escapeSql(value: any): string {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
 
-// ============ RATE LIMITING E FILA ============
-async function acquireSyncSlot(supabase: any): Promise<{ acquired: boolean; slotId?: string; waitedMs?: number }> {
-  const slotId = crypto.randomUUID();
-  const startWait = Date.now();
-  
-  for (let attempt = 0; attempt < 30; attempt++) { // 30 tentativas x 3s = 90s max wait
-    // Limpar slots expirados (> 5 minutos)
-    await supabase
-      .from('sync_rate_limiter')
-      .delete()
-      .lt('acquired_at', new Date(Date.now() - 300000).toISOString());
-    
-    // Contar slots ativos
-    const { count } = await supabase
-      .from('sync_rate_limiter')
-      .select('*', { count: 'exact', head: true })
-      .eq('entidade', 'contas_receber');
-    
-    if ((count || 0) < MAX_CONCURRENT_SYNCS) {
-      // Tentar adquirir slot
-      const { error } = await supabase
-        .from('sync_rate_limiter')
-        .insert({
-          id: slotId,
-          entidade: 'contas_receber',
-          acquired_at: new Date().toISOString()
-        });
-      
-      if (!error) {
-        console.log(`[RateLimit] Slot acquired: ${slotId} after ${Date.now() - startWait}ms`);
-        return { acquired: true, slotId, waitedMs: Date.now() - startWait };
-      }
-    }
-    
-    console.log(`[RateLimit] Waiting for slot... attempt ${attempt + 1}/30 (${count || 0}/${MAX_CONCURRENT_SYNCS} active)`);
-    await sleep(3000); // Espera 3s entre tentativas
-  }
-  
-  console.warn(`[RateLimit] Queue timeout after ${Date.now() - startWait}ms`);
-  return { acquired: false, waitedMs: Date.now() - startWait };
-}
-
-async function releaseSyncSlot(supabase: any, slotId: string): Promise<void> {
-  try {
-    await supabase
-      .from('sync_rate_limiter')
-      .delete()
-      .eq('id', slotId);
-    console.log(`[RateLimit] Slot released: ${slotId}`);
-  } catch (err) {
-    console.error(`[RateLimit] Failed to release slot ${slotId}:`, err);
-  }
-}
+// ============ RATE LIMITING REMOVIDO - Processamento direto ============
+// O rate limiting estava travando as requisições. Agora processa diretamente.
 
 // ============ BULK INSERT SEGURO ============
 async function processBulkInsert(
@@ -676,33 +625,14 @@ Deno.serve(async (req) => {
 
       const startTime = Date.now();
       
-      // RATE LIMITING: Adquirir slot na fila
-      const slotResult = await acquireSyncSlot(supabase);
-      if (!slotResult.acquired) {
-        console.warn(`[contas-receber-api] Rate limit exceeded - queue timeout`);
-        return new Response(JSON.stringify({ 
-          error: 'Too Many Requests - Server busy',
-          message: 'Servidor ocupado processando outras sincronizações. Tente novamente em alguns segundos.',
-          retry_after_seconds: 10,
-          hint: 'Configure N8N com delay de 5s entre requisições'
-        }), {
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'Retry-After': '10',
-            'X-RateLimit-Limit': String(MAX_CONCURRENT_SYNCS)
-          }
-        });
-      }
+      // Processamento direto sem rate limiting
+      console.log(`[contas-receber-api] Starting sync at ${new Date().toISOString()}`);
       
-      const slotId = slotResult.slotId!;
-      
-      try {
+      {
         let body;
         try {
           const text = await req.text();
-          console.log(`[contas-receber-api] Received payload size: ${text.length} bytes (waited ${slotResult.waitedMs}ms for slot)`);
+          console.log(`[contas-receber-api] Received payload size: ${text.length} bytes`);
           console.log(`[contas-receber-api] Payload preview: ${text.substring(0, 500)}`);
           body = JSON.parse(text);
         } catch (parseError) {
@@ -810,19 +740,14 @@ Deno.serve(async (req) => {
           success: true,
           statistics: { total_received: contas.length, processed: totalProcessed, errors: allErrors.length, rate_per_second: rate },
           duration_ms: duration,
-          queue_wait_ms: slotResult.waitedMs,
-          message: `OK: ${totalProcessed} registros processados via UPSERT throttled`
+          message: `OK: ${totalProcessed} registros processados via UPSERT`
         }), {
           headers: { 
             ...corsHeaders, 
             'Content-Type': 'application/json',
-            'X-Processing-Time-Ms': String(duration),
-            'X-Queue-Wait-Ms': String(slotResult.waitedMs || 0)
+            'X-Processing-Time-Ms': String(duration)
           }
         });
-      } finally {
-        // SEMPRE liberar o slot, mesmo em caso de erro
-        await releaseSyncSlot(supabase, slotId);
       }
     }
 
