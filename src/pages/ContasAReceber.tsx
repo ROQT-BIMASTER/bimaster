@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -58,6 +58,8 @@ type SortDirection = 'asc' | 'desc';
 
 export default function ContasAReceber() {
   const { isAdmin } = useUserRole();
+  const queryClient = useQueryClient();
+  
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchCliente, setSearchCliente] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -78,6 +80,13 @@ export default function ContasAReceber() {
   // Ordenação
   const [sortColumn, setSortColumn] = useState<SortColumn>('data_vencimento');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  // Forçar refresh de dados ao montar componente para evitar cache stale
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['contas-receber-dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['contas-receber-table'] });
+    queryClient.invalidateQueries({ queryKey: ['contas-receber-calendario'] });
+  }, [queryClient]);
 
   // Converte filterEmpresas para string para o queryKey detectar mudanças corretamente
   const filterEmpresasKey = filterEmpresas.length > 0 ? filterEmpresas.sort().join(',') : 'all';
