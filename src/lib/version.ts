@@ -1,8 +1,9 @@
 // Versão do app - incrementar a cada deploy significativo
-export const APP_VERSION = '1.0.5';
+export const APP_VERSION = '1.0.6';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
+const LAST_CLEAR_KEY = 'app_last_cache_clear';
 
 /**
  * Verifica se há uma nova versão do app e limpa caches se necessário
@@ -13,11 +14,12 @@ export function checkAndUpdateVersion(): boolean {
   if (storedVersion !== APP_VERSION) {
     console.log(`[Version] Atualização detectada: ${storedVersion} → ${APP_VERSION}`);
     
-    // Limpar caches antigos
-    clearOldCaches();
+    // Limpar TODOS os caches para garantir versão nova
+    clearAllCaches();
     
     // Salvar nova versão
     localStorage.setItem(VERSION_KEY, APP_VERSION);
+    localStorage.setItem(LAST_CLEAR_KEY, new Date().toISOString());
     
     return true; // Nova versão detectada
   }
@@ -26,27 +28,36 @@ export function checkAndUpdateVersion(): boolean {
 }
 
 /**
- * Limpa caches do navegador para garantir dados frescos
+ * Limpa TODOS os caches do navegador agressivamente
  */
-async function clearOldCaches(): Promise<void> {
+async function clearAllCaches(): Promise<void> {
   if ('caches' in window) {
     try {
       const cacheNames = await caches.keys();
-      const apiCaches = cacheNames.filter(name => 
-        name.includes('supabase-api-cache') ||
-        name.includes('supabase-storage-cache') ||
-        name.includes('images-cache') ||
-        name.includes('image-assets') ||
-        name.includes('font-cache') ||
-        name.includes('workbox')
-      );
+      console.log(`[Version] Limpando ${cacheNames.length} caches...`);
       
-      for (const cacheName of apiCaches) {
+      // Deletar TODOS os caches sem exceção
+      for (const cacheName of cacheNames) {
         await caches.delete(cacheName);
         console.log(`[Version] Cache limpo: ${cacheName}`);
       }
+      
+      console.log('[Version] Todos os caches foram limpos');
     } catch (error) {
       console.error('[Version] Erro ao limpar caches:', error);
+    }
+  }
+  
+  // Forçar desregistro do Service Worker antigo
+  if ('serviceWorker' in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        await registration.unregister();
+        console.log('[Version] Service Worker desregistrado');
+      }
+    } catch (error) {
+      console.error('[Version] Erro ao desregistrar SW:', error);
     }
   }
 }
@@ -55,5 +66,14 @@ async function clearOldCaches(): Promise<void> {
  * Força reload da página após atualização
  */
 export function forceReload(): void {
+  window.location.reload();
+}
+
+/**
+ * Força limpeza e reload completo
+ */
+export async function forceCleanReload(): Promise<void> {
+  await clearAllCaches();
+  localStorage.setItem(VERSION_KEY, APP_VERSION);
   window.location.reload();
 }
