@@ -83,15 +83,35 @@ export default function ContasAReceber() {
 
   // Forçar refresh de dados ao montar componente para evitar cache stale
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ['contas-receber-dashboard'] });
-    queryClient.invalidateQueries({ queryKey: ['contas-receber-table'] });
-    queryClient.invalidateQueries({ queryKey: ['contas-receber-calendario'] });
+    // Importante: o módulo usa queries agregadas (RPC) e também queries raw.
+    // Invalidamos todas as bases para evitar discrepâncias entre Dashboard/Calendário.
+    const keysToInvalidate: Array<readonly unknown[]> = [
+      ['contas-receber-dashboard'],
+      ['contas-receber-table'],
+      ['contas-receber-calendario'],
+      ['contas-receber-calendario-agg'],
+      ['contas-receber-kpis'],
+      ['contas-receber-evolucao'],
+      ['contas-receber-top'],
+      ['contas-receber-aging'],
+      ['contas-receber-status'],
+      ['contas-receber-dia'],
+    ];
+
+    keysToInvalidate.forEach((queryKey) => {
+      queryClient.invalidateQueries({ queryKey });
+    });
   }, [queryClient]);
 
-  // Converte filterEmpresas para string para o queryKey detectar mudanças corretamente
-  const filterEmpresasKey = filterEmpresas.length > 0 ? filterEmpresas.sort().join(',') : 'all';
-  const filterAnosKey = filterAnos.length > 0 ? filterAnos.sort().join(',') : 'all';
-  const filterMesesKey = filterMeses.length > 0 ? filterMeses.sort().join(',') : 'all';
+  // IMPORTANTE: nunca usar .sort() direto no state (muta o array e quebra refresh/cache)
+  const sortedEmpresas = useMemo(() => [...filterEmpresas].sort((a, b) => a - b), [filterEmpresas]);
+  const sortedAnos = useMemo(() => [...filterAnos].sort((a, b) => a - b), [filterAnos]);
+  const sortedMeses = useMemo(() => [...filterMeses].sort((a, b) => a - b), [filterMeses]);
+
+  // Converte filtros para string para o queryKey detectar mudanças corretamente
+  const filterEmpresasKey = sortedEmpresas.length > 0 ? sortedEmpresas.join(',') : 'all';
+  const filterAnosKey = sortedAnos.length > 0 ? sortedAnos.join(',') : 'all';
+  const filterMesesKey = sortedMeses.length > 0 ? sortedMeses.join(',') : 'all';
 
   // Função para construir filtros base (reutilizada em todas queries)
   const buildBaseFilters = (query: any) => {
