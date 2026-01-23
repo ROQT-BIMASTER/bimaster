@@ -16,7 +16,7 @@ const BATCH_DELAY_MS = 50;          // Delay reduzido entre mini-batches
 const MAX_RETRIES = 2;              // Menos retries
 const RETRY_BASE_DELAY_MS = 300;    
 const RECOMMENDED_CHUNK_SIZE = 100; 
-const API_VERSION = '3.8.6';
+const API_VERSION = '3.8.7';
 
 // =====================================================
 // RATE LIMITER - MANTIDO PARA COMPATIBILIDADE MAS NÃO USADO NO /sync
@@ -150,9 +150,11 @@ function unwrapN8nItem(item: any): any {
 }
 
 // Transforma dados do ERP - suporta múltiplos formatos de campos
+// LÓGICA DE STATUS ALINHADA COM CONTAS A PAGAR - v3.8.7
 function transformErpData(rawRecord: any) {
   const erpRecord = unwrapN8nItem(rawRecord);
 
+  // Parse dos valores monetários
   const valorAbertoRaw = parseAmount(
     erpRecord['Valor em Aberto'] || erpRecord['valor_em_aberto'] || erpRecord.valorEmAberto ||
     erpRecord['Valor Aberto'] || erpRecord.valor_aberto || 0
@@ -167,24 +169,54 @@ function transformErpData(rawRecord: any) {
   );
   const valorAjustes = parseAmount(erpRecord['Valor Ajustes'] || erpRecord.valor_ajustes || erpRecord.valorAjustes || 0);
 
+  // Normalização de valores (absolutos para stornos)
   const valorOriginal = Math.abs(valorOriginalRaw);
   const valorAberto = Math.abs(valorAbertoRaw);
   
-  let valorPago = valorPagoRaw;
-  if (valorPago === 0 && valorAberto === 0 && valorOriginal > 0) {
-    valorPago = valorOriginal;
-  } else if (valorPago === 0 && valorAjustes > 0 && valorAberto < 1) {
-    valorPago = Math.abs(valorAjustes);
-  } else if (valorPago === 0 && valorOriginal > valorAberto) {
-    valorPago = valorOriginal - valorAberto;
+  // Inferência de valor recebido quando ERP não envia
+  let valorRecebido = valorPagoRaw;
+  if (valorRecebido === 0 && valorAberto === 0 && valorOriginal > 0) {
+    valorRecebido = valorOriginal;
+  } else if (valorRecebido === 0 && valorAjustes > 0 && valorAberto < 1) {
+    valorRecebido = Math.abs(valorAjustes);
+  } else if (valorRecebido === 0 && valorOriginal > valorAberto) {
+    valorRecebido = valorOriginal - valorAberto;
   }
 
-  let status = 'aberto';
-  if (valorAberto === 0 && (valorPago > 0 || valorOriginal > 0)) {
-    status = 'pago';
-  } else if (valorPago > 0 && valorAberto > 0) {
+  // Parse da data de vencimento para cálculo de status
+  const dataVencimentoStr = parseDate(erpRecord['Vencimento'] || erpRecord.vencimento || erpRecord.data_vencimento || erpRecord.dataVencimento);
+  
+  // ============================================================
+  // LÓGICA DE STATUS BASEADA EM VALOR_ABERTO (igual contas_pagar)
+  // ============================================================
+  // Prioridade:
+  // 1. valor_aberto = 0 → RECEBIDO (pago)
+  // 2. valor_recebido > 0 E valor_aberto > 0 → PARCIAL
+  // 3. valor_aberto > 0 E vencido → VENCIDO
+  // 4. valor_aberto > 0 E não vencido → PENDENTE
+  // ============================================================
+  
+  let status = 'pendente';
+  
+  if (valorAberto === 0) {
+    // Título completamente quitado
+    status = 'recebido';
+  } else if (valorRecebido > 0 && valorAberto > 0) {
+    // Pagamento parcial
     status = 'parcial';
+  } else if (valorAberto > 0 && dataVencimentoStr) {
+    // Verificar se está vencido
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const vencimento = new Date(dataVencimentoStr + 'T00:00:00');
+    
+    if (vencimento < hoje) {
+      status = 'vencido';
+    } else {
+      status = 'pendente';
+    }
   }
+  // Se não tem data de vencimento e valor_aberto > 0, fica como 'pendente'
 
   const empresaId = erpRecord['ID Empresa'] || erpRecord.id_empresa || erpRecord.empresaId || erpRecord.empresa_id || 1;
   const empresaNome = erpRecord['Empresa'] || erpRecord.empresa || erpRecord.empresa_nome || erpRecord.empresaNome;
@@ -204,12 +236,12 @@ function transformErpData(rawRecord: any) {
     cliente_nome: clienteNome,
     valor_original: valorOriginal,
     valor_aberto: valorAberto,
-    valor_recebido: valorPago,
+    valor_recebido: valorRecebido,
     valor_juros: parseAmount(erpRecord['Valor Juros'] || erpRecord.valor_juros || erpRecord.valorJuros || 0),
     valor_desconto: parseAmount(erpRecord['Valor Desconto'] || erpRecord.valor_desconto || erpRecord.valorDesconto || 0),
     valor_ajustes: valorAjustes,
     data_emissao: parseDate(erpRecord['Emissão'] || erpRecord['Emissao'] || erpRecord.emissao || erpRecord.data_emissao || erpRecord.dataEmissao),
-    data_vencimento: parseDate(erpRecord['Vencimento'] || erpRecord.vencimento || erpRecord.data_vencimento || erpRecord.dataVencimento),
+    data_vencimento: dataVencimentoStr,
     data_recebimento: parseDate(erpRecord['Data Pgto'] || erpRecord['Pigto de dados'] || erpRecord['Pagamento'] || erpRecord.pagamento || erpRecord.data_pagamento || erpRecord.data_recebimento || erpRecord.dataRecebimento),
     tabela_preco: erpRecord['Tabela'] || erpRecord.tabela || erpRecord.tabela_preco || null,
     vendedor_nome: erpRecord['Vendedor'] || erpRecord.vendedor || erpRecord.vendedor_nome || null,
