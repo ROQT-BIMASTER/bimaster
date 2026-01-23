@@ -242,7 +242,17 @@ function transformErpData(rawRecord: any) {
     valor_ajustes: valorAjustes,
     data_emissao: parseDate(erpRecord['Emissão'] || erpRecord['Emissao'] || erpRecord.emissao || erpRecord.data_emissao || erpRecord.dataEmissao),
     data_vencimento: dataVencimentoStr,
-    data_recebimento: parseDate(erpRecord['Data Pgto'] || erpRecord['Pigto de dados'] || erpRecord['Pagamento'] || erpRecord.pagamento || erpRecord.data_pagamento || erpRecord.data_recebimento || erpRecord.dataRecebimento),
+    // IMPORTANTE: Só salvar data_recebimento se for uma data REAL de pagamento
+    // O ERP envia Data Pgto = Vencimento como "previsão", não como confirmação
+    // Se valor_aberto > 0 e valor_recebido = 0 e data_pagamento = data_vencimento, é previsão
+    data_recebimento: (() => {
+      const dataPgto = parseDate(erpRecord['Data Pgto'] || erpRecord['Pigto de dados'] || erpRecord['Pagamento'] || erpRecord.pagamento || erpRecord.data_pagamento || erpRecord.data_recebimento || erpRecord.dataRecebimento);
+      // Se data de pagamento = data de vencimento E não houve pagamento real, ignorar
+      if (dataPgto && dataPgto === dataVencimentoStr && valorRecebido === 0 && valorAberto > 0) {
+        return null; // ERP enviou previsão, não pagamento real
+      }
+      return dataPgto;
+    })(),
     tabela_preco: erpRecord['Tabela'] || erpRecord.tabela || erpRecord.tabela_preco || null,
     vendedor_nome: erpRecord['Vendedor'] || erpRecord.vendedor || erpRecord.vendedor_nome || null,
     vendedor_codigo: erpRecord['Cód Vendedor'] || erpRecord['Cod Vendedor'] || erpRecord.vendedor_codigo || erpRecord.codVendedor || null,

@@ -62,28 +62,30 @@ export const FinanceiroDashboardWidget = memo(() => {
             .select("valor_aberto")
             .eq("status", "pendente")
             .lt("data_vencimento", today),
-          // Contas a Receber - Pendentes (a vencer)
+          // Contas a Receber - Pendentes (a vencer) - status válidos: pendente, parcial
           supabase
             .from("contas_receber")
             .select("*", { count: "exact", head: true })
-            .in("status", ["pendente", "aberto"])
+            .in("status", ["pendente", "parcial"])
             .gte("data_vencimento", today),
-          // Contas a Receber - Vencidas
+          // Contas a Receber - Vencidas (status vencido OU pendente/parcial com data passada)
           supabase
             .from("contas_receber")
             .select("*", { count: "exact", head: true })
-            .eq("status", "vencido"),
-          // Contas a Receber - Total pendente
+            .in("status", ["vencido", "pendente", "parcial"])
+            .lt("data_vencimento", today),
+          // Contas a Receber - Total pendente (valor aberto de títulos a vencer)
           supabase
             .from("contas_receber")
             .select("valor_aberto")
-            .in("status", ["pendente", "aberto"])
+            .in("status", ["pendente", "parcial"])
             .gte("data_vencimento", today),
-          // Contas a Receber - Total vencido
+          // Contas a Receber - Total vencido (valor aberto de títulos vencidos)
           supabase
             .from("contas_receber")
             .select("valor_aberto")
-            .eq("status", "vencido"),
+            .in("status", ["vencido", "pendente", "parcial"])
+            .lt("data_vencimento", today),
         ]);
 
         const totalPagar = totalPagarResult.data?.reduce((sum, c) => sum + (c.valor_aberto || 0), 0) || 0;
