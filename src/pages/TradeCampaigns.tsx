@@ -446,16 +446,16 @@ export default function TradeCampaigns() {
                   </div>
                 ) : (
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Código</TableHead>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Período</TableHead>
-                        <TableHead className="text-right">Custo Estimado</TableHead>
-                        <TableHead className="text-right">Gasto Real</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Ações</TableHead>
+                    <TableHeader className="bg-muted/50 sticky top-0">
+                      <TableRow className="border-b-2 border-primary/10">
+                        <TableHead className="font-semibold">Código</TableHead>
+                        <TableHead className="font-semibold">Nome</TableHead>
+                        <TableHead className="font-semibold">Tipo</TableHead>
+                        <TableHead className="font-semibold">Período</TableHead>
+                        <TableHead className="text-right font-semibold">Custo Estimado</TableHead>
+                        <TableHead className="text-right font-semibold">Gasto Real</TableHead>
+                        <TableHead className="font-semibold">Status</TableHead>
+                        <TableHead className="font-semibold">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -465,7 +465,7 @@ export default function TradeCampaigns() {
                           : 0;
 
                         return (
-                          <TableRow key={campaign.id}>
+                          <TableRow key={campaign.id} className="hover:bg-primary/5 transition-colors even:bg-muted/30">
                             <TableCell className="font-mono text-xs">{campaign.code}</TableCell>
                             <TableCell className="font-medium">{campaign.name}</TableCell>
                             <TableCell>
