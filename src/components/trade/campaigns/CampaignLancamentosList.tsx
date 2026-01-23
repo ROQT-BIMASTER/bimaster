@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -94,15 +95,35 @@ interface CampaignLancamentosListProps {
 
 export function CampaignLancamentosList({ campaign, onSelectLancamento }: CampaignLancamentosListProps) {
   const queryClient = useQueryClient();
+  const { isAdminOrSupervisor } = useUserRole();
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editingLancamentoId, setEditingLancamentoId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [lancamentoToDelete, setLancamentoToDelete] = useState<string | null>(null);
 
-  // Fetch lancamentos for this campaign
+  // Fetch lancamentos for this campaign - filtered by user's clients if not admin/supervisor
   const { data: lancamentos, isLoading } = useQuery({
-    queryKey: ["campaign-lancamentos", campaign.id],
+    queryKey: ["campaign-lancamentos", campaign.id, isAdminOrSupervisor],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      // First, get the user's clients (prospects) if not admin/supervisor
+      let userClientIds: string[] = [];
+      if (!isAdminOrSupervisor) {
+        const { data: userClients } = await supabase
+          .from("prospects")
+          .select("id")
+          .eq("vendedor_id", user.id);
+        
+        userClientIds = userClients?.map(c => c.id) || [];
+        
+        // If vendedor has no clients, return empty
+        if (userClientIds.length === 0) {
+          return [];
+        }
+      }
+
       const { data: lancamentosData, error } = await supabase
         .from("trade_campaign_lancamentos")
         .select("*")
@@ -111,8 +132,16 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
 
       if (error) throw error;
 
+      // Filter by user's clients if not admin/supervisor
+      let filteredLancamentos = lancamentosData || [];
+      if (!isAdminOrSupervisor && userClientIds.length > 0) {
+        filteredLancamentos = lancamentosData?.filter(l => 
+          l.customer_id && userClientIds.includes(l.customer_id)
+        ) || [];
+      }
+
       // Fetch customer names
-      const customerIds = lancamentosData
+      const customerIds = filteredLancamentos
         ?.map(l => l.customer_id)
         .filter(Boolean) as string[];
       
@@ -129,7 +158,7 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
         );
       }
 
-      return lancamentosData?.map(l => ({
+      return filteredLancamentos?.map(l => ({
         ...l,
         cliente_nome: l.customer_id ? customersMap.get(l.customer_id) || "Cliente não encontrado" : "Sem cliente",
       })) as Lancamento[];
@@ -163,11 +192,23 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
   };
 
   const handleEditLancamento = (lancamentoId: string) => {
+    // Only allow editing own lancamentos if not admin
+    if (!isAdminOrSupervisor) {
+      const lancamento = lancamentos?.find(l => l.id === lancamentoId);
+      if (!lancamento) {
+        toast.error("Lançamento não encontrado");
+        return;
+      }
+    }
     setEditingLancamentoId(lancamentoId);
     setFormDialogOpen(true);
   };
 
   const handleDeleteLancamento = (lancamentoId: string) => {
+    if (!isAdminOrSupervisor) {
+      toast.error("Apenas administradores podem excluir lançamentos");
+      return;
+    }
     setLancamentoToDelete(lancamentoId);
     setDeleteDialogOpen(true);
   };
@@ -353,14 +394,18 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
                                 <Edit className="h-4 w-4 mr-2" />
                                 Editar
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => handleDeleteLancamento(lancamento.id)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Excluir
-                              </DropdownMenuItem>
+                              {isAdminOrSupervisor && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => handleDeleteLancamento(lancamento.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
