@@ -51,13 +51,15 @@ import {
   CheckCircle,
   XCircle,
   ListFilter,
-  ChevronRight
+  ChevronRight,
+  Download
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { CampaignLancamentoForm } from "./CampaignLancamentoForm";
+import { CampaignLancamentoExport } from "./CampaignLancamentoExport";
 
 interface Campaign {
   id: string;
@@ -97,6 +99,7 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
   const queryClient = useQueryClient();
   const { isAdminOrSupervisor } = useUserRole();
   const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [editingLancamentoId, setEditingLancamentoId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [lancamentoToDelete, setLancamentoToDelete] = useState<string | null>(null);
@@ -308,10 +311,16 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
                 {summary.total} lançamento(s) • {summary.pending} pendente(s) • {summary.approved} aprovado(s)
               </CardDescription>
             </div>
-            <Button onClick={handleNewLancamento} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Novo Lançamento
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setExportDialogOpen(true)} className="gap-2">
+                <Download className="h-4 w-4" />
+                Exportar Modelo
+              </Button>
+              <Button onClick={handleNewLancamento} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Novo Lançamento
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -471,6 +480,15 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Export Dialog */}
+      <CampaignLancamentoExport
+        campaignId={campaign.id}
+        campaignName={campaign.name}
+        campaignCode={campaign.code}
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+      />
     </>
   );
 }
