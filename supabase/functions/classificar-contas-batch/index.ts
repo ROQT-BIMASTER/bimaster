@@ -87,117 +87,57 @@ async function processGroup(
     // Não existe regra, chamar IA
     console.log("✗ Regra não encontrada, consultando IA...");
 
-    // Exemplos de classificações do histórico do gerente financeiro (few-shot learning)
-    const exemplosHistorico = `
-EXEMPLOS DE CLASSIFICAÇÕES CORRETAS (baseado no histórico real da empresa):
+    // Construir estrutura hierárquica do plano de contas para a IA
+    const planoContasFormatado = planoContas
+      .filter(p => p.active !== false)
+      .map(p => `- ${p.code} ${p.name} (${p.account_type})`)
+      .join('\n');
 
-1. ALUGUEIS:
-   - "ALUGUEL DE DEPÓSITO" / "SAO FRANCISCO EMPREENDIMENTOS" → Código 3.1.1.1 (Aluguel do Estabelecimento)
-   - "ALUGUEL DE ESCRITÓRIO" / "IMOBILIARIA SINVAL RIBEIRO" → Código 3.1.1.2 (Outros Aluguéis)
-   - "LOCAÇÃO DE NOTEBOOKS" / "ALOC LOCAÇÃO" → Código 3.1.19 (Locações Diversas)
-   - "LOCAÇÃO DE PALETEIRA" → Código 3.1.19 (Locações Diversas)
-
-2. CMV - COMPRAS PARA REVENDA:
-   - "COMPRA DE MERCADORIA PARA REVENDA" / "NELIDA/FABULOUS" → Código 2.1.1 (Compra de Mercadoria)
-   - "COMPRA DE MERCADORIA PARA REVENDA" / "BIO-SINERGIA" → Código 2.1.1 (Compra de Mercadoria)
-   - "PAGTO MARCA" → Código 2.1.1 (Compra de Mercadoria)
-
-3. DESPESAS FINANCEIRAS:
-   - "TARIFAS BANCÁRIAS" → Código 3.4.1 (Despesas Bancárias)
-   - "TRANSF PAGTO PIX" / "CHEQUE VALOR SUPERIOR" → Código 3.4.1
-
-4. DESPESAS TRIBUTÁRIAS:
-   - "SIMPLES NACIONAL" → Código 2.5.1 (Simples Nacional)
-   - "DARF - TRIBUTOS FEDERAIS" → Código 2.5.3 (Tributos Federais)
-   - "DARF IRPJ" → Código 2.5.3 (Tributos Federais)
-   - "DARF CSOC" → Código 2.5.3 (Tributos Federais)
-
-5. SALÁRIO/BENEFÍCIOS/IMPOSTOS (Grupo 3.2):
-   - "SALÁRIOS" → Código 3.2.1 (Salários CLT)
-   - "ADIANTAMENTO SALÁRIO" → Código 3.2.1 (Salários CLT)
-   - "13º SALÁRIO" → Código 3.2.7 (13º Salário)
-   - "FÉRIAS" → Código 3.2.8 (Férias)
-   - "GUIA RESCISÓRIO" / "RESCISÃO" → Código 3.2.9 (Rescisões e Encargos)
-   - "FGTS" → Código 3.2.4 (FGTS)
-   - "INSS" → Código 3.2.5 (INSS)
-   - "MEDICINA DO TRABALHO" → Código 3.2.5 (INSS/Medicina do Trabalho)
-   - "VALE TRANSPORTE" / "SPTRANS" → Código 3.2.3 (Vale Transporte)
-   - "VALE REFEIÇÃO" / "ALIMENTAÇÃO" → Código 3.2.14 (Vale Refeição/Alimentação)
-   - "PLANO DE SAUDE" / "NOTREDAME" → Código 3.2.12.2 (Plano de Saúde)
-   - "CESTA BÁSICA" → Código 3.2.12.1 (Cesta Básica)
-   - "REGISTRO DE PONTO" / "PONTO MAIS" → Código 3.2.14 (Serviços de Terceiros)
-   - "SINDICATO" → Código 3.2.14 (Sindicato)
-   - "AÇÕES PARA FUNCIONÁRIOS" / "CONFRATERNIZAÇÃO" → Código 3.2.13 (Confraternizações)
-
-6. MARKETING (Grupo 3.3):
-   - "MÍDIA ONLINE" / "FACEBOOK" → Código 3.3.1 (Publicidade e Propaganda)
-   - "INFLUENCER" → Código 3.3.1 (Publicidade e Propaganda)
-   - "ASSESSORIA DE IMPRENSA" → Código 3.3.8 (Assessoria de Imprensa)
-   - "CONSULTORIA MARKETING" → Código 3.3.6 (Consultoria Marketing)
-
-7. UTILIDADES (Grupo 3.1):
-   - "CONTA DE LUZ" / "ENEL" → Código 3.1.2 (Energia Elétrica)
-   - "TELEFONIA" / "GOTO" / "VIVO" → Código 3.1.5.1 ou 3.1.5.2 (Telefonia)
-   - "INTERNET" → Código 3.1.4 (Internet)
-
-8. SOFTWARE/TI:
-   - "MENSALIDADE RESULT" / "ALLTOMATIZE" → Código 3.1.22 (Software)
-   - "MENSALIDADE LIVE" → Código 3.1.22 (Software)
-   - "MENSALIDADE MILLENIUM" / "LINX" → Código 3.1.22 (Software)
-
-9. FRETE E TRANSPORTE (Grupo 2.4):
-   - "FRETE AGREGADO" → Código 2.4.2 (Fretes Agregados)
-   - "TRANSPORTADORA" → Código 2.4.1 (Transportadoras)
-   - "CORREIOS" → Código 2.4.3 (Correios)
-
-10. COMISSÕES:
-    - "COMISSÃO" / "REPRESENTANTES" → Código 2.6.1 (Comissão de Vendedores)
-
-11. PRO LABORE:
-    - "PRO LABORE" / "RETIRADA AHMAD" → Código 3.5.1 (Pró-labore)
-
-12. MANUTENÇÃO E ATIVOS (Grupo 4):
-    - "MANUTENÇÃO" / "AR-CONDICIONADO" → Código 4.2.3 (Manutenção Equipamentos)
-    - "REFORMA" / "INSTALAÇÕES" → Código 4.2.7 (Reformas)
-    - "PORTA-PALETES" → Código 4.2.7 (Imobilizado)
-
-13. CONTABILIDADE:
-    - "CONTABILIDADE" / "CONTABILIDADE FILADELFIA" → Código 3.1.8.3 (Contabilidade Externa)
-
-14. REEMBOLSOS:
-    - "REEMBOLSO" → Código 3.1.17 (Reembolso de Despesas)`;
-
-    const systemPrompt = `Você é um especialista em classificação contábil e financeira.
+    const systemPrompt = `Você é um especialista em classificação contábil brasileira.
 Sua tarefa é classificar contas a pagar nos departamentos e contas contábeis corretos.
 
 DEPARTAMENTOS DISPONÍVEIS:
 ${departamentos.map(d => `- ID: ${d.id} | ${d.nome}${d.descricao ? ` (${d.descricao})` : ''}`).join('\n')}
 
-PLANO DE CONTAS DISPONÍVEL (com código DRE gerencial):
-${planoContas.map(p => `- ID: ${p.id} | ${p.code} - ${p.name} [Tipo: ${p.account_type}]${p.codigo_dre_gerencial ? ` → DRE: ${p.codigo_dre_gerencial}` : ''}`).join('\n')}
+PLANO DE CONTAS DISPONÍVEL (use APENAS estas contas):
+${planoContasFormatado}
 
-${exemplosHistorico}
+GUIA DE CLASSIFICAÇÃO POR ESTRUTURA CONTÁBIL:
+- 3.1.x = Custos de Vendas (CMV, Compras de Mercadoria, Fretes de Vendas)
+- 3.2.x = Despesas Variáveis (Comissões, Representantes, Embalagens)
+- 3.3.x = Despesas Fixas (Salários, Aluguel, Água, Luz, Internet, Software, Manutenção)
+- 3.4.x = Impostos e Tributos (ICMS, PIS, COFINS, ISS, Simples Nacional, IRPJ, CSLL)
+- 3.5.x = Outras Despesas Operacionais
+- 3.6.x = Despesas de Marketing e Publicidade
+- 3.7.x = Despesas Financeiras (Juros, Tarifas Bancárias, IOF)
+- 3.8.x = Retiradas dos Sócios (Pró-labore, Distribuição de Lucros)
+- 4.1.x = Receita Operacional Bruta
+- 4.2.x = Deduções da Receita
+- 5.x = Investimentos e Ativos
+- 6.x = Despesas Administrativas
 
-INSTRUÇÕES CRÍTICAS:
-1. Use os EXEMPLOS ACIMA como referência principal - eles refletem as classificações do gerente financeiro
-2. Use EXATAMENTE o nome da conta conforme listado acima no campo "plano_contas_nome"
-3. Se não encontrar conta específica, escolha a conta de GRUPO (nível superior) mais relacionada
-4. NUNCA invente nomes de contas que não existem na lista
-5. Priorize o código DRE gerencial quando disponível
+INSTRUÇÕES:
+1. Analise a categoria, fornecedor e tipo de documento
+2. Escolha a conta contábil mais específica disponível na lista
+3. Use EXATAMENTE o código e nome da conta conforme listado acima
+4. Se não encontrar conta específica, use a conta de grupo mais próxima
+5. NUNCA invente códigos ou nomes que não estão na lista
 
-GUIA DE CLASSIFICAÇÃO POR TIPO:
-- revenue: Receitas de vendas, serviços prestados
-- expense: Despesas operacionais gerais (administrativas, comerciais)
-- cost_center: Custos de produção, centros de custo
-- budget: Orçamentos e previsões
-- asset: Investimentos em ativos, imobilizado
-- liability: Obrigações, empréstimos, financiamentos
+DEPARTAMENTOS POR TIPO DE DESPESA:
+- Financeiro: Impostos, tributos, tarifas bancárias, juros
+- RH: Salários, benefícios, encargos trabalhistas, férias, 13º
+- Comercial: Comissões, representantes, fretes de vendas
+- Marketing: Publicidade, propaganda, mídia
+- Operações: Aluguel, utilidades (água, luz), manutenção
+- TI: Software, equipamentos de informática
+- Administrativo: Despesas gerais, material de escritório
 
 Retorne SEMPRE um JSON válido com esta estrutura:
 {
   "departamento_nome": "nome EXATO do departamento da lista",
+  "plano_contas_codigo": "código EXATO da conta (ex: 3.3.01)",
   "plano_contas_nome": "nome EXATO da conta da lista",
-  "confianca": 0.95,
+  "confianca": 0.85,
   "justificativa": "breve explicação"
 }`;
 
@@ -206,7 +146,7 @@ Categoria: ${group.categoria_nome}
 Fornecedor: ${group.fornecedor_nome || 'N/A'}
 Tipo Documento: ${group.tipo_documento || 'N/A'}
 
-Escolha o departamento e conta contábil mais adequados.`;
+Escolha o departamento e conta contábil mais adequados baseado no plano de contas disponível.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -215,12 +155,12 @@ Escolha o departamento e conta contábil mais adequados.`;
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.3
+        temperature: 0.2
       })
     });
 
@@ -249,21 +189,28 @@ Escolha o departamento e conta contábil mais adequados.`;
       d.nome.toLowerCase() === classification.departamento_nome?.toLowerCase()
     );
     
+    // Buscar conta por código OU por nome
     let conta = planoContas.find(p => 
-      p.name.toLowerCase() === classification.plano_contas_nome?.toLowerCase()
+      p.code === classification.plano_contas_codigo
     );
+    
+    if (!conta && classification.plano_contas_nome) {
+      conta = planoContas.find(p => 
+        p.name.toLowerCase() === classification.plano_contas_nome?.toLowerCase()
+      );
+    }
 
     if (!dept) {
       console.warn(`❌ Departamento não encontrado: ${classification.departamento_nome}`);
     }
     if (!conta) {
-      console.warn(`❌ Conta não encontrada: ${classification.plano_contas_nome}`);
+      console.warn(`❌ Conta não encontrada: ${classification.plano_contas_codigo} / ${classification.plano_contas_nome}`);
     } else {
       console.log(`✓ Conta encontrada: ${conta.code} - ${conta.name}`);
     }
 
     // Salvar regra aprendida
-    if (dept) {
+    if (dept && conta) {
       await supabase
         .from("account_classification_rules")
         .insert({
@@ -271,7 +218,7 @@ Escolha o departamento e conta contábil mais adequados.`;
           fornecedor_nome: group.fornecedor_nome || null,
           tipo_documento: group.tipo_documento || null,
           departamento_id: dept.id,
-          plano_contas_id: conta?.id || null,
+          plano_contas_id: conta.id,
           confidence_score: classification.confianca || 0.8,
           times_used: group.count,
           last_used_at: new Date().toISOString()
@@ -361,7 +308,8 @@ serve(async (req) => {
 
     const { data: planoContas, error: planoError } = await supabase
       .from("trade_chart_of_accounts")
-      .select("id, code, name, account_type, codigo_dre_gerencial")
+      .select("id, code, name, account_type, active")
+      .eq("active", true)
       .order("code");
 
     if (planoError) throw new Error(`Erro plano de contas: ${planoError.message}`);

@@ -93,22 +93,43 @@ serve(async (req) => {
       console.error("Erro ao buscar departamentos:", deptError);
     }
 
-  // 3. Buscar contexto: plano de contas
-  const { data: planoContas, error: planoError } = await supabase
-    .from("trade_chart_of_accounts")
-    .select("id, code, name, account_type, parent_id")
-    .eq("active", true)
-    .order("code");
+    // 3. Buscar contexto: plano de contas
+    const { data: planoContas, error: planoError } = await supabase
+      .from("trade_chart_of_accounts")
+      .select("id, code, name, account_type, parent_id")
+      .eq("active", true)
+      .order("code");
 
     if (planoError) {
       console.error("Erro ao buscar plano de contas:", planoError);
     }
 
-    // 4. Preparar prompt para IA
+    // 4. Preparar prompt para IA (sem exemplos hardcoded do gerente)
     const systemPrompt = `Você é um especialista em contabilidade e classificação fiscal brasileira.
 Sua tarefa é analisar uma conta a pagar e sugerir:
 1. A conta do plano de contas mais adequada
 2. O departamento responsável pela despesa
+
+GUIA DE CLASSIFICAÇÃO POR ESTRUTURA CONTÁBIL:
+- 3.1.x = Custos de Vendas (CMV, Compras de Mercadoria, Fretes de Vendas)
+- 3.2.x = Despesas Variáveis (Comissões, Representantes, Embalagens)
+- 3.3.x = Despesas Fixas (Salários, Aluguel, Água, Luz, Internet, Software, Manutenção)
+- 3.4.x = Impostos e Tributos (ICMS, PIS, COFINS, ISS, Simples Nacional, IRPJ, CSLL)
+- 3.5.x = Outras Despesas Operacionais
+- 3.6.x = Despesas de Marketing e Publicidade
+- 3.7.x = Despesas Financeiras (Juros, Tarifas Bancárias, IOF)
+- 3.8.x = Retiradas dos Sócios (Pró-labore, Distribuição de Lucros)
+- 4.1.x = Receita Operacional Bruta
+- 4.2.x = Deduções da Receita
+
+DEPARTAMENTOS POR TIPO DE DESPESA:
+- Financeiro: Impostos, tributos, tarifas bancárias, juros
+- RH: Salários, benefícios, encargos trabalhistas, férias, 13º
+- Comercial: Comissões, representantes, fretes de vendas
+- Marketing: Publicidade, propaganda, mídia
+- Operações: Aluguel, utilidades (água, luz), manutenção
+- TI: Software, equipamentos de informática
+- Administrativo: Despesas gerais, material de escritório
 
 Considere:
 - Natureza da despesa (tributos, fornecedores, serviços, etc.)
@@ -118,9 +139,9 @@ Considere:
 
 Retorne APENAS um objeto JSON com a estrutura:
 {
-  "plano_contas_codigo": "código da conta",
+  "plano_contas_codigo": "código da conta (ex: 3.3.01)",
   "departamento_nome": "nome do departamento",
-  "confianca": 0.95,
+  "confianca": 0.85,
   "justificativa": "explicação breve"
 }`;
 
@@ -136,7 +157,7 @@ Departamentos disponíveis:
 ${departamentos?.map(d => `- ${d.nome}: ${d.descricao || ""}`).join("\n") || "Nenhum"}
 
 Plano de Contas disponível:
-${planoContas?.slice(0, 30).map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") || "Nenhum"}`;
+${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") || "Nenhum"}`;
 
     // 5. Chamar Lovable AI
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
@@ -152,12 +173,12 @@ ${planoContas?.slice(0, 30).map(p => `- ${p.code} ${p.name} (${p.account_type})`
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.3,
+        temperature: 0.2,
       }),
     });
 
@@ -190,7 +211,7 @@ ${planoContas?.slice(0, 30).map(p => `- ${p.code} ${p.name} (${p.account_type})`
 
     const classification = JSON.parse(jsonMatch[0]);
 
-    // 7. Encontrar IDs correspondentes (melhorado)
+    // 7. Encontrar IDs correspondentes
     let planoMatch = planoContas?.find(
       p => p.code === classification.plano_contas_codigo
     );
