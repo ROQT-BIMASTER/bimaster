@@ -243,10 +243,15 @@ export function ContasPagarDREView({
   const { hierarquia, totais, totalGeral } = useMemo(() => {
     if (!lancamentos || !planoContas) return { hierarquia: [], totais: { valoresMes: {}, total: 0 }, totalGeral: 0 };
 
+    // Map plano de contas por id (muitos lançamentos têm plano_contas_id mas plano_contas_codigo/nome nulos)
+    const planoById = new Map<string, PlanoContas>();
+    planoContas.forEach((p) => planoById.set(p.id, p));
+
     // Group lancamentos by plano_contas_codigo
     const lancamentosPorConta: Record<string, ContaPagar[]> = {};
     lancamentos.forEach(l => {
-      const codigo = l.plano_contas_codigo || 'SEM_CLASSIFICACAO';
+      const plano = l.plano_contas_id ? planoById.get(l.plano_contas_id) : undefined;
+      const codigo = l.plano_contas_codigo || plano?.code || 'SEM_CLASSIFICACAO';
       if (!lancamentosPorConta[codigo]) {
         lancamentosPorConta[codigo] = [];
       }
