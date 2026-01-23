@@ -97,7 +97,10 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         supabase.from("stores").select("*").eq("status", "active").order("name"),
         supabase.from("products").select("*").eq("active", true).eq("is_our_product", true),
         supabase.from("promotions").select("*").eq("status", "active"),
-        supabase.from("trade_campaigns").select("id, name, code, status").in("status", ["approved", "active"]).order("name"),
+        supabase.from("trade_campaigns").select(`
+          id, name, code, status, estimated_cost,
+          trade_budgets!trade_campaigns_budget_id_fkey(id, name, total_amount, committed_amount, executed_amount)
+        `).in("status", ["approved", "active"]).order("name"),
       ]);
 
       if (storesData.data) {
@@ -408,9 +411,9 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         });
       }
 
-      // 5. Create campaign expense record
+      // 5. Create campaign expense record - Status pending para aprovação
       if (formData.campaign_id && formData.expense_amount > 0) {
-        await supabase.from("trade_campaign_expenses").insert({
+        const { error: expenseError } = await supabase.from("trade_campaign_expenses").insert({
           campaign_id: formData.campaign_id,
           category: 'gasto_realizado',
           description: formData.expense_description || 'Gasto registrado via lançamento rápido',
@@ -418,9 +421,17 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           expense_date: formData.visit_date,
           evidencias: formData.evidence_urls,
           comprovante_url: formData.evidence_urls[0] || null,
-          status: 'approved',
+          status: 'pending', // Enviado para aprovação
           created_by: user.id,
+          notes: `Visita: ${visitCode} | Loja: ${stores.find(s => s.id === formData.store_id)?.name || 'N/A'}`,
         });
+        
+        if (expenseError) {
+          console.error('Erro ao criar despesa:', expenseError);
+          toast.error('Erro ao registrar gasto da campanha');
+        } else {
+          toast.info('Gasto enviado para aprovação');
+        }
       }
 
       // 5. Create AI insights from analysis
@@ -571,7 +582,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <CheckCircle2 className="h-5 w-5 text-primary" />
               Lançamento Concluído!
             </DialogTitle>
           </DialogHeader>
@@ -1038,23 +1049,61 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                     <Tag className="h-4 w-4" />
                     Campanha e Gasto Realizado
                   </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    O gasto será enviado para aprovação antes de debitar da verba
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label>Selecione a Campanha</Label>
-                    <Select value={formData.campaign_id} onValueChange={(value) => setFormData(prev => ({ ...prev, campaign_id: value }))}>
+                    <Select value={formData.campaign_id} onValueChange={(value) => setFormData(prev => ({ ...prev, campaign_id: value, expense_amount: 0, expense_description: "", evidence_urls: [], evidence_files: [] }))}>
                       <SelectTrigger>
                         <SelectValue placeholder="Nenhuma campanha" />
                       </SelectTrigger>
                       <SelectContent>
-                        {campaigns.map((camp) => (
-                          <SelectItem key={camp.id} value={camp.id}>
-                            {camp.name} - {camp.code}
-                          </SelectItem>
-                        ))}
+                        {campaigns.map((camp) => {
+                          const budget = camp.trade_budgets;
+                          const available = budget ? (budget.total_amount - (budget.committed_amount || 0) - (budget.executed_amount || 0)) : 0;
+                          return (
+                            <SelectItem key={camp.id} value={camp.id}>
+                              <div className="flex flex-col">
+                                <span>{camp.name} - {camp.code}</span>
+                                {budget && (
+                                  <span className="text-xs text-muted-foreground">
+                                    Verba disponível: R$ {available.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  {/* Mostrar info da verba quando campanha selecionada */}
+                  {formData.campaign_id && (() => {
+                    const selectedCamp = campaigns.find(c => c.id === formData.campaign_id);
+                    const budget = selectedCamp?.trade_budgets;
+                    if (!budget) return null;
+                    const available = budget.total_amount - (budget.committed_amount || 0) - (budget.executed_amount || 0);
+                    const isOverBudget = formData.expense_amount > available;
+                    return (
+                      <div className={`p-3 rounded-lg border ${isOverBudget ? 'bg-destructive/10 border-destructive' : 'bg-muted/50'}`}>
+                        <div className="flex justify-between text-sm">
+                          <span>Verba: {budget.name}</span>
+                          <span className={`font-medium ${isOverBudget ? 'text-destructive' : 'text-primary'}`}>
+                            Disponível: R$ {available.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        {isOverBudget && (
+                          <p className="text-xs text-destructive mt-1">
+                            ⚠️ Valor excede a verba disponível - será analisado na aprovação
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {formData.campaign_id && (
                     <>
