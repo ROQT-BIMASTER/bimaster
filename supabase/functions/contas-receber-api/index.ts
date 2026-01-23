@@ -16,7 +16,7 @@ const BATCH_DELAY_MS = 50;          // Delay reduzido entre mini-batches
 const MAX_RETRIES = 2;              // Menos retries
 const RETRY_BASE_DELAY_MS = 300;    
 const RECOMMENDED_CHUNK_SIZE = 100; 
-const API_VERSION = '3.8.4';
+const API_VERSION = '3.8.5';
 
 // =====================================================
 // RATE LIMITER - MANTIDO PARA COMPATIBILIDADE MAS NÃO USADO NO /sync
@@ -750,18 +750,27 @@ Deno.serve(async (req) => {
       // Rate limiter para bulk
       const { slot_id, error: slotError } = await waitForSlot(supabase, 'sync_cr_bulk');
       
+      // CORREÇÃO v3.8.5: Retornar HTTP 429 para N8N fazer retry automático (igual contas-pagar-api)
       if (slotError) {
-        // Para N8N não quebrar loop: responder 200 e instruir retry
+        const activeSlots = await getActiveSlotCount(supabase, 'sync_cr_bulk');
         return new Response(JSON.stringify({
-          success: true,
-          continue_loop: true,
-          mode: 'bulk',
-          statistics: { total: contas.length, processed: 0, errors: 0, rate_per_second: 0 },
-          retry_after_ms: 10000,
-          message: 'Rate limit - retry bulk in 10 seconds',
+          success: false,
+          error: 'Rate limit exceeded - too many concurrent requests',
+          retry_after_ms: 5000,
+          queue_info: {
+            max_concurrent: MAX_CONCURRENT_SYNCS,
+            active_syncs: activeSlots
+          },
           api_version: API_VERSION
         }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': '5',
+            'X-RateLimit-Limit': String(MAX_CONCURRENT_SYNCS),
+            'X-RateLimit-Remaining': '0'
+          }
         });
       }
 
