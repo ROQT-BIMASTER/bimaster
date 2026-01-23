@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, ClipboardEdit, TrendingUp, Package, Receipt, CheckCircle, History, Loader2 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
-import { CampaignLancamentoForm } from "@/components/trade/campaigns/CampaignLancamentoForm";
+import { CampaignLancamentosList } from "@/components/trade/campaigns/CampaignLancamentosList";
 import { CampaignSellComparison } from "@/components/trade/campaigns/CampaignSellComparison";
 import { CampaignProducts } from "@/components/trade/campaigns/CampaignProducts";
 import { CampaignExpenses } from "@/components/trade/campaigns/CampaignExpenses";
@@ -200,7 +200,7 @@ export default function TradeCampaignDetail() {
           </TabsList>
 
           <TabsContent value="lancamento" className="mt-6">
-            <CampaignLancamentoForm campaign={campaign} />
+            <CampaignLancamentosList campaign={campaign} />
           </TabsContent>
 
           <TabsContent value="sell" className="mt-6">

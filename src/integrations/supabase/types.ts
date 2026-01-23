@@ -13570,6 +13570,120 @@ export type Database = {
           },
         ]
       }
+      trade_campaign_lancamentos: {
+        Row: {
+          acoes_manuais: string | null
+          campaign_id: string
+          created_at: string
+          created_by: string | null
+          crescimento_percentual: number | null
+          customer_id: string | null
+          data_lancamento: string
+          evidencias: Json | null
+          id: string
+          roi_percentual: number | null
+          roi_valor: number | null
+          sell_out_anterior: number | null
+          sell_out_atual: number | null
+          status: string | null
+          store_id: string | null
+          tipo_brinde: string | null
+          unon_anterior: number | null
+          unon_atual: number | null
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          validation_notes: string | null
+          valor_pedido: number | null
+        }
+        Insert: {
+          acoes_manuais?: string | null
+          campaign_id: string
+          created_at?: string
+          created_by?: string | null
+          crescimento_percentual?: number | null
+          customer_id?: string | null
+          data_lancamento?: string
+          evidencias?: Json | null
+          id?: string
+          roi_percentual?: number | null
+          roi_valor?: number | null
+          sell_out_anterior?: number | null
+          sell_out_atual?: number | null
+          status?: string | null
+          store_id?: string | null
+          tipo_brinde?: string | null
+          unon_anterior?: number | null
+          unon_atual?: number | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
+          valor_pedido?: number | null
+        }
+        Update: {
+          acoes_manuais?: string | null
+          campaign_id?: string
+          created_at?: string
+          created_by?: string | null
+          crescimento_percentual?: number | null
+          customer_id?: string | null
+          data_lancamento?: string
+          evidencias?: Json | null
+          id?: string
+          roi_percentual?: number | null
+          roi_valor?: number | null
+          sell_out_anterior?: number | null
+          sell_out_atual?: number | null
+          status?: string | null
+          store_id?: string | null
+          tipo_brinde?: string | null
+          unon_anterior?: number | null
+          unon_atual?: number | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
+          valor_pedido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_campaign_lancamentos_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_lancamentos_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_lancamentos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_lancamentos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_lancamentos_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_campaign_orders: {
         Row: {
           campaign_id: string

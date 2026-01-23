@@ -13,18 +13,19 @@ import {
   Calendar, 
   Gift,
   FileText,
-  Camera,
   Save,
   Loader2,
   X,
-  Upload
+  Upload,
+  Building2,
+  Plus
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatCurrency } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Campaign {
   id: string;
@@ -34,28 +35,38 @@ interface Campaign {
   start_date: string;
   end_date: string;
   estimated_cost: number;
-  actual_cost: number | null;
+  actual_cost?: number | null;
   verba_prevista: number;
   verba_orcada: number;
-  sell_in_anterior: number;
-  sell_in_atual: number;
-  sell_out_anterior: number;
-  sell_out_atual: number;
-  crescimento_percentual: number | null;
-  roi_percentual: number | null;
-  roi_valor: number | null;
-  valor_pedido?: number | null;
-  tipo_brinde?: string | null;
-  acoes_manuais?: string | null;
-  unon_anterior?: number | null;
-  unon_atual?: number | null;
   budget?: { name: string; code: string } | null;
   responsible?: { nome: string } | null;
 }
 
+interface Lancamento {
+  id: string;
+  campaign_id: string;
+  customer_id: string | null;
+  data_lancamento: string;
+  valor_pedido: number;
+  tipo_brinde: string | null;
+  acoes_manuais: string | null;
+  sell_out_anterior: number;
+  sell_out_atual: number;
+  unon_anterior: number;
+  unon_atual: number;
+  crescimento_percentual: number | null;
+  roi_percentual: number | null;
+  status: string;
+  evidencias: string[];
+  cliente_nome?: string;
+}
+
 interface CampaignLancamentoFormProps {
   campaign: Campaign;
+  lancamentoId?: string | null;
+  customerId?: string | null;
   onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
 const BRINDE_OPTIONS = [
@@ -67,23 +78,78 @@ const BRINDE_OPTIONS = [
   { value: "outro", label: "Outro" },
 ];
 
-export function CampaignLancamentoForm({ campaign, onSuccess }: CampaignLancamentoFormProps) {
+export function CampaignLancamentoForm({ 
+  campaign, 
+  lancamentoId,
+  customerId,
+  onSuccess,
+  onCancel 
+}: CampaignLancamentoFormProps) {
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(customerId || null);
   
   // Form state
   const [formData, setFormData] = useState({
-    valor_pedido: campaign.valor_pedido || 0,
-    tipo_brinde: campaign.tipo_brinde || "",
-    acoes_manuais: campaign.acoes_manuais || "",
-    sell_out_anterior: campaign.sell_out_anterior || 0,
-    sell_out_atual: campaign.sell_out_atual || 0,
-    unon_anterior: campaign.unon_anterior || 0,
-    unon_atual: campaign.unon_atual || 0,
+    valor_pedido: 0,
+    tipo_brinde: "",
+    acoes_manuais: "",
+    sell_out_anterior: 0,
+    sell_out_atual: 0,
+    unon_anterior: 0,
+    unon_atual: 0,
   });
 
   const [evidencias, setEvidencias] = useState<string[]>([]);
+
+  // Fetch existing lancamento if editing
+  const { data: existingLancamento, isLoading: isLoadingLancamento } = useQuery({
+    queryKey: ["lancamento", lancamentoId],
+    queryFn: async () => {
+      if (!lancamentoId) return null;
+      
+      const { data, error } = await supabase
+        .from("trade_campaign_lancamentos")
+        .select("*")
+        .eq("id", lancamentoId)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!lancamentoId,
+  });
+
+  // Fetch customers (prospects)
+  const { data: customers } = useQuery({
+    queryKey: ["prospects-for-lancamento"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("prospects")
+        .select("id, nome_empresa")
+        .order("nome_empresa");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Load existing data when editing
+  useEffect(() => {
+    if (existingLancamento) {
+      setFormData({
+        valor_pedido: existingLancamento.valor_pedido || 0,
+        tipo_brinde: existingLancamento.tipo_brinde || "",
+        acoes_manuais: existingLancamento.acoes_manuais || "",
+        sell_out_anterior: existingLancamento.sell_out_anterior || 0,
+        sell_out_atual: existingLancamento.sell_out_atual || 0,
+        unon_anterior: existingLancamento.unon_anterior || 0,
+        unon_atual: existingLancamento.unon_atual || 0,
+      });
+      setSelectedCustomerId(existingLancamento.customer_id);
+      setEvidencias((existingLancamento.evidencias as string[]) || []);
+    }
+  }, [existingLancamento]);
 
   // Cálculos automáticos
   const incrementoValor = formData.sell_out_atual - formData.sell_out_anterior;
@@ -123,12 +189,6 @@ export function CampaignLancamentoForm({ campaign, onSuccess }: CampaignLancamen
       ...prev,
       [field]: value
     }));
-  };
-
-  const parseCurrencyInput = (value: string): number => {
-    // Remove tudo exceto números e vírgula/ponto
-    const cleaned = value.replace(/[^\d,.-]/g, '').replace(',', '.');
-    return parseFloat(cleaned) || 0;
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,6 +239,11 @@ export function CampaignLancamentoForm({ campaign, onSuccess }: CampaignLancamen
   };
 
   const handleSave = async () => {
+    if (!selectedCustomerId) {
+      toast.error("Selecione um cliente para o lançamento");
+      return;
+    }
+
     setIsSaving(true);
     
     try {
@@ -188,65 +253,51 @@ export function CampaignLancamentoForm({ campaign, onSuccess }: CampaignLancamen
         return;
       }
 
-      // Atualizar campanha com os dados do lançamento
-      const { error: updateError } = await supabase
-        .from("trade_campaigns")
-        .update({
-          valor_pedido: formData.valor_pedido,
-          tipo_brinde: formData.tipo_brinde || null,
-          acoes_manuais: formData.acoes_manuais || null,
-          sell_out_anterior: formData.sell_out_anterior,
-          sell_out_atual: formData.sell_out_atual,
-          unon_anterior: formData.unon_anterior,
-          unon_atual: formData.unon_atual,
-          crescimento_percentual: crescimentoPercentual,
-          roi_percentual: roiPercentual,
-          roi_valor: incrementoValor,
-          validation_status: 'pending', // Marcar para validação
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", campaign.id);
+      const lancamentoData = {
+        campaign_id: campaign.id,
+        customer_id: selectedCustomerId,
+        data_lancamento: new Date().toISOString().split('T')[0],
+        valor_pedido: formData.valor_pedido,
+        tipo_brinde: formData.tipo_brinde || null,
+        acoes_manuais: formData.acoes_manuais || null,
+        sell_out_anterior: formData.sell_out_anterior,
+        sell_out_atual: formData.sell_out_atual,
+        unon_anterior: formData.unon_anterior,
+        unon_atual: formData.unon_atual,
+        roi_percentual: roiPercentual,
+        roi_valor: incrementoValor,
+        evidencias: evidencias,
+        status: 'pending',
+        created_by: user.id,
+      };
 
-      if (updateError) {
-        console.error('Update error:', updateError);
-        toast.error("Erro ao salvar lançamento");
-        return;
-      }
+      if (lancamentoId) {
+        // Update existing
+        const { error } = await supabase
+          .from("trade_campaign_lancamentos")
+          .update({
+            ...lancamentoData,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", lancamentoId);
 
-      // Se houver evidências, criar registro de despesa com as evidências
-      if (evidencias.length > 0) {
-        const { error: expenseError } = await supabase
-          .from("trade_campaign_expenses")
-          .insert({
-            campaign_id: campaign.id,
-            category: "lancamento_pdv",
-            description: `Lançamento PDV - ${campaign.name}`,
-            valor_realizado: formData.valor_pedido,
-            expense_date: new Date().toISOString().split('T')[0],
-            evidencias: evidencias,
-            comprovante_url: evidencias[0] || null,
-            status: "pending",
-            created_by: user.id,
-          });
+        if (error) throw error;
+      } else {
+        // Insert new
+        const { error } = await supabase
+          .from("trade_campaign_lancamentos")
+          .insert(lancamentoData);
 
-        if (expenseError) {
-          console.error('Expense error:', expenseError);
-          // Não bloquear se falhar, apenas avisar
-          toast.warning("Lançamento salvo, mas houve erro ao vincular evidências");
-        }
+        if (error) throw error;
       }
 
       // Registrar no audit log
       await supabase.from("trade_campaign_audit_log").insert({
         campaign_id: campaign.id,
-        action: "lancamento_pdv",
+        action: lancamentoId ? "update_lancamento" : "create_lancamento",
         user_id: user.id,
-        old_data: {
-          valor_pedido: campaign.valor_pedido,
-          sell_out_anterior: campaign.sell_out_anterior,
-          sell_out_atual: campaign.sell_out_atual,
-        },
         new_data: {
+          customer_id: selectedCustomerId,
           valor_pedido: formData.valor_pedido,
           sell_out_anterior: formData.sell_out_anterior,
           sell_out_atual: formData.sell_out_atual,
@@ -256,10 +307,11 @@ export function CampaignLancamentoForm({ campaign, onSuccess }: CampaignLancamen
         },
       });
 
-      toast.success("Lançamento salvo com sucesso! Aguardando aprovação.");
+      toast.success(lancamentoId ? "Lançamento atualizado!" : "Lançamento criado! Aguardando aprovação.");
       
       // Invalidar cache para atualizar a UI
-      queryClient.invalidateQueries({ queryKey: ["campaign"] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-lancamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["lancamento"] });
       
       onSuccess?.();
     } catch (err) {
@@ -269,6 +321,16 @@ export function CampaignLancamentoForm({ campaign, onSuccess }: CampaignLancamen
       setIsSaving(false);
     }
   };
+
+  const selectedCustomer = customers?.find(c => c.id === selectedCustomerId);
+
+  if (isLoadingLancamento) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -290,7 +352,7 @@ export function CampaignLancamentoForm({ campaign, onSuccess }: CampaignLancamen
             <div className="flex flex-col items-start md:items-end gap-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
-                <span>Data Entrada</span>
+                <span>Período</span>
               </div>
               <p className="text-lg font-semibold">
                 {format(new Date(campaign.start_date), "dd/MM/yyyy", { locale: ptBR })}
@@ -300,6 +362,34 @@ export function CampaignLancamentoForm({ campaign, onSuccess }: CampaignLancamen
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Seleção de Cliente */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Building2 className="h-5 w-5 text-primary" />
+            Cliente / PDV
+          </CardTitle>
+          <CardDescription>Selecione o cliente para este lançamento</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select
+            value={selectedCustomerId || ""}
+            onValueChange={setSelectedCustomerId}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Selecione o cliente..." />
+            </SelectTrigger>
+            <SelectContent>
+              {customers?.map((customer) => (
+                <SelectItem key={customer.id} value={customer.id}>
+                  {customer.nome_empresa}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 
@@ -468,7 +558,7 @@ export function CampaignLancamentoForm({ campaign, onSuccess }: CampaignLancamen
                 )}
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Crescimento (Calculado)</p>
+                <p className="text-sm text-muted-foreground">Crescimento</p>
                 <p className={`text-2xl font-bold ${
                   crescimentoPositivo ? 'text-green-600' : 'text-red-600'
                 }`}>
@@ -476,128 +566,111 @@ export function CampaignLancamentoForm({ campaign, onSuccess }: CampaignLancamen
                 </p>
               </div>
             </div>
-            <div className="text-left md:text-right">
+            <div className="h-12 w-px bg-border hidden md:block" />
+            <div>
               <p className="text-sm text-muted-foreground">Valor Incremento</p>
-              <p className={`text-xl font-bold ${
+              <p className={`text-2xl font-bold ${
                 incrementoValor >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
-                {formatCurrency(incrementoValor)}
+                {formatCurrency(Math.abs(incrementoValor))}
+              </p>
+            </div>
+            <div className="h-12 w-px bg-border hidden md:block" />
+            <div>
+              <p className="text-sm text-muted-foreground">ROI Calculado</p>
+              <p className={`text-2xl font-bold ${
+                roiPositivo ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {formatPercent(roiPercentual)}
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Seção: ROI Calculado */}
-      <Card className={`border-2 ${
-        roiPositivo 
-          ? 'border-green-200 bg-gradient-to-r from-green-50/50 to-transparent' 
-          : 'border-red-200 bg-gradient-to-r from-red-50/50 to-transparent'
-      }`}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">ROI da Campanha (Calculado)</CardTitle>
-          <CardDescription>Baseado no incremento de vendas vs verba orçada</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 rounded-xl bg-background/80">
-              <p className={`text-5xl font-bold ${
-                roiPositivo ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {roiPercentual.toFixed(0)}%
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">ROI Percentual</p>
-            </div>
-            <div className="text-center p-4 rounded-xl bg-background/80">
-              <p className={`text-3xl font-bold ${
-                roiPositivo ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {formatCurrency(incrementoValor)}
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">Valor Absoluto</p>
-            </div>
-            <div className="flex items-center justify-center p-4 rounded-xl bg-background/80">
-              <div className="text-center">
-                <p className="text-lg font-semibold">{formatCurrency(custoBase)}</p>
-                <p className="text-sm text-muted-foreground">Verba Orçada</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Seção: Upload de Evidências */}
+      {/* Seção: Evidências */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Camera className="h-5 w-5 text-primary" />
-            Evidências (Fotos/Comprovantes)
+            <Upload className="h-5 w-5 text-primary" />
+            Evidências e Comprovantes
           </CardTitle>
-          <CardDescription>Anexe fotos da execução no PDV</CardDescription>
+          <CardDescription>Anexe fotos e comprovantes da execução</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Upload Zone */}
-          <div className="border-2 border-dashed rounded-xl p-6 text-center hover:border-primary/50 transition-colors">
-            <input
-              type="file"
-              id="evidencias"
-              multiple
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileUpload}
-              disabled={isUploading}
-            />
-            <label 
-              htmlFor="evidencias" 
-              className="cursor-pointer flex flex-col items-center gap-2"
-            >
-              {isUploading ? (
-                <Loader2 className="h-10 w-10 text-muted-foreground animate-spin" />
-              ) : (
-                <Upload className="h-10 w-10 text-muted-foreground" />
-              )}
-              <span className="text-sm text-muted-foreground">
-                {isUploading ? "Enviando..." : "Clique para adicionar fotos"}
-              </span>
-            </label>
-          </div>
-
-          {/* Preview das Evidências */}
-          {evidencias.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {evidencias.map((url, index) => (
-                <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border">
-                  <img 
-                    src={url} 
-                    alt={`Evidência ${index + 1}`} 
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeEvidencia(index)}
-                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
+          <div className="space-y-4">
+            {/* Upload Area */}
+            <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+              <input
+                type="file"
+                id="file-upload"
+                multiple
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={handleFileUpload}
+                disabled={isUploading}
+              />
+              <label
+                htmlFor="file-upload"
+                className="cursor-pointer flex flex-col items-center gap-2"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                ) : (
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                )}
+                <p className="text-sm text-muted-foreground">
+                  {isUploading ? "Enviando..." : "Clique ou arraste arquivos aqui"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Imagens ou PDFs
+                </p>
+              </label>
             </div>
-          )}
+
+            {/* Preview Grid */}
+            {evidencias.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {evidencias.map((url, index) => (
+                  <div key={index} className="relative group aspect-square">
+                    <img
+                      src={url}
+                      alt={`Evidência ${index + 1}`}
+                      className="w-full h-full object-cover rounded-lg border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeEvidencia(index)}
+                      className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
       {/* Botões de Ação */}
-      <div className="flex justify-end gap-3 pt-4 border-t">
-        <Button variant="outline" disabled={isSaving}>
-          Cancelar
-        </Button>
-        <Button onClick={handleSave} disabled={isSaving} className="gap-2">
+      <div className="flex justify-end gap-3">
+        {onCancel && (
+          <Button variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
+        <Button
+          onClick={handleSave}
+          disabled={isSaving || !selectedCustomerId}
+          className="gap-2"
+        >
           {isSaving ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Save className="h-4 w-4" />
           )}
-          Salvar Lançamento
+          {lancamentoId ? "Atualizar Lançamento" : "Salvar Lançamento"}
         </Button>
       </div>
     </div>
