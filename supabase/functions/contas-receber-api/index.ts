@@ -7,24 +7,24 @@ const corsHeaders = {
 };
 
 // =====================================================
-// CONFIGURAÇÕES DE PERFORMANCE - v3.8.4 (SEM RATE LIMITER - PARALLEL FIRST)
+// CONFIGURAÇÕES DE PERFORMANCE - v3.8.8 (RATE LIMITER ATIVO PARA N8N SEQUENCIAL)
 // =====================================================
 const BULK_BATCH_SIZE = 10000;      // 10k por batch SQL
 const MAX_PAYLOAD_SIZE = 50000;     // 50k registros max por request
 const UPSERT_BATCH_SIZE = 100;      // Batches menores para estabilidade
-const BATCH_DELAY_MS = 50;          // Delay reduzido entre mini-batches
+const BATCH_DELAY_MS = 150;         // 150ms entre mini-batches (era 50ms)
 const MAX_RETRIES = 2;              // Menos retries
 const RETRY_BASE_DELAY_MS = 300;    
 const RECOMMENDED_CHUNK_SIZE = 100; 
-const API_VERSION = '3.8.7';
+const API_VERSION = '3.8.8';
 
 // =====================================================
-// RATE LIMITER - MANTIDO PARA COMPATIBILIDADE MAS NÃO USADO NO /sync
+// RATE LIMITER - ATIVO PARA CONTROLE DE CONCORRÊNCIA N8N
 // =====================================================
-const MAX_CONCURRENT_SYNCS = 100;   // Limite alto (efetivamente desabilitado)
-const SLOT_TIMEOUT_MS = 30000;      // 30 segundos por slot
-const WAIT_RETRY_MS = 100;          // Intervalo entre tentativas
-const MAX_WAIT_RETRIES = 5;         // ~0.5s de espera total
+const MAX_CONCURRENT_SYNCS = 2;     // Máximo 2 syncs simultâneos (era 100)
+const SLOT_TIMEOUT_MS = 60000;      // 60 segundos por slot (era 30s)
+const WAIT_RETRY_MS = 500;          // 500ms entre tentativas (era 100ms)
+const MAX_WAIT_RETRIES = 10;        // ~5s de espera total (era 0.5s)
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -514,7 +514,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============ POST /sync - PRINCIPAL ENDPOINT N8N (COM RATE LIMITER) ============
+    // ============ POST /sync - PRINCIPAL ENDPOINT N8N (COM RATE LIMITER ATIVO) ============
     if (path.endsWith('/sync') && req.method === 'POST') {
       const startTime = Date.now();
       
@@ -558,11 +558,43 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`📦 [sync] Processing ${contas.length} records directly (no rate limiter)`);
+      // =====================================================
+      // v3.8.8: RATE LIMITER ATIVO PARA CONTROLE DE CONCORRÊNCIA
+      // =====================================================
+      console.log(`📦 [sync] ${contas.length} records - Acquiring slot...`);
+      
+      const { slot_id, error: slotError } = await waitForSlot(supabase, 'sync_cr');
+      
+      if (slotError) {
+        // Retornar HTTP 429 para N8N fazer retry automático
+        const activeSlots = await getActiveSlotCount(supabase, 'sync_cr');
+        console.log(`⏳ [sync] Rate limit exceeded - ${activeSlots}/${MAX_CONCURRENT_SYNCS} slots in use`);
+        
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Rate limit exceeded - request will be retried by N8N',
+          received: contas.length,
+          processed: 0,
+          retry_after_ms: 5000,
+          queue_info: {
+            max_concurrent: MAX_CONCURRENT_SYNCS,
+            active_syncs: activeSlots
+          },
+          api_version: API_VERSION
+        }), {
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': '5',
+            'X-RateLimit-Limit': String(MAX_CONCURRENT_SYNCS),
+            'X-RateLimit-Remaining': '0'
+          }
+        });
+      }
 
-      // =====================================================
-      // v3.8.4: PROCESSAMENTO DIRETO SEM RATE LIMITER
-      // =====================================================
+      console.log(`🔓 [sync] Slot acquired, processing ${contas.length} records...`);
+
       let processed = 0;
       let errors = 0;
       
@@ -573,6 +605,9 @@ Deno.serve(async (req) => {
       } catch (err) {
         console.error('[sync] Processing error:', err);
         // Mesmo com erro, não bloquear o loop N8N
+      } finally {
+        // SEMPRE liberar o slot
+        await releaseSlot(supabase, slot_id);
       }
 
       const duration = Date.now() - startTime;
@@ -589,13 +624,16 @@ Deno.serve(async (req) => {
         status: errors === 0 ? 'success' : 'partial'
       });
 
+      // Verificar slots disponíveis para informar N8N
+      const slotsRemaining = MAX_CONCURRENT_SYNCS - (await getActiveSlotCount(supabase, 'sync_cr'));
+
       return createN8nResponse({
         success: true,
         processed,
         received: contas.length,
         errors,
         duration_ms: duration
-      });
+      }, slotsRemaining);
     }
 
     // ============ POST /sync-chunk (COM RATE LIMITER) ============
