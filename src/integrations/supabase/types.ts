@@ -13577,7 +13577,6 @@ export type Database = {
           categoria_dre: string | null
           centro_custo: string | null
           code: string
-          codigo_dre_gerencial: string | null
           created_at: string | null
           departamento: string | null
           departamento_confianca: number | null
@@ -13600,7 +13599,6 @@ export type Database = {
           categoria_dre?: string | null
           centro_custo?: string | null
           code: string
-          codigo_dre_gerencial?: string | null
           created_at?: string | null
           departamento?: string | null
           departamento_confianca?: number | null
@@ -13623,7 +13621,6 @@ export type Database = {
           categoria_dre?: string | null
           centro_custo?: string | null
           code?: string
-          codigo_dre_gerencial?: string | null
           created_at?: string | null
           departamento?: string | null
           departamento_confianca?: number | null
