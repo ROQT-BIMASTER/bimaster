@@ -20,6 +20,7 @@ import {
 import { DashboardContasPagar } from "@/components/financeiro/DashboardContasPagar";
 import { CalendarioVencimentos } from "@/components/financeiro/CalendarioVencimentos";
 import { SofiaFloatingChat } from "@/components/financeiro/SofiaFloatingChat";
+import { ContasPagarDREView } from "@/components/financeiro/ContasPagarDREView";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from 'xlsx';
@@ -1185,6 +1186,10 @@ export default function ContasAPagar() {
               <Brain className="h-4 w-4" />
               Classificação IA
             </TabsTrigger>
+            <TabsTrigger value="visao-dre" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Visão DRE
+            </TabsTrigger>
           </TabsList>
 
           {/* Aba Dashboard Analítico */}
@@ -1195,6 +1200,16 @@ export default function ContasAPagar() {
           {/* Aba Calendário de Vencimentos */}
           <TabsContent value="calendario" className="space-y-6">
             <CalendarioVencimentos contas={contasCalendario || []} isLoading={isLoadingCalendario} />
+          </TabsContent>
+
+          {/* Aba Visão DRE */}
+          <TabsContent value="visao-dre" className="space-y-6">
+            <ContasPagarDREView 
+              filterAno={filterAno}
+              filterMes={filterMes}
+              filterEmpresas={filterEmpresas}
+              filterDepartamento={filterDepartamento}
+            />
           </TabsContent>
 
           {/* Aba de Contas a Pagar */}
