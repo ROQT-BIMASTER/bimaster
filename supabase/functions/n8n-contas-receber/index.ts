@@ -1395,17 +1395,53 @@ async function handleSyncIncremental(req: Request, supabase: any, userId: string
       console.log(`📄 Incremental page ${pagesProcessed}, ultimaData: ${currentUltimaData}`);
 
       // Buscar dados do N8N com filtro ultimaData (offset=0 pois paginação é por data)
-      const { response, method } = await fetchN8nWithFallback(
-        batchSize, 
-        0, // offset sempre 0 - paginação baseada em ultimaData
-        { ultimaData: currentUltimaData },
-        { maxRetries: MAX_RETRIES, timeoutMs: FETCH_TIMEOUT_MS }
-      );
-
-      if (!response.ok) {
+      // FALLBACK ADAPTATIVO: Se 503/500, reduz batchSize e tenta de novo
+      let currentBatchSize = batchSize;
+      let response: Response | null = null;
+      let method = 'POST';
+      let fetchAttempts = 0;
+      const MAX_FALLBACK_ATTEMPTS = 3;
+      
+      while (fetchAttempts < MAX_FALLBACK_ATTEMPTS) {
+        fetchAttempts++;
+        console.log(`🔄 Fetch attempt ${fetchAttempts}/${MAX_FALLBACK_ATTEMPTS} with batchSize=${currentBatchSize}`);
+        
+        const fetchResult = await fetchN8nWithFallback(
+          currentBatchSize, 
+          0, // offset sempre 0 - paginação baseada em ultimaData
+          { ultimaData: currentUltimaData },
+          { maxRetries: 2, timeoutMs: FETCH_TIMEOUT_MS } // Menos retries internos, mais fallbacks
+        );
+        
+        response = fetchResult.response;
+        method = fetchResult.method;
+        
+        if (response.ok) {
+          break; // Sucesso!
+        }
+        
+        // 503/500 = servidor sobrecarregado, tentar com batch menor
+        if (response.status === 503 || response.status === 500 || response.status === 504) {
+          const errorText = await response.text().catch(() => '');
+          console.warn(`⚠️ N8N returned ${response.status}, reducing batch size: ${currentBatchSize} → ${Math.floor(currentBatchSize / 2)}`);
+          console.warn(`   Error: ${errorText.substring(0, 100)}`);
+          
+          // Reduzir batch size pela metade
+          currentBatchSize = Math.max(50, Math.floor(currentBatchSize / 2));
+          
+          // Esperar um pouco antes de tentar novamente
+          await new Promise(r => setTimeout(r, 3000 * fetchAttempts));
+          continue;
+        }
+        
+        // Outros erros: abortar
         const errorText = await response.text().catch(() => 'No response body');
         console.error(`❌ Webhook returned ${response.status} via ${method}: ${errorText}`);
         throw new Error(`Webhook error ${response.status} (${method}): ${errorText.substring(0, 200)}`);
+      }
+      
+      if (!response || !response.ok) {
+        throw new Error(`Failed after ${MAX_FALLBACK_ATTEMPTS} attempts with adaptive batch sizes`);
       }
 
       const responseText = await response.text();
@@ -1718,15 +1754,49 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
         }
       }
 
-      // Buscar dados do webhook N8N com fallback POST -> GET
-      console.log(`🔗 Calling webhook with limit=${batchSize}, offset=${offset}`);
+      // Buscar dados do webhook N8N com FALLBACK ADAPTATIVO
+      // Se 503/500, reduz batchSize e tenta de novo
+      let currentBatchSize = batchSize;
+      let response: Response | null = null;
+      let method = 'POST';
+      let fetchAttempts = 0;
+      const MAX_FALLBACK_ATTEMPTS = 3;
       
-      const { response, method } = await fetchN8nWithFallback(batchSize, offset);
-
-      if (!response.ok) {
+      while (fetchAttempts < MAX_FALLBACK_ATTEMPTS) {
+        fetchAttempts++;
+        console.log(`🔗 Fetch attempt ${fetchAttempts}/${MAX_FALLBACK_ATTEMPTS} with batchSize=${currentBatchSize}, offset=${offset}`);
+        
+        const fetchResult = await fetchN8nWithFallback(currentBatchSize, offset);
+        
+        response = fetchResult.response;
+        method = fetchResult.method;
+        
+        if (response.ok) {
+          break; // Sucesso!
+        }
+        
+        // 503/500/504 = servidor sobrecarregado, tentar com batch menor
+        if (response.status === 503 || response.status === 500 || response.status === 504) {
+          const errorText = await response.text().catch(() => '');
+          console.warn(`⚠️ N8N returned ${response.status}, reducing batch size: ${currentBatchSize} → ${Math.floor(currentBatchSize / 2)}`);
+          console.warn(`   Error: ${errorText.substring(0, 100)}`);
+          
+          // Reduzir batch size pela metade
+          currentBatchSize = Math.max(50, Math.floor(currentBatchSize / 2));
+          
+          // Esperar um pouco antes de tentar novamente
+          await new Promise(r => setTimeout(r, 3000 * fetchAttempts));
+          continue;
+        }
+        
+        // Outros erros: abortar
         const errorText = await response.text().catch(() => 'No response body');
         console.error(`❌ Webhook returned ${response.status} via ${method}: ${errorText}`);
         throw new Error(`Webhook error ${response.status} (${method}): ${errorText.substring(0, 200)}`);
+      }
+      
+      if (!response || !response.ok) {
+        throw new Error(`Failed after ${MAX_FALLBACK_ATTEMPTS} attempts with adaptive batch sizes`);
       }
 
       const responseText = await response.text();
