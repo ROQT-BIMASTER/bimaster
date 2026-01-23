@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -13,6 +15,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Search, 
@@ -22,11 +41,18 @@ import {
   Users,
   DollarSign,
   Percent,
-  Package
+  Package,
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Trash2,
+  Building2
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
+import { ClientCampaignDrawer } from './ClientCampaignDrawer';
 
 interface CampaignClientData {
   id: string;
@@ -40,11 +66,18 @@ interface CampaignClientData {
   roi_percentual: number | null;
   status: string;
   cliente_nome: string | null;
+  customer_id: string | null;
   total_pecas: number;
 }
 
 export function CampaignClientTable() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
 
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ['campaign-client-details'],
@@ -100,6 +133,26 @@ export function CampaignClientTable() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (campaignId: string) => {
+      const { error } = await supabase
+        .from('trade_campaigns')
+        .delete()
+        .eq('id', campaignId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaign-client-details'] });
+      toast.success('Campanha excluída com sucesso');
+      setDeleteDialogOpen(false);
+      setCampaignToDelete(null);
+    },
+    onError: (error) => {
+      console.error('Error deleting campaign:', error);
+      toast.error('Erro ao excluir campanha');
+    },
+  });
+
   // Filter campaigns by search term
   const filteredCampaigns = useMemo(() => {
     if (!campaigns) return [];
@@ -112,6 +165,12 @@ export function CampaignClientTable() {
       c.code?.toLowerCase().includes(term)
     );
   }, [campaigns, searchTerm]);
+
+  // Get campaigns for selected client
+  const clientCampaigns = useMemo(() => {
+    if (!campaigns || !selectedClient) return [];
+    return campaigns.filter(c => c.cliente_nome === selectedClient);
+  }, [campaigns, selectedClient]);
 
   // Calculate summary metrics
   const metrics = useMemo(() => {
@@ -192,6 +251,27 @@ export function CampaignClientTable() {
         {isPositive ? '+' : ''}{roi.toFixed(1)}%
       </Badge>
     );
+  };
+
+  const handleViewClient = (clientName: string | null) => {
+    if (!clientName) return;
+    setSelectedClient(clientName);
+    setDrawerOpen(true);
+  };
+
+  const handleEditCampaign = (campaignId: string) => {
+    navigate(`/dashboard/trade/financeiro/campanhas/${campaignId}/edit`);
+  };
+
+  const handleDeleteCampaign = (campaignId: string) => {
+    setCampaignToDelete(campaignId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (campaignToDelete) {
+      deleteMutation.mutate(campaignToDelete);
+    }
   };
 
   if (isLoading) {
@@ -285,20 +365,28 @@ export function CampaignClientTable() {
                   <TableHead className="min-w-[180px]">Anterior X Atual</TableHead>
                   <TableHead className="min-w-[80px] text-center">ROI</TableHead>
                   <TableHead className="min-w-[80px] text-right">Peças</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCampaigns.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                       {searchTerm ? 'Nenhuma campanha encontrada para a busca.' : 'Nenhuma campanha cadastrada.'}
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id} className="cursor-pointer hover:bg-muted/50">
-                      <TableCell className="font-medium">
-                        {campaign.cliente_nome || '-'}
+                    <TableRow key={campaign.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto font-medium text-left justify-start"
+                          onClick={() => handleViewClient(campaign.cliente_nome)}
+                        >
+                          <Building2 className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                          {campaign.cliente_nome || '-'}
+                        </Button>
                       </TableCell>
                       <TableCell>
                         <div>
@@ -337,6 +425,33 @@ export function CampaignClientTable() {
                           : '-'
                         }
                       </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewClient(campaign.cliente_nome)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver Cliente
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditCampaign(campaign.id)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar Campanha
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDeleteCampaign(campaign.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -345,6 +460,37 @@ export function CampaignClientTable() {
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* Client Drawer */}
+      <ClientCampaignDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        clientName={selectedClient}
+        campaigns={clientCampaigns}
+        onEditCampaign={handleEditCampaign}
+        onDeleteCampaign={handleDeleteCampaign}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta campanha? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
