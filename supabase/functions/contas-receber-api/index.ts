@@ -7,140 +7,18 @@ const corsHeaders = {
 };
 
 // =====================================================
-// CONFIGURAÇÕES DE PERFORMANCE - v3.8.8 (RATE LIMITER ATIVO PARA N8N SEQUENCIAL)
+// CONFIGURAÇÕES DE PERFORMANCE - v3.9.0 (SEM RATE LIMITER - ENTRADA LIVRE)
 // =====================================================
 const BULK_BATCH_SIZE = 10000;      // 10k por batch SQL
 const MAX_PAYLOAD_SIZE = 50000;     // 50k registros max por request
-const UPSERT_BATCH_SIZE = 100;      // Batches menores para estabilidade
-const BATCH_DELAY_MS = 150;         // 150ms entre mini-batches (era 50ms)
-const MAX_RETRIES = 2;              // Menos retries
+const UPSERT_BATCH_SIZE = 500;      // Aumentado: 500 por mini-batch
+const BATCH_DELAY_MS = 50;          // Reduzido: 50ms entre mini-batches
+const MAX_RETRIES = 2;              
 const RETRY_BASE_DELAY_MS = 300;    
-const RECOMMENDED_CHUNK_SIZE = 100; 
-const API_VERSION = '3.8.8';
-
-// =====================================================
-// RATE LIMITER - ATIVO PARA CONTROLE DE CONCORRÊNCIA N8N
-// =====================================================
-const MAX_CONCURRENT_SYNCS = 3;     // Aumentado: 3 syncs simultâneos
-const SLOT_TIMEOUT_MS = 90000;      // 90 segundos por slot
-const WAIT_RETRY_MS = 800;          // 800ms entre tentativas
-const MAX_WAIT_RETRIES = 20;        // ~16s de espera total (dá tempo pro N8N)
+const RECOMMENDED_CHUNK_SIZE = 1000; // Aumentado para N8N
+const API_VERSION = '3.9.0';        // Nova versão sem rate limiter
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// =====================================================
-// RATE LIMITER FUNCTIONS
-// =====================================================
-async function cleanupExpiredSlots(supabase: any): Promise<void> {
-  try {
-    await supabase
-      .from('sync_rate_limiter')
-      .delete()
-      .lt('expires_at', new Date().toISOString());
-  } catch {
-    // não bloquear
-  }
-}
-
-async function getActiveSlotCount(supabase: any, syncTypePrefix: string): Promise<number> {
-  const { count } = await supabase
-    .from('sync_rate_limiter')
-    .select('id', { count: 'exact', head: true })
-    .ilike('slot_key', `${syncTypePrefix}%`);
-  return count || 0;
-}
-
-// =====================================================
-// RATE LIMITER v3: FAST-FAIL + INSERT-CHECK (mais agressivo)
-// =====================================================
-async function acquireSlot(supabase: any, syncTypePrefix: string, requestId: string): Promise<boolean> {
-  try {
-    await cleanupExpiredSlots(supabase);
-
-    // PASSO 0: Verificação RÁPIDA antes de inserir
-    const preCheckCount = await getActiveSlotCount(supabase, syncTypePrefix);
-    if (preCheckCount >= MAX_CONCURRENT_SYNCS) {
-      console.log(`[rate-limiter] Pre-check failed: ${preCheckCount}/${MAX_CONCURRENT_SYNCS} slots active`);
-      return false;
-    }
-
-    // PASSO 1: Inserir o slot (otimisticamente)
-    const slotKey = `${syncTypePrefix}_${Date.now()}_${requestId.substring(0, 8)}`;
-    const { error: insertError } = await supabase
-      .from('sync_rate_limiter')
-      .insert({
-        slot_key: slotKey,
-        request_id: requestId,
-        expires_at: new Date(Date.now() + SLOT_TIMEOUT_MS).toISOString(),
-      });
-
-    if (insertError) {
-      if (insertError.code === '23505') {
-        console.log(`[rate-limiter] Duplicate key conflict for ${requestId.substring(0, 8)}`);
-        return false;
-      }
-      console.warn('[rate-limiter] insert error:', insertError);
-      return false;
-    }
-
-    // PASSO 2: Verificar se estamos entre os primeiros
-    const { data: activeSlots } = await supabase
-      .from('sync_rate_limiter')
-      .select('request_id, created_at')
-      .ilike('slot_key', `${syncTypePrefix}%`)
-      .order('created_at', { ascending: true });
-
-    const slotCount = activeSlots?.length || 0;
-    const ourSlotIndex = activeSlots?.findIndex((s: any) => s.request_id === requestId) ?? -1;
-    
-    if (ourSlotIndex >= MAX_CONCURRENT_SYNCS) {
-      console.log(`[rate-limiter] Slot ${requestId.substring(0, 8)} rejected (position ${ourSlotIndex + 1}/${slotCount}, max ${MAX_CONCURRENT_SYNCS})`);
-      await supabase.from('sync_rate_limiter').delete().eq('request_id', requestId);
-      return false;
-    }
-
-    console.log(`[rate-limiter] Slot ${requestId.substring(0, 8)} acquired (position ${ourSlotIndex + 1}/${slotCount})`);
-    return true;
-  } catch (err) {
-    console.warn('[rate-limiter] acquireSlot exception:', err);
-    return false;
-  }
-}
-
-async function waitForSlot(supabase: any, syncTypePrefix: string): Promise<{ slot_id: string | null; error?: string }> {
-  const requestId = crypto.randomUUID();
-
-  // Fallback adaptativo: esperar mais tempo (backoff progressivo) antes de retornar 429.
-  // Objetivo: evitar que o loop do N8N morra em picos de concorrência.
-  // Mantemos 429 como último recurso para ativar o Retry On Fail do N8N.
-  for (let attempt = 1; attempt <= MAX_WAIT_RETRIES; attempt++) {
-    const acquired = await acquireSlot(supabase, syncTypePrefix, requestId);
-    if (acquired) return { slot_id: requestId };
-
-    if (attempt < MAX_WAIT_RETRIES) {
-      // Backoff linear com jitter (evita thundering herd)
-      const jitter = Math.floor(Math.random() * 250);
-      const waitMs = Math.min(WAIT_RETRY_MS * attempt, 5000) + jitter;
-      console.log(`[rate-limiter] Attempt ${attempt}/${MAX_WAIT_RETRIES} failed, waiting ${waitMs}ms...`);
-      await sleep(waitMs);
-    }
-  }
-
-  console.log(`[rate-limiter] Giving up after ${MAX_WAIT_RETRIES} attempts for ${requestId.substring(0, 8)}`);
-  return { slot_id: null, error: 'Rate limit exceeded - N8N will retry' };
-}
-
-async function releaseSlot(supabase: any, slotId: string | null): Promise<void> {
-  if (!slotId) return;
-  try {
-    await supabase
-      .from('sync_rate_limiter')
-      .delete()
-      .eq('request_id', slotId);
-  } catch (err) {
-    console.error('[RATE-LIMIT] Failed to release slot:', err);
-  }
-}
 
 async function calculateHash(data: any): Promise<string> {
   try {
@@ -156,12 +34,10 @@ async function calculateHash(data: any): Promise<string> {
     
     const encoder = new TextEncoder();
     const dataBuffer = encoder.encode(dataToHash);
-    // Usar SHA-256 (MD5 não é suportado pelo Web Crypto API)
     const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
   } catch (err) {
-    // Fallback simples se crypto falhar
     const simpleHash = String(data.valor_original) + String(data.valor_aberto) + String(data.data_recebimento);
     return simpleHash.slice(0, 32);
   }
@@ -187,11 +63,9 @@ function unwrapN8nItem(item: any): any {
 }
 
 // Transforma dados do ERP - suporta múltiplos formatos de campos
-// LÓGICA DE STATUS ALINHADA COM CONTAS A PAGAR - v3.8.7
 function transformErpData(rawRecord: any) {
   const erpRecord = unwrapN8nItem(rawRecord);
 
-  // Parse dos valores monetários
   const valorAbertoRaw = parseAmount(
     erpRecord['Valor em Aberto'] || erpRecord['valor_em_aberto'] || erpRecord.valorEmAberto ||
     erpRecord['Valor Aberto'] || erpRecord.valor_aberto || 0
@@ -206,11 +80,9 @@ function transformErpData(rawRecord: any) {
   );
   const valorAjustes = parseAmount(erpRecord['Valor Ajustes'] || erpRecord.valor_ajustes || erpRecord.valorAjustes || 0);
 
-  // Normalização de valores (absolutos para stornos)
   const valorOriginal = Math.abs(valorOriginalRaw);
   const valorAberto = Math.abs(valorAbertoRaw);
   
-  // Inferência de valor recebido quando ERP não envia
   let valorRecebido = valorPagoRaw;
   if (valorRecebido === 0 && valorAberto === 0 && valorOriginal > 0) {
     valorRecebido = valorOriginal;
@@ -220,29 +92,15 @@ function transformErpData(rawRecord: any) {
     valorRecebido = valorOriginal - valorAberto;
   }
 
-  // Parse da data de vencimento para cálculo de status
   const dataVencimentoStr = parseDate(erpRecord['Vencimento'] || erpRecord.vencimento || erpRecord.data_vencimento || erpRecord.dataVencimento);
-  
-  // ============================================================
-  // LÓGICA DE STATUS BASEADA EM VALOR_ABERTO (igual contas_pagar)
-  // ============================================================
-  // Prioridade:
-  // 1. valor_aberto = 0 → RECEBIDO (pago)
-  // 2. valor_recebido > 0 E valor_aberto > 0 → PARCIAL
-  // 3. valor_aberto > 0 E vencido → VENCIDO
-  // 4. valor_aberto > 0 E não vencido → PENDENTE
-  // ============================================================
   
   let status = 'pendente';
   
   if (valorAberto === 0) {
-    // Título completamente quitado
     status = 'recebido';
   } else if (valorRecebido > 0 && valorAberto > 0) {
-    // Pagamento parcial
     status = 'parcial';
   } else if (valorAberto > 0 && dataVencimentoStr) {
-    // Verificar se está vencido
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const vencimento = new Date(dataVencimentoStr + 'T00:00:00');
@@ -253,7 +111,6 @@ function transformErpData(rawRecord: any) {
       status = 'pendente';
     }
   }
-  // Se não tem data de vencimento e valor_aberto > 0, fica como 'pendente'
 
   const empresaId = erpRecord['ID Empresa'] || erpRecord.id_empresa || erpRecord.empresaId || erpRecord.empresa_id || 1;
   const empresaNome = erpRecord['Empresa'] || erpRecord.empresa || erpRecord.empresa_nome || erpRecord.empresaNome;
@@ -279,14 +136,10 @@ function transformErpData(rawRecord: any) {
     valor_ajustes: valorAjustes,
     data_emissao: parseDate(erpRecord['Emissão'] || erpRecord['Emissao'] || erpRecord.emissao || erpRecord.data_emissao || erpRecord.dataEmissao),
     data_vencimento: dataVencimentoStr,
-    // IMPORTANTE: Só salvar data_recebimento se for uma data REAL de pagamento
-    // O ERP envia Data Pgto = Vencimento como "previsão", não como confirmação
-    // Se valor_aberto > 0 e valor_recebido = 0 e data_pagamento = data_vencimento, é previsão
     data_recebimento: (() => {
       const dataPgto = parseDate(erpRecord['Data Pgto'] || erpRecord['Pigto de dados'] || erpRecord['Pagamento'] || erpRecord.pagamento || erpRecord.data_pagamento || erpRecord.data_recebimento || erpRecord.dataRecebimento);
-      // Se data de pagamento = data de vencimento E não houve pagamento real, ignorar
       if (dataPgto && dataPgto === dataVencimentoStr && valorRecebido === 0 && valorAberto > 0) {
-        return null; // ERP enviou previsão, não pagamento real
+        return null;
       }
       return dataPgto;
     })(),
@@ -333,9 +186,8 @@ function isRetryableError(error: any): boolean {
 }
 
 // =====================================================
-// v3.8.6 - UPSERT CORRETO: ATUALIZA registros existentes
+// UPSERT INCREMENTAL - NÚCLEO DA INTEGRIDADE
 // =====================================================
-
 async function processWithUpsert(supabase: any, contas: any[]): Promise<{ processed: number; errors: any[]; updated: number; inserted: number }> {
   let processed = 0;
   let updated = 0;
@@ -360,43 +212,45 @@ async function processWithUpsert(supabase: any, contas: any[]): Promise<{ proces
     return { processed: 0, errors, updated: 0, inserted: 0 };
   }
 
-  // UPSERT correto: onConflict atualiza registros existentes
-  // Removido ignoreDuplicates para garantir que atualizações do ERP sejam aplicadas
-  try {
-    const { error, count } = await supabase.from('contas_receber').upsert(records, { 
-      onConflict: 'erp_id',
-      count: 'exact'
-    });
+  // UPSERT em mini-batches para estabilidade
+  for (let i = 0; i < records.length; i += UPSERT_BATCH_SIZE) {
+    const batch = records.slice(i, i + UPSERT_BATCH_SIZE);
     
-    if (!error) {
-      processed = count ?? records.length;
-      // Não sabemos exatamente quantos foram updates vs inserts, mas tudo foi processado
-      console.log(`[upsert] Success: ${processed} records processed`);
-    } else {
-      // Logar erro mas continuar
-      console.warn(`[upsert] Error: ${error.code} - ${error.message}`);
-      // Para erros de constraint, tentar processar individualmente
-      if (error.code === '23505') {
-        console.log(`[upsert] Duplicate key conflict - processing individually`);
-        for (const record of records) {
-          try {
-            const { error: singleError } = await supabase.from('contas_receber').upsert(record, { onConflict: 'erp_id' });
-            if (!singleError) {
-              processed++;
-            }
-          } catch {
-            // Ignorar erros individuais
-          }
-        }
+    try {
+      const { error, count } = await supabase.from('contas_receber').upsert(batch, { 
+        onConflict: 'erp_id',
+        count: 'exact'
+      });
+      
+      if (!error) {
+        processed += count ?? batch.length;
       } else {
-        processed = records.length; // Assumir sucesso parcial
+        console.warn(`[upsert] Error batch ${i}/${records.length}: ${error.code} - ${error.message}`);
+        // Para erros de constraint, tentar individualmente
+        if (error.code === '23505') {
+          for (const record of batch) {
+            try {
+              const { error: singleError } = await supabase.from('contas_receber').upsert(record, { onConflict: 'erp_id' });
+              if (!singleError) processed++;
+            } catch {
+              // Ignorar erros individuais
+            }
+          }
+        } else {
+          processed += batch.length; // Assumir sucesso parcial
+        }
       }
+    } catch (err) {
+      console.error('[upsert] Exception:', err);
     }
-  } catch (err) {
-    console.error('[upsert] Exception:', err);
-    processed = 0;
+    
+    // Delay mínimo entre batches
+    if (i + UPSERT_BATCH_SIZE < records.length) {
+      await sleep(BATCH_DELAY_MS);
+    }
   }
 
+  console.log(`[upsert] Total: ${processed}/${records.length} records processed`);
   return { processed, errors, updated, inserted };
 }
 
@@ -440,17 +294,14 @@ Deno.serve(async (req) => {
   // RESPONSE PADRÃO PARA N8N: SEMPRE HTTP 200
   // Isso garante que o loop N8N nunca pare por erro HTTP
   // =====================================================
-  const createN8nResponse = (data: any, slotsRemaining?: number) => {
+  const createN8nResponse = (data: any) => {
     const headers: Record<string, string> = {
       ...corsHeaders,
       'Content-Type': 'application/json',
       'X-API-Version': API_VERSION,
       'X-Processing-Time-Ms': String(data.duration_ms || 0),
+      'X-RateLimit-Status': 'disabled', // Indicar que rate limiter está desabilitado
     };
-    if (slotsRemaining !== undefined) {
-      headers['X-RateLimit-Remaining'] = String(slotsRemaining);
-      headers['X-RateLimit-Limit'] = String(MAX_CONCURRENT_SYNCS);
-    }
     return new Response(JSON.stringify({
       ...data,
       continue_loop: true,  // SEMPRE true para N8N não parar
@@ -494,15 +345,12 @@ Deno.serve(async (req) => {
       const expectedKey = Deno.env.get('N8N_API_KEY');
       const polloKey = Deno.env.get('POLLO_API_KEY');
       
-      // Log de diagnóstico para debug
       console.log('[AUTH] Received key length:', apiKey?.length || 0);
       console.log('[AUTH] Expected key configured:', !!expectedKey);
-      console.log('[AUTH] Pollo key configured:', !!polloKey);
       
       const isValid = !!(apiKey && (apiKey === expectedKey || apiKey === polloKey));
       if (!isValid) {
         console.log('[AUTH] Key mismatch - received first 8 chars:', apiKey?.substring(0, 8) || 'none');
-        console.log('[AUTH] Expected first 8 chars:', expectedKey?.substring(0, 8) || 'not-set');
       }
       
       return isValid;
@@ -530,19 +378,12 @@ Deno.serve(async (req) => {
       }
 
       const { data, error } = await query.single();
-      
-      // Verificar slots ativos
-      const { count: activeSlots } = await supabase
-        .from('sync_rate_limiter')
-        .select('id', { count: 'exact', head: true })
-        .ilike('slot_key', 'sync_cr%');
 
       return new Response(JSON.stringify({ 
         last_sync: data || null,
         rate_limiter: {
-          active_slots: activeSlots || 0,
-          max_slots: MAX_CONCURRENT_SYNCS,
-          available: MAX_CONCURRENT_SYNCS - (activeSlots || 0)
+          status: 'DISABLED',
+          message: 'Rate limiter desativado - entrada livre'
         },
         recommended_chunk_size: RECOMMENDED_CHUNK_SIZE,
         api_version: API_VERSION
@@ -551,7 +392,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============ POST /sync - PRINCIPAL ENDPOINT N8N (COM RATE LIMITER ATIVO) ============
+    // ============ POST /sync - PRINCIPAL ENDPOINT N8N (SEM RATE LIMITER) ============
     if (path.endsWith('/sync') && req.method === 'POST') {
       const startTime = Date.now();
       
@@ -596,41 +437,10 @@ Deno.serve(async (req) => {
       }
 
       // =====================================================
-      // v3.8.8: RATE LIMITER ATIVO PARA CONTROLE DE CONCORRÊNCIA
+      // v3.9.0: ENTRADA LIVRE - SEM RATE LIMITER
+      // Processa diretamente sem verificação de slots
       // =====================================================
-      console.log(`📦 [sync] ${contas.length} records - Acquiring slot...`);
-      
-      const { slot_id, error: slotError } = await waitForSlot(supabase, 'sync_cr');
-      
-      if (slotError) {
-        // Retornar HTTP 429 para N8N fazer retry automático
-        const activeSlots = await getActiveSlotCount(supabase, 'sync_cr');
-        console.log(`⏳ [sync] Rate limit exceeded - ${activeSlots}/${MAX_CONCURRENT_SYNCS} slots in use`);
-        
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Rate limit exceeded - request will be retried by N8N',
-          received: contas.length,
-          processed: 0,
-          retry_after_ms: 5000,
-          queue_info: {
-            max_concurrent: MAX_CONCURRENT_SYNCS,
-            active_syncs: activeSlots
-          },
-          api_version: API_VERSION
-        }), {
-          status: 429,
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'Retry-After': '5',
-            'X-RateLimit-Limit': String(MAX_CONCURRENT_SYNCS),
-            'X-RateLimit-Remaining': '0'
-          }
-        });
-      }
-
-      console.log(`🔓 [sync] Slot acquired, processing ${contas.length} records...`);
+      console.log(`📦 [sync] Processing ${contas.length} records directly (no rate limit)`);
 
       let processed = 0;
       let errors = 0;
@@ -641,10 +451,6 @@ Deno.serve(async (req) => {
         errors = result.errors.length;
       } catch (err) {
         console.error('[sync] Processing error:', err);
-        // Mesmo com erro, não bloquear o loop N8N
-      } finally {
-        // SEMPRE liberar o slot
-        await releaseSlot(supabase, slot_id);
       }
 
       const duration = Date.now() - startTime;
@@ -661,19 +467,16 @@ Deno.serve(async (req) => {
         status: errors === 0 ? 'success' : 'partial'
       });
 
-      // Verificar slots disponíveis para informar N8N
-      const slotsRemaining = MAX_CONCURRENT_SYNCS - (await getActiveSlotCount(supabase, 'sync_cr'));
-
       return createN8nResponse({
         success: true,
         processed,
         received: contas.length,
         errors,
         duration_ms: duration
-      }, slotsRemaining);
+      });
     }
 
-    // ============ POST /sync-chunk (COM RATE LIMITER) ============
+    // ============ POST /sync-chunk (SEM RATE LIMITER) ============
     if (path.endsWith('/sync-chunk') && req.method === 'POST') {
       const startTime = Date.now();
       
@@ -708,40 +511,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`[CHUNK ${chunk_id}/${total_chunks || '?'}] Acquiring slot...`);
+      console.log(`[CHUNK ${chunk_id}/${total_chunks || '?'}] Processing ${contas.length} records...`);
 
-      // Rate limiter
-      const { slot_id, error: slotError } = await waitForSlot(supabase, 'sync_cr_chunk');
-      
-      if (slotError) {
-        // CORREÇÃO: Retornar HTTP 429 para N8N fazer retry automático (igual contas-pagar-api)
-        const activeSlots = await getActiveSlotCount(supabase, 'sync_cr_chunk');
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Rate limit exceeded - chunk will be retried',
-          chunk_id,
-          total_chunks: total_chunks || null,
-          sync_id: sync_id || null,
-          received: contas.length,
-          processed: 0,
-          retry_after_ms: 5000,
-          queue_info: {
-            max_concurrent: MAX_CONCURRENT_SYNCS,
-            active_syncs: activeSlots
-          },
-          api_version: API_VERSION
-        }), {
-          status: 429,
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'Retry-After': '5',
-            'X-RateLimit-Limit': String(MAX_CONCURRENT_SYNCS),
-            'X-RateLimit-Remaining': '0'
-          }
-        });
-      }
-
+      // Processa diretamente sem rate limiter
       let processed = 0;
       let errors: any[] = [];
       
@@ -749,8 +521,8 @@ Deno.serve(async (req) => {
         const result = await processWithUpsert(supabase, contas);
         processed = result.processed;
         errors = result.errors;
-      } finally {
-        await releaseSlot(supabase, slot_id);
+      } catch (err) {
+        console.error(`[CHUNK ${chunk_id}] Error:`, err);
       }
 
       const duration = Date.now() - startTime;
@@ -811,7 +583,7 @@ Deno.serve(async (req) => {
         success: true,
         sync_id: syncId,
         message: `Sync iniciada: ${total_records} registros em ${total_chunks} chunks`,
-        recommended_delay_between_chunks_ms: 3000,
+        recommended_delay_between_chunks_ms: 0, // Sem delay necessário
         api_version: API_VERSION
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -865,7 +637,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============ POST /bulk-sync ============
+    // ============ POST /bulk-sync (SEM RATE LIMITER) ============
     if (path.endsWith('/bulk-sync') && req.method === 'POST') {
       const startTime = Date.now();
       
@@ -892,34 +664,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Rate limiter para bulk
-      const { slot_id, error: slotError } = await waitForSlot(supabase, 'sync_cr_bulk');
-      
-      // CORREÇÃO v3.8.5: Retornar HTTP 429 para N8N fazer retry automático (igual contas-pagar-api)
-      if (slotError) {
-        const activeSlots = await getActiveSlotCount(supabase, 'sync_cr_bulk');
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Rate limit exceeded - too many concurrent requests',
-          retry_after_ms: 5000,
-          queue_info: {
-            max_concurrent: MAX_CONCURRENT_SYNCS,
-            active_syncs: activeSlots
-          },
-          api_version: API_VERSION
-        }), {
-          status: 429,
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'Retry-After': '5',
-            'X-RateLimit-Limit': String(MAX_CONCURRENT_SYNCS),
-            'X-RateLimit-Remaining': '0'
-          }
-        });
-      }
-
-      console.log(`[BULK-SYNC] Processing ${contas.length} records`);
+      console.log(`[BULK-SYNC] Processing ${contas.length} records (no rate limit)`);
 
       let processed = 0;
       let errors: any[] = [];
@@ -928,8 +673,8 @@ Deno.serve(async (req) => {
         const result = await processWithUpsert(supabase, contas);
         processed = result.processed;
         errors = result.errors;
-      } finally {
-        await releaseSlot(supabase, slot_id);
+      } catch (err) {
+        console.error('[BULK-SYNC] Error:', err);
       }
 
       const duration = Date.now() - startTime;
