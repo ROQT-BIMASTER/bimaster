@@ -50,8 +50,7 @@ serve(async (req) => {
     const { data: planosContas, error: planoError } = await supabase
       .from('trade_chart_of_accounts')
       .select('id, code, name, account_type')
-      .eq('is_active', true)
-      .eq('permite_lancamento', true)
+      .eq('active', true)
       .order('code');
 
     if (planoError) {
@@ -63,69 +62,47 @@ serve(async (req) => {
       `- ${d.nome}${d.descricao ? `: ${d.descricao}` : ''}`
     ).join('\n');
 
-    const planosInfo = planosContas?.slice(0, 100).map(p => 
+    const planosInfo = planosContas?.map(p => 
       `- ${p.code} - ${p.name} (${p.account_type})`
     ).join('\n') || 'Não disponível';
-
-    // Exemplos de classificações do histórico do gerente financeiro (few-shot learning)
-    const exemplosHistorico = `
-EXEMPLOS DE CLASSIFICAÇÕES CORRETAS (baseado no histórico real da empresa):
-
-1. ALUGUEIS:
-   - "ALUGUEL DE DEPÓSITO" → Código 3.1.1.1 (Aluguel do Estabelecimento)
-   - "LOCAÇÃO DE NOTEBOOKS" → Código 3.1.19 (Locações Diversas)
-
-2. CMV - COMPRAS:
-   - "COMPRA DE MERCADORIA" / "PAGTO MARCA" → Código 2.1.1 (Compra de Mercadoria)
-
-3. DESPESAS FINANCEIRAS:
-   - "TARIFAS BANCÁRIAS" → Código 3.4.1 (Despesas Bancárias)
-
-4. DESPESAS TRIBUTÁRIAS:
-   - "SIMPLES NACIONAL" → Código 2.5.1
-   - "DARF" / "TRIBUTOS FEDERAIS" → Código 2.5.3
-
-5. SALÁRIO/BENEFÍCIOS (Grupo 3.2):
-   - "SALÁRIOS" → Código 3.2.1 | "13º SALÁRIO" → 3.2.7 | "FÉRIAS" → 3.2.8
-   - "FGTS" → 3.2.4 | "INSS" / "MEDICINA" → 3.2.5 | "VALE TRANSPORTE" → 3.2.3
-   - "RESCISÃO" → 3.2.9 | "VALE REFEIÇÃO" → 3.2.14 | "CONFRATERNIZAÇÃO" → 3.2.13
-
-6. MARKETING (Grupo 3.3):
-   - "MÍDIA" / "PUBLICIDADE" / "INFLUENCER" → Código 3.3.1
-   - "ASSESSORIA DE IMPRENSA" → 3.3.8
-
-7. UTILIDADES:
-   - "ENERGIA" / "LUZ" → 3.1.2 | "TELEFONE" → 3.1.5 | "SOFTWARE" → 3.1.22
-
-8. FRETE/TRANSPORTE:
-   - "FRETE AGREGADO" → 2.4.2 | "TRANSPORTADORA" → 2.4.1 | "CORREIOS" → 2.4.3
-
-9. COMISSÕES:
-   - "COMISSÃO" / "REPRESENTANTES" → Código 2.6.1
-
-10. PRO LABORE:
-    - "PRO LABORE" / "RETIRADA SÓCIO" → Código 3.5.1`;
 
     let systemPrompt: string;
     let userPrompt: string;
 
     if (isLancamento) {
-      systemPrompt = `Você é um especialista em classificação contábil e financeira.
+      systemPrompt = `Você é um especialista em classificação contábil brasileira.
 Sua tarefa é analisar lançamentos financeiros (contas a pagar) e classificá-los corretamente.
 
 DEPARTAMENTOS DISPONÍVEIS:
 ${departamentosInfo}
 
-PLANOS DE CONTAS DISPONÍVEIS:
+PLANO DE CONTAS DISPONÍVEL (use APENAS estas contas):
 ${planosInfo}
 
-${exemplosHistorico}
+GUIA DE CLASSIFICAÇÃO POR ESTRUTURA CONTÁBIL:
+- 3.1.x = Custos de Vendas (CMV, Compras de Mercadoria, Fretes de Vendas)
+- 3.2.x = Despesas Variáveis (Comissões, Representantes, Embalagens)
+- 3.3.x = Despesas Fixas (Salários, Aluguel, Água, Luz, Internet, Software, Manutenção)
+- 3.4.x = Impostos e Tributos (ICMS, PIS, COFINS, ISS, Simples Nacional, IRPJ, CSLL)
+- 3.5.x = Outras Despesas Operacionais
+- 3.6.x = Despesas de Marketing e Publicidade
+- 3.7.x = Despesas Financeiras (Juros, Tarifas Bancárias, IOF)
+- 3.8.x = Retiradas dos Sócios (Pró-labore, Distribuição de Lucros)
+- 4.1.x = Receita Operacional Bruta
+- 4.2.x = Deduções da Receita
+
+DEPARTAMENTOS POR TIPO DE DESPESA:
+- Financeiro: Impostos, tributos, tarifas bancárias, juros
+- RH: Salários, benefícios, encargos trabalhistas, férias, 13º
+- Comercial: Comissões, representantes, fretes de vendas
+- Marketing: Publicidade, propaganda, mídia
+- Operações: Aluguel, utilidades (água, luz), manutenção
+- TI: Software, equipamentos de informática
+- Administrativo: Despesas gerais, material de escritório
 
 Considere:
-- Use os EXEMPLOS ACIMA como referência principal - refletem as classificações do gerente financeiro
 - O nome do fornecedor pode indicar o tipo de serviço/produto
 - A categoria original pode dar pistas sobre a natureza da despesa
-- O valor pode ajudar a diferenciar despesas recorrentes de investimentos
 - IMPORTANTE: Se o usuário forneceu um comentário adicional, use-o como PRINCIPAL guia
 
 Retorne o departamento E o plano de contas mais adequados.`;
@@ -137,7 +114,7 @@ Retorne o departamento E o plano de contas mais adequados.`;
 - Tipo documento: ${documento || 'Não informado'}
 ${comentario ? `\n⭐ COMENTÁRIO DO USUÁRIO (USE COMO GUIA PRINCIPAL):\n"${comentario}"` : ''}
 
-Com base nestas informações e nos EXEMPLOS de classificação, qual departamento e plano de contas são mais adequados?`;
+Com base nestas informações, qual departamento e plano de contas são mais adequados?`;
 
     } else {
       systemPrompt = `Você é um especialista em classificação contábil e organizacional. 
@@ -146,10 +123,16 @@ Sua tarefa é analisar contas contábeis e classificá-las no departamento mais 
 Departamentos disponíveis:
 ${departamentosInfo}
 
-${exemplosHistorico}
+GUIA DE CLASSIFICAÇÃO:
+- Financeiro: Contas de impostos, tributos, despesas financeiras
+- RH: Contas de pessoal, salários, benefícios
+- Comercial: Comissões, vendas, representantes
+- Marketing: Publicidade, propaganda
+- Operações: Aluguel, utilidades, manutenção
+- TI: Software, equipamentos
+- Administrativo: Despesas gerais
 
 Considere:
-- Use os EXEMPLOS ACIMA como referência para classificações similares
 - A natureza da despesa/receita
 - O setor responsável pelo gasto/receita
 - Palavras-chave no nome e descrição da conta
@@ -191,7 +174,7 @@ Qual departamento é mais adequado para esta conta?`;
               },
               plano_contas_code: {
                 type: "string",
-                description: "Código do plano de contas escolhido"
+                description: "Código do plano de contas escolhido (ex: 3.3.01)"
               },
               confianca: {
                 type: "number",
@@ -248,7 +231,7 @@ Qual departamento é mais adequado para esta conta?`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
