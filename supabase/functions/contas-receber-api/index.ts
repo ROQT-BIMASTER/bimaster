@@ -23,54 +23,75 @@ const API_VERSION = '3.8.0';
 // =====================================================
 const MAX_CONCURRENT_SYNCS = 2;     // Máximo 2 syncs simultâneas
 const SLOT_TIMEOUT_MS = 90000;      // 90 segundos por slot
-const QUEUE_WAIT_MS = 60000;        // Aguarda até 60s por um slot
+// IMPORTANTE: não manter requisições N8N penduradas por muito tempo (risco de timeout no HTTP node)
+const WAIT_RETRY_MS = 500;          // Intervalo entre tentativas
+const MAX_WAIT_RETRIES = 4;         // ~2s de espera total antes de pedir retry
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // =====================================================
 // RATE LIMITER FUNCTIONS
 // =====================================================
-async function waitForSlot(supabase: any, syncType: string): Promise<{ slot_id: string | null; error?: string }> {
-  const startWait = Date.now();
-  const slotId = crypto.randomUUID();
-  
-  while (Date.now() - startWait < QUEUE_WAIT_MS) {
-    // Limpar slots expirados (stale)
+async function cleanupExpiredSlots(supabase: any): Promise<void> {
+  try {
     await supabase
       .from('sync_rate_limiter')
       .delete()
       .lt('expires_at', new Date().toISOString());
-    
-    // Verificar slots ativos
-    const { count } = await supabase
-      .from('sync_rate_limiter')
-      .select('*', { count: 'exact', head: true })
-      .eq('sync_type', syncType);
-    
-    if ((count || 0) < MAX_CONCURRENT_SYNCS) {
-      // Tentar adquirir slot
-      const expiresAt = new Date(Date.now() + SLOT_TIMEOUT_MS).toISOString();
-      const { error: insertError } = await supabase
-        .from('sync_rate_limiter')
-        .insert({
-          id: slotId,
-          sync_type: syncType,
-          expires_at: expiresAt,
-          created_at: new Date().toISOString()
-        });
-      
-      if (!insertError) {
-        console.log(`[RATE-LIMIT] Slot acquired: ${slotId} (${count || 0}/${MAX_CONCURRENT_SYNCS} active)`);
-        return { slot_id: slotId };
-      }
-    }
-    
-    // Aguardar antes de tentar novamente
-    await sleep(500 + Math.random() * 500);
+  } catch {
+    // não bloquear
   }
-  
-  console.warn(`[RATE-LIMIT] Queue timeout after ${QUEUE_WAIT_MS}ms`);
-  return { slot_id: null, error: 'Queue timeout - too many concurrent syncs' };
+}
+
+async function getActiveSlotCount(supabase: any, syncTypePrefix: string): Promise<number> {
+  const { count } = await supabase
+    .from('sync_rate_limiter')
+    .select('id', { count: 'exact', head: true })
+    // O schema real usa slot_key (sem coluna sync_type)
+    .ilike('slot_key', `${syncTypePrefix}%`);
+  return count || 0;
+}
+
+async function acquireSlot(supabase: any, syncTypePrefix: string, requestId: string): Promise<boolean> {
+  try {
+    await cleanupExpiredSlots(supabase);
+
+    const activeCount = await getActiveSlotCount(supabase, syncTypePrefix);
+    if (activeCount >= MAX_CONCURRENT_SYNCS) return false;
+
+    const slotKey = `${syncTypePrefix}_${Date.now()}_${requestId.substring(0, 8)}`;
+    const { error } = await supabase
+      .from('sync_rate_limiter')
+      .insert({
+        slot_key: slotKey,
+        request_id: requestId,
+        expires_at: new Date(Date.now() + SLOT_TIMEOUT_MS).toISOString(),
+      });
+
+    if (error) {
+      // conflito de unique slot_key = corrida
+      if (error.code === '23505') return false;
+      console.warn('[rate-limiter] insert error:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('[rate-limiter] acquireSlot exception:', err);
+    return false;
+  }
+}
+
+async function waitForSlot(supabase: any, syncTypePrefix: string): Promise<{ slot_id: string | null; error?: string }> {
+  const requestId = crypto.randomUUID();
+
+  for (let attempt = 1; attempt <= MAX_WAIT_RETRIES; attempt++) {
+    const acquired = await acquireSlot(supabase, syncTypePrefix, requestId);
+    if (acquired) return { slot_id: requestId };
+    if (attempt < MAX_WAIT_RETRIES) await sleep(WAIT_RETRY_MS);
+  }
+
+  return { slot_id: null, error: 'Rate limit - no available slots' };
 }
 
 async function releaseSlot(supabase: any, slotId: string | null): Promise<void> {
@@ -79,8 +100,7 @@ async function releaseSlot(supabase: any, slotId: string | null): Promise<void> 
     await supabase
       .from('sync_rate_limiter')
       .delete()
-      .eq('id', slotId);
-    console.log(`[RATE-LIMIT] Slot released: ${slotId}`);
+      .eq('request_id', slotId);
   } catch (err) {
     console.error('[RATE-LIMIT] Failed to release slot:', err);
   }
@@ -437,8 +457,8 @@ Deno.serve(async (req) => {
       // Verificar slots ativos
       const { count: activeSlots } = await supabase
         .from('sync_rate_limiter')
-        .select('*', { count: 'exact', head: true })
-        .eq('sync_type', 'sync_cr');
+        .select('id', { count: 'exact', head: true })
+        .ilike('slot_key', 'sync_cr%');
 
       return new Response(JSON.stringify({ 
         last_sync: data || null,
@@ -551,8 +571,8 @@ Deno.serve(async (req) => {
       // Verificar slots restantes para headers
       const { count: activeSlots } = await supabase
         .from('sync_rate_limiter')
-        .select('*', { count: 'exact', head: true })
-        .eq('sync_type', 'sync_cr');
+        .select('id', { count: 'exact', head: true })
+        .ilike('slot_key', 'sync_cr%');
 
       return createN8nResponse({
         success: true,
@@ -604,17 +624,24 @@ Deno.serve(async (req) => {
       const { slot_id, error: slotError } = await waitForSlot(supabase, 'sync_cr_chunk');
       
       if (slotError) {
-        return new Response(JSON.stringify({ 
-          error: 'Rate limit exceeded',
+        // Para N8N não quebrar loop: responder 200 e instruir retry
+        return new Response(JSON.stringify({
+          success: true,
+          continue_loop: true,
+          chunk_id,
+          total_chunks: total_chunks || null,
+          sync_id: sync_id || null,
+          statistics: {
+            received: contas.length,
+            processed: 0,
+            errors: 0,
+            rate_per_second: 0
+          },
           retry_after_ms: 5000,
-          message: 'Too many concurrent syncs, please retry'
+          message: 'Rate limit - retry chunk in 5 seconds',
+          api_version: API_VERSION
         }), {
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'Retry-After': '5'
-          }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
@@ -772,11 +799,17 @@ Deno.serve(async (req) => {
       const { slot_id, error: slotError } = await waitForSlot(supabase, 'sync_cr_bulk');
       
       if (slotError) {
-        return new Response(JSON.stringify({ 
-          error: 'Rate limit exceeded',
-          retry_after_ms: 10000
+        // Para N8N não quebrar loop: responder 200 e instruir retry
+        return new Response(JSON.stringify({
+          success: true,
+          continue_loop: true,
+          mode: 'bulk',
+          statistics: { total: contas.length, processed: 0, errors: 0, rate_per_second: 0 },
+          retry_after_ms: 10000,
+          message: 'Rate limit - retry bulk in 10 seconds',
+          api_version: API_VERSION
         }), {
-          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
