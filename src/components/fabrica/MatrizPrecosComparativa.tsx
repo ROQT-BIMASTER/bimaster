@@ -47,7 +47,8 @@ import {
   AlertTriangle,
   History,
   FileText,
-  Printer
+  Printer,
+  Shield
 } from "lucide-react";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import * as XLSX from "xlsx";
@@ -103,6 +104,9 @@ interface PrecoItem {
   preco_final: number;
   custo_base: number;
   margem_lucro_percentual: number;
+  preco_limitado?: boolean;
+  preco_original_calculado?: number;
+  motivo_limite?: string;
 }
 
 interface Produto {
@@ -116,7 +120,7 @@ interface Produto {
 
 interface MatrizRow {
   produto: Produto;
-  precos: Record<string, { preco: number; custo: number; margem: number } | null>;
+  precos: Record<string, { preco: number; custo: number; margem: number; limitado?: boolean; precoOriginal?: number; motivoLimite?: string } | null>;
 }
 
 interface SortableColumnHeaderProps {
@@ -333,6 +337,9 @@ export function MatrizPrecosComparativa() {
           preco_final,
           custo_base,
           margem_lucro_percentual,
+          preco_limitado,
+          preco_original_calculado,
+          motivo_limite,
           produto:fabrica_produtos!inner(id, nome, codigo, categoria, marca, linha)
         `)
         .eq("ativo", true);
@@ -440,6 +447,9 @@ export function MatrizPrecosComparativa() {
         preco: preco.preco_final,
         custo: preco.custo_base,
         margem: margemCalculada,
+        limitado: preco.preco_limitado,
+        precoOriginal: preco.preco_original_calculado,
+        motivoLimite: preco.motivo_limite,
       };
     });
 
@@ -839,18 +849,44 @@ export function MatrizPrecosComparativa() {
           return (
             <TableCell key={tabela.id} className={`text-center ${colorConfig.bg}`}>
               {preco ? (
-                <button
-                  onClick={() => handlePrecoClick(row.produto.id, row.produto.nome, tabela.id, tabela.nome)}
-                  className="w-full cursor-pointer hover:bg-muted/50 rounded p-1 transition-colors group"
-                >
-                  <div className="font-semibold group-hover:text-primary">
-                    {formatarMoeda(preco.preco)}
-                  </div>
-                  <div className={`text-xs ${getMargemColor(preco.margem)} flex items-center justify-center gap-1`}>
-                    {preco.margem.toFixed(1)}%
-                    <History className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handlePrecoClick(row.produto.id, row.produto.nome, tabela.id, tabela.nome)}
+                        className="w-full cursor-pointer hover:bg-muted/50 rounded p-1 transition-colors group"
+                      >
+                        <div className="font-semibold group-hover:text-primary flex items-center justify-center gap-1">
+                          {formatarMoeda(preco.preco)}
+                          {preco.limitado && (
+                            <Shield className="h-3 w-3 text-yellow-600" />
+                          )}
+                        </div>
+                        {preco.limitado && preco.precoOriginal && (
+                          <div className="text-xs text-muted-foreground line-through">
+                            {formatarMoeda(preco.precoOriginal)}
+                          </div>
+                        )}
+                        <div className={`text-xs ${getMargemColor(preco.margem)} flex items-center justify-center gap-1`}>
+                          {preco.margem.toFixed(1)}%
+                          <History className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </button>
+                    </TooltipTrigger>
+                    {preco.limitado && preco.motivoLimite && (
+                      <TooltipContent side="top" className="max-w-[280px]">
+                        <div className="flex items-start gap-2">
+                          <Shield className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-medium text-sm">Preço Limitado</p>
+                            <p className="text-xs text-muted-foreground">{preco.motivoLimite}</p>
+                            <p className="text-xs text-primary mt-1">Clique para ver detalhes</p>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               ) : (
                 <span className="text-muted-foreground">-</span>
               )}

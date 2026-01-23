@@ -22,7 +22,7 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { TrendingUp, TrendingDown, Minus, History, Calendar, ArrowRight, Calculator, ChevronDown, ChevronRight, Factory, DollarSign, Percent } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, History, Calendar, ArrowRight, Calculator, ChevronDown, ChevronRight, Factory, DollarSign, Percent, Shield, AlertTriangle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -59,6 +59,9 @@ interface PrecoTabela {
   custo_base: number;
   preco_final: number;
   margem_lucro_percentual: number;
+  preco_limitado?: boolean;
+  preco_original_calculado?: number;
+  motivo_limite?: string;
 }
 
 interface CadeiaCalculo {
@@ -67,6 +70,9 @@ interface CadeiaCalculo {
   precoFinal: number;
   markupAplicado: string;
   valorMarkup: number;
+  limitado?: boolean;
+  precoOriginal?: number;
+  motivoLimite?: string;
 }
 
 export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNome, tabelaId }: Props) {
@@ -105,7 +111,7 @@ export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNo
     queryFn: async () => {
       const { data, error } = await supabase
         .from("fabrica_precos_produtos")
-        .select("tabela_id, custo_base, preco_final, margem_lucro_percentual")
+        .select("tabela_id, custo_base, preco_final, margem_lucro_percentual, preco_limitado, preco_original_calculado, motivo_limite")
         .eq("produto_id", produtoId)
         .eq("ativo", true);
 
@@ -180,6 +186,9 @@ export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNo
           precoFinal: preco.preco_final,
           markupAplicado: markupDescricao,
           valorMarkup: tabelaAtual.valor_markup,
+          limitado: preco.preco_limitado,
+          precoOriginal: preco.preco_original_calculado,
+          motivoLimite: preco.motivo_limite,
         });
       }
 
@@ -308,9 +317,9 @@ export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNo
                     {cadeia.map((etapa, index) => (
                       <div key={etapa.tabela.id}>
                         {/* Etapa */}
-                        <div className={`flex items-center gap-4 p-4 rounded-lg ${index === cadeia.length - 1 ? 'bg-primary/10 border border-primary/30' : 'bg-muted/30'}`}>
+                        <div className={`flex items-center gap-4 p-4 rounded-lg ${etapa.limitado ? 'bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-300 dark:border-yellow-700' : index === cadeia.length - 1 ? 'bg-primary/10 border border-primary/30' : 'bg-muted/30'}`}>
                           {/* Número da Etapa */}
-                          <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold ${index === cadeia.length - 1 ? 'bg-primary text-primary-foreground' : 'bg-muted-foreground/20 text-muted-foreground'}`}>
+                          <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold ${etapa.limitado ? 'bg-yellow-500 text-white' : index === cadeia.length - 1 ? 'bg-primary text-primary-foreground' : 'bg-muted-foreground/20 text-muted-foreground'}`}>
                             {index + 1}
                           </div>
 
@@ -321,6 +330,12 @@ export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNo
                               <Badge variant="outline" className="text-xs">
                                 {etapa.tabela.codigo}
                               </Badge>
+                              {etapa.limitado && (
+                                <Badge variant="secondary" className="text-xs bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 border-yellow-300 dark:border-yellow-700">
+                                  <Shield className="h-3 w-3 mr-1" />
+                                  Preço Limitado
+                                </Badge>
+                              )}
                             </div>
                             <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                               {getMarkupIcon(etapa.tabela.tipo_markup)}
@@ -332,6 +347,23 @@ export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNo
                                 )}
                               </span>
                             </div>
+                            {/* Detalhes do limite */}
+                            {etapa.limitado && etapa.motivoLimite && (
+                              <div className="mt-2 p-2 bg-yellow-100/50 dark:bg-yellow-900/30 rounded border border-yellow-200 dark:border-yellow-800">
+                                <div className="flex items-start gap-2">
+                                  <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                                  <div className="text-xs">
+                                    <p className="font-medium text-yellow-700 dark:text-yellow-400">Limite de Preço Aplicado</p>
+                                    <p className="text-yellow-600 dark:text-yellow-500">{etapa.motivoLimite}</p>
+                                    {etapa.precoOriginal && (
+                                      <p className="text-muted-foreground mt-1">
+                                        Preço calculado: <span className="line-through">{formatarMoeda(etapa.precoOriginal)}</span>
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
                           {/* Valores */}
@@ -341,10 +373,16 @@ export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNo
                                 Base: {formatarMoeda(cadeia[index - 1].precoFinal)}
                               </div>
                             )}
-                            <div className={`text-lg font-bold ${index === cadeia.length - 1 ? 'text-primary' : ''}`}>
+                            <div className={`text-lg font-bold flex items-center justify-end gap-1 ${etapa.limitado ? 'text-yellow-600' : index === cadeia.length - 1 ? 'text-primary' : ''}`}>
                               {formatarMoeda(etapa.precoFinal)}
+                              {etapa.limitado && <Shield className="h-4 w-4" />}
                             </div>
-                            {index > 0 && (
+                            {etapa.limitado && etapa.precoOriginal && (
+                              <div className="text-xs text-muted-foreground line-through">
+                                {formatarMoeda(etapa.precoOriginal)}
+                              </div>
+                            )}
+                            {index > 0 && !etapa.limitado && (
                               <div className="text-xs text-green-600">
                                 +{formatarMoeda(etapa.precoFinal - cadeia[index - 1].precoFinal)}
                               </div>
