@@ -179,95 +179,27 @@ export default function ContasAReceber() {
     return q;
   };
 
-  // Query para DASHBOARD - busca dados com limite para performance
-  const { data: contasDashboard, isLoading: isLoadingDashboard } = useQuery({
-    queryKey: ['contas-receber-dashboard', filterEmpresasKey, filterAnosKey, filterMesesKey, filterConta, filterPortador, filterDiaVencimento, filterDiaRecebimento, filterDiaEmissao],
+  // Query LEVE para opções de filtro (empresas, contas, portadores)
+  // Usa RPC que faz DISTINCT no banco - muito mais eficiente que carregar todos registros
+  const { data: filterOptions, isLoading: isLoadingFilters } = useQuery({
+    queryKey: ['contas-receber-filter-options', filterAnosKey],
     queryFn: async () => {
-      const PAGE_SIZE = 1000;
-      const MAX_RECORDS = 800000; // Limite máximo para evitar timeout
-      let allData: ContaReceber[] = [];
-      let from = 0;
-      let hasMore = true;
+      const { data, error } = await supabase.rpc('get_contas_receber_filter_options', {
+        p_anos: filterAnos.length > 0 ? filterAnos : null
+      });
       
-      while (hasMore && allData.length < MAX_RECORDS) {
-        let query = supabase
-          .from('contas_receber' as any)
-          .select('*');
-        
-        query = buildBaseFilters(query);
-        query = query.order('id', { ascending: true }).range(from, from + PAGE_SIZE - 1);
-        
-        const { data, error } = await query;
-        
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          allData = [...allData, ...data as unknown as ContaReceber[]];
-          from += PAGE_SIZE;
-          hasMore = data.length === PAGE_SIZE;
-        } else {
-          hasMore = false;
-        }
+      if (error) {
+        console.error('Erro ao carregar opções de filtro:', error);
+        return { empresas: [], contas: [], portadores: [] };
       }
       
-      return allData;
-    }
-  });
-
-  // Query para CALENDÁRIO - busca ano inteiro (ignora filtro de mês)
-  const { data: contasCalendario, isLoading: isLoadingCalendario } = useQuery({
-    queryKey: ['contas-receber-calendario', filterEmpresasKey, filterAnosKey, filterConta, filterPortador],
-    queryFn: async () => {
-      const PAGE_SIZE = 1000;
-      const MAX_RECORDS = 800000; // Limite máximo para evitar timeout
-      let allData: ContaReceber[] = [];
-      let from = 0;
-      let hasMore = true;
-      
-      while (hasMore && allData.length < MAX_RECORDS) {
-        let query = supabase
-          .from('contas_receber' as any)
-          .select('*');
-        
-        // Filtros base SEM mês
-        if (filterEmpresas.length > 0) {
-          query = query.in('empresa_id', filterEmpresas);
-        }
-        if (filterConta !== 'all') {
-          query = query.eq('conta', filterConta);
-        }
-        if (filterPortador !== 'all') {
-          query = query.eq('portador', filterPortador);
-        }
-        
-        // Ano inteiro (ou últimos 3 anos se vazio)
-        if (filterAnos.length === 0) {
-          const anoAtual = new Date().getFullYear();
-          query = query.gte('data_vencimento', `${anoAtual - 2}-01-01`).lte('data_vencimento', `${anoAtual + 1}-12-31`);
-        } else if (filterAnos.length === 1) {
-          query = query.gte('data_vencimento', `${filterAnos[0]}-01-01`).lte('data_vencimento', `${filterAnos[0]}-12-31`);
-        } else {
-          const minAno = Math.min(...filterAnos);
-          const maxAno = Math.max(...filterAnos);
-          query = query.gte('data_vencimento', `${minAno}-01-01`).lte('data_vencimento', `${maxAno}-12-31`);
-        }
-        
-        query = query.order('id', { ascending: true }).range(from, from + PAGE_SIZE - 1);
-        
-        const { data, error } = await query;
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          allData = [...allData, ...data as unknown as ContaReceber[]];
-          from += PAGE_SIZE;
-          hasMore = data.length === PAGE_SIZE;
-        } else {
-          hasMore = false;
-        }
-      }
-      
-      return allData;
-    }
+      return data as { 
+        empresas: { id: number; nome: string }[]; 
+        contas: string[]; 
+        portadores: string[] 
+      };
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutos de cache
   });
 
   // Query para TABELA - paginação no backend
@@ -330,27 +262,7 @@ export default function ContasAReceber() {
     }
   });
 
-  // Dados base para compatibilidade (usado em KPIs, exports, etc.)
-  const contasBase = contasDashboard;
-
-  // Aplica filtros da aba (Status + Busca) também nos dados usados por Dashboard/Calendário
-  const contas = useMemo(() => {
-    let list = contasBase || [];
-
-    if (filterStatus !== 'all') {
-      const status = filterStatus.toLowerCase();
-      list = list.filter(c => (c.status || '').toLowerCase() === status);
-    }
-
-    const search = searchCliente.trim().toLowerCase();
-    if (search) {
-      list = list.filter(c => (c.cliente_nome || '').toLowerCase().includes(search));
-    }
-
-    return list;
-  }, [contasBase, filterStatus, searchCliente]);
-
-  const isLoading = isLoadingDashboard || isLoadingTable;
+  const isLoading = isLoadingFilters || isLoadingTable;
 
   // Dados paginados da tabela
   const sortedAndPaginatedData = useMemo(() => {
@@ -363,30 +275,20 @@ export default function ContasAReceber() {
     return { data: contasTable.data, totalPages, totalItems, totais };
   }, [contasTable, pageSize]);
 
-  // Empresas únicas para filtro (do dashboard para ter mais dados)
+  // Empresas únicas para filtro (via RPC leve)
   const empresas = useMemo(() => {
-    const list = contasDashboard || [];
-    const map = new Map<number, string>();
-    list.forEach(c => {
-      if (c.empresa_id && c.empresa_nome && !map.has(c.empresa_id)) {
-        map.set(c.empresa_id, c.empresa_nome);
-      }
-    });
-    return Array.from(map.entries()).map(([id, nome]) => ({ id, nome }));
-  }, [contasDashboard]);
+    return filterOptions?.empresas || [];
+  }, [filterOptions]);
 
-  // Extrair listas únicas de Conta e Portador
+  // Contas únicas para filtro (via RPC leve)
   const contasUnicas = useMemo(() => {
-    const set = new Set<string>();
-    (contasDashboard || []).forEach(c => { if (c.conta) set.add(c.conta); });
-    return Array.from(set).sort();
-  }, [contasDashboard]);
+    return filterOptions?.contas || [];
+  }, [filterOptions]);
 
+  // Portadores únicos para filtro (via RPC leve)
   const portadoresUnicos = useMemo(() => {
-    const set = new Set<string>();
-    (contasDashboard || []).forEach(c => { if (c.portador) set.add(c.portador); });
-    return Array.from(set).sort();
-  }, [contasDashboard]);
+    return filterOptions?.portadores || [];
+  }, [filterOptions]);
 
   // Ordenação clicável
   const handleSort = (column: SortColumn) => {
@@ -404,33 +306,100 @@ export default function ContasAReceber() {
     return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />;
   };
 
-  // Exportar para Excel
-  const handleExport = () => {
-    if (!contas || contas.length === 0) {
+  // Exportar para Excel - usa dados da página atual ou faz export completo
+  const handleExport = async () => {
+    const tableData = sortedAndPaginatedData.data;
+    
+    if (!tableData || tableData.length === 0) {
       toast.error("Não há dados para exportar");
       return;
     }
 
-    const dataToExport = contas.map(c => ({
-      'Empresa': c.empresa_nome,
-      'Documento': `${c.numero_documento}/${c.parcela}`,
-      'Cliente': c.cliente_nome,
-      'Vendedor': c.vendedor_nome,
-      'Emissão': formatLocalDate(c.data_emissao),
-      'Vencimento': formatLocalDate(c.data_vencimento),
-      'Valor Original': c.valor_original,
-      'Valor Aberto': c.valor_aberto,
-      'Valor Recebido': c.valor_recebido,
-      'Status': c.status,
-      'Portador': c.portador,
-      'Conta': c.conta
-    }));
+    // Se tem poucos registros, exportar diretamente
+    if (sortedAndPaginatedData.totalItems <= pageSize) {
+      const dataToExport = tableData.map(c => ({
+        'Empresa': c.empresa_nome,
+        'Documento': `${c.numero_documento}/${c.parcela}`,
+        'Cliente': c.cliente_nome,
+        'Vendedor': c.vendedor_nome,
+        'Emissão': formatLocalDate(c.data_emissao),
+        'Vencimento': formatLocalDate(c.data_vencimento),
+        'Valor Original': c.valor_original,
+        'Valor Aberto': c.valor_aberto,
+        'Valor Recebido': c.valor_recebido,
+        'Status': c.status,
+        'Portador': c.portador,
+        'Conta': c.conta
+      }));
 
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Contas a Receber");
-    XLSX.writeFile(wb, `contas-receber-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
-    toast.success("Exportação concluída!");
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Contas a Receber");
+      XLSX.writeFile(wb, `contas-receber-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+      toast.success("Exportação concluída!");
+      return;
+    }
+
+    // Para grandes volumes, exportar em batches
+    toast.info("Exportando dados... isso pode levar alguns segundos.");
+    
+    try {
+      const PAGE_SIZE = 5000;
+      let allData: ContaReceber[] = [];
+      let from = 0;
+      let hasMore = true;
+      
+      while (hasMore) {
+        let query = supabase
+          .from('contas_receber' as any)
+          .select('*');
+        
+        if (searchCliente) {
+          query = query.ilike('cliente_nome', `%${searchCliente}%`);
+        }
+        if (filterStatus !== 'all') {
+          query = query.eq('status', filterStatus.toLowerCase());
+        }
+        query = buildBaseFilters(query);
+        query = query.order(sortColumn, { ascending: sortDirection === 'asc' });
+        query = query.range(from, from + PAGE_SIZE - 1);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allData = [...allData, ...data as unknown as ContaReceber[]];
+          from += PAGE_SIZE;
+          hasMore = data.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      const dataToExport = allData.map(c => ({
+        'Empresa': c.empresa_nome,
+        'Documento': `${c.numero_documento}/${c.parcela}`,
+        'Cliente': c.cliente_nome,
+        'Vendedor': c.vendedor_nome,
+        'Emissão': formatLocalDate(c.data_emissao),
+        'Vencimento': formatLocalDate(c.data_vencimento),
+        'Valor Original': c.valor_original,
+        'Valor Aberto': c.valor_aberto,
+        'Valor Recebido': c.valor_recebido,
+        'Status': c.status,
+        'Portador': c.portador,
+        'Conta': c.conta
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Contas a Receber");
+      XLSX.writeFile(wb, `contas-receber-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+      toast.success(`Exportação concluída! ${allData.length.toLocaleString()} registros.`);
+    } catch (error) {
+      console.error('Erro ao exportar:', error);
+      toast.error("Erro ao exportar dados");
+    }
   };
 
   const getStatusBadge = (status: string) => {
