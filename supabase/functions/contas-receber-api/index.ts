@@ -21,10 +21,10 @@ const API_VERSION = '3.8.8';
 // =====================================================
 // RATE LIMITER - ATIVO PARA CONTROLE DE CONCORRÊNCIA N8N
 // =====================================================
-const MAX_CONCURRENT_SYNCS = 2;     // Máximo 2 syncs simultâneos (era 100)
-const SLOT_TIMEOUT_MS = 60000;      // 60 segundos por slot (era 30s)
-const WAIT_RETRY_MS = 500;          // 500ms entre tentativas (era 100ms)
-const MAX_WAIT_RETRIES = 10;        // ~5s de espera total (era 0.5s)
+const MAX_CONCURRENT_SYNCS = 3;     // Aumentado: 3 syncs simultâneos
+const SLOT_TIMEOUT_MS = 90000;      // 90 segundos por slot
+const WAIT_RETRY_MS = 800;          // 800ms entre tentativas
+const MAX_WAIT_RETRIES = 20;        // ~16s de espera total (dá tempo pro N8N)
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
