@@ -8,10 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ClipboardEdit, TrendingUp, Package, Receipt, CheckCircle, History, Loader2, Building2, AlertCircle } from "lucide-react";
+import { ArrowLeft, ClipboardEdit, Package, Receipt, CheckCircle, History, Loader2, Building2, AlertCircle } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { CampaignLancamentosList } from "@/components/trade/campaigns/CampaignLancamentosList";
-import { CampaignSellComparison } from "@/components/trade/campaigns/CampaignSellComparison";
+
 import { CampaignProducts } from "@/components/trade/campaigns/CampaignProducts";
 import { CampaignExpenses } from "@/components/trade/campaigns/CampaignExpenses";
 import { CampaignValidation } from "@/components/trade/campaigns/CampaignValidation";
@@ -173,9 +173,9 @@ export default function TradeCampaignDetail() {
 
   const handleLancamentoSelect = (lancamentoId: string) => {
     setSelectedLancamentoId(lancamentoId);
-    // Automatically move to next tab when selecting
+    // Automatically move to products tab when selecting
     if (activeTab === "lancamento") {
-      setActiveTab("sell");
+      setActiveTab("products");
     }
   };
 
@@ -292,14 +292,10 @@ export default function TradeCampaignDetail() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
             <TabsTrigger value="lancamento" className="gap-2">
               <ClipboardEdit className="h-4 w-4" />
               <span className="hidden sm:inline">Lançamento</span>
-            </TabsTrigger>
-            <TabsTrigger value="sell" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
-              <span className="hidden sm:inline">Sell In/Out</span>
             </TabsTrigger>
             <TabsTrigger value="products" className="gap-2">
               <Package className="h-4 w-4" />
@@ -325,14 +321,6 @@ export default function TradeCampaignDetail() {
             <CampaignLancamentosList 
               campaign={campaign} 
               onSelectLancamento={handleLancamentoSelect}
-            />
-          </TabsContent>
-
-          <TabsContent value="sell" className="mt-6">
-            <CampaignSellComparison 
-              campaignId={campaign.id} 
-              campaign={campaign}
-              lancamentoId={selectedLancamentoId}
             />
           </TabsContent>
 
