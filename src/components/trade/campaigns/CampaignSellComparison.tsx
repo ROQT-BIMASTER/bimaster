@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, TrendingUp, TrendingDown, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Loader2, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -23,6 +23,7 @@ interface CampaignSellComparisonProps {
     sell_out_atual: number;
     crescimento_percentual: number | null;
   };
+  lancamentoId?: string | null;
 }
 
 interface SellEntry {
@@ -39,7 +40,7 @@ interface SellEntry {
   created_at: string;
 }
 
-export function CampaignSellComparison({ campaignId, campaign }: CampaignSellComparisonProps) {
+export function CampaignSellComparison({ campaignId, campaign, lancamentoId }: CampaignSellComparisonProps) {
   const queryClient = useQueryClient();
   const { isAdminOrSupervisor } = useUserRole();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,13 +48,20 @@ export function CampaignSellComparison({ campaignId, campaign }: CampaignSellCom
   const [period, setPeriod] = useState<string>("atual");
 
   const { data: entries = [], isLoading } = useQuery({
-    queryKey: ["campaign-sell-entries", campaignId],
+    queryKey: ["campaign-sell-entries", campaignId, lancamentoId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("trade_campaign_sellout_entries")
         .select("*")
         .eq("campaign_id", campaignId)
         .order("created_at", { ascending: false });
+
+      // Filter by lancamento if provided
+      if (lancamentoId) {
+        query = query.eq("lancamento_id", lancamentoId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as SellEntry[];
@@ -86,6 +94,7 @@ export function CampaignSellComparison({ campaignId, campaign }: CampaignSellCom
         .from("trade_campaign_sellout_entries")
         .insert({
           campaign_id: campaignId,
+          lancamento_id: lancamentoId || null,
           store_id: storeId || null,
           store_name: selectedStore?.name || null,
           entry_type: formData.get("entry_type") as string,
@@ -101,7 +110,7 @@ export function CampaignSellComparison({ campaignId, campaign }: CampaignSellCom
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaign-sell-entries", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-sell-entries", campaignId, lancamentoId] });
       queryClient.invalidateQueries({ queryKey: ["trade-campaign-detail", campaignId] });
       toast.success("Entrada registrada com sucesso!");
       setDialogOpen(false);
@@ -127,7 +136,7 @@ export function CampaignSellComparison({ campaignId, campaign }: CampaignSellCom
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaign-sell-entries", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-sell-entries", campaignId, lancamentoId] });
       queryClient.invalidateQueries({ queryKey: ["trade-campaign-detail", campaignId] });
       toast.success("Status atualizado!");
     },
@@ -143,7 +152,7 @@ export function CampaignSellComparison({ campaignId, campaign }: CampaignSellCom
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Aprovado</Badge>;
+        return <Badge variant="default" className="bg-green-600 hover:bg-green-600"><CheckCircle className="h-3 w-3 mr-1" />Aprovado</Badge>;
       case "rejected":
         return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Rejeitado</Badge>;
       default:
@@ -172,6 +181,23 @@ export function CampaignSellComparison({ campaignId, campaign }: CampaignSellCom
       .reduce((sum, e) => sum + e.amount, 0),
   };
 
+  // Show message when no lancamento selected
+  if (!lancamentoId) {
+    return (
+      <Card>
+        <CardContent className="py-12">
+          <div className="flex flex-col items-center justify-center text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium">Selecione um Lançamento</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Vá para a aba "Lançamento" e selecione um cliente para registrar Sell In/Out.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Resumo Comparativo */}
@@ -193,9 +219,9 @@ export function CampaignSellComparison({ campaignId, campaign }: CampaignSellCom
             </div>
             <div className="mt-4 flex items-center gap-2">
               {campaign.sell_in_atual >= campaign.sell_in_anterior ? (
-                <TrendingUp className="h-4 w-4 text-green-500" />
+                <TrendingUp className="h-4 w-4 text-green-600" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-red-500" />
+                <TrendingDown className="h-4 w-4 text-red-600" />
               )}
               <span className={`text-sm font-medium ${campaign.sell_in_atual >= campaign.sell_in_anterior ? 'text-green-600' : 'text-red-600'}`}>
                 {campaign.sell_in_anterior > 0 
@@ -224,9 +250,9 @@ export function CampaignSellComparison({ campaignId, campaign }: CampaignSellCom
             </div>
             <div className="mt-4 flex items-center gap-2">
               {(campaign.crescimento_percentual || 0) >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-500" />
+                <TrendingUp className="h-4 w-4 text-green-600" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-red-500" />
+                <TrendingDown className="h-4 w-4 text-red-600" />
               )}
               <span className={`text-sm font-medium ${(campaign.crescimento_percentual || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {campaign.crescimento_percentual !== null 
@@ -255,7 +281,7 @@ export function CampaignSellComparison({ campaignId, campaign }: CampaignSellCom
             </div>
           ) : entries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum lançamento registrado
+              Nenhum lançamento registrado para este cliente
             </div>
           ) : (
             <Table>
@@ -302,7 +328,7 @@ export function CampaignSellComparison({ campaignId, campaign }: CampaignSellCom
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 text-red-600"
+                              className="h-7 text-destructive"
                               onClick={() => updateValidation.mutate({ entryId: entry.id, status: "rejected" })}
                             >
                               <XCircle className="h-4 w-4" />

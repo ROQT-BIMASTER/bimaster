@@ -49,7 +49,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  ListFilter
+  ListFilter,
+  ChevronRight
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { format } from "date-fns";
@@ -88,9 +89,10 @@ interface Lancamento {
 
 interface CampaignLancamentosListProps {
   campaign: Campaign;
+  onSelectLancamento?: (lancamentoId: string) => void;
 }
 
-export function CampaignLancamentosList({ campaign }: CampaignLancamentosListProps) {
+export function CampaignLancamentosList({ campaign, onSelectLancamento }: CampaignLancamentosListProps) {
   const queryClient = useQueryClient();
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editingLancamentoId, setEditingLancamentoId] = useState<string | null>(null);
@@ -144,6 +146,7 @@ export function CampaignLancamentosList({ campaign }: CampaignLancamentosListPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaign-lancamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-lancamentos-selector"] });
       toast.success("Lançamento excluído com sucesso");
       setDeleteDialogOpen(false);
       setLancamentoToDelete(null);
@@ -175,11 +178,15 @@ export function CampaignLancamentosList({ campaign }: CampaignLancamentosListPro
     }
   };
 
+  const handleSelectLancamento = (lancamentoId: string) => {
+    onSelectLancamento?.(lancamentoId);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
         return (
-          <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
+          <Badge variant="default" className="bg-green-600 hover:bg-green-600">
             <CheckCircle className="h-3 w-3 mr-1" />
             Aprovado
           </Badge>
@@ -280,12 +287,16 @@ export function CampaignLancamentosList({ campaign }: CampaignLancamentosListPro
                     <TableHead className="text-right">Sell Out Atual</TableHead>
                     <TableHead>Crescimento</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {lancamentos.map((lancamento) => (
-                    <TableRow key={lancamento.id}>
+                    <TableRow 
+                      key={lancamento.id} 
+                      className="cursor-pointer hover:bg-primary/5"
+                      onClick={() => handleSelectLancamento(lancamento.id)}
+                    >
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -318,27 +329,41 @@ export function CampaignLancamentosList({ campaign }: CampaignLancamentosListPro
                         {getStatusBadge(lancamento.status)}
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditLancamento(lancamento.id)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => handleDeleteLancamento(lancamento.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectLancamento(lancamento.id);
+                            }}
+                            title="Selecionar e continuar"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEditLancamento(lancamento.id)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleDeleteLancamento(lancamento.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -372,7 +397,10 @@ export function CampaignLancamentosList({ campaign }: CampaignLancamentosListPro
           <CampaignLancamentoForm
             campaign={campaign}
             lancamentoId={editingLancamentoId}
-            onSuccess={() => setFormDialogOpen(false)}
+            onSuccess={() => {
+              setFormDialogOpen(false);
+              queryClient.invalidateQueries({ queryKey: ["campaign-lancamentos-selector"] });
+            }}
             onCancel={() => setFormDialogOpen(false)}
           />
         </DialogContent>
