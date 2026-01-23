@@ -116,6 +116,20 @@ export function ContasPagarDREView({
   const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
   const [selectedFornecedor, setSelectedFornecedor] = useState<{ nome: string; lancamentosIds: string[] } | null>(null);
 
+  // Format functions - defined early to be used in useMemo
+  const formatDate = useCallback((date: string) => {
+    return new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  }, []);
+
+  const formatCurrency = useCallback((value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(Math.abs(value));
+  }, []);
+
   // Build date range
   const dateRange = useMemo(() => {
     const ano = filterAno === 'all' ? new Date().getFullYear() : parseInt(filterAno);
@@ -461,18 +475,6 @@ export function ContasPagarDREView({
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(Math.abs(value));
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-  };
 
   const handleSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['contas-pagar-dre-view'] });
