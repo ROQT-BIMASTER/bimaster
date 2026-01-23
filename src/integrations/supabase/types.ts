@@ -15546,6 +15546,10 @@ export type Database = {
           recebido: number
         }[]
       }
+      get_contas_receber_filter_options: {
+        Args: { p_anos?: number[] }
+        Returns: Json
+      }
       get_contas_receber_filtros: { Args: { p_ano?: number }; Returns: Json }
       get_contas_receber_pmr_detalhes: {
         Args: {
