@@ -71,7 +71,6 @@ interface PlanoContas {
   categoria_dre: string | null;
   is_group: boolean | null;
   nivel: number;
-  codigo_dre_gerencial?: string | null;
 }
 
 interface ContasPagarDREViewProps {
@@ -81,153 +80,78 @@ interface ContasPagarDREViewProps {
   filterDepartamento: string;
 }
 
-// Estrutura DRE completa conforme planilha do gestor
+// Estrutura DRE seguindo o Plano Contábil Original (3.x, 4.x)
 const ESTRUTURA_DRE = [
   {
-    codigo: '1',
-    nome: 'RECEITA BRUTA',
-    tipo: 'grupo' as const,
-    categoria_dre: 'receita_bruta',
-    sinal: '+',
-    children: [
-      { codigo: '1.1', nome: 'Boletos - Banco', categoria_dre: 'receita_bruta' },
-      { codigo: '1.2', nome: 'À Vista', categoria_dre: 'receita_bruta' },
-      { codigo: '1.3', nome: 'Cheque', categoria_dre: 'receita_bruta' },
-      { codigo: '1.4', nome: 'Mercado Pago', categoria_dre: 'receita_bruta' },
-      { codigo: '1.5', nome: 'Dinheiro', categoria_dre: 'receita_bruta' },
-      { codigo: '1.6', nome: 'Tabela Verão', categoria_dre: 'receita_bruta' },
-      { codigo: '1.7', nome: 'Pague Seguro', categoria_dre: 'receita_bruta' },
-      { codigo: '1.8', nome: '( + ) Juros', categoria_dre: 'receita_bruta' },
-      { codigo: '1.9', nome: '( - ) Descontos', categoria_dre: 'receita_bruta' },
-    ]
-  },
-  { 
-    codigo: '2', 
-    nome: 'CUSTOS VARIÁVEIS', 
-    tipo: 'grupo' as const,
-    categoria_dre: 'despesas_variaveis',
-    sinal: '-',
-    totalizador: 'TOTAL DOS CUSTOS VARIÁVEIS',
-    children: [
-      { codigo: '2.1', nome: 'Fornecedores de Produtos', categoria_dre: 'despesas_variaveis', children: [
-        { codigo: '2.1.1', nome: 'Compras Ruby Rose (Marca)', categoria_dre: 'despesas_variaveis' },
-        { codigo: '2.1.2', nome: 'Compras Melu', categoria_dre: 'despesas_variaveis' },
-      ]},
-      { codigo: '2.2', nome: 'Embalagens e Materiais para postagem', categoria_dre: 'despesas_variaveis' },
-      { codigo: '2.3', nome: 'Fretes', categoria_dre: 'despesas_variaveis', children: [
-        { codigo: '2.3.1', nome: 'Transportadoras', categoria_dre: 'despesas_variaveis' },
-        { codigo: '2.3.2', nome: 'Agregados', categoria_dre: 'despesas_variaveis' },
-        { codigo: '2.3.3', nome: 'Correio', categoria_dre: 'despesas_variaveis' },
-        { codigo: '2.3.4', nome: 'Escoltas', categoria_dre: 'despesas_variaveis' },
-      ]},
-      { codigo: '2.4', nome: 'Despesas Tributárias de Vendas', categoria_dre: 'despesas_variaveis', children: [
-        { codigo: '2.4.1', nome: 'Simples Nacional', categoria_dre: 'despesas_variaveis' },
-        { codigo: '2.4.2', nome: 'ICMS', categoria_dre: 'despesas_variaveis' },
-        { codigo: '2.4.3', nome: 'Cofins/CSLL/IRPJ/PIS', categoria_dre: 'despesas_variaveis' },
-      ]},
-      { codigo: '2.5', nome: 'Despesas Comerciais', categoria_dre: 'despesas_variaveis', children: [
-        { codigo: '2.5.1', nome: 'Comissões', categoria_dre: 'despesas_variaveis' },
-      ]},
-      { codigo: '2.6', nome: 'Tarifas', categoria_dre: 'despesas_variaveis', children: [
-        { codigo: '2.6.1', nome: 'Mercado Pago', categoria_dre: 'despesas_variaveis' },
-      ]},
-    ]
-  },
-  {
     codigo: '3',
-    nome: 'DESPESAS FIXAS',
+    nome: 'DESPESAS OPERACIONAIS',
     tipo: 'grupo' as const,
-    categoria_dre: 'despesas_fixas',
+    categoria_dre: 'despesas',
     sinal: '-',
-    totalizador: 'TOTAL DAS DESPESAS FIXAS',
     children: [
-      { codigo: '3.1', nome: 'Despesas Administrativas', categoria_dre: 'despesas_fixas', children: [
-        { codigo: '3.1.1', nome: 'Aluguel do estabelecimento', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.2', nome: 'Conta de Luz', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.3', nome: 'Conta de Água', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.4', nome: 'Internet', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.5', nome: 'Telefone', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.6', nome: 'Impostos Fixos (IPTU e outros)', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.7', nome: 'Material de Escritório / Informática', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.8', nome: 'Sistema Integrado (Result)', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.9', nome: 'Serviços de Terceiros', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.10', nome: 'Manutenção', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.11', nome: 'Veículos', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.12', nome: 'Seguro', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.13', nome: 'Cartório', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.14', nome: 'Correios', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.15', nome: 'Material Limpeza/Higiene/Copa', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.16', nome: 'Uber/Táxi', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.17', nome: 'Refeições', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.18', nome: 'Reembolso de Despesas', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.19', nome: 'Despesas de Viagem', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.20', nome: 'Locações', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.1.21', nome: 'Outras despesas administrativas', categoria_dre: 'despesas_fixas' },
+      { codigo: '3.1', nome: 'Custos de Vendas (CMV)', categoria_dre: 'custo_cmv', children: [
+        { codigo: '3.1.01', nome: 'Custos de Mercadorias', categoria_dre: 'custo_cmv' },
+        { codigo: '3.1.02', nome: 'Fretes sobre Vendas', categoria_dre: 'custo_cmv' },
+        { codigo: '3.1.03', nome: 'Embalagens', categoria_dre: 'custo_cmv' },
       ]},
-      { codigo: '3.2', nome: 'Despesas com Pessoal', categoria_dre: 'despesas_fixas', children: [
-        { codigo: '3.2.1', nome: 'Salários CLT', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.2', nome: 'Contratados PJ', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.3', nome: 'Vale Transporte', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.4', nome: 'FGTS', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.5', nome: 'INSS', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.6', nome: 'Medicina do Trabalho', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.7', nome: 'Sistema de Ponto', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.8', nome: '13º salário', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.9', nome: 'Férias', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.10', nome: 'Rescisões e Encargos', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.11', nome: 'Café Funcionários', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.12', nome: 'Treinamentos', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.13', nome: 'Cesta Básica', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.14', nome: 'IRRF', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.15', nome: 'Confraternizações', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.2.16', nome: 'Outras despesas com pessoal', categoria_dre: 'despesas_fixas' },
+      { codigo: '3.2', nome: 'Despesas Variáveis', categoria_dre: 'despesas_variaveis', children: [
+        { codigo: '3.2.01', nome: 'Comissões', categoria_dre: 'despesas_variaveis' },
+        { codigo: '3.2.02', nome: 'Representantes', categoria_dre: 'despesas_variaveis' },
+        { codigo: '3.2.03', nome: 'Bonificações', categoria_dre: 'despesas_variaveis' },
       ]},
-      { codigo: '3.3', nome: 'Despesas de Marketing', categoria_dre: 'despesas_fixas', children: [
-        { codigo: '3.3.1', nome: 'Publicidade e Propaganda', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.3.2', nome: 'Eventos', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.3.3', nome: 'Prêmios/Brindes', categoria_dre: 'despesas_fixas' },
-        { codigo: '3.3.4', nome: 'Patrocínio', categoria_dre: 'despesas_fixas' },
+      { codigo: '3.3', nome: 'Despesas Fixas / Pessoal', categoria_dre: 'despesas_fixas', children: [
+        { codigo: '3.3.01', nome: 'Salários e Ordenados', categoria_dre: 'despesas_fixas' },
+        { codigo: '3.3.02', nome: 'Encargos Sociais', categoria_dre: 'despesas_fixas' },
+        { codigo: '3.3.03', nome: 'Vale Transporte', categoria_dre: 'despesas_fixas' },
+        { codigo: '3.3.04', nome: 'FGTS', categoria_dre: 'despesas_fixas' },
+        { codigo: '3.3.05', nome: 'Férias e 13º', categoria_dre: 'despesas_fixas' },
       ]},
-      { codigo: '3.4', nome: 'Despesas Financeiras', categoria_dre: 'despesas_fixas', children: [
-        { codigo: '3.4.1', nome: 'Despesas Bancárias', categoria_dre: 'despesas_fixas' },
+      { codigo: '3.4', nome: 'Impostos e Tributos', categoria_dre: 'impostos_lucro', children: [
+        { codigo: '3.4.01', nome: 'Tributos Federais', categoria_dre: 'impostos_lucro' },
+        { codigo: '3.4.02', nome: 'Tributos Estaduais', categoria_dre: 'impostos_lucro' },
+        { codigo: '3.4.03', nome: 'Simples Nacional', categoria_dre: 'impostos_lucro' },
+        { codigo: '3.4.04', nome: 'IRPJ', categoria_dre: 'impostos_lucro' },
+        { codigo: '3.4.05', nome: 'CSLL', categoria_dre: 'impostos_lucro' },
+        { codigo: '3.4.06', nome: 'ICMS sobre Vendas', categoria_dre: 'impostos_lucro' },
+        { codigo: '3.4.07', nome: 'COFINS', categoria_dre: 'impostos_lucro' },
+        { codigo: '3.4.10', nome: 'PIS', categoria_dre: 'impostos_lucro' },
       ]},
-      { codigo: '3.5', nome: 'Retirada dos Sócios', categoria_dre: 'despesas_fixas', children: [
-        { codigo: '3.5.1', nome: 'Pró-labore Ahmad', categoria_dre: 'despesas_fixas' },
+      { codigo: '3.5', nome: 'Outras Despesas', categoria_dre: 'outras_despesas', children: [
+        { codigo: '3.5.01', nome: 'Investimentos e Imobilizado', categoria_dre: 'outras_despesas' },
+        { codigo: '3.5.02', nome: 'Depreciação', categoria_dre: 'outras_despesas' },
+        { codigo: '3.5.03', nome: 'Serviços de Terceiros', categoria_dre: 'outras_despesas' },
+        { codigo: '3.5.04', nome: 'Despesas Diversas', categoria_dre: 'outras_despesas' },
+      ]},
+      { codigo: '3.6', nome: 'Despesas de Marketing', categoria_dre: 'marketing', children: [
+        { codigo: '3.6.01', nome: 'Publicidade e Propaganda', categoria_dre: 'marketing' },
+        { codigo: '3.6.02', nome: 'Eventos e Trade', categoria_dre: 'marketing' },
+        { codigo: '3.6.03', nome: 'Material Promocional', categoria_dre: 'marketing' },
+      ]},
+      { codigo: '3.7', nome: 'Despesas Financeiras', categoria_dre: 'financeiras', children: [
+        { codigo: '3.7.01', nome: 'Despesas Bancárias', categoria_dre: 'financeiras' },
+        { codigo: '3.7.02', nome: 'Juros e Encargos Financeiros', categoria_dre: 'financeiras' },
+        { codigo: '3.7.03', nome: 'IOF', categoria_dre: 'financeiras' },
+      ]},
+      { codigo: '3.8', nome: 'Retiradas dos Sócios', categoria_dre: 'retiradas', children: [
+        { codigo: '3.8.01', nome: 'Pró-labore', categoria_dre: 'retiradas' },
+        { codigo: '3.8.02', nome: 'Distribuição de Lucros', categoria_dre: 'retiradas' },
       ]},
     ]
   },
   {
     codigo: '4',
-    nome: 'CONTAS DE PATRIMÔNIO',
+    nome: 'RECEITAS',
     tipo: 'grupo' as const,
-    categoria_dre: 'patrimonio',
+    categoria_dre: 'receita_bruta',
+    sinal: '+',
     children: [
-      { codigo: '4.1', nome: 'RECEITAS E DESPESAS NÃO OPERACIONAIS', categoria_dre: 'patrimonio', children: [
-        { codigo: '4.1.1', nome: 'Receitas não Operacionais ( + )', categoria_dre: 'patrimonio' },
-        { codigo: '4.1.2', nome: 'Despesas não Operacionais ( - )', categoria_dre: 'patrimonio' },
+      { codigo: '4.1', nome: 'Receita Operacional', categoria_dre: 'receita_bruta', children: [
+        { codigo: '4.1.01', nome: 'Vendas de Mercadorias', categoria_dre: 'receita_bruta' },
+        { codigo: '4.1.02', nome: 'Vendas de Serviços', categoria_dre: 'receita_bruta' },
       ]},
-      { codigo: '4.2', nome: 'ATIVIDADES DE INVESTIMENTOS PERMANENTES', categoria_dre: 'patrimonio', children: [
-        { codigo: '4.2.1', nome: 'Imobilizado - venda ( + )', categoria_dre: 'patrimonio' },
-        { codigo: '4.2.2', nome: 'Imobilizado - compra ( - )', categoria_dre: 'patrimonio' },
-        { codigo: '4.2.3', nome: 'Equipamentos/Utensílios', categoria_dre: 'patrimonio' },
-        { codigo: '4.2.4', nome: 'Instalações', categoria_dre: 'patrimonio' },
-        { codigo: '4.2.5', nome: 'Móveis e Decoração', categoria_dre: 'patrimonio' },
-        { codigo: '4.2.6', nome: 'Software/Hardware', categoria_dre: 'patrimonio' },
-      ]},
-      { codigo: '4.3', nome: 'ATIVIDADES FINANCEIRAS', categoria_dre: 'patrimonio', children: [
-        { codigo: '4.3.1', nome: 'Empréstimos bancos - Amortizações ( - )', categoria_dre: 'patrimonio' },
-        { codigo: '4.3.2', nome: 'Empréstimos bancos - Tomados ( + )', categoria_dre: 'patrimonio' },
-        { codigo: '4.3.3', nome: 'Juros de Antecipação de Recebíveis ( - )', categoria_dre: 'patrimonio' },
-        { codigo: '4.3.4', nome: 'Empréstimos de Terceiros - Pagamento ( - )', categoria_dre: 'patrimonio' },
-        { codigo: '4.3.5', nome: 'Receitas Financeiras ( + )', categoria_dre: 'patrimonio' },
-        { codigo: '4.3.6', nome: 'Juros pagos ( - )', categoria_dre: 'patrimonio' },
-        { codigo: '4.3.7', nome: 'Parcelamentos de Simples Nacional ( - )', categoria_dre: 'patrimonio' },
-        { codigo: '4.3.8', nome: 'Parcelamentos de INSS ( - )', categoria_dre: 'patrimonio' },
-        { codigo: '4.3.9', nome: 'Parcelamentos de Outros Impostos ( - )', categoria_dre: 'patrimonio' },
-      ]},
-      { codigo: '4.4', nome: 'ATIVIDADES COM OS SÓCIOS', categoria_dre: 'patrimonio', children: [
-        { codigo: '4.4.1', nome: 'Aporte de Capital ( + )', categoria_dre: 'patrimonio' },
-        { codigo: '4.4.2', nome: 'Retirada de Lucros ( - )', categoria_dre: 'patrimonio' },
+      { codigo: '4.2', nome: 'Outras Receitas', categoria_dre: 'outras_receitas', children: [
+        { codigo: '4.2.01', nome: 'Receitas Financeiras', categoria_dre: 'outras_receitas' },
+        { codigo: '4.2.02', nome: 'Descontos Obtidos', categoria_dre: 'outras_receitas' },
       ]},
     ]
   }
@@ -240,7 +164,7 @@ export function ContasPagarDREView({
   filterDepartamento 
 }: ContasPagarDREViewProps) {
   const queryClient = useQueryClient();
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['1', '2', '3', '4']));
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['3', '4']));
   const [editarOpen, setEditarOpen] = useState(false);
   const [transferirOpen, setTransferirOpen] = useState(false);
   const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
@@ -335,7 +259,7 @@ export function ContasPagarDREView({
     queryFn: async (): Promise<PlanoContas[]> => {
       const { data, error } = await supabase
         .from('trade_chart_of_accounts')
-        .select('id, code, name, account_type, categoria_dre, is_group, nivel, codigo_dre_gerencial')
+        .select('id, code, name, account_type, categoria_dre, is_group, nivel')
         .eq('is_active', true)
         .order('code');
 
@@ -348,31 +272,31 @@ export function ContasPagarDREView({
   const { hierarquia, totais, totalGeral } = useMemo(() => {
     if (!lancamentos || !planoContas) return { hierarquia: [], totais: { valoresMes: {}, total: 0 }, totalGeral: 0 };
 
-    const getCodigoDreAtual = (plano?: PlanoContas, codigoLancamento?: string | null) => {
-      const raw = (plano?.codigo_dre_gerencial || codigoLancamento || plano?.code || '').trim();
-      // Só aceitamos a estrutura atual do DRE (2/3/4). Qualquer coisa fora disso vira “sem classificação”.
-      return /^[1-4](\..+)?$/.test(raw) ? raw : 'SEM_CLASSIFICACAO';
+    const getCodigoContabil = (plano?: PlanoContas, codigoLancamento?: string | null) => {
+      const raw = (codigoLancamento || plano?.code || '').trim();
+      // Aceita estrutura contábil padrão (3.x despesas, 4.x receitas, 5.x+ outras)
+      return /^[3-8](\..+)?$/.test(raw) ? raw : 'SEM_CLASSIFICACAO';
     };
 
-    // Map plano de contas por id (muitos lançamentos têm plano_contas_id mas plano_contas_codigo/nome nulos)
+    // Map plano de contas por id
     const planoById = new Map<string, PlanoContas>();
     planoContas.forEach((p) => planoById.set(p.id, p));
 
-    // Group lancamentos pelo código DRE atual (prioriza codigo_dre_gerencial)
+    // Group lancamentos pelo código contábil
     const lancamentosPorConta: Record<string, ContaPagar[]> = {};
     lancamentos.forEach(l => {
       const plano = l.plano_contas_id ? planoById.get(l.plano_contas_id) : undefined;
-      const codigo = getCodigoDreAtual(plano, l.plano_contas_codigo);
+      const codigo = getCodigoContabil(plano, l.plano_contas_codigo);
       if (!lancamentosPorConta[codigo]) {
         lancamentosPorConta[codigo] = [];
       }
       lancamentosPorConta[codigo].push(l);
     });
 
-    // Create plano contas map (chaveado pelo código DRE atual)
+    // Create plano contas map (chaveado pelo código contábil)
     const planoMap = new Map<string, PlanoContas>();
     planoContas.forEach(c => {
-      const key = getCodigoDreAtual(c, null);
+      const key = getCodigoContabil(c, null);
       if (key && key !== 'SEM_CLASSIFICACAO') planoMap.set(key, c);
     });
 
@@ -466,7 +390,7 @@ export function ContasPagarDREView({
         } else {
           // Otherwise, check for sub-accounts in plano and build fornecedor nodes
           const subContas = planoContas.filter(c => {
-            const dreCode = getCodigoDreAtual(c, null);
+            const dreCode = getCodigoContabil(c, null);
             return (
               dreCode !== 'SEM_CLASSIFICACAO' &&
               dreCode.startsWith(item.codigo + '.') &&
@@ -476,7 +400,7 @@ export function ContasPagarDREView({
           
           if (subContas.length > 0) {
             children = subContas.map(sub => {
-              const dreCode = getCodigoDreAtual(sub, null);
+              const dreCode = getCodigoContabil(sub, null);
               const subVals = calcularValores(dreCode);
               const fornNodes = buildFornecedorNodes(dreCode, parentNivel + 2);
               
@@ -621,7 +545,7 @@ export function ContasPagarDREView({
   };
 
   const collapseAll = () => {
-    setExpandedNodes(new Set(['2', '3', '4']));
+    setExpandedNodes(new Set(['3', '4']));
   };
 
   const handleNodeClick = (node: DRENode, e: React.MouseEvent) => {
@@ -850,7 +774,7 @@ export function ContasPagarDREView({
                     Código
                   </th>
                   <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground border-r border-border/30 min-w-[250px]">
-                    DEMONSTRATIVO DE RESULTADOS - DESPESAS
+                    DEMONSTRATIVO DE RESULTADOS
                   </th>
                   {meses.map(m => (
                     <th key={m.key} className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground border-r border-border/30 min-w-[100px]">
@@ -874,7 +798,7 @@ export function ContasPagarDREView({
                 {/* Total Row */}
                 <tr className="border-t-2 border-border bg-primary/10 font-bold">
                   <td className="px-2 py-2 border-r border-border/30"></td>
-                  <td className="px-2 py-2 border-r border-border/30">TOTAL GERAL DAS DESPESAS</td>
+                  <td className="px-2 py-2 border-r border-border/30">TOTAL GERAL</td>
                   {meses.map(m => (
                     <td key={m.key} className="px-2 py-2 text-right border-r border-border/30 tabular-nums">
                       {formatCurrency(totais.valoresMes[m.key] || 0)}
