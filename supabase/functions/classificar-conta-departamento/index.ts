@@ -63,9 +63,48 @@ serve(async (req) => {
       `- ${d.nome}${d.descricao ? `: ${d.descricao}` : ''}`
     ).join('\n');
 
-    const planosInfo = planosContas?.slice(0, 50).map(p => 
+    const planosInfo = planosContas?.slice(0, 100).map(p => 
       `- ${p.code} - ${p.name} (${p.account_type})`
     ).join('\n') || 'Não disponível';
+
+    // Exemplos de classificações do histórico do gerente financeiro (few-shot learning)
+    const exemplosHistorico = `
+EXEMPLOS DE CLASSIFICAÇÕES CORRETAS (baseado no histórico real da empresa):
+
+1. ALUGUEIS:
+   - "ALUGUEL DE DEPÓSITO" → Código 3.1.1.1 (Aluguel do Estabelecimento)
+   - "LOCAÇÃO DE NOTEBOOKS" → Código 3.1.19 (Locações Diversas)
+
+2. CMV - COMPRAS:
+   - "COMPRA DE MERCADORIA" / "PAGTO MARCA" → Código 2.1.1 (Compra de Mercadoria)
+
+3. DESPESAS FINANCEIRAS:
+   - "TARIFAS BANCÁRIAS" → Código 3.4.1 (Despesas Bancárias)
+
+4. DESPESAS TRIBUTÁRIAS:
+   - "SIMPLES NACIONAL" → Código 2.5.1
+   - "DARF" / "TRIBUTOS FEDERAIS" → Código 2.5.3
+
+5. SALÁRIO/BENEFÍCIOS (Grupo 3.2):
+   - "SALÁRIOS" → Código 3.2.1 | "13º SALÁRIO" → 3.2.7 | "FÉRIAS" → 3.2.8
+   - "FGTS" → 3.2.4 | "INSS" / "MEDICINA" → 3.2.5 | "VALE TRANSPORTE" → 3.2.3
+   - "RESCISÃO" → 3.2.9 | "VALE REFEIÇÃO" → 3.2.14 | "CONFRATERNIZAÇÃO" → 3.2.13
+
+6. MARKETING (Grupo 3.3):
+   - "MÍDIA" / "PUBLICIDADE" / "INFLUENCER" → Código 3.3.1
+   - "ASSESSORIA DE IMPRENSA" → 3.3.8
+
+7. UTILIDADES:
+   - "ENERGIA" / "LUZ" → 3.1.2 | "TELEFONE" → 3.1.5 | "SOFTWARE" → 3.1.22
+
+8. FRETE/TRANSPORTE:
+   - "FRETE AGREGADO" → 2.4.2 | "TRANSPORTADORA" → 2.4.1 | "CORREIOS" → 2.4.3
+
+9. COMISSÕES:
+   - "COMISSÃO" / "REPRESENTANTES" → Código 2.6.1
+
+10. PRO LABORE:
+    - "PRO LABORE" / "RETIRADA SÓCIO" → Código 3.5.1`;
 
     let systemPrompt: string;
     let userPrompt: string;
@@ -80,12 +119,14 @@ ${departamentosInfo}
 PLANOS DE CONTAS DISPONÍVEIS:
 ${planosInfo}
 
+${exemplosHistorico}
+
 Considere:
+- Use os EXEMPLOS ACIMA como referência principal - refletem as classificações do gerente financeiro
 - O nome do fornecedor pode indicar o tipo de serviço/produto
 - A categoria original pode dar pistas sobre a natureza da despesa
 - O valor pode ajudar a diferenciar despesas recorrentes de investimentos
-- O tipo de documento ajuda na classificação fiscal
-- IMPORTANTE: Se o usuário forneceu um comentário adicional, use-o como PRINCIPAL guia para classificação
+- IMPORTANTE: Se o usuário forneceu um comentário adicional, use-o como PRINCIPAL guia
 
 Retorne o departamento E o plano de contas mais adequados.`;
 
@@ -96,7 +137,7 @@ Retorne o departamento E o plano de contas mais adequados.`;
 - Tipo documento: ${documento || 'Não informado'}
 ${comentario ? `\n⭐ COMENTÁRIO DO USUÁRIO (USE COMO GUIA PRINCIPAL):\n"${comentario}"` : ''}
 
-Com base nestas informações, qual departamento e plano de contas são mais adequados?`;
+Com base nestas informações e nos EXEMPLOS de classificação, qual departamento e plano de contas são mais adequados?`;
 
     } else {
       systemPrompt = `Você é um especialista em classificação contábil e organizacional. 
@@ -105,7 +146,10 @@ Sua tarefa é analisar contas contábeis e classificá-las no departamento mais 
 Departamentos disponíveis:
 ${departamentosInfo}
 
+${exemplosHistorico}
+
 Considere:
+- Use os EXEMPLOS ACIMA como referência para classificações similares
 - A natureza da despesa/receita
 - O setor responsável pelo gasto/receita
 - Palavras-chave no nome e descrição da conta

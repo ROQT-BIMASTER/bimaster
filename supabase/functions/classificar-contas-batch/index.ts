@@ -87,19 +87,103 @@ async function processGroup(
     // Não existe regra, chamar IA
     console.log("✗ Regra não encontrada, consultando IA...");
 
+    // Exemplos de classificações do histórico do gerente financeiro (few-shot learning)
+    const exemplosHistorico = `
+EXEMPLOS DE CLASSIFICAÇÕES CORRETAS (baseado no histórico real da empresa):
+
+1. ALUGUEIS:
+   - "ALUGUEL DE DEPÓSITO" / "SAO FRANCISCO EMPREENDIMENTOS" → Código 3.1.1.1 (Aluguel do Estabelecimento)
+   - "ALUGUEL DE ESCRITÓRIO" / "IMOBILIARIA SINVAL RIBEIRO" → Código 3.1.1.2 (Outros Aluguéis)
+   - "LOCAÇÃO DE NOTEBOOKS" / "ALOC LOCAÇÃO" → Código 3.1.19 (Locações Diversas)
+   - "LOCAÇÃO DE PALETEIRA" → Código 3.1.19 (Locações Diversas)
+
+2. CMV - COMPRAS PARA REVENDA:
+   - "COMPRA DE MERCADORIA PARA REVENDA" / "NELIDA/FABULOUS" → Código 2.1.1 (Compra de Mercadoria)
+   - "COMPRA DE MERCADORIA PARA REVENDA" / "BIO-SINERGIA" → Código 2.1.1 (Compra de Mercadoria)
+   - "PAGTO MARCA" → Código 2.1.1 (Compra de Mercadoria)
+
+3. DESPESAS FINANCEIRAS:
+   - "TARIFAS BANCÁRIAS" → Código 3.4.1 (Despesas Bancárias)
+   - "TRANSF PAGTO PIX" / "CHEQUE VALOR SUPERIOR" → Código 3.4.1
+
+4. DESPESAS TRIBUTÁRIAS:
+   - "SIMPLES NACIONAL" → Código 2.5.1 (Simples Nacional)
+   - "DARF - TRIBUTOS FEDERAIS" → Código 2.5.3 (Tributos Federais)
+   - "DARF IRPJ" → Código 2.5.3 (Tributos Federais)
+   - "DARF CSOC" → Código 2.5.3 (Tributos Federais)
+
+5. SALÁRIO/BENEFÍCIOS/IMPOSTOS (Grupo 3.2):
+   - "SALÁRIOS" → Código 3.2.1 (Salários CLT)
+   - "ADIANTAMENTO SALÁRIO" → Código 3.2.1 (Salários CLT)
+   - "13º SALÁRIO" → Código 3.2.7 (13º Salário)
+   - "FÉRIAS" → Código 3.2.8 (Férias)
+   - "GUIA RESCISÓRIO" / "RESCISÃO" → Código 3.2.9 (Rescisões e Encargos)
+   - "FGTS" → Código 3.2.4 (FGTS)
+   - "INSS" → Código 3.2.5 (INSS)
+   - "MEDICINA DO TRABALHO" → Código 3.2.5 (INSS/Medicina do Trabalho)
+   - "VALE TRANSPORTE" / "SPTRANS" → Código 3.2.3 (Vale Transporte)
+   - "VALE REFEIÇÃO" / "ALIMENTAÇÃO" → Código 3.2.14 (Vale Refeição/Alimentação)
+   - "PLANO DE SAUDE" / "NOTREDAME" → Código 3.2.12.2 (Plano de Saúde)
+   - "CESTA BÁSICA" → Código 3.2.12.1 (Cesta Básica)
+   - "REGISTRO DE PONTO" / "PONTO MAIS" → Código 3.2.14 (Serviços de Terceiros)
+   - "SINDICATO" → Código 3.2.14 (Sindicato)
+   - "AÇÕES PARA FUNCIONÁRIOS" / "CONFRATERNIZAÇÃO" → Código 3.2.13 (Confraternizações)
+
+6. MARKETING (Grupo 3.3):
+   - "MÍDIA ONLINE" / "FACEBOOK" → Código 3.3.1 (Publicidade e Propaganda)
+   - "INFLUENCER" → Código 3.3.1 (Publicidade e Propaganda)
+   - "ASSESSORIA DE IMPRENSA" → Código 3.3.8 (Assessoria de Imprensa)
+   - "CONSULTORIA MARKETING" → Código 3.3.6 (Consultoria Marketing)
+
+7. UTILIDADES (Grupo 3.1):
+   - "CONTA DE LUZ" / "ENEL" → Código 3.1.2 (Energia Elétrica)
+   - "TELEFONIA" / "GOTO" / "VIVO" → Código 3.1.5.1 ou 3.1.5.2 (Telefonia)
+   - "INTERNET" → Código 3.1.4 (Internet)
+
+8. SOFTWARE/TI:
+   - "MENSALIDADE RESULT" / "ALLTOMATIZE" → Código 3.1.22 (Software)
+   - "MENSALIDADE LIVE" → Código 3.1.22 (Software)
+   - "MENSALIDADE MILLENIUM" / "LINX" → Código 3.1.22 (Software)
+
+9. FRETE E TRANSPORTE (Grupo 2.4):
+   - "FRETE AGREGADO" → Código 2.4.2 (Fretes Agregados)
+   - "TRANSPORTADORA" → Código 2.4.1 (Transportadoras)
+   - "CORREIOS" → Código 2.4.3 (Correios)
+
+10. COMISSÕES:
+    - "COMISSÃO" / "REPRESENTANTES" → Código 2.6.1 (Comissão de Vendedores)
+
+11. PRO LABORE:
+    - "PRO LABORE" / "RETIRADA AHMAD" → Código 3.5.1 (Pró-labore)
+
+12. MANUTENÇÃO E ATIVOS (Grupo 4):
+    - "MANUTENÇÃO" / "AR-CONDICIONADO" → Código 4.2.3 (Manutenção Equipamentos)
+    - "REFORMA" / "INSTALAÇÕES" → Código 4.2.7 (Reformas)
+    - "PORTA-PALETES" → Código 4.2.7 (Imobilizado)
+
+13. CONTABILIDADE:
+    - "CONTABILIDADE" / "CONTABILIDADE FILADELFIA" → Código 3.1.8.3 (Contabilidade Externa)
+
+14. REEMBOLSOS:
+    - "REEMBOLSO" → Código 3.1.17 (Reembolso de Despesas)`;
+
     const systemPrompt = `Você é um especialista em classificação contábil e financeira.
 Sua tarefa é classificar contas a pagar nos departamentos e contas contábeis corretos.
 
 DEPARTAMENTOS DISPONÍVEIS:
 ${departamentos.map(d => `- ID: ${d.id} | ${d.nome}${d.descricao ? ` (${d.descricao})` : ''}`).join('\n')}
 
-PLANO DE CONTAS DISPONÍVEL:
-${planoContas.map(p => `- ID: ${p.id} | ${p.code} - ${p.name} [Tipo: ${p.account_type}]`).join('\n')}
+PLANO DE CONTAS DISPONÍVEL (com código DRE gerencial):
+${planoContas.map(p => `- ID: ${p.id} | ${p.code} - ${p.name} [Tipo: ${p.account_type}]${p.codigo_dre_gerencial ? ` → DRE: ${p.codigo_dre_gerencial}` : ''}`).join('\n')}
+
+${exemplosHistorico}
 
 INSTRUÇÕES CRÍTICAS:
-1. Use EXATAMENTE o nome da conta conforme listado acima no campo "plano_contas_nome"
-2. Se não encontrar conta específica, escolha a conta de GRUPO (nível superior) mais relacionada
-3. NUNCA invente nomes de contas que não existem na lista
+1. Use os EXEMPLOS ACIMA como referência principal - eles refletem as classificações do gerente financeiro
+2. Use EXATAMENTE o nome da conta conforme listado acima no campo "plano_contas_nome"
+3. Se não encontrar conta específica, escolha a conta de GRUPO (nível superior) mais relacionada
+4. NUNCA invente nomes de contas que não existem na lista
+5. Priorize o código DRE gerencial quando disponível
 
 GUIA DE CLASSIFICAÇÃO POR TIPO:
 - revenue: Receitas de vendas, serviços prestados
@@ -108,13 +192,6 @@ GUIA DE CLASSIFICAÇÃO POR TIPO:
 - budget: Orçamentos e previsões
 - asset: Investimentos em ativos, imobilizado
 - liability: Obrigações, empréstimos, financiamentos
-
-MAPEAMENTOS ESPECÍFICOS:
-- Comissões → "6.1.07 - Comissão de Vendedores" [expense]
-- Salários → Departamento RH + conta adequada do grupo 6.2
-- Materiais de produção → grupo 5 [cost_center]
-- Aluguel, água, luz → "6.2 - DESPESAS ADMINISTRATIVAS" [expense]
-- Impostos → conta específica de impostos do grupo adequado
 
 Retorne SEMPRE um JSON válido com esta estrutura:
 {
@@ -284,7 +361,7 @@ serve(async (req) => {
 
     const { data: planoContas, error: planoError } = await supabase
       .from("trade_chart_of_accounts")
-      .select("id, code, name, account_type")
+      .select("id, code, name, account_type, codigo_dre_gerencial")
       .order("code");
 
     if (planoError) throw new Error(`Erro plano de contas: ${planoError.message}`);

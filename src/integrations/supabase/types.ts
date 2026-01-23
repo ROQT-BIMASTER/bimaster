@@ -631,6 +631,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_training_examples: {
+        Row: {
+          centro_custo: string | null
+          codigo_dre: string
+          complemento: string | null
+          created_at: string | null
+          fornecedor: string | null
+          historico: string
+          id: string
+          mes_referencia: string | null
+          valor: number | null
+        }
+        Insert: {
+          centro_custo?: string | null
+          codigo_dre: string
+          complemento?: string | null
+          created_at?: string | null
+          fornecedor?: string | null
+          historico: string
+          id?: string
+          mes_referencia?: string | null
+          valor?: number | null
+        }
+        Update: {
+          centro_custo?: string | null
+          codigo_dre?: string
+          complemento?: string | null
+          created_at?: string | null
+          fornecedor?: string | null
+          historico?: string
+          id?: string
+          mes_referencia?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       analytics_metrics: {
         Row: {
           account_id: string | null
@@ -15807,6 +15843,16 @@ export type Database = {
           p_total_esperado: number
         }
         Returns: string
+      }
+      suggest_classification_from_history: {
+        Args: { p_fornecedor?: string; p_historico: string }
+        Returns: {
+          codigo_dre: string
+          confianca: number
+          conta_id: string
+          conta_nome: string
+          fonte: string
+        }[]
       }
       update_sync_progress: {
         Args: { p_records_processed: number; p_session_id: string }
