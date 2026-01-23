@@ -1188,7 +1188,7 @@ export default function ContasAPagar() {
             </TabsTrigger>
             <TabsTrigger value="visao-dre" className="gap-2">
               <TrendingUp className="h-4 w-4" />
-              Visão DRE
+              Ajuste para o DRE
             </TabsTrigger>
           </TabsList>
 
@@ -1202,7 +1202,7 @@ export default function ContasAPagar() {
             <CalendarioVencimentos contas={contasCalendario || []} isLoading={isLoadingCalendario} />
           </TabsContent>
 
-          {/* Aba Visão DRE */}
+          {/* Aba Ajuste para o DRE */}
           <TabsContent value="visao-dre" className="space-y-6">
             <ContasPagarDREView 
               filterAno={filterAno}

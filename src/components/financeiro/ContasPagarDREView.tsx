@@ -70,7 +70,6 @@ interface PlanoContas {
   account_type: string | null;
   categoria_dre: string | null;
   is_group: boolean | null;
-  parent_code: string | null;
   nivel: number;
 }
 
@@ -188,7 +187,7 @@ export function ContasPagarDREView({
   // Fetch lancamentos
   const { data: lancamentos, isLoading: isLoadingLancamentos } = useQuery({
     queryKey: ['contas-pagar-dre-view', filterAno, filterMes, filterEmpresas.join(','), filterDepartamento],
-    queryFn: async () => {
+    queryFn: async (): Promise<ContaPagar[]> => {
       const PAGE_SIZE = 1000;
       let allData: ContaPagar[] = [];
       let from = 0;
@@ -209,13 +208,11 @@ export function ContasPagarDREView({
           query = query.eq('departamento_id', filterDepartamento);
         }
 
-        query = query.range(from, from + PAGE_SIZE - 1);
-
-        const { data, error } = await query;
+        const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
         if (error) throw error;
 
         if (data && data.length > 0) {
-          allData = [...allData, ...data as ContaPagar[]];
+          allData = [...allData, ...(data as unknown as ContaPagar[])];
           from += PAGE_SIZE;
           hasMore = data.length === PAGE_SIZE;
         } else {
@@ -230,15 +227,16 @@ export function ContasPagarDREView({
   // Fetch plano de contas
   const { data: planoContas, isLoading: isLoadingPlano } = useQuery({
     queryKey: ['plano-contas-dre-view'],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryFn: async (): Promise<PlanoContas[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from('trade_chart_of_accounts')
-        .select('id, code, name, account_type, categoria_dre, is_group, nivel, parent_code')
-        .eq('is_active', true)
+        .select('id, code, name, account_type, categoria_dre, is_group, nivel')
+        .eq('active', true)
         .order('code');
 
       if (error) throw error;
-      return (data || []) as unknown as PlanoContas[];
+      return (data || []) as PlanoContas[];
     }
   });
 
