@@ -66,14 +66,29 @@ export default function TradeCampaignDetail() {
         .from("trade_campaigns")
         .select(`
           *,
-          budget:trade_budgets(name, code),
-          responsible:profiles!trade_campaigns_responsible_user_id_fkey(nome)
+          budget:trade_budgets(name, code)
         `)
         .eq("id", id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data as unknown as Campaign;
+      if (!data) return null;
+      
+      // Fetch responsible user separately to avoid FK issues
+      let responsibleName = null;
+      if (data.responsible_user_id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("nome")
+          .eq("id", data.responsible_user_id)
+          .maybeSingle();
+        responsibleName = profile?.nome || null;
+      }
+      
+      return {
+        ...data,
+        responsible: responsibleName ? { nome: responsibleName } : null,
+      } as unknown as Campaign;
     },
     enabled: !!id,
   });
