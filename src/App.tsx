@@ -38,6 +38,7 @@ const AguardandoAprovacao = lazy(() => import("./pages/AguardandoAprovacao"));
 const UsuarioBloqueado = lazy(() => import("./pages/UsuarioBloqueado"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TradeModule = lazy(() => import("./pages/modules/TradeModule"));
+const TradeAdminModule = lazy(() => import("./pages/modules/TradeAdminModule"));
 const TradeStores = lazy(() => import("./pages/TradeStores"));
 const TradeStoreChains = lazy(() => import("./pages/TradeStoreChains"));
 const TradeVisits = lazy(() => import("./pages/TradeVisits"));
@@ -233,6 +234,7 @@ function AppContent() {
             
             {/* Módulo de Trade Marketing */}
             <Route path="/dashboard/trade" element={<ProtectedRoute><TradeModule /></ProtectedRoute>} />
+            <Route path="/dashboard/trade/admin" element={<ProtectedRoute><TradeAdminModule /></ProtectedRoute>} />
             <Route path="/dashboard/trade/store-chains" element={<ProtectedRoute><TradeStoreChains /></ProtectedRoute>} />
             <Route path="/dashboard/trade/stores" element={<ProtectedRoute><TradeStores /></ProtectedRoute>} />
             <Route path="/dashboard/trade/visits" element={<ProtectedRoute><TradeVisits /></ProtectedRoute>} />

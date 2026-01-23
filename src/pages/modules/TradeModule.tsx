@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   Store, 
   Calendar, 
@@ -75,6 +76,9 @@ const TradeModule = () => {
 
   // Módulos secundários agrupados
   const secondaryModules = {
+    "Administrativo": [
+      { title: "Campanhas & Verbas", to: "/dashboard/trade/admin", icon: Target, color: "text-blue-600", isNew: true },
+    ],
     "Cadastros e Configurações": [
       { title: "Redes", to: "/dashboard/trade/store-chains", icon: Building, color: "text-blue-600" },
       { title: "Nossas Marcas", to: "/dashboard/trade/our-brands", icon: Award, color: "text-amber-600" },
@@ -275,8 +279,13 @@ const TradeModule = () => {
                     <Link 
                       key={module.to} 
                       to={module.to}
-                      className="flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-lg bg-background border hover:bg-muted/50 active:bg-muted/70 hover:border-primary/30 transition-colors text-sm touch-manipulation"
+                      className="relative flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-lg bg-background border hover:bg-muted/50 active:bg-muted/70 hover:border-primary/30 transition-colors text-sm touch-manipulation"
                     >
+                      {'isNew' in module && module.isNew && (
+                        <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[8px] px-1.5 py-0">
+                          NOVO
+                        </Badge>
+                      )}
                       <module.icon className={cn("h-4 w-4 flex-shrink-0", module.color)} />
                       <span className="truncate">{module.title}</span>
                     </Link>
