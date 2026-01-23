@@ -57,6 +57,11 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     our_facings: 0,
     competitor_facings: 0,
     
+    // Medições de Prateleira
+    shelf_width: 0,
+    shelf_height: 0,
+    shelf_depth: 0,
+    
     // Promoções
     promotion_id: "",
     promotion_active: false,
@@ -440,6 +445,9 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       products_found: [],
       our_facings: 0,
       competitor_facings: 0,
+      shelf_width: 0,
+      shelf_height: 0,
+      shelf_depth: 0,
       promotion_id: "",
       promotion_active: false,
       materials_present: [],
@@ -861,6 +869,57 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                       />
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Ruler className="h-4 w-4" />
+                    Medições de Prateleira
+                  </CardTitle>
+                  <CardDescription>Dimensões do espaço ocupado em cm</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Largura (cm)</Label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={formData.shelf_width || ""}
+                        onChange={(e) => setFormData(prev => ({ ...prev, shelf_width: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Altura (cm)</Label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={formData.shelf_height || ""}
+                        onChange={(e) => setFormData(prev => ({ ...prev, shelf_height: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Profundidade (cm)</Label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={formData.shelf_depth || ""}
+                        onChange={(e) => setFormData(prev => ({ ...prev, shelf_depth: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
+                  </div>
+                  {formData.shelf_width > 0 && formData.shelf_height > 0 && formData.shelf_depth > 0 && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                      <Badge variant="secondary">
+                        Volume: {((formData.shelf_width * formData.shelf_height * formData.shelf_depth) / 1000).toFixed(2)} L
+                      </Badge>
+                      <Badge variant="outline">
+                        Área frontal: {(formData.shelf_width * formData.shelf_height / 100).toFixed(2)} m²
+                      </Badge>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
