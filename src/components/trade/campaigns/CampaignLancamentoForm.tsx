@@ -26,6 +26,7 @@ import { formatCurrency } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface Campaign {
   id: string;
@@ -86,6 +87,7 @@ export function CampaignLancamentoForm({
   onCancel 
 }: CampaignLancamentoFormProps) {
   const queryClient = useQueryClient();
+  const { isAdminOrSupervisor } = useUserRole();
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(customerId || null);
@@ -121,14 +123,24 @@ export function CampaignLancamentoForm({
     enabled: !!lancamentoId,
   });
 
-  // Fetch customers (prospects)
+  // Fetch customers (prospects) - filtered by vendedor if not admin/supervisor
   const { data: customers } = useQuery({
-    queryKey: ["prospects-for-lancamento"],
+    queryKey: ["prospects-for-lancamento", isAdminOrSupervisor],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      let query = supabase
         .from("prospects")
         .select("id, nome_empresa")
         .order("nome_empresa");
+
+      // If not admin/supervisor, filter by vendedor_id
+      if (!isAdminOrSupervisor) {
+        query = query.eq("vendedor_id", user.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
