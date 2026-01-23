@@ -42,6 +42,11 @@ interface Campaign {
   validation_status: string;
   validation_notes: string | null;
   responsible_user_id: string;
+  valor_pedido?: number | null;
+  tipo_brinde?: string | null;
+  acoes_manuais?: string | null;
+  unon_anterior?: number | null;
+  unon_atual?: number | null;
   budget?: { name: string; code: string } | null;
   customer?: { nome: string } | null;
   responsible?: { nome: string } | null;
@@ -182,7 +187,10 @@ export default function TradeCampaignDetail() {
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-6">
-            <CampaignDashboard campaign={campaign} />
+            <CampaignDashboard 
+              campaign={campaign} 
+              onNavigateToProducts={() => setActiveTab("products")}
+            />
           </TabsContent>
 
           <TabsContent value="sell" className="mt-6">

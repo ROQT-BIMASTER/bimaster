@@ -13715,6 +13715,7 @@ export type Database = {
       }
       trade_campaigns: {
         Row: {
+          acoes_manuais: string | null
           actual_cost: number | null
           actual_revenue: number | null
           budget_id: string | null
@@ -13742,15 +13743,20 @@ export type Database = {
           status: string | null
           target_revenue: number | null
           target_stores: string[] | null
+          tipo_brinde: string | null
+          unon_anterior: number | null
+          unon_atual: number | null
           updated_at: string | null
           validated_at: string | null
           validated_by: string | null
           validation_notes: string | null
           validation_status: string | null
+          valor_pedido: number | null
           verba_orcada: number | null
           verba_prevista: number | null
         }
         Insert: {
+          acoes_manuais?: string | null
           actual_cost?: number | null
           actual_revenue?: number | null
           budget_id?: string | null
@@ -13778,15 +13784,20 @@ export type Database = {
           status?: string | null
           target_revenue?: number | null
           target_stores?: string[] | null
+          tipo_brinde?: string | null
+          unon_anterior?: number | null
+          unon_atual?: number | null
           updated_at?: string | null
           validated_at?: string | null
           validated_by?: string | null
           validation_notes?: string | null
           validation_status?: string | null
+          valor_pedido?: number | null
           verba_orcada?: number | null
           verba_prevista?: number | null
         }
         Update: {
+          acoes_manuais?: string | null
           actual_cost?: number | null
           actual_revenue?: number | null
           budget_id?: string | null
@@ -13814,11 +13825,15 @@ export type Database = {
           status?: string | null
           target_revenue?: number | null
           target_stores?: string[] | null
+          tipo_brinde?: string | null
+          unon_anterior?: number | null
+          unon_atual?: number | null
           updated_at?: string | null
           validated_at?: string | null
           validated_by?: string | null
           validation_notes?: string | null
           validation_status?: string | null
+          valor_pedido?: number | null
           verba_orcada?: number | null
           verba_prevista?: number | null
         }

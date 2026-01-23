@@ -1,23 +1,29 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { DollarSign, TrendingUp, TrendingDown, Percent, Target, Calendar, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { 
+  DollarSign, 
+  TrendingUp, 
+  TrendingDown, 
+  Percent, 
+  Calendar, 
+  User, 
+  Package,
+  Gift,
+  FileText,
+  BarChart3,
+  ArrowRight
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
+import { formatCurrency } from "@/lib/formatters";
 
 interface Campaign {
   id: string;
+  code: string;
   name: string;
+  campaign_type: string;
   start_date: string;
   end_date: string;
   estimated_cost: number;
@@ -31,223 +37,315 @@ interface Campaign {
   crescimento_percentual: number | null;
   roi_percentual: number | null;
   roi_valor: number | null;
+  valor_pedido?: number | null;
+  tipo_brinde?: string | null;
+  acoes_manuais?: string | null;
+  unon_anterior?: number | null;
+  unon_atual?: number | null;
   budget?: { name: string; code: string } | null;
   responsible?: { nome: string } | null;
 }
 
 interface CampaignDashboardProps {
   campaign: Campaign;
+  onNavigateToProducts?: () => void;
 }
 
-export function CampaignDashboard({ campaign }: CampaignDashboardProps) {
-  const formatCurrency = (value: number | null) => {
-    if (value === null || value === undefined) return "R$ 0,00";
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-  };
-
+export function CampaignDashboard({ campaign, onNavigateToProducts }: CampaignDashboardProps) {
   const formatPercent = (value: number | null) => {
     if (value === null || value === undefined) return "0,00%";
     return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
   };
 
-  // Calcular saldo disponível
-  const saldoDisponivel = campaign.verba_orcada - (campaign.actual_cost || 0);
-  const percentualUtilizado = campaign.verba_orcada > 0 
-    ? ((campaign.actual_cost || 0) / campaign.verba_orcada) * 100 
-    : 0;
+  const getCampaignTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      sell_in: "Sell In",
+      sell_out: "Sell Out",
+      institucional: "Institucional",
+      cooperada: "Cooperada",
+      mdf: "MDF",
+      midia: "Mídia",
+      incentivo: "Incentivo",
+      degustacao: "Degustação",
+      bonificacao: "Bonificação",
+      compre_ganhe: "Compre e Ganhe",
+    };
+    return labels[type] || type;
+  };
 
-  // Dados para o gráfico
-  const chartData = [
-    {
-      name: "Sell In",
-      anterior: campaign.sell_in_anterior,
-      atual: campaign.sell_in_atual,
-    },
-    {
-      name: "Sell Out",
-      anterior: campaign.sell_out_anterior,
-      atual: campaign.sell_out_atual,
-    },
-  ];
-
-  const roiChartData = [
-    {
-      name: "Custo",
-      valor: campaign.actual_cost || 0,
-    },
-    {
-      name: "Incremento",
-      valor: (campaign.sell_out_atual - campaign.sell_out_anterior),
-    },
-    {
-      name: "ROI",
-      valor: campaign.roi_valor || 0,
-    },
-  ];
+  // Cálculos
+  const incrementoValor = campaign.sell_out_atual - campaign.sell_out_anterior;
+  const crescimentoPositivo = (campaign.crescimento_percentual || 0) >= 0;
+  const roiPositivo = (campaign.roi_percentual || 0) >= 0;
 
   return (
     <div className="space-y-6">
-      {/* KPIs Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Verba Orçada</p>
-                <p className="text-2xl font-bold">{formatCurrency(campaign.verba_orcada)}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Saldo: {formatCurrency(saldoDisponivel)}
-                </p>
+      {/* SEÇÃO 1: Header da Campanha */}
+      <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="space-y-2">
+              <Badge variant="secondary" className="mb-2">
+                {getCampaignTypeLabel(campaign.campaign_type)}
+              </Badge>
+              <h2 className="text-2xl font-bold">{campaign.name}</h2>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <span className="font-medium">Código: {campaign.code}</span>
+                <span className="text-muted-foreground/50">|</span>
+                <span>OP: {campaign.id.slice(0, 8).toUpperCase()}</span>
               </div>
-              <DollarSign className="h-8 w-8 text-primary opacity-50" />
             </div>
-            <Progress value={percentualUtilizado} className="mt-3" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {percentualUtilizado.toFixed(1)}% utilizado
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Gastos Realizados</p>
-                <p className="text-2xl font-bold">{formatCurrency(campaign.actual_cost)}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Estimado: {formatCurrency(campaign.estimated_cost)}
-                </p>
+            <div className="flex flex-col items-start md:items-end gap-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span>Data Entrada</span>
               </div>
-              <DollarSign className="h-8 w-8 text-orange-500 opacity-50" />
+              <p className="text-lg font-semibold">
+                {format(new Date(campaign.start_date), "dd/MM/yyyy", { locale: ptBR })}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                até {format(new Date(campaign.end_date), "dd/MM/yyyy", { locale: ptBR })}
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Crescimento Sell Out</p>
-                <p className={`text-2xl font-bold ${(campaign.crescimento_percentual || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatPercent(campaign.crescimento_percentual)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formatCurrency(campaign.sell_out_atual - campaign.sell_out_anterior)} incremento
-                </p>
-              </div>
-              {(campaign.crescimento_percentual || 0) >= 0 ? (
-                <TrendingUp className="h-8 w-8 text-green-500 opacity-50" />
+      {/* SEÇÃO 2: Valor do Pedido + Brinde + Ações */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <DollarSign className="h-5 w-5 text-primary" />
+            Valor do Pedido
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Valor do Pedido</p>
+              <p className="text-2xl font-bold text-primary">
+                {formatCurrency(campaign.valor_pedido || 0)}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Gift className="h-4 w-4" />
+                Brinde
+              </p>
+              {campaign.tipo_brinde ? (
+                <Badge variant="secondary" className="text-base font-medium">
+                  {campaign.tipo_brinde}
+                </Badge>
               ) : (
-                <TrendingDown className="h-8 w-8 text-red-500 opacity-50" />
+                <span className="text-muted-foreground italic">Não definido</span>
               )}
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className={`${(campaign.roi_percentual || 0) >= 0 ? 'border-green-200 bg-green-50/50' : 'border-red-200 bg-red-50/50'}`}>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">ROI da Campanha</p>
-                <p className={`text-2xl font-bold ${(campaign.roi_percentual || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatPercent(campaign.roi_percentual)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formatCurrency(campaign.roi_valor)} valor
-                </p>
-              </div>
-              <Percent className="h-8 w-8 text-primary opacity-50" />
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <FileText className="h-4 w-4" />
+                Ações Manuais
+              </p>
+              {campaign.acoes_manuais ? (
+                <p className="text-sm">{campaign.acoes_manuais}</p>
+              ) : (
+                <span className="text-muted-foreground italic text-sm">Nenhuma ação registrada</span>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Período</p>
-                <p className="font-medium">
-                  {format(new Date(campaign.start_date), "dd/MM/yyyy", { locale: ptBR })} - {format(new Date(campaign.end_date), "dd/MM/yyyy", { locale: ptBR })}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Target className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Verba Vinculada</p>
-                <p className="font-medium">
-                  {campaign.budget ? `${campaign.budget.code} - ${campaign.budget.name}` : "Nenhuma"}
+      {/* SEÇÃO 3: Retorno da Campanha (Supervisor) */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Retorno da Campanha
+            </CardTitle>
+            <Badge variant="outline" className="gap-1">
+              <User className="h-3 w-3" />
+              Supervisor
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Comparativo Sell Out */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Sell Out Anterior */}
+            <div className="p-4 rounded-xl bg-muted/50 border space-y-3">
+              <p className="text-sm font-medium text-muted-foreground">Sell Out $ Anterior</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(campaign.sell_out_anterior)}
+              </p>
+              <div className="pt-2 border-t border-border/50">
+                <p className="text-xs text-muted-foreground">Unon x Cliente</p>
+                <p className="text-sm font-medium">
+                  {formatCurrency(campaign.unon_anterior || 0)}
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <User className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Responsável</p>
-                <p className="font-medium">{campaign.responsible?.nome || "Não definido"}</p>
+            {/* VS Indicator */}
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                  <span className="text-3xl font-bold text-primary">X</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">versus</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Comparativo Sell In/Out</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  labelStyle={{ color: 'var(--foreground)' }}
-                />
-                <Legend />
-                <Bar dataKey="anterior" name="Período Anterior" fill="hsl(var(--muted-foreground))" />
-                <Bar dataKey="atual" name="Período Atual" fill="hsl(var(--primary))" />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+            {/* Sell Out Atual */}
+            <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 space-y-3">
+              <p className="text-sm font-medium text-muted-foreground">Sell Out $ Atual</p>
+              <p className="text-2xl font-bold text-primary">
+                {formatCurrency(campaign.sell_out_atual)}
+              </p>
+              <div className="pt-2 border-t border-primary/20">
+                <p className="text-xs text-muted-foreground">Unon x Cliente</p>
+                <p className="text-sm font-medium text-primary">
+                  {formatCurrency(campaign.unon_atual || 0)}
+                </p>
+              </div>
+            </div>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Análise de ROI</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <ComposedChart data={roiChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  labelStyle={{ color: 'var(--foreground)' }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Crescimento */}
+          <div className="p-4 rounded-xl border-2 border-dashed flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                crescimentoPositivo ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+              }`}>
+                {crescimentoPositivo ? (
+                  <TrendingUp className="h-6 w-6" />
+                ) : (
+                  <TrendingDown className="h-6 w-6" />
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Crescimento</p>
+                <p className={`text-2xl font-bold ${
+                  crescimentoPositivo ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {formatPercent(campaign.crescimento_percentual)}
+                </p>
+              </div>
+            </div>
+            <div className="text-left md:text-right">
+              <p className="text-sm text-muted-foreground">Valor Incremento</p>
+              <p className={`text-xl font-bold ${
+                incrementoValor >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {formatCurrency(incrementoValor)}
+              </p>
+              <Badge variant="secondary" className="mt-1">
+                Manualmente
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* SEÇÃO 4: ROI da Campanha */}
+      <Card className={`border-2 ${
+        roiPositivo 
+          ? 'border-green-200 bg-gradient-to-r from-green-50/50 to-transparent' 
+          : 'border-red-200 bg-gradient-to-r from-red-50/50 to-transparent'
+      }`}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Percent className="h-5 w-5 text-primary" />
+            Aumento ROI da Campanha
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4 rounded-xl bg-background/80">
+              <p className={`text-5xl font-bold ${
+                roiPositivo ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {(campaign.roi_percentual || 0).toFixed(0)}%
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">ROI Percentual</p>
+            </div>
+            <div className="text-center p-4 rounded-xl bg-background/80">
+              <p className={`text-3xl font-bold ${
+                roiPositivo ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {formatCurrency(campaign.roi_valor || 0)}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">Valor Absoluto</p>
+            </div>
+            <div className="flex items-center justify-center p-4 rounded-xl bg-background/80">
+              <Badge variant="outline" className="gap-2 px-4 py-2 text-base">
+                <BarChart3 className="h-5 w-5" />
+                BI Dashboard
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* SEÇÃO 5: Preview de Produtos */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Package className="h-5 w-5 text-primary" />
+              Produtos da Campanha
+            </CardTitle>
+            {onNavigateToProducts && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onNavigateToProducts}
+                className="gap-1"
+              >
+                Ver Todos
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <CardDescription>
+            Resumo dos produtos vinculados a esta campanha
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            <Badge variant="secondary" className="text-sm py-1 px-3">
+              <Package className="h-3 w-3 mr-1" />
+              Produtos associados
+            </Badge>
+            <Badge variant="outline" className="text-sm py-1 px-3">
+              <DollarSign className="h-3 w-3 mr-1" />
+              Verba Orçada: {formatCurrency(campaign.verba_orcada)}
+            </Badge>
+            <Badge variant="outline" className="text-sm py-1 px-3">
+              Gasto Atual: {formatCurrency(campaign.actual_cost || 0)}
+            </Badge>
+          </div>
+          
+          {/* Progress de utilização */}
+          <div className="mt-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Utilização da Verba</span>
+              <span className="font-medium">
+                {campaign.verba_orcada > 0 
+                  ? ((campaign.actual_cost || 0) / campaign.verba_orcada * 100).toFixed(1) 
+                  : 0}%
+              </span>
+            </div>
+            <Progress 
+              value={campaign.verba_orcada > 0 
+                ? ((campaign.actual_cost || 0) / campaign.verba_orcada * 100) 
+                : 0
+              } 
+              className="h-2"
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
