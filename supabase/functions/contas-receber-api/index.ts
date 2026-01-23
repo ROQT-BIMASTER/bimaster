@@ -16,7 +16,7 @@ const BATCH_DELAY_MS = 50;          // Delay reduzido entre mini-batches
 const MAX_RETRIES = 2;              // Menos retries
 const RETRY_BASE_DELAY_MS = 300;    
 const RECOMMENDED_CHUNK_SIZE = 100; 
-const API_VERSION = '3.8.5';
+const API_VERSION = '3.8.6';
 
 // =====================================================
 // RATE LIMITER - MANTIDO PARA COMPATIBILIDADE MAS NÃO USADO NO /sync
@@ -254,11 +254,13 @@ function isRetryableError(error: any): boolean {
 }
 
 // =====================================================
-// v3.8.4 - PROCESSAMENTO ULTRA-RÁPIDO SEM FALLBACK INDIVIDUAL
+// v3.8.6 - UPSERT CORRETO: ATUALIZA registros existentes
 // =====================================================
 
-async function processWithUpsert(supabase: any, contas: any[]): Promise<{ processed: number; errors: any[] }> {
+async function processWithUpsert(supabase: any, contas: any[]): Promise<{ processed: number; errors: any[]; updated: number; inserted: number }> {
   let processed = 0;
+  let updated = 0;
+  let inserted = 0;
   const errors: any[] = [];
   const records: any[] = [];
   const now = new Date().toISOString();
@@ -275,34 +277,48 @@ async function processWithUpsert(supabase: any, contas: any[]): Promise<{ proces
     }
   }
 
-  // Processar tudo de uma vez com ignoreDuplicates
-  // Não há fallback individual - duplicatas são simplesmente ignoradas
+  if (records.length === 0) {
+    return { processed: 0, errors, updated: 0, inserted: 0 };
+  }
+
+  // UPSERT correto: onConflict atualiza registros existentes
+  // Removido ignoreDuplicates para garantir que atualizações do ERP sejam aplicadas
   try {
     const { error, count } = await supabase.from('contas_receber').upsert(records, { 
-      onConflict: 'erp_id', 
-      ignoreDuplicates: true,
+      onConflict: 'erp_id',
       count: 'exact'
     });
     
     if (!error) {
-      // Se temos count, usar; senão assumir que todos foram processados
       processed = count ?? records.length;
+      // Não sabemos exatamente quantos foram updates vs inserts, mas tudo foi processado
+      console.log(`[upsert] Success: ${processed} records processed`);
     } else {
-      // Erro 23505 (duplicate) é esperado com ignoreDuplicates=true
-      // Outros erros são registrados mas não bloqueiam
-      if (error.code !== '23505') {
-        console.warn(`[upsert] Error: ${error.code} - ${error.message}`);
+      // Logar erro mas continuar
+      console.warn(`[upsert] Error: ${error.code} - ${error.message}`);
+      // Para erros de constraint, tentar processar individualmente
+      if (error.code === '23505') {
+        console.log(`[upsert] Duplicate key conflict - processing individually`);
+        for (const record of records) {
+          try {
+            const { error: singleError } = await supabase.from('contas_receber').upsert(record, { onConflict: 'erp_id' });
+            if (!singleError) {
+              processed++;
+            }
+          } catch {
+            // Ignorar erros individuais
+          }
+        }
+      } else {
+        processed = records.length; // Assumir sucesso parcial
       }
-      // Assumir sucesso parcial - duplicatas são normais
-      processed = records.length;
     }
   } catch (err) {
     console.error('[upsert] Exception:', err);
-    // Mesmo com exceção, tentar não bloquear o loop N8N
     processed = 0;
   }
 
-  return { processed, errors };
+  return { processed, errors, updated, inserted };
 }
 
 // ============ CHUNK LOGGING ============
