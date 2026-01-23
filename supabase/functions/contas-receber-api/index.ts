@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 // =====================================================
-// CONFIGURAÇÕES DE PERFORMANCE - v3.8.0 (COM RATE LIMITER RESTAURADO)
+// CONFIGURAÇÕES DE PERFORMANCE - v3.8.1 (RATE LIMITER ALINHADO COM CONTAS-PAGAR)
 // =====================================================
 const BULK_BATCH_SIZE = 10000;      // 10k por batch SQL
 const MAX_PAYLOAD_SIZE = 50000;     // 50k registros max por request
@@ -16,16 +16,16 @@ const BATCH_DELAY_MS = 100;         // Delay entre mini-batches
 const MAX_RETRIES = 2;              // Menos retries
 const RETRY_BASE_DELAY_MS = 300;    
 const RECOMMENDED_CHUNK_SIZE = 100; 
-const API_VERSION = '3.8.0';
+const API_VERSION = '3.8.1';
 
 // =====================================================
-// RATE LIMITER - RESTAURADO (igual contas-pagar-api)
+// RATE LIMITER - ALINHADO COM CONTAS-PAGAR-API (v2.4.0)
 // =====================================================
 const MAX_CONCURRENT_SYNCS = 2;     // Máximo 2 syncs simultâneas
 const SLOT_TIMEOUT_MS = 90000;      // 90 segundos por slot
-// IMPORTANTE: não manter requisições N8N penduradas por muito tempo (risco de timeout no HTTP node)
+// IMPORTANTE: aguardar até 60s por slot (igual contas-pagar) para garantir que todos os batches sejam processados
 const WAIT_RETRY_MS = 500;          // Intervalo entre tentativas
-const MAX_WAIT_RETRIES = 4;         // ~2s de espera total antes de pedir retry
+const MAX_WAIT_RETRIES = 120;       // ~60s de espera total (igual contas-pagar-api)
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
