@@ -87,21 +87,28 @@ async function releaseSlot(supabase: any, slotId: string | null): Promise<void> 
 }
 
 async function calculateHash(data: any): Promise<string> {
-  const dataToHash = [
-    data.valor_original,
-    data.valor_aberto,
-    data.valor_recebido,
-    data.valor_juros,
-    data.valor_desconto,
-    data.valor_ajustes,
-    data.data_recebimento
-  ].join('|');
-  
-  const encoder = new TextEncoder();
-  const dataBuffer = encoder.encode(dataToHash);
-  const hashBuffer = await crypto.subtle.digest('MD5', dataBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  try {
+    const dataToHash = [
+      data.valor_original,
+      data.valor_aberto,
+      data.valor_recebido,
+      data.valor_juros,
+      data.valor_desconto,
+      data.valor_ajustes,
+      data.data_recebimento
+    ].join('|');
+    
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(dataToHash);
+    // Usar SHA-256 (MD5 não é suportado pelo Web Crypto API)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (err) {
+    // Fallback simples se crypto falhar
+    const simpleHash = String(data.valor_original) + String(data.valor_aberto) + String(data.data_recebimento);
+    return simpleHash.slice(0, 32);
+  }
 }
 
 function parseDate(dateValue: any): string | null {
