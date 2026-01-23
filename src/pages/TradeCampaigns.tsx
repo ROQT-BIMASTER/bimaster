@@ -29,12 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Target, TrendingUp, Clock, CheckCircle, XCircle, Eye } from "lucide-react";
+import { Plus, Target, TrendingUp, Clock, CheckCircle, XCircle, Eye, Users, List } from "lucide-react";
 import { format } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { sanitizeText, sanitizeCode, getSafeErrorMessage } from "@/lib/utils/sanitize";
+import { CampaignClientTable } from "@/components/trade/campaigns/CampaignClientTable";
 import { useUserRole } from "@/hooks/useUserRole";
 
 export default function TradeCampaigns() {
@@ -415,91 +417,110 @@ export default function TradeCampaigns() {
           </Card>
         </div>
 
-        {/* Tabela de Campanhas */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Todas as Campanhas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Carregando campanhas...
-              </div>
-            ) : campaigns.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhuma campanha cadastrada
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Período</TableHead>
-                    <TableHead className="text-right">Custo Estimado</TableHead>
-                    <TableHead className="text-right">Gasto Real</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {campaigns.map((campaign) => {
-                    const percentSpent = campaign.estimated_cost > 0 
-                      ? (parseFloat(campaign.actual_cost || 0) / parseFloat(campaign.estimated_cost)) * 100 
-                      : 0;
+        {/* Tabs: Lista e Por Cliente */}
+        <Tabs defaultValue="lista" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="lista" className="gap-2">
+              <List className="h-4 w-4" />
+              Lista de Campanhas
+            </TabsTrigger>
+            <TabsTrigger value="por-cliente" className="gap-2">
+              <Users className="h-4 w-4" />
+              Por Cliente
+            </TabsTrigger>
+          </TabsList>
 
-                    return (
-                      <TableRow key={campaign.id}>
-                        <TableCell className="font-mono text-xs">{campaign.code}</TableCell>
-                        <TableCell className="font-medium">{campaign.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {getCampaignTypeLabel(campaign.campaign_type)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {format(new Date(campaign.start_date), "dd/MM/yy")} -{" "}
-                          {format(new Date(campaign.end_date), "dd/MM/yy")}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          R$ {parseFloat(campaign.estimated_cost).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="space-y-1">
-                            <div>R$ {parseFloat(campaign.actual_cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
-                            <Progress value={percentSpent} className="h-1" />
-                          </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(campaign.status)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => navigate(`/dashboard/trade/financeiro/campanhas/${campaign.id}`)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            {campaign.status === "draft" && isAdminOrSupervisor && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleSubmitForApproval(campaign.id, campaign.estimated_cost)}
-                              >
-                                Enviar para Aprovação
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
+          <TabsContent value="lista">
+            <Card>
+              <CardHeader>
+                <CardTitle>Todas as Campanhas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Carregando campanhas...
+                  </div>
+                ) : campaigns.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhuma campanha cadastrada
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Código</TableHead>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Período</TableHead>
+                        <TableHead className="text-right">Custo Estimado</TableHead>
+                        <TableHead className="text-right">Gasto Real</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Ações</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {campaigns.map((campaign) => {
+                        const percentSpent = campaign.estimated_cost > 0 
+                          ? (parseFloat(campaign.actual_cost || 0) / parseFloat(campaign.estimated_cost)) * 100 
+                          : 0;
+
+                        return (
+                          <TableRow key={campaign.id}>
+                            <TableCell className="font-mono text-xs">{campaign.code}</TableCell>
+                            <TableCell className="font-medium">{campaign.name}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {getCampaignTypeLabel(campaign.campaign_type)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {format(new Date(campaign.start_date), "dd/MM/yy")} -{" "}
+                              {format(new Date(campaign.end_date), "dd/MM/yy")}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              R$ {parseFloat(campaign.estimated_cost).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="space-y-1">
+                                <div>R$ {parseFloat(campaign.actual_cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+                                <Progress value={percentSpent} className="h-1" />
+                              </div>
+                            </TableCell>
+                            <TableCell>{getStatusBadge(campaign.status)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => navigate(`/dashboard/trade/financeiro/campanhas/${campaign.id}`)}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                {campaign.status === "draft" && isAdminOrSupervisor && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleSubmitForApproval(campaign.id, campaign.estimated_cost)}
+                                  >
+                                    Enviar para Aprovação
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="por-cliente">
+            <CampaignClientTable />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
