@@ -13567,6 +13567,56 @@ export type Database = {
           },
         ]
       }
+      trade_campaign_orders: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          created_by: string | null
+          data_nf: string | null
+          data_pedido: string | null
+          id: string
+          numero_nf: string | null
+          numero_pedido: string
+          observacoes: string | null
+          updated_at: string | null
+          valor_pedido: number | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          created_by?: string | null
+          data_nf?: string | null
+          data_pedido?: string | null
+          id?: string
+          numero_nf?: string | null
+          numero_pedido: string
+          observacoes?: string | null
+          updated_at?: string | null
+          valor_pedido?: number | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          data_nf?: string | null
+          data_pedido?: string | null
+          id?: string
+          numero_nf?: string | null
+          numero_pedido?: string
+          observacoes?: string | null
+          updated_at?: string | null
+          valor_pedido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_campaign_orders_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_campaign_products: {
         Row: {
           campaign_id: string
