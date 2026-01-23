@@ -13452,15 +13452,279 @@ export type Database = {
           },
         ]
       }
+      trade_campaign_audit_log: {
+        Row: {
+          action: string
+          campaign_id: string
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          field_changed: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          campaign_id: string
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          campaign_id?: string
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_campaign_audit_log_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_campaign_expenses: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          campaign_id: string
+          category: string
+          comprovante_url: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string
+          expense_date: string | null
+          id: string
+          notes: string | null
+          status: string | null
+          updated_at: string | null
+          valor_orcado: number | null
+          valor_previsto: number | null
+          valor_realizado: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          campaign_id: string
+          category: string
+          comprovante_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description: string
+          expense_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+          valor_orcado?: number | null
+          valor_previsto?: number | null
+          valor_realizado?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          campaign_id?: string
+          category?: string
+          comprovante_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string
+          expense_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+          valor_orcado?: number | null
+          valor_previsto?: number | null
+          valor_realizado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_campaign_expenses_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_campaign_products: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          product_id: string | null
+          product_name: string
+          quantity: number | null
+          total_invested: number | null
+          unit_cost: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name: string
+          quantity?: number | null
+          total_invested?: number | null
+          unit_cost?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name?: string
+          quantity?: number | null
+          total_invested?: number | null
+          unit_cost?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_campaign_products_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "store_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_campaign_sellout_entries: {
+        Row: {
+          amount: number
+          campaign_id: string
+          created_at: string | null
+          created_by: string | null
+          entry_date: string
+          entry_type: string
+          id: string
+          notes: string | null
+          period: string
+          quantity: number | null
+          rejection_reason: string | null
+          store_id: string | null
+          store_name: string | null
+          updated_at: string | null
+          validated_at: string | null
+          validated_by: string | null
+          validation_status: string | null
+        }
+        Insert: {
+          amount: number
+          campaign_id: string
+          created_at?: string | null
+          created_by?: string | null
+          entry_date: string
+          entry_type: string
+          id?: string
+          notes?: string | null
+          period: string
+          quantity?: number | null
+          rejection_reason?: string | null
+          store_id?: string | null
+          store_name?: string | null
+          updated_at?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_status?: string | null
+        }
+        Update: {
+          amount?: number
+          campaign_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          entry_date?: string
+          entry_type?: string
+          id?: string
+          notes?: string | null
+          period?: string
+          quantity?: number | null
+          rejection_reason?: string | null
+          store_id?: string | null
+          store_name?: string | null
+          updated_at?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_campaign_sellout_entries_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_sellout_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "mv_trade_performance"
+            referencedColumns: ["store_id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_sellout_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_sellout_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_with_sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_campaigns: {
         Row: {
           actual_cost: number | null
           actual_revenue: number | null
           budget_id: string | null
           campaign_type: string
+          channel: string | null
           code: string
           created_at: string | null
           created_by: string | null
+          crescimento_percentual: number | null
+          customer_id: string | null
           description: string | null
           end_date: string
           estimated_cost: number
@@ -13468,20 +13732,35 @@ export type Database = {
           name: string
           region: string | null
           responsible_user_id: string
+          roi_percentual: number | null
+          roi_valor: number | null
+          sell_in_anterior: number | null
+          sell_in_atual: number | null
+          sell_out_anterior: number | null
+          sell_out_atual: number | null
           start_date: string
           status: string | null
           target_revenue: number | null
           target_stores: string[] | null
           updated_at: string | null
+          validated_at: string | null
+          validated_by: string | null
+          validation_notes: string | null
+          validation_status: string | null
+          verba_orcada: number | null
+          verba_prevista: number | null
         }
         Insert: {
           actual_cost?: number | null
           actual_revenue?: number | null
           budget_id?: string | null
           campaign_type: string
+          channel?: string | null
           code: string
           created_at?: string | null
           created_by?: string | null
+          crescimento_percentual?: number | null
+          customer_id?: string | null
           description?: string | null
           end_date: string
           estimated_cost: number
@@ -13489,20 +13768,35 @@ export type Database = {
           name: string
           region?: string | null
           responsible_user_id: string
+          roi_percentual?: number | null
+          roi_valor?: number | null
+          sell_in_anterior?: number | null
+          sell_in_atual?: number | null
+          sell_out_anterior?: number | null
+          sell_out_atual?: number | null
           start_date: string
           status?: string | null
           target_revenue?: number | null
           target_stores?: string[] | null
           updated_at?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
+          validation_status?: string | null
+          verba_orcada?: number | null
+          verba_prevista?: number | null
         }
         Update: {
           actual_cost?: number | null
           actual_revenue?: number | null
           budget_id?: string | null
           campaign_type?: string
+          channel?: string | null
           code?: string
           created_at?: string | null
           created_by?: string | null
+          crescimento_percentual?: number | null
+          customer_id?: string | null
           description?: string | null
           end_date?: string
           estimated_cost?: number
@@ -13510,11 +13804,23 @@ export type Database = {
           name?: string
           region?: string | null
           responsible_user_id?: string
+          roi_percentual?: number | null
+          roi_valor?: number | null
+          sell_in_anterior?: number | null
+          sell_in_atual?: number | null
+          sell_out_anterior?: number | null
+          sell_out_atual?: number | null
           start_date?: string
           status?: string | null
           target_revenue?: number | null
           target_stores?: string[] | null
           updated_at?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
+          validation_status?: string | null
+          verba_orcada?: number | null
+          verba_prevista?: number | null
         }
         Relationships: [
           {
@@ -13522,6 +13828,13 @@ export type Database = {
             columns: ["budget_id"]
             isOneToOne: false
             referencedRelation: "trade_budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaigns_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
             referencedColumns: ["id"]
           },
         ]
