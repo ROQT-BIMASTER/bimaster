@@ -71,6 +71,7 @@ interface PlanoContas {
   categoria_dre: string | null;
   is_group: boolean | null;
   nivel: number;
+  codigo_dre_gerencial?: string | null;
 }
 
 interface ContasPagarDREViewProps {
@@ -230,7 +231,7 @@ export function ContasPagarDREView({
     queryFn: async (): Promise<PlanoContas[]> => {
       const { data, error } = await supabase
         .from('trade_chart_of_accounts')
-        .select('id, code, name, account_type, categoria_dre, is_group, nivel')
+        .select('id, code, name, account_type, categoria_dre, is_group, nivel, codigo_dre_gerencial')
         .eq('is_active', true)
         .order('code');
 
@@ -243,24 +244,33 @@ export function ContasPagarDREView({
   const { hierarquia, totais, totalGeral } = useMemo(() => {
     if (!lancamentos || !planoContas) return { hierarquia: [], totais: { valoresMes: {}, total: 0 }, totalGeral: 0 };
 
+    const getCodigoDreAtual = (plano?: PlanoContas, codigoLancamento?: string | null) => {
+      const raw = (plano?.codigo_dre_gerencial || codigoLancamento || plano?.code || '').trim();
+      // Só aceitamos a estrutura atual do DRE (2/3/4). Qualquer coisa fora disso vira “sem classificação”.
+      return /^(2|3|4)(\..+)?$/.test(raw) ? raw : 'SEM_CLASSIFICACAO';
+    };
+
     // Map plano de contas por id (muitos lançamentos têm plano_contas_id mas plano_contas_codigo/nome nulos)
     const planoById = new Map<string, PlanoContas>();
     planoContas.forEach((p) => planoById.set(p.id, p));
 
-    // Group lancamentos by plano_contas_codigo
+    // Group lancamentos pelo código DRE atual (prioriza codigo_dre_gerencial)
     const lancamentosPorConta: Record<string, ContaPagar[]> = {};
     lancamentos.forEach(l => {
       const plano = l.plano_contas_id ? planoById.get(l.plano_contas_id) : undefined;
-      const codigo = l.plano_contas_codigo || plano?.code || 'SEM_CLASSIFICACAO';
+      const codigo = getCodigoDreAtual(plano, l.plano_contas_codigo);
       if (!lancamentosPorConta[codigo]) {
         lancamentosPorConta[codigo] = [];
       }
       lancamentosPorConta[codigo].push(l);
     });
 
-    // Create plano contas map
+    // Create plano contas map (chaveado pelo código DRE atual)
     const planoMap = new Map<string, PlanoContas>();
-    planoContas.forEach(c => planoMap.set(c.code, c));
+    planoContas.forEach(c => {
+      const key = getCodigoDreAtual(c, null);
+      if (key && key !== 'SEM_CLASSIFICACAO') planoMap.set(key, c);
+    });
 
     // Helper to calculate values for a code prefix
     const calcularValores = (codigoPrefix: string): { valoresMes: Record<string, number>; total: number; lancamentosIds: string[] } => {
@@ -351,19 +361,24 @@ export function ContasPagarDREView({
           children = buildTree(item.children, parentNivel + 1);
         } else {
           // Otherwise, check for sub-accounts in plano and build fornecedor nodes
-          const subContas = planoContas.filter(c => 
-            c.code.startsWith(item.codigo + '.') && 
-            c.code.split('.').length === item.codigo.split('.').length + 1
-          );
+          const subContas = planoContas.filter(c => {
+            const dreCode = getCodigoDreAtual(c, null);
+            return (
+              dreCode !== 'SEM_CLASSIFICACAO' &&
+              dreCode.startsWith(item.codigo + '.') &&
+              dreCode.split('.').length === item.codigo.split('.').length + 1
+            );
+          });
           
           if (subContas.length > 0) {
             children = subContas.map(sub => {
-              const subVals = calcularValores(sub.code);
-              const fornNodes = buildFornecedorNodes(sub.code, parentNivel + 2);
+              const dreCode = getCodigoDreAtual(sub, null);
+              const subVals = calcularValores(dreCode);
+              const fornNodes = buildFornecedorNodes(dreCode, parentNivel + 2);
               
               return {
-                id: sub.code,
-                codigo: sub.code,
+                id: dreCode,
+                codigo: dreCode,
                 nome: sub.name,
                 tipo: 'subgrupo' as const,
                 nivel: parentNivel + 1,
@@ -374,7 +389,7 @@ export function ContasPagarDREView({
                 categoriaDre: sub.categoria_dre,
                 contaOrigem: {
                   id: sub.id,
-                  codigo: sub.code,
+                  codigo: dreCode,
                   nome: sub.name,
                   valor: subVals.total,
                   lancamentosIds: subVals.lancamentosIds,
