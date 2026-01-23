@@ -414,7 +414,19 @@ Deno.serve(async (req) => {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
       const polloKey = Deno.env.get('POLLO_API_KEY');
-      return !!(apiKey && (apiKey === expectedKey || apiKey === polloKey));
+      
+      // Log de diagnóstico para debug
+      console.log('[AUTH] Received key length:', apiKey?.length || 0);
+      console.log('[AUTH] Expected key configured:', !!expectedKey);
+      console.log('[AUTH] Pollo key configured:', !!polloKey);
+      
+      const isValid = !!(apiKey && (apiKey === expectedKey || apiKey === polloKey));
+      if (!isValid) {
+        console.log('[AUTH] Key mismatch - received first 8 chars:', apiKey?.substring(0, 8) || 'none');
+        console.log('[AUTH] Expected first 8 chars:', expectedKey?.substring(0, 8) || 'not-set');
+      }
+      
+      return isValid;
     }
 
     // ============ GET /sync-status ============
