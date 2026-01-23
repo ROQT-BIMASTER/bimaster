@@ -110,21 +110,23 @@ async function acquireSlot(supabase: any, syncTypePrefix: string, requestId: str
 async function waitForSlot(supabase: any, syncTypePrefix: string): Promise<{ slot_id: string | null; error?: string }> {
   const requestId = crypto.randomUUID();
 
-  // Apenas 3 tentativas rápidas - se falhar, retornar 429 para N8N fazer retry
-  const QUICK_RETRIES = 3;
-  const QUICK_WAIT_MS = 200;
-
-  for (let attempt = 1; attempt <= QUICK_RETRIES; attempt++) {
+  // Fallback adaptativo: esperar mais tempo (backoff progressivo) antes de retornar 429.
+  // Objetivo: evitar que o loop do N8N morra em picos de concorrência.
+  // Mantemos 429 como último recurso para ativar o Retry On Fail do N8N.
+  for (let attempt = 1; attempt <= MAX_WAIT_RETRIES; attempt++) {
     const acquired = await acquireSlot(supabase, syncTypePrefix, requestId);
     if (acquired) return { slot_id: requestId };
-    
-    if (attempt < QUICK_RETRIES) {
-      console.log(`[rate-limiter] Attempt ${attempt}/${QUICK_RETRIES} failed, waiting ${QUICK_WAIT_MS}ms...`);
-      await sleep(QUICK_WAIT_MS);
+
+    if (attempt < MAX_WAIT_RETRIES) {
+      // Backoff linear com jitter (evita thundering herd)
+      const jitter = Math.floor(Math.random() * 250);
+      const waitMs = Math.min(WAIT_RETRY_MS * attempt, 5000) + jitter;
+      console.log(`[rate-limiter] Attempt ${attempt}/${MAX_WAIT_RETRIES} failed, waiting ${waitMs}ms...`);
+      await sleep(waitMs);
     }
   }
 
-  console.log(`[rate-limiter] Fast-fail after ${QUICK_RETRIES} attempts for ${requestId.substring(0, 8)}`);
+  console.log(`[rate-limiter] Giving up after ${MAX_WAIT_RETRIES} attempts for ${requestId.substring(0, 8)}`);
   return { slot_id: null, error: 'Rate limit exceeded - N8N will retry' };
 }
 
