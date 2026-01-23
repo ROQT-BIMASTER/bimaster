@@ -228,11 +228,10 @@ export function ContasPagarDREView({
   const { data: planoContas, isLoading: isLoadingPlano } = useQuery({
     queryKey: ['plano-contas-dre-view'],
     queryFn: async (): Promise<PlanoContas[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('trade_chart_of_accounts')
         .select('id, code, name, account_type, categoria_dre, is_group, nivel')
-        .eq('active', true)
+        .eq('is_active', true)
         .order('code');
 
       if (error) throw error;
