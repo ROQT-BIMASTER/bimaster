@@ -308,8 +308,7 @@ serve(async (req) => {
 
     const { data: planoContas, error: planoError } = await supabase
       .from("trade_chart_of_accounts")
-      .select("id, code, name, account_type, active")
-      .eq("active", true)
+      .select("id, code, name, account_type")
       .order("code");
 
     if (planoError) throw new Error(`Erro plano de contas: ${planoError.message}`);
