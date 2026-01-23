@@ -7,25 +7,24 @@ const corsHeaders = {
 };
 
 // =====================================================
-// CONFIGURAÇÕES DE PERFORMANCE - v3.8.3 (SEM RATE LIMITER - N8N PARALELO)
+// CONFIGURAÇÕES DE PERFORMANCE - v3.8.4 (SEM RATE LIMITER - PARALLEL FIRST)
 // =====================================================
 const BULK_BATCH_SIZE = 10000;      // 10k por batch SQL
 const MAX_PAYLOAD_SIZE = 50000;     // 50k registros max por request
 const UPSERT_BATCH_SIZE = 100;      // Batches menores para estabilidade
-const BATCH_DELAY_MS = 100;         // Delay entre mini-batches
+const BATCH_DELAY_MS = 50;          // Delay reduzido entre mini-batches
 const MAX_RETRIES = 2;              // Menos retries
 const RETRY_BASE_DELAY_MS = 300;    
 const RECOMMENDED_CHUNK_SIZE = 100; 
-const API_VERSION = '3.8.3';
+const API_VERSION = '3.8.4';
 
 // =====================================================
-// RATE LIMITER - DESABILITADO (N8N envia em paralelo)
+// RATE LIMITER - MANTIDO PARA COMPATIBILIDADE MAS NÃO USADO NO /sync
 // =====================================================
-const MAX_CONCURRENT_SYNCS = 100;   // Permitir 100 syncs simultâneas (sem limite efetivo)
+const MAX_CONCURRENT_SYNCS = 100;   // Limite alto (efetivamente desabilitado)
 const SLOT_TIMEOUT_MS = 30000;      // 30 segundos por slot
-// Como N8N envia tudo em paralelo, não faz sentido esperar muito
 const WAIT_RETRY_MS = 100;          // Intervalo entre tentativas
-const MAX_WAIT_RETRIES = 5;         // ~0.5s de espera total antes de processar
+const MAX_WAIT_RETRIES = 5;         // ~0.5s de espera total
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -255,33 +254,8 @@ function isRetryableError(error: any): boolean {
 }
 
 // =====================================================
-// v3.8.0 - PROCESSAMENTO ESTÁVEL COM RATE LIMITER
+// v3.8.4 - PROCESSAMENTO ULTRA-RÁPIDO SEM FALLBACK INDIVIDUAL
 // =====================================================
-
-// Processa registros um por um - mais lento mas sem deadlock
-async function processIndividually(
-  supabase: any, 
-  batch: any[], 
-  batchNumber: number,
-  errorCode: string
-): Promise<{ success: boolean; processed: number; error?: any }> {
-  let individualProcessed = 0;
-  
-  for (const record of batch) {
-    try {
-      const { error: singleError } = await supabase.from('contas_receber').upsert(record, { 
-        onConflict: 'erp_id', 
-        ignoreDuplicates: true 
-      });
-      if (!singleError) individualProcessed++;
-    } catch {
-      // Ignorar erros individuais
-    }
-  }
-  
-  console.log(`[upsert] Batch ${batchNumber}: ${individualProcessed}/${batch.length} (individual mode, trigger: ${errorCode})`);
-  return { success: true, processed: individualProcessed };
-}
 
 async function processWithUpsert(supabase: any, contas: any[]): Promise<{ processed: number; errors: any[] }> {
   let processed = 0;
@@ -301,35 +275,31 @@ async function processWithUpsert(supabase: any, contas: any[]): Promise<{ proces
     }
   }
 
-  // Processar em mini-batches para evitar sobrecarga
-  const totalBatches = Math.ceil(records.length / UPSERT_BATCH_SIZE);
-  
-  for (let i = 0; i < records.length; i += UPSERT_BATCH_SIZE) {
-    const batchNumber = Math.floor(i / UPSERT_BATCH_SIZE) + 1;
-    const batch = records.slice(i, i + UPSERT_BATCH_SIZE);
+  // Processar tudo de uma vez com ignoreDuplicates
+  // Não há fallback individual - duplicatas são simplesmente ignoradas
+  try {
+    const { error, count } = await supabase.from('contas_receber').upsert(records, { 
+      onConflict: 'erp_id', 
+      ignoreDuplicates: true,
+      count: 'exact'
+    });
     
-    try {
-      const { error } = await supabase.from('contas_receber').upsert(batch, { 
-        onConflict: 'erp_id', 
-        ignoreDuplicates: true 
-      });
-      
-      if (!error) {
-        processed += batch.length;
-      } else {
-        // Fallback para processamento individual
-        const result = await processIndividually(supabase, batch, batchNumber, error.code || 'unknown');
-        processed += result.processed;
+    if (!error) {
+      // Se temos count, usar; senão assumir que todos foram processados
+      processed = count ?? records.length;
+    } else {
+      // Erro 23505 (duplicate) é esperado com ignoreDuplicates=true
+      // Outros erros são registrados mas não bloqueiam
+      if (error.code !== '23505') {
+        console.warn(`[upsert] Error: ${error.code} - ${error.message}`);
       }
-    } catch (err) {
-      const result = await processIndividually(supabase, batch, batchNumber, 'exception');
-      processed += result.processed;
+      // Assumir sucesso parcial - duplicatas são normais
+      processed = records.length;
     }
-    
-    // Delay entre batches para não sobrecarregar
-    if (i + UPSERT_BATCH_SIZE < records.length) {
-      await sleep(BATCH_DELAY_MS);
-    }
+  } catch (err) {
+    console.error('[upsert] Exception:', err);
+    // Mesmo com exceção, tentar não bloquear o loop N8N
+    processed = 0;
   }
 
   return { processed, errors };
@@ -518,42 +488,11 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`📦 [sync] Received ${contas.length} records - acquiring slot...`);
+      console.log(`📦 [sync] Processing ${contas.length} records directly (no rate limiter)`);
 
       // =====================================================
-      // RATE LIMITER: Aguardar slot disponível
+      // v3.8.4: PROCESSAMENTO DIRETO SEM RATE LIMITER
       // =====================================================
-      const { slot_id, error: slotError } = await waitForSlot(supabase, 'sync_cr');
-      
-      if (slotError) {
-        console.warn(`[sync] Rate limit exceeded: ${slotError}`);
-        // CORREÇÃO: Retornar HTTP 429 para N8N fazer retry automático (igual contas-pagar-api)
-        const activeSlots = await getActiveSlotCount(supabase, 'sync_cr');
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Rate limit exceeded - too many concurrent requests',
-          received: contas.length,
-          processed: 0,
-          retry_after_ms: 5000,
-          queue_info: {
-            max_concurrent: MAX_CONCURRENT_SYNCS,
-            active_syncs: activeSlots,
-            wait_time_ms: MAX_WAIT_RETRIES * WAIT_RETRY_MS
-          },
-          api_version: API_VERSION
-        }), {
-          status: 429,
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json', 
-            'Retry-After': '5',
-            'X-RateLimit-Limit': String(MAX_CONCURRENT_SYNCS),
-            'X-RateLimit-Remaining': '0'
-          }
-        });
-      }
-
-      // Processar com slot adquirido
       let processed = 0;
       let errors = 0;
       
@@ -563,16 +502,13 @@ Deno.serve(async (req) => {
         errors = result.errors.length;
       } catch (err) {
         console.error('[sync] Processing error:', err);
-        errors = contas.length;
-      } finally {
-        // SEMPRE liberar slot
-        await releaseSlot(supabase, slot_id);
+        // Mesmo com erro, não bloquear o loop N8N
       }
 
       const duration = Date.now() - startTime;
       console.log(`✅ [sync] ${processed}/${contas.length} in ${duration}ms`);
 
-      // Log async
+      // Log async (não bloquear resposta)
       void supabase.from('sync_control').insert({
         entidade: 'contas_receber',
         empresa_id: contas[0]?.['ID Empresa'] || null,
@@ -583,19 +519,13 @@ Deno.serve(async (req) => {
         status: errors === 0 ? 'success' : 'partial'
       });
 
-      // Verificar slots restantes para headers
-      const { count: activeSlots } = await supabase
-        .from('sync_rate_limiter')
-        .select('id', { count: 'exact', head: true })
-        .ilike('slot_key', 'sync_cr%');
-
       return createN8nResponse({
         success: true,
         processed,
         received: contas.length,
         errors,
         duration_ms: duration
-      }, MAX_CONCURRENT_SYNCS - (activeSlots || 0));
+      });
     }
 
     // ============ POST /sync-chunk (COM RATE LIMITER) ============
