@@ -1,14 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, LayoutDashboard, TrendingUp, Package, Receipt, CheckCircle, History, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { ArrowLeft, ClipboardEdit, TrendingUp, Package, Receipt, CheckCircle, History, Loader2 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
-import { CampaignDashboard } from "@/components/trade/campaigns/CampaignDashboard";
+import { CampaignLancamentoForm } from "@/components/trade/campaigns/CampaignLancamentoForm";
 import { CampaignSellComparison } from "@/components/trade/campaigns/CampaignSellComparison";
 import { CampaignProducts } from "@/components/trade/campaigns/CampaignProducts";
 import { CampaignExpenses } from "@/components/trade/campaigns/CampaignExpenses";
@@ -55,9 +54,8 @@ interface Campaign {
 export default function TradeCampaignDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("lancamento");
 
   const { data: campaign, isLoading, error } = useQuery({
     queryKey: ["trade-campaign-detail", id],
@@ -173,9 +171,9 @@ export default function TradeCampaignDetail() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
-            <TabsTrigger value="dashboard" className="gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden sm:inline">Dashboard</span>
+            <TabsTrigger value="lancamento" className="gap-2">
+              <ClipboardEdit className="h-4 w-4" />
+              <span className="hidden sm:inline">Lançamento</span>
             </TabsTrigger>
             <TabsTrigger value="sell" className="gap-2">
               <TrendingUp className="h-4 w-4" />
@@ -201,11 +199,8 @@ export default function TradeCampaignDetail() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="mt-6">
-            <CampaignDashboard 
-              campaign={campaign} 
-              onNavigateToProducts={() => setActiveTab("products")}
-            />
+          <TabsContent value="lancamento" className="mt-6">
+            <CampaignLancamentoForm campaign={campaign} />
           </TabsContent>
 
           <TabsContent value="sell" className="mt-6">
