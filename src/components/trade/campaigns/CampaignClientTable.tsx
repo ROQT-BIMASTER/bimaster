@@ -355,16 +355,16 @@ export function CampaignClientTable() {
         <CardContent className="p-0">
           <ScrollArea className="h-[500px]">
             <Table>
-              <TableHeader className="bg-muted/50 sticky top-0">
-                <TableRow className="border-b-2 border-primary/10">
-                  <TableHead className="min-w-[150px] font-semibold">Cliente</TableHead>
-                  <TableHead className="min-w-[180px] font-semibold">Campanha</TableHead>
-                  <TableHead className="min-w-[100px] font-semibold">Data Entrada</TableHead>
-                  <TableHead className="min-w-[120px] text-right font-semibold">Valor Pedido</TableHead>
-                  <TableHead className="min-w-[100px] font-semibold">Brinde</TableHead>
-                  <TableHead className="min-w-[180px] font-semibold">Anterior X Atual</TableHead>
-                  <TableHead className="min-w-[80px] text-center font-semibold">ROI</TableHead>
-                  <TableHead className="min-w-[80px] text-right font-semibold">Peças</TableHead>
+              <TableHeader className="bg-primary/10 sticky top-0">
+                <TableRow className="border-b-2 border-primary/20">
+                  <TableHead className="min-w-[150px] font-semibold text-primary">Cliente</TableHead>
+                  <TableHead className="min-w-[180px] font-semibold text-primary">Campanha</TableHead>
+                  <TableHead className="min-w-[100px] font-semibold text-primary">Data Entrada</TableHead>
+                  <TableHead className="min-w-[120px] text-right font-semibold text-primary">Valor Pedido</TableHead>
+                  <TableHead className="min-w-[100px] font-semibold text-primary">Brinde</TableHead>
+                  <TableHead className="min-w-[180px] font-semibold text-primary">Anterior X Atual</TableHead>
+                  <TableHead className="min-w-[80px] text-center font-semibold text-primary">ROI</TableHead>
+                  <TableHead className="min-w-[80px] text-right font-semibold text-primary">Peças</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -377,7 +377,7 @@ export function CampaignClientTable() {
                   </TableRow>
                 ) : (
                   filteredCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id} className="hover:bg-primary/5 transition-colors even:bg-muted/30">
+                    <TableRow key={campaign.id} className="hover:bg-primary/10 transition-colors odd:bg-muted/40 even:bg-background border-b border-muted">
                       <TableCell>
                         <Button
                           variant="link"
