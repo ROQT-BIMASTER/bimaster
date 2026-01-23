@@ -87,8 +87,9 @@ export function CalendarioRecebimentosAggregated({
   }, [filterDiaVencimento]);
 
   // Memoizar filtros para garantir atualização correta
+  // IMPORTANTE: usar spread para não mutar o array original do state
   const filterKey = useMemo(() => ({
-    empresas: filterEmpresas.sort().join(','),
+    empresas: [...filterEmpresas].sort((a, b) => a - b).join(','),
     conta: filterConta,
     portador: filterPortador
   }), [filterEmpresas, filterConta, filterPortador]);
