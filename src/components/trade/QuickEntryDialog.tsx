@@ -34,8 +34,10 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   const [storeSearch, setStoreSearch] = useState("");
   const [products, setProducts] = useState<any[]>([]);
   const [promotions, setPromotions] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
   const [completedVisitId, setCompletedVisitId] = useState<string | null>(null);
   const [showSuccessActions, setShowSuccessActions] = useState(false);
+  const [uploadingEvidence, setUploadingEvidence] = useState(false);
   
   const { hasPermission } = useScreenPermissions();
   const navigate = useNavigate();
@@ -62,10 +64,15 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     shelf_height: 0,
     shelf_depth: 0,
     
-    // Promoções
+    // Promoções e Campanhas
     promotion_id: "",
     promotion_active: false,
     materials_present: [] as string[],
+    campaign_id: "",
+    expense_amount: 0,
+    expense_description: "",
+    evidence_files: [] as File[],
+    evidence_urls: [] as string[],
     
     // Observações
     notes: "",
@@ -86,10 +93,11 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
 
   const fetchInitialData = async () => {
     try {
-      const [storesData, productsData, promotionsData] = await Promise.all([
+      const [storesData, productsData, promotionsData, campaignsData] = await Promise.all([
         supabase.from("stores").select("*").eq("status", "active").order("name"),
         supabase.from("products").select("*").eq("active", true).eq("is_our_product", true),
         supabase.from("promotions").select("*").eq("status", "active"),
+        supabase.from("trade_campaigns").select("id, name, code, status").in("status", ["approved", "active"]).order("name"),
       ]);
 
       if (storesData.data) {
@@ -98,9 +106,66 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       }
       if (productsData.data) setProducts(productsData.data);
       if (promotionsData.data) setPromotions(promotionsData.data);
+      if (campaignsData.data) setCampaigns(campaignsData.data);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
+  };
+
+  // Upload evidence files
+  const handleEvidenceUpload = async (files: FileList) => {
+    if (!files.length) return;
+    
+    setUploadingEvidence(true);
+    const newUrls: string[] = [];
+    
+    try {
+      for (const file of Array.from(files)) {
+        const compressed = await compressImage(file);
+        const fileName = `evidence_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+        const filePath = `expenses/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('campaign-evidence')
+          .upload(filePath, compressed, { contentType: 'image/jpeg' });
+        
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          continue;
+        }
+        
+        const { data: urlData } = supabase.storage
+          .from('campaign-evidence')
+          .getPublicUrl(filePath);
+        
+        if (urlData?.publicUrl) {
+          newUrls.push(urlData.publicUrl);
+        }
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        evidence_files: [...prev.evidence_files, ...Array.from(files)],
+        evidence_urls: [...prev.evidence_urls, ...newUrls],
+      }));
+      
+      if (newUrls.length > 0) {
+        toast.success(`${newUrls.length} evidência(s) carregada(s)`);
+      }
+    } catch (error) {
+      console.error('Error uploading evidence:', error);
+      toast.error('Erro ao carregar evidências');
+    } finally {
+      setUploadingEvidence(false);
+    }
+  };
+
+  const removeEvidence = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      evidence_files: prev.evidence_files.filter((_, i) => i !== index),
+      evidence_urls: prev.evidence_urls.filter((_, i) => i !== index),
+    }));
   };
 
   const handleStoreSearch = (searchValue: string) => {
@@ -343,6 +408,21 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         });
       }
 
+      // 5. Create campaign expense record
+      if (formData.campaign_id && formData.expense_amount > 0) {
+        await supabase.from("trade_campaign_expenses").insert({
+          campaign_id: formData.campaign_id,
+          category: 'gasto_realizado',
+          description: formData.expense_description || 'Gasto registrado via lançamento rápido',
+          valor_realizado: formData.expense_amount,
+          expense_date: formData.visit_date,
+          evidencias: formData.evidence_urls,
+          comprovante_url: formData.evidence_urls[0] || null,
+          status: 'approved',
+          created_by: user.id,
+        });
+      }
+
       // 5. Create AI insights from analysis
       if (formData.ai_insights) {
         const insightsToCreate = [];
@@ -451,6 +531,11 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       promotion_id: "",
       promotion_active: false,
       materials_present: [],
+      campaign_id: "",
+      expense_amount: 0,
+      expense_description: "",
+      evidence_files: [],
+      evidence_urls: [],
       notes: "",
       issues_found: [],
     });
@@ -945,6 +1030,119 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Campanha e Gasto */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Campanha e Gasto Realizado
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Selecione a Campanha</Label>
+                    <Select value={formData.campaign_id} onValueChange={(value) => setFormData(prev => ({ ...prev, campaign_id: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Nenhuma campanha" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {campaigns.map((camp) => (
+                          <SelectItem key={camp.id} value={camp.id}>
+                            {camp.name} - {camp.code}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.campaign_id && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Valor do Gasto (R$)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0,00"
+                            value={formData.expense_amount || ""}
+                            onChange={(e) => setFormData(prev => ({ 
+                              ...prev, 
+                              expense_amount: parseFloat(e.target.value) || 0 
+                            }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Descrição do Gasto</Label>
+                          <Input
+                            placeholder="Ex: Material promocional"
+                            value={formData.expense_description}
+                            onChange={(e) => setFormData(prev => ({ 
+                              ...prev, 
+                              expense_description: e.target.value 
+                            }))}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Upload de Evidências */}
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Upload className="h-4 w-4" />
+                          Evidências (Fotos/Comprovantes)
+                        </Label>
+                        <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            className="hidden"
+                            id="evidence-upload"
+                            onChange={(e) => e.target.files && handleEvidenceUpload(e.target.files)}
+                            disabled={uploadingEvidence}
+                          />
+                          <label 
+                            htmlFor="evidence-upload" 
+                            className="cursor-pointer flex flex-col items-center gap-2"
+                          >
+                            {uploadingEvidence ? (
+                              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                            ) : (
+                              <ImagePlus className="h-8 w-8 text-muted-foreground" />
+                            )}
+                            <span className="text-sm text-muted-foreground">
+                              {uploadingEvidence ? 'Carregando...' : 'Clique para adicionar evidências'}
+                            </span>
+                          </label>
+                        </div>
+
+                        {/* Preview das evidências */}
+                        {formData.evidence_urls.length > 0 && (
+                          <div className="grid grid-cols-3 gap-2 mt-2">
+                            {formData.evidence_urls.map((url, index) => (
+                              <div key={index} className="relative group">
+                                <img 
+                                  src={url} 
+                                  alt={`Evidência ${index + 1}`}
+                                  className="w-full h-20 object-cover rounded-md border"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeEvidence(index)}
+                                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <span className="sr-only">Remover</span>
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
             <div className="flex justify-between">
@@ -1001,6 +1199,26 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                         {formData.promotion_id ? "Sim" : "Não"}
                       </span>
                     </div>
+                    {formData.campaign_id && (
+                      <>
+                        <div className="flex justify-between border-t pt-2 mt-2">
+                          <span>Campanha:</span>
+                          <span className="font-medium">
+                            {campaigns.find(c => c.id === formData.campaign_id)?.name || "-"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Gasto Realizado:</span>
+                          <span className="font-medium text-primary">
+                            R$ {formData.expense_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Evidências:</span>
+                          <span className="font-medium">{formData.evidence_urls.length} arquivo(s)</span>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </CardContent>

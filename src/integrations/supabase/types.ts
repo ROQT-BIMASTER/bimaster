@@ -13512,6 +13512,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string
+          evidencias: Json | null
           expense_date: string | null
           id: string
           notes: string | null
@@ -13530,6 +13531,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description: string
+          evidencias?: Json | null
           expense_date?: string | null
           id?: string
           notes?: string | null
@@ -13548,6 +13550,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string
+          evidencias?: Json | null
           expense_date?: string | null
           id?: string
           notes?: string | null
