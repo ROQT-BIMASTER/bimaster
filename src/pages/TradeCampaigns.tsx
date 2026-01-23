@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,13 +31,14 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Target, TrendingUp, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Target, TrendingUp, Clock, CheckCircle, XCircle, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { sanitizeText, sanitizeCode, getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { useUserRole } from "@/hooks/useUserRole";
 
 export default function TradeCampaigns() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
@@ -471,15 +473,24 @@ export default function TradeCampaigns() {
                         </TableCell>
                         <TableCell>{getStatusBadge(campaign.status)}</TableCell>
                         <TableCell>
-                          {campaign.status === "draft" && isAdminOrSupervisor && (
+                          <div className="flex items-center gap-2">
                             <Button
                               size="sm"
-                              variant="outline"
-                              onClick={() => handleSubmitForApproval(campaign.id, campaign.estimated_cost)}
+                              variant="ghost"
+                              onClick={() => navigate(`/dashboard/trade/financeiro/campanhas/${campaign.id}`)}
                             >
-                              Enviar para Aprovação
+                              <Eye className="h-4 w-4" />
                             </Button>
-                          )}
+                            {campaign.status === "draft" && isAdminOrSupervisor && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleSubmitForApproval(campaign.id, campaign.estimated_cost)}
+                              >
+                                Enviar para Aprovação
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

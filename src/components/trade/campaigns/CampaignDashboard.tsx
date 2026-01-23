@@ -243,7 +243,6 @@ export function CampaignDashboard({ campaign }: CampaignDashboardProps) {
                   formatter={(value: number) => formatCurrency(value)}
                   labelStyle={{ color: 'var(--foreground)' }}
                 />
-                />
               </ComposedChart>
             </ResponsiveContainer>
           </CardContent>
