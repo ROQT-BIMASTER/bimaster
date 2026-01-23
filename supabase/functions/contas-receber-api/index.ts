@@ -51,26 +51,30 @@ async function getActiveSlotCount(supabase: any, syncTypePrefix: string): Promis
 }
 
 // =====================================================
-// RATE LIMITER v2: INSERT-FIRST, CHECK-AFTER (evita race condition)
+// RATE LIMITER v3: FAST-FAIL + INSERT-CHECK (mais agressivo)
 // =====================================================
 async function acquireSlot(supabase: any, syncTypePrefix: string, requestId: string): Promise<boolean> {
   try {
     await cleanupExpiredSlots(supabase);
 
-    // PASSO 1: Inserir o slot PRIMEIRO (otimisticamente)
+    // PASSO 0: Verificação RÁPIDA antes de inserir
+    const preCheckCount = await getActiveSlotCount(supabase, syncTypePrefix);
+    if (preCheckCount >= MAX_CONCURRENT_SYNCS) {
+      console.log(`[rate-limiter] Pre-check failed: ${preCheckCount}/${MAX_CONCURRENT_SYNCS} slots active`);
+      return false;
+    }
+
+    // PASSO 1: Inserir o slot (otimisticamente)
     const slotKey = `${syncTypePrefix}_${Date.now()}_${requestId.substring(0, 8)}`;
-    const insertedAt = new Date().toISOString();
     const { error: insertError } = await supabase
       .from('sync_rate_limiter')
       .insert({
         slot_key: slotKey,
         request_id: requestId,
         expires_at: new Date(Date.now() + SLOT_TIMEOUT_MS).toISOString(),
-        created_at: insertedAt,
       });
 
     if (insertError) {
-      // Conflito de unique key = outro processo ganhou a corrida
       if (insertError.code === '23505') {
         console.log(`[rate-limiter] Duplicate key conflict for ${requestId.substring(0, 8)}`);
         return false;
@@ -79,8 +83,7 @@ async function acquireSlot(supabase: any, syncTypePrefix: string, requestId: str
       return false;
     }
 
-    // PASSO 2: Verificar quantos slots existem APÓS a inserção
-    // Se houver mais que o limite, REMOVER o nosso slot (perdemos a corrida)
+    // PASSO 2: Verificar se estamos entre os primeiros
     const { data: activeSlots } = await supabase
       .from('sync_rate_limiter')
       .select('request_id, created_at')
@@ -88,23 +91,15 @@ async function acquireSlot(supabase: any, syncTypePrefix: string, requestId: str
       .order('created_at', { ascending: true });
 
     const slotCount = activeSlots?.length || 0;
+    const ourSlotIndex = activeSlots?.findIndex((s: any) => s.request_id === requestId) ?? -1;
     
-    if (slotCount > MAX_CONCURRENT_SYNCS) {
-      // Verificar se nosso slot está entre os primeiros MAX_CONCURRENT_SYNCS
-      const ourSlotIndex = activeSlots.findIndex((s: any) => s.request_id === requestId);
-      
-      if (ourSlotIndex >= MAX_CONCURRENT_SYNCS) {
-        // Nosso slot não está entre os permitidos - remover e falhar
-        console.log(`[rate-limiter] Slot ${requestId.substring(0, 8)} rejected (position ${ourSlotIndex + 1}/${slotCount}, max ${MAX_CONCURRENT_SYNCS})`);
-        await supabase
-          .from('sync_rate_limiter')
-          .delete()
-          .eq('request_id', requestId);
-        return false;
-      }
+    if (ourSlotIndex >= MAX_CONCURRENT_SYNCS) {
+      console.log(`[rate-limiter] Slot ${requestId.substring(0, 8)} rejected (position ${ourSlotIndex + 1}/${slotCount}, max ${MAX_CONCURRENT_SYNCS})`);
+      await supabase.from('sync_rate_limiter').delete().eq('request_id', requestId);
+      return false;
     }
 
-    console.log(`[rate-limiter] Slot ${requestId.substring(0, 8)} acquired (${slotCount}/${MAX_CONCURRENT_SYNCS})`);
+    console.log(`[rate-limiter] Slot ${requestId.substring(0, 8)} acquired (position ${ourSlotIndex + 1}/${slotCount})`);
     return true;
   } catch (err) {
     console.warn('[rate-limiter] acquireSlot exception:', err);
@@ -115,16 +110,22 @@ async function acquireSlot(supabase: any, syncTypePrefix: string, requestId: str
 async function waitForSlot(supabase: any, syncTypePrefix: string): Promise<{ slot_id: string | null; error?: string }> {
   const requestId = crypto.randomUUID();
 
-  for (let attempt = 1; attempt <= MAX_WAIT_RETRIES; attempt++) {
+  // Apenas 3 tentativas rápidas - se falhar, retornar 429 para N8N fazer retry
+  const QUICK_RETRIES = 3;
+  const QUICK_WAIT_MS = 200;
+
+  for (let attempt = 1; attempt <= QUICK_RETRIES; attempt++) {
     const acquired = await acquireSlot(supabase, syncTypePrefix, requestId);
     if (acquired) return { slot_id: requestId };
     
-    console.log(`[rate-limiter] Attempt ${attempt}/${MAX_WAIT_RETRIES} failed, waiting ${WAIT_RETRY_MS}ms...`);
-    if (attempt < MAX_WAIT_RETRIES) await sleep(WAIT_RETRY_MS);
+    if (attempt < QUICK_RETRIES) {
+      console.log(`[rate-limiter] Attempt ${attempt}/${QUICK_RETRIES} failed, waiting ${QUICK_WAIT_MS}ms...`);
+      await sleep(QUICK_WAIT_MS);
+    }
   }
 
-  console.log(`[rate-limiter] All ${MAX_WAIT_RETRIES} attempts failed for ${requestId.substring(0, 8)}`);
-  return { slot_id: null, error: 'Rate limit - no available slots after retries' };
+  console.log(`[rate-limiter] Fast-fail after ${QUICK_RETRIES} attempts for ${requestId.substring(0, 8)}`);
+  return { slot_id: null, error: 'Rate limit exceeded - N8N will retry' };
 }
 
 async function releaseSlot(supabase: any, slotId: string | null): Promise<void> {
