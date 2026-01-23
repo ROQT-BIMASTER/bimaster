@@ -46,34 +46,65 @@ async function getActiveSlotCount(supabase: any, syncTypePrefix: string): Promis
   const { count } = await supabase
     .from('sync_rate_limiter')
     .select('id', { count: 'exact', head: true })
-    // O schema real usa slot_key (sem coluna sync_type)
     .ilike('slot_key', `${syncTypePrefix}%`);
   return count || 0;
 }
 
+// =====================================================
+// RATE LIMITER v2: INSERT-FIRST, CHECK-AFTER (evita race condition)
+// =====================================================
 async function acquireSlot(supabase: any, syncTypePrefix: string, requestId: string): Promise<boolean> {
   try {
     await cleanupExpiredSlots(supabase);
 
-    const activeCount = await getActiveSlotCount(supabase, syncTypePrefix);
-    if (activeCount >= MAX_CONCURRENT_SYNCS) return false;
-
+    // PASSO 1: Inserir o slot PRIMEIRO (otimisticamente)
     const slotKey = `${syncTypePrefix}_${Date.now()}_${requestId.substring(0, 8)}`;
-    const { error } = await supabase
+    const insertedAt = new Date().toISOString();
+    const { error: insertError } = await supabase
       .from('sync_rate_limiter')
       .insert({
         slot_key: slotKey,
         request_id: requestId,
         expires_at: new Date(Date.now() + SLOT_TIMEOUT_MS).toISOString(),
+        created_at: insertedAt,
       });
 
-    if (error) {
-      // conflito de unique slot_key = corrida
-      if (error.code === '23505') return false;
-      console.warn('[rate-limiter] insert error:', error);
+    if (insertError) {
+      // Conflito de unique key = outro processo ganhou a corrida
+      if (insertError.code === '23505') {
+        console.log(`[rate-limiter] Duplicate key conflict for ${requestId.substring(0, 8)}`);
+        return false;
+      }
+      console.warn('[rate-limiter] insert error:', insertError);
       return false;
     }
 
+    // PASSO 2: Verificar quantos slots existem APÓS a inserção
+    // Se houver mais que o limite, REMOVER o nosso slot (perdemos a corrida)
+    const { data: activeSlots } = await supabase
+      .from('sync_rate_limiter')
+      .select('request_id, created_at')
+      .ilike('slot_key', `${syncTypePrefix}%`)
+      .order('created_at', { ascending: true });
+
+    const slotCount = activeSlots?.length || 0;
+    
+    if (slotCount > MAX_CONCURRENT_SYNCS) {
+      // Verificar se nosso slot está entre os primeiros MAX_CONCURRENT_SYNCS
+      const ourSlotIndex = activeSlots.findIndex((s: any) => s.request_id === requestId);
+      
+      if (ourSlotIndex >= MAX_CONCURRENT_SYNCS) {
+        // Nosso slot não está entre os permitidos - remover e falhar
+        console.log(`[rate-limiter] Slot ${requestId.substring(0, 8)} rejected (position ${ourSlotIndex + 1}/${slotCount}, max ${MAX_CONCURRENT_SYNCS})`);
+        await supabase
+          .from('sync_rate_limiter')
+          .delete()
+          .eq('request_id', requestId);
+        return false;
+      }
+    }
+
+    console.log(`[rate-limiter] Slot ${requestId.substring(0, 8)} acquired (${slotCount}/${MAX_CONCURRENT_SYNCS})`);
     return true;
   } catch (err) {
     console.warn('[rate-limiter] acquireSlot exception:', err);
@@ -87,10 +118,13 @@ async function waitForSlot(supabase: any, syncTypePrefix: string): Promise<{ slo
   for (let attempt = 1; attempt <= MAX_WAIT_RETRIES; attempt++) {
     const acquired = await acquireSlot(supabase, syncTypePrefix, requestId);
     if (acquired) return { slot_id: requestId };
+    
+    console.log(`[rate-limiter] Attempt ${attempt}/${MAX_WAIT_RETRIES} failed, waiting ${WAIT_RETRY_MS}ms...`);
     if (attempt < MAX_WAIT_RETRIES) await sleep(WAIT_RETRY_MS);
   }
 
-  return { slot_id: null, error: 'Rate limit - no available slots' };
+  console.log(`[rate-limiter] All ${MAX_WAIT_RETRIES} attempts failed for ${requestId.substring(0, 8)}`);
+  return { slot_id: null, error: 'Rate limit - no available slots after retries' };
 }
 
 async function releaseSlot(supabase: any, slotId: string | null): Promise<void> {
