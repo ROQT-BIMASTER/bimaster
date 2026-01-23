@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Loader2, CheckCircle, XCircle, Clock, AlertTriangle, Receipt } from "lucide-react";
+import { Plus, Loader2, CheckCircle, XCircle, Clock, AlertTriangle, Receipt, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -19,6 +19,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 interface CampaignExpensesProps {
   campaignId: string;
   verbaOrcada: number;
+  lancamentoId?: string | null;
 }
 
 interface Expense {
@@ -45,20 +46,27 @@ const EXPENSE_CATEGORIES = [
   { value: "outro", label: "Outros" },
 ];
 
-export function CampaignExpenses({ campaignId, verbaOrcada }: CampaignExpensesProps) {
+export function CampaignExpenses({ campaignId, verbaOrcada, lancamentoId }: CampaignExpensesProps) {
   const queryClient = useQueryClient();
   const { isAdminOrSupervisor } = useUserRole();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("material");
 
   const { data: expenses = [], isLoading } = useQuery({
-    queryKey: ["campaign-expenses", campaignId],
+    queryKey: ["campaign-expenses", campaignId, lancamentoId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("trade_campaign_expenses")
         .select("*")
         .eq("campaign_id", campaignId)
         .order("created_at", { ascending: false });
+
+      // Filter by lancamento if provided
+      if (lancamentoId) {
+        query = query.eq("lancamento_id", lancamentoId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as Expense[];
@@ -74,6 +82,7 @@ export function CampaignExpenses({ campaignId, verbaOrcada }: CampaignExpensesPr
         .from("trade_campaign_expenses")
         .insert({
           campaign_id: campaignId,
+          lancamento_id: lancamentoId || null,
           category: formData.get("category") as string,
           description: formData.get("description") as string,
           valor_previsto: parseFloat(formData.get("valor_previsto") as string) || 0,
@@ -88,7 +97,7 @@ export function CampaignExpenses({ campaignId, verbaOrcada }: CampaignExpensesPr
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaign-expenses", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-expenses", campaignId, lancamentoId] });
       queryClient.invalidateQueries({ queryKey: ["trade-campaign-detail", campaignId] });
       toast.success("Gasto registrado com sucesso!");
       setDialogOpen(false);
@@ -114,7 +123,7 @@ export function CampaignExpenses({ campaignId, verbaOrcada }: CampaignExpensesPr
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaign-expenses", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-expenses", campaignId, lancamentoId] });
       queryClient.invalidateQueries({ queryKey: ["trade-campaign-detail", campaignId] });
       toast.success("Status atualizado!");
     },
@@ -134,11 +143,11 @@ export function CampaignExpenses({ campaignId, verbaOrcada }: CampaignExpensesPr
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "aprovado":
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Aprovado</Badge>;
+        return <Badge variant="default" className="bg-green-600 hover:bg-green-600"><CheckCircle className="h-3 w-3 mr-1" />Aprovado</Badge>;
       case "rejeitado":
         return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Rejeitado</Badge>;
       case "pago":
-        return <Badge className="bg-blue-100 text-blue-800"><Receipt className="h-3 w-3 mr-1" />Pago</Badge>;
+        return <Badge className="bg-blue-600 hover:bg-blue-600"><Receipt className="h-3 w-3 mr-1" />Pago</Badge>;
       default:
         return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />Pendente</Badge>;
     }
@@ -157,6 +166,23 @@ export function CampaignExpenses({ campaignId, verbaOrcada }: CampaignExpensesPr
   
   const saldoDisponivel = verbaOrcada - totalRealizado;
   const percentualUtilizado = verbaOrcada > 0 ? (totalRealizado / verbaOrcada) * 100 : 0;
+
+  // Show message when no lancamento selected
+  if (!lancamentoId) {
+    return (
+      <Card>
+        <CardContent className="py-12">
+          <div className="flex flex-col items-center justify-center text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium">Selecione um Lançamento</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Vá para a aba "Lançamento" e selecione um cliente para registrar gastos.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -189,16 +215,16 @@ export function CampaignExpenses({ campaignId, verbaOrcada }: CampaignExpensesPr
           </CardContent>
         </Card>
 
-        <Card className={saldoDisponivel < 0 ? "border-red-300 bg-red-50" : ""}>
+        <Card className={saldoDisponivel < 0 ? "border-destructive bg-destructive/5" : ""}>
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Saldo Disponível</p>
-                <p className={`text-2xl font-bold ${saldoDisponivel < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                <p className={`text-2xl font-bold ${saldoDisponivel < 0 ? 'text-destructive' : 'text-green-600'}`}>
                   {formatCurrency(saldoDisponivel)}
                 </p>
               </div>
-              {saldoDisponivel < 0 && <AlertTriangle className="h-5 w-5 text-red-500" />}
+              {saldoDisponivel < 0 && <AlertTriangle className="h-5 w-5 text-destructive" />}
             </div>
           </CardContent>
         </Card>
@@ -210,11 +236,11 @@ export function CampaignExpenses({ campaignId, verbaOrcada }: CampaignExpensesPr
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Utilização do Orçamento</span>
-              <span className={`font-medium ${percentualUtilizado > 100 ? 'text-red-600' : ''}`}>
+              <span className={`font-medium ${percentualUtilizado > 100 ? 'text-destructive' : ''}`}>
                 {percentualUtilizado.toFixed(1)}%
               </span>
             </div>
-            <Progress value={Math.min(percentualUtilizado, 100)} className={percentualUtilizado > 100 ? "[&>div]:bg-red-500" : ""} />
+            <Progress value={Math.min(percentualUtilizado, 100)} className={percentualUtilizado > 100 ? "[&>div]:bg-destructive" : ""} />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{formatCurrency(totalRealizado)} utilizado</span>
               <span>{formatCurrency(verbaOrcada)} total</span>
@@ -239,7 +265,7 @@ export function CampaignExpenses({ campaignId, verbaOrcada }: CampaignExpensesPr
             </div>
           ) : expenses.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum gasto registrado
+              Nenhum gasto registrado para este lançamento
             </div>
           ) : (
             <Table>
@@ -286,7 +312,7 @@ export function CampaignExpenses({ campaignId, verbaOrcada }: CampaignExpensesPr
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 text-red-600"
+                              className="h-7 text-destructive"
                               onClick={() => updateExpenseStatus.mutate({ expenseId: expense.id, status: "rejeitado" })}
                             >
                               <XCircle className="h-4 w-4" />
@@ -307,7 +333,7 @@ export function CampaignExpenses({ campaignId, verbaOrcada }: CampaignExpensesPr
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Declarar Gasto da Campanha</DialogTitle>
+            <DialogTitle>Declarar Gasto do Lançamento</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">

@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Loader2, Package } from "lucide-react";
+import { Plus, Trash2, Loader2, Package, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface CampaignProductsProps {
   campaignId: string;
+  lancamentoId?: string | null;
 }
 
 interface CampaignProduct {
@@ -26,19 +27,26 @@ interface CampaignProduct {
   created_at: string;
 }
 
-export function CampaignProducts({ campaignId }: CampaignProductsProps) {
+export function CampaignProducts({ campaignId, lancamentoId }: CampaignProductsProps) {
   const queryClient = useQueryClient();
   const { isAdminOrSupervisor } = useUserRole();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ["campaign-products", campaignId],
+    queryKey: ["campaign-products", campaignId, lancamentoId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("trade_campaign_products")
         .select("*")
         .eq("campaign_id", campaignId)
         .order("created_at", { ascending: false });
+
+      // Filter by lancamento if provided
+      if (lancamentoId) {
+        query = query.eq("lancamento_id", lancamentoId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as CampaignProduct[];
@@ -57,6 +65,7 @@ export function CampaignProducts({ campaignId }: CampaignProductsProps) {
         .from("trade_campaign_products")
         .insert({
           campaign_id: campaignId,
+          lancamento_id: lancamentoId || null,
           product_name: formData.get("product_name") as string,
           quantity,
           unit_cost: unitCost,
@@ -68,7 +77,7 @@ export function CampaignProducts({ campaignId }: CampaignProductsProps) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaign-products", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-products", campaignId, lancamentoId] });
       toast.success("Produto adicionado com sucesso!");
       setDialogOpen(false);
     },
@@ -87,7 +96,7 @@ export function CampaignProducts({ campaignId }: CampaignProductsProps) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaign-products", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-products", campaignId, lancamentoId] });
       toast.success("Produto removido!");
     },
     onError: (error: any) => {
@@ -107,6 +116,23 @@ export function CampaignProducts({ campaignId }: CampaignProductsProps) {
   // Calcular totais
   const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
   const totalInvested = products.reduce((sum, p) => sum + p.total_invested, 0);
+
+  // Show message when no lancamento selected
+  if (!lancamentoId) {
+    return (
+      <Card>
+        <CardContent className="py-12">
+          <div className="flex flex-col items-center justify-center text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium">Selecione um Lançamento</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Vá para a aba "Lançamento" e selecione um cliente para registrar produtos.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -146,7 +172,7 @@ export function CampaignProducts({ campaignId }: CampaignProductsProps) {
       {/* Lista de Produtos */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Produtos da Campanha</CardTitle>
+          <CardTitle className="text-lg">Produtos do Lançamento</CardTitle>
           <Button onClick={() => setDialogOpen(true)} size="sm">
             <Plus className="h-4 w-4 mr-2" />
             Adicionar Produto
@@ -159,7 +185,7 @@ export function CampaignProducts({ campaignId }: CampaignProductsProps) {
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum produto cadastrado
+              Nenhum produto cadastrado para este lançamento
             </div>
           ) : (
             <Table>
@@ -205,7 +231,7 @@ export function CampaignProducts({ campaignId }: CampaignProductsProps) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Adicionar Produto à Campanha</DialogTitle>
+            <DialogTitle>Adicionar Produto ao Lançamento</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">

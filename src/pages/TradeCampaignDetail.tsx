@@ -5,7 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, ClipboardEdit, TrendingUp, Package, Receipt, CheckCircle, History, Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, ClipboardEdit, TrendingUp, Package, Receipt, CheckCircle, History, Loader2, Building2, AlertCircle } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { CampaignLancamentosList } from "@/components/trade/campaigns/CampaignLancamentosList";
 import { CampaignSellComparison } from "@/components/trade/campaigns/CampaignSellComparison";
@@ -51,11 +54,20 @@ interface Campaign {
   responsible?: { nome: string } | null;
 }
 
+interface Lancamento {
+  id: string;
+  customer_id: string | null;
+  cliente_nome: string;
+  data_lancamento: string;
+  status: string;
+}
+
 export default function TradeCampaignDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
   const [activeTab, setActiveTab] = useState("lancamento");
+  const [selectedLancamentoId, setSelectedLancamentoId] = useState<string | null>(null);
 
   const { data: campaign, isLoading, error } = useQuery({
     queryKey: ["trade-campaign-detail", id],
@@ -91,6 +103,46 @@ export default function TradeCampaignDetail() {
     enabled: !!id,
   });
 
+  // Fetch lancamentos for this campaign
+  const { data: lancamentos = [] } = useQuery({
+    queryKey: ["campaign-lancamentos-selector", id],
+    queryFn: async () => {
+      const { data: lancamentosData, error } = await supabase
+        .from("trade_campaign_lancamentos")
+        .select("id, customer_id, data_lancamento, status")
+        .eq("campaign_id", id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch customer names
+      const customerIds = lancamentosData
+        ?.map(l => l.customer_id)
+        .filter(Boolean) as string[];
+      
+      let customersMap = new Map<string, string>();
+      
+      if (customerIds.length > 0) {
+        const { data: prospects } = await supabase
+          .from("prospects")
+          .select("id, nome_empresa")
+          .in("id", customerIds);
+        
+        customersMap = new Map(
+          prospects?.map(p => [p.id, p.nome_empresa]) || []
+        );
+      }
+
+      return lancamentosData?.map(l => ({
+        ...l,
+        cliente_nome: l.customer_id ? customersMap.get(l.customer_id) || "Cliente não encontrado" : "Sem cliente",
+      })) as Lancamento[];
+    },
+    enabled: !!id,
+  });
+
+  const selectedLancamento = lancamentos.find(l => l.id === selectedLancamentoId);
+
   const getCampaignTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
       sell_in: "Sell In",
@@ -118,6 +170,17 @@ export default function TradeCampaignDetail() {
     };
     return labels[status] || { label: status, color: "bg-muted text-muted-foreground" };
   };
+
+  const handleLancamentoSelect = (lancamentoId: string) => {
+    setSelectedLancamentoId(lancamentoId);
+    // Automatically move to next tab when selecting
+    if (activeTab === "lancamento") {
+      setActiveTab("sell");
+    }
+  };
+
+  // Check if tabs other than "lancamento" should be disabled
+  const isTabsDisabled = !selectedLancamentoId && activeTab !== "lancamento" && activeTab !== "history";
 
   if (isLoading || roleLoading) {
     return (
@@ -168,6 +231,65 @@ export default function TradeCampaignDetail() {
           </div>
         </div>
 
+        {/* Lancamento Selector - shows when a lancamento is selected or when on other tabs */}
+        {(selectedLancamentoId || (activeTab !== "lancamento" && lancamentos.length > 0)) && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  <span className="font-medium">Cliente Selecionado:</span>
+                </div>
+                <Select
+                  value={selectedLancamentoId || ""}
+                  onValueChange={setSelectedLancamentoId}
+                >
+                  <SelectTrigger className="w-full sm:w-[300px]">
+                    <SelectValue placeholder="Selecione um lançamento..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {lancamentos.map((lancamento) => (
+                      <SelectItem key={lancamento.id} value={lancamento.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{lancamento.cliente_nome}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {lancamento.status === "approved" ? "Aprovado" : 
+                             lancamento.status === "rejected" ? "Rejeitado" : "Pendente"}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedLancamento && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedLancamentoId(null);
+                      setActiveTab("lancamento");
+                    }}
+                  >
+                    Limpar Seleção
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Warning when no lancamento selected */}
+        {!selectedLancamentoId && activeTab !== "lancamento" && activeTab !== "history" && activeTab !== "validation" && (
+          <Card className="border-yellow-300 bg-yellow-50">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3 text-yellow-800">
+                <AlertCircle className="h-5 w-5" />
+                <p>Selecione um lançamento na aba "Lançamento" para registrar informações do cliente.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
@@ -200,19 +322,33 @@ export default function TradeCampaignDetail() {
           </TabsList>
 
           <TabsContent value="lancamento" className="mt-6">
-            <CampaignLancamentosList campaign={campaign} />
+            <CampaignLancamentosList 
+              campaign={campaign} 
+              onSelectLancamento={handleLancamentoSelect}
+            />
           </TabsContent>
 
           <TabsContent value="sell" className="mt-6">
-            <CampaignSellComparison campaignId={campaign.id} campaign={campaign} />
+            <CampaignSellComparison 
+              campaignId={campaign.id} 
+              campaign={campaign}
+              lancamentoId={selectedLancamentoId}
+            />
           </TabsContent>
 
           <TabsContent value="products" className="mt-6">
-            <CampaignProducts campaignId={campaign.id} />
+            <CampaignProducts 
+              campaignId={campaign.id}
+              lancamentoId={selectedLancamentoId}
+            />
           </TabsContent>
 
           <TabsContent value="expenses" className="mt-6">
-            <CampaignExpenses campaignId={campaign.id} verbaOrcada={campaign.verba_orcada} />
+            <CampaignExpenses 
+              campaignId={campaign.id} 
+              verbaOrcada={campaign.verba_orcada}
+              lancamentoId={selectedLancamentoId}
+            />
           </TabsContent>
 
           {isAdminOrSupervisor && (

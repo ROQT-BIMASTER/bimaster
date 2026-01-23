@@ -13515,6 +13515,7 @@ export type Database = {
           evidencias: Json | null
           expense_date: string | null
           id: string
+          lancamento_id: string | null
           notes: string | null
           status: string | null
           updated_at: string | null
@@ -13534,6 +13535,7 @@ export type Database = {
           evidencias?: Json | null
           expense_date?: string | null
           id?: string
+          lancamento_id?: string | null
           notes?: string | null
           status?: string | null
           updated_at?: string | null
@@ -13553,6 +13555,7 @@ export type Database = {
           evidencias?: Json | null
           expense_date?: string | null
           id?: string
+          lancamento_id?: string | null
           notes?: string | null
           status?: string | null
           updated_at?: string | null
@@ -13566,6 +13569,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_expenses_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaign_lancamentos"
             referencedColumns: ["id"]
           },
         ]
@@ -13740,6 +13750,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          lancamento_id: string | null
           notes: string | null
           product_id: string | null
           product_name: string
@@ -13753,6 +13764,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          lancamento_id?: string | null
           notes?: string | null
           product_id?: string | null
           product_name: string
@@ -13766,6 +13778,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          lancamento_id?: string | null
           notes?: string | null
           product_id?: string | null
           product_name?: string
@@ -13780,6 +13793,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_products_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaign_lancamentos"
             referencedColumns: ["id"]
           },
           {
@@ -13800,6 +13820,7 @@ export type Database = {
           entry_date: string
           entry_type: string
           id: string
+          lancamento_id: string | null
           notes: string | null
           period: string
           quantity: number | null
@@ -13819,6 +13840,7 @@ export type Database = {
           entry_date: string
           entry_type: string
           id?: string
+          lancamento_id?: string | null
           notes?: string | null
           period: string
           quantity?: number | null
@@ -13838,6 +13860,7 @@ export type Database = {
           entry_date?: string
           entry_type?: string
           id?: string
+          lancamento_id?: string | null
           notes?: string | null
           period?: string
           quantity?: number | null
@@ -13855,6 +13878,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaign_sellout_entries_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "trade_campaign_lancamentos"
             referencedColumns: ["id"]
           },
           {
