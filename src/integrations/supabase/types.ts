@@ -16317,6 +16317,16 @@ export type Database = {
         }
         Returns: string
       }
+      log_sensitive_access: {
+        Args: {
+          p_action: string
+          p_details?: Json
+          p_record_id?: string
+          p_table_name: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       pis_cofins_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       pis_cofins_tipo_credito: { Args: { p_cst: string }; Returns: string }
       refresh_all_materialized_views: { Args: never; Returns: undefined }
