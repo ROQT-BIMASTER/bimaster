@@ -32,11 +32,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Target, TrendingUp, Clock, CheckCircle, XCircle, Eye, Users, List } from "lucide-react";
+import { Plus, Target, TrendingUp, Clock, CheckCircle, XCircle, Eye, Users, List, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { sanitizeText, sanitizeCode, getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { CampaignClientTable } from "@/components/trade/campaigns/CampaignClientTable";
+import { CampaignResultsPanel } from "@/components/trade/campaigns/CampaignResultsPanel";
 import { useUserRole } from "@/hooks/useUserRole";
 
 export default function TradeCampaigns() {
@@ -417,7 +418,7 @@ export default function TradeCampaigns() {
           </Card>
         </div>
 
-        {/* Tabs: Lista e Por Cliente */}
+        {/* Tabs: Lista, Por Cliente, e Resultados Gerais */}
         <Tabs defaultValue="lista" className="space-y-4">
           <TabsList>
             <TabsTrigger value="lista" className="gap-2">
@@ -427,6 +428,10 @@ export default function TradeCampaigns() {
             <TabsTrigger value="por-cliente" className="gap-2">
               <Users className="h-4 w-4" />
               Por Cliente
+            </TabsTrigger>
+            <TabsTrigger value="resultados" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Resultados Gerais
             </TabsTrigger>
           </TabsList>
 
@@ -519,6 +524,10 @@ export default function TradeCampaigns() {
 
           <TabsContent value="por-cliente">
             <CampaignClientTable />
+          </TabsContent>
+
+          <TabsContent value="resultados">
+            <CampaignResultsPanel />
           </TabsContent>
         </Tabs>
       </div>

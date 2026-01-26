@@ -44,7 +44,6 @@ import {
   Package,
   MoreHorizontal,
   Eye,
-  Edit,
   Trash2,
   Building2
 } from 'lucide-react';
@@ -54,19 +53,20 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { ClientCampaignDrawer } from './ClientCampaignDrawer';
 
-interface CampaignClientData {
+interface LancamentoClientData {
   id: string;
-  code: string;
-  name: string;
-  start_date: string;
-  valor_pedido: number | null;
+  campaign_id: string;
+  campaign_code: string;
+  campaign_name: string;
+  data_lancamento: string;
+  valor_pedido: number;
   tipo_brinde: string | null;
-  sell_out_anterior: number | null;
-  sell_out_atual: number | null;
+  sell_out_anterior: number;
+  sell_out_atual: number;
   roi_percentual: number | null;
   status: string;
-  cliente_nome: string | null;
   customer_id: string | null;
+  customer_name: string;
   total_pecas: number;
 }
 
@@ -77,32 +77,33 @@ export function CampaignClientTable() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
+  const [lancamentoToDelete, setLancamentoToDelete] = useState<string | null>(null);
 
-  const { data: campaigns, isLoading } = useQuery({
-    queryKey: ['campaign-client-details'],
+  // Fetch lancamentos (execution entries) with client info
+  const { data: lancamentos, isLoading } = useQuery({
+    queryKey: ['lancamentos-by-client'],
     queryFn: async () => {
-      // Fetch campaigns with client info
-      const { data: campaignsData, error: campaignsError } = await supabase
-        .from('trade_campaigns')
+      // Fetch lancamentos with campaign info
+      const { data: lancamentosData, error: lancamentosError } = await supabase
+        .from('trade_campaign_lancamentos')
         .select(`
           id,
-          code,
-          name,
-          start_date,
+          campaign_id,
+          customer_id,
+          data_lancamento,
           valor_pedido,
           tipo_brinde,
           sell_out_anterior,
           sell_out_atual,
           roi_percentual,
           status,
-          customer_id
+          trade_campaigns(id, name, code)
         `)
-        .order('start_date', { ascending: false });
+        .order('data_lancamento', { ascending: false });
 
-      if (campaignsError) throw campaignsError;
+      if (lancamentosError) throw lancamentosError;
 
-      // Fetch prospects for client names
+      // Fetch prospects for customer names
       const { data: prospects } = await supabase
         .from('prospects')
         .select('id, nome_empresa');
@@ -111,83 +112,96 @@ export function CampaignClientTable() {
         prospects?.map(p => [p.id, p.nome_empresa]) || []
       );
 
-      // Fetch product quantities per campaign
+      // Fetch product quantities per lancamento
       const { data: products } = await supabase
         .from('trade_campaign_products')
-        .select('campaign_id, quantity');
+        .select('lancamento_id, quantity');
 
       const productTotals = new Map<string, number>();
       products?.forEach(p => {
-        const current = productTotals.get(p.campaign_id) || 0;
-        productTotals.set(p.campaign_id, current + (p.quantity || 0));
+        if (p.lancamento_id) {
+          const current = productTotals.get(p.lancamento_id) || 0;
+          productTotals.set(p.lancamento_id, current + (p.quantity || 0));
+        }
       });
 
       // Combine data
-      return campaignsData?.map(campaign => ({
-        ...campaign,
-        cliente_nome: campaign.customer_id 
-          ? prospectsMap.get(campaign.customer_id) || 'Cliente não encontrado'
+      return lancamentosData?.map(lancamento => ({
+        id: lancamento.id,
+        campaign_id: lancamento.campaign_id,
+        campaign_code: lancamento.trade_campaigns?.code || '',
+        campaign_name: lancamento.trade_campaigns?.name || 'Campanha não encontrada',
+        data_lancamento: lancamento.data_lancamento,
+        valor_pedido: lancamento.valor_pedido || 0,
+        tipo_brinde: lancamento.tipo_brinde,
+        sell_out_anterior: lancamento.sell_out_anterior || 0,
+        sell_out_atual: lancamento.sell_out_atual || 0,
+        roi_percentual: lancamento.roi_percentual,
+        status: lancamento.status || 'pending',
+        customer_id: lancamento.customer_id,
+        customer_name: lancamento.customer_id 
+          ? prospectsMap.get(lancamento.customer_id) || 'Cliente não encontrado'
           : 'Sem cliente',
-        total_pecas: productTotals.get(campaign.id) || 0,
-      })) as CampaignClientData[];
+        total_pecas: productTotals.get(lancamento.id) || 0,
+      })) as LancamentoClientData[];
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (campaignId: string) => {
+    mutationFn: async (lancamentoId: string) => {
       const { error } = await supabase
-        .from('trade_campaigns')
+        .from('trade_campaign_lancamentos')
         .delete()
-        .eq('id', campaignId);
+        .eq('id', lancamentoId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['campaign-client-details'] });
-      toast.success('Campanha excluída com sucesso');
+      queryClient.invalidateQueries({ queryKey: ['lancamentos-by-client'] });
+      toast.success('Lançamento excluído com sucesso');
       setDeleteDialogOpen(false);
-      setCampaignToDelete(null);
+      setLancamentoToDelete(null);
     },
     onError: (error) => {
-      console.error('Error deleting campaign:', error);
-      toast.error('Erro ao excluir campanha');
+      console.error('Error deleting lancamento:', error);
+      toast.error('Erro ao excluir lançamento');
     },
   });
 
-  // Filter campaigns by search term
-  const filteredCampaigns = useMemo(() => {
-    if (!campaigns) return [];
-    if (!searchTerm) return campaigns;
+  // Filter lancamentos by search term
+  const filteredLancamentos = useMemo(() => {
+    if (!lancamentos) return [];
+    if (!searchTerm) return lancamentos;
     
     const term = searchTerm.toLowerCase();
-    return campaigns.filter(c => 
-      c.cliente_nome?.toLowerCase().includes(term) ||
-      c.name?.toLowerCase().includes(term) ||
-      c.code?.toLowerCase().includes(term)
+    return lancamentos.filter(l => 
+      l.customer_name?.toLowerCase().includes(term) ||
+      l.campaign_name?.toLowerCase().includes(term) ||
+      l.campaign_code?.toLowerCase().includes(term)
     );
-  }, [campaigns, searchTerm]);
+  }, [lancamentos, searchTerm]);
 
-  // Get campaigns for selected client
-  const clientCampaigns = useMemo(() => {
-    if (!campaigns || !selectedClient) return [];
-    return campaigns.filter(c => c.cliente_nome === selectedClient);
-  }, [campaigns, selectedClient]);
+  // Get lancamentos for selected client
+  const clientLancamentos = useMemo(() => {
+    if (!lancamentos || !selectedClient) return [];
+    return lancamentos.filter(l => l.customer_name === selectedClient);
+  }, [lancamentos, selectedClient]);
 
   // Calculate summary metrics
   const metrics = useMemo(() => {
-    if (!filteredCampaigns.length) return {
+    if (!filteredLancamentos.length) return {
       totalClientes: 0,
       valorTotal: 0,
       roiMedio: 0,
       totalPecas: 0,
     };
 
-    const clientesUnicos = new Set(filteredCampaigns.map(c => c.cliente_nome));
-    const valorTotal = filteredCampaigns.reduce((acc, c) => acc + (c.valor_pedido || 0), 0);
-    const rois = filteredCampaigns.filter(c => c.roi_percentual != null);
+    const clientesUnicos = new Set(filteredLancamentos.map(l => l.customer_id));
+    const valorTotal = filteredLancamentos.reduce((acc, l) => acc + l.valor_pedido, 0);
+    const rois = filteredLancamentos.filter(l => l.roi_percentual != null);
     const roiMedio = rois.length > 0 
-      ? rois.reduce((acc, c) => acc + (c.roi_percentual || 0), 0) / rois.length 
+      ? rois.reduce((acc, l) => acc + (l.roi_percentual || 0), 0) / rois.length 
       : 0;
-    const totalPecas = filteredCampaigns.reduce((acc, c) => acc + c.total_pecas, 0);
+    const totalPecas = filteredLancamentos.reduce((acc, l) => acc + l.total_pecas, 0);
 
     return {
       totalClientes: clientesUnicos.size,
@@ -195,44 +209,20 @@ export function CampaignClientTable() {
       roiMedio,
       totalPecas,
     };
-  }, [filteredCampaigns]);
+  }, [filteredLancamentos]);
 
-  const formatCompactValue = (value: number | null) => {
-    if (value == null) return '-';
-    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-    if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
-    return value.toFixed(0);
-  };
+  const renderComparison = (anterior: number, atual: number) => {
+    const diff = anterior > 0 ? ((atual - anterior) / anterior) * 100 : 0;
 
-  const renderComparison = (anterior: number | null, atual: number | null) => {
-    if (anterior == null && atual == null) return <span className="text-muted-foreground">-</span>;
-    
-    const diff = atual != null && anterior != null && anterior > 0
-      ? ((atual - anterior) / anterior) * 100
-      : null;
-
-    const TrendIcon = diff == null 
-      ? Minus 
-      : diff > 0 
-        ? TrendingUp 
-        : diff < 0 
-          ? TrendingDown 
-          : Minus;
-
-    const trendColor = diff == null 
-      ? 'text-muted-foreground' 
-      : diff > 0 
-        ? 'text-green-600' 
-        : diff < 0 
-          ? 'text-red-600' 
-          : 'text-muted-foreground';
+    const TrendIcon = diff > 0 ? TrendingUp : diff < 0 ? TrendingDown : Minus;
+    const trendColor = diff > 0 ? 'text-success' : diff < 0 ? 'text-destructive' : 'text-muted-foreground';
 
     return (
       <div className="flex items-center gap-1 text-sm">
-        <span className="text-muted-foreground">{formatCompactValue(anterior)}</span>
+        <span className="text-muted-foreground">{formatCurrency(anterior)}</span>
         <span className="text-muted-foreground">→</span>
-        <span className="font-medium">{formatCompactValue(atual)}</span>
-        {diff != null && (
+        <span className="font-medium">{formatCurrency(atual)}</span>
+        {diff !== 0 && (
           <span className={`flex items-center gap-0.5 ${trendColor}`}>
             <TrendIcon className="h-3 w-3" />
             <span className="text-xs">({diff > 0 ? '+' : ''}{diff.toFixed(0)}%)</span>
@@ -259,18 +249,18 @@ export function CampaignClientTable() {
     setDrawerOpen(true);
   };
 
-  const handleEditCampaign = (campaignId: string) => {
+  const handleViewCampaign = (campaignId: string) => {
     navigate(`/dashboard/trade/financeiro/campanhas/${campaignId}`);
   };
 
-  const handleDeleteCampaign = (campaignId: string) => {
-    setCampaignToDelete(campaignId);
+  const handleDeleteLancamento = (lancamentoId: string) => {
+    setLancamentoToDelete(lancamentoId);
     setDeleteDialogOpen(true);
   };
 
   const confirmDelete = () => {
-    if (campaignToDelete) {
-      deleteMutation.mutate(campaignToDelete);
+    if (lancamentoToDelete) {
+      deleteMutation.mutate(lancamentoToDelete);
     }
   };
 
@@ -302,7 +292,7 @@ export function CampaignClientTable() {
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="text-2xl font-bold">{metrics.totalClientes}</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Clientes com Campanhas</p>
+            <p className="text-xs text-muted-foreground mt-1">Clientes com Lançamentos</p>
           </CardContent>
         </Card>
         <Card>
@@ -318,7 +308,7 @@ export function CampaignClientTable() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Percent className="h-4 w-4 text-muted-foreground" />
-              <span className={`text-2xl font-bold ${metrics.roiMedio >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`text-2xl font-bold ${metrics.roiMedio >= 0 ? 'text-success' : 'text-destructive'}`}>
                 {metrics.roiMedio >= 0 ? '+' : ''}{metrics.roiMedio.toFixed(1)}%
               </span>
             </div>
@@ -340,7 +330,7 @@ export function CampaignClientTable() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <CardTitle className="text-lg">Campanhas por Cliente</CardTitle>
+            <CardTitle className="text-lg">Lançamentos por Cliente</CardTitle>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -359,7 +349,7 @@ export function CampaignClientTable() {
                 <TableRow className="border-b-2 border-primary/20">
                   <TableHead className="min-w-[150px] font-semibold text-primary">Cliente</TableHead>
                   <TableHead className="min-w-[180px] font-semibold text-primary">Campanha</TableHead>
-                  <TableHead className="min-w-[100px] font-semibold text-primary">Data Entrada</TableHead>
+                  <TableHead className="min-w-[100px] font-semibold text-primary">Data Lançamento</TableHead>
                   <TableHead className="min-w-[120px] text-right font-semibold text-primary">Valor Pedido</TableHead>
                   <TableHead className="min-w-[100px] font-semibold text-primary">Brinde</TableHead>
                   <TableHead className="min-w-[180px] font-semibold text-primary">Anterior X Atual</TableHead>
@@ -369,61 +359,54 @@ export function CampaignClientTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCampaigns.length === 0 ? (
+                {filteredLancamentos.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                      {searchTerm ? 'Nenhuma campanha encontrada para a busca.' : 'Nenhuma campanha cadastrada.'}
+                      {searchTerm ? 'Nenhum lançamento encontrado para a busca.' : 'Nenhum lançamento registrado ainda.'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id} className="hover:bg-primary/10 transition-colors odd:bg-muted/40 even:bg-background border-b border-muted">
+                  filteredLancamentos.map((lancamento) => (
+                    <TableRow key={lancamento.id} className="hover:bg-primary/5 transition-colors odd:bg-muted/30 even:bg-background border-b border-muted">
                       <TableCell>
                         <Button
                           variant="link"
                           className="p-0 h-auto font-medium text-left justify-start"
-                          onClick={() => handleViewClient(campaign.cliente_nome)}
+                          onClick={() => handleViewClient(lancamento.customer_name)}
                         >
                           <Building2 className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                          {campaign.cliente_nome || '-'}
+                          {lancamento.customer_name}
                         </Button>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{campaign.name}</p>
-                          <p className="text-xs text-muted-foreground">{campaign.code}</p>
+                          <p className="font-medium">{lancamento.campaign_name}</p>
+                          <p className="text-xs text-muted-foreground">{lancamento.campaign_code}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {campaign.start_date 
-                          ? format(new Date(campaign.start_date), 'dd/MM/yyyy', { locale: ptBR })
-                          : '-'
-                        }
+                        {lancamento.data_lancamento 
+                          ? format(new Date(lancamento.data_lancamento), 'dd/MM/yyyy', { locale: ptBR })
+                          : '-'}
                       </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {campaign.valor_pedido != null 
-                          ? formatCurrency(campaign.valor_pedido)
-                          : '-'
-                        }
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(lancamento.valor_pedido)}
                       </TableCell>
                       <TableCell>
-                        {campaign.tipo_brinde ? (
-                          <Badge variant="outline">{campaign.tipo_brinde}</Badge>
+                        {lancamento.tipo_brinde ? (
+                          <Badge variant="secondary">{lancamento.tipo_brinde}</Badge>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        {renderComparison(campaign.sell_out_anterior, campaign.sell_out_atual)}
+                        {renderComparison(lancamento.sell_out_anterior, lancamento.sell_out_atual)}
                       </TableCell>
                       <TableCell className="text-center">
-                        {renderRoiBadge(campaign.roi_percentual)}
+                        {renderRoiBadge(lancamento.roi_percentual)}
                       </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {campaign.total_pecas > 0 
-                          ? campaign.total_pecas.toLocaleString('pt-BR')
-                          : '-'
-                        }
+                      <TableCell className="text-right">
+                        {lancamento.total_pecas > 0 ? lancamento.total_pecas.toLocaleString('pt-BR') : '-'}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -433,21 +416,17 @@ export function CampaignClientTable() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewClient(campaign.cliente_nome)}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Ver Cliente
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditCampaign(campaign.id)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Editar Campanha
+                            <DropdownMenuItem onClick={() => handleViewCampaign(lancamento.campaign_id)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Ver Campanha
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => handleDeleteCampaign(campaign.id)}
+                              onClick={() => handleDeleteLancamento(lancamento.id)}
+                              className="text-destructive"
                             >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir Lançamento
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -461,14 +440,26 @@ export function CampaignClientTable() {
         </CardContent>
       </Card>
 
-      {/* Client Drawer */}
+      {/* Client Campaign Drawer */}
       <ClientCampaignDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         clientName={selectedClient}
-        campaigns={clientCampaigns}
-        onEditCampaign={handleEditCampaign}
-        onDeleteCampaign={handleDeleteCampaign}
+        campaigns={clientLancamentos.map(l => ({
+          id: l.id,
+          code: l.campaign_code,
+          name: l.campaign_name,
+          start_date: l.data_lancamento,
+          valor_pedido: l.valor_pedido,
+          tipo_brinde: l.tipo_brinde,
+          sell_out_anterior: l.sell_out_anterior,
+          sell_out_atual: l.sell_out_atual,
+          roi_percentual: l.roi_percentual,
+          status: l.status,
+          cliente_nome: l.customer_name,
+          customer_id: l.customer_id,
+          total_pecas: l.total_pecas,
+        }))}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -477,12 +468,12 @@ export function CampaignClientTable() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir esta campanha? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
