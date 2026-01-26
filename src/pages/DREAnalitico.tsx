@@ -301,7 +301,7 @@ export default function DREAnalitico() {
       if (error) throw error;
       return data;
     },
-    { staleTime: 0, refetchOnMount: 'always', gcTime: 0 }
+    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 } // Cache de 2 min para performance
   );
 
   // Buscar lançamentos do período (sem filtro de descrição para cachear dados base)
@@ -346,7 +346,7 @@ export default function DREAnalitico() {
       
       return data;
     },
-    { staleTime: 0, refetchOnMount: true }
+    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 } // Cache de 2 min para performance
   );
 
   // Aplicar filtro de descrição/fornecedor via useMemo (filtragem instantânea)
@@ -387,7 +387,7 @@ export default function DREAnalitico() {
       if (error) throw error;
       return data;
     },
-    { staleTime: 0 }
+    { staleTime: 2 * 60 * 1000 } // Cache para dados YoY
   );
 
   // Buscar departamentos

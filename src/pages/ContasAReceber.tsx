@@ -81,27 +81,9 @@ export default function ContasAReceber() {
   const [sortColumn, setSortColumn] = useState<SortColumn>('data_vencimento');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  // Forçar refresh de dados ao montar componente para evitar cache stale
-  useEffect(() => {
-    // Importante: o módulo usa queries agregadas (RPC) e também queries raw.
-    // Invalidamos todas as bases para evitar discrepâncias entre Dashboard/Calendário.
-    const keysToInvalidate: Array<readonly unknown[]> = [
-      ['contas-receber-dashboard'],
-      ['contas-receber-table'],
-      ['contas-receber-calendario'],
-      ['contas-receber-calendario-agg'],
-      ['contas-receber-kpis'],
-      ['contas-receber-evolucao'],
-      ['contas-receber-top'],
-      ['contas-receber-aging'],
-      ['contas-receber-status'],
-      ['contas-receber-dia'],
-    ];
-
-    keysToInvalidate.forEach((queryKey) => {
-      queryClient.invalidateQueries({ queryKey });
-    });
-  }, [queryClient]);
+  // OTIMIZAÇÃO: Removida invalidação agressiva de cache ao montar componente
+  // O staleTime global do React Query já garante dados frescos quando necessário
+  // Isso evita requisições desnecessárias ao navegar entre páginas
 
   // IMPORTANTE: nunca usar .sort() direto no state (muta o array e quebra refresh/cache)
   const sortedEmpresas = useMemo(() => [...filterEmpresas].sort((a, b) => a - b), [filterEmpresas]);
