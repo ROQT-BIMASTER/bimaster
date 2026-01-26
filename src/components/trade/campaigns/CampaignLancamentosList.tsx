@@ -52,7 +52,8 @@ import {
   XCircle,
   ListFilter,
   ChevronRight,
-  Download
+  Download,
+  Upload
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { format } from "date-fns";
@@ -60,6 +61,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { CampaignLancamentoForm } from "./CampaignLancamentoForm";
 import { CampaignLancamentoExport } from "./CampaignLancamentoExport";
+import { CampaignLancamentoImport } from "./CampaignLancamentoImport";
 
 interface Campaign {
   id: string;
@@ -100,6 +102,7 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
   const { isAdminOrSupervisor } = useUserRole();
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingLancamentoId, setEditingLancamentoId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [lancamentoToDelete, setLancamentoToDelete] = useState<string | null>(null);
@@ -311,10 +314,14 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
                 {summary.total} lançamento(s) • {summary.pending} pendente(s) • {summary.approved} aprovado(s)
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => setExportDialogOpen(true)} className="gap-2">
                 <Download className="h-4 w-4" />
                 Exportar Modelo
+              </Button>
+              <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2">
+                <Upload className="h-4 w-4" />
+                Importar Planilha
               </Button>
               <Button onClick={handleNewLancamento} className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -488,6 +495,14 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
         campaignCode={campaign.code}
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
+      />
+
+      {/* Import Dialog */}
+      <CampaignLancamentoImport
+        campaignId={campaign.id}
+        campaignName={campaign.name}
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
       />
     </>
   );
