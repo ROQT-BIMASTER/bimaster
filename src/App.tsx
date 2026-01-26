@@ -66,6 +66,7 @@ const TradeAprovacoes = lazy(() => import("./pages/TradeAprovacoes"));
 const TradeExtratosPessoais = lazy(() => import("./pages/TradeExtratosPessoais"));
 const TradeCampaigns = lazy(() => import("./pages/TradeCampaigns"));
 const TradeCampaignDetail = lazy(() => import("./pages/TradeCampaignDetail"));
+const TradeLancamentosCampanhas = lazy(() => import("./pages/TradeLancamentosCampanhas"));
 const TradeAdminUsers = lazy(() => import("./pages/TradeAdminUsers"));
 const TradeAdminApprovalLevels = lazy(() => import("./pages/TradeAdminApprovalLevels"));
 const TradePerformance = lazy(() => import("./pages/TradePerformance"));
@@ -259,6 +260,7 @@ function AppContent() {
             <Route path="/dashboard/trade/financeiro" element={<ProtectedRoute><TradeFinanceiro /></ProtectedRoute>} />
             <Route path="/dashboard/trade/financeiro/campanhas" element={<ProtectedRoute><TradeCampaigns /></ProtectedRoute>} />
             <Route path="/dashboard/trade/financeiro/campanhas/:id" element={<ProtectedRoute><TradeCampaignDetail /></ProtectedRoute>} />
+            <Route path="/dashboard/trade/financeiro/lancamentos-campanhas" element={<ProtectedRoute><TradeLancamentosCampanhas /></ProtectedRoute>} />
             <Route path="/dashboard/trade/financeiro/contas" element={<ProtectedRoute><TradeContasCorrentes /></ProtectedRoute>} />
             <Route path="/dashboard/trade/financeiro/extrato/:accountId" element={<ProtectedRoute><TradeExtratoBancario /></ProtectedRoute>} />
             <Route path="/dashboard/trade/financeiro/verbas" element={<ProtectedRoute><TradeVerbasSemestrais /></ProtectedRoute>} />

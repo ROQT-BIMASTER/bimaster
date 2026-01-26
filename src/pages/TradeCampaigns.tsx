@@ -29,15 +29,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Target, TrendingUp, Clock, CheckCircle, XCircle, Eye, Users, List, BarChart3 } from "lucide-react";
+import { Plus, Target, TrendingUp, Clock, CheckCircle, XCircle, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { sanitizeText, sanitizeCode, getSafeErrorMessage } from "@/lib/utils/sanitize";
-import { CampaignClientTable } from "@/components/trade/campaigns/CampaignClientTable";
-import { CampaignResultsPanel } from "@/components/trade/campaigns/CampaignResultsPanel";
 import { useUserRole } from "@/hooks/useUserRole";
 
 export default function TradeCampaigns() {
@@ -418,118 +415,91 @@ export default function TradeCampaigns() {
           </Card>
         </div>
 
-        {/* Tabs: Lista, Por Cliente, e Resultados Gerais */}
-        <Tabs defaultValue="lista" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="lista" className="gap-2">
-              <List className="h-4 w-4" />
-              Lista de Campanhas
-            </TabsTrigger>
-            <TabsTrigger value="por-cliente" className="gap-2">
-              <Users className="h-4 w-4" />
-              Por Cliente
-            </TabsTrigger>
-            <TabsTrigger value="resultados" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Resultados Gerais
-            </TabsTrigger>
-          </TabsList>
+        {/* Lista de Campanhas */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Todas as Campanhas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Carregando campanhas...
+              </div>
+            ) : campaigns.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhuma campanha cadastrada
+              </div>
+            ) : (
+              <Table>
+                <TableHeader className="bg-muted/50 sticky top-0">
+                  <TableRow className="border-b-2 border-primary/10">
+                    <TableHead className="font-semibold">Código</TableHead>
+                    <TableHead className="font-semibold">Nome</TableHead>
+                    <TableHead className="font-semibold">Tipo</TableHead>
+                    <TableHead className="font-semibold">Período</TableHead>
+                    <TableHead className="text-right font-semibold">Custo Estimado</TableHead>
+                    <TableHead className="text-right font-semibold">Gasto Real</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {campaigns.map((campaign) => {
+                    const percentSpent = campaign.estimated_cost > 0 
+                      ? (parseFloat(campaign.actual_cost || 0) / parseFloat(campaign.estimated_cost)) * 100 
+                      : 0;
 
-          <TabsContent value="lista">
-            <Card>
-              <CardHeader>
-                <CardTitle>Todas as Campanhas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Carregando campanhas...
-                  </div>
-                ) : campaigns.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Nenhuma campanha cadastrada
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader className="bg-muted/50 sticky top-0">
-                      <TableRow className="border-b-2 border-primary/10">
-                        <TableHead className="font-semibold">Código</TableHead>
-                        <TableHead className="font-semibold">Nome</TableHead>
-                        <TableHead className="font-semibold">Tipo</TableHead>
-                        <TableHead className="font-semibold">Período</TableHead>
-                        <TableHead className="text-right font-semibold">Custo Estimado</TableHead>
-                        <TableHead className="text-right font-semibold">Gasto Real</TableHead>
-                        <TableHead className="font-semibold">Status</TableHead>
-                        <TableHead className="font-semibold">Ações</TableHead>
+                    return (
+                      <TableRow key={campaign.id} className="hover:bg-primary/5 transition-colors even:bg-muted/30">
+                        <TableCell className="font-mono text-xs">{campaign.code}</TableCell>
+                        <TableCell className="font-medium">{campaign.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {getCampaignTypeLabel(campaign.campaign_type)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {format(new Date(campaign.start_date), "dd/MM/yy")} -{" "}
+                          {format(new Date(campaign.end_date), "dd/MM/yy")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          R$ {parseFloat(campaign.estimated_cost).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="space-y-1">
+                            <div>R$ {parseFloat(campaign.actual_cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+                            <Progress value={percentSpent} className="h-1" />
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(campaign.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => navigate(`/dashboard/trade/financeiro/campanhas/${campaign.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {campaign.status === "draft" && isAdminOrSupervisor && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleSubmitForApproval(campaign.id, campaign.estimated_cost)}
+                              >
+                                Enviar para Aprovação
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {campaigns.map((campaign) => {
-                        const percentSpent = campaign.estimated_cost > 0 
-                          ? (parseFloat(campaign.actual_cost || 0) / parseFloat(campaign.estimated_cost)) * 100 
-                          : 0;
-
-                        return (
-                          <TableRow key={campaign.id} className="hover:bg-primary/5 transition-colors even:bg-muted/30">
-                            <TableCell className="font-mono text-xs">{campaign.code}</TableCell>
-                            <TableCell className="font-medium">{campaign.name}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">
-                                {getCampaignTypeLabel(campaign.campaign_type)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {format(new Date(campaign.start_date), "dd/MM/yy")} -{" "}
-                              {format(new Date(campaign.end_date), "dd/MM/yy")}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              R$ {parseFloat(campaign.estimated_cost).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="space-y-1">
-                                <div>R$ {parseFloat(campaign.actual_cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
-                                <Progress value={percentSpent} className="h-1" />
-                              </div>
-                            </TableCell>
-                            <TableCell>{getStatusBadge(campaign.status)}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => navigate(`/dashboard/trade/financeiro/campanhas/${campaign.id}`)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                {campaign.status === "draft" && isAdminOrSupervisor && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleSubmitForApproval(campaign.id, campaign.estimated_cost)}
-                                  >
-                                    Enviar para Aprovação
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="por-cliente">
-            <CampaignClientTable />
-          </TabsContent>
-
-          <TabsContent value="resultados">
-            <CampaignResultsPanel />
-          </TabsContent>
-        </Tabs>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
