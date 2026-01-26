@@ -25,7 +25,7 @@ POST https://huggs.app.n8n.cloud/webhook/contas-receber-mcp
 ```json
 {
   "tableName": "ConsultaPowerBIReceber",
-  "limit": 1000,
+  "limit": 5000,
   "offset": 0,
   "filters": {}
 }
@@ -36,7 +36,7 @@ POST https://huggs.app.n8n.cloud/webhook/contas-receber-mcp
 | Parâmetro | Tipo | Padrão | Descrição |
 |-----------|------|--------|-----------|
 | `tableName` | string | `ConsultaPowerBIReceber` | Nome da tabela SQL no ERP |
-| `limit` | number | 100 | Quantidade de registros (máx: 1000) |
+| `limit` | number | 5000 | Quantidade de registros (máx: 10000) |
 | `offset` | number | 0 | Registros a pular (paginação) |
 | `filters` | object | `{}` | Filtros adicionais |
 
