@@ -7,16 +7,16 @@ const corsHeaders = {
 };
 
 // =====================================================
-// CONFIGURAÇÕES DE PERFORMANCE - v3.9.0 (SEM RATE LIMITER - ENTRADA LIVRE)
+// CONFIGURAÇÕES DE PERFORMANCE - v4.0.0 (ULTRA HIGH VOLUME)
 // =====================================================
-const BULK_BATCH_SIZE = 10000;      // 10k por batch SQL
-const MAX_PAYLOAD_SIZE = 50000;     // 50k registros max por request
-const UPSERT_BATCH_SIZE = 500;      // Aumentado: 500 por mini-batch
-const BATCH_DELAY_MS = 50;          // Reduzido: 50ms entre mini-batches
-const MAX_RETRIES = 2;              
-const RETRY_BASE_DELAY_MS = 300;    
-const RECOMMENDED_CHUNK_SIZE = 1000; // Aumentado para N8N
-const API_VERSION = '3.9.0';        // Nova versão sem rate limiter
+const BULK_BATCH_SIZE = 20000;       // 20k por batch SQL
+const MAX_PAYLOAD_SIZE = 100000;     // 100k registros max por request
+const UPSERT_BATCH_SIZE = 2000;      // 2000 por mini-batch (4x mais)
+const BATCH_DELAY_MS = 10;           // 10ms entre mini-batches (5x mais rápido)
+const MAX_RETRIES = 3;               // 3 tentativas
+const RETRY_BASE_DELAY_MS = 200;     // Delay reduzido
+const RECOMMENDED_CHUNK_SIZE = 5000; // N8N deve enviar 5k por request
+const API_VERSION = '4.0.0';         // Nova versão alta performance
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
