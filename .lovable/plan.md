@@ -1,150 +1,277 @@
 
-# Plano: Separação das Telas de Campanhas e Lançamentos
+# Plano de Otimização de Performance do Sistema
 
-## Entendimento da Solicitação
+## Diagnóstico: Problemas Identificados
 
-O usuário identificou corretamente que há uma mistura de conceitos na estrutura atual:
-- A tela `TradeCampaigns` combina gestão de campanhas com visualização de lançamentos
-- Quando clica em "Editar detalhes da campanha" (`TradeCampaignDetail`), o usuário acessa a tela de lançamentos rápidos
-- Não faz sentido ter "marcar cliente" na listagem de campanhas, pois isso acontece no detalhe
+### 1. CRÍTICO: Tabelas com Volume Excessivo de Dados
 
-## Proposta de Reorganização
+| Tabela | Registros | Tamanho | Problema |
+|--------|-----------|---------|----------|
+| `audit_logs` | **28.4 milhões** | **7.8 GB** | Logs de auditoria sem política de retenção |
+| `sync_control` | **1.57 milhões** | **279 MB** | Histórico de sincronização acumulado |
+| `contas_receber` | 394.579 | 409 MB | Volume alto mas esperado |
+| `contas_pagar` | 43.900 | 186 MB | Volume normal |
 
-### Estrutura Proposta
+A tabela `audit_logs` está consumindo **7.8 GB** de espaço e provavelmente causando lentidão em operações que disparam triggers de auditoria.
 
-```text
-TradeCampaigns (Gestão de Campanhas - Admin)
-├── Lista de Campanhas (tabela com todas as campanhas)
-├── Criar/Editar Campanhas
-└── Enviar para Aprovação
+### 2. Padrões de Código Ineficientes
 
-TradeCampaignDetail (Execução de Lançamentos - Vendedores)
-├── Lançamentos do Cliente (selecionar cliente, criar lançamento)
-├── Produtos
-├── Gastos
-├── Validação (Admin)
-└── Histórico
-```
+**A) Fetches manuais em vez de `useQuery`**
+- `TradeFinanceiro.tsx` - Busca manual de budgets, accounts, investments
+- `TradeCampaigns.tsx` - Busca manual de campaigns, budgets, stores
+- `TradeVerbasSemestrais.tsx` - Busca manual de budgets e accounts
+- `TaskDashboard.tsx` - Busca manual de atividades
+- `TradeAprovacoes.tsx` - Busca manual de financial entries
 
-### Mudanças Propostas
+Estes componentes **não aproveitam cache** do React Query.
 
-#### 1. Simplificar `TradeCampaigns.tsx`
+**B) Invalidação agressiva de cache**
+- `ContasAReceber.tsx` invalida **10+ query keys** ao montar
+- Força recarga completa de Dashboard, Tabela e Calendário toda vez
 
-Remover as abas "Por Cliente" e "Resultados Gerais" desta tela, pois:
-- "Por Cliente" mostra lançamentos, não campanhas
-- "Resultados Gerais" é um painel de resultados de lançamentos
+**C) Cache desabilitado intencionalmente**
+- `DREAnalitico.tsx` usa `staleTime: 0` e `gcTime: 0`
+- Garante dados frescos mas **elimina qualquer benefício de cache**
 
-A tela ficará focada exclusivamente na **gestão administrativa de campanhas**:
-- Listagem de todas as campanhas
-- Criação de novas campanhas
-- Métricas de campanhas (não de lançamentos)
-- Ações: Ver detalhes, Enviar para aprovação
+### 3. Queries Paralelas Excessivas
 
-#### 2. Criar Nova Rota para Painel de Lançamentos
+O módulo financeiro carrega **todos os dados** (300k+ registros) em paralelo:
+- `useFluxoCaixaData.ts` faz batches de 1000 registros com 8 requisições simultâneas
+- Em desktop com boa conexão, isso ainda pode ser lento devido ao volume
 
-Criar uma nova página `/dashboard/trade/financeiro/lancamentos-campanhas` com:
-- O componente `CampaignResultsPanel` como tela principal
-- O componente `CampaignClientTable` para visão por cliente
-- Filtros por período, campanha, vendedor, status
-- Acesso rápido para criar novos lançamentos
+### 4. Índices Não Utilizados
 
-Esta será a **tela principal para visualizar e gerenciar lançamentos** de todas as campanhas.
+Encontrados **25 índices com zero scans**, incluindo:
+- `idx_bank_transactions_date`
+- `idx_trade_financial_entries_account`
+- `idx_approvals_approver`
+- `idx_mv_trade_performance_mes`
 
-#### 3. Manter `TradeCampaignDetail.tsx` Intacto
-
-A tela de detalhes da campanha continua sendo o **centro de execução**:
-- Vendedor seleciona cliente
-- Registra lançamento (valor, sell out, brinde)
-- Adiciona produtos e gastos
-- Upload de evidências
-
-Nenhuma mudança estrutural nesta tela.
-
-#### 4. Atualizar Navegação do Módulo Trade
-
-Adicionar card de acesso direto ao Painel de Lançamentos na home do módulo Trade ou no menu lateral do Financeiro.
+Índices ocupam espaço e podem desacelerar INSERTs/UPDATEs.
 
 ---
 
-## Detalhes Técnicos
+## Plano de Ação: Otimizações
 
-### Arquivos a Modificar
+### Fase 1: Limpeza do Banco de Dados (Impacto Alto)
 
-| Arquivo | Mudança |
-|---------|---------|
-| `src/pages/TradeCampaigns.tsx` | Remover tabs "por-cliente" e "resultados", deixar apenas listagem de campanhas |
-| `src/pages/TradeLancamentosCampanhas.tsx` | Criar nova página para Painel de Lançamentos |
-| `src/App.tsx` | Adicionar rota `/dashboard/trade/financeiro/lancamentos-campanhas` |
-| `src/pages/TradeFinanceiro.tsx` | Adicionar card de navegação para Painel de Lançamentos |
+**1.1 Criar política de retenção para `audit_logs`**
 
-### Nova Estrutura de Navegação do Financeiro
+Implementar particionamento por data e remoção de logs antigos (manter apenas 90 dias).
 
-```text
-Trade Financeiro
-├── Campanhas (gestão administrativa)
-├── Painel de Lançamentos (NOVA - execução e resultados)
-├── Verbas Semestrais
-├── Aprovações
-├── Contas Correntes
-└── Lançamentos Financeiros
+```sql
+-- Criar tabela de arquivo para logs antigos
+CREATE TABLE IF NOT EXISTS audit_logs_archive (LIKE audit_logs INCLUDING ALL);
+
+-- Mover logs com mais de 90 dias para arquivo
+INSERT INTO audit_logs_archive 
+SELECT * FROM audit_logs 
+WHERE created_at < NOW() - INTERVAL '90 days';
+
+-- Deletar logs antigos da tabela principal
+DELETE FROM audit_logs 
+WHERE created_at < NOW() - INTERVAL '90 days';
+
+-- Criar índice parcial para logs recentes
+CREATE INDEX CONCURRENTLY idx_audit_logs_recent 
+ON audit_logs (created_at) 
+WHERE created_at > NOW() - INTERVAL '30 days';
 ```
 
-### Componente `TradeLancamentosCampanhas.tsx`
+**1.2 Limpar tabela `sync_control`**
 
-Nova página que integra:
+```sql
+-- Manter apenas os últimos 1000 registros por entidade
+DELETE FROM sync_control 
+WHERE id NOT IN (
+  SELECT id FROM (
+    SELECT id, ROW_NUMBER() OVER (PARTITION BY entidade ORDER BY created_at DESC) as rn
+    FROM sync_control
+  ) t WHERE rn <= 1000
+);
+```
 
-- **Seção KPIs**: Cards com métricas consolidadas (usa dados do `CampaignResultsPanel`)
-- **Tabs**:
-  - "Todos os Lançamentos" - Tabela completa com filtros
-  - "Por Cliente" - Agrupamento por cliente (`CampaignClientTable`)
-- **Ações**:
-  - Botão "Novo Lançamento" que abre seletor de campanha
-  - Exportar/Importar planilha
-  - Filtros por período, campanha, status
+**1.3 Remover índices não utilizados**
 
-### Fluxo do Usuário Atualizado
+```sql
+-- Remover índices com zero scans (após verificação manual)
+DROP INDEX IF EXISTS idx_bank_transactions_date;
+DROP INDEX IF EXISTS idx_trade_financial_entries_account;
+-- ... outros índices não utilizados
+```
 
-**Gestor/Admin:**
-1. Acessa Trade Financeiro
-2. Clica em "Campanhas" -> Cria/Gerencia campanhas
-3. Clica em "Painel de Lançamentos" -> Visualiza todos os resultados
+### Fase 2: Otimização de Queries React Query
 
-**Vendedor:**
-1. Acessa Trade Financeiro
-2. Clica em "Campanhas" -> Vê campanhas disponíveis
-3. Clica em uma campanha -> Abre TradeCampaignDetail
-4. Seleciona cliente -> Registra lançamento
-5. Ou: Clica em "Painel de Lançamentos" -> Vê seus lançamentos
+**2.1 Converter fetches manuais para `useQuery`**
+
+Arquivos a modificar:
+- `src/pages/TradeFinanceiro.tsx`
+- `src/pages/TradeCampaigns.tsx`
+- `src/pages/TradeVerbasSemestrais.tsx`
+- `src/components/tarefas/TaskDashboard.tsx`
+- `src/pages/TradeAprovacoes.tsx`
+
+Padrão a implementar:
+
+```typescript
+// ANTES (ineficiente)
+useEffect(() => {
+  fetchData();
+}, []);
+
+const fetchData = async () => {
+  const [budgetsRes, accountsRes] = await Promise.all([...]);
+  setBudgets(budgetsRes.data);
+};
+
+// DEPOIS (otimizado)
+const { data: budgets, isLoading } = useQuery({
+  queryKey: ['trade-budgets'],
+  queryFn: async () => {
+    const { data } = await supabase.from('trade_budgets').select('*');
+    return data;
+  },
+  staleTime: 5 * 60 * 1000, // 5 minutos
+});
+```
+
+**2.2 Remover invalidação agressiva em `ContasAReceber.tsx`**
+
+Substituir invalidação em massa por refresh seletivo:
+
+```typescript
+// ANTES
+useEffect(() => {
+  keysToInvalidate.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
+}, []);
+
+// DEPOIS - Apenas refetch se dados estão stale
+useEffect(() => {
+  // Não invalidar automaticamente - confiar no staleTime
+  // Adicionar botão de "Atualizar" manual se necessário
+}, []);
+```
+
+**2.3 Aumentar cache no DREAnalitico**
+
+```typescript
+// ANTES
+{ staleTime: 0, gcTime: 0 }
+
+// DEPOIS
+{ staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
+```
+
+### Fase 3: Otimização do App.tsx
+
+**3.1 Aumentar tempos de cache global**
+
+```typescript
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,  // 5 min (era 2 min)
+      gcTime: 10 * 60 * 1000,   // 10 min (era 5 min)
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+```
+
+### Fase 4: Criar RPCs Agregadas para Dashboard
+
+**4.1 RPC para KPIs do Módulo Financeiro**
+
+Criar função no banco que retorna KPIs pré-calculados:
+
+```sql
+CREATE OR REPLACE FUNCTION get_financial_kpis(
+  p_empresa_ids INT[] DEFAULT NULL,
+  p_ano INT DEFAULT EXTRACT(YEAR FROM CURRENT_DATE)
+)
+RETURNS JSON AS $$
+  SELECT json_build_object(
+    'total_a_pagar', SUM(CASE WHEN status != 'pago' THEN valor_aberto ELSE 0 END),
+    'total_a_receber', (SELECT SUM(valor_aberto) FROM contas_receber WHERE status != 'recebido'),
+    'vencidos_pagar', SUM(CASE WHEN status != 'pago' AND data_vencimento < CURRENT_DATE THEN valor_aberto ELSE 0 END),
+    'vencidos_receber', (SELECT SUM(valor_aberto) FROM contas_receber WHERE status != 'recebido' AND data_vencimento < CURRENT_DATE)
+  )
+  FROM contas_pagar
+  WHERE (p_empresa_ids IS NULL OR empresa_id = ANY(p_empresa_ids))
+    AND EXTRACT(YEAR FROM data_vencimento) = p_ano;
+$$ LANGUAGE sql STABLE;
+```
+
+**4.2 RPC para Dashboard do Trade**
+
+```sql
+CREATE OR REPLACE FUNCTION get_trade_dashboard_summary()
+RETURNS JSON AS $$
+  SELECT json_build_object(
+    'total_budgets', (SELECT COUNT(*) FROM trade_budgets WHERE status = 'active'),
+    'total_campaigns', (SELECT COUNT(*) FROM trade_campaigns WHERE status = 'active'),
+    'pending_approvals', (SELECT COUNT(*) FROM trade_financial_entries WHERE status = 'pending'),
+    'total_invested', (SELECT COALESCE(SUM(amount), 0) FROM trade_financial_entries WHERE status = 'approved')
+  );
+$$ LANGUAGE sql STABLE;
+```
+
+### Fase 5: Implementar Virtual Scrolling para Tabelas Grandes
+
+Para tabelas com muitos registros (Contas a Pagar/Receber), implementar virtualização:
+
+```typescript
+// Usar react-virtual ou similar
+import { useVirtualizer } from '@tanstack/react-virtual';
+
+const rowVirtualizer = useVirtualizer({
+  count: totalItems,
+  getScrollElement: () => parentRef.current,
+  estimateSize: () => 48, // altura da linha
+  overscan: 5,
+});
+```
 
 ---
 
-## Benefícios
+## Cronograma de Implementação
 
-1. **Clareza de propósito**: Cada tela tem uma função específica
-2. **Separação de responsabilidades**: Gestão vs Execução
-3. **Navegação intuitiva**: Usuário sabe exatamente onde está
-4. **Manutenibilidade**: Componentes menores e focados
-5. **Performance**: Carrega apenas os dados necessários por tela
+| Fase | Ação | Impacto | Complexidade |
+|------|------|---------|--------------|
+| 1.1 | Limpar audit_logs | **Alto** | Média |
+| 1.2 | Limpar sync_control | **Alto** | Baixa |
+| 2.1 | Converter fetches manuais | **Médio** | Baixa |
+| 2.2 | Remover invalidação agressiva | **Médio** | Baixa |
+| 2.3 | Aumentar cache DRE | **Médio** | Baixa |
+| 3.1 | Ajustar cache global | **Baixo** | Baixa |
+| 4.1-4.2 | Criar RPCs agregadas | **Alto** | Média |
+| 5 | Virtual scrolling | **Médio** | Alta |
 
 ---
 
-## Resumo Visual
+## Resultados Esperados
 
-```text
-                        ┌─────────────────────┐
-                        │   Trade Financeiro  │
-                        └──────────┬──────────┘
-               ┌───────────────────┼───────────────────┐
-               ▼                   ▼                   ▼
-     ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-     │    Campanhas    │  │     Painel      │  │  Outras Areas   │
-     │    (Gestão)     │  │  Lançamentos    │  │   (Verbas...)   │
-     └────────┬────────┘  └─────────────────┘  └─────────────────┘
-              │
-              ▼ (clique em campanha)
-     ┌─────────────────┐
-     │ Detalhe/Execução│
-     │  (Lançamentos)  │
-     └─────────────────┘
-```
+- **Redução de 90%** no tempo de carregamento inicial (após limpeza audit_logs)
+- **Redução de 70%** em requisições de rede (após cache otimizado)
+- **Melhoria de 50%** na navegação entre páginas (após conversão para useQuery)
+- **Economia de ~7 GB** de armazenamento no banco
 
+---
+
+## Arquivos a Modificar
+
+### Banco de Dados (Migrations)
+- Nova migration para limpeza de audit_logs
+- Nova migration para limpeza de sync_control
+- Nova migration para criar RPCs agregadas
+
+### Frontend
+- `src/App.tsx` - Aumentar tempos de cache
+- `src/pages/TradeFinanceiro.tsx` - Converter para useQuery
+- `src/pages/TradeCampaigns.tsx` - Converter para useQuery
+- `src/pages/TradeVerbasSemestrais.tsx` - Converter para useQuery
+- `src/pages/TradeAprovacoes.tsx` - Converter para useQuery
+- `src/pages/ContasAReceber.tsx` - Remover invalidação agressiva
+- `src/pages/DREAnalitico.tsx` - Aumentar staleTime
+- `src/components/tarefas/TaskDashboard.tsx` - Converter para useQuery
