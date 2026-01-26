@@ -135,10 +135,11 @@ const PageLoader = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60 * 1000, // 2 minutos (reduzido de 5)
-      gcTime: 5 * 60 * 1000, // 5 minutos (reduzido de 10)
-      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutos - dados ficam frescos por mais tempo
+      gcTime: 10 * 60 * 1000, // 10 minutos - cache mantido por mais tempo
+      refetchOnWindowFocus: false, // Não recarregar ao focar janela
       retry: 1,
+      refetchOnReconnect: false, // Evitar refetch desnecessário ao reconectar
     },
   },
 });

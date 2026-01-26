@@ -986,6 +986,48 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs_archive: {
+        Row: {
+          action: string
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          new_data: Json | null
+          old_data: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id: string
+          ip_address?: unknown
+          metadata?: Json | null
+          new_data?: Json | null
+          old_data?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          new_data?: Json | null
+          old_data?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       auditoria_atribuicoes: {
         Row: {
           created_at: string | null
@@ -15823,6 +15865,7 @@ export type Database = {
       }
     }
     Functions: {
+      archive_old_audit_logs: { Args: never; Returns: undefined }
       atualizar_perfil_credito_cliente: {
         Args: { p_cliente_codigo: string }
         Returns: string
@@ -16042,6 +16085,7 @@ export type Database = {
               valor_total: number
             }[]
           }
+      get_atividades_kpis: { Args: never; Returns: Json }
       get_contas_receber_aging: {
         Args: {
           p_ano?: number
@@ -16194,6 +16238,10 @@ export type Database = {
           sku_master: string
         }[]
       }
+      get_financial_kpis: {
+        Args: { p_ano?: number; p_empresa_ids?: number[] }
+        Returns: Json
+      }
       get_last_sync_timestamp: {
         Args: { p_entidade: string; p_tipo?: string }
         Returns: string
@@ -16231,6 +16279,7 @@ export type Database = {
           subordinate_id: string
         }[]
       }
+      get_trade_dashboard_summary: { Args: never; Returns: Json }
       get_trade_performance: {
         Args: never
         Returns: {

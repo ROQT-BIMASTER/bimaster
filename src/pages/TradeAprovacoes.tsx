@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -12,24 +12,27 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, XCircle, FileText, AlertCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AprovarLancamentoDialog } from "@/components/trade/AprovarLancamentoDialog";
-import { useNavigate } from "react-router-dom";
+import { usePendingFinancialEntries, usePendingInvestments } from "@/hooks/useTradeData";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function TradeAprovacoes() {
-  const [loading, setLoading] = useState(true);
-  const [entries, setEntries] = useState<any[]>([]);
-  const [investments, setInvestments] = useState<any[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [selectedType, setSelectedType] = useState<"entry" | "investment">("entry");
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Usar hooks otimizados com React Query
+  const { data: entries = [], isLoading: entriesLoading } = usePendingFinancialEntries();
+  const { data: investments = [], isLoading: investmentsLoading } = usePendingInvestments();
+
+  const loading = entriesLoading || investmentsLoading;
 
   useEffect(() => {
     // Aguarda o carregamento do role antes de verificar
@@ -40,81 +43,11 @@ export default function TradeAprovacoes() {
       navigate("/dashboard");
       return;
     }
-    fetchData();
   }, [isAdminOrSupervisor, roleLoading, navigate]);
 
-  const fetchData = async () => {
-    try {
-      // Buscar lançamentos financeiros pendentes
-      const { data: entriesData, error: entriesError } = await supabase
-        .from("trade_financial_entries")
-        .select(`
-          *,
-          account:trade_chart_of_accounts(name, code),
-          store:stores(name, code, address, city, state, zip_code),
-          budget:trade_budgets(name, code, total_amount, spent_amount, reserved_amount)
-        `)
-        .eq("approval_status", "pending")
-        .order("entry_date", { ascending: false });
-
-      if (entriesError) throw entriesError;
-
-      // Buscar investimentos pendentes
-      const { data: investmentsData, error: investmentsError } = await supabase
-        .from("trade_investments")
-        .select(`
-          *,
-          store:stores(name, code, address, city, state, zip_code)
-        `)
-        .eq("approval_status", "pending")
-        .order("investment_date", { ascending: false });
-
-      if (investmentsError) throw investmentsError;
-
-      // Buscar informações dos criadores de lançamentos
-      if (entriesData && entriesData.length > 0) {
-        const userIds = [...new Set(entriesData.map(entry => entry.created_by))];
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, nome, email")
-          .in("id", userIds);
-
-        const profileMap = new Map(profiles?.map(p => [p.id, p]));
-        
-        const enrichedEntries = entriesData.map(entry => ({
-          ...entry,
-          created_by_profile: profileMap.get(entry.created_by)
-        }));
-
-        setEntries(enrichedEntries);
-      } else {
-        setEntries(entriesData || []);
-      }
-
-      // Buscar informações dos criadores de investimentos
-      if (investmentsData && investmentsData.length > 0) {
-        const userIds = [...new Set(investmentsData.map(inv => inv.created_by))];
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, nome, email")
-          .in("id", userIds);
-
-        const profileMap = new Map(profiles?.map(p => [p.id, p]));
-        
-        const enrichedInvestments = investmentsData.map(inv => ({
-          ...inv,
-          created_by_profile: profileMap.get(inv.created_by)
-        }));
-
-        setInvestments(enrichedInvestments);
-      } else {
-        setInvestments(investmentsData || []);
-      }
-    } catch (error: any) {
-      toast.error(getSafeErrorMessage(error));
-    } finally {
-      setLoading(false);
-    }
+  const handleRefetch = () => {
+    queryClient.invalidateQueries({ queryKey: ['trade-pending-entries'] });
+    queryClient.invalidateQueries({ queryKey: ['trade-pending-investments'] });
   };
 
   const getEntryTypeLabel = (type: string) => {
@@ -134,10 +67,13 @@ export default function TradeAprovacoes() {
     setApprovalDialogOpen(true);
   };
 
-  const pendingCount = entries.length + investments.length;
-  const totalAmount = 
-    entries.reduce((sum, entry) => sum + parseFloat(entry.amount), 0) +
-    investments.reduce((sum, inv) => sum + parseFloat(inv.amount), 0);
+  // Calcular métricas com useMemo
+  const { pendingCount, totalAmount } = useMemo(() => ({
+    pendingCount: entries.length + investments.length,
+    totalAmount: 
+      entries.reduce((sum, entry: any) => sum + parseFloat(String(entry.amount || 0)), 0) +
+      investments.reduce((sum, inv: any) => sum + parseFloat(String(inv.amount || 0)), 0)
+  }), [entries, investments]);
 
   // Mostra loading enquanto verifica permissões
   if (roleLoading) {
@@ -273,9 +209,9 @@ export default function TradeAprovacoes() {
                               <span>
                                 💰 Disponível: R${" "}
                                 {(
-                                  parseFloat(entry.budget.total_amount || 0) -
-                                  parseFloat(entry.budget.spent_amount || 0) -
-                                  parseFloat(entry.budget.reserved_amount || 0)
+                                  parseFloat(String(entry.budget.total_amount || 0)) -
+                                  parseFloat(String(entry.budget.spent_amount || 0)) -
+                                  parseFloat(String(entry.budget.reserved_amount || 0))
                                 ).toLocaleString("pt-BR", {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
@@ -283,7 +219,7 @@ export default function TradeAprovacoes() {
                               </span>
                               <span>
                                 📊 Utilizado: R${" "}
-                                {parseFloat(entry.budget.spent_amount || 0).toLocaleString(
+                                {parseFloat(String(entry.budget.spent_amount || 0)).toLocaleString(
                                   "pt-BR",
                                   {
                                     minimumFractionDigits: 2,
@@ -315,7 +251,7 @@ export default function TradeAprovacoes() {
                       )}
                     </TableCell>
                     <TableCell className="text-right font-semibold whitespace-nowrap">
-                      R$ {parseFloat(entry.amount).toLocaleString("pt-BR", {
+                      R$ {parseFloat(String(entry.amount || 0)).toLocaleString("pt-BR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
@@ -371,7 +307,7 @@ export default function TradeAprovacoes() {
                       )}
                     </TableCell>
                     <TableCell className="text-right font-semibold whitespace-nowrap">
-                      R$ {parseFloat(investment.amount).toLocaleString("pt-BR", {
+                      R$ {parseFloat(String(investment.amount || 0)).toLocaleString("pt-BR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
@@ -399,7 +335,7 @@ export default function TradeAprovacoes() {
           onOpenChange={setApprovalDialogOpen}
           entry={selectedEntry}
           type={selectedType}
-          onSuccess={fetchData}
+          onSuccess={handleRefetch}
         />
       )}
     </DashboardLayout>

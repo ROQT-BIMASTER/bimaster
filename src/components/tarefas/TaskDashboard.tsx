@@ -1,18 +1,14 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { 
   CheckCircle2, 
   Clock, 
-  TrendingUp, 
   Activity,
   Calendar,
   Target
 } from "lucide-react";
 import { 
-  BarChart, 
-  Bar, 
   LineChart,
   Line,
   XAxis, 
@@ -22,100 +18,25 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell,
-  Legend
+  Cell
 } from "recharts";
-import { format, subDays, startOfDay, isAfter, isBefore } from "date-fns";
+import { format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
-interface Atividade {
-  id: string;
-  tipo: string;
-  resultado: string | null;
-  data_atividade: string;
-  proximo_followup: string | null;
-}
-
-interface Stats {
-  total: number;
-  concluidas: number;
-  pendentes: number;
-  atrasadas: number;
-  taxaConclusao: number;
-}
+import { useAtividadesStats, getAtividadesPorTipo } from "@/hooks/useAtividadesData";
 
 export const TaskDashboard = () => {
-  const [atividades, setAtividades] = useState<Atividade[]>([]);
-  const [stats, setStats] = useState<Stats>({
-    total: 0,
-    concluidas: 0,
-    pendentes: 0,
-    atrasadas: 0,
-    taxaConclusao: 0,
-  });
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { data, isLoading, error } = useAtividadesStats();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Processar dados para gráficos usando useMemo para evitar recálculos
+  const atividadesPorTipo = useMemo(() => {
+    if (!data?.atividades) return [];
+    return getAtividadesPorTipo(data.atividades);
+  }, [data?.atividades]);
 
-  const fetchData = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("atividades")
-        .select("*")
-        .order("data_atividade", { ascending: false });
-
-      if (error) throw error;
-
-      const ativs = data || [];
-      setAtividades(ativs);
-
-      const hoje = new Date();
-      const concluidas = ativs.filter(a => a.resultado === "positivo").length;
-      const pendentes = ativs.filter(a => !a.resultado).length;
-      const atrasadas = ativs.filter(a => 
-        a.proximo_followup && 
-        isBefore(new Date(a.proximo_followup), hoje) &&
-        !a.resultado
-      ).length;
-
-      setStats({
-        total: ativs.length,
-        concluidas,
-        pendentes,
-        atrasadas,
-        taxaConclusao: ativs.length > 0 ? Math.round((concluidas / ativs.length) * 100) : 0,
-      });
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os dados",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getAtividadesPorTipo = () => {
-    const tipos = ["ligacao", "email", "reuniao", "visita"];
-    const labels: Record<string, string> = {
-      ligacao: "Ligações",
-      email: "E-mails",
-      reuniao: "Reuniões",
-      visita: "Visitas",
-    };
-
-    return tipos.map(tipo => ({
-      name: labels[tipo],
-      value: atividades.filter(a => a.tipo === tipo).length,
-    }));
-  };
-
-  const getAtividadesPorDia = () => {
+  const atividadesPorDia = useMemo(() => {
+    if (!data?.atividades) return [];
+    
     const last30Days = Array.from({ length: 30 }, (_, i) => {
       const date = subDays(new Date(), 29 - i);
       return format(startOfDay(date), 'yyyy-MM-dd');
@@ -123,10 +44,27 @@ export const TaskDashboard = () => {
 
     return last30Days.map(date => ({
       date: format(new Date(date), 'dd/MM', { locale: ptBR }),
-      count: atividades.filter(a => 
+      count: data.atividades.filter(a => 
         format(new Date(a.data_atividade), 'yyyy-MM-dd') === date
       ).length,
     }));
+  }, [data?.atividades]);
+
+  // Mostrar erro se houver
+  if (error) {
+    toast({
+      title: "Erro",
+      description: "Não foi possível carregar os dados",
+      variant: "destructive",
+    });
+  }
+
+  const stats = data?.stats || {
+    total: 0,
+    concluidas: 0,
+    pendentes: 0,
+    atrasadas: 0,
+    taxaConclusao: 0,
   };
 
   const COLORS = ['hsl(217, 91%, 60%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(280, 65%, 60%)'];
@@ -161,7 +99,7 @@ export const TaskDashboard = () => {
     },
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="text-center py-8">
         <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
@@ -197,7 +135,7 @@ export const TaskDashboard = () => {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={getAtividadesPorTipo()}
+                  data={atividadesPorTipo}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -206,7 +144,7 @@ export const TaskDashboard = () => {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {getAtividadesPorTipo().map((entry, index) => (
+                  {atividadesPorTipo.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -223,7 +161,7 @@ export const TaskDashboard = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={getAtividadesPorDia()}>
+              <LineChart data={atividadesPorDia}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   dataKey="date" 
