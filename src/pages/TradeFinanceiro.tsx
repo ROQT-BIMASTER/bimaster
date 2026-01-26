@@ -292,7 +292,20 @@ export default function TradeFinanceiro() {
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">
-                  Gestão de campanhas e aprovações
+                  Gestão administrativa de campanhas
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/dashboard/trade/financeiro/lancamentos-campanhas">
+            <Card className="hover:border-primary cursor-pointer transition-colors border-primary/30 bg-primary/5">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Painel de Lançamentos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Resultados e execução de campanhas
                 </p>
               </CardContent>
             </Card>

@@ -165,9 +165,8 @@ export default function Financeiro() {
           </div>
         </div>
 
-        {/* Navegação Rápida - Campanhas e Contas */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Campanhas e Contas Correntes</h2>
+          <h2 className="text-xl font-semibold mb-4">Campanhas e Lançamentos</h2>
           <div className="grid gap-4 md:grid-cols-4">
             <Link to="/dashboard/trade/financeiro/campanhas">
               <Card className="hover:border-primary cursor-pointer transition-colors">
@@ -177,8 +176,25 @@ export default function Financeiro() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">
-                    Gestão de campanhas e aprovações
+                    Gestão administrativa de campanhas
                   </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link to="/dashboard/trade/financeiro/lancamentos-campanhas">
+              <Card className="hover:border-primary cursor-pointer transition-colors border-primary/30 bg-primary/5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Painel de Lançamentos</CardTitle>
+                  <FileText className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    Resultados e execução de campanhas
+                  </p>
+                  <div className="mt-2 flex items-center text-xs text-primary">
+                    Acessar <ArrowRight className="h-3 w-3 ml-1" />
+                  </div>
                 </CardContent>
               </Card>
             </Link>
