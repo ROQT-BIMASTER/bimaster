@@ -1,122 +1,122 @@
-# Integração N8N - Contas a Receber
+# Integração N8N - Contas a Receber (v5.0.0)
 
 ## Visão Geral
 
 Esta documentação descreve a integração entre o Lovable CRM e o N8N para sincronização de Contas a Receber do ERP.
 
-## Webhook MCP
+## ⚠️ CONFIGURAÇÃO IMPORTANTE DO N8N
 
-### Endpoint
+O workflow N8N atual está configurado com `batchSize: 500`. Para **máxima performance**, altere para:
 
+```javascript
+// No nó "Workflow Configuration"
+batchSize: 2000  // Recomendado: 2000-5000 registros por batch
 ```
-POST https://huggs.app.n8n.cloud/webhook/contas-receber-mcp
+
+**Impacto estimado:**
+| Batch Size | Registros | Tempo Estimado |
+|------------|-----------|----------------|
+| 500        | 50.000    | ~20 minutos    |
+| 2000       | 50.000    | ~5 minutos     |
+| 5000       | 50.000    | ~2 minutos     |
+
+## Endpoint da API
+
+### URL Base
+```
+https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/contas-receber-api
 ```
 
-### Headers
+### POST /sync
 
+Endpoint principal para sincronização de dados.
+
+**Headers:**
 ```json
 {
-  "Content-Type": "application/json"
+  "Content-Type": "application/json",
+  "x-api-key": "cr_sync_2024_f7k9Lm3nPqRs8tUv"
 }
 ```
 
-### Payload de Requisição
-
+**Body (N8N usa $items()):**
 ```json
 {
-  "tableName": "ConsultaPowerBIReceber",
-  "limit": 5000,
-  "offset": 0,
-  "filters": {}
+  "contas": {{ JSON.stringify($items()) }}
 }
 ```
 
-#### Parâmetros
-
-| Parâmetro | Tipo | Padrão | Descrição |
-|-----------|------|--------|-----------|
-| `tableName` | string | `ConsultaPowerBIReceber` | Nome da tabela SQL no ERP |
-| `limit` | number | 5000 | Quantidade de registros (máx: 10000) |
-| `offset` | number | 0 | Registros a pular (paginação) |
-| `filters` | object | `{}` | Filtros adicionais |
-
-### Resposta
-
+**Resposta:**
 ```json
 {
   "success": true,
-  "metadata": {
-    "tableName": "ConsultaPowerBIReceber",
-    "recordsReturned": 1000,
-    "offset": 0,
-    "limit": 1000,
-    "hasMoreData": true,
-    "nextOffset": 1000,
-    "query": "SELECT...",
-    "timestamp": "2025-01-01T00:00:00.000Z"
-  },
-  "data": [
-    {
-      "ID Empresa": 1,
-      "Empresa": "EMPRESA LTDA",
-      "Tipo": "NF",
-      "Nota": "123456",
-      "Seq": 1,
-      "Codigo": "CLI001",
-      "Cliente": "CLIENTE EXEMPLO",
-      "Valor_Trc": 1500.00,
-      "Valor em Aberto": 500.00,
-      "Valor Pago": 1000.00,
-      "Emissao": "2025-01-01",
-      "Vencimento": "2025-02-01",
-      "Pagamento": null,
-      "Status": "aberto",
-      "Portador": "BANCO X"
-    }
-  ],
-  "pagination": {
-    "currentPage": 1,
-    "pageSize": 1000,
-    "totalRecordsInPage": 1000
-  }
+  "continue_loop": true,
+  "received": 2000,
+  "transformed": 2000,
+  "processed": 2000,
+  "errors": 0,
+  "duration_ms": 1500,
+  "rate_per_second": 1333,
+  "api_version": "5.0.0"
 }
 ```
 
-## Fluxos de Sincronização
+## Formato dos Dados do ERP
 
-### 1. Fluxo Agendado (N8N → Supabase)
+A API aceita múltiplos formatos de campos. Os mais comuns são:
 
-Executado automaticamente a cada 40 minutos.
+| Campo ERP | Campo Alternativo | Tipo |
+|-----------|-------------------|------|
+| `ID Empresa` | `empresa_id` | number |
+| `Empresa` | `empresa_nome` | string |
+| `Tipo` | `tipo_documento` | string |
+| `Nota` | `numero_documento` | string |
+| `Seq` | `parcela` | number |
+| `Código` | `cliente_codigo` | string |
+| `Cliente` | `cliente_nome` | string |
+| `Valor_Trc` | `valor_original` | number |
+| `Valor em Aberto` | `valor_aberto` | number |
+| `Valor Pago` | `valor_recebido` | number |
+| `Emissão` | `data_emissao` | date |
+| `Vencimento` | `data_vencimento` | date |
+| `Data Pgto` | `data_recebimento` | date |
+| `Nome Portador` | `portador` | string |
+
+## Fluxo de Sincronização
 
 ```
-Trigger (Schedule)
+Schedule (a cada 40 min)
     ↓
-SQL Query (ERP)
+SQL Query (ERP) - Busca registros
     ↓
-Split in Batches (1000)
+Check If More Data
     ↓
-HTTP POST → /bulk-sync
+Loop Over Items (batch 2000)
     ↓
-Log Result
+POST /sync → API v5.0.0
+    ↓
+Próximo batch (se houver)
+    ↓
+Done
 ```
 
-### 2. Fluxo Manual (Lovable → N8N → Supabase)
+## Performance (API v5.0.0)
 
-Iniciado pelo usuário via interface.
+| Parâmetro | Valor |
+|-----------|-------|
+| Rate Limiter | **DESABILITADO** |
+| Batch Size Interno | 2000 registros |
+| Delay entre batches | 5ms |
+| Formato suportado | `$items()` com wrapper `{json: {...}}` |
+| Processamento | Upsert incremental por `erp_id` |
 
-```
-Botão "Sincronizar"
-    ↓
-Edge Function (n8n-contas-receber/sync-all)
-    ↓
-Loop de Paginação:
-    ├── POST webhook (limit=1000, offset=N)
-    ├── Transform data
-    ├── RPC bulk_upsert_contas_receber_v2
-    └── Incrementa offset se hasMoreData=true
-    ↓
-Retorna resumo
-```
+### Taxas Observadas
+
+| Volume | Batches | Tempo | Taxa |
+|--------|---------|-------|------|
+| 10.000 | 5 | ~30s | 333/s |
+| 50.000 | 25 | ~2min | 416/s |
+| 100.000 | 50 | ~4min | 416/s |
 
 ## Edge Function: n8n-contas-receber
 
