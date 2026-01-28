@@ -166,9 +166,32 @@ export async function buscarCustoOrigem(
 }
 
 /**
- * Busca os limites de preço de um produto
+ * Busca os limites de preço de um produto para uma tabela específica
+ * Primeiro verifica limites específicos da tabela, depois cai para limites globais do produto
  */
-export async function buscarLimitesProduto(produtoId: string): Promise<LimitePreco | null> {
+export async function buscarLimitesProduto(
+  produtoId: string, 
+  tabelaId?: string
+): Promise<LimitePreco | null> {
+  // Se tabelaId fornecido, buscar limite específico da tabela
+  if (tabelaId) {
+    const { data: limiteTabela, error: erroTabela } = await supabase
+      .from('fabrica_limites_preco_tabela')
+      .select('preco_maximo, preco_minimo')
+      .eq('produto_id', produtoId)
+      .eq('tabela_id', tabelaId)
+      .eq('ativo', true)
+      .maybeSingle();
+
+    if (!erroTabela && limiteTabela) {
+      return {
+        preco_maximo: limiteTabela.preco_maximo ? Number(limiteTabela.preco_maximo) : null,
+        preco_minimo: limiteTabela.preco_minimo ? Number(limiteTabela.preco_minimo) : null,
+      };
+    }
+  }
+
+  // Fallback: buscar limite global do produto (se não houver específico da tabela)
   const { data, error } = await supabase
     .from('fabrica_produtos')
     .select('preco_maximo, preco_minimo')
@@ -176,6 +199,10 @@ export async function buscarLimitesProduto(produtoId: string): Promise<LimitePre
     .single();
 
   if (error || !data) return null;
+  
+  // Se ambos forem null, não há limite
+  if (!data.preco_maximo && !data.preco_minimo) return null;
+  
   return {
     preco_maximo: data.preco_maximo ? Number(data.preco_maximo) : null,
     preco_minimo: data.preco_minimo ? Number(data.preco_minimo) : null,
@@ -249,19 +276,41 @@ export async function calcularPrecosProdutos(
   let limitesMap: Record<string, LimitePreco> = {};
 
   if (aplicarLimites) {
-    const { data: produtos } = await supabase
-      .from('fabrica_produtos')
-      .select('id, preco_maximo, preco_minimo')
-      .in('id', produtosIds);
+    // Primeiro buscar limites específicos da tabela
+    const { data: limitesTabela } = await supabase
+      .from('fabrica_limites_preco_tabela')
+      .select('produto_id, preco_maximo, preco_minimo')
+      .eq('tabela_id', tabelaId)
+      .eq('ativo', true)
+      .in('produto_id', produtosIds);
 
-    if (produtos) {
-      limitesMap = produtos.reduce((acc, p) => {
-        acc[p.id] = {
-          preco_maximo: p.preco_maximo ? Number(p.preco_maximo) : null,
-          preco_minimo: p.preco_minimo ? Number(p.preco_minimo) : null,
+    if (limitesTabela) {
+      limitesTabela.forEach(l => {
+        limitesMap[l.produto_id] = {
+          preco_maximo: l.preco_maximo ? Number(l.preco_maximo) : null,
+          preco_minimo: l.preco_minimo ? Number(l.preco_minimo) : null,
         };
-        return acc;
-      }, {} as Record<string, LimitePreco>);
+      });
+    }
+
+    // Para produtos sem limite específico de tabela, buscar limites globais
+    const produtosSemLimite = produtosIds.filter(id => !limitesMap[id]);
+    if (produtosSemLimite.length > 0) {
+      const { data: produtos } = await supabase
+        .from('fabrica_produtos')
+        .select('id, preco_maximo, preco_minimo')
+        .in('id', produtosSemLimite);
+
+      if (produtos) {
+        produtos.forEach(p => {
+          if (p.preco_maximo || p.preco_minimo) {
+            limitesMap[p.id] = {
+              preco_maximo: p.preco_maximo ? Number(p.preco_maximo) : null,
+              preco_minimo: p.preco_minimo ? Number(p.preco_minimo) : null,
+            };
+          }
+        });
+      }
     }
   }
 

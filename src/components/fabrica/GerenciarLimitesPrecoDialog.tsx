@@ -95,7 +95,7 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
     return tabelas.filter(t => t.ordem < tabelaAtual.ordem);
   }, [tabelas, tabelaSelecionada]);
 
-  // Buscar produtos acabados com limites - corrigido para ACABADO maiúsculo e também incluir acabado minúsculo
+  // Buscar produtos acabados
   const { data: produtos, isLoading } = useQuery({
     queryKey: ['fabrica-produtos-limites'],
     queryFn: async () => {
@@ -106,9 +106,7 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
           codigo,
           nome,
           linha,
-          categoria,
-          preco_maximo,
-          preco_minimo
+          categoria
         `)
         .eq('ativo', true)
         .or('tipo.eq.ACABADO,tipo.eq.acabado')
@@ -116,9 +114,42 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
         .order('nome');
 
       if (error) throw error;
-      return data as ProdutoComLimites[];
+      // Return with empty limits - will be populated from table-specific query
+      return (data || []).map(p => ({
+        ...p,
+        preco_maximo: null,
+        preco_minimo: null,
+      })) as ProdutoComLimites[];
     },
     enabled: open,
+  });
+
+  // Buscar limites específicos da tabela selecionada
+  const { data: limitesTabela, isLoading: isLoadingLimites } = useQuery({
+    queryKey: ['fabrica-limites-tabela', tabelaSelecionada],
+    queryFn: async () => {
+      if (!tabelaSelecionada) return {};
+      
+      const { data, error } = await supabase
+        .from('fabrica_limites_preco_tabela')
+        .select('produto_id, preco_maximo, preco_minimo')
+        .eq('tabela_id', tabelaSelecionada)
+        .eq('ativo', true);
+
+      if (error) throw error;
+      
+      // Mapear por produto_id
+      const limitesPorProduto: Record<string, { preco_maximo: number | null; preco_minimo: number | null }> = {};
+      data?.forEach(l => {
+        limitesPorProduto[l.produto_id] = {
+          preco_maximo: l.preco_maximo,
+          preco_minimo: l.preco_minimo,
+        };
+      });
+      
+      return limitesPorProduto;
+    },
+    enabled: open && !!tabelaSelecionada,
   });
 
   // Buscar preços atuais dos produtos da tabela selecionada
@@ -166,19 +197,21 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
     return grupos;
   }, [produtos]);
 
-  // Inicializar limites editados quando produtos carregam
+  // Inicializar limites editados quando produtos e limites da tabela carregam
   useEffect(() => {
-    if (produtos && Object.keys(limitesEditados).length === 0) {
+    if (produtos && tabelaSelecionada) {
       const limites: Record<string, { preco_maximo: string; preco_minimo: string }> = {};
       produtos.forEach(p => {
+        const limiteTabela = limitesTabela?.[p.id];
         limites[p.id] = {
-          preco_maximo: p.preco_maximo?.toString() || "",
-          preco_minimo: p.preco_minimo?.toString() || "",
+          preco_maximo: limiteTabela?.preco_maximo?.toString() || "",
+          preco_minimo: limiteTabela?.preco_minimo?.toString() || "",
         };
       });
       setLimitesEditados(limites);
+      setProdutosAlterados(new Set()); // Reset alterações ao mudar de tabela
     }
-  }, [produtos]);
+  }, [produtos, limitesTabela, tabelaSelecionada]);
 
   // Reset ao fechar
   useEffect(() => {
@@ -203,41 +236,82 @@ export function GerenciarLimitesPrecoDialog({ open, onOpenChange }: Props) {
     }
   }, [categorias, produtos]);
 
-  // Mutation para salvar limites
+  // Mutation para salvar limites - agora salva na tabela específica por tabela
   const salvarMutation = useMutation({
     mutationFn: async () => {
+      if (!tabelaSelecionada) throw new Error("Selecione uma tabela primeiro");
+
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+
       const updates = Array.from(produtosAlterados).map(produtoId => {
         const limite = limitesEditados[produtoId];
         return {
-          id: produtoId,
+          tabela_id: tabelaSelecionada,
+          produto_id: produtoId,
           preco_maximo: limite.preco_maximo ? parseFloat(limite.preco_maximo) : null,
           preco_minimo: limite.preco_minimo ? parseFloat(limite.preco_minimo) : null,
+          ativo: true,
+          updated_at: new Date().toISOString(),
+          updated_by: userId,
         };
       });
 
+      // Usar upsert para inserir ou atualizar
       for (const update of updates) {
-        const { error } = await supabase
-          .from('fabrica_produtos')
-          .update({
-            preco_maximo: update.preco_maximo,
-            preco_minimo: update.preco_minimo,
-          })
-          .eq('id', update.id);
+        // Verificar se existe
+        const { data: existing } = await supabase
+          .from('fabrica_limites_preco_tabela')
+          .select('id')
+          .eq('tabela_id', update.tabela_id)
+          .eq('produto_id', update.produto_id)
+          .maybeSingle();
 
-        if (error) throw error;
+        if (existing) {
+          // Atualizar existente
+          const { error } = await supabase
+            .from('fabrica_limites_preco_tabela')
+            .update({
+              preco_maximo: update.preco_maximo,
+              preco_minimo: update.preco_minimo,
+              updated_at: update.updated_at,
+              updated_by: update.updated_by,
+            })
+            .eq('id', existing.id);
+
+          if (error) throw error;
+        } else {
+          // Inserir novo (apenas se tiver algum limite definido)
+          if (update.preco_maximo || update.preco_minimo) {
+            const { error } = await supabase
+              .from('fabrica_limites_preco_tabela')
+              .insert({
+                tabela_id: update.tabela_id,
+                produto_id: update.produto_id,
+                preco_maximo: update.preco_maximo,
+                preco_minimo: update.preco_minimo,
+                created_by: userId,
+              });
+
+            if (error) throw error;
+          }
+        }
       }
 
       // Registrar auditoria
       await supabase.from('audit_logs').insert({
-        action: 'UPDATE_LIMITES_PRECO',
-        entity_type: 'fabrica_produtos',
-        metadata: { produtos_atualizados: updates.length },
+        action: 'UPDATE_LIMITES_PRECO_TABELA',
+        entity_type: 'fabrica_limites_preco_tabela',
+        metadata: { 
+          tabela_id: tabelaSelecionada,
+          produtos_atualizados: updates.length 
+        },
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['fabrica-produtos-limites'] });
-      queryClient.invalidateQueries({ queryKey: ['fabrica-produtos'] });
-      toast({ title: "Limites salvos", description: `${produtosAlterados.size} produto(s) atualizado(s)` });
+      queryClient.invalidateQueries({ queryKey: ['fabrica-limites-tabela', tabelaSelecionada] });
+      queryClient.invalidateQueries({ queryKey: ['fabrica-precos-produtos'] });
+      toast({ title: "Limites salvos", description: `${produtosAlterados.size} produto(s) atualizado(s) para esta tabela` });
       setProdutosAlterados(new Set());
     },
     onError: (error: any) => {
