@@ -4815,6 +4815,63 @@ export type Database = {
           },
         ]
       }
+      fabrica_limites_preco_tabela: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          observacoes: string | null
+          preco_maximo: number | null
+          preco_minimo: number | null
+          produto_id: string
+          tabela_id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          preco_maximo?: number | null
+          preco_minimo?: number | null
+          produto_id: string
+          tabela_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          preco_maximo?: number | null
+          preco_minimo?: number | null
+          produto_id?: string
+          tabela_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_limites_preco_tabela_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_limites_preco_tabela_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_lotes: {
         Row: {
           codigo_lote: string
