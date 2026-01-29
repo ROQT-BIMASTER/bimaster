@@ -71,6 +71,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { HistoricoPrecoProduto } from "./HistoricoPrecoProduto";
+import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 
 // Keys para localStorage
 const STORAGE_KEY_COLUMN_ORDER = "fabrica-matriz-column-order";
@@ -243,6 +244,9 @@ export function MatrizPrecosComparativa() {
   const [columnColors, setColumnColors] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
   
+  // Hook de permissões de tabelas
+  const { filterTablesByAccess, canViewTable, loading: accessLoading } = useUserPriceTableAccess();
+  
   // Estado do histórico
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [historicoData, setHistoricoData] = useState<{
@@ -367,22 +371,26 @@ export function MatrizPrecosComparativa() {
     };
   }, [precosData]);
 
-  // Tabelas ordenadas conforme drag-and-drop (filtrando IDs inexistentes)
+  // Tabelas ordenadas conforme drag-and-drop (filtrando IDs inexistentes e baseado em permissões)
   const tabelasOrdenadas = useMemo(() => {
     if (!tabelas) return [];
-    if (columnOrder.length === 0) return tabelas;
+    
+    // Filtrar tabelas baseado nas permissões do usuário
+    const tabelasPermitidas = filterTablesByAccess(tabelas);
+    
+    if (columnOrder.length === 0) return tabelasPermitidas;
     
     // Usar ordem salva, filtrando IDs que não existem mais
     const ordenadas = columnOrder
-      .map(id => tabelas.find(t => t.id === id))
+      .map(id => tabelasPermitidas.find(t => t.id === id))
       .filter((t): t is TabelaPreco => t !== undefined);
     
     // Adicionar novas tabelas que não estão na ordem salva
     const idsNaOrdem = new Set(columnOrder);
-    const novasTabelas = tabelas.filter(t => !idsNaOrdem.has(t.id));
+    const novasTabelas = tabelasPermitidas.filter(t => !idsNaOrdem.has(t.id));
     
     return [...ordenadas, ...novasTabelas];
-  }, [tabelas, columnOrder]);
+  }, [tabelas, columnOrder, filterTablesByAccess]);
 
   // Encontrar tabela de origem (primeira da cadeia)
   const tabelaOrigem = useMemo(() => {

@@ -1,17 +1,23 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowDown, Factory, DollarSign } from "lucide-react";
+import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 
 interface Props {
   tabelas: any[];
 }
 
 export function CadeiaPrecificacaoVisual({ tabelas }: Props) {
+  const { filterTablesByAccess, loading } = useUserPriceTableAccess();
+
+  // Filtrar tabelas baseado nas permissões do usuário
+  const tabelasFiltradas = filterTablesByAccess(tabelas);
+
   // Organizar tabelas por hierarquia
-  const tabelasRaiz = tabelas.filter(t => !t.tabela_base_id && t.ativo);
+  const tabelasRaiz = tabelasFiltradas.filter(t => !t.tabela_base_id && t.ativo);
   
   const construirArvore = (tabelaId: string, nivel = 0): any[] => {
-    const filhas = tabelas.filter(t => t.tabela_base_id === tabelaId && t.ativo);
+    const filhas = tabelasFiltradas.filter(t => t.tabela_base_id === tabelaId && t.ativo);
     return filhas.map(filha => ({
       ...filha,
       nivel,
@@ -83,10 +89,18 @@ export function CadeiaPrecificacaoVisual({ tabelas }: Props) {
     );
   };
 
-  if (tabelas.length === 0) {
+  if (loading) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Nenhuma tabela de preço cadastrada
+        Carregando...
+      </div>
+    );
+  }
+
+  if (tabelasFiltradas.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Nenhuma tabela de preço disponível
       </div>
     );
   }

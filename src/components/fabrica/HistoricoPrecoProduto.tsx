@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -36,6 +36,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 
 interface Props {
   open: boolean;
@@ -78,6 +79,9 @@ interface CadeiaCalculo {
 export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNome, tabelaId }: Props) {
   const [periodoFiltro, setPeriodoFiltro] = useState("6m");
   const [cadeiaExpandida, setCadeiaExpandida] = useState(true);
+  
+  // Hook de permissões de tabelas
+  const { filterTablesByAccess, canViewTable } = useUserPriceTableAccess();
 
   const getDataInicio = () => {
     const hoje = new Date();
@@ -91,7 +95,7 @@ export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNo
   };
 
   // Buscar todas as tabelas para montar a cadeia
-  const { data: tabelas } = useQuery({
+  const { data: tabelasRaw } = useQuery({
     queryKey: ["tabelas-preco-cadeia"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -104,6 +108,12 @@ export function HistoricoPrecoProduto({ open, onOpenChange, produtoId, produtoNo
     },
     enabled: open,
   });
+
+  // Filtrar tabelas baseado nas permissões
+  const tabelas = useMemo(() => {
+    if (!tabelasRaw) return [];
+    return filterTablesByAccess(tabelasRaw);
+  }, [tabelasRaw, filterTablesByAccess]);
 
   // Buscar todos os preços do produto em todas as tabelas
   const { data: precosProduto } = useQuery({
