@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3, HelpCircle, Shield, ListTodo } from "lucide-react";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 import { NovaTabelaPrecoDialog } from "@/components/fabrica/NovaTabelaPrecoDialog";
 import { CadeiaPrecificacaoVisual } from "@/components/fabrica/CadeiaPrecificacaoVisual";
 import { GeradorPrecosDialog } from "@/components/fabrica/GeradorPrecosDialog";
@@ -36,6 +37,7 @@ import { toast } from "sonner";
 
 export default function FabricaTabelasPreco() {
   const { hasPermission, loading: permLoading } = useScreenPermissions();
+  const { filterTablesByAccess, loading: accessLoading, canViewTable, canEditTable } = useUserPriceTableAccess();
   const [dialogNovaTabela, setDialogNovaTabela] = useState(false);
   const [dialogGerarPrecos, setDialogGerarPrecos] = useState(false);
   const [dialogVisualizacao, setDialogVisualizacao] = useState(false);
@@ -134,7 +136,7 @@ export default function FabricaTabelasPreco() {
     },
   });
 
-  if (permLoading) {
+  if (permLoading || accessLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-96">
@@ -156,8 +158,10 @@ export default function FabricaTabelasPreco() {
     );
   }
 
-  const tabelasAtivas = tabelas?.filter(t => t.ativo) || [];
-  const totalProdutosPrecificados = tabelas?.reduce(
+  // Filtrar tabelas baseado nas permissões do usuário
+  const tabelasFiltradas = filterTablesByAccess(tabelas || []);
+  const tabelasAtivas = tabelasFiltradas.filter(t => t.ativo);
+  const totalProdutosPrecificados = tabelasFiltradas.reduce(
     (acc, t) => acc + (t.precos_count?.[0]?.count || 0),
     0
   ) || 0;
@@ -264,7 +268,7 @@ export default function FabricaTabelasPreco() {
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-6">
-            <DashboardPrecosAnalytics tabelas={tabelas || []} precos={todosPrecos || []} />
+            <DashboardPrecosAnalytics tabelas={tabelasFiltradas} precos={todosPrecos || []} />
           </TabsContent>
 
           <TabsContent value="alertas" className="mt-6">
@@ -282,7 +286,7 @@ export default function FabricaTabelasPreco() {
                 <CardContent>
                   <div className="text-2xl font-bold">{tabelasAtivas.length}</div>
                   <p className="text-xs text-muted-foreground">
-                    {tabelas?.length || 0} no total
+                    {tabelasFiltradas.length} no total
                   </p>
                 </CardContent>
               </Card>
@@ -307,8 +311,8 @@ export default function FabricaTabelasPreco() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {tabelas?.[0]?.updated_at
-                      ? format(new Date(tabelas[0].updated_at), "dd/MM", { locale: ptBR })
+                    {tabelasFiltradas[0]?.updated_at
+                      ? format(new Date(tabelasFiltradas[0].updated_at), "dd/MM", { locale: ptBR })
                       : "-"}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -337,7 +341,7 @@ export default function FabricaTabelasPreco() {
                 <CardTitle>Cadeia de Precificação</CardTitle>
               </CardHeader>
               <CardContent>
-                <CadeiaPrecificacaoVisual tabelas={tabelas || []} />
+                <CadeiaPrecificacaoVisual tabelas={tabelasFiltradas} />
               </CardContent>
             </Card>
 
@@ -349,13 +353,13 @@ export default function FabricaTabelasPreco() {
               <CardContent>
                 {isLoading ? (
                   <div className="text-center py-8 text-muted-foreground">Carregando...</div>
-                ) : tabelas?.length === 0 ? (
+                ) : tabelasFiltradas.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    Nenhuma tabela de preço cadastrada
+                    Nenhuma tabela de preço disponível
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {tabelas?.map((tabela) => (
+                    {tabelasFiltradas.map((tabela) => (
                       <Card key={tabela.id} className="border-l-4" style={{
                         borderLeftColor: tabela.ativo ? 'hsl(var(--primary))' : 'hsl(var(--muted))'
                       }}>
