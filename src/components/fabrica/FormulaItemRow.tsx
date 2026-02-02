@@ -145,9 +145,9 @@ export function FormulaItemRow({
           <div className="md:col-span-1">
             <Input
               type="number"
-              value={item.ordem_adicao}
+              value={item.ordem_adicao || ""}
               onChange={(e) =>
-                onUpdate(index, "ordem_adicao", parseInt(e.target.value))
+                onUpdate(index, "ordem_adicao", e.target.value ? parseInt(e.target.value) : 1)
               }
               min="1"
               className="text-center"
@@ -189,9 +189,9 @@ export function FormulaItemRow({
             <div className="relative">
               <Input
                 type="number"
-                value={item.quantidade}
+                value={item.quantidade || ""}
                 onChange={(e) =>
-                  onUpdate(index, "quantidade", parseFloat(e.target.value))
+                  onUpdate(index, "quantidade", e.target.value ? parseFloat(e.target.value) : 0)
                 }
                 step="0.01"
                 placeholder="Qtd"
@@ -208,9 +208,9 @@ export function FormulaItemRow({
             <div className="relative">
               <Input
                 type="number"
-                value={item.percentual}
+                value={item.percentual || ""}
                 onChange={(e) =>
-                  onUpdate(index, "percentual", parseFloat(e.target.value))
+                  onUpdate(index, "percentual", e.target.value ? parseFloat(e.target.value) : 0)
                 }
                 step="0.01"
                 placeholder="%"
