@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, Pause, Wrench, List, Bot, Wallet
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, Pause, Wrench, List, Bot, Wallet, Grid3X3
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -345,6 +345,7 @@ export function AppSidebar() {
 
   const precosSubMenus = [
     { title: "Dashboard", url: "/dashboard/precos", icon: Home, end: true, screenCode: "precos_dashboard" },
+    { title: "Matriz Comparativa", url: "/dashboard/precos/matriz", icon: Grid3X3, screenCode: "precos_matriz" },
     { title: "Gerenciar Tabelas", url: "/dashboard/precos/tabelas", icon: Receipt, screenCode: "precos_tabelas" },
     { title: "Aprovação", url: "/dashboard/precos/aprovacao", icon: CheckSquare, screenCode: "precos_aprovacao" },
     { title: "Portal Cliente", url: "/dashboard/precos/portal-cliente", icon: Users, screenCode: "precos_portal" },
