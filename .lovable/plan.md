@@ -1,124 +1,116 @@
 
-# Plano: Adicionar Botão de Voltar nas Telas de Trade Marketing
+# Plano: Restringir Módulo Administrativo de Trade à Milene
 
 ## Objetivo
-Adicionar o botão "Voltar" em todas as telas do módulo Trade Marketing para melhorar a navegação, especialmente para usuários do Financeiro que acessam essas telas.
+Configurar o sistema para que apenas a funcionária **Milene Harumi** tenha acesso ao módulo Administrativo do Trade Marketing (`/dashboard/trade/admin`).
 
 ---
 
 ## Situação Atual
 
-### Telas que JÁ possuem navegação de retorno:
-- **TradeVisits** - Usa `ModuleBreadcrumb` 
-- **TradeAprovacoes** - Botão de voltar para `/dashboard/trade/financeiro`
-- **TradeLancamentos** - Botão de voltar para `/dashboard/trade/financeiro`
-- **TradeAdminApprovalLevels** - Botão de voltar para `/dashboard/trade/admin`
-- **TradeAdminUsers** - Botão de voltar para `/dashboard/trade/admin`
-- **TradeCampaignDetail** - Botão de voltar com `navigate(-1)`
-- **TradePhotos, TradeStores, TradeSellOut** - Usam `TradePageHeader` com voltar
+### Usuária Identificada:
+| Nome | Email | ID | Role |
+|------|-------|-----|------|
+| Milene Harumi | m.harumi@rubyrose.com.br | `7eb17733-d824-4758-8ddf-7b9606ef4991` | supervisor |
 
-### Telas que PRECISAM do botão de voltar (15 páginas):
-
-| Página | Destino do Voltar |
-|--------|-------------------|
-| TradeCampaigns | `/dashboard/trade/financeiro` |
-| TradeCompetitors | `/dashboard/trade` |
-| TradeFinanceiro | `/dashboard/trade` |
-| TradeVerbasSemestrais | `/dashboard/trade/financeiro` |
-| TradeContasCorrentes | `/dashboard/trade/financeiro` |
-| TradeStoreChains | `/dashboard/trade` |
-| TradeCalendar | `/dashboard/trade` |
-| TradeIdealPhotos | `/dashboard/trade` |
-| TradeInsights | `/dashboard/trade` |
-| TradePerformance | `/dashboard/trade` |
-| TradeShelfMeasurements | `/dashboard/trade` |
-| TradeLancamentosCampanhas | `/dashboard/trade/financeiro` |
-| TradeReportCampaigns | `/dashboard/trade/admin` |
-| TradeReportClients | `/dashboard/trade/admin` |
-| TradeReportSellers | `/dashboard/trade/admin` |
+### Problema Identificado:
+- O código da tela `trade_admin` **não existe** na tabela `telas_sistema`
+- O componente `TradeAdminModule.tsx` verifica `trade_marketing` (permissão de módulo) ao invés de `trade_admin` (permissão de tela específica)
+- Isso faz com que qualquer pessoa com acesso ao módulo Trade também veja o Administrativo
 
 ---
 
-## Padrão de Implementação
+## Alterações Propostas
 
-Usarei o componente `ModuleBreadcrumb` já existente, que fornece:
-- Botão "Voltar" com ícone de seta
-- Breadcrumb mostrando a hierarquia de navegação (Módulo > Página Atual)
+### 1. Banco de Dados
 
-Exemplo de uso:
-```tsx
-import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
+**Criar a tela `trade_admin`:**
+```sql
+INSERT INTO telas_sistema (codigo, nome, descricao, modulo_codigo, rota, icone, ordem)
+VALUES ('trade_admin', 'Administrativo Trade', 'Módulo administrativo do Trade Marketing', 'trade', '/dashboard/trade/admin', 'Settings', 0);
+```
 
-<ModuleBreadcrumb 
-  moduleName="Trade Marketing" 
-  moduleHref="/dashboard/trade" 
-  currentPage="Nome da Página" 
-/>
+**Atribuir permissão exclusiva para Milene:**
+```sql
+INSERT INTO usuario_permissoes_telas (usuario_id, tela_id)
+SELECT '7eb17733-d824-4758-8ddf-7b9606ef4991', id 
+FROM telas_sistema WHERE codigo = 'trade_admin';
 ```
 
 ---
 
-## Benefícios
+### 2. Código Frontend
 
-- Navegação consistente em todo o módulo Trade
-- Facilidade para usuários do Financeiro voltarem às suas telas
-- Breadcrumb visual mostrando o contexto de navegação
-- Padrão unificado usando componente existente
+**Arquivo: `src/pages/modules/TradeAdminModule.tsx`**
+
+Alterar a verificação de permissão de `trade_marketing` para `trade_admin`:
+
+```tsx
+// De:
+if (!permissionsLoading && !hasPermission("trade_marketing")) {
+  return <Navigate to="/dashboard" replace />;
+}
+
+// Para:
+if (!permissionsLoading && !hasPermission("trade_admin")) {
+  return <Navigate to="/dashboard/trade" replace />;
+}
+```
+
+---
+
+### 3. Rotas (App.tsx)
+
+Adicionar proteção de tela nas rotas administrativas usando `ScreenProtectedRoute`:
+
+```tsx
+<Route path="/dashboard/trade/admin" element={
+  <ProtectedRoute>
+    <ScreenProtectedRoute screenCode="trade_admin">
+      <TradeAdminModule />
+    </ScreenProtectedRoute>
+  </ProtectedRoute>
+} />
+```
+
+---
+
+## Resumo das Alterações
+
+| Tipo | Descrição |
+|------|-----------|
+| 🗄️ Banco | Criar tela `trade_admin` em `telas_sistema` |
+| 🗄️ Banco | Atribuir permissão da tela apenas para Milene |
+| 💻 Código | Ajustar verificação no `TradeAdminModule.tsx` |
+| 💻 Código | Adicionar `ScreenProtectedRoute` nas rotas admin |
+
+---
+
+## Resultado Esperado
+
+- ✅ Apenas Milene Harumi verá o menu "Administrativo" no Trade Marketing
+- ✅ Tentativas de acesso direto via URL por outros usuários serão bloqueadas
+- ✅ Para dar acesso a outras pessoas no futuro, basta adicionar na tabela `usuario_permissoes_telas`
 
 ---
 
 ## Detalhes Técnicos
 
-### Arquivos a Modificar (15 arquivos):
+### Arquivos a Modificar:
+1. `src/pages/modules/TradeAdminModule.tsx` - Alterar verificação de permissão
+2. `src/App.tsx` - Adicionar ScreenProtectedRoute nas rotas administrativas
 
-1. `src/pages/TradeCampaigns.tsx`
-2. `src/pages/TradeCompetitors.tsx`
-3. `src/pages/TradeFinanceiro.tsx`
-4. `src/pages/TradeVerbasSemestrais.tsx`
-5. `src/pages/TradeContasCorrentes.tsx`
-6. `src/pages/TradeStoreChains.tsx`
-7. `src/pages/TradeCalendar.tsx`
-8. `src/pages/TradeIdealPhotos.tsx`
-9. `src/pages/TradeInsights.tsx`
-10. `src/pages/TradePerformance.tsx`
-11. `src/pages/TradeShelfMeasurements.tsx`
-12. `src/pages/TradeLancamentosCampanhas.tsx`
-13. `src/pages/trade/reports/TradeReportCampaigns.tsx`
-14. `src/pages/trade/reports/TradeReportClients.tsx`
-15. `src/pages/trade/reports/TradeReportSellers.tsx`
+### Migração SQL Completa:
+```sql
+-- 1. Criar a tela trade_admin
+INSERT INTO telas_sistema (codigo, nome, descricao, modulo_codigo, rota, icone, ordem, ativo)
+VALUES ('trade_admin', 'Administrativo Trade', 'Módulo administrativo do Trade Marketing', 'trade', '/dashboard/trade/admin', 'Settings', 0, true)
+ON CONFLICT (codigo) DO NOTHING;
 
-### Exemplo de Modificação
-
-Antes:
-```tsx
-<DashboardLayout>
-  <div className="space-y-6">
-    <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-3xl font-bold">Título</h1>
-        <p className="text-muted-foreground">Descrição</p>
-      </div>
+-- 2. Atribuir permissão exclusiva para Milene Harumi
+INSERT INTO usuario_permissoes_telas (usuario_id, tela_id)
+SELECT '7eb17733-d824-4758-8ddf-7b9606ef4991', id 
+FROM telas_sistema 
+WHERE codigo = 'trade_admin'
+ON CONFLICT DO NOTHING;
 ```
-
-Depois:
-```tsx
-<DashboardLayout>
-  <div className="space-y-6">
-    <ModuleBreadcrumb 
-      moduleName="Trade Marketing" 
-      moduleHref="/dashboard/trade" 
-      currentPage="Nome da Página" 
-    />
-    <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-3xl font-bold">Título</h1>
-        <p className="text-muted-foreground">Descrição</p>
-      </div>
-```
-
-### Mapeamento de Páginas e Contextos
-
-Para páginas dentro de sub-módulos, o breadcrumb refletirá a hierarquia:
-- Páginas sob `/trade/financeiro/*` → moduleHref: `/dashboard/trade/financeiro`
-- Páginas sob `/trade/admin/*` → moduleHref: `/dashboard/trade/admin`
-- Páginas diretas do Trade → moduleHref: `/dashboard/trade`
