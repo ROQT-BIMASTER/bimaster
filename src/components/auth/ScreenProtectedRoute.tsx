@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { AccessDenied } from "@/components/common/AccessDenied";
 
 interface ScreenProtectedRouteProps {
@@ -13,6 +14,7 @@ interface ScreenProtectedRouteProps {
 /**
  * Protege rotas verificando se o usuário tem permissão à tela específica.
  * Deve ser usado DENTRO de ProtectedRoute para autenticação.
+ * Respeita o modo de impersonação quando ativo.
  */
 export const ScreenProtectedRoute = ({ 
   children, 
@@ -21,7 +23,8 @@ export const ScreenProtectedRoute = ({
   showAccessDenied = true
 }: ScreenProtectedRouteProps) => {
   const { session } = useAuth();
-  const { hasScreenPermission, loading } = usePermissions();
+  const { loading } = usePermissions();
+  const { hasScreenPermission } = useImpersonation();
 
   // Se não há sessão, deixa o ProtectedRoute lidar
   if (!session) {

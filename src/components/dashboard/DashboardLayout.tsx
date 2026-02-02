@@ -10,6 +10,9 @@ import { WifiOff, Wifi } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
+import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
+import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -63,9 +66,14 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     return null;
   }
 
+  const { isImpersonating } = useImpersonation();
+
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      {/* Banner de impersonação - sempre visível no topo */}
+      <ImpersonationBanner />
+      
+      <div className={`min-h-screen flex w-full ${isImpersonating ? 'pt-12' : ''}`}>
         <AppSidebar />
         <main className="flex-1">
           <header className="h-14 border-b flex items-center justify-between px-4 bg-card">
@@ -74,6 +82,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <h1 className="text-lg font-semibold">CRM - Gestão de Prospects</h1>
             </div>
             <div className="flex items-center gap-4">
+              <ImpersonationSelector />
               <NotificationBell />
               <img src={logoUnion} alt="Logo Union - Sistema de Gestão Huggs" className="h-10" />
             </div>
