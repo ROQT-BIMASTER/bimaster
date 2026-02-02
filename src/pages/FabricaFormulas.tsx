@@ -17,10 +17,11 @@ export default function FabricaFormulas() {
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
 
-  const { data: formulas, isLoading } = useQuery({
+  const { data: formulas, isLoading, error } = useQuery({
     queryKey: ["fabrica-formulas"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Primeiro, buscar as fórmulas com seus produtos
+      const { data: formulasData, error: formulasError } = await supabase
         .from("fabrica_formulas")
         .select(`
           *,
@@ -28,15 +29,33 @@ export default function FabricaFormulas() {
             id,
             nome,
             codigo
-          ),
-          fabrica_formula_itens (count)
+          )
         `)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (formulasError) throw formulasError;
+      
+      // Buscar contagem de itens para cada fórmula
+      const formulasComContagem = await Promise.all(
+        (formulasData || []).map(async (formula) => {
+          const { count } = await supabase
+            .from("fabrica_formula_itens")
+            .select("*", { count: "exact", head: true })
+            .eq("formula_id", formula.id);
+          
+          return {
+            ...formula,
+            itens_count: count || 0
+          };
+        })
+      );
+
+      return formulasComContagem;
     },
   });
+
+  // Log para debug
+  console.log("Formulas carregadas:", formulas, "Erro:", error);
 
   const formulasFiltradas = formulas?.filter((formula) => {
     const produto = formula.fabrica_produtos;
@@ -125,7 +144,7 @@ export default function FabricaFormulas() {
           ) : formulasFiltradas && formulasFiltradas.length > 0 ? (
             formulasFiltradas.map((formula) => {
               const produto = formula.fabrica_produtos;
-              const numItens = formula.fabrica_formula_itens?.[0]?.count || 0;
+              const numItens = formula.itens_count || 0;
 
               return (
                 <Card
