@@ -60,7 +60,6 @@ export function useTradeFinanceiroDashboard() {
           id,
           name,
           status,
-          budget_amount,
           start_date,
           end_date
         `)
