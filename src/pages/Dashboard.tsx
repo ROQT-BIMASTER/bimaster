@@ -14,6 +14,8 @@ import { AIInsightsChat } from "@/components/chat/AIInsightsChat";
 import { ProspectsDashboardWidget } from "@/components/dashboard/ProspectsDashboardWidget";
 import { TradeDashboardWidget } from "@/components/dashboard/TradeDashboardWidget";
 import { FinanceiroDashboardWidget } from "@/components/dashboard/FinanceiroDashboardWidget";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PushNotificationPrompt } from "@/components/pwa/PushNotificationPrompt";
@@ -31,8 +33,19 @@ interface ActivityData {
 }
 
 const Dashboard = () => {
-  // Usar contexto centralizado de permissões
-  const { hasModulePermission, isAdmin, loading: permissionsLoading } = usePermissions();
+  // Usar hooks que respeitam impersonação
+  const { hasModulePermission, loading: permissionsLoading } = useModulePermissions();
+  const { isAdmin: realIsAdmin } = usePermissions();
+  const { isImpersonating, impersonatedPermissions } = useImpersonation();
+  
+  // isAdmin efetivo: usa permissões do usuário impersonado se ativo
+  const effectiveIsAdmin = useMemo(() => {
+    if (isImpersonating && impersonatedPermissions) {
+      return impersonatedPermissions.isAdmin;
+    }
+    return realIsAdmin;
+  }, [isImpersonating, impersonatedPermissions, realIsAdmin]);
+
   const [pipelineData, setPipelineData] = useState<PipelineData[]>([]);
   const [activityData, setActivityData] = useState<ActivityData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -201,7 +214,7 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {isAdmin && <MetricasDistribuicao />}
+        {effectiveIsAdmin && <MetricasDistribuicao />}
 
         {/* Prompt para ativar notificações push */}
         <PushNotificationPrompt />
