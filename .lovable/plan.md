@@ -1,116 +1,78 @@
 
-# Plano: Restringir Módulo Administrativo de Trade à Milene
-
-## Objetivo
-Configurar o sistema para que apenas a funcionária **Milene Harumi** tenha acesso ao módulo Administrativo do Trade Marketing (`/dashboard/trade/admin`).
-
----
+# Revisão de Segurança: Acesso ao Módulo Administrativo Trade
 
 ## Situação Atual
 
-### Usuária Identificada:
-| Nome | Email | ID | Role |
-|------|-------|-----|------|
-| Milene Harumi | m.harumi@rubyrose.com.br | `7eb17733-d824-4758-8ddf-7b9606ef4991` | supervisor |
+A configuração está **quase correta**, mas há um ponto de melhoria a ser feito.
 
-### Problema Identificado:
-- O código da tela `trade_admin` **não existe** na tabela `telas_sistema`
-- O componente `TradeAdminModule.tsx` verifica `trade_marketing` (permissão de módulo) ao invés de `trade_admin` (permissão de tela específica)
-- Isso faz com que qualquer pessoa com acesso ao módulo Trade também veja o Administrativo
+### O que está funcionando corretamente:
 
----
+| Componente | Status | Detalhes |
+|------------|--------|----------|
+| Tela `trade_admin` | ✅ Criada | Existe na tabela `telas_sistema` |
+| Permissão da Milene | ✅ Atribuída | Única pessoa na `usuario_permissoes_telas` com `trade_admin` |
+| Sidebar (AppSidebar) | ✅ Protegido | Filtra por `screenCode`, só mostra se tiver permissão |
+| Rotas (App.tsx) | ✅ Protegidas | Usa `ScreenProtectedRoute` com `trade_admin` |
+| TradeAdminModule | ✅ Protegido | Verifica `trade_admin` antes de renderizar |
 
-## Alterações Propostas
+### Problema identificado:
 
-### 1. Banco de Dados
+| Problema | Local | Impacto |
+|----------|-------|---------|
+| Link visível sem verificação | `TradeModule.tsx` linha 80 | Qualquer pessoa com Trade pode VER o link (mas não acessar) |
 
-**Criar a tela `trade_admin`:**
-```sql
-INSERT INTO telas_sistema (codigo, nome, descricao, modulo_codigo, rota, icone, ordem)
-VALUES ('trade_admin', 'Administrativo Trade', 'Módulo administrativo do Trade Marketing', 'trade', '/dashboard/trade/admin', 'Settings', 0);
-```
-
-**Atribuir permissão exclusiva para Milene:**
-```sql
-INSERT INTO usuario_permissoes_telas (usuario_id, tela_id)
-SELECT '7eb17733-d824-4758-8ddf-7b9606ef4991', id 
-FROM telas_sistema WHERE codigo = 'trade_admin';
-```
+O link "Campanhas & Verbas" no menu do TradeModule é mostrado para todos os usuários com acesso ao Trade, mas ao clicar, eles são redirecionados por não terem permissão. Isso pode confundir os usuários.
 
 ---
 
-### 2. Código Frontend
+## Nota sobre Administradores
 
-**Arquivo: `src/pages/modules/TradeAdminModule.tsx`**
+O usuário **Leandro (admin)** também consegue acessar o módulo administrativo porque, por design de segurança, administradores têm acesso total a todas as telas (`isAdmin = true` retorna `true` para qualquer permissão).
 
-Alterar a verificação de permissão de `trade_marketing` para `trade_admin`:
+Se você deseja bloquear **inclusive administradores**, isso requer uma mudança significativa na lógica de permissões do sistema.
+
+---
+
+## Correção Proposta
+
+Ocultar o link "Administrativo" no `TradeModule.tsx` para quem não tem permissão:
+
+**Arquivo:** `src/pages/modules/TradeModule.tsx`
+
+**Alteração:** Adicionar verificação de permissão antes de mostrar a seção "Administrativo":
 
 ```tsx
-// De:
-if (!permissionsLoading && !hasPermission("trade_marketing")) {
-  return <Navigate to="/dashboard" replace />;
-}
+// De (linha 78-81):
+const secondaryModules = {
+  "Administrativo": [
+    { title: "Campanhas & Verbas", to: "/dashboard/trade/admin", ... },
+  ],
+  // ...
+};
 
 // Para:
-if (!permissionsLoading && !hasPermission("trade_admin")) {
-  return <Navigate to="/dashboard/trade" replace />;
-}
-```
-
----
-
-### 3. Rotas (App.tsx)
-
-Adicionar proteção de tela nas rotas administrativas usando `ScreenProtectedRoute`:
-
-```tsx
-<Route path="/dashboard/trade/admin" element={
-  <ProtectedRoute>
-    <ScreenProtectedRoute screenCode="trade_admin">
-      <TradeAdminModule />
-    </ScreenProtectedRoute>
-  </ProtectedRoute>
-} />
+const secondaryModules = {
+  ...(hasPermission("trade_admin") ? {
+    "Administrativo": [
+      { title: "Campanhas & Verbas", to: "/dashboard/trade/admin", ... },
+    ],
+  } : {}),
+  // ...
+};
 ```
 
 ---
 
 ## Resumo das Alterações
 
-| Tipo | Descrição |
-|------|-----------|
-| 🗄️ Banco | Criar tela `trade_admin` em `telas_sistema` |
-| 🗄️ Banco | Atribuir permissão da tela apenas para Milene |
-| 💻 Código | Ajustar verificação no `TradeAdminModule.tsx` |
-| 💻 Código | Adicionar `ScreenProtectedRoute` nas rotas admin |
+| Tipo | Arquivo | Descrição |
+|------|---------|-----------|
+| 🔒 Código | `TradeModule.tsx` | Esconder seção "Administrativo" para quem não tem permissão |
 
 ---
 
 ## Resultado Esperado
 
-- ✅ Apenas Milene Harumi verá o menu "Administrativo" no Trade Marketing
-- ✅ Tentativas de acesso direto via URL por outros usuários serão bloqueadas
-- ✅ Para dar acesso a outras pessoas no futuro, basta adicionar na tabela `usuario_permissoes_telas`
-
----
-
-## Detalhes Técnicos
-
-### Arquivos a Modificar:
-1. `src/pages/modules/TradeAdminModule.tsx` - Alterar verificação de permissão
-2. `src/App.tsx` - Adicionar ScreenProtectedRoute nas rotas administrativas
-
-### Migração SQL Completa:
-```sql
--- 1. Criar a tela trade_admin
-INSERT INTO telas_sistema (codigo, nome, descricao, modulo_codigo, rota, icone, ordem, ativo)
-VALUES ('trade_admin', 'Administrativo Trade', 'Módulo administrativo do Trade Marketing', 'trade', '/dashboard/trade/admin', 'Settings', 0, true)
-ON CONFLICT (codigo) DO NOTHING;
-
--- 2. Atribuir permissão exclusiva para Milene Harumi
-INSERT INTO usuario_permissoes_telas (usuario_id, tela_id)
-SELECT '7eb17733-d824-4758-8ddf-7b9606ef4991', id 
-FROM telas_sistema 
-WHERE codigo = 'trade_admin'
-ON CONFLICT DO NOTHING;
-```
+- ✅ O link "Administrativo" só aparece para Milene e administradores do sistema
+- ✅ Outros usuários do Trade não verão mais o link confuso
+- ✅ As rotas continuam protegidas por camada dupla de segurança
