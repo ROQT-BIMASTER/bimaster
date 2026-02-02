@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DetalhesNotaFiscalDialog } from "@/components/fabrica/DetalhesNotaFiscalDialog";
 import { MapearProdutosDialog } from "@/components/fabrica/MapearProdutosDialog";
+import { TourButton } from "@/components/tour/TourButton";
+import { FABRICA_RECEBIMENTOS_TOUR_ID, fabricaRecebimentosTourSteps } from "@/components/tour/tours/fabricaRecebimentosTour";
 
 interface NotaFiscal {
   id: string;
@@ -158,7 +160,7 @@ export default function FabricaRecebimentos() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
+        <div data-tour="receb-header">
           <h1 className="text-3xl font-bold tracking-tight">Recebimento de Matéria-Prima</h1>
           <p className="text-muted-foreground mt-2">
             Importe XML de NF-e e gerencie o recebimento de matérias-primas
@@ -166,7 +168,7 @@ export default function FabricaRecebimentos() {
         </div>
 
         {/* Upload Card */}
-        <Card>
+        <Card data-tour="receb-upload">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5" />
@@ -280,6 +282,13 @@ export default function FabricaRecebimentos() {
         notaId={mapearNotaId}
         open={mapearOpen}
         onOpenChange={setMapearOpen}
+      />
+      
+      <TourButton 
+        tourId={FABRICA_RECEBIMENTOS_TOUR_ID}
+        tourSteps={fabricaRecebimentosTourSteps}
+        title="Tour de Recebimentos"
+        description="Aprenda a importar XMLs e conferir recebimentos"
       />
     </DashboardLayout>
   );

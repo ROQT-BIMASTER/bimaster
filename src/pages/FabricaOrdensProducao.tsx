@@ -16,6 +16,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { TourButton } from "@/components/tour/TourButton";
+import { FABRICA_ORDENS_TOUR_ID, fabricaOrdensTourSteps } from "@/components/tour/tours/fabricaOrdensTour";
 
 export default function FabricaOrdensProducao() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -64,7 +66,7 @@ export default function FabricaOrdensProducao() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div data-tour="ordens-header" className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">
               Ordens de Produção
@@ -73,14 +75,14 @@ export default function FabricaOrdensProducao() {
               Gerencie as ordens de produção
             </p>
           </div>
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button data-tour="ordens-nova" onClick={() => setDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nova Ordem
           </Button>
         </div>
 
         {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div data-tour="ordens-kanban" className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
@@ -231,6 +233,13 @@ export default function FabricaOrdensProducao() {
       <NovaOrdemProducaoDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
+      />
+      
+      <TourButton 
+        tourId={FABRICA_ORDENS_TOUR_ID}
+        tourSteps={fabricaOrdensTourSteps}
+        title="Tour de Ordens de Produção"
+        description="Aprenda a gerenciar ordens e apontamentos"
       />
     </DashboardLayout>
   );
