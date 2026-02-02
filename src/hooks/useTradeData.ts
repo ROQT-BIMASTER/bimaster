@@ -2,9 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 // Hook otimizado para buscar budgets do Trade
-export function useTradeBudgets(options?: { status?: string }) {
+export function useTradeBudgets(options?: { status?: string; includeInactive?: boolean }) {
   return useQuery({
-    queryKey: ['trade-budgets', options?.status],
+    queryKey: ['trade-budgets', options?.status, options?.includeInactive],
     queryFn: async () => {
       let query = supabase
         .from("trade_budgets")
@@ -13,6 +13,11 @@ export function useTradeBudgets(options?: { status?: string }) {
       
       if (options?.status) {
         query = query.eq("status", options.status);
+      }
+      
+      // Por padrão, não incluir verbas inativas
+      if (!options?.includeInactive) {
+        query = query.is("inactivated_at", null);
       }
       
       const { data, error } = await query;

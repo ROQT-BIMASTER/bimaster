@@ -47,7 +47,7 @@ const TradeAdminModule = () => {
     queryFn: async () => {
       const [campaignsRes, budgetsRes, pendingApprovalsRes] = await Promise.all([
         supabase.from("trade_campaigns").select("*"),
-        supabase.from("trade_budgets").select("total_amount, spent_amount, available_amount").eq("status", "active"),
+        supabase.from("trade_budgets").select("total_amount, spent_amount, available_amount").eq("status", "active").is("inactivated_at", null),
         supabase.from("trade_approvals").select("*", { count: "exact", head: true }).eq("status", "pending")
       ]);
 

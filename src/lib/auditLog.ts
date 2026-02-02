@@ -129,3 +129,119 @@ export async function logLancamentoEdit(
     });
   }
 }
+
+// ========== FUNÇÕES DE AUDITORIA PARA VERBAS (BUDGETS) ==========
+
+/**
+ * Registra inativação de uma verba
+ */
+export async function logBudgetInactivate(
+  budgetId: string,
+  budgetName: string,
+  reason: string
+): Promise<void> {
+  await logBudgetAuditAction({
+    budgetId,
+    action: "inactivate_budget",
+    fieldChanged: "status",
+    oldValue: "active",
+    newValue: `Inativada: ${reason}`,
+  });
+}
+
+/**
+ * Registra reativação de uma verba
+ */
+export async function logBudgetReactivate(
+  budgetId: string,
+  budgetName: string
+): Promise<void> {
+  await logBudgetAuditAction({
+    budgetId,
+    action: "reactivate_budget",
+    fieldChanged: "status",
+    oldValue: "inactive",
+    newValue: `Reativada: ${budgetName}`,
+  });
+}
+
+/**
+ * Registra exclusão de uma verba
+ */
+export async function logBudgetDelete(
+  budgetId: string,
+  budgetName: string,
+  reason: string
+): Promise<void> {
+  await logBudgetAuditAction({
+    budgetId,
+    action: "delete_budget",
+    fieldChanged: "status",
+    oldValue: "active",
+    newValue: `Excluída: ${reason}`,
+  });
+}
+
+/**
+ * Registra edição de uma verba
+ */
+export async function logBudgetEdit(
+  budgetId: string,
+  changedFields: { field: string; oldValue: any; newValue: any }[]
+): Promise<void> {
+  for (const change of changedFields) {
+    await logBudgetAuditAction({
+      budgetId,
+      action: "update_budget",
+      fieldChanged: change.field,
+      oldValue: String(change.oldValue),
+      newValue: String(change.newValue),
+    });
+  }
+}
+
+interface BudgetAuditLogEntry {
+  budgetId: string;
+  action: string;
+  fieldChanged?: string;
+  oldValue?: string;
+  newValue?: string;
+}
+
+/**
+ * Registra uma ação no log de auditoria de verbas
+ */
+async function logBudgetAuditAction(entry: BudgetAuditLogEntry): Promise<void> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.warn("[BudgetAuditLog] Usuário não autenticado");
+      return;
+    }
+
+    // Buscar nome do usuário
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("nome")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const { error } = await supabase
+      .from("trade_budget_audit_log")
+      .insert({
+        budget_id: entry.budgetId,
+        action: entry.action,
+        field_changed: entry.fieldChanged || null,
+        old_value: entry.oldValue || null,
+        new_value: entry.newValue || null,
+        user_id: user.id,
+        user_name: profile?.nome || user.email || "Usuário desconhecido",
+      });
+
+    if (error) {
+      console.error("[BudgetAuditLog] Erro ao registrar:", error);
+    }
+  } catch (err) {
+    console.error("[BudgetAuditLog] Erro inesperado:", err);
+  }
+}
