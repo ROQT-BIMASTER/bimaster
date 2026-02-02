@@ -1,141 +1,104 @@
 
-# Excluir/Inativar Verbas com Historico de Auditoria
 
-## Resumo
+# Restringir Contas a Pagar para Fabio e Carlos
 
-Adicionar funcionalidade para excluir ou inativar verbas (budgets) na tela de Verbas Semestrais. Verbas inativas serao exibidas com um risco vermelho (line-through) e nao aparecerao nas demais telas ou controles financeiros do sistema.
+## Situacao Atual
 
-## Alteracoes no Banco de Dados
+### Usuarios que PODEM acessar a tela hoje
 
-### 1. Adicionar campos de exclusao/inativacao na tabela trade_budgets
+| Fonte de Permissao | Usuarios Afetados |
+|-------------------|-------------------|
+| Role vendedor | TODOS os vendedores (configuraçao global) |
+| Departamento Financeiro | Leandro Ramos, C. Guimarães, F. Cazarotti |
+| Permissao Individual | Erika, Leandro Ramos, F. Cazarotti, Lucas Machado, Juliana Germinhasi, Administrador Sistema, C. Guimarães |
+| Admin (automatico) | Leandro Moraes Ramos |
 
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| inactivated_at | TIMESTAMP | Data/hora da inativacao |
-| inactivated_by | UUID | Usuario que inativou |
-| inactivated_reason | TEXT | Motivo da inativacao |
+### Usuarios DESEJADOS
 
-### 2. Criar tabela de auditoria para verbas
+| Usuario | Email | ID |
+|---------|-------|-----|
+| F. Cazarotti (Fabio) | f.cazarotti@rubyrosemaquiagem.com.br | a908ebc1-ebf6-484e-94b6-ab1df1d288c5 |
+| C. Guimarães (Carlos) | c.guimaraes@distribuidoraunion.com.br | 44d455eb-244a-44b5-bc7b-c8e4c929374a |
+| Leandro Moraes Ramos (Admin) | leandro.moraesramos@gmail.com | Acesso automatico |
 
-```text
-trade_budget_audit_log
-+----------------+-------------+---------------------------------+
-| Campo          | Tipo        | Descricao                       |
-+----------------+-------------+---------------------------------+
-| id             | UUID        | Identificador unico             |
-| budget_id      | UUID        | Referencia a verba              |
-| action         | TEXT        | Acao: inactivate, reactivate,   |
-|                |             | update, delete                  |
-| field_changed  | TEXT        | Campo alterado                  |
-| old_value      | TEXT        | Valor anterior                  |
-| new_value      | TEXT        | Novo valor                      |
-| user_id        | UUID        | Usuario que fez a alteracao     |
-| user_name      | TEXT        | Nome do usuario                 |
-| created_at     | TIMESTAMP   | Data/hora do registro           |
-+----------------+-------------+---------------------------------+
-```
+## Acoes Necessarias
 
-## Alteracoes na Interface
+### 1. Remover permissao do Role Vendedor
 
-### Tela TradeVerbasSemestrais.tsx
-
-1. **Nova coluna "Acoes" na tabela** com menu dropdown contendo:
-   - Editar verba
-   - Inativar verba (se ativa)
-   - Reativar verba (se inativa)
-   - Excluir verba (soft delete)
-
-2. **Estilo visual para verbas inativas**:
-   - Linha da tabela com opacity reduzida (opacity-50)
-   - Texto com line-through vermelho
-   - Badge "Inativa" em vermelho
-   - Exibida apenas se filtro "Mostrar inativas" estiver ativo
-
-3. **Filtro "Mostrar verbas inativas"**:
-   - Toggle para exibir/ocultar verbas inativas na listagem
-   - Por padrao, mostra apenas verbas ativas
-
-4. **Dialog de confirmacao para inativar/excluir**:
-   - Campo obrigatorio de motivo
-   - Aviso sobre impacto nos relatorios
-
-### TradeVerbaCard (Dashboard)
-
-- Filtrar verbas onde `status = 'active'` E `inactivated_at IS NULL`
-
-### Demais Telas e Hooks
-
-Atualizar queries para filtrar verbas inativas:
-
-| Arquivo | Alteracao |
-|---------|-----------|
-| useTradeFinanceiroDashboard.ts | Adicionar `.is("inactivated_at", null)` |
-| useTradeData.ts | Adicionar `.is("inactivated_at", null)` |
-| TradeAdminModule.tsx | Adicionar `.is("inactivated_at", null)` |
-| NovoLancamentoDialog.tsx | Ja filtra por status active |
-| EditarLancamentoDialog.tsx | Ja filtra por status active |
-| TradeCampaigns.tsx | Ja filtra por status active |
-
-## Funcoes de Auditoria
-
-Adicionar em `src/lib/auditLog.ts`:
+Remover a tela `financeiro_contas_pagar` das permissoes do role vendedor.
 
 ```text
-logBudgetInactivate(budgetId, budgetName, reason)
-logBudgetReactivate(budgetId, budgetName)
-logBudgetDelete(budgetId, budgetName, reason)
-logBudgetEdit(budgetId, changedFields[])
+DELETE FROM role_permissoes_telas
+WHERE role = 'vendedor'
+AND tela_id = '595c320f-bb86-4ee5-b42a-848d8770b191';
 ```
 
-## Fluxo de Inativacao
+### 2. Remover permissao do Departamento Financeiro
+
+Mesmo que Fabio e Carlos estejam no Financeiro, remover a permissao do departamento para ter controle granular.
 
 ```text
-1. Usuario clica "Inativar" no menu de acoes
-2. Dialog de confirmacao abre com campo de motivo
-3. Usuario preenche motivo e confirma
-4. Sistema atualiza:
-   - status: "inactive"
-   - inactivated_at: now()
-   - inactivated_by: user.id
-   - inactivated_reason: motivo
-5. Sistema registra no audit log
-6. Toast de sucesso
-7. Lista atualizada
+DELETE FROM departamento_permissoes_telas
+WHERE departamento_id = 'ed8fe145-0639-4d00-ac52-02c83f4f9652'
+AND tela_id = '595c320f-bb86-4ee5-b42a-848d8770b191';
 ```
 
-## Fluxo de Reativacao
+### 3. Remover TODAS as permissoes individuais dessa tela
+
+Limpar todas as permissoes individuais existentes.
 
 ```text
-1. Usuario ativa filtro "Mostrar inativas"
-2. Clica "Reativar" no menu de acoes
-3. Sistema atualiza:
-   - status: "active"
-   - inactivated_at: null
-   - inactivated_by: null
-   - inactivated_reason: null
-5. Sistema registra no audit log
-6. Toast de sucesso
+DELETE FROM usuario_permissoes_telas
+WHERE tela_id = '595c320f-bb86-4ee5-b42a-848d8770b191';
 ```
 
-## Arquivos a Criar
+### 4. Adicionar permissao APENAS para Fabio e Carlos
 
-| Arquivo | Descricao |
-|---------|-----------|
-| supabase/migrations/xxx.sql | Migration com alteracoes no banco |
+```text
+INSERT INTO usuario_permissoes_telas (usuario_id, tela_id)
+VALUES 
+  ('a908ebc1-ebf6-484e-94b6-ab1df1d288c5', '595c320f-bb86-4ee5-b42a-848d8770b191'),
+  ('44d455eb-244a-44b5-bc7b-c8e4c929374a', '595c320f-bb86-4ee5-b42a-848d8770b191');
+```
 
-## Arquivos a Modificar
+## Resultado Final
 
-| Arquivo | Alteracao |
-|---------|-----------|
-| src/pages/TradeVerbasSemestrais.tsx | Menu de acoes, dialogs, filtros, estilos |
-| src/lib/auditLog.ts | Novas funcoes para verbas |
-| src/hooks/useTradeFinanceiroDashboard.ts | Filtrar inativas |
-| src/hooks/useTradeData.ts | Filtrar inativas |
-| src/pages/modules/TradeAdminModule.tsx | Filtrar inativas |
-| src/integrations/supabase/types.ts | Atualizado automaticamente |
+| Usuario | Acesso a Contas a Pagar |
+|---------|------------------------|
+| F. Cazarotti (Fabio) | SIM (permissao individual) |
+| C. Guimarães (Carlos) | SIM (permissao individual) |
+| Leandro Moraes Ramos | SIM (admin automatico) |
+| Todos os outros | NAO |
+
+## Impacto
+
+### Usuarios que PERDERAO acesso
+
+| Usuario | Tinha Acesso Via |
+|---------|------------------|
+| Leandro Ramos | Departamento Financeiro |
+| Erika | Permissao Individual |
+| Lucas Machado | Permissao Individual |
+| Juliana Germinhasi | Permissao Individual |
+| Administrador Sistema | Permissao Individual |
+| Todos os vendedores | Role vendedor |
 
 ## Seguranca
 
-- Apenas usuarios com permissao `trade_admin` podem inativar/excluir verbas
-- Todas as acoes sao registradas no historico com usuario e timestamp
-- Soft delete preserva dados para auditoria futura
+A restricao sera aplicada em duas camadas:
+
+| Camada | Componente | Verificacao |
+|--------|------------|-------------|
+| Frontend | ScreenProtectedRoute | Bloqueia navegacao, exibe "Acesso Negado" |
+| Backend | Funcao get_all_user_permissions | Nao retorna a tela na lista de permissoes |
+
+## Arquivos Modificados
+
+| Arquivo | Alteracao |
+|---------|-----------|
+| Nova migration SQL | Executa as 4 queries acima em uma transacao |
+
+## Observacao Importante
+
+O admin (Leandro Moraes Ramos) continuara tendo acesso automatico a todas as telas, incluindo Contas a Pagar. Isso e comportamento esperado do sistema.
+
