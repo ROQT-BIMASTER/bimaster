@@ -245,7 +245,7 @@ export function MatrizPrecosComparativa() {
   const [initialized, setInitialized] = useState(false);
   
   // Hook de permissões de tabelas
-  const { filterTablesByAccess, canViewTable, loading: accessLoading } = useUserPriceTableAccess();
+  const { filterTablesByAccess, canViewTable, hasTableRestrictions, loading: accessLoading } = useUserPriceTableAccess();
   
   // Estado do histórico
   const [historicoOpen, setHistoricoOpen] = useState(false);
@@ -581,6 +581,11 @@ export function MatrizPrecosComparativa() {
   const temFiltrosAtivos = busca || filtroMarca !== "all" || filtroLinha !== "all" || filtroTabela !== "all";
 
   const handlePrecoClick = (produtoId: string, produtoNome: string, tabelaId: string, tabelaNome: string) => {
+    // Usuários com restrições de tabela não podem ver o histórico/cadeia de cálculo
+    if (hasTableRestrictions) {
+      toast.info("Você não tem permissão para visualizar o histórico de preços");
+      return;
+    }
     setHistoricoData({ produtoId, produtoNome, tabelaId, tabelaNome });
     setHistoricoOpen(true);
   };
