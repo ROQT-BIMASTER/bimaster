@@ -10,8 +10,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, GripVertical, Plus, Package } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Trash2, GripVertical, Plus, Package, FileText, ExternalLink } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -270,8 +271,26 @@ export function FormulaItemRow({
               <Package className="h-5 w-5" />
               Cadastrar Nova Matéria-Prima
             </DialogTitle>
+            <DialogDescription>
+              Preencha os dados abaixo ou importe via XML de nota fiscal.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+
+          {/* Link para recebimento via XML */}
+          <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <FileText className="h-4 w-4" />
+              <span>Deseja importar via Nota Fiscal?</span>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/dashboard/fabrica/recebimentos" target="_blank">
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                Recebimento XML
+              </Link>
+            </Button>
+          </div>
+
+          <div className="space-y-4 py-2">
             {/* Campos obrigatórios */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
