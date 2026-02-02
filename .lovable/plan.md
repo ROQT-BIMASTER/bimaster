@@ -1,58 +1,49 @@
 
-# Plano de Melhorias: Telas de Administração Trade Marketing
+# Correção de Permissões: Milene Harumi
 
-## ✅ Progresso da Implementação
+## Problema Identificado
 
-| Fase | Status | Descrição |
-|------|--------|-----------|
-| **Fase 1** | ✅ Concluída | Tabela `trade_user_approval_levels` + RLS criadas |
-| **Fase 2** | ✅ Concluída | `TradeAdminApprovalLevels` com gestão de aprovadores |
-| **Fase 3** | ✅ Concluída | `TradeAdminUsers` com permissões e níveis |
-| **Fase 4** | ✅ Concluída | Funcionalidade de atribuir `trade_admin` |
-| **Fase 5** | ⏳ Pendente | Melhorar relatórios com paginação e filtros |
+Milene tem apenas a tela `trade_admin`, mas falta:
+1. O **módulo `trade`** - necessário para ver o Trade Marketing na navegação
+2. Outras **telas do Trade** - para acesso completo às funcionalidades
 
----
+## Situação Atual vs Desejada
 
-## O que foi implementado:
+| Permissão | Atual | Necessário |
+|-----------|-------|------------|
+| Módulo `trade` | Não | Sim |
+| Tela `trade_admin` | Sim | Sim |
+| Tela `trade_marketing` | Não | Sim |
+| Outras telas Trade | Não | Sim |
 
-### Banco de Dados
-- ✅ Nova tabela `trade_user_approval_levels` para vincular usuários aos níveis
-- ✅ Função `has_trade_admin_permission()` para verificar permissões
-- ✅ RLS policies para proteger a tabela
+## Correção Proposta
 
-### TradeAdminApprovalLevels
-- ✅ Coluna "Aprovadores" mostrando quantidade por nível
-- ✅ Botão para abrir modal de gestão de aprovadores
-- ✅ Modal `ApproverManagementDialog` com busca e checkboxes
+Adicionar todas as permissões de Trade Marketing para Milene:
 
-### TradeAdminUsers
-- ✅ Coluna "Trade Admin" mostrando status de permissão
-- ✅ Coluna "Nível de Aprovação" mostrando alçada do usuário
-- ✅ Botão de configuração por usuário
-- ✅ Dialog para conceder/revogar trade_admin
-- ✅ Select para atribuir nível de aprovação
+### 1. Adicionar Módulo Trade
+```sql
+INSERT INTO usuario_permissoes_modulos (usuario_id, modulo_id)
+VALUES ('7eb17733-d824-4758-8ddf-7b9606ef4991', 'd33394b9-fc47-4e28-befc-f46025269187');
+```
 
-### Novos Componentes
-- ✅ `src/components/trade/ApproverManagementDialog.tsx`
-- ✅ `src/hooks/useTradeUserApprovalLevels.ts`
+### 2. Adicionar Todas as Telas de Trade
+Incluir acesso a todas as telas relacionadas ao Trade Marketing:
+- trade_marketing (visão geral)
+- trade_admin (administrativo) - já tem
+- trade_stores/TRADE_LOJAS (PDVs)
+- trade_visits/TRADE_VISITAS (Visitas)
+- trade_photos/TRADE_FOTOS (Fotos)
+- trade_promotions (Promoções)
+- trade_competitors (Concorrentes)
+- trade_insights (Insights IA)
+- TRADE_DASHBOARD (Dashboard)
+- TRADE_PERFORMANCE (Performance)
+- TRADE_AUDITORIAS (Auditorias)
+- trade_import_stores (Importar Lojas)
 
----
+## Resultado Esperado
 
-## Próximos Passos (Fase 5)
-
-### Relatórios - Melhorias Pendentes:
-
-| Arquivo | Melhorias |
-|---------|-----------|
-| `TradeReportCampaigns.tsx` | Paginação + Filtro de período |
-| `TradeReportClients.tsx` | Paginação + Filtro de período |
-| `TradeReportSellers.tsx` | Paginação + Filtro de período |
-
----
-
-## Resultado Alcançado
-
-- ✅ Milene pode gerenciar quem tem acesso administrativo
-- ✅ É possível definir quem são os aprovadores de cada nível
-- ✅ Cada usuário pode ter um nível de alçada atribuído
-- ✅ Visão clara de toda a estrutura de permissões do Trade Marketing
+Após a correção:
+- Milene verá o módulo Trade Marketing no menu lateral
+- Terá acesso a todas as funcionalidades do Trade
+- Continuará com acesso administrativo exclusivo
