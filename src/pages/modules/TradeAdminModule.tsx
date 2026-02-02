@@ -74,8 +74,8 @@ const TradeAdminModule = () => {
     }
   });
 
-  if (!permissionsLoading && !hasPermission("trade_marketing")) {
-    return <Navigate to="/dashboard" replace />;
+  if (!permissionsLoading && !hasPermission("trade_admin")) {
+    return <Navigate to="/dashboard/trade" replace />;
   }
 
   // Módulos secundários agrupados

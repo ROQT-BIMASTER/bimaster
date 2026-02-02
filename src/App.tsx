@@ -241,12 +241,12 @@ function AppContent() {
             
             {/* Módulo de Trade Marketing */}
             <Route path="/dashboard/trade" element={<ProtectedRoute><TradeModule /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/admin" element={<ProtectedRoute><TradeAdminModule /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/admin/users" element={<ProtectedRoute><TradeAdminUsers /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/admin/approval-levels" element={<ProtectedRoute><TradeAdminApprovalLevels /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/admin/reports/campaigns" element={<ProtectedRoute><TradeReportCampaigns /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/admin/reports/clients" element={<ProtectedRoute><TradeReportClients /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/admin/reports/sellers" element={<ProtectedRoute><TradeReportSellers /></ProtectedRoute>} />
+            <Route path="/dashboard/trade/admin" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeAdminModule /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/admin/users" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeAdminUsers /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/admin/approval-levels" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeAdminApprovalLevels /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/admin/reports/campaigns" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeReportCampaigns /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/admin/reports/clients" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeReportClients /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/admin/reports/sellers" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeReportSellers /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/trade/store-chains" element={<ProtectedRoute><TradeStoreChains /></ProtectedRoute>} />
             <Route path="/dashboard/trade/stores" element={<ProtectedRoute><TradeStores /></ProtectedRoute>} />
             <Route path="/dashboard/trade/visits" element={<ProtectedRoute><TradeVisits /></ProtectedRoute>} />
