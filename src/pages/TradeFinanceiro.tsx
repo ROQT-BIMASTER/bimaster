@@ -44,6 +44,7 @@ import { sanitizeText, sanitizeCode, getSafeErrorMessage } from "@/lib/utils/san
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { BudgetFormData } from "@/lib/validations/budget";
+import { TourButton, tradeFinanceiroTourSteps, TRADE_FINANCEIRO_TOUR_ID } from "@/components/tour";
 
 export default function TradeFinanceiro() {
   const [loading, setLoading] = useState(true);
@@ -257,27 +258,29 @@ export default function TradeFinanceiro() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <ModuleBreadcrumb 
-          moduleName="Trade Marketing" 
-          moduleHref="/dashboard/trade" 
-          currentPage="Financeiro" 
-        />
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Financeiro Trade Marketing</h1>
-            <p className="text-muted-foreground mt-1">
-              Gestão de verbas, investimentos e plano de contas
-            </p>
+        <div data-tour="financeiro-header">
+          <ModuleBreadcrumb 
+            moduleName="Trade Marketing" 
+            moduleHref="/dashboard/trade" 
+            currentPage="Financeiro" 
+          />
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Financeiro Trade Marketing</h1>
+              <p className="text-muted-foreground mt-1">
+                Gestão de verbas, investimentos e plano de contas
+              </p>
+            </div>
+            <Link to="/dashboard/financeiro">
+              <Button variant="outline">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Módulo Financeiro Completo
+              </Button>
+            </Link>
           </div>
-          <Link to="/dashboard/financeiro">
-            <Button variant="outline">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Módulo Financeiro Completo
-            </Button>
-          </Link>
         </div>
         
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-4" data-tour="financeiro-cards">
           <Link to="/dashboard/trade/financeiro/dashboard">
             <Card className="hover:border-primary cursor-pointer transition-colors border-primary bg-primary/5">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -945,6 +948,14 @@ export default function TradeFinanceiro() {
             }
             fetchData();
           }}
+        />
+
+        {/* Tour Button */}
+        <TourButton 
+          tourId={TRADE_FINANCEIRO_TOUR_ID}
+          tourSteps={tradeFinanceiroTourSteps}
+          title="Tour do Financeiro"
+          description="Conheça o módulo financeiro"
         />
       </div>
     </DashboardLayout>

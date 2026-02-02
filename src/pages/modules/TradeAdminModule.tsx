@@ -32,6 +32,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { TourButton, tradeAdminTourSteps, TRADE_ADMIN_TOUR_ID } from "@/components/tour";
 
 const TradeAdminModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
@@ -95,7 +96,7 @@ const TradeAdminModule = () => {
     <DashboardLayout>
       <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-6">
         {/* Header */}
-        <div className="flex items-center gap-4 px-1">
+        <div className="flex items-center gap-4 px-1" data-tour="admin-header">
           <Button variant="ghost" size="icon" asChild>
             <Link to="/dashboard/trade">
               <ArrowLeft className="h-5 w-5" />
@@ -110,7 +111,7 @@ const TradeAdminModule = () => {
         </div>
 
         {/* KPIs Principais */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4" data-tour="admin-kpis">
           {/* Campanhas Ativas */}
           <Card className="border-l-4 border-l-blue-500">
             <CardContent className="p-3 sm:p-5">
@@ -192,7 +193,7 @@ const TradeAdminModule = () => {
         </div>
 
         {/* Módulos Principais */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-tour="admin-quick-actions">
           {/* Campanhas */}
           <Link to="/dashboard/trade/financeiro/campanhas">
             <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
@@ -334,7 +335,7 @@ const TradeAdminModule = () => {
         </div>
 
         {/* Módulos Secundários */}
-        <div className="space-y-2">
+        <div className="space-y-2" data-tour="admin-settings">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 sm:mb-3 px-1">
             <Zap className="h-4 w-4" />
             <span>Mais funcionalidades</span>
@@ -356,7 +357,7 @@ const TradeAdminModule = () => {
                 />
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-2">
-                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 pl-1 sm:pl-2">
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 pl-1 sm:pl-2" data-tour="admin-reports">
                   {modules.map((module) => (
                     <Link 
                       key={module.to} 
@@ -372,6 +373,14 @@ const TradeAdminModule = () => {
             </Collapsible>
           ))}
         </div>
+
+        {/* Tour Button */}
+        <TourButton 
+          tourId={TRADE_ADMIN_TOUR_ID}
+          tourSteps={tradeAdminTourSteps}
+          title="Tour Administrativo"
+          description="Conheça as funções administrativas"
+        />
       </div>
     </DashboardLayout>
   );
