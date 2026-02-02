@@ -103,6 +103,7 @@ const FabricaParadas = lazy(() => import("./pages/FabricaParadas"));
 const FabricaMaquinas = lazy(() => import("./pages/FabricaMaquinas"));
 const FabricaOperadores = lazy(() => import("./pages/FabricaOperadores"));
 const FabricaProdutosAcabados = lazy(() => import("./pages/FabricaProdutosAcabados"));
+const FichaCustoProduto = lazy(() => import("./pages/FichaCustoProduto"));
 const ImportarProdutosAcabados = lazy(() => import("./pages/ImportarProdutosAcabados"));
 const TabelasPrecosModule = lazy(() => import("./pages/modules/TabelasPrecosModule"));
 const FabricaTabelasPreco = lazy(() => import("./pages/FabricaTabelasPreco"));
@@ -306,6 +307,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica/maquinas" element={<ProtectedRoute><FabricaMaquinas /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/operadores" element={<ProtectedRoute><FabricaOperadores /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/produtos-acabados" element={<ProtectedRoute><FabricaProdutosAcabados /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/produtos/:id/custos" element={<ProtectedRoute><FichaCustoProduto /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/produtos/importar" element={<ProtectedRoute><ImportarProdutosAcabados /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/lancamentos" element={<ProtectedRoute><FabricaLancamentos /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/executivo" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_dashboard"><FabricaExecutiveDashboard /></ScreenProtectedRoute></ProtectedRoute>} />
