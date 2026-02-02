@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -235,6 +236,11 @@ export default function TradeShelfMeasurements() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <ModuleBreadcrumb 
+          moduleName="Trade Marketing" 
+          moduleHref="/dashboard/trade" 
+          currentPage="Medição de Prateleiras" 
+        />
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Medição de Prateleiras</h1>

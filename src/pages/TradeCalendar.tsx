@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useNavigate } from "react-router-dom";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -139,6 +140,11 @@ export default function TradeCalendar() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <ModuleBreadcrumb 
+          moduleName="Trade Marketing" 
+          moduleHref="/dashboard/trade" 
+          currentPage="Calendário de Visitas" 
+        />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Calendário de Visitas</h1>

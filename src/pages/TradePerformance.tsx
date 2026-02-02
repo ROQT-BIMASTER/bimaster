@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -249,6 +250,11 @@ const TradePerformance = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <ModuleBreadcrumb 
+          moduleName="Trade Marketing" 
+          moduleHref="/dashboard/trade" 
+          currentPage="Trade Performance" 
+        />
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

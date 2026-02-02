@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -126,6 +127,11 @@ const TradeIdealPhotos = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <ModuleBreadcrumb 
+          moduleName="Trade Marketing" 
+          moduleHref="/dashboard/trade" 
+          currentPage="Fotos Ideais do PDV" 
+        />
         <div>
           <h1 className="text-3xl font-bold">Fotos Ideais do PDV</h1>
           <p className="text-muted-foreground">

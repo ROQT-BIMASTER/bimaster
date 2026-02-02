@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -238,6 +239,11 @@ export default function TradeCampaigns() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <ModuleBreadcrumb 
+          moduleName="Financeiro Trade" 
+          moduleHref="/dashboard/trade/financeiro" 
+          currentPage="Campanhas" 
+        />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Campanhas Trade Marketing</h1>
