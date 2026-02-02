@@ -110,7 +110,20 @@ const FabricaModule = () => {
         </div>
 
         {/* Ações Rápidas */}
-        <div data-tour="fabrica-quick-actions" className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+        <div data-tour="fabrica-quick-actions" className="grid gap-3 grid-cols-1 sm:grid-cols-4">
+          <Button 
+            asChild
+            size="lg"
+            className="h-14 gap-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 shadow-lg"
+          >
+            <Link to="/dashboard/fabrica/executivo">
+              <div className="p-1.5 bg-white/20 rounded-lg">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+              <span className="font-semibold">Visão Executiva</span>
+            </Link>
+          </Button>
+
           <Button 
             asChild
             size="lg"
@@ -120,7 +133,7 @@ const FabricaModule = () => {
               <div className="p-1.5 bg-white/20 rounded-lg">
                 <Plus className="h-5 w-5" />
               </div>
-              <span className="font-semibold">Nova Ordem de Produção</span>
+              <span className="font-semibold">Nova OP</span>
             </Link>
           </Button>
 
