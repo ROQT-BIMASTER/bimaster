@@ -42,6 +42,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
     code: "",
     chain: "",
     cnpj: "",
+    branch_count: 1,
     address: "",
     city: "",
     state: "",
@@ -226,6 +227,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
         name: normalizedName, // Usar nome padronizado
         cnpj: formData.cnpj ? formData.cnpj.replace(/\D/g, '') : null, // Limpar CNPJ
         code: formData.code || `STORE-${Date.now()}`,
+        branch_count: formData.branch_count || 1,
         status: "active",
         created_by: userData.user?.id,
         vendedor_id: formData.vendedor_id,
@@ -242,6 +244,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
         code: "",
         chain: "",
         cnpj: "",
+        branch_count: 1,
         address: "",
         city: "",
         state: "",
@@ -358,6 +361,21 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
                 onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
                 placeholder="00.000.000/0000-00"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="branch_count">Nº de Lojas/Filiais</Label>
+              <Input
+                id="branch_count"
+                type="number"
+                min={1}
+                value={formData.branch_count}
+                onChange={(e) => setFormData({ ...formData, branch_count: parseInt(e.target.value) || 1 })}
+                placeholder="1"
+              />
+              <p className="text-xs text-muted-foreground">
+                Quantas lojas este CNPJ representa (ex: matriz + filiais)
+              </p>
             </div>
 
             <div className="space-y-2">

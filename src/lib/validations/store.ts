@@ -88,6 +88,11 @@ export const storeSchema = z.object({
     .trim()
     .max(2000, { message: "Observações devem ter no máximo 2000 caracteres" })
     .optional(),
+  branch_count: z.number()
+    .int({ message: "Número de lojas deve ser um valor inteiro" })
+    .min(1, { message: "Mínimo de 1 loja" })
+    .max(9999, { message: "Máximo de 9999 lojas" })
+    .default(1),
 });
 
 export type StoreFormData = z.infer<typeof storeSchema>;

@@ -44,6 +44,7 @@ export function EditarLojaDialog({
     code: "",
     name: "",
     cnpj: "",
+    branch_count: 1,
     email: "",
     phone: "",
     address: "",
@@ -122,6 +123,7 @@ export function EditarLojaDialog({
         code: data.code || "",
         name: data.name || "",
         cnpj: data.cnpj || "",
+        branch_count: data.branch_count || 1,
         email: data.email || "",
         phone: data.phone || "",
         address: data.address || "",
@@ -163,6 +165,7 @@ export function EditarLojaDialog({
         code: formData.code.trim(),
         name: formData.name.trim(),
         cnpj: formData.cnpj.trim() || null,
+        branch_count: formData.branch_count || 1,
         email: formData.email.trim() || null,
         phone: formData.phone.trim() || null,
         address: formData.address.trim() || null,
@@ -289,7 +292,7 @@ export function EditarLojaDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="cnpj">CNPJ</Label>
                 <Input
@@ -298,6 +301,20 @@ export function EditarLojaDialog({
                   onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
                   placeholder="00.000.000/0000-00"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="branch_count">Nº de Lojas/Filiais</Label>
+                <Input
+                  id="branch_count"
+                  type="number"
+                  min={1}
+                  value={formData.branch_count}
+                  onChange={(e) => setFormData({ ...formData, branch_count: parseInt(e.target.value) || 1 })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Quantas lojas este CNPJ representa
+                </p>
               </div>
 
               <div className="space-y-2">

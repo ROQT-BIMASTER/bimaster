@@ -12191,6 +12191,7 @@ export type Database = {
       store_chains: {
         Row: {
           active: boolean | null
+          branch_count: number | null
           cnpj: string | null
           contact_email: string | null
           contact_name: string | null
@@ -12203,6 +12204,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
+          branch_count?: number | null
           cnpj?: string | null
           contact_email?: string | null
           contact_name?: string | null
@@ -12215,6 +12217,7 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
+          branch_count?: number | null
           cnpj?: string | null
           contact_email?: string | null
           contact_name?: string | null
@@ -12604,6 +12607,7 @@ export type Database = {
       stores: {
         Row: {
           address: string | null
+          branch_count: number | null
           category: string | null
           chain: string | null
           city: string | null
@@ -12633,6 +12637,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          branch_count?: number | null
           category?: string | null
           chain?: string | null
           city?: string | null
@@ -12662,6 +12667,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          branch_count?: number | null
           category?: string | null
           chain?: string | null
           city?: string | null
