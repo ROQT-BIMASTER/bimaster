@@ -37,6 +37,7 @@ import { format } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { sanitizeText, sanitizeCode, getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { useUserRole } from "@/hooks/useUserRole";
+import { TourButton, tradeCampaignsTourSteps, TRADE_CAMPAIGNS_TOUR_ID } from "@/components/tour";
 
 export default function TradeCampaigns() {
   const navigate = useNavigate();
@@ -244,7 +245,7 @@ export default function TradeCampaigns() {
           moduleHref="/dashboard/trade/financeiro" 
           currentPage="Campanhas" 
         />
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" data-tour="campaigns-header">
           <div>
             <h1 className="text-3xl font-bold">Campanhas Trade Marketing</h1>
             <p className="text-muted-foreground mt-1">
@@ -254,7 +255,7 @@ export default function TradeCampaigns() {
           {isAdminOrSupervisor && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button data-tour="new-campaign-button">
                   <Plus className="mr-2 h-4 w-4" />
                   Nova Campanha
                 </Button>
@@ -371,7 +372,7 @@ export default function TradeCampaigns() {
         </div>
 
         {/* Métricas */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-4" data-tour="campaigns-kpis">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Campanhas</CardTitle>
@@ -422,7 +423,7 @@ export default function TradeCampaigns() {
         </div>
 
         {/* Lista de Campanhas */}
-        <Card>
+        <Card data-tour="campaigns-table">
           <CardHeader>
             <CardTitle>Todas as Campanhas</CardTitle>
           </CardHeader>
@@ -506,6 +507,14 @@ export default function TradeCampaigns() {
             )}
           </CardContent>
         </Card>
+
+        {/* Tour Button */}
+        <TourButton
+          tourId={TRADE_CAMPAIGNS_TOUR_ID}
+          tourSteps={tradeCampaignsTourSteps}
+          title="Manual de Campanhas"
+          description="Aprenda a criar e gerenciar campanhas de Trade Marketing"
+        />
       </div>
     </DashboardLayout>
   );

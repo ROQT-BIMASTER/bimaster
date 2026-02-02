@@ -187,7 +187,7 @@ export function CampaignExpenses({ campaignId, verbaOrcada, lancamentoId }: Camp
   return (
     <div className="space-y-6">
       {/* Resumo de Verbas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4" data-tour="expenses-verba-cards">
         <Card>
           <CardContent className="pt-6">
             <div>
@@ -231,7 +231,7 @@ export function CampaignExpenses({ campaignId, verbaOrcada, lancamentoId }: Camp
       </div>
 
       {/* Barra de Progresso */}
-      <Card>
+      <Card data-tour="expenses-progress">
         <CardContent className="pt-6">
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
@@ -253,7 +253,7 @@ export function CampaignExpenses({ campaignId, verbaOrcada, lancamentoId }: Camp
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">Controle de Gastos</CardTitle>
-          <Button onClick={() => setDialogOpen(true)} size="sm">
+          <Button onClick={() => setDialogOpen(true)} size="sm" data-tour="declare-expense-button">
             <Plus className="h-4 w-4 mr-2" />
             Declarar Gasto
           </Button>
@@ -268,7 +268,7 @@ export function CampaignExpenses({ campaignId, verbaOrcada, lancamentoId }: Camp
               Nenhum gasto registrado para este lançamento
             </div>
           ) : (
-            <Table>
+            <Table data-tour="expenses-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Categoria</TableHead>

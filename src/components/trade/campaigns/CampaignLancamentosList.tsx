@@ -303,7 +303,7 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
   return (
     <>
       <Card>
-        <CardHeader>
+        <CardHeader data-tour="lancamentos-summary">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <CardTitle className="flex items-center gap-2">
@@ -314,7 +314,7 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
                 {summary.total} lançamento(s) • {summary.pending} pendente(s) • {summary.approved} aprovado(s)
               </CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" data-tour="import-export-buttons">
               <Button variant="outline" onClick={() => setExportDialogOpen(true)} className="gap-2">
                 <Download className="h-4 w-4" />
                 Exportar Modelo
@@ -323,7 +323,7 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
                 <Upload className="h-4 w-4" />
                 Importar Planilha
               </Button>
-              <Button onClick={handleNewLancamento} className="gap-2">
+              <Button onClick={handleNewLancamento} className="gap-2" data-tour="new-lancamento-button">
                 <Plus className="h-4 w-4" />
                 Novo Lançamento
               </Button>
@@ -333,7 +333,7 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
         <CardContent>
           {lancamentos && lancamentos.length > 0 ? (
             <ScrollArea className="h-[400px]">
-              <Table>
+              <Table data-tour="lancamentos-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Cliente</TableHead>
@@ -396,6 +396,7 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
                               handleSelectLancamento(lancamento.id);
                             }}
                             title="Selecionar e continuar"
+                            data-tour="select-lancamento-button"
                           >
                             <ChevronRight className="h-4 w-4" />
                           </Button>

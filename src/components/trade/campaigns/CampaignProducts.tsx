@@ -137,7 +137,7 @@ export function CampaignProducts({ campaignId, lancamentoId }: CampaignProductsP
   return (
     <div className="space-y-6">
       {/* Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tour="products-kpis">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -173,7 +173,7 @@ export function CampaignProducts({ campaignId, lancamentoId }: CampaignProductsP
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">Produtos do Lançamento</CardTitle>
-          <Button onClick={() => setDialogOpen(true)} size="sm">
+          <Button onClick={() => setDialogOpen(true)} size="sm" data-tour="add-product-button">
             <Plus className="h-4 w-4 mr-2" />
             Adicionar Produto
           </Button>
@@ -188,7 +188,7 @@ export function CampaignProducts({ campaignId, lancamentoId }: CampaignProductsP
               Nenhum produto cadastrado para este lançamento
             </div>
           ) : (
-            <Table>
+            <Table data-tour="products-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Produto</TableHead>
