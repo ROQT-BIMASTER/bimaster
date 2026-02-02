@@ -51,6 +51,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 
 interface PriceTable {
   id: string;
@@ -297,6 +298,12 @@ export default function GerenciamentoAcessoPrecos() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
+      <ModuleBreadcrumb
+        moduleName="Tabelas de Preços"
+        moduleHref="/dashboard/precos"
+        currentPage="Controle de Acesso"
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
