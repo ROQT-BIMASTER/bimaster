@@ -260,17 +260,17 @@ function AppContent() {
             <Route path="/dashboard/trade/import-stores" element={<ProtectedRoute><TradeImportStores /></ProtectedRoute>} />
             <Route path="/dashboard/trade/calendar" element={<ProtectedRoute><TradeCalendar /></ProtectedRoute>} />
             <Route path="/dashboard/trade/ideal-photos" element={<ProtectedRoute><TradeIdealPhotos /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/financeiro" element={<ProtectedRoute><TradeFinanceiro /></ProtectedRoute>} />
+            <Route path="/dashboard/trade/financeiro" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeFinanceiro /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/trade/financeiro/dashboard" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeFinanceiroDashboard /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/trade/financeiro/campanhas" element={<ProtectedRoute><TradeCampaigns /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/financeiro/campanhas/:id" element={<ProtectedRoute><TradeCampaignDetail /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/financeiro/lancamentos-campanhas" element={<ProtectedRoute><TradeLancamentosCampanhas /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/financeiro/contas" element={<ProtectedRoute><TradeContasCorrentes /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/financeiro/extrato/:accountId" element={<ProtectedRoute><TradeExtratoBancario /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/financeiro/verbas" element={<ProtectedRoute><TradeVerbasSemestrais /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/financeiro/lancamentos" element={<ProtectedRoute><TradeLancamentos /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/financeiro/aprovacoes" element={<ProtectedRoute><TradeAprovacoes /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/financeiro/extrato" element={<ProtectedRoute><TradeExtratosPessoais /></ProtectedRoute>} />
+            <Route path="/dashboard/trade/financeiro/campanhas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeCampaigns /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/financeiro/campanhas/:id" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeCampaignDetail /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/financeiro/lancamentos-campanhas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeLancamentosCampanhas /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/financeiro/contas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeContasCorrentes /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/financeiro/extrato/:accountId" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeExtratoBancario /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/financeiro/verbas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeVerbasSemestrais /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/financeiro/lancamentos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeLancamentos /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/financeiro/aprovacoes" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeAprovacoes /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/financeiro/extrato" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeExtratosPessoais /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/trade/auditorias" element={<ProtectedRoute><TradeAuditorias /></ProtectedRoute>} />
             <Route path="/dashboard/trade/sellout" element={<ProtectedRoute><TradeSellOut /></ProtectedRoute>} />
             <Route path="/dashboard/trade/shelf-measurements" element={<ProtectedRoute><TradeShelfMeasurements /></ProtectedRoute>} />
