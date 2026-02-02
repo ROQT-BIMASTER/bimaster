@@ -13378,6 +13378,50 @@ export type Database = {
           },
         ]
       }
+      trade_budget_audit_log: {
+        Row: {
+          action: string
+          budget_id: string | null
+          created_at: string
+          field_changed: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          budget_id?: string | null
+          created_at?: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          budget_id?: string | null
+          created_at?: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_budget_audit_log_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "trade_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_budget_reserves: {
         Row: {
           budget_id: string
@@ -13445,6 +13489,9 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          inactivated_at: string | null
+          inactivated_by: string | null
+          inactivated_reason: string | null
           name: string
           notes: string | null
           period_end: string
@@ -13469,6 +13516,9 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          inactivated_at?: string | null
+          inactivated_by?: string | null
+          inactivated_reason?: string | null
           name: string
           notes?: string | null
           period_end: string
@@ -13493,6 +13543,9 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          inactivated_at?: string | null
+          inactivated_by?: string | null
+          inactivated_reason?: string | null
           name?: string
           notes?: string | null
           period_end?: string

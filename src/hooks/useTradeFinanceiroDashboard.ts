@@ -34,7 +34,7 @@ interface Lancamento {
 }
 
 export function useTradeFinanceiroDashboard() {
-  // Query para verbas ativas
+  // Query para verbas ativas (exclui inativas)
   const verbasQuery = useQuery({
     queryKey: ['trade-dashboard-verbas'],
     queryFn: async () => {
@@ -42,6 +42,7 @@ export function useTradeFinanceiroDashboard() {
         .from("trade_budgets")
         .select("*")
         .eq("status", "active")
+        .is("inactivated_at", null)
         .order("period_start", { ascending: false });
       
       if (error) throw error;

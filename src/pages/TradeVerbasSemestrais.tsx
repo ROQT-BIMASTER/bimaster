@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -28,13 +31,43 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Calendar, DollarSign, TrendingUp, RefreshCw } from "lucide-react";
+import { 
+  Plus, 
+  Calendar, 
+  DollarSign, 
+  TrendingUp, 
+  RefreshCw, 
+  MoreHorizontal,
+  Edit,
+  Power,
+  PowerOff,
+  Trash2,
+  AlertTriangle
+} from "lucide-react";
 import { format } from "date-fns";
 import { sanitizeText, sanitizeCode, getSafeErrorMessage } from "@/lib/utils/sanitize";
+import { logBudgetInactivate, logBudgetReactivate, logBudgetDelete, logBudgetEdit } from "@/lib/auditLog";
 
 export default function TradeVerbasSemestrais() {
   const [loading, setLoading] = useState(true);
@@ -42,19 +75,35 @@ export default function TradeVerbasSemestrais() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState<string>("");
+  const [showInactive, setShowInactive] = useState(false);
+  
+  // Estados para ações
+  const [selectedBudget, setSelectedBudget] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [inactivateDialogOpen, setInactivateDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [actionReason, setActionReason] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [showInactive]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
+      let budgetsQuery = supabase
+        .from("trade_budgets")
+        .select("*")
+        .order("period_start", { ascending: false });
+      
+      // Se não mostrar inativas, filtrar apenas as ativas
+      if (!showInactive) {
+        budgetsQuery = budgetsQuery.is("inactivated_at", null);
+      }
+
       const [budgetsRes, accountsRes] = await Promise.all([
-        supabase
-          .from("trade_budgets")
-          .select("*")
-          .order("period_start", { ascending: false }),
+        budgetsQuery,
         supabase
           .from("trade_chart_of_accounts")
           .select("*")
@@ -117,6 +166,172 @@ export default function TradeVerbasSemestrais() {
     }
   };
 
+  const handleEditBudget = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedBudget) return;
+    
+    const formData = new FormData(e.currentTarget);
+    setActionLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const newName = sanitizeText(formData.get("name") as string);
+      const newCode = sanitizeCode(formData.get("code") as string);
+      const newAmount = parseFloat(formData.get("total_amount") as string);
+      const newDescription = sanitizeText(formData.get("description") as string || "");
+
+      // Rastrear mudanças
+      const changes: { field: string; oldValue: any; newValue: any }[] = [];
+      if (newName !== selectedBudget.name) {
+        changes.push({ field: "name", oldValue: selectedBudget.name, newValue: newName });
+      }
+      if (newCode !== selectedBudget.code) {
+        changes.push({ field: "code", oldValue: selectedBudget.code, newValue: newCode });
+      }
+      if (newAmount !== parseFloat(selectedBudget.total_amount)) {
+        changes.push({ field: "total_amount", oldValue: selectedBudget.total_amount, newValue: newAmount });
+      }
+      if (newDescription !== (selectedBudget.description || "")) {
+        changes.push({ field: "description", oldValue: selectedBudget.description, newValue: newDescription });
+      }
+
+      const { error } = await supabase
+        .from("trade_budgets")
+        .update({
+          name: newName,
+          code: newCode,
+          total_amount: newAmount,
+          description: newDescription,
+        })
+        .eq("id", selectedBudget.id);
+
+      if (error) throw error;
+
+      // Registrar no audit log
+      if (changes.length > 0) {
+        await logBudgetEdit(selectedBudget.id, changes);
+      }
+
+      toast.success("Verba atualizada com sucesso!");
+      setEditDialogOpen(false);
+      setSelectedBudget(null);
+      fetchData();
+    } catch (error: any) {
+      toast.error(getSafeErrorMessage(error));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleInactivateBudget = async () => {
+    if (!selectedBudget || !actionReason.trim()) {
+      toast.error("Informe o motivo da inativação");
+      return;
+    }
+    
+    setActionLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { error } = await supabase
+        .from("trade_budgets")
+        .update({
+          status: "inactive",
+          inactivated_at: new Date().toISOString(),
+          inactivated_by: user.id,
+          inactivated_reason: actionReason.trim(),
+        })
+        .eq("id", selectedBudget.id);
+
+      if (error) throw error;
+
+      // Registrar no audit log
+      await logBudgetInactivate(selectedBudget.id, selectedBudget.name, actionReason.trim());
+
+      toast.success("Verba inativada com sucesso!");
+      setInactivateDialogOpen(false);
+      setSelectedBudget(null);
+      setActionReason("");
+      fetchData();
+    } catch (error: any) {
+      toast.error(getSafeErrorMessage(error));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReactivateBudget = async (budget: any) => {
+    setActionLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("trade_budgets")
+        .update({
+          status: "active",
+          inactivated_at: null,
+          inactivated_by: null,
+          inactivated_reason: null,
+        })
+        .eq("id", budget.id);
+
+      if (error) throw error;
+
+      // Registrar no audit log
+      await logBudgetReactivate(budget.id, budget.name);
+
+      toast.success("Verba reativada com sucesso!");
+      fetchData();
+    } catch (error: any) {
+      toast.error(getSafeErrorMessage(error));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteBudget = async () => {
+    if (!selectedBudget || !actionReason.trim()) {
+      toast.error("Informe o motivo da exclusão");
+      return;
+    }
+    
+    setActionLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      // Soft delete - apenas marca como excluída
+      const { error } = await supabase
+        .from("trade_budgets")
+        .update({
+          status: "deleted",
+          inactivated_at: new Date().toISOString(),
+          inactivated_by: user.id,
+          inactivated_reason: `EXCLUÍDA: ${actionReason.trim()}`,
+        })
+        .eq("id", selectedBudget.id);
+
+      if (error) throw error;
+
+      // Registrar no audit log
+      await logBudgetDelete(selectedBudget.id, selectedBudget.name, actionReason.trim());
+
+      toast.success("Verba excluída com sucesso!");
+      setDeleteDialogOpen(false);
+      setSelectedBudget(null);
+      setActionReason("");
+      fetchData();
+    } catch (error: any) {
+      toast.error(getSafeErrorMessage(error));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Calcular semestres disponíveis
   const currentYear = new Date().getFullYear();
   const semesters = [
@@ -133,10 +348,14 @@ export default function TradeVerbasSemestrais() {
       })
     : budgets;
 
-  const totalBudget = filteredBudgets.reduce((sum, b) => sum + parseFloat(b.total_amount || 0), 0);
-  const totalSpent = filteredBudgets.reduce((sum, b) => sum + parseFloat(b.spent_amount || 0), 0);
+  // Apenas contar verbas ativas para métricas
+  const activeBudgets = filteredBudgets.filter(b => !b.inactivated_at);
+  const totalBudget = activeBudgets.reduce((sum, b) => sum + parseFloat(b.total_amount || 0), 0);
+  const totalSpent = activeBudgets.reduce((sum, b) => sum + parseFloat(b.spent_amount || 0), 0);
   const totalAvailable = totalBudget - totalSpent;
   const percentUsed = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+
+  const isInactive = (budget: any) => budget.inactivated_at !== null;
 
   return (
     <DashboardLayout>
@@ -239,29 +458,42 @@ export default function TradeVerbasSemestrais() {
           </div>
         </div>
 
-        <div className="flex gap-4 items-center">
-          <Label htmlFor="semester-filter">Filtrar por Semestre:</Label>
-          <Select value={selectedSemester || undefined} onValueChange={setSelectedSemester}>
-            <SelectTrigger className="w-[250px]">
-              <SelectValue placeholder="Todos os semestres" />
-            </SelectTrigger>
-            <SelectContent>
-              {semesters.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {selectedSemester && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedSemester("")}
-            >
-              Limpar filtro
-            </Button>
-          )}
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex gap-4 items-center">
+            <Label htmlFor="semester-filter">Filtrar por Semestre:</Label>
+            <Select value={selectedSemester || undefined} onValueChange={setSelectedSemester}>
+              <SelectTrigger className="w-[250px]">
+                <SelectValue placeholder="Todos os semestres" />
+              </SelectTrigger>
+              <SelectContent>
+                {semesters.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedSemester && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedSemester("")}
+              >
+                Limpar filtro
+              </Button>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2 ml-auto">
+            <Switch
+              id="show-inactive"
+              checked={showInactive}
+              onCheckedChange={setShowInactive}
+            />
+            <Label htmlFor="show-inactive" className="text-sm cursor-pointer">
+              Mostrar verbas inativas
+            </Label>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
@@ -271,7 +503,7 @@ export default function TradeVerbasSemestrais() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{filteredBudgets.length}</div>
+              <div className="text-2xl font-bold">{activeBudgets.length}</div>
               <p className="text-xs text-muted-foreground">
                 {selectedSemester
                   ? semesters.find((s) => s.value === selectedSemester)?.label
@@ -337,28 +569,37 @@ export default function TradeVerbasSemestrais() {
                   <TableHead className="text-right">Disponível</TableHead>
                   <TableHead>Utilização</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-[60px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredBudgets.map((budget) => {
                   const available = parseFloat(budget.total_amount) - parseFloat(budget.spent_amount || 0);
                   const percentUsed = (parseFloat(budget.spent_amount || 0) / parseFloat(budget.total_amount)) * 100;
+                  const inactive = isInactive(budget);
 
                   return (
-                    <TableRow key={budget.id}>
-                      <TableCell className="font-mono">{budget.code}</TableCell>
-                      <TableCell className="font-medium">{budget.name}</TableCell>
-                      <TableCell className="text-sm">
+                    <TableRow 
+                      key={budget.id} 
+                      className={inactive ? "opacity-50" : ""}
+                    >
+                      <TableCell className={`font-mono ${inactive ? "line-through text-destructive" : ""}`}>
+                        {budget.code}
+                      </TableCell>
+                      <TableCell className={`font-medium ${inactive ? "line-through text-destructive" : ""}`}>
+                        {budget.name}
+                      </TableCell>
+                      <TableCell className={`text-sm ${inactive ? "line-through text-destructive" : ""}`}>
                         {format(new Date(budget.period_start), "dd/MM/yyyy")} -{" "}
                         {format(new Date(budget.period_end), "dd/MM/yyyy")}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={`text-right ${inactive ? "line-through text-destructive" : ""}`}>
                         R$ {parseFloat(budget.total_amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={`text-right ${inactive ? "line-through text-destructive" : ""}`}>
                         R$ {parseFloat(budget.spent_amount || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell className="text-right font-bold">
+                      <TableCell className={`text-right font-bold ${inactive ? "line-through text-destructive" : ""}`}>
                         R$ {available.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell>
@@ -368,9 +609,72 @@ export default function TradeVerbasSemestrais() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={budget.status === "active" ? "default" : "secondary"}>
-                          {budget.status === "active" ? "Ativa" : budget.status}
-                        </Badge>
+                        {inactive ? (
+                          <Badge variant="destructive">
+                            {budget.status === "deleted" ? "Excluída" : "Inativa"}
+                          </Badge>
+                        ) : (
+                          <Badge variant={budget.status === "active" ? "default" : "secondary"}>
+                            {budget.status === "active" ? "Ativa" : budget.status}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {!inactive && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedBudget(budget);
+                                    setEditDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedBudget(budget);
+                                    setActionReason("");
+                                    setInactivateDialogOpen(true);
+                                  }}
+                                  className="text-amber-600"
+                                >
+                                  <PowerOff className="mr-2 h-4 w-4" />
+                                  Inativar
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {inactive && budget.status !== "deleted" && (
+                              <DropdownMenuItem
+                                onClick={() => handleReactivateBudget(budget)}
+                                className="text-green-600"
+                              >
+                                <Power className="mr-2 h-4 w-4" />
+                                Reativar
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedBudget(budget);
+                                setActionReason("");
+                                setDeleteDialogOpen(true);
+                              }}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
@@ -380,6 +684,155 @@ export default function TradeVerbasSemestrais() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog de Edição */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Verba</DialogTitle>
+            <DialogDescription>
+              Altere os dados da verba. Todas as alterações serão registradas no histórico.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedBudget && (
+            <form onSubmit={handleEditBudget} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Nome da Verba</Label>
+                  <Input 
+                    id="edit-name" 
+                    name="name" 
+                    defaultValue={selectedBudget.name} 
+                    required 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-code">Código</Label>
+                  <Input 
+                    id="edit-code" 
+                    name="code" 
+                    defaultValue={selectedBudget.code} 
+                    required 
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-total_amount">Valor Total</Label>
+                <Input
+                  id="edit-total_amount"
+                  name="total_amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  defaultValue={selectedBudget.total_amount}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Descrição</Label>
+                <Textarea 
+                  id="edit-description" 
+                  name="description" 
+                  defaultValue={selectedBudget.description || ""} 
+                />
+              </div>
+
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setEditDialogOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={actionLoading}>
+                  {actionLoading ? "Salvando..." : "Salvar Alterações"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* AlertDialog de Inativação */}
+      <AlertDialog open={inactivateDialogOpen} onOpenChange={setInactivateDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Inativar Verba
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              A verba "{selectedBudget?.name}" será inativada e não aparecerá mais nos controles financeiros.
+              Ela poderá ser reativada posteriormente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="inactivate-reason">Motivo da inativação *</Label>
+            <Textarea
+              id="inactivate-reason"
+              placeholder="Informe o motivo da inativação..."
+              value={actionReason}
+              onChange={(e) => setActionReason(e.target.value)}
+              className="mt-2"
+              required
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setActionReason("")}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleInactivateBudget}
+              disabled={actionLoading || !actionReason.trim()}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {actionLoading ? "Inativando..." : "Inativar Verba"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog de Exclusão */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Excluir Verba
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              A verba "{selectedBudget?.name}" será excluída permanentemente e não poderá ser recuperada.
+              Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="delete-reason">Motivo da exclusão *</Label>
+            <Textarea
+              id="delete-reason"
+              placeholder="Informe o motivo da exclusão..."
+              value={actionReason}
+              onChange={(e) => setActionReason(e.target.value)}
+              className="mt-2"
+              required
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setActionReason("")}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteBudget}
+              disabled={actionLoading || !actionReason.trim()}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {actionLoading ? "Excluindo..." : "Excluir Verba"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
