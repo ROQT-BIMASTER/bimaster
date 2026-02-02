@@ -21,6 +21,7 @@ interface DashboardLayoutProps {
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const { session, approved, loading, isOnline } = useAuth();
+  const { isImpersonating } = useImpersonation();
   useSyncOfflineData(); // Sincronização automática quando online
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
 
@@ -65,8 +66,6 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   if (!session) {
     return null;
   }
-
-  const { isImpersonating } = useImpersonation();
 
   return (
     <SidebarProvider>
