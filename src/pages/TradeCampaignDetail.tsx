@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, ClipboardEdit, Package, Receipt, CheckCircle, History, Loader2, Building2, AlertCircle } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { CampaignLancamentosList } from "@/components/trade/campaigns/CampaignLancamentosList";
+import { TourButton, tradeCampaignDetailTourSteps, TRADE_CAMPAIGN_DETAIL_TOUR_ID } from "@/components/tour";
 
 import { CampaignProducts } from "@/components/trade/campaigns/CampaignProducts";
 import { CampaignExpenses } from "@/components/trade/campaigns/CampaignExpenses";
@@ -211,7 +212,7 @@ export default function TradeCampaignDetail() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between" data-tour="campaign-header">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-5 w-5" />
@@ -219,7 +220,7 @@ export default function TradeCampaignDetail() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold">{campaign.name}</h1>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${statusInfo.color}`}>
+                <span className={`px-2 py-1 rounded text-xs font-medium ${statusInfo.color}`} data-tour="campaign-status">
                   {statusInfo.label}
                 </span>
               </div>
@@ -292,21 +293,21 @@ export default function TradeCampaignDetail() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
-            <TabsTrigger value="lancamento" className="gap-2">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5" data-tour="campaign-tabs">
+            <TabsTrigger value="lancamento" className="gap-2" data-tour="tab-lancamento">
               <ClipboardEdit className="h-4 w-4" />
               <span className="hidden sm:inline">Lançamento</span>
             </TabsTrigger>
-            <TabsTrigger value="products" className="gap-2">
+            <TabsTrigger value="products" className="gap-2" data-tour="tab-products">
               <Package className="h-4 w-4" />
               <span className="hidden sm:inline">Produtos</span>
             </TabsTrigger>
-            <TabsTrigger value="expenses" className="gap-2">
+            <TabsTrigger value="expenses" className="gap-2" data-tour="tab-expenses">
               <Receipt className="h-4 w-4" />
               <span className="hidden sm:inline">Gastos</span>
             </TabsTrigger>
             {isAdminOrSupervisor && (
-              <TabsTrigger value="validation" className="gap-2">
+              <TabsTrigger value="validation" className="gap-2" data-tour="tab-validation">
                 <CheckCircle className="h-4 w-4" />
                 <span className="hidden sm:inline">Validação</span>
               </TabsTrigger>
@@ -349,6 +350,14 @@ export default function TradeCampaignDetail() {
             <CampaignAuditLog campaignId={campaign.id} />
           </TabsContent>
         </Tabs>
+
+        {/* Tour Button */}
+        <TourButton
+          tourId={TRADE_CAMPAIGN_DETAIL_TOUR_ID}
+          tourSteps={tradeCampaignDetailTourSteps}
+          title="Manual de Execução"
+          description="Aprenda a registrar lançamentos, produtos e gastos"
+        />
       </div>
     </DashboardLayout>
   );

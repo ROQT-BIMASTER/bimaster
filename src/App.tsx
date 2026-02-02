@@ -17,6 +17,7 @@ import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { PWAProvider, usePWA } from "@/contexts/PWAContext";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { SplashScreen } from "@/components/pwa/SplashScreen";
+import { TourProvider } from "@/components/tour";
 
 // Lazy load das páginas para otimizar bundle
 const Index = lazy(() => import("./pages/Index"));
@@ -393,11 +394,13 @@ const App = () => {
         <PWAProvider>
           <AuthProvider>
             <PermissionsProvider>
-              <TooltipProvider delayDuration={0}>
-                <Toaster />
-                <Sonner />
-                <AppContent />
-              </TooltipProvider>
+              <TourProvider>
+                <TooltipProvider delayDuration={0}>
+                  <Toaster />
+                  <Sonner />
+                  <AppContent />
+                </TooltipProvider>
+              </TourProvider>
             </PermissionsProvider>
           </AuthProvider>
         </PWAProvider>
