@@ -6060,6 +6060,122 @@ export type Database = {
           },
         ]
       }
+      fabrica_produto_custos: {
+        Row: {
+          codigo: string
+          created_at: string | null
+          created_by: string | null
+          custo_condicao: number | null
+          custo_nf: number | null
+          custo_servico: number | null
+          fornecedor: string | null
+          id: string
+          mp_id: string | null
+          nf_referencia: string | null
+          nome: string
+          ordem: number | null
+          produto_id: string
+          tipo_insumo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          codigo: string
+          created_at?: string | null
+          created_by?: string | null
+          custo_condicao?: number | null
+          custo_nf?: number | null
+          custo_servico?: number | null
+          fornecedor?: string | null
+          id?: string
+          mp_id?: string | null
+          nf_referencia?: string | null
+          nome: string
+          ordem?: number | null
+          produto_id: string
+          tipo_insumo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          codigo?: string
+          created_at?: string | null
+          created_by?: string | null
+          custo_condicao?: number | null
+          custo_nf?: number | null
+          custo_servico?: number | null
+          fornecedor?: string | null
+          id?: string
+          mp_id?: string | null
+          nf_referencia?: string | null
+          nome?: string
+          ordem?: number | null
+          produto_id?: string
+          tipo_insumo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_produto_custos_mp_id_fkey"
+            columns: ["mp_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_produto_custos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_produto_custos_config: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          custo_mao_obra_nf: number | null
+          custo_mao_obra_servico: number | null
+          fornecedor_mao_obra: string | null
+          id: string
+          observacoes: string | null
+          percentual_markup: number | null
+          produto_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_mao_obra_nf?: number | null
+          custo_mao_obra_servico?: number | null
+          fornecedor_mao_obra?: string | null
+          id?: string
+          observacoes?: string | null
+          percentual_markup?: number | null
+          produto_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_mao_obra_nf?: number | null
+          custo_mao_obra_servico?: number | null
+          fornecedor_mao_obra?: string | null
+          id?: string
+          observacoes?: string | null
+          percentual_markup?: number | null
+          produto_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_produto_custos_config_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_produtos: {
         Row: {
           ativo: boolean | null

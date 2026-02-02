@@ -14,14 +14,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Package, Edit, Trash2, Upload } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovoProdutoAcabadoDialog } from "@/components/fabrica/NovoProdutoAcabadoDialog";
 import { toast } from "sonner";
 
 export default function FabricaProdutosAcabados() {
   const { hasPermission, loading: permLoading } = useScreenPermissions();
+  const navigate = useNavigate();
   const [dialogNovo, setDialogNovo] = useState(false);
   const [produtoEdit, setProdutoEdit] = useState<any>(null);
   const [busca, setBusca] = useState("");
@@ -277,11 +278,20 @@ export default function FabricaProdutosAcabados() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
+                        <div className="flex gap-1 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/dashboard/fabrica/produtos/${produto.id}/custos`)}
+                            title="Ficha de Custos"
+                          >
+                            <DollarSign className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEditar(produto)}
+                            title="Editar"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -290,6 +300,7 @@ export default function FabricaProdutosAcabados() {
                             size="sm"
                             onClick={() => handleExcluir(produto)}
                             className="text-destructive hover:text-destructive"
+                            title="Excluir"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
