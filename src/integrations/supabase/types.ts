@@ -12032,6 +12032,59 @@ export type Database = {
           },
         ]
       }
+      simulacao_cenarios_preco: {
+        Row: {
+          created_at: string | null
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          origem: string | null
+          produtos_ids: string[]
+          resultados: Json | null
+          tabela_base_id: string | null
+          tipo_markup: string
+          updated_at: string | null
+          valor_markup: number
+        }
+        Insert: {
+          created_at?: string | null
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          origem?: string | null
+          produtos_ids?: string[]
+          resultados?: Json | null
+          tabela_base_id?: string | null
+          tipo_markup?: string
+          updated_at?: string | null
+          valor_markup?: number
+        }
+        Update: {
+          created_at?: string | null
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          origem?: string | null
+          produtos_ids?: string[]
+          resultados?: Json | null
+          tabela_base_id?: string | null
+          tipo_markup?: string
+          updated_at?: string | null
+          valor_markup?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulacao_cenarios_preco_tabela_base_id_fkey"
+            columns: ["tabela_base_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       social_media_accounts: {
         Row: {
           access_token: string | null

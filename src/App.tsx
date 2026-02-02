@@ -111,6 +111,7 @@ const FabricaLancamentos = lazy(() => import("./pages/FabricaLancamentos"));
 const FabricaExecutiveDashboard = lazy(() => import("./pages/FabricaExecutiveDashboard"));
 const GerenciamentoAcessoPrecos = lazy(() => import("./pages/GerenciamentoAcessoPrecos"));
 const PrecosMatrizComparativa = lazy(() => import("./pages/PrecosMatrizComparativa"));
+const SimuladorCenariosPrecos = lazy(() => import("./pages/SimuladorCenariosPrecos"));
 const PortalCliente = lazy(() => import("./pages/PortalCliente"));
 const APIHealthCheck = lazy(() => import("./pages/APIHealthCheck"));
 const ContasAPagar = lazy(() => import("./pages/ContasAPagar"));
@@ -316,6 +317,7 @@ function AppContent() {
             <Route path="/dashboard/precos/aprovacao" element={<ProtectedRoute><FabricaAprovacaoPrecos /></ProtectedRoute>} />
             <Route path="/dashboard/precos/portal-cliente" element={<ProtectedRoute><PortalCliente /></ProtectedRoute>} />
             <Route path="/dashboard/precos/acesso" element={<ProtectedRoute><GerenciamentoAcessoPrecos /></ProtectedRoute>} />
+            <Route path="/dashboard/precos/simulador" element={<ProtectedRoute><ScreenProtectedRoute screenCode="precos_simulador"><SimuladorCenariosPrecos /></ScreenProtectedRoute></ProtectedRoute>} />
             
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><Financeiro /></ModuleProtectedRoute></ProtectedRoute>} />
