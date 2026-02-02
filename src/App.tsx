@@ -14,6 +14,7 @@ import { ModuleProtectedRoute } from "@/components/auth/ModuleProtectedRoute";
 import { ScreenProtectedRoute } from "@/components/auth/ScreenProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
+import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { PWAProvider, usePWA } from "@/contexts/PWAContext";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { SplashScreen } from "@/components/pwa/SplashScreen";
@@ -396,13 +397,15 @@ const App = () => {
         <PWAProvider>
           <AuthProvider>
             <PermissionsProvider>
-              <TourProvider>
-                <TooltipProvider delayDuration={0}>
-                  <Toaster />
-                  <Sonner />
-                  <AppContent />
-                </TooltipProvider>
-              </TourProvider>
+              <ImpersonationProvider>
+                <TourProvider>
+                  <TooltipProvider delayDuration={0}>
+                    <Toaster />
+                    <Sonner />
+                    <AppContent />
+                  </TooltipProvider>
+                </TourProvider>
+              </ImpersonationProvider>
             </PermissionsProvider>
           </AuthProvider>
         </PWAProvider>
