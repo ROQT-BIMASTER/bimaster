@@ -1,28 +1,38 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useState, useEffect } from "react";
 
 /**
  * Hook para verificar as permissões de tabelas de preço do usuário.
  * Usuários admin/supervisor têm acesso a todas as tabelas.
  * Outros usuários só veem tabelas que possuem permissão em user_price_table_access.
+ * Respeita o modo de impersonação quando ativo.
  */
 export function useUserPriceTableAccess() {
   const { isAdmin, role, loading: permLoading } = usePermissions();
-  const [userId, setUserId] = useState<string | null>(null);
+  const { isImpersonating, impersonatedUser, impersonatedPermissions } = useImpersonation();
+  const [realUserId, setRealUserId] = useState<string | null>(null);
 
-  // Buscar userId do usuário atual
+  // Buscar userId do usuário real
   useEffect(() => {
     const getUserId = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
+      setRealUserId(user?.id || null);
     };
     getUserId();
   }, []);
 
+  // Usar o ID do usuário impersonado se estiver ativo, senão usar o real
+  const userId = isImpersonating && impersonatedUser ? impersonatedUser.id : realUserId;
+
+  // Verificar role efetivo (impersonado ou real)
+  const effectiveRole = isImpersonating && impersonatedPermissions ? impersonatedPermissions.role : role;
+  const effectiveIsAdmin = isImpersonating && impersonatedPermissions ? impersonatedPermissions.isAdmin : isAdmin;
+
   // Supervisores também têm acesso total
-  const hasFullAccess = isAdmin || role === "supervisor";
+  const hasFullAccess = effectiveIsAdmin || effectiveRole === "supervisor";
 
   // Buscar permissões do usuário nas tabelas
   const { data: userAccess, isLoading: accessLoading } = useQuery({
