@@ -301,6 +301,17 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                     <p className="text-base">{store.cnpj || "-"}</p>
                   </div>
                   <div>
+                    <p className="text-sm font-medium text-muted-foreground">Nº de Lojas/Filiais</p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={store.branch_count > 1 ? "default" : "secondary"} className="text-base">
+                        {store.branch_count || 1}
+                      </Badge>
+                      {store.branch_count > 1 && (
+                        <span className="text-xs text-muted-foreground">lojas neste CNPJ</span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
                     <p className="text-sm font-medium text-muted-foreground">Telefone</p>
                     <p className="text-base flex items-center gap-2">
                       {store.phone ? (

@@ -19,6 +19,7 @@ export const NovaRedeDialog = ({ open, onOpenChange, onSuccess }: NovaRedeDialog
   const [formData, setFormData] = useState({
     name: "",
     cnpj: "",
+    branch_count: 1,
     contact_name: "",
     contact_email: "",
     contact_phone: "",
@@ -37,6 +38,7 @@ export const NovaRedeDialog = ({ open, onOpenChange, onSuccess }: NovaRedeDialog
         .insert({
           name: formData.name,
           cnpj: formData.cnpj || null,
+          branch_count: formData.branch_count || 1,
           contact_name: formData.contact_name || null,
           contact_email: formData.contact_email || null,
           contact_phone: formData.contact_phone || null,
@@ -53,7 +55,7 @@ export const NovaRedeDialog = ({ open, onOpenChange, onSuccess }: NovaRedeDialog
 
       onOpenChange(false);
       onSuccess?.(formData.name);
-      setFormData({ name: "", cnpj: "", contact_name: "", contact_email: "", contact_phone: "", notes: "" });
+      setFormData({ name: "", cnpj: "", branch_count: 1, contact_name: "", contact_email: "", contact_phone: "", notes: "" });
     } catch (error: any) {
       toast({
         title: "Erro ao criar rede",
@@ -73,7 +75,7 @@ export const NovaRedeDialog = ({ open, onOpenChange, onSuccess }: NovaRedeDialog
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <Label htmlFor="name">Nome da Rede *</Label>
               <Input
@@ -95,6 +97,22 @@ export const NovaRedeDialog = ({ open, onOpenChange, onSuccess }: NovaRedeDialog
                   setFormData({ ...formData, cnpj: e.target.value })
                 }
               />
+            </div>
+
+            <div>
+              <Label htmlFor="branch_count">Nº de Lojas da Rede</Label>
+              <Input
+                id="branch_count"
+                type="number"
+                min={1}
+                value={formData.branch_count}
+                onChange={(e) =>
+                  setFormData({ ...formData, branch_count: parseInt(e.target.value) || 1 })
+                }
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Total de lojas que fazem parte desta rede
+              </p>
             </div>
           </div>
 
