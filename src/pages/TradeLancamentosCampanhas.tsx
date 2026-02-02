@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { List, Users, Download, Upload, Plus } from "lucide-react";
@@ -14,6 +15,11 @@ export default function TradeLancamentosCampanhas() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <ModuleBreadcrumb 
+          moduleName="Financeiro Trade" 
+          moduleHref="/dashboard/trade/financeiro" 
+          currentPage="Painel de Lançamentos" 
+        />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">Painel de Lançamentos</h1>

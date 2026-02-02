@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -205,6 +206,11 @@ export default function TradeReportSellers() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <ModuleBreadcrumb 
+          moduleName="Administrativo Trade" 
+          moduleHref="/dashboard/trade/admin" 
+          currentPage="Relatório por Vendedor" 
+        />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Relatório por Vendedor</h1>
