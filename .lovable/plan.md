@@ -1,104 +1,165 @@
 
+# Plano de Correção: Sistema de Impersonação
 
-# Restringir Contas a Pagar para Fabio e Carlos
+## Resumo da Análise
 
-## Situacao Atual
+A análise do sistema de impersonação revelou **3 falhas críticas** que precisam ser corrigidas para garantir que a visualização "Como Usuário" funcione corretamente em todo o sistema.
 
-### Usuarios que PODEM acessar a tela hoje
+---
 
-| Fonte de Permissao | Usuarios Afetados |
-|-------------------|-------------------|
-| Role vendedor | TODOS os vendedores (configuraçao global) |
-| Departamento Financeiro | Leandro Ramos, C. Guimarães, F. Cazarotti |
-| Permissao Individual | Erika, Leandro Ramos, F. Cazarotti, Lucas Machado, Juliana Germinhasi, Administrador Sistema, C. Guimarães |
-| Admin (automatico) | Leandro Moraes Ramos |
+## Falhas Identificadas
 
-### Usuarios DESEJADOS
+### 1. Violação das Regras de Hooks no DashboardLayout
 
-| Usuario | Email | ID |
-|---------|-------|-----|
-| F. Cazarotti (Fabio) | f.cazarotti@rubyrosemaquiagem.com.br | a908ebc1-ebf6-484e-94b6-ab1df1d288c5 |
-| C. Guimarães (Carlos) | c.guimaraes@distribuidoraunion.com.br | 44d455eb-244a-44b5-bc7b-c8e4c929374a |
-| Leandro Moraes Ramos (Admin) | leandro.moraesramos@gmail.com | Acesso automatico |
+**Arquivo:** `src/components/dashboard/DashboardLayout.tsx`
 
-## Acoes Necessarias
-
-### 1. Remover permissao do Role Vendedor
-
-Remover a tela `financeiro_contas_pagar` das permissoes do role vendedor.
+**Problema:** O hook `useImpersonation()` está sendo chamado **depois** de um retorno condicional (`if (!session) return null`), o que viola as regras do React que exigem que hooks sejam sempre chamados na mesma ordem.
 
 ```text
-DELETE FROM role_permissoes_telas
-WHERE role = 'vendedor'
-AND tela_id = '595c320f-bb86-4ee5-b42a-848d8770b191';
+Código problemático (linha 69):
+┌────────────────────────────────────────┐
+│ if (!session) {                        │
+│   return null;  ← retorno condicional  │
+│ }                                      │
+│                                        │
+│ const { isImpersonating } = ...        │
+│         ↑                              │
+│   Hook chamado após return condicional │
+└────────────────────────────────────────┘
 ```
 
-### 2. Remover permissao do Departamento Financeiro
+**Risco:** Comportamento imprevisível, possível crash em certas situações.
 
-Mesmo que Fabio e Carlos estejam no Financeiro, remover a permissao do departamento para ter controle granular.
+---
+
+### 2. Dashboard.tsx Ignora Impersonação
+
+**Arquivo:** `src/pages/Dashboard.tsx`
+
+**Problema:** O Dashboard usa `usePermissions()` diretamente em vez de usar os hooks que respeitam impersonação (`useModulePermissions` ou `useImpersonation`).
 
 ```text
-DELETE FROM departamento_permissoes_telas
-WHERE departamento_id = 'ed8fe145-0639-4d00-ac52-02c83f4f9652'
-AND tela_id = '595c320f-bb86-4ee5-b42a-848d8770b191';
+Código atual:
+const { hasModulePermission, isAdmin, ... } = usePermissions();
+                              ↑
+           isAdmin sempre será do usuário REAL (admin)
+           não do usuário sendo visualizado
 ```
 
-### 3. Remover TODAS as permissoes individuais dessa tela
+**Consequência:**
+- `isAdmin` sempre reflete o admin real, não o usuário impersonado
+- `hasModulePermission` também ignora impersonação
+- O widget `MetricasDistribuicao` aparece mesmo quando visualizando como não-admin
 
-Limpar todas as permissoes individuais existentes.
+---
+
+### 3. ImpersonationSelector Usa isAdmin do Contexto Errado
+
+**Arquivo:** `src/components/admin/ImpersonationSelector.tsx`
+
+**Problema:** O componente verifica `isAdmin` de `usePermissions()` para decidir se mostra o botão. Isso está **correto** (apenas admins reais devem ver o botão), mas durante a impersonação pode haver inconsistência visual.
+
+**Status:** Funcionando corretamente, mas vale documentar que é intencional.
+
+---
+
+## Plano de Correção
+
+### Correção 1: Mover Hook para o Topo (DashboardLayout.tsx)
+
+Mover a chamada de `useImpersonation()` para o início do componente, antes de qualquer retorno condicional:
 
 ```text
-DELETE FROM usuario_permissoes_telas
-WHERE tela_id = '595c320f-bb86-4ee5-b42a-848d8770b191';
+// ANTES (errado)
+export const DashboardLayout = () => {
+  const { session, ... } = useAuth();
+  ...
+  if (!session) return null;  
+  const { isImpersonating } = useImpersonation(); // ❌ Após return
+  ...
+}
+
+// DEPOIS (correto)
+export const DashboardLayout = () => {
+  const { session, ... } = useAuth();
+  const { isImpersonating } = useImpersonation(); // ✅ Antes de returns
+  ...
+  if (!session) return null;
+  ...
+}
 ```
 
-### 4. Adicionar permissao APENAS para Fabio e Carlos
+---
+
+### Correção 2: Atualizar Dashboard.tsx para Usar Impersonação
+
+Substituir o uso direto de `usePermissions()` pelos hooks que respeitam impersonação:
 
 ```text
-INSERT INTO usuario_permissoes_telas (usuario_id, tela_id)
-VALUES 
-  ('a908ebc1-ebf6-484e-94b6-ab1df1d288c5', '595c320f-bb86-4ee5-b42a-848d8770b191'),
-  ('44d455eb-244a-44b5-bc7b-c8e4c929374a', '595c320f-bb86-4ee5-b42a-848d8770b191');
+// ANTES
+const { hasModulePermission, isAdmin, ... } = usePermissions();
+
+// DEPOIS  
+const { hasModulePermission } = useModulePermissions();
+const { impersonatedPermissions, isImpersonating } = useImpersonation();
+
+// isAdmin efetivo: usa impersonação se ativo
+const effectiveIsAdmin = isImpersonating && impersonatedPermissions 
+  ? impersonatedPermissions.isAdmin 
+  : realIsAdmin;
 ```
 
-## Resultado Final
+Isso garante que:
+- `hasModulePermission` respeite a impersonação (já implementado no hook)
+- `isAdmin` mostre corretamente se o usuário impersonado é admin
+- `MetricasDistribuicao` só apareça quando o usuário efetivo for admin
 
-| Usuario | Acesso a Contas a Pagar |
-|---------|------------------------|
-| F. Cazarotti (Fabio) | SIM (permissao individual) |
-| C. Guimarães (Carlos) | SIM (permissao individual) |
-| Leandro Moraes Ramos | SIM (admin automatico) |
-| Todos os outros | NAO |
+---
 
-## Impacto
+## Arquivos a Modificar
 
-### Usuarios que PERDERAO acesso
+| Arquivo | Tipo de Mudança |
+|---------|-----------------|
+| `src/components/dashboard/DashboardLayout.tsx` | Reordenar hooks |
+| `src/pages/Dashboard.tsx` | Usar hooks com impersonação |
 
-| Usuario | Tinha Acesso Via |
-|---------|------------------|
-| Leandro Ramos | Departamento Financeiro |
-| Erika | Permissao Individual |
-| Lucas Machado | Permissao Individual |
-| Juliana Germinhasi | Permissao Individual |
-| Administrador Sistema | Permissao Individual |
-| Todos os vendedores | Role vendedor |
+---
 
-## Seguranca
+## Benefícios
 
-A restricao sera aplicada em duas camadas:
+1. **Conformidade com React:** Hooks sempre na mesma ordem
+2. **Impersonação completa:** Dashboard reflete permissões do usuário visualizado
+3. **Experiência consistente:** Admin vê exatamente o que cada usuário vê
+4. **Sem breaking changes:** Comportamento normal (sem impersonação) permanece idêntico
 
-| Camada | Componente | Verificacao |
-|--------|------------|-------------|
-| Frontend | ScreenProtectedRoute | Bloqueia navegacao, exibe "Acesso Negado" |
-| Backend | Funcao get_all_user_permissions | Nao retorna a tela na lista de permissoes |
+---
 
-## Arquivos Modificados
+## Seção Técnica
 
-| Arquivo | Alteracao |
-|---------|-----------|
-| Nova migration SQL | Executa as 4 queries acima em uma transacao |
+### Dependências Entre Arquivos
 
-## Observacao Importante
+O sistema de impersonação segue esta hierarquia:
 
-O admin (Leandro Moraes Ramos) continuara tendo acesso automatico a todas as telas, incluindo Contas a Pagar. Isso e comportamento esperado do sistema.
+```text
+PermissionsContext (base)
+       ↓
+ImpersonationContext (wrapper)
+       ↓
+┌──────────────────────────────────────┐
+│ useModulePermissions (já atualizado) │
+│ useScreenPermissions (já atualizado) │
+└──────────────────────────────────────┘
+       ↓
+Componentes (precisam usar os hooks corretos)
+```
 
+### Teste de Validação
+
+Após implementação, testar:
+1. Fazer login como admin
+2. Clicar em "Visualizar como Usuário" e selecionar um vendedor
+3. Verificar que:
+   - Sidebar mostra apenas módulos do vendedor
+   - Dashboard NÃO mostra MetricasDistribuicao
+   - Módulos corretos aparecem nos cards
+4. Clicar em "Sair" e verificar que tudo volta ao normal
