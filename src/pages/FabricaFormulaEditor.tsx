@@ -487,7 +487,7 @@ export default function FabricaFormulaEditor() {
 
           <TabsContent value="roteiro">
             <RoteiroProducaoEditor
-              formulaId={id || ""}
+              formulaId={id && id !== "nova" ? id : ""}
               maquinas={maquinas || []}
               onSave={(steps) => setRoteiro(steps)}
               initialSteps={roteiro}
