@@ -5,9 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, Settings2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 interface RoteiroStep {
   id: string;
   sequencia: number;
@@ -34,6 +37,7 @@ export function RoteiroProducaoEditor({
   onSave,
   initialSteps = [],
 }: RoteiroProducaoEditorProps) {
+  const queryClient = useQueryClient();
   const [steps, setSteps] = useState<RoteiroStep[]>(
     initialSteps.length > 0
       ? initialSteps
@@ -46,6 +50,58 @@ export function RoteiroProducaoEditor({
           },
         ]
   );
+
+  // Estado para cadastro rápido de máquina
+  const [showNovaMaquinaDialog, setShowNovaMaquinaDialog] = useState(false);
+  const [novaMaquina, setNovaMaquina] = useState({ codigo: "", nome: "", tipo: "" });
+  const [salvandoMaquina, setSalvandoMaquina] = useState(false);
+  const [stepIndexParaMaquina, setStepIndexParaMaquina] = useState<number | null>(null);
+
+  const salvarNovaMaquina = async () => {
+    if (!novaMaquina.codigo.trim() || !novaMaquina.nome.trim()) {
+      toast.error("Código e nome são obrigatórios");
+      return;
+    }
+
+    setSalvandoMaquina(true);
+    try {
+      const { data, error } = await supabase
+        .from("fabrica_maquinas")
+        .insert({
+          codigo: novaMaquina.codigo.trim(),
+          nome: novaMaquina.nome.trim(),
+          tipo: novaMaquina.tipo.trim() || null,
+          status: "ativo",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success("Máquina cadastrada com sucesso!");
+      
+      // Atualizar lista de máquinas
+      queryClient.invalidateQueries({ queryKey: ["fabrica-maquinas-ativas"] });
+      
+      // Vincular ao passo se veio de um select
+      if (stepIndexParaMaquina !== null && data) {
+        atualizarPasso(stepIndexParaMaquina, "maquina_sugerida_id", data.id);
+      }
+
+      setShowNovaMaquinaDialog(false);
+      setNovaMaquina({ codigo: "", nome: "", tipo: "" });
+      setStepIndexParaMaquina(null);
+    } catch (error: any) {
+      toast.error("Erro ao cadastrar: " + error.message);
+    } finally {
+      setSalvandoMaquina(false);
+    }
+  };
+
+  const abrirCadastroMaquina = (stepIndex: number) => {
+    setStepIndexParaMaquina(stepIndex);
+    setShowNovaMaquinaDialog(true);
+  };
 
   const adicionarPasso = () => {
     setSteps([
@@ -121,24 +177,35 @@ export function RoteiroProducaoEditor({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Máquina Sugerida</Label>
-                  <Select
-                    value={step.maquina_sugerida_id || "none"}
-                    onValueChange={(value) =>
-                      atualizarPasso(index, "maquina_sugerida_id", value === "none" ? undefined : value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhuma</SelectItem>
-                      {maquinas?.map((maq) => (
-                        <SelectItem key={maq.id} value={maq.id}>
-                          {maq.codigo} - {maq.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select
+                      value={step.maquina_sugerida_id || "none"}
+                      onValueChange={(value) =>
+                        atualizarPasso(index, "maquina_sugerida_id", value === "none" ? undefined : value)
+                      }
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhuma</SelectItem>
+                        {maquinas?.map((maq) => (
+                          <SelectItem key={maq.id} value={maq.id}>
+                            {maq.codigo} - {maq.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => abrirCadastroMaquina(index)}
+                      title="Cadastrar nova máquina"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -249,6 +316,52 @@ export function RoteiroProducaoEditor({
           Salvar Roteiro de Produção
         </Button>
       </CardContent>
+
+      {/* Dialog de Cadastro Rápido de Máquina */}
+      <Dialog open={showNovaMaquinaDialog} onOpenChange={setShowNovaMaquinaDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5" />
+              Cadastrar Nova Máquina
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Código *</Label>
+              <Input
+                value={novaMaquina.codigo}
+                onChange={(e) => setNovaMaquina({ ...novaMaquina, codigo: e.target.value })}
+                placeholder="Ex: MAQ-001"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Nome *</Label>
+              <Input
+                value={novaMaquina.nome}
+                onChange={(e) => setNovaMaquina({ ...novaMaquina, nome: e.target.value })}
+                placeholder="Ex: Misturador Industrial"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Input
+                value={novaMaquina.tipo}
+                onChange={(e) => setNovaMaquina({ ...novaMaquina, tipo: e.target.value })}
+                placeholder="Ex: Misturador, Forno, Embaladora..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNovaMaquinaDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={salvarNovaMaquina} disabled={salvandoMaquina}>
+              {salvandoMaquina ? "Salvando..." : "Cadastrar Máquina"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
