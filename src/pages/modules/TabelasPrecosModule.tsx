@@ -29,7 +29,16 @@ const TabelasPrecosModule = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  if (!permissionsLoading && !hasPermission("fabrica_tabelas_preco")) {
+  // Verificar se tem pelo menos uma tela do módulo de preços
+  const hasAnyPrecosPermission = hasPermission("precos_dashboard") || 
+    hasPermission("precos_matriz") || 
+    hasPermission("precos_tabelas") || 
+    hasPermission("fabrica_tabelas_preco") ||
+    hasPermission("precos_aprovacao") || 
+    hasPermission("precos_portal") || 
+    hasPermission("precos_acesso");
+
+  if (!permissionsLoading && !hasAnyPrecosPermission) {
     return <Navigate to="/dashboard" replace />;
   }
 

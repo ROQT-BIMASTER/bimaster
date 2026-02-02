@@ -306,7 +306,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica/lancamentos" element={<ProtectedRoute><FabricaLancamentos /></ProtectedRoute>} />
 
             {/* Módulo de Tabelas de Preços */}
-            <Route path="/dashboard/precos" element={<ProtectedRoute><TabelasPrecosModule /></ProtectedRoute>} />
+            <Route path="/dashboard/precos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="precos"><TabelasPrecosModule /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/precos/matriz" element={<ProtectedRoute><ScreenProtectedRoute screenCode="precos_matriz"><PrecosMatrizComparativa /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/precos/tabelas" element={<ProtectedRoute><FabricaTabelasPreco /></ProtectedRoute>} />
             <Route path="/dashboard/precos/aprovacao" element={<ProtectedRoute><FabricaAprovacaoPrecos /></ProtectedRoute>} />
