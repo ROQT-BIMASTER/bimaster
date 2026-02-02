@@ -1,178 +1,79 @@
 
-# Plano: Ficha Técnica de Custos de Produção
+# Plano: Corrigir Acesso de Lucas Machado à Matriz Comparativa de Preços
 
-## Contexto
+## Problema Identificado
 
-Atualmente você recebe custos de fábrica em planilhas Excel manuais (como o PDF do Pistache) com uma estrutura muito detalhada:
+Lucas Machado tem as permissões corretas no banco de dados:
+- **Módulo**: `precos` ✅
+- **Tela**: `precos_matriz` ✅
 
-| Aspecto | Planilha Atual (PDF) | Sistema Atual |
-|---------|---------------------|---------------|
-| **Colunas de custo** | NF, Serviço, Condição, NF Venda | Apenas custo unitário |
-| **Mão de obra** | Linha separada (M.o) | Não rastreado |
-| **Fornecedor** | Por item | Cadastrado, mas não exibido |
-| **NF referência** | Por item | Não rastreado |
-| **Markup operacional** | "10% sobre o custo" | Não existe |
-| **Totais por coluna** | Sim | Apenas total geral |
+Porém, existem dois problemas que impedem o acesso:
+
+### Problema 1: Dashboard do Módulo exige tela errada
+A página `TabelasPrecosModule.tsx` (dashboard do módulo de Preços) verifica a permissão da tela `fabrica_tabelas_preco`, que Lucas **não tem**. Isso causa redirecionamento imediato para `/dashboard`.
+
+### Problema 2: Sidebar não mostra módulo sem acesso ao dashboard
+Se o usuário não consegue acessar o dashboard do módulo, a navegação fica quebrada mesmo tendo acesso a sub-telas específicas.
 
 ## Solução Proposta
 
-Criar uma estrutura profissional de **Ficha Técnica de Custos** que captura toda a complexidade da planilha Excel atual, mas de forma integrada e automatizada.
+### 1. Ajustar verificação de permissão no TabelasPrecosModule
+Alterar de verificar tela específica para verificar módulo ou qualquer tela do módulo:
+- Verificar se tem acesso ao módulo `precos` **OU**
+- Verificar se tem ao menos uma tela do módulo de preços
 
----
+### 2. Adicionar tela `precos_dashboard` para Lucas (opcional)
+Se quisermos que Lucas veja o dashboard completo, precisamos dar acesso a essa tela específica.
 
-## 1. Nova Estrutura de Dados
+**OU**
 
-### Tabela: `fabrica_ficha_custo_itens`
+### 3. Criar rota direta para Matriz (recomendado)
+Como Lucas só precisa da Matriz Comparativa, podemos:
+- Fazer o dashboard redirecionar para a primeira tela disponível do módulo
+- Ou criar lógica que identifica a tela disponível e mostra apropriadamente
 
-Campos adicionais para cada item da fórmula:
+## Mudanças Técnicas
 
-| Campo | Descrição |
-|-------|-----------|
-| `custo_nf` | Custo conforme Nota Fiscal |
-| `custo_servico` | Custo de serviço/terceirização |
-| `custo_condicao` | Custo de condição adicional |
-| `nf_referencia` | Número da NF de referência |
-| `tipo_insumo` | Bulk, Frasco, Tampa, Display, etc. |
-
-### Tabela: `fabrica_ficha_custo_config`
-
-Configuração por produto:
-
-| Campo | Descrição |
-|-------|-----------|
-| `custo_mao_obra` | Valor fixo de M.O. por unidade |
-| `percentual_markup` | Ex: 10% sobre o custo |
-| `fornecedor_servico` | Fornecedor de terceirização (ex: Rodrigues) |
-
----
-
-## 2. Interface da Ficha de Custos
-
-### Componente: `FichaCustoProducao`
-
-Visualização profissional estilo planilha com:
-
-**Cabeçalho:**
-- Nome do produto (ex: "LIP OIL PISTACHE RR-L6517")
-- Código PA
-- Fornecedor de serviço
-
-**Tabela de Custos:**
-```text
-+--------+--------------------+-------------+----------+----------+----------+-----------+
-| Código | Insumo             | Fornecedor  | NF       | Serviço  | Condição | NF Ref    |
-+--------+--------------------+-------------+----------+----------+----------+-----------+
-|        | M.o                | Rodrigues   | R$ 0,05  | R$ 0,85  |          |           |
-| 22904  | Bulk               | Rodrigues   | R$ 0,19  | R$ 0,19  |          |           |
-| 22983  | Frasco             | Kilimplast  | R$ 0,09  |          | R$ 0,27  | NF34956   |
-| ...    | ...                | ...         | ...      | ...      | ...      | ...       |
-+--------+--------------------+-------------+----------+----------+----------+-----------+
-|        | 10% sobre o custo  |             | R$ 0,00  | R$ 0,19  |          |           |
-+--------+--------------------+-------------+----------+----------+----------+-----------+
-| TOTAIS                      |             | R$ 0,76  | R$ 1,31  | R$ 1,70  | R$ 3,77   |
-+--------+--------------------+-------------+----------+----------+----------+-----------+
-```
-
-**Totalizadores:**
-- Custo NF Total
-- Custo Serviço Total  
-- Custo Condição Total
-- **Custo Total Final** (soma de todas as colunas)
-
----
-
-## 3. Categorização de Insumos
-
-Classificação automática por tipo:
-
-| Tipo | Exemplos |
-|------|----------|
-| **Bulk/Granel** | Formulação base |
-| **Embalagem Primária** | Frasco, Pote, Bisnaga |
-| **Embalagem Secundária** | Tampa, Batoque, Válvula |
-| **Rótulos/Impressos** | Rótulo, Cartucho |
-| **Embalagem Terciária** | Display, Berço, Caixa Master |
-| **Consumíveis** | Filme, Tabuleiro |
-| **Acessórios** | Provador |
-
----
-
-## 4. Exportação PDF Profissional
-
-Gerar documento idêntico ao formato Excel atual:
-
-- Cabeçalho com logo e nome do produto
-- Tabela formatada com todas as colunas
-- Totais por coluna e geral
-- Rodapé com data de geração
-
----
-
-## 5. Integração com Fórmulas Existentes
-
-Adicionar aba "Ficha de Custos" no editor de fórmulas (`FabricaFormulaEditor`) com:
-
-- Edição inline de custos NF/Serviço/Condição por item
-- Configuração de M.O. e markup
-- Cálculo automático de totais
-- Botão de exportar PDF
-
----
-
-## Detalhes Técnicos
-
-### Migração SQL
-
-```sql
--- Adicionar campos à tabela de itens
-ALTER TABLE fabrica_formula_itens
-ADD COLUMN custo_nf DECIMAL(12,6) DEFAULT 0,
-ADD COLUMN custo_servico DECIMAL(12,6) DEFAULT 0,
-ADD COLUMN custo_condicao DECIMAL(12,6) DEFAULT 0,
-ADD COLUMN nf_referencia VARCHAR(50),
-ADD COLUMN tipo_insumo VARCHAR(50);
-
--- Tabela de configuração de custos
-CREATE TABLE fabrica_ficha_custo_config (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  formula_id UUID REFERENCES fabrica_formulas(id) ON DELETE CASCADE,
-  custo_mao_obra DECIMAL(12,6) DEFAULT 0,
-  fornecedor_mao_obra VARCHAR(100),
-  percentual_markup DECIMAL(5,2) DEFAULT 10,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(formula_id)
-);
-```
-
-### Novos Componentes React
-
-| Componente | Função |
-|------------|--------|
-| `FichaCustoProducao.tsx` | Visualização completa da ficha |
-| `FichaCustoEditor.tsx` | Edição inline dos custos |
-| `ExportarFichaCustoPDF.tsx` | Geração de PDF profissional |
-
-### Cálculos Automáticos
-
+### Arquivo: `src/pages/modules/TabelasPrecosModule.tsx`
 ```typescript
-interface CustosProduto {
-  custoNfTotal: number;      // Soma de todos os custo_nf
-  custoServicoTotal: number; // Soma de todos os custo_servico + M.O.
-  custoCondicaoTotal: number;// Soma de todos os custo_condicao
-  markup: number;            // percentual_markup aplicado
-  custoFinalTotal: number;   // Soma de todas as colunas
+// ANTES (linha 32-34):
+if (!permissionsLoading && !hasPermission("fabrica_tabelas_preco")) {
+  return <Navigate to="/dashboard" replace />;
+}
+
+// DEPOIS:
+// Verificar se tem pelo menos uma tela do módulo de preços
+const hasAnyPrecosPermission = hasPermission("precos_dashboard") || 
+  hasPermission("precos_matriz") || 
+  hasPermission("precos_tabelas") || 
+  hasPermission("precos_aprovacao") || 
+  hasPermission("precos_portal") || 
+  hasPermission("precos_acesso");
+
+if (!permissionsLoading && !hasAnyPrecosPermission) {
+  return <Navigate to="/dashboard" replace />;
 }
 ```
 
----
+### Arquivo: `src/App.tsx`
+Adicionar proteção de módulo na rota principal:
+```typescript
+// ANTES:
+<Route path="/dashboard/precos" element={<ProtectedRoute><TabelasPrecosModule /></ProtectedRoute>} />
+
+// DEPOIS:
+<Route path="/dashboard/precos" element={
+  <ProtectedRoute>
+    <ModuleProtectedRoute moduleCode="precos">
+      <TabelasPrecosModule />
+    </ModuleProtectedRoute>
+  </ProtectedRoute>
+} />
+```
 
 ## Resultado Esperado
-
-Substituição completa das planilhas Excel por uma interface integrada que:
-
-1. Mantém o mesmo formato visual familiar
-2. Calcula automaticamente os totais
-3. Vincula custos às NFs de entrada (recebimento XML)
-4. Gera PDFs profissionais para compartilhamento
-5. Integra com o sistema de precificação existente
+Após as alterações:
+1. O módulo "Tabelas de Preços" aparecerá no sidebar de Lucas Machado
+2. Lucas poderá acessar o dashboard do módulo
+3. Dentro do módulo, apenas a opção "Matriz Comparativa" estará visível (pois é a única tela que ele tem permissão)
+4. A Matriz mostrará apenas as tabelas Deep, E-commerce e Clear conforme já configurado
