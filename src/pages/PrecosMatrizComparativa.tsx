@@ -1,0 +1,12 @@
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { MatrizPrecosComparativa } from "@/components/fabrica/MatrizPrecosComparativa";
+
+export default function PrecosMatrizComparativa() {
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <MatrizPrecosComparativa />
+      </div>
+    </DashboardLayout>
+  );
+}
