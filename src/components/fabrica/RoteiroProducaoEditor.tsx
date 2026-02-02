@@ -38,18 +38,19 @@ export function RoteiroProducaoEditor({
   initialSteps = [],
 }: RoteiroProducaoEditorProps) {
   const queryClient = useQueryClient();
-  const [steps, setSteps] = useState<RoteiroStep[]>(
-    initialSteps.length > 0
-      ? initialSteps
-      : [
-          {
-            id: crypto.randomUUID(),
-            sequencia: 1,
-            descricao: "",
-            tempo_estimado_minutos: 0,
-          },
-        ]
-  );
+  const [steps, setSteps] = useState<RoteiroStep[]>(() => {
+    if (initialSteps && initialSteps.length > 0) {
+      return initialSteps;
+    }
+    return [
+      {
+        id: crypto.randomUUID(),
+        sequencia: 1,
+        descricao: "",
+        tempo_estimado_minutos: 0,
+      },
+    ];
+  });
 
   // Estado para cadastro rápido de máquina
   const [showNovaMaquinaDialog, setShowNovaMaquinaDialog] = useState(false);
