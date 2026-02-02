@@ -21,7 +21,8 @@ import {
   PiggyBank,
   ClipboardCheck,
   Receipt,
-  BarChart3
+  BarChart3,
+  LayoutDashboard
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -313,6 +314,27 @@ const TradeAdminModule = () => {
                 </div>
                 <CardTitle className="mt-4">Contas Correntes</CardTitle>
                 <CardDescription>Gestão de contas e extratos</CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          {/* Visão Executiva */}
+          <Link to="/dashboard/trade/admin/executivo">
+            <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer relative overflow-hidden">
+              <div className="absolute top-2 right-2">
+                <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[10px] px-1.5">
+                  NOVO
+                </Badge>
+              </div>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="p-3 bg-indigo-100 dark:bg-indigo-900/50 rounded-xl">
+                    <LayoutDashboard className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <CardTitle className="mt-4">Visão Executiva</CardTitle>
+                <CardDescription>Painel consolidado para diretoria</CardDescription>
               </CardHeader>
             </Card>
           </Link>
