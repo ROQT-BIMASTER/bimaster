@@ -15,6 +15,7 @@ import { StoreDetailDialog } from "@/components/trade/StoreDetailDialog";
 import { TradePageHeader } from "@/components/trade/TradePageHeader";
 import { MobileDataList } from "@/components/trade/MobileDataList";
 import { Card, CardContent } from "@/components/ui/card";
+import { TourButton, tradeStoresTourSteps, TRADE_STORES_TOUR_ID } from "@/components/tour";
 
 interface Store {
   id: string;
@@ -307,56 +308,62 @@ const TradeStores = () => {
   return (
     <DashboardLayout>
       <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-6">
-        <TradePageHeader
-          title="Pontos de Venda"
-          description={`${stores.length} PDVs cadastrados`}
-          actions={
-            <>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="h-9 text-xs sm:text-sm"
-                onClick={() => navigate('/dashboard/trade/import-stores')}
-              >
-                <Upload className="mr-1.5 h-4 w-4" />
-                <span className="hidden sm:inline">Importar</span>
-              </Button>
-              <Button 
-                size="sm"
-                className="h-9 text-xs sm:text-sm bg-trade hover:bg-trade-dark"
-                onClick={() => setShowNovaLoja(true)}
-              >
-                <Plus className="mr-1.5 h-4 w-4" />
-                <span>Nova Loja</span>
-              </Button>
-            </>
-          }
-        />
+        <div data-tour="stores-header">
+          <TradePageHeader
+            title="Pontos de Venda"
+            description={`${stores.length} PDVs cadastrados`}
+            actions={
+              <div data-tour="stores-actions" className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="h-9 text-xs sm:text-sm"
+                  onClick={() => navigate('/dashboard/trade/import-stores')}
+                >
+                  <Upload className="mr-1.5 h-4 w-4" />
+                  <span className="hidden sm:inline">Importar</span>
+                </Button>
+                <Button 
+                  size="sm"
+                  className="h-9 text-xs sm:text-sm bg-trade hover:bg-trade-dark"
+                  onClick={() => setShowNovaLoja(true)}
+                >
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  <span>Nova Loja</span>
+                </Button>
+              </div>
+            }
+          />
+        </div>
 
-        <TradeFilters
-          selectedStore={selectedStore}
-          onStoreChange={setSelectedStore}
-          onAIFilter={setAiCriteria}
-        />
+        <div data-tour="stores-filters">
+          <TradeFilters
+            selectedStore={selectedStore}
+            onStoreChange={setSelectedStore}
+            onAIFilter={setAiCriteria}
+          />
+        </div>
 
-        <MobileDataList
-          data={stores}
-          columns={columns}
-          loading={loading}
-          emptyMessage="Nenhuma loja encontrada"
-          keyExtractor={(store) => store.id}
-          primaryField="name"
-          secondaryField="chain"
-          statusField="status"
-          statusConfig={statusConfig}
-          accentColor="border-l-trade"
-          renderMobileCard={renderMobileCard}
-          onRowClick={(store) => {
-            setDetailStoreId(store.id);
-            setShowDetailDialog(true);
-          }}
-          actions={renderActions}
-        />
+        <div data-tour="stores-list">
+          <MobileDataList
+            data={stores}
+            columns={columns}
+            loading={loading}
+            emptyMessage="Nenhuma loja encontrada"
+            keyExtractor={(store) => store.id}
+            primaryField="name"
+            secondaryField="chain"
+            statusField="status"
+            statusConfig={statusConfig}
+            accentColor="border-l-trade"
+            renderMobileCard={renderMobileCard}
+            onRowClick={(store) => {
+              setDetailStoreId(store.id);
+              setShowDetailDialog(true);
+            }}
+            actions={renderActions}
+          />
+        </div>
 
         <NovaLojaDialog
           open={showNovaLoja}
@@ -414,6 +421,14 @@ const TradeStores = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Tour Button */}
+        <TourButton 
+          tourId={TRADE_STORES_TOUR_ID}
+          tourSteps={tradeStoresTourSteps}
+          title="Tour dos PDVs"
+          description="Conheça a gestão de pontos de venda"
+        />
       </div>
     </DashboardLayout>
   );

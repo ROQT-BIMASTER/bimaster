@@ -10,6 +10,7 @@ import { TradeCampanhasAPagarCard } from "@/components/trade/dashboard/TradeCamp
 import { TradeFluxoCaixaChart } from "@/components/trade/dashboard/TradeFluxoCaixaChart";
 import { TradeLancamentosTable } from "@/components/trade/dashboard/TradeLancamentosTable";
 import { useQueryClient } from "@tanstack/react-query";
+import { TourButton, tradeDashboardTourSteps, TRADE_DASHBOARD_TOUR_ID } from "@/components/tour";
 
 export default function TradeFinanceiroDashboard() {
   const queryClient = useQueryClient();
@@ -48,7 +49,7 @@ export default function TradeFinanceiroDashboard() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
+        <div data-tour="dashboard-header">
           <ModuleBreadcrumb
             moduleName="Financeiro Trade"
             moduleHref="/dashboard/trade/financeiro"
@@ -86,30 +87,34 @@ export default function TradeFinanceiroDashboard() {
         </div>
 
         {/* Cards de KPIs */}
-        {isLoading ? (
-          <div className="grid gap-6 md:grid-cols-2">
-            <Skeleton className="h-[350px]" />
-            <Skeleton className="h-[350px]" />
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            <TradeVerbaCard 
-              metrics={verbaMetrics} 
-              verbas={verbas as any[]} 
-            />
-            <TradeCampanhasAPagarCard 
-              metrics={campanhaMetrics} 
-              despesasPorCampanha={despesasPorCampanha} 
-            />
-          </div>
-        )}
+        <div data-tour="dashboard-kpis">
+          {isLoading ? (
+            <div className="grid gap-6 md:grid-cols-2">
+              <Skeleton className="h-[350px]" />
+              <Skeleton className="h-[350px]" />
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2">
+              <TradeVerbaCard 
+                metrics={verbaMetrics} 
+                verbas={verbas as any[]} 
+              />
+              <TradeCampanhasAPagarCard 
+                metrics={campanhaMetrics} 
+                despesasPorCampanha={despesasPorCampanha} 
+              />
+            </div>
+          )}
+        </div>
 
         {/* Gráfico de Fluxo de Caixa */}
-        {isLoading ? (
-          <Skeleton className="h-[400px]" />
-        ) : (
-          <TradeFluxoCaixaChart data={fluxoCaixa} />
-        )}
+        <div data-tour="dashboard-charts">
+          {isLoading ? (
+            <Skeleton className="h-[400px]" />
+          ) : (
+            <TradeFluxoCaixaChart data={fluxoCaixa} />
+          )}
+        </div>
 
         {/* Tabela de Lançamentos */}
         {isLoading ? (
@@ -117,6 +122,14 @@ export default function TradeFinanceiroDashboard() {
         ) : (
           <TradeLancamentosTable lancamentos={lancamentos} />
         )}
+
+        {/* Tour Button */}
+        <TourButton 
+          tourId={TRADE_DASHBOARD_TOUR_ID}
+          tourSteps={tradeDashboardTourSteps}
+          title="Tour do Dashboard"
+          description="Conheça o dashboard financeiro"
+        />
       </div>
     </DashboardLayout>
   );

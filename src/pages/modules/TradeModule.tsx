@@ -37,6 +37,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { TourButton, tradeModuleTourSteps, TRADE_MODULE_TOUR_ID } from "@/components/tour";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
@@ -111,7 +112,7 @@ const TradeModule = () => {
     <DashboardLayout>
       <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-6">
         {/* Header - Compacto no mobile */}
-        <div className="px-1">
+        <div className="px-1" data-tour="trade-header">
           <h1 className="text-2xl sm:text-3xl font-bold">Trade Marketing</h1>
           <p className="text-sm sm:text-base text-muted-foreground mt-0.5 sm:mt-1">
             Gestão de PDVs, visitas e execução
@@ -125,7 +126,7 @@ const TradeModule = () => {
         />
 
         {/* Ações Rápidas - Layout vertical no mobile */}
-        <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-3">
+        <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-3" data-tour="quick-actions">
           <Button 
             onClick={() => setQuickEntryOpen(true)} 
             size="lg"
@@ -167,7 +168,7 @@ const TradeModule = () => {
         </div>
 
         {/* Módulos Principais - Grid 2x2 no mobile */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4" data-tour="main-modules">
           {/* PDVs */}
           <Link to="/dashboard/trade/stores">
             <Card className="group relative overflow-hidden hover:shadow-lg active:scale-[0.98] transition-all duration-200 border-l-4 border-l-blue-500 h-full touch-manipulation">
@@ -254,7 +255,7 @@ const TradeModule = () => {
         </div>
 
         {/* Módulos Secundários - Accordion otimizado para touch */}
-        <div className="space-y-2">
+        <div className="space-y-2" data-tour="secondary-modules">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 sm:mb-3 px-1">
             <Zap className="h-4 w-4" />
             <span>Mais funcionalidades</span>
@@ -298,6 +299,13 @@ const TradeModule = () => {
           ))}
         </div>
 
+        {/* Tour Button */}
+        <TourButton 
+          tourId={TRADE_MODULE_TOUR_ID}
+          tourSteps={tradeModuleTourSteps}
+          title="Tour do Trade Marketing"
+          description="Conheça o módulo de Trade Marketing"
+        />
       </div>
     </DashboardLayout>
   );
