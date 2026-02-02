@@ -14,6 +14,66 @@ interface ColorScheme {
   foreground: string;
 }
 
+interface BackgroundOption {
+  name: string;
+  background: string;
+  foreground: string;
+  card: string;
+  cardForeground: string;
+}
+
+const backgroundOptions: BackgroundOption[] = [
+  {
+    name: "Branco (Padrão)",
+    background: "0 0% 100%",
+    foreground: "222.2 84% 4.9%",
+    card: "0 0% 100%",
+    cardForeground: "222.2 84% 4.9%",
+  },
+  {
+    name: "Cinza Claro",
+    background: "220 14% 96%",
+    foreground: "222 47% 11%",
+    card: "0 0% 100%",
+    cardForeground: "222 47% 11%",
+  },
+  {
+    name: "Azul Gelo",
+    background: "210 40% 98%",
+    foreground: "222 47% 11%",
+    card: "210 40% 99%",
+    cardForeground: "222 47% 11%",
+  },
+  {
+    name: "Verde Menta",
+    background: "150 40% 97%",
+    foreground: "160 60% 10%",
+    card: "150 40% 99%",
+    cardForeground: "160 60% 10%",
+  },
+  {
+    name: "Lavanda",
+    background: "260 30% 97%",
+    foreground: "260 50% 10%",
+    card: "260 30% 99%",
+    cardForeground: "260 50% 10%",
+  },
+  {
+    name: "Creme",
+    background: "40 30% 96%",
+    foreground: "30 50% 10%",
+    card: "40 30% 99%",
+    cardForeground: "30 50% 10%",
+  },
+  {
+    name: "Modo Escuro",
+    background: "222 47% 8%",
+    foreground: "220 14% 96%",
+    card: "222 47% 11%",
+    cardForeground: "220 14% 96%",
+  },
+];
+
 const defaultColors: ColorScheme = {
   primary: "262.1 83.3% 57.8%",
   secondary: "220 14.3% 95.9%",
@@ -71,6 +131,7 @@ const presetThemes = [
 
 export function PersonalizarCores() {
   const [colors, setColors] = useState<ColorScheme>(defaultColors);
+  const [selectedBackground, setSelectedBackground] = useState<BackgroundOption>(backgroundOptions[0]);
   const [customColors, setCustomColors] = useState({
     primary: "#8b5cf6",
     secondary: "#f1f5f9",
@@ -85,15 +146,33 @@ export function PersonalizarCores() {
       setColors(parsed);
       applyTheme(parsed);
     }
+    
+    // Carregar fundo salvo
+    const savedBackground = localStorage.getItem("customBackground");
+    if (savedBackground) {
+      const parsedBg = JSON.parse(savedBackground);
+      setSelectedBackground(parsedBg);
+      applyBackground(parsedBg);
+    }
   }, []);
+
+  const applyBackground = (bg: BackgroundOption) => {
+    const root = document.documentElement;
+    root.style.setProperty("--background", bg.background);
+    root.style.setProperty("--foreground", bg.foreground);
+    root.style.setProperty("--card", bg.card);
+    root.style.setProperty("--card-foreground", bg.cardForeground);
+    root.style.setProperty("--popover", bg.card);
+    root.style.setProperty("--popover-foreground", bg.cardForeground);
+    root.style.setProperty("--sidebar-background", bg.background);
+    root.style.setProperty("--sidebar-foreground", bg.foreground);
+  };
 
   const applyTheme = (scheme: ColorScheme) => {
     const root = document.documentElement;
     root.style.setProperty("--primary", scheme.primary);
     root.style.setProperty("--secondary", scheme.secondary);
     root.style.setProperty("--accent", scheme.accent);
-    root.style.setProperty("--background", scheme.background);
-    root.style.setProperty("--foreground", scheme.foreground);
   };
 
   const hexToHSL = (hex: string): string => {
@@ -131,6 +210,13 @@ export function PersonalizarCores() {
     setCustomColors(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleBackgroundSelect = (bg: BackgroundOption) => {
+    setSelectedBackground(bg);
+    applyBackground(bg);
+    localStorage.setItem("customBackground", JSON.stringify(bg));
+    toast.success(`Fundo "${bg.name}" aplicado!`);
+  };
+
   const applyCustomColors = () => {
     const newScheme: ColorScheme = {
       primary: hexToHSL(customColors.primary),
@@ -157,12 +243,19 @@ export function PersonalizarCores() {
     setColors(defaultColors);
     applyTheme(defaultColors);
     localStorage.removeItem("customTheme");
+    
+    // Reset background também
+    const defaultBg = backgroundOptions[0];
+    setSelectedBackground(defaultBg);
+    applyBackground(defaultBg);
+    localStorage.removeItem("customBackground");
+    
     setCustomColors({
       primary: "#8b5cf6",
       secondary: "#f1f5f9",
       accent: "#f1f5f9",
     });
-    toast.success("Cores restauradas para o padrão!");
+    toast.success("Cores e fundo restaurados para o padrão!");
   };
 
   return (
@@ -200,6 +293,34 @@ export function PersonalizarCores() {
                     />
                   </div>
                   <span className="text-sm font-medium">{theme.name}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Cor de Fundo */}
+          <div>
+            <Label className="text-base font-semibold mb-3 block">Cor de Fundo</Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              {backgroundOptions.map((bg) => (
+                <Button
+                  key={bg.name}
+                  variant="outline"
+                  className={`h-auto flex-col items-center p-3 gap-2 ${
+                    selectedBackground.name === bg.name ? "ring-2 ring-primary" : ""
+                  }`}
+                  onClick={() => handleBackgroundSelect(bg)}
+                >
+                  <div 
+                    className="w-10 h-10 rounded-lg border-2 border-border flex items-center justify-center"
+                    style={{ 
+                      backgroundColor: `hsl(${bg.background})`,
+                      color: `hsl(${bg.foreground})`
+                    }}
+                  >
+                    <span className="text-xs font-bold">Aa</span>
+                  </div>
+                  <span className="text-xs font-medium text-center leading-tight">{bg.name}</span>
                 </Button>
               ))}
             </div>
