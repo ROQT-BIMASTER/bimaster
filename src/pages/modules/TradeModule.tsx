@@ -76,9 +76,11 @@ const TradeModule = () => {
 
   // Módulos secundários agrupados
   const secondaryModules = {
-    "Administrativo": [
-      { title: "Campanhas & Verbas", to: "/dashboard/trade/admin", icon: Target, color: "text-blue-600", isNew: true },
-    ],
+    ...(hasPermission("trade_admin") ? {
+      "Administrativo": [
+        { title: "Campanhas & Verbas", to: "/dashboard/trade/admin", icon: Target, color: "text-blue-600", isNew: true },
+      ],
+    } : {}),
     "Cadastros e Configurações": [
       { title: "Redes", to: "/dashboard/trade/store-chains", icon: Building, color: "text-blue-600" },
       { title: "Nossas Marcas", to: "/dashboard/trade/our-brands", icon: Award, color: "text-amber-600" },
