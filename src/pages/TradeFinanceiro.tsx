@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, DollarSign, TrendingUp, AlertCircle, Calendar, Pencil, Trash2, BookOpen, Receipt, Wallet, CheckCircle, FileText } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, AlertCircle, Calendar, Pencil, Trash2, BookOpen, Receipt, Wallet, CheckCircle, FileText, LayoutDashboard } from "lucide-react";
 import { format } from "date-fns";
 import { EditarInvestimentoDialog } from "@/components/trade/EditarInvestimentoDialog";
 import { NovaLojaDialog } from "@/components/trade/NovaLojaDialog";
@@ -278,6 +278,22 @@ export default function TradeFinanceiro() {
         </div>
         
         <div className="grid gap-4 md:grid-cols-4">
+          <Link to="/dashboard/trade/financeiro/dashboard">
+            <Card className="hover:border-primary cursor-pointer transition-colors border-primary bg-primary/5">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <LayoutDashboard className="h-4 w-4 text-primary" />
+                  Dashboard Financeiro
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Visão consolidada de verbas e campanhas
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
           <Link to="/dashboard/trade/financeiro/extrato">
             <Card className="hover:border-primary cursor-pointer transition-colors">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
