@@ -47,6 +47,11 @@ export function CampaignAuditLog({ campaignId }: CampaignAuditLogProps) {
       created: { label: "Criado", color: "bg-green-100 text-green-800" },
       updated: { label: "Atualizado", color: "bg-yellow-100 text-yellow-800" },
       deleted: { label: "Removido", color: "bg-red-100 text-red-800" },
+      delete_campaign: { label: "Campanha Excluída", color: "bg-red-100 text-red-800" },
+      delete_lancamento: { label: "Lançamento Excluído", color: "bg-red-100 text-red-800" },
+      update_campaign: { label: "Campanha Editada", color: "bg-yellow-100 text-yellow-800" },
+      update_lancamento: { label: "Lançamento Editado", color: "bg-yellow-100 text-yellow-800" },
+      create_lancamento: { label: "Lançamento Criado", color: "bg-green-100 text-green-800" },
     };
     return labels[action] || { label: action, color: "bg-gray-100 text-gray-800" };
   };

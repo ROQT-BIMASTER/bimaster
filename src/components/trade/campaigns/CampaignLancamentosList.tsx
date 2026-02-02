@@ -62,6 +62,7 @@ import { toast } from "sonner";
 import { CampaignLancamentoForm } from "./CampaignLancamentoForm";
 import { CampaignLancamentoExport } from "./CampaignLancamentoExport";
 import { CampaignLancamentoImport } from "./CampaignLancamentoImport";
+import { logLancamentoDelete } from "@/lib/auditLog";
 
 interface Campaign {
   id: string;
@@ -106,6 +107,7 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
   const [editingLancamentoId, setEditingLancamentoId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [lancamentoToDelete, setLancamentoToDelete] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
 
   // Fetch lancamentos for this campaign - filtered by user's clients if not admin/supervisor
   const { data: lancamentos, isLoading } = useQuery({
@@ -134,6 +136,7 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
         .from("trade_campaign_lancamentos")
         .select("*")
         .eq("campaign_id", campaign.id)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -172,12 +175,23 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (lancamentoId: string) => {
+    mutationFn: async ({ lancamentoId, clienteName }: { lancamentoId: string; clienteName: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      // Soft delete - marca como excluído
       const { error } = await supabase
         .from("trade_campaign_lancamentos")
-        .delete()
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          deleted_by: user.id,
+          status: "deleted"
+        })
         .eq("id", lancamentoId);
       if (error) throw error;
+
+      // Registrar no audit log
+      await logLancamentoDelete(campaign.id, lancamentoId, clienteName, deleteReason);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaign-lancamentos"] });
@@ -185,6 +199,7 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
       toast.success("Lançamento excluído com sucesso");
       setDeleteDialogOpen(false);
       setLancamentoToDelete(null);
+      setDeleteReason("");
     },
     onError: (error) => {
       console.error("Error deleting lancamento:", error);
@@ -221,7 +236,11 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
 
   const confirmDelete = () => {
     if (lancamentoToDelete) {
-      deleteMutation.mutate(lancamentoToDelete);
+      const lancamento = lancamentos?.find(l => l.id === lancamentoToDelete);
+      deleteMutation.mutate({ 
+        lancamentoId: lancamentoToDelete, 
+        clienteName: lancamento?.cliente_nome || "Cliente desconhecido" 
+      });
     }
   };
 
@@ -472,18 +491,35 @@ export function CampaignLancamentosList({ campaign, onSelectLancamento }: Campai
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Lançamento</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.
+            <AlertDialogTitle className="text-destructive">Excluir Lançamento</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p>Tem certeza que deseja excluir este lançamento? Esta ação será registrada no histórico.</p>
+              <div className="space-y-2">
+                <label htmlFor="delete-reason" className="text-sm font-medium">
+                  Motivo da exclusão (opcional)
+                </label>
+                <textarea
+                  id="delete-reason"
+                  placeholder="Informe o motivo da exclusão..."
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  className="w-full min-h-[80px] px-3 py-2 text-sm border rounded-md resize-none"
+                />
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => {
+              setDeleteReason("");
+              setLancamentoToDelete(null);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Excluir
+              Excluir Lançamento
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

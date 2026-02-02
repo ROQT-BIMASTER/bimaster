@@ -13694,6 +13694,8 @@ export type Database = {
           crescimento_percentual: number | null
           customer_id: string | null
           data_lancamento: string
+          deleted_at: string | null
+          deleted_by: string | null
           evidencias: Json | null
           id: string
           roi_percentual: number | null
@@ -13719,6 +13721,8 @@ export type Database = {
           crescimento_percentual?: number | null
           customer_id?: string | null
           data_lancamento?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           evidencias?: Json | null
           id?: string
           roi_percentual?: number | null
@@ -13744,6 +13748,8 @@ export type Database = {
           crescimento_percentual?: number | null
           customer_id?: string | null
           data_lancamento?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           evidencias?: Json | null
           id?: string
           roi_percentual?: number | null
@@ -14028,6 +14034,8 @@ export type Database = {
           created_by: string | null
           crescimento_percentual: number | null
           customer_id: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           end_date: string
           estimated_cost: number
@@ -14069,6 +14077,8 @@ export type Database = {
           created_by?: string | null
           crescimento_percentual?: number | null
           customer_id?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           end_date: string
           estimated_cost: number
@@ -14110,6 +14120,8 @@ export type Database = {
           created_by?: string | null
           crescimento_percentual?: number | null
           customer_id?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           end_date?: string
           estimated_cost?: number

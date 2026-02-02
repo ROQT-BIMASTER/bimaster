@@ -32,7 +32,10 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Target, TrendingUp, Clock, CheckCircle, XCircle, Eye } from "lucide-react";
+import { Plus, Target, TrendingUp, Clock, CheckCircle, XCircle, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { logCampaignDelete } from "@/lib/auditLog";
 import { format } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { sanitizeText, sanitizeCode, getSafeErrorMessage } from "@/lib/utils/sanitize";
@@ -47,9 +50,13 @@ export default function TradeCampaigns() {
   const [stores, setStores] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [selectedCampaignType, setSelectedCampaignType] = useState("");
   const [selectedBudget, setSelectedBudget] = useState("");
   const [selectedResponsible, setSelectedResponsible] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
   const { isAdmin, isAdminOrSupervisor } = useUserRole();
 
   useEffect(() => {
@@ -65,6 +72,7 @@ export default function TradeCampaigns() {
             *,
             budget:trade_budgets(name, code, available_amount)
           `)
+          .is("deleted_at", null)
           .order("created_at", { ascending: false }),
         supabase
           .from("trade_budgets")
@@ -193,6 +201,50 @@ export default function TradeCampaigns() {
     } catch (error: any) {
       toast.error(getSafeErrorMessage(error));
     }
+  };
+
+  const handleDeleteCampaign = async () => {
+    if (!selectedCampaignId) return;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const campaign = campaigns.find(c => c.id === selectedCampaignId);
+      if (!campaign) throw new Error("Campanha não encontrada");
+
+      // Soft delete - marca como excluída
+      const { error } = await supabase
+        .from("trade_campaigns")
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          deleted_by: user.id,
+          status: "cancelled"
+        })
+        .eq("id", selectedCampaignId);
+
+      if (error) throw error;
+
+      // Registrar no audit log
+      await logCampaignDelete(selectedCampaignId, campaign.name, deleteReason);
+
+      toast.success("Campanha excluída com sucesso!");
+      setDeleteDialogOpen(false);
+      setSelectedCampaignId(null);
+      setDeleteReason("");
+      fetchData();
+    } catch (error: any) {
+      toast.error(getSafeErrorMessage(error));
+    }
+  };
+
+  const handleEditClick = (campaignId: string) => {
+    navigate(`/dashboard/trade/financeiro/campanhas/${campaignId}?edit=true`);
+  };
+
+  const handleDeleteClick = (campaignId: string) => {
+    setSelectedCampaignId(campaignId);
+    setDeleteDialogOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -480,22 +532,43 @@ export default function TradeCampaigns() {
                         </TableCell>
                         <TableCell>{getStatusBadge(campaign.status)}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => navigate(`/dashboard/trade/financeiro/campanhas/${campaign.id}`)}
+                              title="Ver detalhes"
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            {campaign.status === "draft" && isAdminOrSupervisor && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleSubmitForApproval(campaign.id, campaign.estimated_cost)}
-                              >
-                                Enviar para Aprovação
-                              </Button>
+                            {isAdminOrSupervisor && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEditClick(campaign.id)}>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Editar Campanha
+                                  </DropdownMenuItem>
+                                  {campaign.status === "draft" && (
+                                    <DropdownMenuItem onClick={() => handleSubmitForApproval(campaign.id, campaign.estimated_cost)}>
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      Enviar para Aprovação
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => handleDeleteClick(campaign.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Excluir Campanha
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             )}
                           </div>
                         </TableCell>
@@ -515,6 +588,42 @@ export default function TradeCampaigns() {
           title="Manual de Campanhas"
           description="Aprenda a criar e gerenciar campanhas de Trade Marketing"
         />
+
+        {/* Delete Campaign Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-destructive">Excluir Campanha</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-4">
+                <p>Tem certeza que deseja excluir esta campanha? Esta ação será registrada no histórico.</p>
+                <div className="space-y-2">
+                  <Label htmlFor="delete-reason">Motivo da exclusão (opcional)</Label>
+                  <Textarea
+                    id="delete-reason"
+                    placeholder="Informe o motivo da exclusão..."
+                    value={deleteReason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    className="min-h-[80px]"
+                  />
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setDeleteReason("");
+                setSelectedCampaignId(null);
+              }}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteCampaign}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Excluir Campanha
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
