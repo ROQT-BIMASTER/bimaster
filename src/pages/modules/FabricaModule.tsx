@@ -35,6 +35,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { TourButton } from "@/components/tour/TourButton";
+import { FABRICA_MODULE_TOUR_ID, fabricaModuleTourSteps } from "@/components/tour/tours/fabricaModuleTour";
 
 const FabricaModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
@@ -100,7 +102,7 @@ const FabricaModule = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
+        <div data-tour="fabrica-header">
           <h1 className="text-3xl font-bold">Módulo Fábrica</h1>
           <p className="text-muted-foreground mt-1">
             Gestão de produção, matérias-primas e qualidade
@@ -108,7 +110,7 @@ const FabricaModule = () => {
         </div>
 
         {/* Ações Rápidas */}
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+        <div data-tour="fabrica-quick-actions" className="grid gap-3 grid-cols-1 sm:grid-cols-3">
           <Button 
             asChild
             size="lg"
@@ -152,7 +154,7 @@ const FabricaModule = () => {
         </div>
 
         {/* Módulos Principais - 4 cards destacados com métricas */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <div data-tour="fabrica-main-modules" className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           {/* Matérias-Primas */}
           <Link to="/dashboard/fabrica/materias-primas">
             <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-amber-500 h-full">
@@ -239,7 +241,7 @@ const FabricaModule = () => {
         </div>
 
         {/* Módulos Secundários - Accordion */}
-        <div className="space-y-2">
+        <div data-tour="fabrica-secondary-modules" className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
             <Zap className="h-4 w-4" />
             <span>Mais funcionalidades</span>
@@ -279,6 +281,13 @@ const FabricaModule = () => {
         </div>
 
       </div>
+      
+      <TourButton 
+        tourId={FABRICA_MODULE_TOUR_ID}
+        tourSteps={fabricaModuleTourSteps}
+        title="Tour do Módulo Fábrica"
+        description="Conheça as principais funcionalidades do módulo de produção"
+      />
     </DashboardLayout>
   );
 };

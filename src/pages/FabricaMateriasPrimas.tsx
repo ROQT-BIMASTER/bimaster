@@ -21,6 +21,8 @@ import { NovaMateriaPrimaDialog } from "@/components/fabrica/NovaMateriaPrimaDia
 import { EditarMateriaPrimaDialog } from "@/components/fabrica/EditarMateriaPrimaDialog";
 import { DetalhesMateriaPrimaDialog } from "@/components/fabrica/DetalhesMateriaPrimaDialog";
 import { DadosFiscaisProdutoDialog } from "@/components/fabrica/DadosFiscaisProdutoDialog";
+import { TourButton } from "@/components/tour/TourButton";
+import { FABRICA_MATERIAS_PRIMAS_TOUR_ID, fabricaMateriasPrimasTourSteps } from "@/components/tour/tours/fabricaMateriasPrimasTour";
 
 interface MateriaPrima {
   id: string;
@@ -148,18 +150,18 @@ export default function FabricaMateriasPrimas() {
   return (
     <DashboardLayout>
       <div className="p-8">
-        <div className="flex items-center justify-between mb-8">
+        <div data-tour="mps-header" className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-2">Matérias-Primas</h1>
             <p className="text-muted-foreground">Gestão de insumos, embalagens e componentes</p>
           </div>
-          <Button className="gap-2" onClick={() => setNovoDialogOpen(true)}>
+          <Button data-tour="mps-add-button" className="gap-2" onClick={() => setNovoDialogOpen(true)}>
             <Plus className="w-4 h-4" />
             Nova Matéria-Prima
           </Button>
         </div>
 
-        <Card className="mb-6">
+        <Card data-tour="mps-filters" className="mb-6">
           <CardContent className="p-4">
             <div className="flex gap-4">
               <div className="relative flex-1">
@@ -179,7 +181,7 @@ export default function FabricaMateriasPrimas() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tour="mps-table">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -306,6 +308,13 @@ export default function FabricaMateriasPrimas() {
           />
         </>
       )}
+      
+      <TourButton 
+        tourId={FABRICA_MATERIAS_PRIMAS_TOUR_ID}
+        tourSteps={fabricaMateriasPrimasTourSteps}
+        title="Tour de Matérias-Primas"
+        description="Aprenda a gerenciar matérias-primas e insumos"
+      />
     </DashboardLayout>
   );
 }

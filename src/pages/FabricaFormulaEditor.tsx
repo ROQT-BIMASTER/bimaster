@@ -26,6 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TourButton } from "@/components/tour/TourButton";
+import { FABRICA_FORMULA_TOUR_ID, fabricaFormulaTourSteps } from "@/components/tour/tours/fabricaFormulaTour";
 
 export default function FabricaFormulaEditor() {
   const { id } = useParams();
@@ -274,7 +276,7 @@ export default function FabricaFormulaEditor() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div data-tour="formula-header" className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -292,7 +294,7 @@ export default function FabricaFormulaEditor() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div data-tour="formula-actions" className="flex gap-2">
             <Button
               variant="outline"
               onClick={() => setShowSimulator(true)}
@@ -313,7 +315,7 @@ export default function FabricaFormulaEditor() {
 
         {/* Seleção de Produto */}
         {(!id || id === "nova") && (
-          <Card>
+          <Card data-tour="formula-produto">
             <CardHeader>
               <CardTitle>Produto</CardTitle>
             </CardHeader>
@@ -350,7 +352,7 @@ export default function FabricaFormulaEditor() {
         )}
 
         {/* Informações da Fórmula */}
-        <Card>
+        <Card data-tour="formula-info-tecnica">
           <CardHeader>
             <CardTitle>Informações Técnicas</CardTitle>
           </CardHeader>
@@ -422,16 +424,16 @@ export default function FabricaFormulaEditor() {
 
         {/* Ingredientes, Roteiro e Ficha de Custos */}
         <Tabs defaultValue="ingredientes" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="ingredientes">
+          <TabsList data-tour="formula-tabs" className="grid w-full grid-cols-3">
+            <TabsTrigger value="ingredientes" data-tour="formula-ingredientes">
               <Layers className="h-4 w-4 mr-2" />
               Ingredientes
             </TabsTrigger>
-            <TabsTrigger value="roteiro">
+            <TabsTrigger value="roteiro" data-tour="formula-roteiro">
               <ListOrdered className="h-4 w-4 mr-2" />
               Roteiro
             </TabsTrigger>
-            <TabsTrigger value="custos" disabled={!id || id === "nova"}>
+            <TabsTrigger value="custos" data-tour="formula-custos" disabled={!id || id === "nova"}>
               <Calculator className="h-4 w-4 mr-2" />
               Ficha de Custos
             </TabsTrigger>
@@ -530,6 +532,13 @@ export default function FabricaFormulaEditor() {
           onClose={() => setShowSimulator(false)}
         />
       )}
+      
+      <TourButton 
+        tourId={FABRICA_FORMULA_TOUR_ID}
+        tourSteps={fabricaFormulaTourSteps}
+        title="Tour do Editor de Fórmulas"
+        description="Aprenda a criar e editar fórmulas de produção"
+      />
     </DashboardLayout>
   );
 }

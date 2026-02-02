@@ -34,6 +34,8 @@ import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { TourButton } from "@/components/tour/TourButton";
+import { FABRICA_TABELAS_PRECO_TOUR_ID, fabricaTabelasPrecoTourSteps } from "@/components/tour/tours/fabricaTabelasPrecoTour";
 
 export default function FabricaTabelasPreco() {
   const { hasPermission, loading: permLoading } = useScreenPermissions();
@@ -203,7 +205,7 @@ export default function FabricaTabelasPreco() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div data-tour="precos-header" className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Tabelas de Preço</h1>
             <p className="text-muted-foreground">
@@ -504,6 +506,13 @@ export default function FabricaTabelasPreco() {
       <GerenciarLimitesPrecoDialog
         open={dialogLimites}
         onOpenChange={setDialogLimites}
+      />
+      
+      <TourButton 
+        tourId={FABRICA_TABELAS_PRECO_TOUR_ID}
+        tourSteps={fabricaTabelasPrecoTourSteps}
+        title="Tour de Tabelas de Preço"
+        description="Aprenda a gerenciar precificação e margens"
       />
     </DashboardLayout>
   );
