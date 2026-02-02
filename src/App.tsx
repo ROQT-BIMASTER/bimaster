@@ -78,6 +78,7 @@ const TradeRewards = lazy(() => import("./pages/TradeRewards"));
 const TradeReportCampaigns = lazy(() => import("./pages/trade/reports/TradeReportCampaigns"));
 const TradeReportClients = lazy(() => import("./pages/trade/reports/TradeReportClients"));
 const TradeReportSellers = lazy(() => import("./pages/trade/reports/TradeReportSellers"));
+const TradeExecutiveDashboard = lazy(() => import("./pages/TradeExecutiveDashboard"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
 const InstalarApp = lazy(() => import("./pages/InstalarApp"));
 const WhatsAppMonitoring = lazy(() => import("./pages/WhatsAppMonitoring"));
@@ -251,6 +252,7 @@ function AppContent() {
             <Route path="/dashboard/trade/admin/reports/campaigns" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeReportCampaigns /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/trade/admin/reports/clients" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeReportClients /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/trade/admin/reports/sellers" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeReportSellers /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/admin/executivo" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeExecutiveDashboard /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/trade/store-chains" element={<ProtectedRoute><TradeStoreChains /></ProtectedRoute>} />
             <Route path="/dashboard/trade/stores" element={<ProtectedRoute><TradeStores /></ProtectedRoute>} />
             <Route path="/dashboard/trade/visits" element={<ProtectedRoute><TradeVisits /></ProtectedRoute>} />
