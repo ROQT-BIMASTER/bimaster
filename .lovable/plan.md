@@ -1,186 +1,241 @@
 
-# Plano: Dashboard Executivo Trade Marketing
+# Plano: Módulo de Simulação de Preços (Admin)
 
 ## Objetivo
-Criar um painel consolidado em uma única tela de rolagem para a diretoria visualizar todas as operações de Trade Marketing: campanhas, lançamentos, visitas, fotos e KPIs operacionais.
+Criar um módulo independente para simulação de cenários de preços, permitindo testar markups, comparar cenários e analisar impacto na cadeia **antes** de criar tabelas reais. Acesso restrito a administradores ou usuários autorizados.
 
 ---
 
-## Layout Proposto
+## Visão Geral do Módulo
+
+Este será um módulo **separado e independente**, acessível somente por administradores. Não altera nada do sistema atual de tabelas de preços.
 
 ```text
-+--------------------------------------------------+
-|  HEADER: Trade Marketing - Visão Executiva       |
-|  [Atualizar] [Filtro Período]                    |
-+--------------------------------------------------+
-|                                                  |
-|  SEÇÃO 1: KPIs PRINCIPAIS (4 cards)              |
-|  [PDVs Ativos] [Visitas Mês] [Fotos Mês] [ROI]   |
-|                                                  |
-+--------------------------------------------------+
-|                                                  |
-|  SEÇÃO 2: CAMPANHAS (2 cards lado a lado)        |
-|  [Resumo Campanhas]  [Campanhas por Status]      |
-|                                                  |
-+--------------------------------------------------+
-|                                                  |
-|  SEÇÃO 3: GRÁFICOS (2 gráficos)                  |
-|  [Evolução Visitas/Fotos 6 meses]                |
-|  [Lançamentos por Cliente - Top 10]              |
-|                                                  |
-+--------------------------------------------------+
-|                                                  |
-|  SEÇÃO 4: TABELA LANÇAMENTOS                     |
-|  Lista detalhada com filtros e exportação        |
-|                                                  |
-+--------------------------------------------------+
-|                                                  |
-|  SEÇÃO 5: VISITAS RECENTES                       |
-|  Últimas 10 visitas com status e duração         |
-|                                                  |
-+--------------------------------------------------+
-|                                                  |
-|  SEÇÃO 6: GALERIA DE FOTOS                       |
-|  Miniaturas das últimas fotos processadas        |
-|                                                  |
-+--------------------------------------------------+
+Dashboard
+└── Simulador de Preços (novo módulo admin)
+    ├── Criar Cenário
+    ├── Comparar Cenários
+    ├── Visualizar Impacto na Cadeia
+    └── Exportar/Aplicar Cenário
 ```
 
 ---
 
-## Componentes a Criar
+## Estrutura de Arquivos
 
-### 1. Página Principal
-**Arquivo**: `src/pages/TradeExecutiveDashboard.tsx`
-- Página de rolagem única
-- Integração com hook de dados
-- Botão atualizar e filtro de período
-- Tour guiado integrado
-
-### 2. Hook de Dados
-**Arquivo**: `src/hooks/useTradeExecutiveDashboard.ts`
-- Query para KPIs gerais (stores, visits, photos)
-- Query para campanhas e lançamentos
-- Query para evolução mensal (últimos 6 meses)
-- Query para fotos recentes
-- Query para visitas recentes
-
-### 3. Componentes de Visualização
-
-| Componente | Arquivo | Descrição |
-|------------|---------|-----------|
-| TradeExecutiveKPIs | `components/trade/executive/TradeExecutiveKPIs.tsx` | 4 cards com métricas principais |
-| TradeExecutiveCampaigns | `components/trade/executive/TradeExecutiveCampaigns.tsx` | Cards de campanhas ativas/concluídas |
-| TradeExecutiveEvolutionChart | `components/trade/executive/TradeExecutiveEvolutionChart.tsx` | Gráfico de linhas: visitas e fotos por mês |
-| TradeExecutiveTopClients | `components/trade/executive/TradeExecutiveTopClients.tsx` | Gráfico de barras: top 10 clientes por lançamentos |
-| TradeExecutiveVisitsTable | `components/trade/executive/TradeExecutiveVisitsTable.tsx` | Tabela com últimas visitas |
-| TradeExecutivePhotosGallery | `components/trade/executive/TradeExecutivePhotosGallery.tsx` | Grid de miniaturas com análise IA |
+| Tipo | Arquivo | Descrição |
+|------|---------|-----------|
+| Página | `src/pages/SimuladorPrecosModule.tsx` | Landing page do módulo |
+| Página | `src/pages/SimuladorCenariosPrecos.tsx` | Tela de criação/edição de cenários |
+| Hook | `src/hooks/useSimuladorPrecos.ts` | Lógica de cálculos e estado |
+| Componente | `src/components/simulador/SimuladorCenarioConfig.tsx` | Configurador de cenário |
+| Componente | `src/components/simulador/SimuladorComparativo.tsx` | Tabela comparativa lado a lado |
+| Componente | `src/components/simulador/SimuladorGraficos.tsx` | Gráficos de impacto |
+| Componente | `src/components/simulador/SimuladorCadeiaImpacto.tsx` | Visualização cascata |
+| Componente | `src/components/simulador/SimuladorProdutoSelector.tsx` | Seletor de produtos |
 
 ---
 
-## Métricas e Dados
+## Layout da Tela Principal
 
-### KPIs Principais
-- **PDVs Ativos**: Total de stores com status = 'active'
-- **Visitas do Mês**: Count de visits do mês atual
-- **Fotos do Mês**: Count de photos do mês atual
-- **ROI Médio**: Média de roi_percentual dos lançamentos
-
-### Campanhas
-- Total de campanhas ativas
-- Total de campanhas concluídas
-- Valor total investido
-- Distribuição por status (gráfico pizza)
-
-### Evolução Mensal
-- Últimos 6 meses
-- Linha: quantidade de visitas
-- Linha: quantidade de fotos
-- Área: taxa de processamento IA
-
-### Top Clientes
-- Top 10 clientes por valor de lançamentos
-- Barras horizontais com valor e quantidade
-
-### Visitas Recentes
-- Últimas 10 visitas
-- Colunas: PDV, Vendedor, Data, Duração, Status, Score
-
-### Galeria de Fotos
-- Últimas 12 fotos processadas
-- Thumbnail clicável
-- Badge de status IA
+```text
++------------------------------------------------------------------+
+|  [<- Voltar] SIMULADOR DE CENÁRIOS DE PREÇOS                     |
+|  Módulo exclusivo para análise de precificação                   |
++------------------------------------------------------------------+
+|                                                                  |
+|  SEÇÃO 1: CONFIGURAÇÃO DO CENÁRIO                                |
+|  +-----------------------------+  +---------------------------+  |
+|  | CENÁRIO BASE                |  | CENÁRIO SIMULAÇÃO         |  |
+|  | Tabela: [Dropdown]          |  | Modo: [Nova] [Editar]     |  |
+|  | Produtos: 45 selecionados   |  | Markup: [____%]           |  |
+|  | Origem: Nacional/Importado  |  | Tipo: [percentual ▼]      |  |
+|  +-----------------------------+  | Base: [Tabela Fábrica ▼]  |  |
+|                                   +---------------------------+  |
+|                                                                  |
++------------------------------------------------------------------+
+|                                                                  |
+|  SEÇÃO 2: FILTROS DE PRODUTOS                                    |
+|  [Categoria: ▼] [Pesquisar: ___] [Selecionar Todos]              |
+|                                                                  |
++------------------------------------------------------------------+
+|                                                                  |
+|  SEÇÃO 3: TABELA COMPARATIVA                                     |
+|  +------------------------------------------------------------+  |
+|  | Produto     | Custo  | Preço Base | Simulado | Var % | Δ   |  |
+|  |-------------|--------|------------|----------|-------|-----|  |
+|  | Produto A   | R$ 50  | R$ 65      | R$ 72    | +10%  | +7  |  |
+|  | Produto B   | R$ 80  | R$ 104     | R$ 112   | +8%   | +8  |  |
+|  +------------------------------------------------------------+  |
+|                                                                  |
++------------------------------------------------------------------+
+|                                                                  |
+|  SEÇÃO 4: GRÁFICOS DE ANÁLISE                                    |
+|  +---------------------------+  +-----------------------------+  |
+|  | Distribuição de Margens   |  | Variação por Categoria      |  |
+|  | [Histograma]              |  | [Barras horizontais]        |  |
+|  +---------------------------+  +-----------------------------+  |
+|                                                                  |
++------------------------------------------------------------------+
+|                                                                  |
+|  SEÇÃO 5: IMPACTO NA CADEIA (Cascata)                            |
+|  Fábrica ──► Clear (+25%) ──► Mude (+20%) ──► Cliente (+15%)    |
+|              └── E-commerce (+300%)                              |
+|                                                                  |
++------------------------------------------------------------------+
+|                                                                  |
+|  AÇÕES: [Salvar Cenário] [Exportar Excel] [Aplicar como Tabela]  |
+|                                                                  |
++------------------------------------------------------------------+
+```
 
 ---
 
-## Detalhes Técnicos
+## Funcionalidades
 
-### Estrutura de Arquivos
+### 1. Configurador de Cenário
+- Selecionar tabela base existente como referência
+- Criar nova simulação com parâmetros customizados
+- Tipos de markup: percentual, multiplicador, valor fixo
+- Escolher origem: nacional, importado ou ambos
 
+### 2. Seletor de Produtos
+- Filtrar por categoria
+- Pesquisa por nome/código
+- Seleção múltipla
+- Selecionar todos/nenhum
+
+### 3. Tabela Comparativa
+- Colunas: Produto, Custo Base, Preço Atual, Preço Simulado, Variação %, Diferença R$
+- Ordenação por qualquer coluna
+- Destaque visual para variações positivas/negativas
+- Margem de lucro calculada em tempo real
+
+### 4. Gráficos de Análise
+- **Histograma de Margens**: Distribuição antes vs depois
+- **Barras por Categoria**: Impacto médio por grupo de produtos
+
+### 5. Cascata de Impacto
+- Visualização das tabelas dependentes
+- Propagação simulada do reajuste
+- Alerta sobre tabelas que seriam afetadas
+
+### 6. Ações
+- **Salvar Cenário**: Armazenar para comparação futura
+- **Exportar Excel**: Download do comparativo
+- **Aplicar como Tabela**: Criar tabela real a partir da simulação
+
+---
+
+## Modelo de Dados
+
+### Nova Tabela: `simulacao_cenarios_preco`
+```sql
+CREATE TABLE simulacao_cenarios_preco (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome TEXT NOT NULL,
+  descricao TEXT,
+  criado_por UUID REFERENCES auth.users(id),
+  tabela_base_id UUID REFERENCES fabrica_tabelas_preco(id),
+  tipo_markup TEXT NOT NULL DEFAULT 'percentual',
+  valor_markup NUMERIC(10,4) NOT NULL,
+  origem TEXT, -- 'nacional', 'importado', 'ambos'
+  produtos_ids UUID[] NOT NULL,
+  resultados JSONB, -- Cache dos resultados calculados
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 ```
-src/
-├── pages/
-│   └── TradeExecutiveDashboard.tsx
-├── hooks/
-│   └── useTradeExecutiveDashboard.ts
-└── components/
-    └── trade/
-        └── executive/
-            ├── TradeExecutiveKPIs.tsx
-            ├── TradeExecutiveCampaigns.tsx
-            ├── TradeExecutiveEvolutionChart.tsx
-            ├── TradeExecutiveTopClients.tsx
-            ├── TradeExecutiveVisitsTable.tsx
-            └── TradeExecutivePhotosGallery.tsx
+
+### Nova Tela no Sistema
+```sql
+INSERT INTO telas_sistema (codigo, nome, modulo_codigo, rota, icone, ordem, ativo)
+VALUES ('precos_simulador', 'Simulador de Preços', 'precos', '/dashboard/precos/simulador', 'FlaskConical', 0, true);
 ```
 
-### Queries do Hook
+---
+
+## Lógica de Cálculo
+
+O hook `useSimuladorPrecos` reutiliza funções existentes:
 
 ```typescript
-// Hook principal com react-query
-const kpisQuery = useQuery({
-  queryKey: ['trade-executive-kpis'],
-  queryFn: async () => {
-    // Queries paralelas para stores, visits, photos, campanhas
-  }
-});
+// Funções existentes que serão reaproveitadas
+import {
+  calcularPrecoComMarkup,
+  calcularMargemLucro,
+  buscarCadeiaTabelas,
+  buscarPrecoTabelaBase
+} from '@/lib/fabrica/pricing-calculator';
 
-const evolutionQuery = useQuery({
-  queryKey: ['trade-executive-evolution'],
-  queryFn: async () => {
-    // Dados mensais dos últimos 6 meses
-  }
-});
-
-const visitsQuery = useQuery({
-  queryKey: ['trade-executive-visits'],
-  queryFn: async () => {
-    // Últimas 10 visitas com joins
-  }
-});
-
-const photosQuery = useQuery({
-  queryKey: ['trade-executive-photos'],
-  queryFn: async () => {
-    // Últimas 12 fotos processadas
-  }
-});
+// Novas funções do hook
+function simularPrecos(config: ConfigCenario): ResultadoSimulacao[]
+function calcularImpactoCadeia(resultados: ResultadoSimulacao[]): ImpactoCadeia[]
+function compararCenarios(cenarioA: ResultadoSimulacao[], cenarioB: ResultadoSimulacao[]): Comparacao[]
 ```
-
-### Rota de Acesso
-
-A página será acessível via:
-- `/dashboard/trade/admin/executivo`
-- Link no menu do módulo Trade Admin
-
-### Tecnologias Utilizadas
-- **Gráficos**: Recharts (já instalado)
-- **UI**: Shadcn/ui (já instalado)
-- **Data**: TanStack Query (já instalado)
-- **Exportação**: xlsx (já instalado)
 
 ---
 
-## Permissões
+## Controle de Acesso
 
-O acesso será restrito a usuários com permissão `trade_admin`, seguindo o padrão existente do módulo administrativo.
+### Permissão Dedicada
+- Código da tela: `precos_simulador`
+- Acesso inicial: apenas administradores
+- Admin pode liberar para usuários específicos via painel de permissões existente
+
+### Proteção da Rota
+```typescript
+<Route 
+  path="precos/simulador" 
+  element={
+    <ScreenProtectedRoute screenCode="precos_simulador">
+      <SimuladorCenariosPrecos />
+    </ScreenProtectedRoute>
+  }
+/>
+```
+
+---
+
+## Integração com Sistema Atual
+
+### O que NÃO muda
+- Tabelas de preço existentes continuam inalteradas
+- Fluxo de aprovação permanece igual
+- Matriz comparativa não é afetada
+
+### O que é NOVO
+- Módulo isolado para simulações
+- Cenários salvos em tabela separada
+- Acesso restrito por permissão
+
+---
+
+## Tecnologias
+
+| Recurso | Biblioteca |
+|---------|------------|
+| Gráficos | Recharts (já instalado) |
+| UI | Shadcn/ui (já instalado) |
+| Estado | TanStack Query (já instalado) |
+| Exportação | xlsx (já instalado) |
+| Cálculos | pricing-calculator.ts existente |
+
+---
+
+## Rota de Acesso
+
+- **URL**: `/dashboard/precos/simulador`
+- **Acesso via**: Menu lateral (para admins) ou link direto
+- **Proteção**: `ScreenProtectedRoute` com código `precos_simulador`
+
+---
+
+## Resumo de Entregas
+
+1. **Migração SQL**: Criar tabela `simulacao_cenarios_preco` + registro em `telas_sistema`
+2. **Hook**: `useSimuladorPrecos.ts` com lógica de cálculo
+3. **Página**: `SimuladorCenariosPrecos.tsx` com layout completo
+4. **Componentes**: 5 componentes de visualização
+5. **Rota**: Registrar em App.tsx com proteção
+6. **Menu**: Adicionar link no módulo Preços (visível só para quem tem permissão)
