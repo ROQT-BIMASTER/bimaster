@@ -4090,6 +4090,53 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_ficha_custo_config: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          custo_mao_obra: number | null
+          custo_mao_obra_nf: number | null
+          custo_mao_obra_servico: number | null
+          formula_id: string
+          fornecedor_mao_obra: string | null
+          id: string
+          percentual_markup: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_mao_obra?: number | null
+          custo_mao_obra_nf?: number | null
+          custo_mao_obra_servico?: number | null
+          formula_id: string
+          fornecedor_mao_obra?: string | null
+          id?: string
+          percentual_markup?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_mao_obra?: number | null
+          custo_mao_obra_nf?: number | null
+          custo_mao_obra_servico?: number | null
+          formula_id?: string
+          fornecedor_mao_obra?: string | null
+          id?: string
+          percentual_markup?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_ficha_custo_config_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: true
+            referencedRelation: "fabrica_formulas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_formula_alteracoes: {
         Row: {
           data_alteracao: string | null
@@ -4176,10 +4223,14 @@ export type Database = {
         Row: {
           created_at: string | null
           criticidade: string | null
+          custo_condicao: number | null
+          custo_nf: number | null
+          custo_servico: number | null
           formula_id: string | null
           id: string
           mp_alternativa_id: string | null
           mp_id: string | null
+          nf_referencia: string | null
           observacoes: string | null
           observacoes_tecnicas: string | null
           ordem: number | null
@@ -4187,14 +4238,19 @@ export type Database = {
           percentual: number | null
           permite_substituicao: boolean | null
           quantidade: number
+          tipo_insumo: string | null
         }
         Insert: {
           created_at?: string | null
           criticidade?: string | null
+          custo_condicao?: number | null
+          custo_nf?: number | null
+          custo_servico?: number | null
           formula_id?: string | null
           id?: string
           mp_alternativa_id?: string | null
           mp_id?: string | null
+          nf_referencia?: string | null
           observacoes?: string | null
           observacoes_tecnicas?: string | null
           ordem?: number | null
@@ -4202,14 +4258,19 @@ export type Database = {
           percentual?: number | null
           permite_substituicao?: boolean | null
           quantidade: number
+          tipo_insumo?: string | null
         }
         Update: {
           created_at?: string | null
           criticidade?: string | null
+          custo_condicao?: number | null
+          custo_nf?: number | null
+          custo_servico?: number | null
           formula_id?: string | null
           id?: string
           mp_alternativa_id?: string | null
           mp_id?: string | null
+          nf_referencia?: string | null
           observacoes?: string | null
           observacoes_tecnicas?: string | null
           ordem?: number | null
@@ -4217,6 +4278,7 @@ export type Database = {
           percentual?: number | null
           permite_substituicao?: boolean | null
           quantidade?: number
+          tipo_insumo?: string | null
         }
         Relationships: [
           {

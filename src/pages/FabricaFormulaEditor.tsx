@@ -9,11 +9,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Save, ArrowLeft, Play, FileText, Plus, Layers, ListOrdered } from "lucide-react";
+import { Save, ArrowLeft, Play, FileText, Plus, Layers, ListOrdered, Calculator } from "lucide-react";
 import { FormulaItemRow } from "@/components/fabrica/FormulaItemRow";
 import { SimuladorProducao } from "@/components/fabrica/SimuladorProducao";
 import { FormulaTree } from "@/components/fabrica/FormulaTree";
 import { RoteiroProducaoEditor } from "@/components/fabrica/RoteiroProducaoEditor";
+import { FichaCustoEditor } from "@/components/fabrica/FichaCustoEditor";
 import { validarFormula } from "@/lib/fabrica/formula-validator";
 import { calcularCustoFormula } from "@/lib/fabrica/custo-calculator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -419,16 +420,20 @@ export default function FabricaFormulaEditor() {
           </CardContent>
         </Card>
 
-        {/* Ingredientes e Roteiro */}
+        {/* Ingredientes, Roteiro e Ficha de Custos */}
         <Tabs defaultValue="ingredientes" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="ingredientes">
               <Layers className="h-4 w-4 mr-2" />
               Ingredientes
             </TabsTrigger>
             <TabsTrigger value="roteiro">
               <ListOrdered className="h-4 w-4 mr-2" />
-              Roteiro de Produção
+              Roteiro
+            </TabsTrigger>
+            <TabsTrigger value="custos" disabled={!id || id === "nova"}>
+              <Calculator className="h-4 w-4 mr-2" />
+              Ficha de Custos
             </TabsTrigger>
           </TabsList>
 
@@ -487,6 +492,16 @@ export default function FabricaFormulaEditor() {
               onSave={(steps) => setRoteiro(steps)}
               initialSteps={roteiro}
             />
+          </TabsContent>
+
+          <TabsContent value="custos">
+            {id && id !== "nova" && (
+              <FichaCustoEditor
+                formulaId={id}
+                itens={itens}
+                materiasPrimas={materiasPrimas || []}
+              />
+            )}
           </TabsContent>
         </Tabs>
 
