@@ -261,7 +261,7 @@ function AppContent() {
             <Route path="/dashboard/trade/calendar" element={<ProtectedRoute><TradeCalendar /></ProtectedRoute>} />
             <Route path="/dashboard/trade/ideal-photos" element={<ProtectedRoute><TradeIdealPhotos /></ProtectedRoute>} />
             <Route path="/dashboard/trade/financeiro" element={<ProtectedRoute><TradeFinanceiro /></ProtectedRoute>} />
-            <Route path="/dashboard/trade/financeiro/dashboard" element={<ProtectedRoute><TradeFinanceiroDashboard /></ProtectedRoute>} />
+            <Route path="/dashboard/trade/financeiro/dashboard" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeFinanceiroDashboard /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/trade/financeiro/campanhas" element={<ProtectedRoute><TradeCampaigns /></ProtectedRoute>} />
             <Route path="/dashboard/trade/financeiro/campanhas/:id" element={<ProtectedRoute><TradeCampaignDetail /></ProtectedRoute>} />
             <Route path="/dashboard/trade/financeiro/lancamentos-campanhas" element={<ProtectedRoute><TradeLancamentosCampanhas /></ProtectedRoute>} />
