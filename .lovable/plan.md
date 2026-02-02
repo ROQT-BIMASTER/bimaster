@@ -1,90 +1,124 @@
 
-
-# Plano: Adicionar Campo "Número de Lojas/Filiais" 
+# Plano: Adicionar Botão de Voltar nas Telas de Trade Marketing
 
 ## Objetivo
-Permitir que os usuários informem quantas lojas físicas estão associadas a um único CNPJ (matriz). Isso é importante porque muitos clientes possuem um CNPJ matriz que representa várias filiais ou pontos de venda.
+Adicionar o botão "Voltar" em todas as telas do módulo Trade Marketing para melhorar a navegação, especialmente para usuários do Financeiro que acessam essas telas.
 
 ---
 
-## Alterações Propostas
+## Situação Atual
 
-### 1. Banco de Dados
+### Telas que JÁ possuem navegação de retorno:
+- **TradeVisits** - Usa `ModuleBreadcrumb` 
+- **TradeAprovacoes** - Botão de voltar para `/dashboard/trade/financeiro`
+- **TradeLancamentos** - Botão de voltar para `/dashboard/trade/financeiro`
+- **TradeAdminApprovalLevels** - Botão de voltar para `/dashboard/trade/admin`
+- **TradeAdminUsers** - Botão de voltar para `/dashboard/trade/admin`
+- **TradeCampaignDetail** - Botão de voltar com `navigate(-1)`
+- **TradePhotos, TradeStores, TradeSellOut** - Usam `TradePageHeader` com voltar
 
-Adicionar uma nova coluna em **duas tabelas**:
+### Telas que PRECISAM do botão de voltar (15 páginas):
 
-**Tabela `stores`:**
-- `branch_count` (INTEGER, padrão 1) - Quantidade de lojas/filiais que este CNPJ representa
-
-**Tabela `store_chains`:**
-- `branch_count` (INTEGER, padrão 1) - Quantidade de lojas da rede
-
----
-
-### 2. Formulário "Nova Loja" (NovaLojaDialog)
-
-Adicionar campo **"Nº de Lojas/Filiais"** abaixo do campo CNPJ:
-- Input numérico com valor mínimo de 1
-- Texto de ajuda: *"Informe quantas lojas este CNPJ representa (ex: matriz com 5 filiais)"*
-- Valor padrão: 1
-
----
-
-### 3. Formulário "Editar Loja" (EditarLojaDialog)
-
-Adicionar o mesmo campo para que lojas existentes possam ter essa informação atualizada.
-
----
-
-### 4. Formulário "Nova Rede de Lojas" (NovaRedeDialog)
-
-Adicionar campo **"Nº de Lojas da Rede"** para informar quantas lojas a rede possui no total:
-- Input numérico 
-- Texto de ajuda: *"Total de lojas que fazem parte desta rede"*
+| Página | Destino do Voltar |
+|--------|-------------------|
+| TradeCampaigns | `/dashboard/trade/financeiro` |
+| TradeCompetitors | `/dashboard/trade` |
+| TradeFinanceiro | `/dashboard/trade` |
+| TradeVerbasSemestrais | `/dashboard/trade/financeiro` |
+| TradeContasCorrentes | `/dashboard/trade/financeiro` |
+| TradeStoreChains | `/dashboard/trade` |
+| TradeCalendar | `/dashboard/trade` |
+| TradeIdealPhotos | `/dashboard/trade` |
+| TradeInsights | `/dashboard/trade` |
+| TradePerformance | `/dashboard/trade` |
+| TradeShelfMeasurements | `/dashboard/trade` |
+| TradeLancamentosCampanhas | `/dashboard/trade/financeiro` |
+| TradeReportCampaigns | `/dashboard/trade/admin` |
+| TradeReportClients | `/dashboard/trade/admin` |
+| TradeReportSellers | `/dashboard/trade/admin` |
 
 ---
 
-### 5. Tela de Detalhes da Loja (StoreDetailDialog)
+## Padrão de Implementação
 
-Exibir a informação do número de filiais na seção de dados cadastrais, com ícone visual para destacar quando houver múltiplas lojas.
+Usarei o componente `ModuleBreadcrumb` já existente, que fornece:
+- Botão "Voltar" com ícone de seta
+- Breadcrumb mostrando a hierarquia de navegação (Módulo > Página Atual)
 
----
+Exemplo de uso:
+```tsx
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 
-### 6. Listagem de Lojas (TradeStores)
-
-Mostrar uma indicação visual (badge ou ícone) quando uma loja representa múltiplas filiais.
+<ModuleBreadcrumb 
+  moduleName="Trade Marketing" 
+  moduleHref="/dashboard/trade" 
+  currentPage="Nome da Página" 
+/>
+```
 
 ---
 
 ## Benefícios
 
-- Visibilidade clara de quantas lojas estão por trás de um CNPJ único
-- Melhor planejamento de visitas e campanhas
-- Relatórios mais precisos sobre cobertura de mercado
+- Navegação consistente em todo o módulo Trade
+- Facilidade para usuários do Financeiro voltarem às suas telas
+- Breadcrumb visual mostrando o contexto de navegação
+- Padrão unificado usando componente existente
 
 ---
 
 ## Detalhes Técnicos
 
-### Migração SQL
+### Arquivos a Modificar (15 arquivos):
 
-```sql
-ALTER TABLE stores 
-ADD COLUMN branch_count INTEGER DEFAULT 1;
+1. `src/pages/TradeCampaigns.tsx`
+2. `src/pages/TradeCompetitors.tsx`
+3. `src/pages/TradeFinanceiro.tsx`
+4. `src/pages/TradeVerbasSemestrais.tsx`
+5. `src/pages/TradeContasCorrentes.tsx`
+6. `src/pages/TradeStoreChains.tsx`
+7. `src/pages/TradeCalendar.tsx`
+8. `src/pages/TradeIdealPhotos.tsx`
+9. `src/pages/TradeInsights.tsx`
+10. `src/pages/TradePerformance.tsx`
+11. `src/pages/TradeShelfMeasurements.tsx`
+12. `src/pages/TradeLancamentosCampanhas.tsx`
+13. `src/pages/trade/reports/TradeReportCampaigns.tsx`
+14. `src/pages/trade/reports/TradeReportClients.tsx`
+15. `src/pages/trade/reports/TradeReportSellers.tsx`
 
-ALTER TABLE store_chains 
-ADD COLUMN branch_count INTEGER DEFAULT 1;
+### Exemplo de Modificação
 
-COMMENT ON COLUMN stores.branch_count IS 'Número de lojas/filiais que este registro representa';
-COMMENT ON COLUMN store_chains.branch_count IS 'Total de lojas da rede';
+Antes:
+```tsx
+<DashboardLayout>
+  <div className="space-y-6">
+    <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-3xl font-bold">Título</h1>
+        <p className="text-muted-foreground">Descrição</p>
+      </div>
 ```
 
-### Arquivos a Modificar
+Depois:
+```tsx
+<DashboardLayout>
+  <div className="space-y-6">
+    <ModuleBreadcrumb 
+      moduleName="Trade Marketing" 
+      moduleHref="/dashboard/trade" 
+      currentPage="Nome da Página" 
+    />
+    <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-3xl font-bold">Título</h1>
+        <p className="text-muted-foreground">Descrição</p>
+      </div>
+```
 
-1. `src/components/trade/NovaLojaDialog.tsx` - Adicionar campo branch_count
-2. `src/components/trade/EditarLojaDialog.tsx` - Adicionar campo branch_count
-3. `src/components/trade/NovaRedeDialog.tsx` - Adicionar campo branch_count
-4. `src/components/trade/StoreDetailDialog.tsx` - Exibir branch_count
-5. `src/pages/TradeStores.tsx` - Mostrar indicador de múltiplas lojas
-6. `src/lib/validations/store.ts` - Adicionar validação do campo
+### Mapeamento de Páginas e Contextos
 
+Para páginas dentro de sub-módulos, o breadcrumb refletirá a hierarquia:
+- Páginas sob `/trade/financeiro/*` → moduleHref: `/dashboard/trade/financeiro`
+- Páginas sob `/trade/admin/*` → moduleHref: `/dashboard/trade/admin`
+- Páginas diretas do Trade → moduleHref: `/dashboard/trade`
