@@ -10,10 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Settings, Loader2, Pencil, DollarSign } from "lucide-react";
+import { ArrowLeft, Plus, Settings, Loader2, Pencil, DollarSign, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
+import { ApproverManagementDialog } from "@/components/trade/ApproverManagementDialog";
 
 interface ApprovalLevel {
   id: string;
@@ -29,6 +30,7 @@ export default function TradeAdminApprovalLevels() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLevel, setEditingLevel] = useState<ApprovalLevel | null>(null);
+  const [approverDialogLevel, setApproverDialogLevel] = useState<ApprovalLevel | null>(null);
   const [formData, setFormData] = useState({
     level_number: 1,
     role_name: "",
@@ -47,6 +49,25 @@ export default function TradeAdminApprovalLevels() {
       
       if (error) throw error;
       return data as ApprovalLevel[];
+    },
+  });
+
+  // Fetch approver counts per level
+  const { data: approverCounts } = useQuery({
+    queryKey: ["trade-approver-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_user_approval_levels")
+        .select("level_id")
+        .eq("is_active", true);
+      
+      if (error) throw error;
+      
+      const counts = new Map<string, number>();
+      data?.forEach((a) => {
+        counts.set(a.level_id, (counts.get(a.level_id) || 0) + 1);
+      });
+      return counts;
     },
   });
 
@@ -225,7 +246,7 @@ export default function TradeAdminApprovalLevels() {
           <CardHeader>
             <CardTitle>Níveis Configurados</CardTitle>
             <CardDescription>
-              Defina os valores máximos de aprovação por cargo/função
+              Defina os valores máximos de aprovação por cargo/função e gerencie os aprovadores
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -240,48 +261,67 @@ export default function TradeAdminApprovalLevels() {
                     <TableHead className="w-20">Nível</TableHead>
                     <TableHead>Cargo/Função</TableHead>
                     <TableHead>Valor Máximo</TableHead>
+                    <TableHead>Aprovadores</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-20">Ações</TableHead>
+                    <TableHead className="w-28">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {levels?.map((level) => (
-                    <TableRow key={level.id}>
-                      <TableCell>
-                        <Badge variant="outline" className="font-mono">
-                          {level.level_number}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">{level.role_name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3 text-muted-foreground" />
-                          {formatCurrency(level.max_approval_amount)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {level.description || "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={level.is_active ? "default" : "secondary"}>
-                          {level.is_active ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(level)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {levels?.map((level) => {
+                    const count = approverCounts?.get(level.id) || 0;
+                    return (
+                      <TableRow key={level.id}>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono">
+                            {level.level_number}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">{level.role_name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3 text-muted-foreground" />
+                            {formatCurrency(level.max_approval_amount)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => setApproverDialogLevel(level)}
+                          >
+                            <Users className="h-4 w-4" />
+                            <Badge variant={count > 0 ? "default" : "secondary"}>
+                              {count}
+                            </Badge>
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {level.description || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={level.is_active ? "default" : "secondary"}>
+                            {level.is_active ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(level)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                   {(!levels || levels.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         Nenhum nível de aprovação configurado
                       </TableCell>
                     </TableRow>
@@ -302,13 +342,29 @@ export default function TradeAdminApprovalLevels() {
                 <p className="text-sm text-muted-foreground">
                   Os níveis de aprovação definem a alçada de cada cargo. Quando uma campanha 
                   é criada, o sistema identifica automaticamente qual nível de aprovação é 
-                  necessário com base no valor estimado.
+                  necessário com base no valor estimado. Clique em "Aprovadores" para gerenciar 
+                  quem pode aprovar em cada nível.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Approver Management Dialog */}
+      {approverDialogLevel && (
+        <ApproverManagementDialog
+          open={!!approverDialogLevel}
+          onOpenChange={(open) => {
+            if (!open) {
+              setApproverDialogLevel(null);
+              queryClient.invalidateQueries({ queryKey: ["trade-approver-counts"] });
+            }
+          }}
+          levelId={approverDialogLevel.id}
+          levelName={approverDialogLevel.role_name}
+        />
+      )}
     </DashboardLayout>
   );
 }

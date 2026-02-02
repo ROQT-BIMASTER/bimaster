@@ -14677,6 +14677,62 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_user_approval_levels: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          level_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          level_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          level_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_user_approval_levels_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "trade_approval_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_user_approval_levels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_user_approval_levels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_user_approval_levels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       transacoes_financeiras: {
         Row: {
           classificado_automaticamente: boolean | null
@@ -16405,6 +16461,10 @@ export type Database = {
         Returns: boolean
       }
       has_strict_finance_access: { Args: { user_id: string }; Returns: boolean }
+      has_trade_admin_permission: {
+        Args: { check_user_id: string }
+        Returns: boolean
+      }
       icms_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       icms_tipo_credito: { Args: { p_cst: string }; Returns: string }
       importar_clientes: { Args: { p_clientes: Json }; Returns: Json }
