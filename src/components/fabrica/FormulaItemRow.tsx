@@ -282,12 +282,12 @@ export function FormulaItemRow({
               <FileText className="h-4 w-4" />
               <span>Deseja importar via Nota Fiscal?</span>
             </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/dashboard/fabrica/recebimentos" target="_blank">
+            <Link to="/dashboard/fabrica/recebimentos">
+              <Button variant="outline" size="sm" type="button">
                 <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                 Recebimento XML
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           </div>
 
           <div className="space-y-4 py-2">
