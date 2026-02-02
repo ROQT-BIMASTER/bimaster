@@ -122,16 +122,16 @@ export function RoteiroProducaoEditor({
                 <div className="space-y-2">
                   <Label>Máquina Sugerida</Label>
                   <Select
-                    value={step.maquina_sugerida_id || ""}
+                    value={step.maquina_sugerida_id || "none"}
                     onValueChange={(value) =>
-                      atualizarPasso(index, "maquina_sugerida_id", value)
+                      atualizarPasso(index, "maquina_sugerida_id", value === "none" ? undefined : value)
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhuma</SelectItem>
+                      <SelectItem value="none">Nenhuma</SelectItem>
                       {maquinas?.map((maq) => (
                         <SelectItem key={maq.id} value={maq.id}>
                           {maq.codigo} - {maq.nome}
