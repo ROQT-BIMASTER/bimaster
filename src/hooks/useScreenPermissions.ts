@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 
 interface ScreenPermission {
   id: string;
@@ -11,11 +12,32 @@ interface ScreenPermission {
 }
 
 /**
- * Hook para permissões de tela - agora usa o contexto centralizado
+ * Hook para permissões de tela - usa o contexto de impersonação quando ativo
  * Mantido para compatibilidade com componentes existentes
  */
 export const useScreenPermissions = () => {
-  const { screens, loading, hasScreenPermission, isAdmin, refreshPermissions } = usePermissions();
+  const { screens: realScreens, loading, isAdmin: realIsAdmin, refreshPermissions } = usePermissions();
+  const { 
+    hasScreenPermission, 
+    isImpersonating, 
+    impersonatedPermissions 
+  } = useImpersonation();
+
+  // Usar as telas do usuário impersonado se estiver ativo, senão usar as reais
+  const screens = useMemo(() => {
+    if (isImpersonating && impersonatedPermissions) {
+      return impersonatedPermissions.screens;
+    }
+    return realScreens;
+  }, [isImpersonating, impersonatedPermissions, realScreens]);
+
+  // Verificar se é admin (real ou impersonado)
+  const effectiveIsAdmin = useMemo(() => {
+    if (isImpersonating && impersonatedPermissions) {
+      return impersonatedPermissions.isAdmin;
+    }
+    return realIsAdmin;
+  }, [isImpersonating, impersonatedPermissions, realIsAdmin]);
 
   // Converter array de códigos para array de objetos ScreenPermission (compatibilidade)
   const permissionsAsObjects = useMemo<ScreenPermission[]>(() => 
@@ -34,7 +56,7 @@ export const useScreenPermissions = () => {
     permissions: permissionsAsObjects, 
     loading, 
     hasPermission: hasScreenPermission, 
-    isAdmin, 
+    isAdmin: effectiveIsAdmin, 
     refreshPermissions 
   };
 };
