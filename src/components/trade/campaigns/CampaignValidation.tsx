@@ -172,6 +172,7 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
+      // Aprovar a campanha
       const { error } = await supabase
         .from("trade_campaigns")
         .update({
@@ -184,10 +185,27 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
         .eq("id", campaignId);
 
       if (error) throw error;
+
+      // Também aprovar todos os lançamentos pendentes da campanha
+      const { error: lancamentosError } = await supabase
+        .from("trade_campaign_lancamentos")
+        .update({
+          status: "approved",
+          validated_by: user?.id,
+          validated_at: new Date().toISOString(),
+        })
+        .eq("campaign_id", campaignId)
+        .eq("status", "pending");
+
+      if (lancamentosError) {
+        console.error("Erro ao aprovar lançamentos:", lancamentosError);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trade-campaign-detail", campaignId] });
-      toast.success("Campanha aprovada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["campaign-lancamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["trade-dashboard-lancamentos"] });
+      toast.success("Campanha e lançamentos aprovados com sucesso!");
     },
     onError: (error: any) => {
       toast.error(error.message);
