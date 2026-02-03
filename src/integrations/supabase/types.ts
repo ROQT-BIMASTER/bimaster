@@ -5062,6 +5062,7 @@ export type Database = {
       }
       fabrica_materias_primas: {
         Row: {
+          ativo: boolean | null
           categoria_id: string | null
           codigo: string
           created_at: string | null
@@ -5088,6 +5089,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          ativo?: boolean | null
           categoria_id?: string | null
           codigo: string
           created_at?: string | null
@@ -5114,6 +5116,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          ativo?: boolean | null
           categoria_id?: string | null
           codigo?: string
           created_at?: string | null

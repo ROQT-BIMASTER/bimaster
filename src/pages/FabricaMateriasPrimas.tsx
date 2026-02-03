@@ -37,6 +37,7 @@ interface MateriaPrima {
   status: string;
   data_validade: string | null;
   lote: string | null;
+  ativo: boolean;
 }
 
 const statusColors = {
@@ -137,6 +138,30 @@ export default function FabricaMateriasPrimas() {
     }
   };
 
+  const handleToggleAtivo = async (mp: MateriaPrima) => {
+    const novoStatus = !mp.ativo;
+    const acao = novoStatus ? "ativar" : "inativar";
+    
+    if (!confirm(`Tem certeza que deseja ${acao} a matéria-prima "${mp.nome}"?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("fabrica_materias_primas")
+        .update({ ativo: novoStatus })
+        .eq("id", mp.id);
+
+      if (error) throw error;
+
+      toast.success(`Matéria-prima ${novoStatus ? "ativada" : "inativada"} com sucesso!`);
+      fetchMateriasPrimas();
+    } catch (error: any) {
+      console.error("Erro ao alterar status:", error);
+      toast.error("Erro ao alterar status: " + error.message);
+    }
+  };
+
   if (loading || permissionsLoading) {
     return (
       <DashboardLayout>
@@ -207,17 +232,23 @@ export default function FabricaMateriasPrimas() {
                   filteredMPs.map((mp) => (
                     <TableRow
                       key={mp.id}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className={`cursor-pointer hover:bg-muted/50 ${!mp.ativo ? "opacity-60" : ""}`}
                       onClick={() => handleDetails(mp)}
                     >
-                      <TableCell className="font-mono font-medium">{mp.codigo}</TableCell>
-                      <TableCell className="font-medium">{mp.nome}</TableCell>
-                      <TableCell>{mp.categoria?.nome || "-"}</TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className={`font-mono font-medium ${!mp.ativo ? "text-destructive line-through" : ""}`}>
+                        {mp.codigo}
+                      </TableCell>
+                      <TableCell className={`font-medium ${!mp.ativo ? "text-destructive line-through" : ""}`}>
+                        {mp.nome}
+                      </TableCell>
+                      <TableCell className={!mp.ativo ? "text-destructive line-through" : ""}>
+                        {mp.categoria?.nome || "-"}
+                      </TableCell>
+                      <TableCell className={`text-muted-foreground ${!mp.ativo ? "text-destructive line-through" : ""}`}>
                         {mp.fornecedor?.razao_social || "-"}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col">
+                        <div className={`flex flex-col ${!mp.ativo ? "text-destructive line-through" : ""}`}>
                           <span className="font-medium">
                             {mp.estoque_atual.toFixed(3)} {mp.unidade_medida?.sigla}
                           </span>
@@ -228,7 +259,7 @@ export default function FabricaMateriasPrimas() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={!mp.ativo ? "text-destructive line-through" : ""}>
                         R$ {mp.custo_unitario?.toFixed(2) || "0,00"}/{mp.unidade_medida?.sigla}
                       </TableCell>
                       <TableCell>
@@ -258,6 +289,17 @@ export default function FabricaMateriasPrimas() {
                             }}
                           >
                             Editar
+                          </Button>
+                          <Button
+                            variant={mp.ativo ? "outline" : "default"}
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleAtivo(mp);
+                            }}
+                            className={mp.ativo ? "text-orange-600 hover:text-orange-700 border-orange-300" : "bg-green-600 hover:bg-green-700"}
+                          >
+                            {mp.ativo ? "Inativar" : "Ativar"}
                           </Button>
                           <Button
                             variant="ghost"
