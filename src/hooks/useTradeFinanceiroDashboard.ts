@@ -151,10 +151,12 @@ export function useTradeFinanceiroDashboard() {
   // Calcular métricas de campanhas
   const campanhaMetrics: CampanhaMetrics = {
     qtdCampanhas: campanhasQuery.data?.length || 0,
-    valorPendente: (despesasQuery.data as any[])?.filter((d: any) => d.status === 'pending')
-      .reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0,
-    valorPago: (despesasQuery.data as any[])?.filter((d: any) => d.status === 'approved' || d.status === 'completed')
-      .reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0,
+    valorPendente: (despesasQuery.data as any[])?.filter((d: any) => 
+      ['pending', 'pendente'].includes(d.status?.toLowerCase())
+    ).reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0,
+    valorPago: (despesasQuery.data as any[])?.filter((d: any) => 
+      ['approved', 'aprovado', 'completed', 'pago'].includes(d.status?.toLowerCase())
+    ).reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0,
     percentualPago: 0,
   };
   const totalDespesas = campanhaMetrics.valorPendente + campanhaMetrics.valorPago;
@@ -179,10 +181,11 @@ export function useTradeFinanceiroDashboard() {
       return vDate >= mesInicio && vDate <= mesFim;
     }).reduce((sum, v) => sum + (parseFloat(String(v.total_amount)) || 0), 0) || 0;
 
-    // Saídas: despesas realizadas no mês
+    // Saídas: despesas realizadas no mês (aprovadas ou pagas)
     const saidas = despesasQuery.data?.filter((d: any) => {
       const dDate = new Date(d.created_at);
-      return dDate >= mesInicio && dDate <= mesFim && d.status !== 'pending';
+      const isApproved = ['approved', 'aprovado', 'completed', 'pago'].includes(d.status?.toLowerCase());
+      return dDate >= mesInicio && dDate <= mesFim && isApproved;
     }).reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0;
 
     saldoAcumulado += entradas - saidas;
