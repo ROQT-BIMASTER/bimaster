@@ -32,7 +32,9 @@ export const campaignSchema = z.object({
   }),
   
   budget_id: z.string()
-    .uuid({ message: "Selecione uma verba aprovada" }),
+    .uuid({ message: "Verba inválida" })
+    .optional()
+    .nullable(),
   
   estimated_cost: z.number({
     required_error: "Custo estimado é obrigatório",

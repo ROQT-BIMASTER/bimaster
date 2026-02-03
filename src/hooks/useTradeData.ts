@@ -202,3 +202,43 @@ export function usePendingInvestments() {
     staleTime: 60 * 1000,
   });
 }
+
+// Hook para campanhas pendentes de aprovação
+export function usePendingCampaigns() {
+  return useQuery<any[]>({
+    queryKey: ['trade-pending-campaigns'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_campaigns")
+        .select(`
+          *,
+          budget:trade_budgets(id, name, code, total_amount, spent_amount, reserved_amount, available_amount),
+          responsible:profiles!responsible_user_id(id, nome, email)
+        `)
+        .eq("status", "pending_approval")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Enriquecer com informações do criador
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map(c => c.created_by))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, nome, email")
+          .in("id", userIds);
+
+        const profileMap = new Map(profiles?.map(p => [p.id, p]));
+        
+        return data.map(campaign => ({
+          ...campaign,
+          created_by_profile: profileMap.get(campaign.created_by)
+        }));
+      }
+
+      return data || [];
+    },
+    staleTime: 60 * 1000,
+  });
+}

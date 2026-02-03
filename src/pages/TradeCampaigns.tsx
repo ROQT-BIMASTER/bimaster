@@ -114,8 +114,7 @@ export default function TradeCampaigns() {
       const name = sanitizeText(formData.get("name") as string);
       const description = sanitizeText(formData.get("description") as string || "");
       const campaign_type = formData.get("campaign_type") as string;
-      const budget_id = formData.get("budget_id") as string;
-      if (!budget_id) throw new Error("Selecione uma verba aprovada");
+      const budget_id = formData.get("budget_id") as string || null;
       const estimated_cost = parseFloat(formData.get("estimated_cost") as string);
       const target_revenue = formData.get("target_revenue") ? parseFloat(formData.get("target_revenue") as string) : null;
       const start_date = formData.get("start_date") as string;
@@ -373,12 +372,13 @@ export default function TradeCampaigns() {
 
                   <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="budget_id">Verba *</Label>
-                    <Select value={selectedBudget} onValueChange={setSelectedBudget} required>
+                    <Label htmlFor="budget_id">Verba (Opcional)</Label>
+                    <Select value={selectedBudget} onValueChange={setSelectedBudget}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma verba aprovada" />
+                        <SelectValue placeholder="Selecione uma verba (opcional)" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="">Sem verba vinculada</SelectItem>
                         {budgets.map((budget) => (
                           <SelectItem key={budget.id} value={budget.id}>
                             {budget.code} - {budget.name} (Disponível: R$ {parseFloat(budget.available_amount || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })})
@@ -386,8 +386,8 @@ export default function TradeCampaigns() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <input type="hidden" name="budget_id" value={selectedBudget} required />
-                    <p className="text-xs text-muted-foreground">Apenas verbas aprovadas são exibidas</p>
+                    <input type="hidden" name="budget_id" value={selectedBudget} />
+                    <p className="text-xs text-muted-foreground">A verba será obrigatória no momento da aprovação</p>
                   </div>
                     <div className="space-y-2">
                       <Label htmlFor="region">Região</Label>
