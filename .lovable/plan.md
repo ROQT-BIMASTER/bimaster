@@ -1,118 +1,83 @@
 
 
-# Plano: Limpeza em Lotes da Tabela audit_logs
+# Plano: Remover Cron Duplicado e Prevenir Reincidência
 
 ## Problema Identificado
 
-A tabela `audit_logs` possui **214 milhões de linhas** ocupando **61 GB**. As tentativas de DELETE em massa estão falhando por timeout devido ao volume de dados.
+Existem **2 cron jobs idênticos** sincronizando contas a receber:
 
-## Solução Proposta
+| Job ID | Nome | Schedule | Impacto |
+|--------|------|----------|---------|
+| 1 | sync-contas-receber-6h | A cada 6h | Gasto duplo |
+| 2 | sync-contas-receber-auto | A cada 6h | Gasto duplo |
 
-Criar uma **função de limpeza em lotes** que deleta pequenas quantidades por vez (ex: 50.000 linhas por execução), evitando timeout e bloqueio do banco.
+Isso causa **custos dobrados** em execução de edge functions e processamento.
 
 ---
 
-## Passos da Implementação
+## Ação Imediata
 
-### 1. Criar Função de Limpeza em Lotes
+### 1. Remover o Cron Duplicado
 
-Uma nova função PostgreSQL que:
-- Deleta apenas 50.000 registros por execução
-- Pode ser chamada repetidamente pelo cron
-- Registra quantos registros foram deletados
+Executar o seguinte SQL para remover o job duplicado (mantendo apenas o jobid 1):
 
-### 2. Atualizar o Cron Job
+```sql
+SELECT cron.unschedule('sync-contas-receber-auto');
+```
 
-Modificar o cron para:
-- Executar a cada **10 minutos** ao invés de 1x por dia
-- Usar a nova função de lotes
-- Quando não houver mais registros antigos, simplesmente não faz nada
+---
 
-### 3. Limpeza Inicial Forçada
+## Plano Preventivo (Boas Práticas)
 
-Criar uma função que pode ser executada manualmente para acelerar a limpeza inicial:
-- Executa múltiplos lotes em sequência
-- Com pausas entre lotes para não sobrecarregar
+### 2. Padrão de Nomenclatura
+
+Adotar convenção para evitar duplicatas:
+- Nome único e descritivo: `{modulo}-{acao}-{frequencia}`
+- Exemplos: `trade-cleanup-10min`, `financeiro-sync-6h`
+
+### 3. Checagem Antes de Criar Jobs
+
+Sempre verificar jobs existentes antes de criar novos:
+
+```sql
+-- Verificar se já existe antes de criar
+SELECT * FROM cron.job WHERE jobname LIKE '%contas-receber%';
+```
+
+### 4. Usar CREATE OR REPLACE
+
+Ao criar funções auxiliares, usar `CREATE OR REPLACE` para evitar duplicação de funções no banco.
+
+### 5. Documentação dos Cron Jobs Ativos
+
+Após a limpeza, os jobs ativos serão:
+
+| Job | Função | Frequência |
+|-----|--------|------------|
+| cleanup-audit-logs-batch | Limpar logs antigos | 10 min |
+| cleanup-sync-control-daily | Limpar sync_control | Diário 03h |
+| sync-contas-receber-6h | Sincronizar financeiro | 6h |
 
 ---
 
 ## Detalhes Técnicos
 
-```text
-+------------------------+     +------------------------+
-| audit_logs             |     | Função batch_cleanup   |
-| 214M linhas / 61 GB    | --> | DELETE LIMIT 50.000    |
-+------------------------+     +------------------------+
-                                        |
-                                        v
-                               +------------------------+
-                               | Cron a cada 10 min     |
-                               | ~7.200 lotes/dia       |
-                               | = 360M deletes/dia     |
-                               +------------------------+
-```
+### Economia Esperada
 
-**Tempo estimado para limpeza completa**: 
-- Com 50K registros por lote, a cada 10 minutos = 144 execuções/dia
-- 144 × 50.000 = 7.2 milhões de registros deletados por dia
-- Para 200+ milhões de registros antigos ≈ **1 mês** para limpar tudo
-- Podemos aumentar a frequência ou o tamanho do lote para acelerar
+- **Antes**: 8 execuções/dia (2 jobs × 4 vezes)
+- **Depois**: 4 execuções/dia (1 job × 4 vezes)
+- **Redução**: 50% nas chamadas de sincronização
 
-### Alternativa Mais Rápida
-Se quiser acelerar, posso configurar:
-- Lotes de 100.000 registros
-- Execução a cada 5 minutos
-- = ~28 milhões deletados por dia
-- **1 semana** para limpar tudo
+### Verificação Pós-Implementação
 
----
-
-## Código SQL que Será Criado
+Script para confirmar que não há mais duplicatas:
 
 ```sql
--- Função de limpeza em lotes
-CREATE OR REPLACE FUNCTION public.cleanup_audit_logs_batch(
-  batch_size INTEGER DEFAULT 50000,
-  retention_days INTEGER DEFAULT 30
-)
-RETURNS INTEGER
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  deleted_count INTEGER;
-BEGIN
-  WITH deleted AS (
-    DELETE FROM public.audit_logs
-    WHERE id IN (
-      SELECT id FROM public.audit_logs
-      WHERE created_at < NOW() - (retention_days || ' days')::INTERVAL
-      LIMIT batch_size
-    )
-    RETURNING 1
-  )
-  SELECT COUNT(*) INTO deleted_count FROM deleted;
-  
-  RETURN deleted_count;
-END;
-$$;
-
--- Atualizar cron para usar a nova função
-SELECT cron.unschedule('cleanup-audit-logs-daily');
-
-SELECT cron.schedule(
-  'cleanup-audit-logs-batch',
-  '*/10 * * * *', -- A cada 10 minutos
-  $$SELECT public.cleanup_audit_logs_batch(50000, 30)$$
-);
+SELECT jobname, schedule, COUNT(*) 
+FROM cron.job 
+GROUP BY jobname, schedule 
+HAVING COUNT(*) > 1;
 ```
 
----
-
-## Benefícios
-
-- **Sem timeout**: lotes pequenos completam rapidamente
-- **Sem bloqueio**: não trava outras operações do banco
-- **Automático**: o cron cuida de tudo
-- **Progressivo**: vai limpando aos poucos até regularizar
-- **Sustentável**: após limpar, mantém a tabela sempre enxuta
+Se retornar vazio, não há duplicatas.
 
