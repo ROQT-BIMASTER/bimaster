@@ -23,9 +23,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Package } from "lucide-react";
 import { FornecedorQuickAdd } from "./FornecedorQuickAdd";
+import { toast } from "sonner";
 
 interface MateriaPrima {
   id: string;
@@ -80,6 +82,8 @@ export function AdicionarInsumoCustoDialog({
   const [custoServico, setCustoServico] = useState("");
   const [custoCondicao, setCustoCondicao] = useState("");
   const [nfReferencia, setNfReferencia] = useState("");
+  const [cadastrarNoCatalogo, setCadastrarNoCatalogo] = useState(true);
+  const [salvando, setSalvando] = useState(false);
 
   // Buscar matérias-primas
   useEffect(() => {
@@ -127,11 +131,41 @@ export function AdicionarInsumoCustoDialog({
     setBusca("");
   };
 
-  const handleAdicionar = () => {
+  const handleAdicionar = async () => {
     if (!codigo || !nome) return;
 
+    setSalvando(true);
+    let mpId: string | undefined = mpSelecionada?.id;
+
+    // Se modo manual e checkbox marcado, criar no catálogo primeiro
+    if (modo === "manual" && cadastrarNoCatalogo) {
+      const { data: novaMP, error } = await supabase
+        .from("fabrica_materias_primas")
+        .insert({
+          codigo: codigo.trim(),
+          nome: nome.trim(),
+          custo_unitario: parseFloat(custoNF) || 0,
+          status: "ativo",
+        })
+        .select("id")
+        .single();
+
+      if (error) {
+        setSalvando(false);
+        if (error.code === "23505") {
+          toast.warning("Já existe uma MP com esse código. Use a busca para selecioná-la.");
+        } else {
+          toast.error("Erro ao cadastrar no catálogo: " + error.message);
+        }
+        return;
+      }
+
+      mpId = novaMP.id;
+      toast.success("Insumo cadastrado no catálogo de MPs");
+    }
+
     onAdicionar({
-      mp_id: mpSelecionada?.id,
+      mp_id: mpId,
       codigo,
       nome,
       fornecedor: fornecedor || undefined,
@@ -143,6 +177,7 @@ export function AdicionarInsumoCustoDialog({
     });
 
     // Limpar form
+    setSalvando(false);
     setMpSelecionada(null);
     setCodigo("");
     setNome("");
@@ -152,6 +187,7 @@ export function AdicionarInsumoCustoDialog({
     setCustoServico("");
     setCustoCondicao("");
     setNfReferencia("");
+    setCadastrarNoCatalogo(true);
     setBusca("");
     onOpenChange(false);
   };
@@ -166,6 +202,7 @@ export function AdicionarInsumoCustoDialog({
     setCustoServico("");
     setCustoCondicao("");
     setNfReferencia("");
+    setCadastrarNoCatalogo(true);
     setBusca("");
   };
 
@@ -312,6 +349,20 @@ export function AdicionarInsumoCustoDialog({
                 </div>
               </div>
 
+              {/* Checkbox para cadastrar no catálogo (apenas modo manual) */}
+              {modo === "manual" && (
+                <div className="flex items-center gap-2 py-2 px-1 bg-muted/50 rounded-md">
+                  <Checkbox
+                    id="cadastrarCatalogo"
+                    checked={cadastrarNoCatalogo}
+                    onCheckedChange={(checked) => setCadastrarNoCatalogo(!!checked)}
+                  />
+                  <Label htmlFor="cadastrarCatalogo" className="font-normal cursor-pointer text-sm">
+                    Cadastrar também no catálogo de matérias-primas
+                  </Label>
+                </div>
+              )}
+
               {/* Custos detalhados */}
               <div className="border-t pt-4 mt-4">
                 <h4 className="text-sm font-medium mb-3">Custos Detalhados</h4>
@@ -391,12 +442,12 @@ export function AdicionarInsumoCustoDialog({
                 Trocar MP
               </Button>
             )}
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={salvando}>
               Cancelar
             </Button>
             <Button
               onClick={handleAdicionar}
-              disabled={!codigo || !nome}
+              disabled={!codigo || !nome || salvando}
             >
               Adicionar
             </Button>
