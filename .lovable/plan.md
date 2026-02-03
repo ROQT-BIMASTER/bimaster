@@ -1,61 +1,31 @@
 
-# Plano: Solicitar Nova Verba e Complemento de Saldo na Aprovação de Campanhas
 
-## Resumo do Problema
+# Plano: Adicionar Evidências às Solicitações de Verba, Lançamentos e Investimentos
 
-Na tela de aprovação de campanha (`AprovacaoCampanhaDialog`), quando não existem verbas aprovadas ou quando as verbas existentes não têm saldo suficiente para o custo estimado da campanha, o usuário fica bloqueado sem opções de ação.
+## Resumo
 
-## Solução Proposta
+Implementar a possibilidade de anexar evidências ao solicitar verbas, incluindo:
+1. **Vincular Campanha ou Despesa existente** como justificativa
+2. **Upload de documentos** (PDF, imagens, Word) para comprovar a necessidade
 
-Adicionar duas funcionalidades na tela de aprovação:
-
-1. **Solicitar Nova Verba** - Quando não há verbas aprovadas disponíveis
-2. **Solicitar Complemento de Saldo** - Quando há verbas, mas nenhuma com saldo suficiente para o custo da campanha
-
-Ambas as solicitações ficam pendentes de aprovação do financeiro, e após aprovadas, aparecem automaticamente na lista.
+Isso se aplica a:
+- Solicitações de nova verba (`SolicitarOrcamentoDialog`)
+- Solicitações de complemento de saldo (`SolicitarComplementoDialog`)
+- Lançamentos financeiros (`NovoLancamentoDialog`) - já possui upload de fotos, adicionar vínculo de campanha
+- Investimentos - já possuem campo `campaign_id`, adicionar upload de documentos
 
 ---
 
-## Fluxo de Funcionamento
+## Arquitetura Existente
 
-```text
-Cenário 1: Sem verbas aprovadas
-┌────────────────────────────────────────┐
-│ Aprovador abre campanha pendente       │
-│            ↓                           │
-│ Não há verbas aprovadas no sistema     │
-│            ↓                           │
-│ Exibe botão "Solicitar Nova Verba"     │
-│            ↓                           │
-│ Abre formulário de solicitação         │
-│            ↓                           │
-│ Salva com approval_status = 'pending'  │
-│            ↓                           │
-│ Financeiro aprova em Contas a Pagar    │
-│            ↓                           │
-│ Verba aparece no dropdown              │
-└────────────────────────────────────────┘
-
-Cenário 2: Verbas sem saldo suficiente
-┌────────────────────────────────────────┐
-│ Aprovador abre campanha pendente       │
-│            ↓                           │
-│ Existem verbas, mas todas com saldo    │
-│ menor que o custo estimado             │
-│            ↓                           │
-│ Exibe opção "Solicitar Complemento"    │
-│            ↓                           │
-│ Seleciona verba para complementar      │
-│            ↓                           │
-│ Informa valor do complemento           │
-│            ↓                           │
-│ Salva solicitação pendente             │
-│            ↓                           │
-│ Financeiro aprova aumento de saldo     │
-│            ↓                           │
-│ Saldo atualizado automaticamente       │
-└────────────────────────────────────────┘
-```
+| Recurso | Status |
+|---------|--------|
+| Bucket `trade-budget-docs` | Já existe com RLS configurado |
+| Componente `BudgetDocumentUpload` | Já existe e pode ser reutilizado |
+| Tabela `trade_budget_documents` | Já existe para vincular documentos a verbas |
+| Campo `campaign_id` em `trade_investments` | Já existe |
+| Campo `campaign_id` em `trade_financial_entries` | Já existe |
+| Upload de fotos em `NovoLancamentoDialog` | Já implementado |
 
 ---
 
@@ -63,149 +33,179 @@ Cenário 2: Verbas sem saldo suficiente
 
 | Arquivo | Ação | Descrição |
 |---------|------|-----------|
-| `src/components/trade/SolicitarComplementoDialog.tsx` | **Criar** | Novo dialog para solicitar complemento de saldo em verba existente |
-| `src/components/trade/campaigns/AprovacaoCampanhaDialog.tsx` | **Modificar** | Adicionar botões e estados para as duas opções |
-| `src/hooks/useTradeData.ts` | **Modificar** | Adicionar hook para buscar verbas pendentes de aprovação |
+| `src/components/trade/BudgetEvidenceSection.tsx` | **Criar** | Componente reutilizável com seleção de campanha/despesa + upload de documentos |
+| `src/components/trade/SolicitarOrcamentoDialog.tsx` | **Modificar** | Integrar seção de evidências |
+| `src/components/trade/SolicitarComplementoDialog.tsx` | **Modificar** | Integrar seção de evidências |
+| `src/components/trade/NovoLancamentoDialog.tsx` | **Modificar** | Adicionar seleção de campanha vinculada |
+| `src/pages/TradeFinanceiro.tsx` | **Modificar** | Adicionar upload de documentos nos investimentos |
 
 ---
 
 ## Detalhes de Implementação
 
-### 1. Novo Componente: SolicitarComplementoDialog
+### 1. Novo Componente: BudgetEvidenceSection
 
-Formulário similar ao `SolicitarOrcamentoDialog`, mas para complemento:
+Componente modular que encapsula:
 
-- Exibe informações da verba selecionada (código, nome, saldo atual)
-- Exibe o déficit necessário (custo da campanha - saldo disponível)
-- Campo para valor do complemento solicitado (pré-preenchido com o déficit)
-- Campo de justificativa
-- Salva uma nova solicitação de verba com referência à verba original
-
-### 2. Modificações no AprovacaoCampanhaDialog
-
-**Novos estados:**
-- `solicitarVerbaOpen` - controla dialog de nova verba
-- `solicitarComplementoOpen` - controla dialog de complemento
-- `selectedBudgetForComplement` - verba selecionada para receber complemento
-
-**Nova lógica de detecção:**
-- `hasBudgetsAvailable` - existe pelo menos uma verba aprovada
-- `hasAnyWithSufficientBalance` - alguma verba tem saldo >= custo estimado
-- `budgetsWithInsufficientBalance` - verbas com saldo < custo estimado
-
-**Nova seção de UI quando não há verbas suficientes:**
-
-```text
+**a) Vinculação com Campanha/Despesa:**
+```
 ┌─────────────────────────────────────────────────────────┐
-│ ⚠️ Vinculação de Verba Obrigatória                      │
+│ 📎 Evidências de Necessidade (Opcional)                 │
 │                                                         │
-│ ┌─────────────────────────────────────────────────────┐ │
-│ │ 💡 Não há verbas com saldo suficiente para esta     │ │
-│ │    campanha (Custo: R$ 15.000,00)                   │ │
-│ │                                                     │ │
-│ │ Você pode:                                          │ │
-│ │                                                     │ │
-│ │ ○ [📝 Solicitar Nova Verba ao Financeiro]           │ │
-│ │                                                     │ │
-│ │ ○ Solicitar complemento em verba existente:         │ │
-│ │   ┌───────────────────────────────────────────────┐ │ │
-│ │   │ CAMP-2025 - Verão (Disp: R$ 8.000,00)    [+]  │ │ │
-│ │   │ TRADE-01 - Q1 (Disp: R$ 5.000,00)        [+]  │ │ │
-│ │   └───────────────────────────────────────────────┘ │ │
-│ └─────────────────────────────────────────────────────┘ │
+│ Vincular a:                                             │
+│ ○ Campanha existente                                    │
+│   [Select: CAMP-2025-01 - Verão Praia        ▼]        │
 │                                                         │
-│ 📋 Solicitações em análise:                             │
-│    • VERBA-2025-02 - R$ 50.000,00 (aguardando)         │
+│ ○ Despesa/Lançamento existente                         │
+│   [Select: LAN-2025-001 - Material PDV        ▼]       │
+│                                                         │
+│ ─────────────────────────────────────────────────────── │
+│ OU Anexar Documentos                                    │
+│                                                         │
+│ [📄 Proposta_Comercial.pdf  2.1MB           ✕]         │
+│ [🖼️ Orcamento_Fornecedor.jpg 450KB          ✕]         │
+│                                                         │
+│         [📤 Anexar Documentos]                          │
+│   PDF, imagens ou Word (máx. 10MB cada, até 5 arquivos) │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### 3. Hook para Verbas Pendentes
-
-Novo hook `usePendingBudgets` em `useTradeData.ts`:
-
+**Props do componente:**
 ```typescript
-export function usePendingBudgets() {
-  return useQuery({
-    queryKey: ['trade-pending-budgets'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("trade_budgets")
-        .select("*")
-        .eq("approval_status", "pending")
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 2 * 60 * 1000,
-  });
+interface BudgetEvidenceSectionProps {
+  linkedCampaignId?: string;
+  onCampaignChange: (id: string | null) => void;
+  linkedEntryId?: string;
+  onEntryChange: (id: string | null) => void;
+  uploadedFiles: UploadedFile[];
+  onFilesChange: (files: UploadedFile[]) => void;
+  showCampaignLink?: boolean; // default: true
+  showEntryLink?: boolean; // default: true
+  showUpload?: boolean; // default: true
 }
 ```
 
----
+**Lógica de busca:**
+- Campanhas: Buscar campanhas ativas/aprovadas da tabela `trade_campaigns`
+- Despesas/Lançamentos: Buscar lançamentos recentes da tabela `trade_financial_entries`
 
-## Modelo de Dados para Complemento
+### 2. Modificações no SolicitarOrcamentoDialog
 
-O complemento será salvo como uma nova entrada na tabela `trade_budgets` com uma nota na justificativa referenciando a verba original:
-
+**Novos estados:**
 ```typescript
-{
-  name: "Complemento - [NOME_VERBA_ORIGINAL]",
-  code: "[CODIGO_ORIGINAL]-COMP-001",
-  total_amount: valorComplemento,
-  period_start: mesmaDataVerbaOriginal,
-  period_end: mesmaDataVerbaOriginal,
-  notes: `Complemento de saldo para verba ${codigoOriginal}. 
-          Solicitado para campanha: ${nomeCampanha}. 
-          Déficit: R$ ${deficit}`,
-  approval_status: "pending",
-  status: "inactive",
-  requested_by: userId,
-  requester_name: nomeUsuario,
-  requester_email: emailUsuario,
-}
+const [linkedCampaignId, setLinkedCampaignId] = useState<string | null>(null);
+const [linkedEntryId, setLinkedEntryId] = useState<string | null>(null);
+const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 ```
 
-Quando aprovado pelo financeiro, o valor será incorporado à verba original (ou fica como verba separada que pode ser vinculada à campanha).
+**No submit:**
+- Salvar `linkedCampaignId` e `linkedEntryId` no campo `notes` como referência estruturada
+- Após criar o budget, inserir documentos na tabela `trade_budget_documents`
 
----
-
-## Comportamento Visual
-
-### Sem verbas aprovadas:
-- Mensagem explicativa
-- Botão único "Solicitar Nova Verba"
-- Lista de verbas pendentes (se houver)
-
-### Com verbas, mas sem saldo suficiente:
-- Dropdown de seleção de verbas (todas, mesmo sem saldo)
-- Quando seleciona uma com saldo insuficiente:
-  - Badge "Saldo Insuficiente" em vermelho
-  - Botão "Solicitar Complemento de R$ X" aparece
-- Botão secundário "Ou solicitar nova verba"
-- Lista de verbas/complementos pendentes
-
-### Com verba e saldo OK:
-- Comportamento atual (aprovação normal)
-
----
-
-## Callbacks e Invalidação de Cache
-
-Após criar solicitação de verba ou complemento:
-
-```typescript
-queryClient.invalidateQueries({ queryKey: ['trade-budgets'] });
-queryClient.invalidateQueries({ queryKey: ['trade-pending-budgets'] });
-toast.success("Solicitação enviada ao financeiro!");
+**Estrutura do notes com evidências:**
 ```
+Justificativa do usuário...
+
+---
+Evidências:
+- Campanha vinculada: CAMP-2025-01 (uuid)
+- Lançamento vinculado: LAN-001 (uuid)
+- Documentos anexados: 2
+```
+
+### 3. Modificações no SolicitarComplementoDialog
+
+Mesma estrutura do `SolicitarOrcamentoDialog`:
+- Adicionar `BudgetEvidenceSection`
+- A campanha é pré-vinculada se vier do contexto de aprovação
+- Permitir anexar documentos adicionais
+
+### 4. Modificações no NovoLancamentoDialog
+
+O dialog já possui:
+- Upload de fotos (`trade-photos` bucket)
+- Campo `document_url` para URL externa
+
+**Adicionar:**
+- Select para vincular a uma campanha existente (campo `campaign_id` já existe na tabela)
+- Exibir informações da campanha selecionada
+
+### 5. Modificações nos Investimentos (TradeFinanceiro.tsx)
+
+O formulário de investimento já possui campo `campaign_id`.
+
+**Adicionar:**
+- Botão para upload de comprovante/recibo (`receipt_url` já existe na tabela)
+- Usar o componente `BudgetDocumentUpload` existente
+
+---
+
+## Fluxo de Dados
+
+```text
+Usuário solicita verba
+        ↓
+Preenche dados básicos
+        ↓
+[Opcional] Vincula campanha/despesa como evidência
+        ↓
+[Opcional] Faz upload de documentos
+        ↓
+Salva solicitação em trade_budgets
+        ↓
+Salva documentos em trade_budget_documents (FK para budget_id)
+        ↓
+Financeiro vê solicitação com evidências
+        ↓
+Pode visualizar campanha/despesa vinculada
+        ↓
+Pode baixar/visualizar documentos anexados
+```
+
+---
+
+## Modelo de Dados
+
+**Tabela `trade_budget_documents` (já existe):**
+- `budget_id` → FK para `trade_budgets`
+- `file_name`, `file_path`, `file_url`, `file_type`, `file_size`
+- `uploaded_by`, `created_at`
+
+**Novas referências no campo `notes` de `trade_budgets`:**
+As referências às campanhas/despesas vinculadas serão salvas como metadados no campo `notes`, usando um formato estruturado que pode ser parseado posteriormente:
+
+```
+[evidencia:campanha:uuid]
+[evidencia:lancamento:uuid]
+```
+
+Alternativamente, podemos criar campos dedicados na tabela se necessário no futuro.
+
+---
+
+## Benefícios
+
+1. **Rastreabilidade**: Financeiro sabe exatamente qual campanha/despesa motivou a solicitação
+2. **Documentação**: Comprovantes anexados dão suporte objetivo à aprovação
+3. **Auditoria**: Histórico completo de evidências para cada verba
+4. **Reutilização**: Componente `BudgetEvidenceSection` pode ser usado em qualquer formulário
+
+---
+
+## Validações
+
+- Campanhas: Exibir apenas as com status `approved`, `active`, ou `pending_approval`
+- Lançamentos: Exibir apenas os últimos 50 lançamentos (para performance)
+- Documentos: Validar tipo (PDF, imagem, Word) e tamanho (máx. 10MB)
+- Máximo de 5 documentos por solicitação
 
 ---
 
 ## Resultado Esperado
 
-1. Usuário pode solicitar nova verba diretamente da tela de aprovação
-2. Usuário pode solicitar complemento de saldo em verba existente
-3. Solicitações aparecem como pendentes com visual claro
-4. Após aprovação financeira, verbas ficam disponíveis automaticamente
-5. Fluxo integrado sem necessidade de navegar para outras telas
+1. Ao solicitar nova verba, usuário pode vincular campanha/despesa existente
+2. Ao solicitar complemento, mesmas opções de evidência
+3. Ao criar lançamento, pode vincular a uma campanha
+4. Ao criar investimento, pode anexar comprovantes
+5. Financeiro visualiza todas as evidências no momento da aprovação
+
