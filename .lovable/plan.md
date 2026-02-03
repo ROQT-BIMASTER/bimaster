@@ -1,193 +1,123 @@
 
-# Plano: Ficha de Custos Simplificada no Produto Acabado
 
-## Objetivo
+# Plano de Segurança - Hardening Completo
 
-Permitir que o usuário preencha uma ficha de custos **diretamente no produto acabado**, adicionando matérias-primas e seus custos detalhados (NF, Serviço, Condição) sem precisar criar uma fórmula. Isso atende usuários que querem apenas controlar custos, sem usar o módulo completo de BOM.
+## Resumo Executivo
 
----
+Este plano corrige **8 vulnerabilidades de segurança** identificadas no sistema, focando em:
+- Políticas RLS permissivas que usam `USING(true)` ou `WITH CHECK(true)`
+- Políticas duplicadas/conflitantes em tabelas sensíveis
+- Tabela de rate limiting sem RLS habilitado
+- Consolidação de acesso ao módulo fábrica
 
-## Como Funciona
+## Problemas Identificados
 
-```text
-FLUXO SIMPLIFICADO:
+### 1. Tabelas de Custos de Fábrica - CRÍTICO
+As tabelas `fabrica_produto_custos` e `fabrica_produto_custos_config` possuem políticas permissivas que permitem qualquer usuário autenticado:
+- Inserir dados de custos
+- Atualizar custos
+- Excluir custos
 
-1. Usuário seleciona um Produto Acabado
-2. Adiciona Matérias-Primas manualmente (busca no cadastro)
-3. Preenche para cada MP: NF, Serviço, Condição, NF Ref
-4. Preenche Mão de Obra e Markup
-5. Sistema calcula custo total automaticamente
-```
+**Risco:** Usuários sem acesso ao módulo fábrica podem manipular dados de custos de produção.
 
----
+### 2. Políticas Duplicadas em Trade Budgets - MÉDIO
+A tabela `trade_budgets` possui políticas conflitantes:
+- 3 políticas SELECT diferentes
+- 3 políticas UPDATE diferentes
+- 2 políticas INSERT diferentes
+- 2 políticas DELETE diferentes
 
-## Modelo de Dados
+**Risco:** Lógica de acesso confusa e potencialmente inconsistente.
 
-### Nova Tabela: `fabrica_produto_custos`
+### 3. Políticas Duplicadas em Bank Accounts - MÉDIO
+A tabela `trade_bank_accounts` possui 2 políticas SELECT duplicadas.
 
-Armazena os insumos/MPs vinculados ao produto acabado para cálculo de custo.
+### 4. Tabela sync_rate_limiter sem RLS - BAIXO
+A tabela `sync_rate_limiter` não tem RLS habilitado.
 
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | UUID | Chave primária |
-| produto_id | UUID | FK para fabrica_produtos |
-| mp_id | UUID | FK para fabrica_materias_primas (nullable) |
-| codigo | TEXT | Código do insumo (pode ser manual) |
-| nome | TEXT | Nome do insumo |
-| fornecedor | TEXT | Nome do fornecedor |
-| tipo_insumo | TEXT | bulk, embalagem_primaria, etc. |
-| custo_nf | NUMERIC | Custo NF |
-| custo_servico | NUMERIC | Custo Serviço |
-| custo_condicao | NUMERIC | Custo Condição |
-| nf_referencia | TEXT | Número da NF de referência |
-| ordem | INTEGER | Ordem de exibição |
+**Risco:** Embora seja uma tabela de controle interno, deve ter proteção de service_role.
 
-### Nova Tabela: `fabrica_produto_custos_config`
+## Ações Planejadas
 
-Armazena configuração de M.O. e markup por produto.
-
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | UUID | Chave primária |
-| produto_id | UUID | FK para fabrica_produtos (UNIQUE) |
-| fornecedor_mao_obra | TEXT | Fornecedor da M.O. |
-| custo_mao_obra_nf | NUMERIC | M.O. coluna NF |
-| custo_mao_obra_servico | NUMERIC | M.O. coluna Serviço |
-| percentual_markup | NUMERIC | % markup (default 10) |
-| observacoes | TEXT | Observações gerais |
-
----
-
-## Layout da Interface
-
-### Tela: FichaCustoProdutoPage
-
-Acessível via botão "Ficha de Custos" na listagem de produtos ou no dialog de edição.
+### Fase 1: Criar Função de Acesso à Fábrica
 
 ```text
-+------------------------------------------------------------------+
-|  [<- Voltar] FICHA DE CUSTOS - [NOME DO PRODUTO]                 |
-|  Código: PA-001 | Origem: Nacional                               |
-+------------------------------------------------------------------+
-|                                                                  |
-|  CONFIGURAÇÃO                                                    |
-|  +-------------+  +-------------+  +--------------+  +----------+|
-|  | Forn. M.O.  |  | M.O. NF     |  | M.O. Serviço |  | Markup % ||
-|  | [Rodrigues] |  | [0,050]     |  | [0,850]      |  | [10]     ||
-|  +-------------+  +-------------+  +--------------+  +----------+|
-|                                                                  |
-+------------------------------------------------------------------+
-|                                                                  |
-|  INSUMOS                                              [+ Adicionar|
-|  +---------------------------------------------------------------+|
-|  | Código | Insumo      | Fornecedor | Tipo      | NF     | Serv | Cond  | NF Ref  | X |
-|  |--------|-------------|------------|-----------|--------|------|-------|---------|---|
-|  | 22904  | Bulk        | Rodrigues  | Bulk      | 0,188  | 0,188|       |         | x |
-|  | 22983  | Frasco      | Kilimplast | Emb.Prim  | 0,091  |      | 0,270 | NF34956 | x |
-|  | 22984  | Tampa       | Kilimplast | Emb.Prim  | 0,296  |      | 0,890 | NF34956 | x |
-|  | 22985  | Batoque     | Kilimplast | Emb.Prim  | 0,037  |      | 0,110 | NF34956 | x |
-|  +---------------------------------------------------------------+|
-|                                                                  |
-+------------------------------------------------------------------+
-|                                                                  |
-|  +----+ Markup 10%  | NF: 0,XX | Serv: 0,XX | Cond: 0,XX |       |
-|                                                                  |
-|  TOTAIS                                                          |
-|  +---------+  +---------+  +---------+  +------------------+     |
-|  | NF      |  | Serviço |  | Condição|  | CUSTO TOTAL      |     |
-|  | R$ 0,75 |  | R$ 1,31 |  | R$ 1,70 |  | R$ 3,77          |     |
-|  +---------+  +---------+  +---------+  +------------------+     |
-|                                                                  |
-+------------------------------------------------------------------+
-|                                                                  |
-|  [Exportar PDF]                              [Salvar Ficha]      |
-|                                                                  |
-+------------------------------------------------------------------+
+┌─────────────────────────────────────────────────────┐
+│            can_access_fabrica(_user_id)             │
+├─────────────────────────────────────────────────────┤
+│  ✓ Admins e Supervisores têm acesso total           │
+│  ✓ Usuários com módulo 'fabrica' têm acesso         │
+│  ✓ SET search_path = public (segurança)             │
+└─────────────────────────────────────────────────────┘
 ```
 
----
+### Fase 2: Hardening das Tabelas de Custos
 
-## Estrutura de Arquivos
+Substituir políticas permissivas por:
 
-| Tipo | Arquivo | Descrição |
-|------|---------|-----------|
-| Página | `src/pages/FichaCustoProduto.tsx` | Tela principal da ficha |
-| Componente | `src/components/fabrica/FichaCustoProdutoEditor.tsx` | Editor da ficha de custos |
-| Componente | `src/components/fabrica/AdicionarInsumoCustoDialog.tsx` | Dialog para adicionar MP |
-| Hook | `src/hooks/useFichaCustoProduto.ts` | Lógica de dados e cálculos |
+| Operação | Política Atual | Nova Política |
+|----------|----------------|---------------|
+| SELECT | `auth.uid() IS NOT NULL` | `can_access_fabrica(auth.uid())` |
+| INSERT | `WITH CHECK(true)` | `can_access_fabrica(auth.uid())` |
+| UPDATE | `USING(true)` | `can_access_fabrica(auth.uid())` |
+| DELETE | `USING(true)` | `is_admin_or_supervisor(auth.uid())` |
 
----
+### Fase 3: Consolidar Políticas de Trade Budgets
 
-## Funcionalidades
+Remover políticas duplicadas e manter apenas:
 
-### 1. Adicionar Insumo
-- Buscar em matérias-primas cadastradas (combobox com pesquisa)
-- Ou inserir manualmente (código, nome, fornecedor)
-- Pré-preencher custo se MP tiver custo_unitario
+| Operação | Política Consolidada |
+|----------|---------------------|
+| SELECT | Criador, solicitante, admin, supervisor, ou módulos marketing/financeiro/trade |
+| INSERT | Criador, solicitante, ou admin/supervisor |
+| UPDATE | Admin ou supervisor |
+| DELETE | Apenas admin |
 
-### 2. Edição Inline
-- Todos os campos editáveis diretamente na tabela
-- Tipo de insumo via dropdown
-- Valores numéricos com 6 casas decimais
+### Fase 4: Consolidar Políticas de Bank Accounts
 
-### 3. Cálculo Automático
-- Linha de M.O. sempre no topo
-- Soma NF + Serviço + Condição de cada linha
-- Aplica markup sobre subtotal
-- Custo total = (Soma todos) + Markup
+Remover política duplicada de SELECT e manter apenas `can_access_bank_accounts()`.
 
-### 4. Ordenação
-- Drag-and-drop para reordenar insumos
-- Ou botões sobe/desce
+### Fase 5: Proteger sync_rate_limiter
 
-### 5. Exportar PDF
-- Usa mesmo formato do PDF existente (FichaCustoPDF)
-- Adaptar para receber dados da nova estrutura
+Habilitar RLS e restringir acesso a service_role.
 
-### 6. Atualizar Custo do Produto
-- Opção de atualizar campo `custo_unitario` do produto com o total calculado (se existir esse campo, ou adicionar)
+## Detalhes Técnicos
 
----
+### Migração SQL
 
-## Integração com Sistema Atual
+A migração criará:
 
-### O que NÃO muda
-- Fórmulas continuam funcionando normalmente
-- Ficha de Custos nas fórmulas permanece igual
-- Produtos podem ter fórmula E ficha simplificada (usuário escolhe)
+1. **Função `can_access_fabrica`** - Verifica acesso ao módulo fábrica
+2. **Remoção de políticas permissivas** em `fabrica_produto_custos` e `fabrica_produto_custos_config`
+3. **Novas políticas restritivas** baseadas em módulo/role
+4. **Consolidação de políticas** em `trade_budgets` e `trade_bank_accounts`
+5. **Habilitação de RLS** em `sync_rate_limiter` com bloqueio de acesso público
 
-### O que é NOVO
-- Botão "Ficha de Custos" na listagem de produtos
-- Rota dedicada: `/dashboard/fabrica/produtos/:id/custos`
-- Produtos sem fórmula agora podem ter custos detalhados
+### Hierarquia de Acesso Final
 
----
-
-## Acesso
-
-### Rota
-- `/dashboard/fabrica/produtos/:id/custos`
-
-### Botão na Listagem
-Na tabela de produtos acabados, adicionar botão:
 ```text
-[Editar] [Custos] [Excluir]
+┌────────────────────────────────────────────────────────────┐
+│                  Tabelas de Custos de Fábrica              │
+├────────────────────────────────────────────────────────────┤
+│  ADMIN/SUPERVISOR                                          │
+│  ├── SELECT ✓  INSERT ✓  UPDATE ✓  DELETE ✓                │
+│                                                            │
+│  USUÁRIO COM MÓDULO FÁBRICA                                │
+│  ├── SELECT ✓  INSERT ✓  UPDATE ✓  DELETE ✗                │
+│                                                            │
+│  OUTROS USUÁRIOS                                           │
+│  └── SELECT ✗  INSERT ✗  UPDATE ✗  DELETE ✗                │
+└────────────────────────────────────────────────────────────┘
 ```
 
-### Badge Visual
-Se produto tem ficha de custos preenchida:
-```text
-[Custo: R$ 3,77]
-```
+### Impacto no Sistema
 
----
+- Usuários do módulo fábrica continuam operando normalmente
+- Admins e supervisores mantêm acesso total
+- Usuários sem permissão ao módulo não conseguirão mais visualizar/modificar custos
+- Operações de trade budget ficam mais consistentes
 
-## Resumo de Entregas
+### Rollback
 
-1. **Migração SQL**: Criar tabelas `fabrica_produto_custos` e `fabrica_produto_custos_config`
-2. **Hook**: `useFichaCustoProduto.ts` com lógica de CRUD e cálculos
-3. **Página**: `FichaCustoProduto.tsx` com layout completo
-4. **Componentes**: Editor inline + Dialog para adicionar insumos
-5. **Modificar**: `FabricaProdutosAcabados.tsx` para adicionar botão "Custos"
-6. **Rota**: Registrar em App.tsx
-7. **PDF**: Adaptar exportação para nova estrutura
+Se necessário reverter, as políticas originais podem ser restauradas via nova migração.
+
