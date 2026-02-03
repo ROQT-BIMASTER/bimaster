@@ -16461,6 +16461,10 @@ export type Database = {
         Args: { target_profile_id: string; viewer_id: string }
         Returns: boolean
       }
+      cleanup_audit_logs_batch: {
+        Args: { batch_size?: number; retention_days?: number }
+        Returns: number
+      }
       cleanup_expired_rate_limiter_slots: { Args: never; Returns: undefined }
       complete_sync: {
         Args: {
