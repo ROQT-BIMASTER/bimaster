@@ -11428,6 +11428,39 @@ export type Database = {
           },
         ]
       }
+      role_permissions_audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          permission_code: string
+          permission_type: string
+          reason: string | null
+          role: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          permission_code: string
+          permission_type: string
+          reason?: string | null
+          role: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          permission_code?: string
+          permission_type?: string
+          reason?: string | null
+          role?: string
+        }
+        Relationships: []
+      }
       role_permissoes_modulos: {
         Row: {
           created_at: string | null
