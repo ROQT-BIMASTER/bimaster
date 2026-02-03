@@ -330,9 +330,9 @@ function AppContent() {
             <Route path="/dashboard/financeiro/visao-departamentos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><VisaoDepartamentos /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/dre-analitico" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><DREAnalitico /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/trade" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><TradeFinanceiro /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-pagar" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasAPagar /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-pagar/sync" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasPagarSyncPage /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-pagar/auditoria" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasPagarAuditoria /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar" element={<ProtectedRoute><ScreenProtectedRoute screenCode="financeiro_contas_pagar"><ContasAPagar /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar/sync" element={<ProtectedRoute><ScreenProtectedRoute screenCode="financeiro_contas_pagar"><ContasPagarSyncPage /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar/auditoria" element={<ProtectedRoute><ScreenProtectedRoute screenCode="financeiro_contas_pagar"><ContasPagarAuditoria /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasAReceber /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasReceberAuditoria /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasReceberSyncPage /></ModuleProtectedRoute></ProtectedRoute>} />
