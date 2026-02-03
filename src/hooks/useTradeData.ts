@@ -212,7 +212,7 @@ export function usePendingCampaigns() {
         .from("trade_campaigns")
         .select(`
           *,
-          budget:trade_budgets(id, name, code, total_amount, spent_amount, reserved_amount, available_amount),
+          budget:trade_budgets(id, name, code, total_amount, spent_amount, reserved_amount),
           responsible:profiles!responsible_user_id(id, nome, email)
         `)
         .eq("status", "pending_approval")
