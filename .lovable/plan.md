@@ -1,135 +1,63 @@
 
-# Plano: Criacao de Campanha sem Verba + Vinculo Obrigatorio na Aprovacao
+# Plano: Correcao da Tela de Aprovacoes para Exibir Campanhas Pendentes
 
-## Objetivo
-Modificar o fluxo para permitir que campanhas sejam criadas sem verba vinculada, porem exigir a vinculacao de uma verba aprovada no momento da aprovacao da campanha.
+## Diagnostico
 
-## Contexto Atual
-- A verba e obrigatoria no momento da criacao
-- A tela de aprovacao (`TradeAprovacoes.tsx`) nao exibe campanhas pendentes
-- O componente `CampaignValidation.tsx` aprova campanhas, mas nao exige verba
+Apos analise detalhada, identifiquei que:
 
----
+1. **A campanha existe no banco** com `status = 'pending_approval'` (confirmado via SQL)
+2. **O codigo esta correto** - o hook `usePendingCampaigns` foi implementado corretamente
+3. **A requisicao nao esta sendo feita** - nos logs de rede, a query com filtro `status=eq.pending_approval` nao aparece
 
-## Alteracoes Planejadas
+## Causa Raiz
 
-### 1. Formulario de Criacao de Campanha
+O problema e que a pagina de aprovacoes esta usando um **cache antigo do React Query**. A requisicao que deveria ser feita pelo hook `usePendingCampaigns`:
 
-**Arquivo:** `src/pages/TradeCampaigns.tsx`
-
-| Alteracao | Descricao |
-|-----------|-----------|
-| Remover obrigatoriedade | Campo verba passa de obrigatorio para opcional |
-| Atualizar label | De "Verba *" para "Verba (Opcional)" |
-| Atualizar texto auxiliar | Explicar que verba sera obrigatoria na aprovacao |
-| Remover validacao | Remover `if (!budget_id) throw new Error(...)` |
-
----
-
-### 2. Schema de Validacao
-
-**Arquivo:** `src/lib/validations/campaign.ts`
-
-| Campo | Antes | Depois |
-|-------|-------|--------|
-| `budget_id` | `.uuid({ message: "..." })` obrigatorio | `.uuid().optional().nullable()` |
-
----
-
-### 3. Componente de Validacao de Campanha (PRINCIPAL)
-
-**Arquivo:** `src/components/trade/campaigns/CampaignValidation.tsx`
-
-Adicionar selecao obrigatoria de verba quando a campanha nao tiver verba vinculada:
-
-```text
-+--------------------------------------------------+
-|         VALIDACAO DE CAMPANHA                     |
-+--------------------------------------------------+
-|                                                   |
-|  ⚠️ Esta campanha nao possui verba vinculada      |
-|                                                   |
-|  Verba *                                          |
-|  [v VERBA-001 - Semestral (Disponivel: R$ 50k)]   |
-|                                                   |
-|  [Aprovar Campanha]   [Rejeitar]                  |
-+--------------------------------------------------+
+```
+GET /trade_campaigns?...&status=eq.pending_approval&...
 ```
 
-**Logica:**
-- Se `campaign.budget_id` existe: comportamento atual (aprovar normalmente)
-- Se `campaign.budget_id` nao existe: exibir select de verba obrigatorio antes de aprovar
-- Ao aprovar, atualizar a campanha com o `budget_id` selecionado
+**Nao esta aparecendo nos logs de rede**, indicando que:
+- A pagina nao foi recarregada apos as alteracoes
+- O React Query esta servindo dados do cache (staleTime de 1 minuto)
 
----
+## Solucao Proposta
 
-### 4. Inclusao de Campanhas na Tela de Aprovacao
+Para garantir que funcione corretamente e evitar problemas de cache futuros:
+
+### 1. Adicionar Botao de Atualizar na Tela de Aprovacoes
 
 **Arquivo:** `src/pages/TradeAprovacoes.tsx`
 
-Adicionar campanhas pendentes de aprovacao na lista:
+Adicionar um botao "Atualizar" no header que forca o refetch de todos os dados:
 
-| Alteracao | Descricao |
-|-----------|-----------|
-| Novo hook | Buscar campanhas com `status = 'pending_approval'` |
-| Nova secao | Exibir campanhas pendentes na tabela |
-| Dialog especifico | Ao clicar em "Revisar", abrir dialog de aprovacao de campanha |
-
----
-
-### 5. Novo Componente: Dialog de Aprovacao de Campanha
-
-**Arquivo:** `src/components/trade/campaigns/AprovacaoCampanhaDialog.tsx`
-
-```text
-+----------------------------------------------------------+
-|         REVISAR CAMPANHA                                  |
-+----------------------------------------------------------+
-|                                                           |
-|  Nome: Campanha Black Friday 2025                         |
-|  Tipo: Sell-Out                                           |
-|  Custo Estimado: R$ 15.000,00                             |
-|  Periodo: 01/11/2025 - 30/11/2025                         |
-|                                                           |
-|  +-------------------------------------------------+      |
-|  |  ⚠️ VINCULACAO DE VERBA OBRIGATORIA             |      |
-|  |                                                 |      |
-|  |  Verba *                                        |      |
-|  |  [v Selecione uma verba aprovada          v]    |      |
-|  |                                                 |      |
-|  |  💰 Disponivel: R$ 45.000,00                    |      |
-|  |  📊 Custo campanha: R$ 15.000,00                |      |
-|  +-------------------------------------------------+      |
-|                                                           |
-|  [Cancelar]   [Rejeitar]   [Aprovar e Vincular Verba]     |
-+----------------------------------------------------------+
+```typescript
+<Button variant="outline" size="sm" onClick={handleRefetch}>
+  <RefreshCw className="h-4 w-4 mr-2" />
+  Atualizar
+</Button>
 ```
 
----
+### 2. Reduzir o staleTime do Hook de Campanhas Pendentes
 
-## Fluxo de Trabalho Atualizado
+**Arquivo:** `src/hooks/useTradeData.ts`
 
-```text
-1. Usuario cria campanha (verba opcional)
-     |
-     v
-2. Campanha salva como "draft" (rascunho)
-     |
-     v
-3. Usuario envia para aprovacao
-     |
-     v
-4. Campanha aparece em TradeAprovacoes
-     |
-     v
-5. Supervisor abre dialog de aprovacao
-     |
-     +-- Se tem verba: aprovar normalmente
-     |
-     +-- Se NAO tem verba: OBRIGATORIO selecionar verba antes de aprovar
-     |
-     v
-6. Campanha aprovada com verba vinculada
+Alterar o staleTime de 60 segundos para 30 segundos para dados de aprovacao:
+
+```typescript
+staleTime: 30 * 1000, // 30 segundos - aprovacoes precisam ser mais atualizadas
+```
+
+### 3. Forcar Refetch ao Montar o Componente
+
+**Arquivo:** `src/pages/TradeAprovacoes.tsx`
+
+Adicionar um `refetchOnMount: 'always'` ou chamar refetch no useEffect para garantir dados frescos:
+
+```typescript
+useEffect(() => {
+  handleRefetch();
+}, []);
 ```
 
 ---
@@ -138,64 +66,22 @@ Adicionar campanhas pendentes de aprovacao na lista:
 
 | Arquivo | Alteracao |
 |---------|-----------|
-| `src/lib/validations/campaign.ts` | Tornar `budget_id` opcional |
-| `src/pages/TradeCampaigns.tsx` | Remover obrigatoriedade da verba |
-| `src/pages/TradeAprovacoes.tsx` | Adicionar campanhas pendentes |
-| `src/hooks/useTradeData.ts` | Adicionar hook para campanhas pendentes |
-| `src/components/trade/campaigns/AprovacaoCampanhaDialog.tsx` | **NOVO** - Dialog de aprovacao com selecao de verba |
+| `src/pages/TradeAprovacoes.tsx` | Adicionar botao Atualizar + forcar refetch ao montar |
+| `src/hooks/useTradeData.ts` | Reduzir staleTime do hook de campanhas pendentes |
 
 ---
 
-## Beneficios
+## Acao Imediata para o Usuario
 
-- **Flexibilidade**: Permite criar campanhas mesmo antes de ter verba aprovada
-- **Controle**: Garante que toda campanha aprovada tenha verba vinculada
-- **Rastreabilidade**: Supervisor e responsavel pela vinculacao ficam registrados
-- **Fluxo natural**: Alinha com o processo onde verbas podem ser aprovadas depois
+Enquanto implemento a correcao, voce pode:
+
+1. **Recarregar a pagina com Ctrl+Shift+R** (limpa cache) enquanto estiver na tela de aprovacoes
+2. A aba "Campanhas" devera aparecer com o badge mostrando "1" pendente
 
 ---
 
-## Secao Tecnica
+## Beneficios da Correcao
 
-### Query para campanhas pendentes:
-```typescript
-supabase
-  .from("trade_campaigns")
-  .select(`
-    *,
-    budget:trade_budgets(id, name, code, available_amount),
-    responsible:profiles!responsible_user_id(nome, email)
-  `)
-  .eq("status", "pending_approval")
-  .is("deleted_at", null)
-  .order("created_at", { ascending: false })
-```
-
-### Logica de aprovacao com verba:
-```typescript
-// Se nao tem verba e nenhuma foi selecionada
-if (!campaign.budget_id && !selectedBudgetId) {
-  throw new Error("Selecione uma verba para aprovar esta campanha");
-}
-
-// Atualizar campanha
-const { error } = await supabase
-  .from("trade_campaigns")
-  .update({
-    budget_id: selectedBudgetId || campaign.budget_id,
-    status: "approved",
-    validation_status: "approved",
-    validated_by: user.id,
-    validated_at: new Date().toISOString(),
-  })
-  .eq("id", campaignId);
-```
-
-### Validar saldo disponivel:
-```typescript
-// Verificar se verba tem saldo suficiente
-const available = budget.total_amount - budget.spent_amount - budget.reserved_amount;
-if (available < campaign.estimated_cost) {
-  throw new Error(`Saldo insuficiente. Disponivel: R$ ${available.toFixed(2)}`);
-}
-```
+- **Dados sempre atualizados**: Botao de refresh permite atualizar manualmente
+- **Menor tempo de cache**: Dados de aprovacao serao mais frescos
+- **Melhor UX**: Usuario tera controle sobre quando atualizar os dados
