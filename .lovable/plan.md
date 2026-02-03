@@ -1,196 +1,75 @@
 
-# Plano: Padronizar Formulários de Verba com Conta Contábil
+# Plano: Destacar Valor Pago na Tabela de Lançamentos Financeiros
 
-## Problema Identificado
+## Contexto
+A tela "Detalhes de Lançamentos por Cliente" está exibindo o campo `valor_pedido` (valor do pedido). Por ser uma tela financeira, faz mais sentido destacar o **valor efetivamente pago** (que está na tabela `trade_campaign_expenses.valor_realizado`) e manter o ROI em destaque.
 
-Existem dois contextos diferentes para criar verbas que não estão padronizados:
+## Estrutura de Dados Identificada
+- **Lançamento** (`trade_campaign_lancamentos`): Contém `valor_pedido`, `roi_percentual`, `roi_valor`
+- **Despesa** (`trade_campaign_expenses`): Contém `valor_realizado` (valor pago) vinculado ao lançamento via `lancamento_id`
 
-| Formulário | Onde aparece | Status inicial | Conta Contábil |
-|------------|--------------|----------------|----------------|
-| **Adicionar Verba Semestral** | Tela de Verbas | `active` (direto) | ✅ Disponível |
-| **Solicitar Novo Orçamento** | Aprovação de Campanha | `pending` (aprovação) | ❌ Faltando |
-| **Solicitar Complemento** | Aprovação de Campanha | `pending` (aprovação) | ❌ Faltando |
+## Alterações Propostas
 
-O campo `account_id` **já existe** na tabela `trade_budgets` e está disponível para uso.
+### 1. Atualizar Hook de Dados (`useTradeFinanceiroDashboard.ts`)
+- Modificar a query de lançamentos para fazer JOIN com a tabela de despesas
+- Buscar o campo `valor_realizado` da despesa vinculada
+- Adicionar novo campo `valorPago` à interface `Lancamento`
 
----
+### 2. Atualizar Interface da Tabela (`TradeLancamentosTable.tsx`)
 
-## Solução Proposta
+#### Colunas da Tabela
+| Atual | Proposto |
+|-------|----------|
+| Valor (valor_pedido) | **Valor Pago** (destacado, verde) |
+| ROI | ROI (mantido) |
 
-### 1. Adicionar Campo "Conta Contábil" nos Dialogs de Solicitação
+#### Mudanças Específicas
+- Renomear coluna "Valor" para "Valor Pago"
+- Aplicar destaque visual ao valor pago (cor verde, fundo sutil, fonte maior)
+- Exibir tooltip com valor do pedido original para referência
+- No rodapé, alterar "Total" para "Total Pago"
 
-Incluir o Select de conta contábil nos dois formulários de solicitação:
-- `SolicitarOrcamentoDialog.tsx`
-- `SolicitarComplementoDialog.tsx`
-
-O campo será **opcional**, pois quem define a conta contábil final pode ser o Financeiro no momento da aprovação.
-
-### 2. Padronizar Campos de Descrição/Notas
-
-Unificar a nomenclatura:
-- **Verbas Semestrais**: já possui `description` 
-- **Solicitações**: usar `notes` como justificativa + `description` padronizado
-
-### 3. Permitir Financeiro Ajustar Conta na Aprovação
-
-Quando o Financeiro aprovar a verba, ele poderá:
-- Revisar/ajustar a conta contábil vinculada
-- Validar se a conta está correta para o tipo de despesa
-
----
-
-## Arquivos a Modificar
-
-| Arquivo | Ação |
-|---------|------|
-| `src/components/trade/SolicitarOrcamentoDialog.tsx` | Adicionar Select de conta contábil |
-| `src/components/trade/SolicitarComplementoDialog.tsx` | Adicionar Select de conta contábil |
-
----
-
-## Detalhes de Implementação
-
-### SolicitarOrcamentoDialog
-
-Adicionar busca de contas e Select:
-
-```typescript
-// Buscar contas contábeis
-const { data: accounts } = useQuery({
-  queryKey: ['chart-of-accounts'],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from("trade_chart_of_accounts")
-      .select("id, code, name")
-      .eq("is_active", true)
-      .order("code");
-    return data || [];
-  },
-});
-
-// Estado
-const [accountId, setAccountId] = useState<string | null>(null);
-```
-
-Campo no formulário:
-
-```text
-┌─────────────────────────────────────────────────────────┐
-│ Nome do Orçamento *                  │ Código *        │
-│ [Campanha Verão 2025              ]  │ [CAMP-2025-01]  │
-├─────────────────────────────────────────────────────────┤
-│ Valor Total Solicitado *                                │
-│ [0.00                                                 ] │
-├─────────────────────────────────────────────────────────┤
-│ Data Início *                        │ Data Fim *      │
-│ [dd/mm/aaaa]                         │ [dd/mm/aaaa]    │
-├─────────────────────────────────────────────────────────┤
-│ Conta Contábil (Opcional)                    🆕 NOVO   │
-│ [3.1.05 - Marketing e Publicidade           ▼]         │
-│ "O Financeiro poderá ajustar na aprovação"             │
-├─────────────────────────────────────────────────────────┤
-│ Justificativa                                           │
-│ [                                                     ] │
-└─────────────────────────────────────────────────────────┘
-```
-
-No submit, incluir `account_id`:
-
-```typescript
-const { data: budgetData, error } = await supabase
-  .from("trade_budgets")
-  .insert({
-    // ... campos existentes
-    account_id: accountId || null,  // 🆕 Adicionar
-  });
-```
-
-### SolicitarComplementoDialog
-
-Mesmo padrão, mas herdar a conta da verba original se existir:
-
-```typescript
-// Pré-selecionar conta da verba original
-useEffect(() => {
-  if (open && budget?.account_id) {
-    setAccountId(budget.account_id);
-  }
-}, [open, budget]);
-```
-
----
-
-## Fluxo Completo
-
-```text
-Usuário solicita verba
-        ↓
-Preenche dados + seleciona conta (opcional)
-        ↓
-Salva com approval_status = 'pending'
-        ↓
-Financeiro vê solicitação
-        ↓
-Revisa conta contábil (pode ajustar)
-        ↓
-Aprova → status = 'approved' → Verba disponível
-```
-
----
-
-## Benefícios
-
-1. **Consistência**: Todos os formulários de verba têm os mesmos campos
-2. **Rastreabilidade**: Cada verba terá sua classificação contábil desde a solicitação
-3. **Flexibilidade**: Solicitante sugere, Financeiro valida
-4. **Integração**: Facilita relatórios DRE e conciliação contábil
+#### Dialog de Detalhes
+- Reorganizar para mostrar ambos valores (pedido e pago) lado a lado
+- Destacar visualmente o valor pago com cor de sucesso
+- Manter ROI em posição de destaque
 
 ---
 
 ## Seção Técnica
 
-### Query de Contas Contábeis
-
+### Modificações no Hook
 ```typescript
-const { data: accounts } = useQuery({
-  queryKey: ['chart-of-accounts-active'],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from("trade_chart_of_accounts")
-      .select("id, code, name, account_type")
-      .eq("is_active", true)
-      .eq("permite_lancamento", true) // Apenas contas analíticas
-      .in("account_type", ["expense", "budget"]) // Despesas e verbas
-      .order("code");
-    
-    if (error) throw error;
-    return data || [];
-  },
-  staleTime: 5 * 60 * 1000,
-});
+// Query atualizada para incluir despesas
+.select(`
+  id, customer_id, campaign_id, valor_pedido, status, roi_percentual, roi_valor,
+  data_lancamento, sell_out_anterior, sell_out_atual, tipo_brinde, acoes_manuais, evidencias,
+  prospect:prospects(nome_empresa),
+  campaign:trade_campaigns(name),
+  expense:trade_campaign_expenses!trade_campaign_expenses_lancamento_id_fkey(valor_realizado, status)
+`)
+
+// Novo mapeamento
+valorPago: l.expense?.[0]?.valor_realizado || null
 ```
 
-### Componente Select Reutilizável
+### Modificações na Interface
+```typescript
+interface Lancamento {
+  // ... campos existentes
+  valorPedido: number;  // renomear de "valor"
+  valorPago: number | null;  // novo campo
+}
+```
 
-Usar o mesmo padrão visual da tela de Verbas Semestrais:
-
+### Estilização do Valor Pago
 ```tsx
-<div className="space-y-2">
-  <Label htmlFor="account_id">Conta Contábil (Opcional)</Label>
-  <Select value={accountId || ""} onValueChange={(val) => setAccountId(val || null)}>
-    <SelectTrigger>
-      <SelectValue placeholder="Selecione uma conta" />
-    </SelectTrigger>
-    <SelectContent>
-      {accounts?.map((account) => (
-        <SelectItem key={account.id} value={account.id}>
-          {account.code} - {account.name}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-  <p className="text-xs text-muted-foreground">
-    O departamento financeiro poderá revisar na aprovação
-  </p>
-</div>
+<TableCell className="text-right">
+  <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
+    {formatCurrency(lancamento.valorPago || 0)}
+  </span>
+</TableCell>
 ```
+
+## Resultado Esperado
+A tabela exibirá o valor pago em destaque (verde), mantendo o ROI visível. Usuários financeiros verão imediatamente quanto foi efetivamente gasto, com acesso ao valor original do pedido nos detalhes.
