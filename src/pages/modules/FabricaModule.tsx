@@ -21,7 +21,6 @@ import {
   BarChart3,
   CheckCircle,
   Clock,
-  Rocket,
   Plus,
   ChevronDown,
   Zap
@@ -92,9 +91,6 @@ const FabricaModule = () => {
       { title: "Aprovação de Preços", to: "/dashboard/fabrica/aprovacao-precos", icon: CheckCircle, color: "text-orange-600" },
       { title: "Tabela de Impostos", to: "/dashboard/fabrica/tabela-impostos", icon: Calculator, color: "text-red-600" },
       { title: "Relatórios", to: "/dashboard/relatorios/competitivo", icon: BarChart3, color: "text-purple-600" },
-    ],
-    "Comercial": [
-      { title: "Calendário de Lançamentos", to: "/dashboard/fabrica/lancamentos", icon: Rocket, color: "text-primary" },
     ],
   };
 
