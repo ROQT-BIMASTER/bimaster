@@ -83,7 +83,7 @@ export default function ProdutosPendentesPanel({
 
   return (
     <Card className={cn(
-      "w-80 flex-shrink-0 border-l-4 border-l-amber-500 shadow-xl mr-4",
+      "w-80 flex-shrink-0 border-l-4 border-l-amber-500 shadow-xl overflow-x-auto",
       isFixed ? "sticky top-6" : ""
     )}>
       <CardHeader className="pb-3">
