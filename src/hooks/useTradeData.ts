@@ -97,7 +97,7 @@ export function useTradeCampaigns() {
         .from("trade_campaigns")
         .select(`
           *,
-          budget:trade_budgets(name, code, available_amount)
+          budget:trade_budgets(id, name, code, total_amount, spent_amount, reserved_amount)
         `)
         .order("created_at", { ascending: false });
       
