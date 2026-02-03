@@ -27,7 +27,8 @@ interface Lancamento {
   id: string;
   cliente: string;
   campanha: string;
-  valor: number;
+  valorPedido: number;
+  valorPago: number | null;
   status: string;
   roi: number | null;
   data: string;
@@ -103,7 +104,7 @@ export function useTradeFinanceiroDashboard() {
     staleTime: 3 * 60 * 1000,
   });
 
-  // Query para lançamentos com clientes
+  // Query para lançamentos com clientes e despesas
   const lancamentosQuery = useQuery({
     queryKey: ['trade-dashboard-lancamentos'],
     queryFn: async () => {
@@ -123,7 +124,8 @@ export function useTradeFinanceiroDashboard() {
           acoes_manuais,
           evidencias,
           prospect:prospects(nome_empresa),
-          campaign:trade_campaigns(name)
+          campaign:trade_campaigns(name),
+          expense:trade_campaign_expenses(valor_realizado, status)
         `)
         .order("data_lancamento", { ascending: false })
         .limit(50);
@@ -194,22 +196,30 @@ export function useTradeFinanceiroDashboard() {
   }
 
   // Formatar lançamentos
-  const lancamentos: Lancamento[] = lancamentosQuery.data?.map(l => ({
-    id: l.id,
-    cliente: (l.prospect as any)?.nome_empresa || 'Cliente não identificado',
-    campanha: (l.campaign as any)?.name || 'Campanha não identificada',
-    valor: parseFloat(String(l.valor_pedido)) || 0,
-    status: l.status || 'pending',
-    roi: l.roi_percentual ? parseFloat(String(l.roi_percentual)) : null,
-    data: l.data_lancamento || '',
-    campaign_id: l.campaign_id || undefined,
-    customer_id: l.customer_id || undefined,
-    evidencias: (l.evidencias as string[]) || [],
-    sell_out_anterior: l.sell_out_anterior ? parseFloat(String(l.sell_out_anterior)) : undefined,
-    sell_out_atual: l.sell_out_atual ? parseFloat(String(l.sell_out_atual)) : undefined,
-    tipo_brinde: l.tipo_brinde || undefined,
-    acoes_manuais: l.acoes_manuais || undefined,
-  })) || [];
+  const lancamentos: Lancamento[] = lancamentosQuery.data?.map(l => {
+    const expenses = l.expense as any[] || [];
+    const valorPago = expenses.length > 0 
+      ? expenses.reduce((sum: number, e: any) => sum + (parseFloat(String(e.valor_realizado)) || 0), 0)
+      : null;
+    
+    return {
+      id: l.id,
+      cliente: (l.prospect as any)?.nome_empresa || 'Cliente não identificado',
+      campanha: (l.campaign as any)?.name || 'Campanha não identificada',
+      valorPedido: parseFloat(String(l.valor_pedido)) || 0,
+      valorPago,
+      status: l.status || 'pending',
+      roi: l.roi_percentual ? parseFloat(String(l.roi_percentual)) : null,
+      data: l.data_lancamento || '',
+      campaign_id: l.campaign_id || undefined,
+      customer_id: l.customer_id || undefined,
+      evidencias: (l.evidencias as string[]) || [],
+      sell_out_anterior: l.sell_out_anterior ? parseFloat(String(l.sell_out_anterior)) : undefined,
+      sell_out_atual: l.sell_out_atual ? parseFloat(String(l.sell_out_atual)) : undefined,
+      tipo_brinde: l.tipo_brinde || undefined,
+      acoes_manuais: l.acoes_manuais || undefined,
+    };
+  }) || [];
 
   // Lista de despesas por campanha para o card
   const despesasPorCampanha = (despesasQuery.data as any[])?.reduce((acc: Record<string, { pendente: number; pago: number }>, d: any) => {
