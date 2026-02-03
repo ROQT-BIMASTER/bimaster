@@ -78,7 +78,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <header className="h-14 border-b flex items-center justify-between px-4 bg-card">
             <div className="flex items-center gap-4">
               <SidebarTrigger aria-label="Alternar menu lateral" />
-              <h1 className="text-lg font-semibold">CRM - Gestão de Prospects</h1>
+              <h1 className="text-lg font-semibold">Sistema Huggs</h1>
             </div>
             <div className="flex items-center gap-4">
               <ImpersonationSelector />
@@ -102,7 +102,15 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </AlertDescription>
             </Alert>
           )}
-          <div className="p-6">{children}</div>
+          <div className="p-6 relative min-h-[calc(100vh-3.5rem)]">
+            {/* Marca d'água Sistema Huggs - visível em fundos claros */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
+              <div className="text-6xl md:text-8xl font-bold text-muted-foreground/5 tracking-wider">
+                HUGGS
+              </div>
+            </div>
+            <div className="relative z-10">{children}</div>
+          </div>
         </main>
         
         {/* Indicador de status offline */}
