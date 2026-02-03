@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, FileText, AlertCircle, Target } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, AlertCircle, Target, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AprovarLancamentoDialog } from "@/components/trade/AprovarLancamentoDialog";
@@ -50,6 +50,12 @@ export default function TradeAprovacoes() {
       return;
     }
   }, [isAdminOrSupervisor, roleLoading, navigate]);
+
+  // Forçar refetch ao montar o componente para garantir dados frescos
+  useEffect(() => {
+    handleRefetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRefetch = () => {
     queryClient.invalidateQueries({ queryKey: ['trade-pending-entries'] });
@@ -134,10 +140,24 @@ export default function TradeAprovacoes() {
               </p>
             </div>
           </div>
-          <TourButton 
-            tourId={TRADE_APROVACOES_TOUR_ID} 
-            tourSteps={tradeAprovacoesTourSteps} 
-          />
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                handleRefetch();
+                toast.success("Dados atualizados!");
+              }}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+            <TourButton 
+              tourId={TRADE_APROVACOES_TOUR_ID} 
+              tourSteps={tradeAprovacoesTourSteps} 
+            />
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3" data-tour="aprovacoes-kpis">

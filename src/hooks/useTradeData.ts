@@ -161,7 +161,7 @@ export function usePendingFinancialEntries() {
 
       return data || [];
     },
-    staleTime: 60 * 1000, // 1 minuto - aprovações precisam ser mais atualizadas
+    staleTime: 30 * 1000, // 30 segundos - aprovações precisam ser mais atualizadas
   });
 }
 
@@ -199,7 +199,7 @@ export function usePendingInvestments() {
 
       return data || [];
     },
-    staleTime: 60 * 1000,
+    staleTime: 30 * 1000, // 30 segundos - aprovações precisam ser mais atualizadas
   });
 }
 
@@ -239,6 +239,6 @@ export function usePendingCampaigns() {
 
       return data || [];
     },
-    staleTime: 60 * 1000,
+    staleTime: 30 * 1000, // 30 segundos - aprovações precisam ser mais atualizadas
   });
 }
