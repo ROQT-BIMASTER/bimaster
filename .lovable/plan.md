@@ -1,79 +1,118 @@
-# Plano de Segurança - CONCLUÍDO ✅
 
-## Resumo Executivo
 
-Todas as **8 vulnerabilidades de segurança** foram corrigidas com sucesso.
+# Plano: Limpeza em Lotes da Tabela audit_logs
 
-## Correções Implementadas
+## Problema Identificado
 
-### ✅ 1. Tabelas de Custos de Fábrica - CORRIGIDO
-- Criada função `can_access_fabrica(_user_id)` 
-- Políticas permissivas removidas
-- Novas políticas restritivas baseadas em módulo/role
-- DELETE restrito a admin/supervisor
+A tabela `audit_logs` possui **214 milhões de linhas** ocupando **61 GB**. As tentativas de DELETE em massa estão falhando por timeout devido ao volume de dados.
 
-### ✅ 2. Políticas Duplicadas em Trade Budgets - CORRIGIDO
-- 10+ políticas duplicadas removidas
-- Criada função `can_access_trade_budget()`
-- 4 políticas consolidadas (SELECT, INSERT, UPDATE, DELETE)
-- DELETE restrito apenas a admins
+## Solução Proposta
 
-### ✅ 3. Políticas Duplicadas em Bank Accounts - CORRIGIDO
-- Políticas duplicadas removidas
-- Única política `bank_accounts_select_consolidated` usando `can_access_bank_accounts()`
+Criar uma **função de limpeza em lotes** que deleta pequenas quantidades por vez (ex: 50.000 linhas por execução), evitando timeout e bloqueio do banco.
 
-### ✅ 4. Tabela sync_rate_limiter - CORRIGIDO
-- RLS habilitado
-- Acesso bloqueado para usuários autenticados
+---
 
-### ✅ 5. Tabelas de Sincronização (n8n, sync) - CORRIGIDO
-- Políticas `USING(true)` substituídas por `USING(false)`
-- Acesso bloqueado para usuários autenticados
-- Apenas service_role pode acessar
+## Passos da Implementação
 
-### ✅ 6. ai_training_examples - CORRIGIDO
-- Política permissiva removida
-- Acesso bloqueado para usuários autenticados
+### 1. Criar Função de Limpeza em Lotes
 
-## Hierarquia de Acesso Final
+Uma nova função PostgreSQL que:
+- Deleta apenas 50.000 registros por execução
+- Pode ser chamada repetidamente pelo cron
+- Registra quantos registros foram deletados
+
+### 2. Atualizar o Cron Job
+
+Modificar o cron para:
+- Executar a cada **10 minutos** ao invés de 1x por dia
+- Usar a nova função de lotes
+- Quando não houver mais registros antigos, simplesmente não faz nada
+
+### 3. Limpeza Inicial Forçada
+
+Criar uma função que pode ser executada manualmente para acelerar a limpeza inicial:
+- Executa múltiplos lotes em sequência
+- Com pausas entre lotes para não sobrecarregar
+
+---
+
+## Detalhes Técnicos
 
 ```text
-┌────────────────────────────────────────────────────────────┐
-│                  Tabelas de Custos de Fábrica              │
-├────────────────────────────────────────────────────────────┤
-│  ADMIN/SUPERVISOR: SELECT ✓ INSERT ✓ UPDATE ✓ DELETE ✓    │
-│  MÓDULO FÁBRICA:   SELECT ✓ INSERT ✓ UPDATE ✓ DELETE ✗    │
-│  OUTROS:           SELECT ✗ INSERT ✗ UPDATE ✗ DELETE ✗    │
-└────────────────────────────────────────────────────────────┘
-
-┌────────────────────────────────────────────────────────────┐
-│                     Trade Budgets                          │
-├────────────────────────────────────────────────────────────┤
-│  ADMIN:            SELECT ✓ INSERT ✓ UPDATE ✓ DELETE ✓    │
-│  SUPERVISOR:       SELECT ✓ INSERT ✓ UPDATE ✓ DELETE ✗    │
-│  CRIADOR/MÓDULOS:  SELECT ✓ INSERT ✓ UPDATE ✗ DELETE ✗    │
-└────────────────────────────────────────────────────────────┘
-
-┌────────────────────────────────────────────────────────────┐
-│                  Tabelas Internas                          │
-├────────────────────────────────────────────────────────────┤
-│  sync_rate_limiter, n8n_*, sync_* : service_role only      │
-│  ai_training_examples             : service_role only      │
-└────────────────────────────────────────────────────────────┘
++------------------------+     +------------------------+
+| audit_logs             |     | Função batch_cleanup   |
+| 214M linhas / 61 GB    | --> | DELETE LIMIT 50.000    |
++------------------------+     +------------------------+
+                                        |
+                                        v
+                               +------------------------+
+                               | Cron a cada 10 min     |
+                               | ~7.200 lotes/dia       |
+                               | = 360M deletes/dia     |
+                               +------------------------+
 ```
 
-## Funções de Segurança Criadas
+**Tempo estimado para limpeza completa**: 
+- Com 50K registros por lote, a cada 10 minutos = 144 execuções/dia
+- 144 × 50.000 = 7.2 milhões de registros deletados por dia
+- Para 200+ milhões de registros antigos ≈ **1 mês** para limpar tudo
+- Podemos aumentar a frequência ou o tamanho do lote para acelerar
 
-| Função | Descrição |
-|--------|-----------|
-| `can_access_fabrica(_user_id)` | Verifica acesso ao módulo fábrica |
-| `can_access_trade_budget(_user_id, _created_by, _requested_by)` | Verifica acesso a budget específico |
-| `can_access_bank_accounts(_user_id)` | Verifica acesso a contas bancárias |
+### Alternativa Mais Rápida
+Se quiser acelerar, posso configurar:
+- Lotes de 100.000 registros
+- Execução a cada 5 minutos
+- = ~28 milhões deletados por dia
+- **1 semana** para limpar tudo
 
-## Warning Restante
+---
 
-⚠️ **Extension in Public** - Extensões instaladas no schema `public`. Esta é uma configuração de infraestrutura comum e não representa risco crítico para a aplicação.
+## Código SQL que Será Criado
 
-## Data da Conclusão
+```sql
+-- Função de limpeza em lotes
+CREATE OR REPLACE FUNCTION public.cleanup_audit_logs_batch(
+  batch_size INTEGER DEFAULT 50000,
+  retention_days INTEGER DEFAULT 30
+)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  deleted_count INTEGER;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM public.audit_logs
+    WHERE id IN (
+      SELECT id FROM public.audit_logs
+      WHERE created_at < NOW() - (retention_days || ' days')::INTERVAL
+      LIMIT batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO deleted_count FROM deleted;
+  
+  RETURN deleted_count;
+END;
+$$;
 
-**2026-02-03** - Hardening completo aplicado com sucesso.
+-- Atualizar cron para usar a nova função
+SELECT cron.unschedule('cleanup-audit-logs-daily');
+
+SELECT cron.schedule(
+  'cleanup-audit-logs-batch',
+  '*/10 * * * *', -- A cada 10 minutos
+  $$SELECT public.cleanup_audit_logs_batch(50000, 30)$$
+);
+```
+
+---
+
+## Benefícios
+
+- **Sem timeout**: lotes pequenos completam rapidamente
+- **Sem bloqueio**: não trava outras operações do banco
+- **Automático**: o cron cuida de tudo
+- **Progressivo**: vai limpando aos poucos até regularizar
+- **Sustentável**: após limpar, mantém a tabela sempre enxuta
+
