@@ -70,6 +70,7 @@ import { BudgetDocumentUpload } from "@/components/trade/budgets/BudgetDocumentU
 import { format } from "date-fns";
 import { sanitizeText, sanitizeCode, getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { logBudgetInactivate, logBudgetReactivate, logBudgetDelete, logBudgetEdit } from "@/lib/auditLog";
+import { TourButton, tradeVerbasSemestraisTourSteps, TRADE_VERBAS_SEMESTRAIS_TOUR_ID } from "@/components/tour";
 
 export default function TradeVerbasSemestrais() {
   const [loading, setLoading] = useState(true);
@@ -396,7 +397,7 @@ export default function TradeVerbasSemestrais() {
           moduleHref="/dashboard/trade/financeiro" 
           currentPage="Verbas Semestrais" 
         />
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" data-tour="verbas-header">
           <div>
             <h1 className="text-3xl font-bold">Verbas Semestrais</h1>
             <p className="text-muted-foreground mt-1">
@@ -414,7 +415,7 @@ export default function TradeVerbasSemestrais() {
             </Button>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button data-tour="verbas-nova">
                   <Plus className="mr-2 h-4 w-4" />
                   Nova Verba
                 </Button>
@@ -495,7 +496,7 @@ export default function TradeVerbasSemestrais() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex flex-wrap gap-4 items-center" data-tour="verbas-filtro">
           <div className="flex gap-4 items-center">
             <Label htmlFor="semester-filter">Filtrar por Semestre:</Label>
             <Select value={selectedSemester || undefined} onValueChange={setSelectedSemester}>
@@ -533,7 +534,7 @@ export default function TradeVerbasSemestrais() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-4" data-tour="verbas-kpis">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Verbas Ativas</CardTitle>
@@ -590,7 +591,7 @@ export default function TradeVerbasSemestrais() {
           </Card>
         </div>
 
-        <Card>
+        <Card data-tour="verbas-tabela">
           <CardHeader>
             <CardTitle>Verbas do Período</CardTitle>
           </CardHeader>
@@ -870,6 +871,12 @@ export default function TradeVerbasSemestrais() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Tour Button */}
+      <TourButton 
+        tourId={TRADE_VERBAS_SEMESTRAIS_TOUR_ID}
+        tourSteps={tradeVerbasSemestraisTourSteps}
+      />
     </DashboardLayout>
   );
 }
