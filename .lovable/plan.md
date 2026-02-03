@@ -1,31 +1,43 @@
 
+# Plano: Tour Guiado na Revisão de Campanha + Integração com Verbas Semestrais
 
-# Plano: Adicionar Evidências às Solicitações de Verba, Lançamentos e Investimentos
+## Objetivo
 
-## Resumo
-
-Implementar a possibilidade de anexar evidências ao solicitar verbas, incluindo:
-1. **Vincular Campanha ou Despesa existente** como justificativa
-2. **Upload de documentos** (PDF, imagens, Word) para comprovar a necessidade
-
-Isso se aplica a:
-- Solicitações de nova verba (`SolicitarOrcamentoDialog`)
-- Solicitações de complemento de saldo (`SolicitarComplementoDialog`)
-- Lançamentos financeiros (`NovoLancamentoDialog`) - já possui upload de fotos, adicionar vínculo de campanha
-- Investimentos - já possuem campo `campaign_id`, adicionar upload de documentos
+Criar um tour interativo que guie o usuário passo a passo ao revisar uma campanha, explicando cada seção e ação possível. Além disso, melhorar a integração visual entre o fluxo de aprovação de campanhas e a tela de Verbas Semestrais.
 
 ---
 
-## Arquitetura Existente
+## Mudanças Propostas
 
-| Recurso | Status |
-|---------|--------|
-| Bucket `trade-budget-docs` | Já existe com RLS configurado |
-| Componente `BudgetDocumentUpload` | Já existe e pode ser reutilizado |
-| Tabela `trade_budget_documents` | Já existe para vincular documentos a verbas |
-| Campo `campaign_id` em `trade_investments` | Já existe |
-| Campo `campaign_id` em `trade_financial_entries` | Já existe |
-| Upload de fotos em `NovoLancamentoDialog` | Já implementado |
+### 1. Criar Tour para o Dialog de Aprovação de Campanha
+
+Novo arquivo de tour que será ativado automaticamente quando o dialog abrir (para usuários que nunca viram) ou manualmente via botão de ajuda.
+
+**Passos do tour:**
+
+| Passo | Elemento | Explicação |
+|-------|----------|------------|
+| 1 | Cabeçalho do dialog | "Revisar Campanha - Aqui você analisa os detalhes antes de aprovar" |
+| 2 | Informações da campanha | "Verifique: código, tipo, nome, período e custo estimado" |
+| 3 | Dados do solicitante | "Quem criou a campanha e quando" |
+| 4 | Seção de vinculação de verba | "Obrigatório! Selecione uma verba com saldo suficiente" |
+| 5 | Botão solicitar verba | "Sem verba? Clique aqui para solicitar ao Financeiro" |
+| 6 | Campo de observações | "Adicione notas para registro interno" |
+| 7 | Campo de rejeição | "Se rejeitar, informe o motivo para o solicitante" |
+| 8 | Botões de ação | "Escolha: Cancelar, Rejeitar ou Aprovar" |
+| 9 | Resumo final | "Após aprovar, a verba será reservada. Gerencie verbas em Verbas Semestrais" |
+
+### 2. Adicionar Atributos data-tour nos Elementos
+
+Inserir os atributos `data-tour` nos elementos do `AprovacaoCampanhaDialog` para que o driver.js possa identificá-los.
+
+### 3. Adicionar Botão de Ajuda no Dialog
+
+Incluir um ícone de ajuda (?) no canto superior do dialog que inicia o tour sob demanda.
+
+### 4. Link Direto para Verbas Semestrais
+
+Na seção de solicitação de verba e na mensagem de verbas pendentes, adicionar um link visual para "Acessar Planejamento de Verbas" que leva para `/dashboard/trade/financeiro/verbas`.
 
 ---
 
@@ -33,179 +45,112 @@ Isso se aplica a:
 
 | Arquivo | Ação | Descrição |
 |---------|------|-----------|
-| `src/components/trade/BudgetEvidenceSection.tsx` | **Criar** | Componente reutilizável com seleção de campanha/despesa + upload de documentos |
-| `src/components/trade/SolicitarOrcamentoDialog.tsx` | **Modificar** | Integrar seção de evidências |
-| `src/components/trade/SolicitarComplementoDialog.tsx` | **Modificar** | Integrar seção de evidências |
-| `src/components/trade/NovoLancamentoDialog.tsx` | **Modificar** | Adicionar seleção de campanha vinculada |
-| `src/pages/TradeFinanceiro.tsx` | **Modificar** | Adicionar upload de documentos nos investimentos |
+| `src/components/tour/tours/tradeCampaignApprovalTour.ts` | **Criar** | Definição dos passos do tour |
+| `src/components/tour/tours/index.ts` | **Modificar** | Exportar o novo tour |
+| `src/components/tour/index.ts` | **Modificar** | Exportar o novo tour |
+| `src/components/trade/campaigns/AprovacaoCampanhaDialog.tsx` | **Modificar** | Adicionar data-tour, botão de ajuda e links |
 
 ---
 
-## Detalhes de Implementação
+## Interface Visual
 
-### 1. Novo Componente: BudgetEvidenceSection
+### Botão de Ajuda no Dialog
 
-Componente modular que encapsula:
-
-**a) Vinculação com Campanha/Despesa:**
 ```
-┌─────────────────────────────────────────────────────────┐
-│ 📎 Evidências de Necessidade (Opcional)                 │
-│                                                         │
-│ Vincular a:                                             │
-│ ○ Campanha existente                                    │
-│   [Select: CAMP-2025-01 - Verão Praia        ▼]        │
-│                                                         │
-│ ○ Despesa/Lançamento existente                         │
-│   [Select: LAN-2025-001 - Material PDV        ▼]       │
-│                                                         │
-│ ─────────────────────────────────────────────────────── │
-│ OU Anexar Documentos                                    │
-│                                                         │
-│ [📄 Proposta_Comercial.pdf  2.1MB           ✕]         │
-│ [🖼️ Orcamento_Fornecedor.jpg 450KB          ✕]         │
-│                                                         │
-│         [📤 Anexar Documentos]                          │
-│   PDF, imagens ou Word (máx. 10MB cada, até 5 arquivos) │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  🎯 Revisar Campanha                              [?] [✕]  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  [Conteúdo do dialog com atributos data-tour]              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Props do componente:**
+### Link para Verbas Semestrais
+
+Na seção de verbas pendentes:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ⏳ 2 solicitações aguardando aprovação financeira           │
+│    • VERBA-2025-01 - R$ 50.000,00                          │
+│    • COMP-XYZ - R$ 10.000,00                               │
+│                                                             │
+│    📊 Ver Planejamento de Verbas →                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Detalhes Técnicos
+
+### Tour Steps (tradeCampaignApprovalTour.ts)
+
 ```typescript
-interface BudgetEvidenceSectionProps {
-  linkedCampaignId?: string;
-  onCampaignChange: (id: string | null) => void;
-  linkedEntryId?: string;
-  onEntryChange: (id: string | null) => void;
-  uploadedFiles: UploadedFile[];
-  onFilesChange: (files: UploadedFile[]) => void;
-  showCampaignLink?: boolean; // default: true
-  showEntryLink?: boolean; // default: true
-  showUpload?: boolean; // default: true
-}
+export const tradeCampaignApprovalTourSteps: DriveStep[] = [
+  {
+    element: '[data-tour="approval-header"]',
+    popover: {
+      title: "Revisão de Campanha",
+      description: "Analise os detalhes da campanha antes de tomar sua decisão de aprovação ou rejeição.",
+      side: "bottom",
+    },
+  },
+  {
+    element: '[data-tour="approval-info"]',
+    popover: {
+      title: "Informações da Campanha",
+      description: "Verifique: código, tipo, nome, descrição, período de execução e custo estimado.",
+      side: "right",
+    },
+  },
+  // ... demais passos
+];
 ```
 
-**Lógica de busca:**
-- Campanhas: Buscar campanhas ativas/aprovadas da tabela `trade_campaigns`
-- Despesas/Lançamentos: Buscar lançamentos recentes da tabela `trade_financial_entries`
+### Integração no Dialog
 
-### 2. Modificações no SolicitarOrcamentoDialog
+```tsx
+import { useTour } from "@/components/tour";
+import { HelpCircle } from "lucide-react";
+import { tradeCampaignApprovalTourSteps, TRADE_CAMPAIGN_APPROVAL_TOUR_ID } from "@/components/tour";
 
-**Novos estados:**
-```typescript
-const [linkedCampaignId, setLinkedCampaignId] = useState<string | null>(null);
-const [linkedEntryId, setLinkedEntryId] = useState<string | null>(null);
-const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+// No componente:
+const { startTour, hasSeenTour } = useTour();
+
+// Iniciar tour automaticamente na primeira vez:
+useEffect(() => {
+  if (open && !hasSeenTour(TRADE_CAMPAIGN_APPROVAL_TOUR_ID)) {
+    setTimeout(() => startTour(TRADE_CAMPAIGN_APPROVAL_TOUR_ID, tradeCampaignApprovalTourSteps), 500);
+  }
+}, [open]);
+
+// Botão manual:
+<Button variant="ghost" size="icon" onClick={() => startTour(...)}>
+  <HelpCircle className="h-4 w-4" />
+</Button>
 ```
 
-**No submit:**
-- Salvar `linkedCampaignId` e `linkedEntryId` no campo `notes` como referência estruturada
-- Após criar o budget, inserir documentos na tabela `trade_budget_documents`
+### Link para Verbas
 
-**Estrutura do notes com evidências:**
+```tsx
+import { Link } from "react-router-dom";
+
+// No PendingBudgetsInfo:
+<Link 
+  to="/dashboard/trade/financeiro/verbas" 
+  className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-2"
+>
+  📊 Ver Planejamento de Verbas →
+</Link>
 ```
-Justificativa do usuário...
-
----
-Evidências:
-- Campanha vinculada: CAMP-2025-01 (uuid)
-- Lançamento vinculado: LAN-001 (uuid)
-- Documentos anexados: 2
-```
-
-### 3. Modificações no SolicitarComplementoDialog
-
-Mesma estrutura do `SolicitarOrcamentoDialog`:
-- Adicionar `BudgetEvidenceSection`
-- A campanha é pré-vinculada se vier do contexto de aprovação
-- Permitir anexar documentos adicionais
-
-### 4. Modificações no NovoLancamentoDialog
-
-O dialog já possui:
-- Upload de fotos (`trade-photos` bucket)
-- Campo `document_url` para URL externa
-
-**Adicionar:**
-- Select para vincular a uma campanha existente (campo `campaign_id` já existe na tabela)
-- Exibir informações da campanha selecionada
-
-### 5. Modificações nos Investimentos (TradeFinanceiro.tsx)
-
-O formulário de investimento já possui campo `campaign_id`.
-
-**Adicionar:**
-- Botão para upload de comprovante/recibo (`receipt_url` já existe na tabela)
-- Usar o componente `BudgetDocumentUpload` existente
-
----
-
-## Fluxo de Dados
-
-```text
-Usuário solicita verba
-        ↓
-Preenche dados básicos
-        ↓
-[Opcional] Vincula campanha/despesa como evidência
-        ↓
-[Opcional] Faz upload de documentos
-        ↓
-Salva solicitação em trade_budgets
-        ↓
-Salva documentos em trade_budget_documents (FK para budget_id)
-        ↓
-Financeiro vê solicitação com evidências
-        ↓
-Pode visualizar campanha/despesa vinculada
-        ↓
-Pode baixar/visualizar documentos anexados
-```
-
----
-
-## Modelo de Dados
-
-**Tabela `trade_budget_documents` (já existe):**
-- `budget_id` → FK para `trade_budgets`
-- `file_name`, `file_path`, `file_url`, `file_type`, `file_size`
-- `uploaded_by`, `created_at`
-
-**Novas referências no campo `notes` de `trade_budgets`:**
-As referências às campanhas/despesas vinculadas serão salvas como metadados no campo `notes`, usando um formato estruturado que pode ser parseado posteriormente:
-
-```
-[evidencia:campanha:uuid]
-[evidencia:lancamento:uuid]
-```
-
-Alternativamente, podemos criar campos dedicados na tabela se necessário no futuro.
-
----
-
-## Benefícios
-
-1. **Rastreabilidade**: Financeiro sabe exatamente qual campanha/despesa motivou a solicitação
-2. **Documentação**: Comprovantes anexados dão suporte objetivo à aprovação
-3. **Auditoria**: Histórico completo de evidências para cada verba
-4. **Reutilização**: Componente `BudgetEvidenceSection` pode ser usado em qualquer formulário
-
----
-
-## Validações
-
-- Campanhas: Exibir apenas as com status `approved`, `active`, ou `pending_approval`
-- Lançamentos: Exibir apenas os últimos 50 lançamentos (para performance)
-- Documentos: Validar tipo (PDF, imagem, Word) e tamanho (máx. 10MB)
-- Máximo de 5 documentos por solicitação
 
 ---
 
 ## Resultado Esperado
 
-1. Ao solicitar nova verba, usuário pode vincular campanha/despesa existente
-2. Ao solicitar complemento, mesmas opções de evidência
-3. Ao criar lançamento, pode vincular a uma campanha
-4. Ao criar investimento, pode anexar comprovantes
-5. Financeiro visualiza todas as evidências no momento da aprovação
+1. Ao abrir o dialog de aprovação pela primeira vez, o tour inicia automaticamente
+2. Usuário pode reiniciar o tour clicando no botão de ajuda (?)
+3. Cada seção do dialog é explicada de forma clara
+4. Link direto para Verbas Semestrais facilita a navegação
+5. Integração visual entre aprovação de campanhas e gestão de verbas
 
