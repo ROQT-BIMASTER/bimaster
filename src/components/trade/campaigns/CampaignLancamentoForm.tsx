@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { 
   DollarSign, 
   TrendingUp, 
@@ -18,7 +19,9 @@ import {
   X,
   Upload,
   Building2,
-  Plus
+  Plus,
+  Camera,
+  Sparkles
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -29,6 +32,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ClientSearchSelect } from "./ClientSearchSelect";
 import { TipoBrindeQuickAdd } from "./TipoBrindeQuickAdd";
+import { LancamentoPhotoCapture } from "./LancamentoPhotoCapture";
 
 interface Campaign {
   id: string;
@@ -85,6 +89,13 @@ export function CampaignLancamentoForm({
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(customerId || null);
+  const [enablePhotoCapture, setEnablePhotoCapture] = useState(false);
+  const [capturedPhotos, setCapturedPhotos] = useState<Array<{
+    id: string;
+    url: string;
+    status: 'uploading' | 'pending_analysis' | 'analyzing' | 'completed' | 'failed';
+    analysisResult?: any;
+  }>>([]);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -274,6 +285,12 @@ export function CampaignLancamentoForm({
         return;
       }
 
+      // Combine evidências + fotos capturadas
+      const allPhotoUrls = [
+        ...evidencias,
+        ...capturedPhotos.filter(p => p.status !== 'uploading').map(p => p.url)
+      ];
+
       const lancamentoData = {
         campaign_id: campaign.id,
         customer_id: selectedCustomerId,
@@ -287,9 +304,10 @@ export function CampaignLancamentoForm({
         unon_atual: formData.unon_atual,
         roi_percentual: roiPercentual,
         roi_valor: incrementoValor,
-        evidencias: evidencias,
+        evidencias: allPhotoUrls,
         status: 'pending',
         created_by: user.id,
+        has_photo_analysis: enablePhotoCapture && capturedPhotos.length > 0,
       };
 
       if (lancamentoId) {
@@ -324,7 +342,8 @@ export function CampaignLancamentoForm({
           sell_out_atual: formData.sell_out_atual,
           crescimento_percentual: crescimentoPercentual,
           roi_percentual: roiPercentual,
-          evidencias_count: evidencias.length,
+          evidencias_count: allPhotoUrls.length,
+          photos_with_analysis: capturedPhotos.length,
         },
       });
 
@@ -403,6 +422,43 @@ export function CampaignLancamentoForm({
             placeholder="Buscar por nome ou CNPJ..."
           />
         </CardContent>
+      </Card>
+
+      {/* Seção: Lançamento de Fotos (Opcional) */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Camera className="h-5 w-5 text-primary" />
+                Lançamento de Fotos do PDV
+              </CardTitle>
+              <CardDescription>
+                Registre fotos da execução da campanha no ponto de venda
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-3">
+              <Label htmlFor="enable-photos" className="text-sm font-normal text-muted-foreground">
+                Habilitar
+              </Label>
+              <Switch
+                id="enable-photos"
+                checked={enablePhotoCapture}
+                onCheckedChange={setEnablePhotoCapture}
+              />
+            </div>
+          </div>
+        </CardHeader>
+        {enablePhotoCapture && (
+          <CardContent>
+            <LancamentoPhotoCapture
+              campaignId={campaign.id}
+              customerId={selectedCustomerId}
+              photos={capturedPhotos}
+              onPhotosChange={setCapturedPhotos}
+            />
+          </CardContent>
+        )}
       </Card>
 
       {/* Seção: Valor do Pedido + Brinde + Ações */}
