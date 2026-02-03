@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -39,6 +40,7 @@ export function SolicitarOrcamentoDialog({
   const [linkedCampaignId, setLinkedCampaignId] = useState<string | null>(null);
   const [linkedEntryId, setLinkedEntryId] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [accountId, setAccountId] = useState<string | null>(null);
 
   // Buscar dados do usuário logado
   const { data: currentUser } = useQuery({
@@ -85,14 +87,32 @@ export function SolicitarOrcamentoDialog({
     }
   }, [currentUser, open]);
 
-  // Limpar evidências quando fechar
+  // Limpar campos quando fechar
   useEffect(() => {
     if (!open) {
       setLinkedCampaignId(null);
       setLinkedEntryId(null);
       setUploadedFiles([]);
+      setAccountId(null);
     }
   }, [open]);
+
+  // Buscar contas contábeis ativas
+  const { data: accounts } = useQuery({
+    queryKey: ['chart-of-accounts-active-budgets'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_chart_of_accounts")
+        .select("id, code, name")
+        .eq("is_active", true)
+        .eq("permite_lancamento", true)
+        .order("code");
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -148,6 +168,7 @@ export function SolicitarOrcamentoDialog({
         requested_by: user.id,
         requester_name: requesterName,
         requester_email: requesterEmail,
+        account_id: accountId || null,
       }).select("id").single();
 
       if (error) throw error;
@@ -278,6 +299,25 @@ export function SolicitarOrcamentoDialog({
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="account_id">Conta Contábil (Opcional)</Label>
+            <Select value={accountId || ""} onValueChange={(val) => setAccountId(val || null)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma conta contábil" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts?.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.code} - {account.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              O departamento financeiro poderá revisar na aprovação
+            </p>
           </div>
 
           <div className="space-y-2">
