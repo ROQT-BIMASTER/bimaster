@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, XCircle, Clock, AlertTriangle, Loader2, FileText, HelpCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckCircle, XCircle, Clock, AlertTriangle, Loader2, FileText, HelpCircle, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { driver } from "driver.js";
@@ -20,12 +21,15 @@ interface CampaignValidationProps {
     validation_status: string;
     validation_notes: string | null;
     status: string;
+    budget_id?: string | null;
+    estimated_cost?: number;
   };
 }
 
 export function CampaignValidation({ campaignId, campaign }: CampaignValidationProps) {
   const queryClient = useQueryClient();
   const [validationNotes, setValidationNotes] = useState(campaign.validation_notes || "");
+  const [selectedBudgetId, setSelectedBudgetId] = useState<string>(campaign.budget_id || "");
 
   // Tour guiado para validação
   const startTour = () => {
@@ -135,6 +139,22 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
     }
   }, []);
 
+  // Buscar verbas aprovadas
+  const { data: budgets = [] } = useQuery({
+    queryKey: ["trade-budgets-approved"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_budgets")
+        .select("*")
+        .eq("status", "approved")
+        .is("inactivated_at", null)
+        .order("name");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Buscar entradas de Sell pendentes
   const { data: pendingSellEntries = [] } = useQuery({
     queryKey: ["pending-sell-entries", campaignId],
@@ -167,15 +187,30 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
     },
   });
 
+  // Calcular saldo disponível da verba selecionada
+  const selectedBudget = budgets.find((b: any) => b.id === selectedBudgetId);
+  const budgetAvailable = selectedBudget ? 
+    (selectedBudget.total_amount || 0) - (selectedBudget.spent_amount || 0) : 0;
+  const estimatedCost = campaign.estimated_cost || 0;
+  const hasSufficientBalance = budgetAvailable >= estimatedCost;
+
   // Mutação para aprovar campanha
   const approveCampaign = useMutation({
     mutationFn: async () => {
+      const finalBudgetId = selectedBudgetId || campaign.budget_id;
+      
+      // Validar verba obrigatória
+      if (!finalBudgetId) {
+        throw new Error("Selecione uma verba para aprovar esta campanha");
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Aprovar a campanha
+      // Aprovar a campanha COM budget_id
       const { error } = await supabase
         .from("trade_campaigns")
         .update({
+          budget_id: finalBudgetId,
           validation_status: "approved",
           validation_notes: validationNotes,
           validated_by: user?.id,
@@ -205,6 +240,7 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
       queryClient.invalidateQueries({ queryKey: ["trade-campaign-detail", campaignId] });
       queryClient.invalidateQueries({ queryKey: ["campaign-lancamentos"] });
       queryClient.invalidateQueries({ queryKey: ["trade-dashboard-lancamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["trade-dashboard-verbas"] });
       toast.success("Campanha e lançamentos aprovados com sucesso!");
     },
     onError: (error: any) => {
@@ -361,6 +397,71 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
             </div>
           )}
 
+          {/* Seletor de Verba - Obrigatório para aprovação */}
+          {campaign.validation_status !== "approved" && (
+            <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-primary" />
+                <Label className="font-medium">Verba para Aprovação *</Label>
+              </div>
+              <Select
+                value={selectedBudgetId}
+                onValueChange={setSelectedBudgetId}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione uma verba aprovada..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {budgets.map((budget: any) => {
+                    const available = (budget.total_amount || 0) - (budget.spent_amount || 0);
+                    return (
+                      <SelectItem key={budget.id} value={budget.id}>
+                        <div className="flex items-center justify-between gap-4 w-full">
+                          <span>{budget.name} ({budget.code})</span>
+                          <span className="text-sm text-muted-foreground">
+                            Disponível: {formatCurrency(available)}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              
+              {selectedBudgetId && (
+                <div className={`flex items-center justify-between p-3 rounded-lg ${
+                  hasSufficientBalance ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                }`}>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">
+                      Disponível: {formatCurrency(budgetAvailable)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Custo Estimado: {formatCurrency(estimatedCost)}
+                    </p>
+                  </div>
+                  {hasSufficientBalance ? (
+                    <Badge className="bg-green-100 text-green-800">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Saldo OK
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Saldo Insuficiente
+                    </Badge>
+                  )}
+                </div>
+              )}
+              
+              {!selectedBudgetId && !campaign.budget_id && (
+                <p className="text-sm text-muted-foreground">
+                  Selecione uma verba aprovada para poder aprovar esta campanha
+                </p>
+              )}
+            </div>
+          )}
+
           <div data-tour="supervisor-notes" className="space-y-2">
             <Label htmlFor="validation_notes">Observações do Supervisor</Label>
             <Textarea
@@ -376,7 +477,11 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
             <Button
               data-tour="approve-campaign"
               onClick={() => approveCampaign.mutate()}
-              disabled={approveCampaign.isPending || campaign.validation_status === "approved"}
+              disabled={
+                approveCampaign.isPending || 
+                campaign.validation_status === "approved" ||
+                (!selectedBudgetId && !campaign.budget_id)
+              }
               className="bg-green-600 hover:bg-green-700"
             >
               {approveCampaign.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}

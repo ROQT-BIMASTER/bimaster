@@ -342,7 +342,16 @@ export default function TradeCampaignDetail() {
 
           {isAdminOrSupervisor && (
             <TabsContent value="validation" className="mt-6">
-              <CampaignValidation campaignId={campaign.id} campaign={campaign} />
+              <CampaignValidation 
+                campaignId={campaign.id} 
+                campaign={{
+                  validation_status: campaign.validation_status,
+                  validation_notes: campaign.validation_notes,
+                  status: campaign.status,
+                  budget_id: (campaign as any).budget_id,
+                  estimated_cost: campaign.estimated_cost,
+                }}
+              />
             </TabsContent>
           )}
 
