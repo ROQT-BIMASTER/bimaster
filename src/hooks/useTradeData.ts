@@ -246,3 +246,40 @@ export function usePendingCampaigns() {
     staleTime: 30 * 1000, // 30 segundos - aprovações precisam ser mais atualizadas
   });
 }
+
+// Hook para verbas pendentes de aprovação financeira
+export function usePendingBudgets() {
+  return useQuery<any[]>({
+    queryKey: ['trade-pending-budgets'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_budgets")
+        .select("*")
+        .eq("approval_status", "pending")
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+
+      // Enriquecer com informações do solicitante
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map(b => b.requested_by).filter(Boolean))];
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, nome, email")
+            .in("id", userIds);
+
+          const profileMap = new Map(profiles?.map(p => [p.id, p]));
+          
+          return data.map(budget => ({
+            ...budget,
+            requester_profile: profileMap.get(budget.requested_by)
+          }));
+        }
+      }
+
+      return data || [];
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutos
+  });
+}
