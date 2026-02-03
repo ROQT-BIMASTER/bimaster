@@ -1,75 +1,90 @@
 
-# Plano: Destacar Valor Pago na Tabela de Lançamentos Financeiros
+# Plano: Corrigir Atualização do Valor Utilizado nas Verbas
 
-## Contexto
-A tela "Detalhes de Lançamentos por Cliente" está exibindo o campo `valor_pedido` (valor do pedido). Por ser uma tela financeira, faz mais sentido destacar o **valor efetivamente pago** (que está na tabela `trade_campaign_expenses.valor_realizado`) e manter o ROI em destaque.
+## Problema Identificado
+O campo "Utilizado" no card de Verbas Disponíveis está mostrando R$ 0 porque:
 
-## Estrutura de Dados Identificada
-- **Lançamento** (`trade_campaign_lancamentos`): Contém `valor_pedido`, `roi_percentual`, `roi_valor`
-- **Despesa** (`trade_campaign_expenses`): Contém `valor_realizado` (valor pago) vinculado ao lançamento via `lancamento_id`
+1. O campo `spent_amount` na tabela `trade_budgets` não está sendo atualizado quando despesas são aprovadas
+2. As campanhas não estão sendo vinculadas corretamente às verbas (budget_id está null)
+3. A função `updateExpenseStatus` não atualiza o saldo consumido da verba
 
-## Alterações Propostas
+## Solução
 
-### 1. Atualizar Hook de Dados (`useTradeFinanceiroDashboard.ts`)
-- Modificar a query de lançamentos para fazer JOIN com a tabela de despesas
-- Buscar o campo `valor_realizado` da despesa vinculada
-- Adicionar novo campo `valorPago` à interface `Lancamento`
+### 1. Atualizar Mutação de Aprovação de Despesas
+**Arquivo**: `src/components/trade/campaigns/CampaignExpenses.tsx`
 
-### 2. Atualizar Interface da Tabela (`TradeLancamentosTable.tsx`)
+Modificar a função `updateExpenseStatus` para:
+- Buscar o `budget_id` da campanha pai quando aprovar uma despesa
+- Chamar a função `consume_budget_credit()` do banco para atualizar o `spent_amount` da verba
 
-#### Colunas da Tabela
-| Atual | Proposto |
-|-------|----------|
-| Valor (valor_pedido) | **Valor Pago** (destacado, verde) |
-| ROI | ROI (mantido) |
+### 2. Atualizar Aprovação de Campanhas
+**Arquivo**: `src/components/trade/campaigns/CampaignValidation.tsx`
 
-#### Mudanças Específicas
-- Renomear coluna "Valor" para "Valor Pago"
-- Aplicar destaque visual ao valor pago (cor verde, fundo sutil, fonte maior)
-- Exibir tooltip com valor do pedido original para referência
-- No rodapé, alterar "Total" para "Total Pago"
+Modificar a mutação `approveCampaign` e `approveAllPending` para:
+- Buscar todas as despesas aprovadas da campanha
+- Verificar se a campanha tem `budget_id` vinculado
+- Consumir o crédito da verba com o valor total das despesas aprovadas
 
-#### Dialog de Detalhes
-- Reorganizar para mostrar ambos valores (pedido e pago) lado a lado
-- Destacar visualmente o valor pago com cor de sucesso
-- Manter ROI em posição de destaque
+### 3. Alternativa: Recalcular em Tempo Real
+Como uma solução mais robusta, modificar o hook `useTradeFinanceiroDashboard.ts` para calcular o `totalUtilizado` somando diretamente as despesas aprovadas vinculadas às campanhas que possuem `budget_id`, ao invés de depender apenas do campo `spent_amount`.
 
 ---
 
-## Seção Técnica
+## Detalhes Técnicos
 
-### Modificações no Hook
+### Lógica de Consumo de Verba (abordagem proposta)
 ```typescript
-// Query atualizada para incluir despesas
-.select(`
-  id, customer_id, campaign_id, valor_pedido, status, roi_percentual, roi_valor,
-  data_lancamento, sell_out_anterior, sell_out_atual, tipo_brinde, acoes_manuais, evidencias,
-  prospect:prospects(nome_empresa),
-  campaign:trade_campaigns(name),
-  expense:trade_campaign_expenses!trade_campaign_expenses_lancamento_id_fkey(valor_realizado, status)
-`)
-
-// Novo mapeamento
-valorPago: l.expense?.[0]?.valor_realizado || null
+// Em CampaignExpenses.tsx - updateExpenseStatus mutation
+const updateExpenseStatus = useMutation({
+  mutationFn: async ({ expenseId, status }: { expenseId: string; status: string }) => {
+    // ... código existente ...
+    
+    // Se aprovando, consumir crédito da verba
+    if (status === 'aprovado') {
+      // Buscar despesa e campanha para obter budget_id
+      const { data: expense } = await supabase
+        .from("trade_campaign_expenses")
+        .select("valor_realizado, campaign:trade_campaigns(budget_id)")
+        .eq("id", expenseId)
+        .single();
+      
+      if (expense?.campaign?.budget_id && expense.valor_realizado > 0) {
+        await supabase.rpc("consume_budget_credit", {
+          p_budget_id: expense.campaign.budget_id,
+          p_amount: expense.valor_realizado
+        });
+      }
+    }
+  },
+});
 ```
 
-### Modificações na Interface
+### Cálculo Alternativo no Dashboard
 ```typescript
-interface Lancamento {
-  // ... campos existentes
-  valorPedido: number;  // renomear de "valor"
-  valorPago: number | null;  // novo campo
-}
+// Em useTradeFinanceiroDashboard.ts
+// Calcular utilizado baseado nas despesas aprovadas (mais robusto)
+const totalUtilizado = despesasQuery.data?.filter((d: any) => 
+  ['approved', 'aprovado', 'completed', 'pago'].includes(d.status?.toLowerCase())
+).reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0;
 ```
 
-### Estilização do Valor Pago
-```tsx
-<TableCell className="text-right">
-  <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
-    {formatCurrency(lancamento.valorPago || 0)}
-  </span>
-</TableCell>
+### Correção de Dados Existentes (SQL)
+Uma migração para recalcular os valores já existentes:
+```sql
+-- Recalcular spent_amount baseado nas despesas aprovadas
+UPDATE trade_budgets b
+SET spent_amount = COALESCE(
+  (
+    SELECT SUM(e.valor_realizado)
+    FROM trade_campaign_expenses e
+    JOIN trade_campaigns c ON e.campaign_id = c.id
+    WHERE c.budget_id = b.id
+    AND e.status IN ('aprovado', 'pago')
+  ), 0
+);
 ```
 
 ## Resultado Esperado
-A tabela exibirá o valor pago em destaque (verde), mantendo o ROI visível. Usuários financeiros verão imediatamente quanto foi efetivamente gasto, com acesso ao valor original do pedido nos detalhes.
+- O card "Verbas Disponíveis" exibirá corretamente o valor utilizado
+- A barra de progresso de utilização funcionará corretamente
+- O saldo disponível será calculado de forma precisa
