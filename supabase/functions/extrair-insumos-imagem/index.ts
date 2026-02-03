@@ -11,10 +11,10 @@ serve(async (req) => {
   }
 
   try {
-    const { image } = await req.json();
+    const { image, text } = await req.json();
 
-    if (!image) {
-      throw new Error("Imagem não fornecida");
+    if (!image && !text) {
+      throw new Error("Imagem ou texto não fornecidos");
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -22,7 +22,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY não configurada");
     }
 
-    const prompt = `Analise esta imagem de uma tabela de custos de produto e extraia todos os insumos/materiais listados.
+    const promptBase = `Analise os dados de uma tabela de custos de produto e extraia todos os insumos/materiais listados.
 
 Para cada linha da tabela, extraia:
 - codigo: O código do insumo (primeira coluna, geralmente um número)
@@ -55,6 +55,32 @@ Retorne APENAS um JSON válido no formato:
   ]
 }`;
 
+    let messages: any[];
+
+    if (image) {
+      // Processamento de imagem
+      messages = [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: promptBase },
+            { type: "image_url", image_url: { url: image } },
+          ],
+        },
+      ];
+    } else {
+      // Processamento de texto colado
+      messages = [
+        {
+          role: "user",
+          content: `${promptBase}
+
+Texto da tabela para analisar:
+${text}`,
+        },
+      ];
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -63,15 +89,7 @@ Retorne APENAS um JSON válido no formato:
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: image } },
-            ],
-          },
-        ],
+        messages,
         response_format: { type: "json_object" },
       }),
     });
