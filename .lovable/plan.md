@@ -1,183 +1,207 @@
 
-# Plano: Cadastrar Insumo Manual no Catálogo de Matérias-Primas
+# Plano: Melhorias na Importação de Insumos via IA
 
-## Situação Atual
+## Resumo das Mudanças
 
-Quando o usuário adiciona um insumo no modo **Manual**:
-1. O insumo é salvo apenas em `fabrica_produto_custos` 
-2. O campo `mp_id` fica `null`
-3. O insumo **não aparece** no cadastro de matérias-primas
-4. Não pode ser reutilizado em outros produtos
+Este plano implementa 4 melhorias principais:
+1. Ajustar layout para não cortar valores
+2. Obrigar conferência item a item antes de importar
+3. Adicionar aviso de responsabilidade do usuário
+4. Permitir colar texto além de imagem
 
-## Solução Proposta
+---
 
-Adicionar uma opção (checkbox) para o usuário decidir se quer também cadastrar o insumo no catálogo de matérias-primas.
+## 1. Novo Layout com Valores Completos
+
+### Problema Atual
+Os valores estão sendo cortados porque usamos `truncate` no nome e layout compacto.
+
+### Solução
+Trocar o layout de cards para uma **tabela responsiva** com colunas ajustáveis:
+
+```text
++---------------------------------------------------------------------------------+
+| [x] | Código  | Nome               | Fornecedor | NF        | Serv.     | Cond. |
++---------------------------------------------------------------------------------+
+| [x] | 22904   | Bulk               | Rodrigues  | 0.188302  | 0.188302  | 0.00  |
+| [ ] | 00987   | Frasco 50ml        | GlassCo    | 0.245000  | 0.245000  | 0.00  |
+| [x] | 12345   | Tampa rosca        | PackBR     | 0.123456  | 0.123456  | 0.00  |
++---------------------------------------------------------------------------------+
+```
+
+- Usar `min-w-[...]` nas colunas para garantir visibilidade
+- Valores numéricos alinhados à direita
+- Scroll horizontal se necessário
+
+---
+
+## 2. Conferência Item a Item Obrigatória
 
 ### Fluxo Proposto
 
 ```text
-Modo Manual
-    |
-    v
-Preenche código, nome, fornecedor, custos...
-    |
-    v
-[x] Cadastrar também no catálogo de MPs (checkbox)
-    |
-    v
-Clica "Adicionar"
-    |
-    +-- Se checkbox marcado:
-    |       1. Cria registro em fabrica_materias_primas
-    |       2. Usa o ID gerado como mp_id
-    |       3. Cria registro em fabrica_produto_custos
-    |
-    +-- Se checkbox desmarcado:
-            1. Cria apenas em fabrica_produto_custos (comportamento atual)
+Etapa 1: Upload        →  Etapa 2: Conferência     →  Etapa 3: Confirmação
+(imagem ou texto)         (item por item)              (termo + importar)
 ```
 
----
+### Mecânica de Conferência
 
-## Mudanças no Código
+- Cada item começa com status **"Não conferido"**
+- Usuário deve clicar em cada item para **marcar como conferido**
+- Adicionar badge visual de status:
+  - Amarelo: "Pendente de conferência"
+  - Verde: "Conferido"
+- Botão "Importar" só habilita quando **todos os selecionados** estiverem conferidos
 
-### Arquivo: AdicionarInsumoCustoDialog.tsx
-
-1. Adicionar novo estado para checkbox
-2. Ao salvar em modo manual com checkbox marcado:
-   - Primeiro criar registro em `fabrica_materias_primas`
-   - Usar o ID retornado para preencher `mp_id`
-3. Passar o `mp_id` correto para `onAdicionar`
-
-### Interface Atualizada
+### Interface de Conferência
 
 ```text
-+----------------------------------+
-| Adicionar Insumo                 |
-+----------------------------------+
-| [Buscar MP]  [Manual ativo]      |
-|                                  |
-| Código *          Tipo de Insumo |
-| [MP-001     ]     [Bulk      v]  |
-|                                  |
-| Nome *                           |
-| [Nome do insumo              ]   |
-|                                  |
-| Fornecedor                   [+] |
-| [Nome do fornecedor          ]   |
-|                                  |
-| [x] Cadastrar no catálogo de MPs | <-- NOVO
-|                                  |
-| -- Custos Detalhados ----------- |
-| Custo NF    Custo Serv.   Cond.  |
-| [0.00]      [0.00]        [0.00] |
-|                                  |
-| NF de Referência                 |
-| [NF12345                     ]   |
-|                                  |
-|          [Cancelar] [Adicionar]  |
-+----------------------------------+
++---------------------------------------------------------------------------------+
+| Item 1 de 5                                           [Anterior] [Próximo]      |
++---------------------------------------------------------------------------------+
+| Código: 22904                    Status: 🟡 Pendente                            |
+| Nome: Bulk                                                                       |
+| Fornecedor: Rodrigues                                                            |
+|                                                                                  |
+| Custos:                                                                          |
+|   NF: R$ 0.188302                                                                |
+|   Serviço: R$ 0.188302                                                           |
+|   Condição: R$ 0.00                                                              |
+|   NF Ref: -                                                                      |
+|                                                                                  |
+|          [ Rejeitar Item ]   [ ✓ Confirmar e Avançar ]                          |
++---------------------------------------------------------------------------------+
+| Progresso: ██████░░░░ 3/5 conferidos                                            |
++---------------------------------------------------------------------------------+
 ```
 
 ---
 
-## Detalhes da Implementação
+## 3. Aviso de Responsabilidade
 
-### 1. Novo Estado
+### Localização
+No footer do dialog, antes do botão de importar.
+
+### Texto
+
+```text
+⚠️ IMPORTANTE: Os dados foram extraídos automaticamente por IA.
+É de sua responsabilidade verificar se todos os valores estão corretos
+antes de confirmar a importação.
+
+[ ] Li e concordo que conferi todos os itens e assumo responsabilidade
+    pela validação dos dados importados.
+```
+
+### Lógica
+- Checkbox obrigatório para habilitar o botão "Importar"
+- Combina com a conferência item a item
+
+---
+
+## 4. Opção de Colar Texto
+
+### Interface de Upload Atualizada
+
+```text
++--------------------------------------------------+
+|  Como deseja importar?                           |
+|                                                   |
+|  [📷 Enviar Imagem]    [📋 Colar Texto]          |
++--------------------------------------------------+
+```
+
+### Área de Texto
+
+```text
++--------------------------------------------------+
+| Cole aqui o texto da tabela de custos:           |
+|                                                   |
+| +----------------------------------------------+ |
+| | Código  Nome         Fornecedor  NF    Serv  | |
+| | 22904   Bulk         Rodrigues   0.18  0.18  | |
+| | 00987   Frasco 50ml  GlassCo     0.24  0.24  | |
+| |                                              | |
+| |                                              | |
+| +----------------------------------------------+ |
+|                                                   |
+|                        [Processar com IA]        |
++--------------------------------------------------+
+```
+
+### Alterações na Edge Function
+
+A edge function precisa aceitar também um campo `text` e processar de forma diferente:
 
 ```typescript
-const [cadastrarNoCatalogo, setCadastrarNoCatalogo] = useState(true);
+// Se receber imagem
+if (image) {
+  content = [
+    { type: "text", text: promptImagem },
+    { type: "image_url", image_url: { url: image } }
+  ];
+}
+
+// Se receber texto
+if (text) {
+  content = [
+    { type: "text", text: promptTexto + "\n\nTexto da tabela:\n" + text }
+  ];
+}
 ```
 
-### 2. Lógica de Salvamento
+---
+
+## Estrutura de Estados
 
 ```typescript
-const handleAdicionar = async () => {
-  if (!codigo || !nome) return;
+// Estados atualizados
+const [modoInput, setModoInput] = useState<"imagem" | "texto">("imagem");
+const [textoColado, setTextoColado] = useState("");
+const [etapa, setEtapa] = useState<"upload" | "conferencia" | "confirmacao">("upload");
+const [itemAtual, setItemAtual] = useState(0);
+const [aceitouResponsabilidade, setAceitouResponsabilidade] = useState(false);
 
-  let mpId: string | undefined = mpSelecionada?.id;
-
-  // Se modo manual e checkbox marcado, criar no catálogo primeiro
-  if (modo === "manual" && cadastrarNoCatalogo) {
-    const { data: novaMP, error } = await supabase
-      .from("fabrica_materias_primas")
-      .insert({
-        codigo: codigo.trim(),
-        nome: nome.trim(),
-        custo_unitario: parseFloat(custoNF) || 0,
-        status: "ativo",
-        fornecedor_id: null, // Podemos buscar pelo nome depois
-      })
-      .select("id")
-      .single();
-
-    if (error) {
-      // Se erro de duplicidade, tentar buscar existente
-      if (error.code === "23505") {
-        toast.warning("Já existe uma MP com esse código");
-      } else {
-        toast.error("Erro ao cadastrar no catálogo");
-      }
-      return;
-    }
-
-    mpId = novaMP.id;
-    toast.success("Insumo cadastrado no catálogo de MPs");
-  }
-
-  onAdicionar({
-    mp_id: mpId,
-    codigo,
-    nome,
-    // ... resto
-  });
-};
-```
-
-### 3. Checkbox na Interface
-
-```tsx
-{modo === "manual" && (
-  <div className="flex items-center gap-2 py-2">
-    <Checkbox
-      id="cadastrarCatalogo"
-      checked={cadastrarNoCatalogo}
-      onCheckedChange={(checked) => setCadastrarNoCatalogo(!!checked)}
-    />
-    <Label htmlFor="cadastrarCatalogo" className="font-normal cursor-pointer">
-      Cadastrar também no catálogo de matérias-primas
-    </Label>
-  </div>
-)}
+// Novo campo no InsumoExtraido
+interface InsumoExtraido {
+  // ... campos existentes
+  conferido: boolean; // NOVO
+  rejeitado: boolean; // NOVO
+}
 ```
 
 ---
 
-## Campos Necessários para fabrica_materias_primas
+## Arquivos a Modificar
 
-| Campo | Origem no Dialog | Observação |
-|-------|------------------|------------|
-| codigo | `codigo` | Obrigatório |
-| nome | `nome` | Obrigatório |
-| custo_unitario | `custoNF` | Custo NF como base |
-| status | "ativo" | Fixo |
-| fornecedor_id | - | Buscar pelo nome ou deixar null |
-| unidade_medida_id | - | Pode ser opcional ou pedir |
-| categoria_id | - | Pode usar tipo_insumo para inferir |
+| Arquivo | Mudança |
+|---------|---------|
+| `src/components/fabrica/ImportarInsumosIA.tsx` | Refatorar toda a UI com novo fluxo de 3 etapas |
+| `supabase/functions/extrair-insumos-imagem/index.ts` | Aceitar campo `text` além de `image` |
 
 ---
 
-## Tratamento de Erros
+## Fluxo Completo
 
-1. **Código duplicado**: Avisar que já existe e sugerir buscar
-2. **Fornecedor não encontrado**: Salvar sem vínculo (apenas texto)
-3. **Campos obrigatórios faltando**: Já tratado pela validação existente
+```text
+1. Usuário clica "Importar com IA"
+2. Escolhe: Imagem ou Texto
+3. Envia imagem OU cola texto
+4. IA processa e retorna insumos
+5. Entra na tela de conferência item a item
+6. Para cada item: Confirma ou Rejeita
+7. Após todos conferidos:
+   - Mostra resumo
+   - Checkbox de responsabilidade
+   - Botão importar habilitado
+8. Importa apenas os confirmados
+```
 
 ---
 
-## Resultado Esperado
+## Validações de Segurança
 
-1. Checkbox "Cadastrar no catálogo de MPs" aparece apenas no modo Manual
-2. Marcado por padrão para incentivar organização
-3. Ao adicionar, cria registro em `fabrica_materias_primas`
-4. O insumo fica vinculado (`mp_id` preenchido)
-5. Pode ser reutilizado em outros produtos via busca
+1. **Conferência obrigatória**: Não permite pular itens
+2. **Checkbox obrigatório**: Termo de responsabilidade
+3. **Feedback visual claro**: Status de cada item
+4. **Barra de progresso**: Mostra quantos faltam conferir
