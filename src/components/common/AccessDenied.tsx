@@ -1,4 +1,6 @@
-import { Lock, ShieldAlert } from "lucide-react";
+import { Lock, ShieldAlert, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface AccessDeniedProps {
   message?: string;
@@ -13,6 +15,17 @@ export const AccessDenied = ({
   message = "Você não tem permissão para acessar esta área.",
   showWatermark = true 
 }: AccessDeniedProps) => {
+  const navigate = useNavigate();
+
+  const handleGoBack = () => {
+    // Tenta voltar no histórico, se não houver histórico, vai para o dashboard
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate("/dashboard");
+    }
+  };
+
   return (
     <div className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden bg-background">
       {/* Marca d'água de fundo */}
@@ -42,6 +55,15 @@ export const AccessDenied = ({
         <p className="text-muted-foreground mb-6">
           {message}
         </p>
+
+        <Button
+          variant="outline"
+          onClick={handleGoBack}
+          className="mb-6"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Voltar
+        </Button>
         
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground/60">
           <Lock className="h-4 w-4" />
