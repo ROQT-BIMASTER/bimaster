@@ -24,3 +24,6 @@ export { fabricaMateriasPrimasTourSteps, FABRICA_MATERIAS_PRIMAS_TOUR_ID } from 
 export { fabricaRecebimentosTourSteps, FABRICA_RECEBIMENTOS_TOUR_ID } from "./tours/fabricaRecebimentosTour";
 export { fabricaTabelasPrecoTourSteps, FABRICA_TABELAS_PRECO_TOUR_ID } from "./tours/fabricaTabelasPrecoTour";
 export { fabricaOrdensTourSteps, FABRICA_ORDENS_TOUR_ID } from "./tours/fabricaOrdensTour";
+
+// Tour definitions - Financeiro
+export { contasPagarTourSteps, CONTAS_PAGAR_TOUR_ID } from "./tours/contasPagarTour";
