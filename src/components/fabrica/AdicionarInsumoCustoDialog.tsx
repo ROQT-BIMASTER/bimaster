@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Package } from "lucide-react";
+import { FornecedorQuickAdd } from "./FornecedorQuickAdd";
 
 interface MateriaPrima {
   id: string;
@@ -297,12 +298,18 @@ export function AdicionarInsumoCustoDialog({
 
               <div>
                 <Label htmlFor="fornecedor">Fornecedor</Label>
-                <Input
-                  id="fornecedor"
-                  value={fornecedor}
-                  onChange={(e) => setFornecedor(e.target.value)}
-                  placeholder="Nome do fornecedor"
-                />
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="fornecedor"
+                    value={fornecedor}
+                    onChange={(e) => setFornecedor(e.target.value)}
+                    placeholder="Nome do fornecedor"
+                    className="flex-1"
+                  />
+                  <FornecedorQuickAdd
+                    onFornecedorCriado={(f) => setFornecedor(f.nome)}
+                  />
+                </div>
               </div>
 
               {/* Custos detalhados */}
