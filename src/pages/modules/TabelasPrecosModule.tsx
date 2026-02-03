@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Receipt, Clock, CheckCircle, AlertCircle, Loader2, DollarSign, Users, Eye } from "lucide-react";
+import { Receipt, Clock, CheckCircle, AlertCircle, Loader2, DollarSign, Users, Eye, BarChart3, Shield, History } from "lucide-react";
 import { Navigate, Link } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
+import { TourButton, FABRICA_TABELAS_PRECO_TOUR_ID, fabricaTabelasPrecoTourSteps } from "@/components/tour";
 
 interface TabelaStats {
   totalTabelas: number;
@@ -109,9 +110,17 @@ const TabelasPrecosModule = () => {
   return (
     <DashboardLayout>
       <div className="p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Módulo de Tabelas de Preços</h1>
-          <p className="text-muted-foreground">Gerencie, aprove e visualize tabelas de preços</p>
+        <div className="mb-8 flex items-start justify-between" data-tour="precos-header">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Módulo de Tabelas de Preços</h1>
+            <p className="text-muted-foreground">Gerencie, aprove e visualize tabelas de preços</p>
+          </div>
+          <TourButton 
+            tourId={FABRICA_TABELAS_PRECO_TOUR_ID} 
+            tourSteps={fabricaTabelasPrecoTourSteps}
+            title="Tour: Tabelas de Preços"
+            description="Aprenda sobre a cadeia de precificação e gestão de tabelas"
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
@@ -177,14 +186,26 @@ const TabelasPrecosModule = () => {
             <CardTitle>Acesso Rápido</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Link to="/dashboard/precos/tabelas">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Cadeia de Precificação */}
+              <Link to="/dashboard/precos/tabelas" data-tour="precos-cadeia">
                 <Button variant="outline" className="w-full h-24 flex-col gap-2">
                   <Receipt className="h-8 w-8" />
                   <span className="text-sm font-medium">Tabelas de Preços</span>
-                  <span className="text-xs text-muted-foreground">Gerenciar tabelas</span>
+                  <span className="text-xs text-muted-foreground">Gerenciar cadeia de precificação</span>
                 </Button>
               </Link>
+              
+              {/* Matriz Comparativa */}
+              <Link to="/dashboard/precos/matriz" data-tour="precos-matriz">
+                <Button variant="outline" className="w-full h-24 flex-col gap-2">
+                  <BarChart3 className="h-8 w-8" />
+                  <span className="text-sm font-medium">Matriz Comparativa</span>
+                  <span className="text-xs text-muted-foreground">Compare preços entre tabelas</span>
+                </Button>
+              </Link>
+
+              {/* Aprovação */}
               <Link to="/dashboard/precos/aprovacao">
                 <Button variant="outline" className="w-full h-24 flex-col gap-2">
                   <CheckCircle className="h-8 w-8" />
@@ -197,6 +218,26 @@ const TabelasPrecosModule = () => {
                   )}
                 </Button>
               </Link>
+
+              {/* Limites de Preço */}
+              <Link to="/dashboard/precos/tabelas" data-tour="precos-limites">
+                <Button variant="outline" className="w-full h-24 flex-col gap-2">
+                  <Shield className="h-8 w-8" />
+                  <span className="text-sm font-medium">Limites de Preço</span>
+                  <span className="text-xs text-muted-foreground">Configure máx/mín por tabela</span>
+                </Button>
+              </Link>
+
+              {/* Histórico */}
+              <Link to="/dashboard/precos/matriz" data-tour="precos-historico">
+                <Button variant="outline" className="w-full h-24 flex-col gap-2">
+                  <History className="h-8 w-8" />
+                  <span className="text-sm font-medium">Histórico</span>
+                  <span className="text-xs text-muted-foreground">Evolução de preços</span>
+                </Button>
+              </Link>
+
+              {/* Portal Cliente */}
               <Link to="/dashboard/precos/portal-cliente">
                 <Button variant="outline" className="w-full h-24 flex-col gap-2">
                   <Eye className="h-8 w-8" />
