@@ -31,3 +31,6 @@ export { contasPagarTourSteps, CONTAS_PAGAR_TOUR_ID } from "./tours/contasPagarT
 // Tour definitions - Trade Financeiro
 export { tradeVerbasSemestraisTourSteps, TRADE_VERBAS_SEMESTRAIS_TOUR_ID } from "./tours/tradeVerbasSemestraisTour";
 export { tradeAprovacoesTourSteps, TRADE_APROVACOES_TOUR_ID } from "./tours/tradeAprovacoesTour";
+
+// Tour - Aprovação de Campanha (Dialog)
+export { tradeCampaignApprovalTourSteps, TRADE_CAMPAIGN_APPROVAL_TOUR_ID } from "./tours/tradeCampaignApprovalTour";

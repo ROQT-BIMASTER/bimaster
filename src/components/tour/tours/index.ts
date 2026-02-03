@@ -19,3 +19,6 @@ export * from "./fabricaMateriasPrimasTour";
 export * from "./fabricaRecebimentosTour";
 export * from "./fabricaTabelasPrecoTour";
 export * from "./fabricaOrdensTour";
+
+// Tour - Aprovação de Campanha
+export * from "./tradeCampaignApprovalTour";
