@@ -18,6 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, GripVertical, Save, FileText } from "lucide-react";
 import { CustoInsumo, CustoConfig, Totais } from "@/hooks/useFichaCustoProduto";
@@ -237,52 +243,88 @@ export function FichaCustoProdutoEditor({
                         </Select>
                       </TableCell>
                       <TableCell>
-                        <Input
-                          type="number"
-                          step="0.000001"
-                          value={insumo.custo_nf || ""}
-                          onChange={(e) =>
-                            onAtualizarInsumo(
-                              insumo.id,
-                              "custo_nf",
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          className="h-8 text-sm text-right"
-                          placeholder="0,000"
-                        />
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Input
+                                type="number"
+                                step="0.000001"
+                                value={insumo.custo_nf || ""}
+                                onChange={(e) =>
+                                  onAtualizarInsumo(
+                                    insumo.id,
+                                    "custo_nf",
+                                    parseFloat(e.target.value) || 0
+                                  )
+                                }
+                                className="h-8 text-sm text-right"
+                                placeholder="0,000"
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="font-mono">
+                              <p className="text-xs text-muted-foreground">Custo NF</p>
+                              <p className="text-base font-semibold">
+                                R$ {formatarValor(Number(insumo.custo_nf) || 0)}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableCell>
                       <TableCell>
-                        <Input
-                          type="number"
-                          step="0.000001"
-                          value={insumo.custo_servico || ""}
-                          onChange={(e) =>
-                            onAtualizarInsumo(
-                              insumo.id,
-                              "custo_servico",
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          className="h-8 text-sm text-right"
-                          placeholder="0,000"
-                        />
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Input
+                                type="number"
+                                step="0.000001"
+                                value={insumo.custo_servico || ""}
+                                onChange={(e) =>
+                                  onAtualizarInsumo(
+                                    insumo.id,
+                                    "custo_servico",
+                                    parseFloat(e.target.value) || 0
+                                  )
+                                }
+                                className="h-8 text-sm text-right"
+                                placeholder="0,000"
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="font-mono">
+                              <p className="text-xs text-muted-foreground">Custo Serviço</p>
+                              <p className="text-base font-semibold">
+                                R$ {formatarValor(Number(insumo.custo_servico) || 0)}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableCell>
                       <TableCell>
-                        <Input
-                          type="number"
-                          step="0.000001"
-                          value={insumo.custo_condicao || ""}
-                          onChange={(e) =>
-                            onAtualizarInsumo(
-                              insumo.id,
-                              "custo_condicao",
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          className="h-8 text-sm text-right"
-                          placeholder="0,000"
-                        />
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Input
+                                type="number"
+                                step="0.000001"
+                                value={insumo.custo_condicao || ""}
+                                onChange={(e) =>
+                                  onAtualizarInsumo(
+                                    insumo.id,
+                                    "custo_condicao",
+                                    parseFloat(e.target.value) || 0
+                                  )
+                                }
+                                className="h-8 text-sm text-right"
+                                placeholder="0,000"
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="font-mono">
+                              <p className="text-xs text-muted-foreground">Custo Condição</p>
+                              <p className="text-base font-semibold">
+                                R$ {formatarValor(Number(insumo.custo_condicao) || 0)}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableCell>
                       <TableCell>
                         <Input
