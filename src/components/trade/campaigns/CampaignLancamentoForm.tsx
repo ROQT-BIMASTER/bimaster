@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/useUserRole";
+import { ClientSearchSelect } from "./ClientSearchSelect";
 
 interface Campaign {
   id: string;
@@ -132,7 +133,7 @@ export function CampaignLancamentoForm({
 
       let query = supabase
         .from("prospects")
-        .select("id, nome_empresa")
+        .select("id, nome_empresa, cnpj")
         .order("nome_empresa");
 
       // If not admin/supervisor, filter by vendedor_id
@@ -387,21 +388,12 @@ export function CampaignLancamentoForm({
           <CardDescription>Selecione o cliente para este lançamento</CardDescription>
         </CardHeader>
         <CardContent>
-          <Select
-            value={selectedCustomerId || ""}
+          <ClientSearchSelect
+            customers={customers || []}
+            value={selectedCustomerId}
             onValueChange={setSelectedCustomerId}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione o cliente..." />
-            </SelectTrigger>
-            <SelectContent>
-              {customers?.map((customer) => (
-                <SelectItem key={customer.id} value={customer.id}>
-                  {customer.nome_empresa}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="Buscar por nome ou CNPJ..."
+          />
         </CardContent>
       </Card>
 
