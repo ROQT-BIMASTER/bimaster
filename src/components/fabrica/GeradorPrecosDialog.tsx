@@ -15,8 +15,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { calcularPrecosProdutos, formatarMoeda } from "@/lib/fabrica/pricing-calculator";
-import { Loader2, CheckCircle2, Factory, Ship, AlertTriangle, Check } from "lucide-react";
+import { calcularPrecosProdutos, formatarMoeda, buscarCustoFichaProduto, CustoComposicao } from "@/lib/fabrica/pricing-calculator";
+import { Loader2, CheckCircle2, Factory, Ship, AlertTriangle, Check, FileText } from "lucide-react";
 
 interface ProdutoData {
   id: string;
@@ -34,11 +34,12 @@ interface Props {
 
 export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: Props) {
   const queryClient = useQueryClient();
-  const [fonteCusto, setFonteCusto] = useState<"ordem_producao" | "custo_medio" | "manual" | "tabela_anterior" | "custo_origem">("ordem_producao");
+  const [fonteCusto, setFonteCusto] = useState<"ordem_producao" | "custo_medio" | "manual" | "tabela_anterior" | "custo_origem" | "ficha_custo">("ordem_producao");
   const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
   const [produtosNaTabelaBase, setProdutosNaTabelaBase] = useState<string[]>([]);
   const [custosManual, setCustosManual] = useState<Record<string, string>>({});
   const [precosCalculados, setPrecosCalculados] = useState<any[]>([]);
+  const [composicoesCache, setComposicoesCache] = useState<Record<string, { composicao: CustoComposicao | null; configId: string | null }>>({});
   const [calculando, setCalculando] = useState(false);
   const [produtos, setProdutos] = useState<ProdutoData[]>([]);
   const [loadingProdutos, setLoadingProdutos] = useState(false);
@@ -131,6 +132,20 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const calcularPrecosMutation = useMutation({
     mutationFn: async () => {
       setCalculando(true);
+      
+      // Se for ficha_custo, buscar os custos de todas as fichas primeiro
+      let custosFichaProduto: Record<string, { custoTotal: number; composicao: CustoComposicao | null; configId: string | null }> = {};
+      
+      if (fonteCusto === 'ficha_custo') {
+        for (const produtoId of produtosSelecionados) {
+          const resultado = await buscarCustoFichaProduto(produtoId);
+          if (resultado) {
+            custosFichaProduto[produtoId] = resultado;
+          }
+        }
+        setComposicoesCache(custosFichaProduto);
+      }
+      
       const precos = await calcularPrecosProdutos(
         tabela.id,
         produtosSelecionados,
@@ -140,6 +155,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
             Object.entries(custosManual).map(([id, valor]) => [id, parseFloat(valor)])
           ),
           origem: origemSelecionada || undefined,
+          custosFichaProduto: fonteCusto === 'ficha_custo' ? custosFichaProduto : undefined,
         }
       );
 
@@ -164,17 +180,26 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
         throw new Error("Nenhum preço calculado para salvar");
       }
       
-      const registros = precosCalculados.map((preco) => ({
-        tabela_id: tabela.id,
-        produto_id: preco.produto_id,
-        custo_base: preco.custo_base,
-        custo_base_origem: fonteCusto,
-        preco_calculado: preco.preco_calculado,
-        preco_final: preco.preco_final,
-        margem_lucro_percentual: preco.margem_lucro_percentual,
-        origem: origemSelecionada || 'nacional',
-        ativo: true,
-      }));
+      const registros = precosCalculados.map((preco) => {
+        // Se fonte for ficha_custo, incluir composição e config_id
+        const composicaoFicha = fonteCusto === 'ficha_custo' && composicoesCache[preco.produto_id]
+          ? composicoesCache[preco.produto_id]
+          : null;
+        
+        return {
+          tabela_id: tabela.id,
+          produto_id: preco.produto_id,
+          custo_base: preco.custo_base,
+          custo_base_origem: fonteCusto,
+          preco_calculado: preco.preco_calculado,
+          preco_final: preco.preco_final,
+          margem_lucro_percentual: preco.margem_lucro_percentual,
+          origem: origemSelecionada || 'nacional',
+          ativo: true,
+          ficha_custo_config_id: composicaoFicha?.configId || null,
+          custo_composicao: composicaoFicha?.composicao ? JSON.stringify(composicaoFicha.composicao) : null,
+        };
+      });
 
       const { error } = await supabase
         .from("fabrica_precos_produtos")
@@ -345,6 +370,13 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                   <RadioGroupItem value="manual" id="fonte_manual" />
                   <Label htmlFor="fonte_manual" className="font-normal cursor-pointer">
                     Digitar Manualmente
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="ficha_custo" id="fonte_ficha" />
+                  <Label htmlFor="fonte_ficha" className="font-normal cursor-pointer flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-orange-600" />
+                    Ficha de Custos do Produto
                   </Label>
                 </div>
               </RadioGroup>

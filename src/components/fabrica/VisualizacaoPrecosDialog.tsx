@@ -17,6 +17,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -30,12 +35,13 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatarMoeda, formatarPercentual } from "@/lib/fabrica/pricing-calculator";
-import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag, Edit, Trash2, FileText, History, Shield, AlertTriangle } from "lucide-react";
+import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag, Edit, Trash2, FileText, History, Shield, AlertTriangle, Eye } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { EditarPrecosProdutoDialog } from "./EditarPrecosProdutoDialog";
 import { ExportarTabelaPDF } from "./ExportarTabelaPDF";
 import { HistoricoPrecoProduto } from "./HistoricoPrecoProduto";
+import { ComposicaoCustoTooltip } from "./ComposicaoCustoTooltip";
 
 interface Props {
   open: boolean;
@@ -446,12 +452,28 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
                       {getMargemBadge(preco.margem_calculada || 0)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="text-xs">
-                        {preco.custo_base_origem === "ordem_producao" && "Ordem Produção"}
-                        {preco.custo_base_origem === "custo_medio" && "Custo Médio"}
-                        {preco.custo_base_origem === "manual" && "Manual"}
-                        {preco.custo_base_origem === "tabela_anterior" && "Tabela Base"}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {preco.custo_base_origem === "ordem_producao" && "Ordem Produção"}
+                          {preco.custo_base_origem === "custo_medio" && "Custo Médio"}
+                          {preco.custo_base_origem === "manual" && "Manual"}
+                          {preco.custo_base_origem === "tabela_anterior" && "Tabela Base"}
+                          {preco.custo_base_origem === "ficha_custo" && "Ficha de Custos"}
+                          {preco.custo_base_origem === "custo_origem" && "Custo Origem"}
+                        </Badge>
+                        {preco.custo_composicao && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Ver composição do custo">
+                                <Eye className="h-4 w-4 text-orange-600" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-3" side="left" align="start">
+                              <ComposicaoCustoTooltip composicao={preco.custo_composicao as any} />
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center gap-1">

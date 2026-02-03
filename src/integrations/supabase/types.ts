@@ -5943,7 +5943,9 @@ export type Database = {
           atualizado_por: string | null
           custo_base: number | null
           custo_base_origem: string | null
+          custo_composicao: Json | null
           data_atualizacao: string | null
+          ficha_custo_config_id: string | null
           id: string
           margem_lucro_percentual: number | null
           motivo_limite: string | null
@@ -5962,7 +5964,9 @@ export type Database = {
           atualizado_por?: string | null
           custo_base?: number | null
           custo_base_origem?: string | null
+          custo_composicao?: Json | null
           data_atualizacao?: string | null
+          ficha_custo_config_id?: string | null
           id?: string
           margem_lucro_percentual?: number | null
           motivo_limite?: string | null
@@ -5981,7 +5985,9 @@ export type Database = {
           atualizado_por?: string | null
           custo_base?: number | null
           custo_base_origem?: string | null
+          custo_composicao?: Json | null
           data_atualizacao?: string | null
+          ficha_custo_config_id?: string | null
           id?: string
           margem_lucro_percentual?: number | null
           motivo_limite?: string | null
@@ -5996,6 +6002,13 @@ export type Database = {
           tabela_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fabrica_precos_produtos_ficha_custo_config_id_fkey"
+            columns: ["ficha_custo_config_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produto_custos_config"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fabrica_precos_produtos_ordem_producao_id_fkey"
             columns: ["ordem_producao_id"]
