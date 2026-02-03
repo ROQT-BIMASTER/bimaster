@@ -11757,6 +11757,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sensitive_data_access_log: {
+        Row: {
+          accessed_at: string | null
+          action: string
+          id: string
+          ip_address: unknown
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accessed_at?: string | null
+          action: string
+          id?: string
+          ip_address?: unknown
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accessed_at?: string | null
+          action?: string
+          id?: string
+          ip_address?: unknown
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       shelf_measurements: {
         Row: {
           competitors_facings: number | null
@@ -16409,6 +16442,7 @@ export type Database = {
         Args: { account_user_id: string; viewer_id: string }
         Returns: boolean
       }
+      can_access_bank_accounts: { Args: { _user_id: string }; Returns: boolean }
       can_access_cliente: { Args: { viewer_id: string }; Returns: boolean }
       can_access_notas_fiscais: {
         Args: { viewer_id: string }
