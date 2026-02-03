@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, FileDown, Search, Filter, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
-import * as XLSX from 'xlsx';
+import { exportToExcel } from "@/utils/excelExport";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -71,37 +71,28 @@ export const CashGapAlertsDialog = memo(({ alerts, trigger }: CashGapAlertsDialo
     }
   };
 
-  const exportToExcel = () => {
-    const wsData = [
-      ["Alertas de Gap de Caixa", "", "", ""],
-      ["Gerado em:", format(new Date(), "dd/MM/yyyy HH:mm"), "", ""],
-      [],
-      ["Data", "Gap (R$)", "Severidade", "Ação Sugerida"],
-      ...filteredAlerts.map(a => [
-        a.date,
-        a.gap,
-        a.severity === "critical" ? "Crítico" : a.severity === "warning" ? "Atenção" : "Informativo",
-        a.severity === "critical" 
-          ? "Ação imediata necessária" 
-          : a.severity === "warning" 
-            ? "Monitorar de perto" 
-            : "Acompanhar"
-      ]),
-      [],
-      ["RESUMO"],
-      ["Total de Alertas:", stats.total],
-      ["Alertas Críticos:", stats.critical],
-      ["Alertas de Atenção:", stats.warning],
-      ["Gap Total:", stats.totalGap],
-      ["Maior Gap:", stats.maxGap],
-    ];
+  const handleExportToExcel = async () => {
+    const data = filteredAlerts.map(a => ({
+      Data: a.date,
+      "Gap (R$)": a.gap,
+      Severidade: a.severity === "critical" ? "Crítico" : a.severity === "warning" ? "Atenção" : "Informativo",
+      "Ação Sugerida": a.severity === "critical" 
+        ? "Ação imediata necessária" 
+        : a.severity === "warning" 
+          ? "Monitorar de perto" 
+          : "Acompanhar"
+    }));
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Alertas Gap");
-    
-    const fileName = `AlertasGap_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+    await exportToExcel(data, {
+      filename: `AlertasGap_${format(new Date(), 'yyyy-MM-dd_HHmmss')}`,
+      sheetName: "Alertas Gap",
+      columns: [
+        { header: "Data", key: "Data", width: 15 },
+        { header: "Gap (R$)", key: "Gap (R$)", width: 15 },
+        { header: "Severidade", key: "Severidade", width: 15 },
+        { header: "Ação Sugerida", key: "Ação Sugerida", width: 25 },
+      ],
+    });
     toast.success("Alertas exportados com sucesso!");
   };
 
@@ -166,7 +157,7 @@ export const CashGapAlertsDialog = memo(({ alerts, trigger }: CashGapAlertsDialo
               <SelectItem value="info">Informativos</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={exportToExcel}>
+          <Button variant="outline" size="sm" onClick={handleExportToExcel}>
             <FileDown className="h-4 w-4 mr-2" />
             Exportar
           </Button>

@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Search, FileText, User, Calendar, History, Download, Filter } from "lucide-react";
-import * as XLSX from 'xlsx';
+import { exportToExcel } from "@/utils/excelExport";
 
 interface PlanoContasAuditoriaDialogProps {
   open: boolean;
@@ -86,8 +86,8 @@ export function PlanoContasAuditoriaDialog({
     return matchSearch && matchTipo;
   });
 
-  const exportToExcel = () => {
-    const exportData = filteredRecords.map(record => ({
+  const handleExportToExcel = async () => {
+    const data = filteredRecords.map(record => ({
       'Data/Hora': format(new Date(record.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
       'Código Conta': record.conta_codigo || '-',
       'Nome Conta': record.conta_nome || '-',
@@ -99,10 +99,10 @@ export function PlanoContasAuditoriaDialog({
       'Justificativa': record.justificativa || '-',
     }));
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Auditoria');
-    XLSX.writeFile(wb, `auditoria_plano_contas_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    await exportToExcel(data, {
+      filename: `auditoria_plano_contas_${format(new Date(), 'yyyy-MM-dd')}`,
+      sheetName: "Auditoria",
+    });
   };
 
   return (
@@ -142,7 +142,7 @@ export function PlanoContasAuditoriaDialog({
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={exportToExcel}>
+            <Button variant="outline" onClick={handleExportToExcel}>
               <Download className="h-4 w-4 mr-2" />
               Exportar
             </Button>

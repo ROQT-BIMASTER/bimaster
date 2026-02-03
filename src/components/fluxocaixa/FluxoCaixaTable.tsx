@@ -7,7 +7,7 @@ import { ArrowUpCircle, ArrowDownCircle, TrendingUp, TrendingDown, FileDown, Che
 import { format, parseISO, isToday, isPast, isFuture } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import * as XLSX from 'xlsx';
+import { exportToExcel } from "@/utils/excelExport";
 import { toast } from "sonner";
 
 interface FluxoCaixaTableProps {
@@ -45,26 +45,28 @@ export const FluxoCaixaTable = memo(({ projections, period }: FluxoCaixaTablePro
     }).format(value);
   };
 
-  const exportToExcel = () => {
-    const wsData = [
-      ["Data", "Entradas", "Saídas", "Saldo Diário", "Saldo Acumulado"],
-      ...projections.map(p => [
-        p.date,
-        p.entradas,
-        p.saidas,
-        p.saldo,
-        p.saldoAcumulado
-      ]),
-      [],
-      ["TOTAL", totals.entradas, totals.saidas, totals.saldo, projections[projections.length - 1]?.saldoAcumulado || 0]
+  const handleExportToExcel = async () => {
+    const dataWithTotal = [
+      ...projections.map(p => ({
+        Data: p.date,
+        Entradas: p.entradas,
+        Saídas: p.saidas,
+        "Saldo Diário": p.saldo,
+        "Saldo Acumulado": p.saldoAcumulado,
+      })),
     ];
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Fluxo de Caixa");
-    
-    const fileName = `FluxoCaixa_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+    await exportToExcel(dataWithTotal, {
+      filename: `FluxoCaixa_${format(new Date(), 'yyyy-MM-dd_HHmmss')}`,
+      sheetName: "Fluxo de Caixa",
+      columns: [
+        { header: "Data", key: "Data", width: 15 },
+        { header: "Entradas", key: "Entradas", width: 15 },
+        { header: "Saídas", key: "Saídas", width: 15 },
+        { header: "Saldo Diário", key: "Saldo Diário", width: 15 },
+        { header: "Saldo Acumulado", key: "Saldo Acumulado", width: 18 },
+      ],
+    });
     toast.success("Exportado com sucesso!");
   };
 
@@ -84,7 +86,7 @@ export const FluxoCaixaTable = memo(({ projections, period }: FluxoCaixaTablePro
           <TrendingUp className="h-5 w-5 text-primary" />
           Grade de Detalhamento - Fluxo de Caixa
         </CardTitle>
-        <Button variant="outline" size="sm" onClick={exportToExcel}>
+        <Button variant="outline" size="sm" onClick={handleExportToExcel}>
           <FileDown className="h-4 w-4 mr-2" />
           Exportar
         </Button>
