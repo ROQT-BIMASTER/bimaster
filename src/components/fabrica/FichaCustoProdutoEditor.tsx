@@ -78,14 +78,16 @@ export function FichaCustoProdutoEditor({
               <CardTitle className="text-xl">
                 Ficha de Custos - {produto?.nome}
               </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Código: <span className="font-mono">{produto?.codigo}</span>
-                {" | "}
-                Origem:{" "}
-                <Badge variant={produto?.origem === "importado" ? "destructive" : "secondary"}>
-                  {produto?.origem === "importado" ? "Importado" : "Nacional"}
-                </Badge>
-              </p>
+              <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1 flex-wrap">
+                <span>Código: <span className="font-mono">{produto?.codigo}</span></span>
+                <span>|</span>
+                <span className="flex items-center gap-1">
+                  Origem:{" "}
+                  <Badge variant={produto?.origem === "importado" ? "destructive" : "secondary"}>
+                    {produto?.origem === "importado" ? "Importado" : "Nacional"}
+                  </Badge>
+                </span>
+              </div>
             </div>
           </div>
         </CardHeader>
