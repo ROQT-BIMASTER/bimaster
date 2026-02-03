@@ -68,6 +68,7 @@ const TradeLancamentos = lazy(() => import("./pages/TradeLancamentos"));
 const TradeAprovacoes = lazy(() => import("./pages/TradeAprovacoes"));
 const TradeExtratosPessoais = lazy(() => import("./pages/TradeExtratosPessoais"));
 const TradeCampaigns = lazy(() => import("./pages/TradeCampaigns"));
+const TradeAprovarCampanhas = lazy(() => import("./pages/TradeAprovarCampanhas"));
 const TradeCampaignDetail = lazy(() => import("./pages/TradeCampaignDetail"));
 const TradeLancamentosCampanhas = lazy(() => import("./pages/TradeLancamentosCampanhas"));
 const TradeAdminUsers = lazy(() => import("./pages/TradeAdminUsers"));
@@ -279,6 +280,7 @@ function AppContent() {
             <Route path="/dashboard/trade/financeiro/lancamentos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeLancamentos /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/trade/financeiro/aprovacoes" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeAprovacoes /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/trade/financeiro/extrato" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeExtratosPessoais /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/trade/campanhas/aprovacoes" element={<ProtectedRoute><ScreenProtectedRoute screenCode="trade_admin"><TradeAprovarCampanhas /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/trade/auditorias" element={<ProtectedRoute><TradeAuditorias /></ProtectedRoute>} />
             <Route path="/dashboard/trade/sellout" element={<ProtectedRoute><TradeSellOut /></ProtectedRoute>} />
             <Route path="/dashboard/trade/shelf-measurements" element={<ProtectedRoute><TradeShelfMeasurements /></ProtectedRoute>} />
