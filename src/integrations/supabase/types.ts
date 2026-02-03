@@ -13729,6 +13729,8 @@ export type Database = {
           period_start: string
           rejection_reason: string | null
           requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
           reserved_amount: number | null
           spent_amount: number | null
           status: string | null
@@ -13756,6 +13758,8 @@ export type Database = {
           period_start: string
           rejection_reason?: string | null
           requested_by?: string | null
+          requester_email?: string | null
+          requester_name?: string | null
           reserved_amount?: number | null
           spent_amount?: number | null
           status?: string | null
@@ -13783,6 +13787,8 @@ export type Database = {
           period_start?: string
           rejection_reason?: string | null
           requested_by?: string | null
+          requester_email?: string | null
+          requester_name?: string | null
           reserved_amount?: number | null
           spent_amount?: number | null
           status?: string | null
