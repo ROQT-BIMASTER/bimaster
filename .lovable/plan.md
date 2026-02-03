@@ -1,104 +1,87 @@
 
-# Plano: Tornar Seleção de Verba Obrigatória na Criação de Campanha
+# Plano: Botão de Navegação para Tela de Aprovação
 
 ## Objetivo
-Modificar o formulário de criação de campanha para que a seleção de uma verba (budget) aprovada seja obrigatória, garantindo que todas as campanhas estejam vinculadas a uma fonte de financiamento validada pelo departamento financeiro.
+Adicionar um botão contextual na tela de Campanhas Trade Marketing que direciona para a tela de Aprovações, visível apenas para usuários com permissão de administrador ou supervisor.
 
 ## Contexto
-Atualmente, o campo `budget_id` está marcado como opcional tanto no schema de validação quanto no formulário de criação. O usuário quer que apenas verbas já aprovadas pelo financeiro possam ser selecionadas, tornando esse vínculo obrigatório.
+- A tela de campanhas mostra itens com status "Aguardando Aprovação"
+- Usuários autorizados (admin/supervisor) precisam navegar para `/dashboard/trade/financeiro/aprovacoes` para aprovar
+- Atualmente não há link direto na tela de campanhas
 
 ---
 
-## Alterações Planejadas
+## Implementacao
 
-### 1. Schema de Validação (campaign.ts)
-Alterar a regra de validação do campo `budget_id` de opcional para obrigatório.
+### Arquivo: `src/pages/TradeCampaigns.tsx`
 
-**Arquivo:** `src/lib/validations/campaign.ts`
+**Alteracoes:**
 
-| Campo | Antes | Depois |
-|-------|-------|--------|
-| `budget_id` | `.optional().nullable()` | `.uuid({ message: "Selecione uma verba" })` (obrigatório) |
+1. **Importar icone adicional:**
+   - Adicionar `ClipboardCheck` (ou similar) do `lucide-react`
 
----
+2. **Calcular campanhas pendentes:**
+   - Adicionar metrica: `pendingApproval = campaigns.filter(c => c.status === 'pending_approval').length`
 
-### 2. Formulário de Criação de Campanha (TradeCampaigns.tsx)
-
-**Alterações no formulário:**
-- Alterar label de "Verba (Opcional)" para "Verba *" (indicando obrigatoriedade)
-- Adicionar validação que impede submissão sem verba selecionada
-- Filtrar apenas verbas com status "approved" (já aprovadas pelo financeiro)
-- Exibir mensagem de erro se nenhuma verba for selecionada
-
-**Alterações na busca de verbas:**
-- Atualmente: `.eq("status", "active")`
-- Proposto: `.eq("status", "approved")` ou `.in("status", ["active", "approved"])` dependendo da regra de negócio
+3. **Adicionar botao condicional no header:**
+   - Posicionar ao lado do botao "Nova Campanha"
+   - Visivel apenas se `isAdminOrSupervisor === true`
+   - Mostrar badge com contador de pendentes quando > 0
+   - Usar `Link` do react-router-dom para navegacao
 
 ---
 
-### 3. Experiência do Usuário
+## Layout do Header
 
 ```text
-+--------------------------------------------------+
-|              CRIAR NOVA CAMPANHA                  |
-+--------------------------------------------------+
-|                                                   |
-|  Código: [________________]  Tipo: [v Sell-In]    |
-|                                                   |
-|  Nome: [_____________________________________]    |
-|                                                   |
-|  Descrição: [________________________________]    |
-|                                                   |
-|  ┌─────────────────────────────────────────────┐  |
-|  │  Verba *                                    │  |
-|  │  [v VERBA-001 - Verba Semestral (R$ 50k)]   │  |
-|  │  ⚠ Apenas verbas aprovadas são exibidas    │  |
-|  └─────────────────────────────────────────────┘  |
-|                                                   |
-|  Custo Estimado: [________]  Receita: [________]  |
-|                                                   |
-+--------------------------------------------------+
+Antes:
++------------------------------------------------+
+|  Campanhas Trade Marketing        [+ Nova Camp] |
++------------------------------------------------+
+
+Depois:
++------------------------------------------------------------+
+|  Campanhas Trade Marketing   [Aprovacoes (3)] [+ Nova Camp] |
++------------------------------------------------------------+
 ```
 
 ---
 
-## Detalhes Técnicos
+## Codigo Proposto
 
-### Validação do formulário
-```typescript
-// Antes
-const budget_id = formData.get("budget_id") as string || null;
+```tsx
+// Junto aos outros calculos de metricas
+const pendingApproval = campaigns.filter(c => c.status === "pending_approval").length;
 
-// Depois
-const budget_id = formData.get("budget_id") as string;
-if (!budget_id) throw new Error("Selecione uma verba aprovada");
-```
-
-### Query de verbas aprovadas
-```typescript
-// Filtrar apenas verbas aprovadas e com saldo disponível
-supabase
-  .from("trade_budgets")
-  .select("*")
-  .in("status", ["active", "approved"])
-  .is("inactivated_at", null)
-  .order("name")
+// No header, antes do Dialog de Nova Campanha
+{isAdminOrSupervisor && (
+  <Link to="/dashboard/trade/financeiro/aprovacoes">
+    <Button variant="outline">
+      <ClipboardCheck className="mr-2 h-4 w-4" />
+      Aprovacoes
+      {pendingApproval > 0 && (
+        <Badge variant="destructive" className="ml-2">
+          {pendingApproval}
+        </Badge>
+      )}
+    </Button>
+  </Link>
+)}
 ```
 
 ---
 
 ## Arquivos a Modificar
 
-| Arquivo | Tipo de Alteração |
-|---------|-------------------|
-| `src/lib/validations/campaign.ts` | Tornar `budget_id` obrigatório |
-| `src/pages/TradeCampaigns.tsx` | Atualizar label, validação e filtro de verbas |
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/pages/TradeCampaigns.tsx` | Adicionar botao de navegacao para aprovacoes |
 
 ---
 
-## Benefícios
+## Beneficios
 
-- **Controle financeiro**: Garante que todo investimento em campanhas esteja atrelado a uma verba já aprovada
-- **Rastreabilidade**: Facilita a auditoria e o acompanhamento de gastos
-- **Prevenção de erros**: Evita criação de campanhas sem fonte de financiamento definida
-- **Fluxo aprovado**: Mantém o processo: Verba aprovada → Campanha criada → Execução
+- **Navegacao direta**: Facilita o acesso a tela de aprovacoes sem sair do contexto
+- **Indicador visual**: Badge mostra quantas campanhas aguardam aprovacao
+- **Seguranca mantida**: Botao so aparece para usuarios autorizados (admin/supervisor)
+- **UX melhorada**: Fluxo mais fluido entre gestao e aprovacao de campanhas
