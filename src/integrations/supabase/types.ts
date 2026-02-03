@@ -13686,6 +13686,53 @@ export type Database = {
           },
         ]
       }
+      trade_budget_documents: {
+        Row: {
+          budget_id: string
+          created_at: string
+          description: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          budget_id: string
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          budget_id?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_budget_documents_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "trade_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_budget_reserves: {
         Row: {
           budget_id: string

@@ -63,8 +63,10 @@ import {
   Power,
   PowerOff,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  FileText
 } from "lucide-react";
+import { BudgetDocumentUpload } from "@/components/trade/budgets/BudgetDocumentUpload";
 import { format } from "date-fns";
 import { sanitizeText, sanitizeCode, getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { logBudgetInactivate, logBudgetReactivate, logBudgetDelete, logBudgetEdit } from "@/lib/auditLog";
@@ -84,6 +86,13 @@ export default function TradeVerbasSemestrais() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [actionReason, setActionReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [uploadedDocs, setUploadedDocs] = useState<Array<{
+    name: string;
+    path: string;
+    url: string;
+    type: string;
+    size: number;
+  }>>([]);
 
   useEffect(() => {
     fetchData();
@@ -144,7 +153,7 @@ export default function TradeVerbasSemestrais() {
         throw new Error("Data de fim deve ser posterior à data de início");
       }
 
-      const { error } = await supabase.from("trade_budgets").insert({
+      const { data: budgetData, error } = await supabase.from("trade_budgets").insert({
         name,
         code,
         total_amount,
@@ -154,12 +163,34 @@ export default function TradeVerbasSemestrais() {
         description,
         status: "active",
         created_by: user.id,
-      });
+      }).select().single();
 
       if (error) throw error;
 
+      // Salvar documentos anexados
+      if (uploadedDocs.length > 0 && budgetData) {
+        const docsToInsert = uploadedDocs.map(doc => ({
+          budget_id: budgetData.id,
+          file_name: doc.name,
+          file_path: doc.path,
+          file_url: doc.url,
+          file_type: doc.type,
+          file_size: doc.size,
+          uploaded_by: user.id,
+        }));
+
+        const { error: docsError } = await supabase
+          .from("trade_budget_documents")
+          .insert(docsToInsert);
+
+        if (docsError) {
+          console.error("Erro ao salvar documentos:", docsError);
+        }
+      }
+
       toast.success("Verba criada com sucesso!");
       setDialogOpen(false);
+      setUploadedDocs([]);
       fetchData();
     } catch (error: any) {
       toast.error(getSafeErrorMessage(error));
@@ -448,6 +479,12 @@ export default function TradeVerbasSemestrais() {
                   <Label htmlFor="description">Descrição</Label>
                   <Textarea id="description" name="description" placeholder="Detalhes da verba..." />
                 </div>
+
+                <BudgetDocumentUpload
+                  files={uploadedDocs}
+                  onFilesChange={setUploadedDocs}
+                  maxFiles={5}
+                />
 
                 <Button type="submit" className="w-full">
                   Criar Verba
