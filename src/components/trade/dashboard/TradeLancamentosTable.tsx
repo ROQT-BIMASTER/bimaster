@@ -33,7 +33,8 @@ interface Lancamento {
   id: string;
   cliente: string;
   campanha: string;
-  valor: number;
+  valorPedido: number;
+  valorPago: number | null;
   status: string;
   roi: number | null;
   data: string;
@@ -113,7 +114,8 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
     const exportData = filteredLancamentos.map(l => ({
       Cliente: l.cliente,
       Campanha: l.campanha,
-      Valor: l.valor,
+      'Valor Pedido': l.valorPedido,
+      'Valor Pago': l.valorPago !== null ? l.valorPago : 0,
       Status: l.status,
       ROI: l.roi !== null ? `${l.roi.toFixed(1)}%` : 'N/A',
       Data: l.data ? format(new Date(l.data), "dd/MM/yyyy", { locale: ptBR }) : '',
@@ -171,7 +173,7 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
               <TableRow>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Campanha</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="text-right">Valor Pago</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">ROI</TableHead>
                 <TableHead>Data</TableHead>
@@ -193,7 +195,11 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
                   >
                     <TableCell className="font-medium">{lancamento.cliente}</TableCell>
                     <TableCell>{lancamento.campanha}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(lancamento.valor)}</TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded">
+                        {formatCurrency(lancamento.valorPago ?? 0)}
+                      </span>
+                    </TableCell>
                     <TableCell>{getStatusBadge(lancamento.status)}</TableCell>
                     <TableCell className="text-right">{getRoiBadge(lancamento.roi)}</TableCell>
                     <TableCell>
@@ -214,9 +220,9 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
             Exibindo {filteredLancamentos.length} de {lancamentos.length} lançamentos
           </p>
           <div className="text-sm">
-            <span className="text-muted-foreground">Total: </span>
-            <span className="font-bold">
-              {formatCurrency(filteredLancamentos.reduce((sum, l) => sum + l.valor, 0))}
+            <span className="text-muted-foreground">Total Pago: </span>
+            <span className="font-bold text-emerald-600">
+              {formatCurrency(filteredLancamentos.reduce((sum, l) => sum + (l.valorPago ?? 0), 0))}
             </span>
           </div>
         </div>
@@ -252,14 +258,25 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
                 </div>
               </div>
 
-              {/* Valor e Status */}
+              {/* Valor Pago em destaque */}
+              <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                <p className="text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-1 mb-1">
+                  <DollarSign className="h-4 w-4" />
+                  Valor Pago
+                </p>
+                <p className="font-bold text-2xl text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(selectedLancamento.valorPago ?? 0)}
+                </p>
+              </div>
+
+              {/* Valor do Pedido, Status e Data */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <DollarSign className="h-4 w-4" />
                     Valor do Pedido
                   </p>
-                  <p className="font-bold text-lg">{formatCurrency(selectedLancamento.valor)}</p>
+                  <p className="font-medium">{formatCurrency(selectedLancamento.valorPedido)}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Status</p>
