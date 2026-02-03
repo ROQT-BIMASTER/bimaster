@@ -392,9 +392,8 @@ export function AppSidebar() {
                 <MenuItemLink to="/dashboard/auditoria" icon={Shield} title="Auditoria" />
               )}
               
-              {hasPermission("instalar_app") && (
-                <MenuItemLink to="/dashboard/instalar-app" icon={Download} title="Instalar App" />
-              )}
+              {/* Instalar App - visível para todos os usuários */}
+              <MenuItemLink to="/dashboard/instalar-app" icon={Download} title="Instalar App" />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
