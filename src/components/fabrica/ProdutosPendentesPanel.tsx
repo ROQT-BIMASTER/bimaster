@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import ProductThumbnail from "./ProductThumbnail";
-import { Package, Rocket, Clock, ChevronRight, ChevronLeft, X } from "lucide-react";
+import { Package, Rocket, Clock, ChevronRight, ChevronLeft, Pin, PinOff } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ProdutoPendente {
   id: string;
@@ -26,11 +27,21 @@ interface ProdutosPendentesPanelProps {
   onToggleCollapse?: () => void;
 }
 
+const STORAGE_KEY = "produtos-pendentes-panel-fixed";
+
 export default function ProdutosPendentesPanel({
   onCreateLaunch,
   collapsed = false,
   onToggleCollapse,
 }: ProdutosPendentesPanelProps) {
+  const [isFixed, setIsFixed] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(isFixed));
+  }, [isFixed]);
   const { data: produtos, isLoading } = useQuery({
     queryKey: ["produtos-pendentes-lancamento"],
     queryFn: async () => {
@@ -71,7 +82,10 @@ export default function ProdutosPendentesPanel({
   }
 
   return (
-    <Card className="w-80 min-w-[320px] flex-shrink-0 border-l-4 border-l-amber-500 shadow-xl overflow-hidden">
+    <Card className={cn(
+      "w-80 min-w-[320px] flex-shrink-0 border-l-4 border-l-amber-500 shadow-xl",
+      isFixed ? "sticky top-6" : ""
+    )}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -87,6 +101,23 @@ export default function ProdutosPendentesPanel({
             <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
               {pendentesCount}
             </Badge>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-7 w-7" 
+                    onClick={() => setIsFixed(!isFixed)}
+                  >
+                    {isFixed ? <Pin className="h-4 w-4 text-primary" /> : <PinOff className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isFixed ? "Desafixar painel" : "Fixar painel"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             {onToggleCollapse && (
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggleCollapse}>
                 <ChevronRight className="h-4 w-4" />
@@ -96,7 +127,7 @@ export default function ProdutosPendentesPanel({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100vh-400px)] min-h-[300px]">
+        <ScrollArea className="h-[calc(100vh-400px)] min-h-[300px]" type="always">
           <div className="p-3 space-y-2">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
