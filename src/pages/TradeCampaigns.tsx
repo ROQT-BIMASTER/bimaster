@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Target, TrendingUp, Clock, CheckCircle, XCircle, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Plus, Target, TrendingUp, Clock, CheckCircle, XCircle, Eye, Edit, Trash2, MoreHorizontal, ClipboardCheck } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { logCampaignDelete } from "@/lib/auditLog";
@@ -290,6 +290,7 @@ export default function TradeCampaigns() {
   const totalInvested = campaigns.reduce((sum, c) => sum + parseFloat(c.actual_cost || 0), 0);
   const totalRevenue = campaigns.reduce((sum, c) => sum + parseFloat(c.actual_revenue || 0), 0);
   const roi = totalInvested > 0 ? ((totalRevenue - totalInvested) / totalInvested) * 100 : 0;
+  const pendingApproval = campaigns.filter(c => c.status === "pending_approval").length;
 
   return (
     <DashboardLayout>
@@ -306,14 +307,28 @@ export default function TradeCampaigns() {
               Gestão completa de campanhas com aprovação hierárquica
             </p>
           </div>
-          {isAdminOrSupervisor && (
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button data-tour="new-campaign-button">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nova Campanha
+          <div className="flex items-center gap-2">
+            {isAdminOrSupervisor && (
+              <Link to="/dashboard/trade/financeiro/aprovacoes">
+                <Button variant="outline">
+                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                  Aprovações
+                  {pendingApproval > 0 && (
+                    <Badge variant="destructive" className="ml-2">
+                      {pendingApproval}
+                    </Badge>
+                  )}
                 </Button>
-              </DialogTrigger>
+              </Link>
+            )}
+            {isAdminOrSupervisor && (
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button data-tour="new-campaign-button">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nova Campanha
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Criar Nova Campanha</DialogTitle>
@@ -422,8 +437,9 @@ export default function TradeCampaigns() {
                   <Button type="submit" className="w-full">Criar Campanha</Button>
                 </form>
               </DialogContent>
-            </Dialog>
-          )}
+              </Dialog>
+            )}
+          </div>
         </div>
 
         {/* Métricas */}
