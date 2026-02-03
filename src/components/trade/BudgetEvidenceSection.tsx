@@ -52,9 +52,9 @@ export function BudgetEvidenceSection({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trade_campaigns")
-        .select("id, name, code, status, approval_status")
-        .or("status.in.(draft,active,pending),approval_status.eq.pending_approval")
-        .neq("status", "completed")
+        .select("id, name, code, status")
+        .in("status", ["draft", "active", "pending", "pending_approval"])
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(100);
       
@@ -116,7 +116,7 @@ export function BudgetEvidenceSection({
               {campaigns.map((campaign: any) => (
                 <SelectItem key={campaign.id} value={campaign.id}>
                   {campaign.code} - {campaign.name}
-                  {campaign.approval_status === "pending_approval" && " 🕐"}
+                  {campaign.status === "pending_approval" && " 🕐"}
                 </SelectItem>
               ))}
             </SelectContent>
