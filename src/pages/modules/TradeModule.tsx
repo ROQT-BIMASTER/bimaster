@@ -24,7 +24,8 @@ import {
   Shield,
   Plus,
   ChevronDown,
-  Zap
+  Zap,
+  CheckCircle2
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,6 +81,7 @@ const TradeModule = () => {
     ...(hasPermission("trade_admin") ? {
       "Administrativo": [
         { title: "Campanhas & Verbas", to: "/dashboard/trade/admin", icon: Target, color: "text-blue-600", isNew: true },
+        { title: "Aprovar Campanhas", to: "/dashboard/trade/campanhas/aprovacoes", icon: CheckCircle2, color: "text-green-600" },
       ],
     } : {}),
     "Cadastros e Configurações": [
