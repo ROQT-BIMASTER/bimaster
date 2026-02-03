@@ -7,7 +7,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Upload, Loader2, Check, X, ChevronLeft, ChevronRight, Image, FileText, AlertTriangle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Sparkles, Upload, Loader2, Check, X, ChevronLeft, ChevronRight, Image, FileText, AlertTriangle, Pencil, History, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,6 +16,24 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+
+interface HistoricoAlteracao {
+  campo: string;
+  valorAnterior: string;
+  valorNovo: string;
+  timestamp: Date;
+}
 
 interface InsumoExtraido {
   codigo: string;
@@ -26,6 +45,17 @@ interface InsumoExtraido {
   nf_referencia: string;
   conferido: boolean;
   rejeitado: boolean;
+  editado: boolean;
+  valoresOriginais: {
+    codigo: string;
+    nome: string;
+    fornecedor: string;
+    custo_nf: number;
+    custo_servico: number;
+    custo_condicao: number;
+    nf_referencia: string;
+  };
+  historicoAlteracoes: HistoricoAlteracao[];
 }
 
 interface Props {
@@ -59,6 +89,8 @@ export function ImportarInsumosIA({ onImportar }: Props) {
   // Conferência
   const [insumosExtraidos, setInsumosExtraidos] = useState<InsumoExtraido[]>([]);
   const [itemAtual, setItemAtual] = useState(0);
+  const [modoEdicao, setModoEdicao] = useState(false);
+  const [historicoAberto, setHistoricoAberto] = useState(false);
   
   // Confirmação
   const [aceitouResponsabilidade, setAceitouResponsabilidade] = useState(false);
@@ -105,14 +137,25 @@ export function ImportarInsumosIA({ onImportar }: Props) {
 
       if (data?.insumos && Array.isArray(data.insumos) && data.insumos.length > 0) {
         setInsumosExtraidos(
-          data.insumos.map((i: any) => ({
-            ...i,
-            custo_nf: parseFloat(i.custo_nf) || 0,
-            custo_servico: parseFloat(i.custo_servico) || 0,
-            custo_condicao: parseFloat(i.custo_condicao) || 0,
-            conferido: false,
-            rejeitado: false,
-          }))
+          data.insumos.map((i: any) => {
+            const valoresBase = {
+              codigo: i.codigo || "",
+              nome: i.nome || "",
+              fornecedor: i.fornecedor || "",
+              custo_nf: parseFloat(i.custo_nf) || 0,
+              custo_servico: parseFloat(i.custo_servico) || 0,
+              custo_condicao: parseFloat(i.custo_condicao) || 0,
+              nf_referencia: i.nf_referencia || "",
+            };
+            return {
+              ...valoresBase,
+              conferido: false,
+              rejeitado: false,
+              editado: false,
+              valoresOriginais: { ...valoresBase },
+              historicoAlteracoes: [],
+            };
+          })
         );
         setItemAtual(0);
         setEtapa("conferencia");
@@ -128,12 +171,97 @@ export function ImportarInsumosIA({ onImportar }: Props) {
     }
   };
 
+  const registrarAlteracao = (campo: string, valorAnterior: string | number, valorNovo: string | number) => {
+    setInsumosExtraidos((prev) =>
+      prev.map((item, i) => {
+        if (i !== itemAtual) return item;
+        
+        const novaAlteracao: HistoricoAlteracao = {
+          campo,
+          valorAnterior: String(valorAnterior),
+          valorNovo: String(valorNovo),
+          timestamp: new Date(),
+        };
+        
+        return {
+          ...item,
+          editado: true,
+          historicoAlteracoes: [...item.historicoAlteracoes, novaAlteracao],
+        };
+      })
+    );
+  };
+
+  const atualizarCampo = (campo: keyof InsumoExtraido, valor: string | number) => {
+    const itemAtualData = insumosExtraidos[itemAtual];
+    if (!itemAtualData) return;
+    
+    const valorAnterior = itemAtualData[campo];
+    
+    if (valorAnterior !== valor) {
+      registrarAlteracao(
+        getNomeCampo(campo),
+        valorAnterior as string | number,
+        valor
+      );
+    }
+    
+    setInsumosExtraidos((prev) =>
+      prev.map((item, i) =>
+        i === itemAtual ? { ...item, [campo]: valor } : item
+      )
+    );
+  };
+
+  const getNomeCampo = (campo: string): string => {
+    const nomes: Record<string, string> = {
+      codigo: "Código",
+      nome: "Nome",
+      fornecedor: "Fornecedor",
+      custo_nf: "Custo NF",
+      custo_servico: "Custo Serviço",
+      custo_condicao: "Custo Condição",
+      nf_referencia: "NF Referência",
+    };
+    return nomes[campo] || campo;
+  };
+
+  const restaurarValoresOriginais = () => {
+    const itemAtualData = insumosExtraidos[itemAtual];
+    if (!itemAtualData) return;
+    
+    const originais = itemAtualData.valoresOriginais;
+    
+    setInsumosExtraidos((prev) =>
+      prev.map((item, i) =>
+        i === itemAtual
+          ? {
+              ...item,
+              ...originais,
+              editado: false,
+              historicoAlteracoes: [
+                ...item.historicoAlteracoes,
+                {
+                  campo: "Restauração",
+                  valorAnterior: "Valores editados",
+                  valorNovo: "Valores originais da IA",
+                  timestamp: new Date(),
+                },
+              ],
+            }
+          : item
+      )
+    );
+    toast.info("Valores restaurados para os originais da IA");
+  };
+
   const confirmarItem = () => {
     setInsumosExtraidos((prev) =>
       prev.map((item, i) =>
         i === itemAtual ? { ...item, conferido: true, rejeitado: false } : item
       )
     );
+    setModoEdicao(false);
     avancarItem();
   };
 
@@ -143,6 +271,7 @@ export function ImportarInsumosIA({ onImportar }: Props) {
         i === itemAtual ? { ...item, conferido: false, rejeitado: true } : item
       )
     );
+    setModoEdicao(false);
     avancarItem();
   };
 
@@ -208,11 +337,14 @@ export function ImportarInsumosIA({ onImportar }: Props) {
     setModoInput("imagem");
     setItemAtual(0);
     setAceitouResponsabilidade(false);
+    setModoEdicao(false);
+    setHistoricoAberto(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const totalConferidos = insumosExtraidos.filter((i) => i.conferido).length;
   const totalRejeitados = insumosExtraidos.filter((i) => i.rejeitado).length;
+  const totalEditados = insumosExtraidos.filter((i) => i.editado).length;
   const totalProcessados = totalConferidos + totalRejeitados;
   const progresso = insumosExtraidos.length > 0 ? (totalProcessados / insumosExtraidos.length) * 100 : 0;
   const itemAtualData = insumosExtraidos[itemAtual];
@@ -221,6 +353,14 @@ export function ImportarInsumosIA({ onImportar }: Props) {
     insumosExtraidos.every((i) => i.conferido || i.rejeitado);
   
   const podeImportar = todosProcessados && aceitouResponsabilidade && totalConferidos > 0;
+
+  const formatarData = (data: Date) => {
+    return new Intl.DateTimeFormat('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }).format(data);
+  };
 
   return (
     <>
@@ -347,7 +487,10 @@ export function ImportarInsumosIA({ onImportar }: Props) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setItemAtual(Math.max(0, itemAtual - 1))}
+                    onClick={() => {
+                      setItemAtual(Math.max(0, itemAtual - 1));
+                      setModoEdicao(false);
+                    }}
                     disabled={itemAtual === 0}
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -355,7 +498,10 @@ export function ImportarInsumosIA({ onImportar }: Props) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setItemAtual(Math.min(insumosExtraidos.length - 1, itemAtual + 1))}
+                    onClick={() => {
+                      setItemAtual(Math.min(insumosExtraidos.length - 1, itemAtual + 1));
+                      setModoEdicao(false);
+                    }}
                     disabled={itemAtual === insumosExtraidos.length - 1}
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -365,66 +511,203 @@ export function ImportarInsumosIA({ onImportar }: Props) {
 
               {/* Card do item atual */}
               <div className="border rounded-lg p-4 space-y-4 flex-1 overflow-auto">
+                {/* Header do card */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm bg-muted px-2 py-1 rounded">
-                      {itemAtualData.codigo || "S/C"}
-                    </span>
-                    <span className="font-semibold text-lg">{itemAtualData.nome}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {!modoEdicao ? (
+                      <>
+                        <span className="font-mono text-sm bg-muted px-2 py-1 rounded">
+                          {itemAtualData.codigo || "S/C"}
+                        </span>
+                        <span className="font-semibold text-lg">{itemAtualData.nome}</span>
+                      </>
+                    ) : (
+                      <div className="flex gap-2 flex-wrap">
+                        <Input
+                          value={itemAtualData.codigo}
+                          onChange={(e) => atualizarCampo("codigo", e.target.value)}
+                          placeholder="Código"
+                          className="w-24 font-mono text-sm"
+                        />
+                        <Input
+                          value={itemAtualData.nome}
+                          onChange={(e) => atualizarCampo("nome", e.target.value)}
+                          placeholder="Nome do insumo"
+                          className="w-48"
+                        />
+                      </div>
+                    )}
+                    {itemAtualData.editado && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              <Pencil className="h-3 w-3 mr-1" /> Editado
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{itemAtualData.historicoAlteracoes.length} alteração(ões)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </div>
-                  {itemAtualData.conferido && (
-                    <Badge variant="default" className="bg-green-600">
-                      <Check className="h-3 w-3 mr-1" /> Conferido
-                    </Badge>
-                  )}
-                  {itemAtualData.rejeitado && (
-                    <Badge variant="destructive">
-                      <X className="h-3 w-3 mr-1" /> Rejeitado
-                    </Badge>
-                  )}
-                  {!itemAtualData.conferido && !itemAtualData.rejeitado && (
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                      Pendente
-                    </Badge>
+                  <div className="flex items-center gap-2">
+                    {itemAtualData.conferido && (
+                      <Badge variant="default" className="bg-green-600">
+                        <Check className="h-3 w-3 mr-1" /> Conferido
+                      </Badge>
+                    )}
+                    {itemAtualData.rejeitado && (
+                      <Badge variant="destructive">
+                        <X className="h-3 w-3 mr-1" /> Rejeitado
+                      </Badge>
+                    )}
+                    {!itemAtualData.conferido && !itemAtualData.rejeitado && (
+                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                        Pendente
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Fornecedor */}
+                <div>
+                  <span className="text-sm text-muted-foreground">Fornecedor:</span>
+                  {!modoEdicao ? (
+                    <span className="ml-2 font-medium">{itemAtualData.fornecedor || "-"}</span>
+                  ) : (
+                    <Input
+                      value={itemAtualData.fornecedor}
+                      onChange={(e) => atualizarCampo("fornecedor", e.target.value)}
+                      placeholder="Fornecedor"
+                      className="mt-1"
+                    />
                   )}
                 </div>
 
-                {itemAtualData.fornecedor && (
-                  <div>
-                    <span className="text-sm text-muted-foreground">Fornecedor:</span>
-                    <span className="ml-2 font-medium">{itemAtualData.fornecedor}</span>
-                  </div>
-                )}
-
+                {/* Custos */}
                 <div className="border-t pt-4">
                   <h4 className="text-sm font-semibold mb-3">Custos</h4>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="bg-muted/50 rounded-lg p-3">
-                      <span className="text-xs text-muted-foreground block">Custo NF</span>
-                      <span className="text-lg font-mono font-semibold">
-                        R$ {itemAtualData.custo_nf.toFixed(6)}
-                      </span>
+                      <span className="text-xs text-muted-foreground block mb-1">Custo NF</span>
+                      {!modoEdicao ? (
+                        <span className="text-lg font-mono font-semibold">
+                          R$ {itemAtualData.custo_nf.toFixed(6)}
+                        </span>
+                      ) : (
+                        <Input
+                          type="number"
+                          step="0.000001"
+                          value={itemAtualData.custo_nf}
+                          onChange={(e) => atualizarCampo("custo_nf", parseFloat(e.target.value) || 0)}
+                          className="font-mono"
+                        />
+                      )}
                     </div>
                     <div className="bg-muted/50 rounded-lg p-3">
-                      <span className="text-xs text-muted-foreground block">Custo Serviço</span>
-                      <span className="text-lg font-mono font-semibold">
-                        R$ {itemAtualData.custo_servico.toFixed(6)}
-                      </span>
+                      <span className="text-xs text-muted-foreground block mb-1">Custo Serviço</span>
+                      {!modoEdicao ? (
+                        <span className="text-lg font-mono font-semibold">
+                          R$ {itemAtualData.custo_servico.toFixed(6)}
+                        </span>
+                      ) : (
+                        <Input
+                          type="number"
+                          step="0.000001"
+                          value={itemAtualData.custo_servico}
+                          onChange={(e) => atualizarCampo("custo_servico", parseFloat(e.target.value) || 0)}
+                          className="font-mono"
+                        />
+                      )}
                     </div>
                     <div className="bg-muted/50 rounded-lg p-3">
-                      <span className="text-xs text-muted-foreground block">Custo Condição</span>
-                      <span className="text-lg font-mono font-semibold">
-                        R$ {itemAtualData.custo_condicao.toFixed(6)}
-                      </span>
+                      <span className="text-xs text-muted-foreground block mb-1">Custo Condição</span>
+                      {!modoEdicao ? (
+                        <span className="text-lg font-mono font-semibold">
+                          R$ {itemAtualData.custo_condicao.toFixed(6)}
+                        </span>
+                      ) : (
+                        <Input
+                          type="number"
+                          step="0.000001"
+                          value={itemAtualData.custo_condicao}
+                          onChange={(e) => atualizarCampo("custo_condicao", parseFloat(e.target.value) || 0)}
+                          className="font-mono"
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {itemAtualData.nf_referencia && (
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">NF Referência:</span>
-                    <span className="ml-2">{itemAtualData.nf_referencia}</span>
-                  </div>
+                {/* NF Referência */}
+                <div className="text-sm">
+                  <span className="text-muted-foreground">NF Referência:</span>
+                  {!modoEdicao ? (
+                    <span className="ml-2">{itemAtualData.nf_referencia || "-"}</span>
+                  ) : (
+                    <Input
+                      value={itemAtualData.nf_referencia}
+                      onChange={(e) => atualizarCampo("nf_referencia", e.target.value)}
+                      placeholder="Número da NF"
+                      className="mt-1"
+                    />
+                  )}
+                </div>
+
+                {/* Histórico de Alterações */}
+                {itemAtualData.historicoAlteracoes.length > 0 && (
+                  <Collapsible open={historicoAberto} onOpenChange={setHistoricoAberto}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="w-full gap-2">
+                        <History className="h-4 w-4" />
+                        Histórico de Alterações ({itemAtualData.historicoAlteracoes.length})
+                        <ChevronRight className={`h-4 w-4 transition-transform ${historicoAberto ? 'rotate-90' : ''}`} />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2">
+                      <div className="border rounded-lg divide-y max-h-[150px] overflow-auto">
+                        {itemAtualData.historicoAlteracoes.map((alt, idx) => (
+                          <div key={idx} className="p-2 text-xs">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium">{alt.campo}</span>
+                              <span className="text-muted-foreground">{formatarData(alt.timestamp)}</span>
+                            </div>
+                            <div className="mt-1 text-muted-foreground">
+                              <span className="line-through text-red-600">{alt.valorAnterior || "(vazio)"}</span>
+                              {" → "}
+                              <span className="text-green-600">{alt.valorNovo || "(vazio)"}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+              </div>
+
+              {/* Botões de edição */}
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant={modoEdicao ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setModoEdicao(!modoEdicao)}
+                  className="gap-2"
+                >
+                  <Pencil className="h-4 w-4" />
+                  {modoEdicao ? "Sair da Edição" : "Editar Valores"}
+                </Button>
+                {itemAtualData.editado && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={restaurarValoresOriginais}
+                    className="gap-2"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Restaurar Original
+                  </Button>
                 )}
               </div>
 
@@ -452,7 +735,10 @@ export function ImportarInsumosIA({ onImportar }: Props) {
               {/* Progresso */}
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>{totalConferidos} aprovados • {totalRejeitados} rejeitados</span>
+                  <span>
+                    {totalConferidos} aprovados • {totalRejeitados} rejeitados
+                    {totalEditados > 0 && <span className="text-blue-600"> • {totalEditados} editados</span>}
+                  </span>
                   <span>{totalProcessados}/{insumosExtraidos.length} conferidos</span>
                 </div>
                 <Progress value={progresso} className="h-2" />
@@ -472,7 +758,7 @@ export function ImportarInsumosIA({ onImportar }: Props) {
               {/* Resumo */}
               <div className="bg-muted/50 rounded-lg p-4">
                 <h4 className="font-semibold mb-3">Resumo da Importação</h4>
-                <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="grid grid-cols-4 gap-4 text-center">
                   <div>
                     <span className="text-2xl font-bold text-green-600">{totalConferidos}</span>
                     <p className="text-sm text-muted-foreground">Aprovados</p>
@@ -480,6 +766,10 @@ export function ImportarInsumosIA({ onImportar }: Props) {
                   <div>
                     <span className="text-2xl font-bold text-red-600">{totalRejeitados}</span>
                     <p className="text-sm text-muted-foreground">Rejeitados</p>
+                  </div>
+                  <div>
+                    <span className="text-2xl font-bold text-blue-600">{totalEditados}</span>
+                    <p className="text-sm text-muted-foreground">Editados</p>
                   </div>
                   <div>
                     <span className="text-2xl font-bold">{insumosExtraidos.length}</span>
@@ -504,6 +794,7 @@ export function ImportarInsumosIA({ onImportar }: Props) {
                           <th className="text-right px-3 py-2 min-w-[100px]">NF</th>
                           <th className="text-right px-3 py-2 min-w-[100px]">Serviço</th>
                           <th className="text-right px-3 py-2 min-w-[100px]">Condição</th>
+                          <th className="text-center px-3 py-2 min-w-[80px]">Status</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -523,6 +814,24 @@ export function ImportarInsumosIA({ onImportar }: Props) {
                               <td className="px-3 py-2 text-right font-mono">
                                 {insumo.custo_condicao.toFixed(6)}
                               </td>
+                              <td className="px-3 py-2 text-center">
+                                {insumo.editado ? (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
+                                          Editado
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>{insumo.historicoAlteracoes.length} alteração(ões)</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs">Original</Badge>
+                                )}
+                              </td>
                             </tr>
                           ))}
                       </tbody>
@@ -541,6 +850,9 @@ export function ImportarInsumosIA({ onImportar }: Props) {
                     </p>
                     <p className="text-sm text-yellow-700">
                       É de sua responsabilidade verificar se todos os valores estão corretos antes de confirmar a importação.
+                      {totalEditados > 0 && (
+                        <span className="font-medium"> Você editou {totalEditados} item(ns).</span>
+                      )}
                     </p>
                   </div>
                 </div>
