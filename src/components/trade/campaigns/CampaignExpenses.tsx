@@ -111,6 +111,13 @@ export function CampaignExpenses({ campaignId, verbaOrcada, lancamentoId }: Camp
     mutationFn: async ({ expenseId, status }: { expenseId: string; status: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
 
+      // Buscar dados da despesa antes de atualizar
+      const { data: expense } = await supabase
+        .from("trade_campaign_expenses")
+        .select("valor_realizado, campaign:trade_campaigns(budget_id)")
+        .eq("id", expenseId)
+        .single();
+
       const { error } = await supabase
         .from("trade_campaign_expenses")
         .update({
@@ -121,10 +128,20 @@ export function CampaignExpenses({ campaignId, verbaOrcada, lancamentoId }: Camp
         .eq("id", expenseId);
 
       if (error) throw error;
+
+      // Se aprovando, consumir crédito da verba vinculada
+      if (status === "aprovado" && expense?.campaign?.budget_id && expense.valor_realizado > 0) {
+        await supabase.rpc("consume_budget_credit", {
+          p_budget_id: expense.campaign.budget_id,
+          p_amount: expense.valor_realizado
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaign-expenses", campaignId, lancamentoId] });
       queryClient.invalidateQueries({ queryKey: ["trade-campaign-detail", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["trade-dashboard-verbas"] });
+      queryClient.invalidateQueries({ queryKey: ["trade-dashboard-despesas"] });
       toast.success("Status atualizado!");
     },
     onError: (error: any) => {
