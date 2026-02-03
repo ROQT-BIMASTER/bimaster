@@ -149,7 +149,7 @@ export default function FabricaFormulas() {
               return (
                 <Card
                   key={formula.id}
-                  className="hover:border-primary cursor-pointer transition-colors"
+                  className="hover:border-primary cursor-pointer transition-colors bg-gradient-to-br from-blue-50/50 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/10"
                   onClick={() =>
                     navigate(`/dashboard/fabrica/formulas/${formula.id}`)
                   }
