@@ -378,7 +378,7 @@ export default function TradeCampaigns() {
                         <SelectValue placeholder="Selecione uma verba (opcional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Sem verba vinculada</SelectItem>
+                        <SelectItem value="none">Sem verba vinculada</SelectItem>
                         {budgets.map((budget) => (
                           <SelectItem key={budget.id} value={budget.id}>
                             {budget.code} - {budget.name} (Disponível: R$ {parseFloat(budget.available_amount || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })})
@@ -386,7 +386,7 @@ export default function TradeCampaigns() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <input type="hidden" name="budget_id" value={selectedBudget} />
+                    <input type="hidden" name="budget_id" value={selectedBudget === "none" ? "" : selectedBudget} />
                     <p className="text-xs text-muted-foreground">A verba será obrigatória no momento da aprovação</p>
                   </div>
                     <div className="space-y-2">
