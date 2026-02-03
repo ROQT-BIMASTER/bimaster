@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { FileDown, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import * as XLSX from 'xlsx';
+import { exportToExcel } from "@/utils/excelExport";
 
 interface ExportControlsProps {
   reportType: string;
@@ -14,14 +14,13 @@ export const ExportControls = ({ reportType, data }: ExportControlsProps) => {
   const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     try {
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Relatório");
-      
-      const fileName = `relatorio_${reportType}_${new Date().toISOString().split('T')[0]}.xlsx`;
-      XLSX.writeFile(wb, fileName);
+      await exportToExcel(data, {
+        filename: `relatorio_${reportType}`,
+        sheetName: "Relatório",
+        includeTimestamp: true,
+      });
 
       toast({
         title: "Exportação concluída",
