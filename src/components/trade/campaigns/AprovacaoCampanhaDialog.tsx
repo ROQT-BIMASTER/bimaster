@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -30,13 +31,16 @@ import {
   User, 
   Plus, 
   TrendingUp,
-  Clock
+  Clock,
+  HelpCircle,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useTradeBudgets, usePendingBudgets } from "@/hooks/useTradeData";
 import { SolicitarOrcamentoDialog } from "@/components/trade/SolicitarOrcamentoDialog";
 import { SolicitarComplementoDialog } from "@/components/trade/SolicitarComplementoDialog";
+import { useTour, tradeCampaignApprovalTourSteps, TRADE_CAMPAIGN_APPROVAL_TOUR_ID } from "@/components/tour";
 
 interface AprovacaoCampanhaDialogProps {
   open: boolean;
@@ -52,6 +56,7 @@ export function AprovacaoCampanhaDialog({
   onSuccess,
 }: AprovacaoCampanhaDialogProps) {
   const queryClient = useQueryClient();
+  const { startTour, hasSeenTour } = useTour();
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [rejectReason, setRejectReason] = useState("");
@@ -72,6 +77,20 @@ export function AprovacaoCampanhaDialog({
       setRejectReason("");
     }
   }, [open, campaign?.budget_id]);
+
+  // Auto-start tour on first visit
+  useEffect(() => {
+    if (open && !hasSeenTour(TRADE_CAMPAIGN_APPROVAL_TOUR_ID)) {
+      const timer = setTimeout(() => {
+        startTour(TRADE_CAMPAIGN_APPROVAL_TOUR_ID, tradeCampaignApprovalTourSteps);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [open, hasSeenTour, startTour]);
+
+  const handleStartTour = () => {
+    startTour(TRADE_CAMPAIGN_APPROVAL_TOUR_ID, tradeCampaignApprovalTourSteps);
+  };
 
   const hasBudget = !!campaign?.budget_id;
   const selectedBudget = budgets.find((b: any) => b.id === selectedBudgetId);
@@ -224,16 +243,27 @@ export function AprovacaoCampanhaDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Revisar Campanha
+          <DialogHeader data-tour="approval-header">
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Revisar Campanha
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleStartTour}
+                title="Ajuda - Tour guiado"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6">
             {/* Informações da Campanha */}
-            <div className="grid gap-4 p-4 bg-muted/50 rounded-lg">
+            <div data-tour="approval-info" className="grid gap-4 p-4 bg-muted/50 rounded-lg">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground text-xs">Código</Label>
@@ -276,7 +306,7 @@ export function AprovacaoCampanhaDialog({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div data-tour="approval-requester" className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <Label className="text-muted-foreground text-xs">Solicitante</Label>
@@ -292,7 +322,7 @@ export function AprovacaoCampanhaDialog({
 
             {/* Vinculação de Verba */}
             {!hasBudget ? (
-              <div className="space-y-4 p-4 border-2 border-dashed border-orange-300 bg-orange-50 rounded-lg">
+              <div data-tour="approval-budget" className="space-y-4 p-4 border-2 border-dashed border-orange-300 bg-orange-50 rounded-lg">
                 <div className="flex items-center gap-2 text-orange-700">
                   <AlertTriangle className="h-5 w-5" />
                   <span className="font-semibold">Vinculação de Verba Obrigatória</span>
@@ -405,7 +435,7 @@ export function AprovacaoCampanhaDialog({
             )}
 
             {/* Observações */}
-            <div className="space-y-2">
+            <div data-tour="approval-notes" className="space-y-2">
               <Label htmlFor="notes">Observações (opcional)</Label>
               <Textarea
                 id="notes"
@@ -417,7 +447,7 @@ export function AprovacaoCampanhaDialog({
             </div>
 
             {/* Motivo de Rejeição */}
-            <div className="space-y-2">
+            <div data-tour="approval-reject-reason" className="space-y-2">
               <Label htmlFor="rejectReason">Motivo da Rejeição (obrigatório se rejeitar)</Label>
               <Textarea
                 id="rejectReason"
@@ -429,7 +459,7 @@ export function AprovacaoCampanhaDialog({
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter data-tour="approval-actions" className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
@@ -485,7 +515,7 @@ function BudgetRequestSection({
   onRequestNewBudget: () => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div data-tour="approval-request-budget" className="space-y-4">
       <div className="p-4 bg-white rounded-lg border space-y-3">
         <p className="text-sm text-orange-700">
           💡 Não há verbas aprovadas disponíveis no sistema.
@@ -586,7 +616,7 @@ function PendingBudgetsInfo({
   formatCurrency: (v: number) => string;
 }) {
   return (
-    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+    <div data-tour="approval-pending-budgets" className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
       <div className="flex items-center gap-2 text-blue-700 mb-2">
         <Clock className="h-4 w-4" />
         <span className="text-sm font-medium">
@@ -609,6 +639,15 @@ function PendingBudgetsInfo({
           </div>
         )}
       </div>
+      
+      {/* Link para Verbas Semestrais */}
+      <Link 
+        to="/dashboard/trade/financeiro/verbas" 
+        className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 mt-3 font-medium"
+      >
+        <ExternalLink className="h-3 w-3" />
+        Ver Planejamento de Verbas Semestrais →
+      </Link>
     </div>
   );
 }
