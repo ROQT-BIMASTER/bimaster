@@ -71,7 +71,7 @@ export default function ProdutosPendentesPanel({
   }
 
   return (
-    <Card className="w-80 flex-shrink-0 border-l-4 border-l-amber-500 shadow-xl">
+    <Card className="w-80 min-w-[320px] flex-shrink-0 border-l-4 border-l-amber-500 shadow-xl overflow-hidden">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -115,8 +115,8 @@ export default function ProdutosPendentesPanel({
                 >
                   <div className="flex items-start gap-3">
                     <ProductThumbnail src={produto.foto_url} size="md" className="flex-shrink-0" />
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <h4 className="font-medium text-sm truncate" title={produto.nome}>
+                    <div className="flex-1 min-w-0 space-y-1 overflow-hidden">
+                      <h4 className="font-medium text-sm truncate pr-1" title={produto.nome}>
                         {produto.nome}
                       </h4>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
