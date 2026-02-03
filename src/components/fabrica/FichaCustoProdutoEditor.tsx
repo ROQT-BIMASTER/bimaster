@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, GripVertical, Save, FileText } from "lucide-react";
 import { CustoInsumo, CustoConfig, Totais } from "@/hooks/useFichaCustoProduto";
 import { AdicionarInsumoCustoDialog } from "./AdicionarInsumoCustoDialog";
+import { ImportarInsumosIA } from "./ImportarInsumosIA";
 
 interface Props {
   produto: any;
@@ -159,10 +160,17 @@ export function FichaCustoProdutoEditor({
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Insumos</CardTitle>
-            <Button size="sm" onClick={() => setDialogAberto(true)}>
-              <Plus className="h-4 w-4 mr-1" />
-              Adicionar
-            </Button>
+            <div className="flex gap-2">
+              <ImportarInsumosIA
+                onImportar={(insumos) => {
+                  insumos.forEach((insumo) => onAdicionarInsumo(insumo));
+                }}
+              />
+              <Button size="sm" onClick={() => setDialogAberto(true)}>
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
