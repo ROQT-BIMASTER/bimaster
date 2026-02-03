@@ -259,7 +259,7 @@ export default function FabricaLancamentos() {
 
   return (
     <DashboardLayout>
-      <div className="flex gap-6 overflow-x-auto">
+      <div className="flex gap-6 pr-4">
         {/* Main Content */}
         <div className="flex-1 space-y-6 min-w-0">
         {/* Header */}
@@ -534,7 +534,7 @@ export default function FabricaLancamentos() {
         </div>
 
         {/* Pending Products Panel */}
-        <div className="hidden xl:block flex-shrink-0 pr-2">
+        <div className="hidden xl:block flex-shrink-0">
           <ProdutosPendentesPanel
             onCreateLaunch={handleQuickLaunch}
             collapsed={panelCollapsed}

@@ -83,7 +83,7 @@ export default function ProdutosPendentesPanel({
 
   return (
     <Card className={cn(
-      "w-[340px] min-w-[340px] max-w-[340px] flex-shrink-0 border-l-4 border-l-amber-500 shadow-xl overflow-hidden",
+      "w-80 flex-shrink-0 border-l-4 border-l-amber-500 shadow-xl mr-4",
       isFixed ? "sticky top-6" : ""
     )}>
       <CardHeader className="pb-3">
@@ -142,12 +142,12 @@ export default function ProdutosPendentesPanel({
               produtos?.map((produto) => (
                 <div
                   key={produto.id}
-                  className="group p-3 rounded-lg border bg-card hover:bg-muted/50 hover:border-primary/30 transition-all"
+                  className="group p-3 rounded-lg border bg-card hover:bg-muted/50 hover:border-primary/30 transition-all overflow-hidden"
                 >
                   <div className="flex items-start gap-3">
                     <ProductThumbnail src={produto.foto_url} size="md" className="flex-shrink-0" />
-                    <div className="flex-1 min-w-0 space-y-1 overflow-hidden">
-                      <h4 className="font-medium text-sm truncate pr-1" title={produto.nome}>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <h4 className="font-medium text-sm truncate" title={produto.nome}>
                         {produto.nome}
                       </h4>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
