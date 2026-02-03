@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ClientSearchSelect } from "./ClientSearchSelect";
+import { TipoBrindeQuickAdd } from "./TipoBrindeQuickAdd";
 
 interface Campaign {
   id: string;
@@ -70,15 +71,7 @@ interface CampaignLancamentoFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
 }
-
-const BRINDE_OPTIONS = [
-  { value: "brinde_produto", label: "Brinde Produto" },
-  { value: "desconto", label: "Desconto" },
-  { value: "bonificacao", label: "Bonificação" },
-  { value: "kit_promocional", label: "Kit Promocional" },
-  { value: "premio", label: "Prêmio" },
-  { value: "outro", label: "Outro" },
-];
+// Tipos de brinde agora são carregados dinamicamente do banco
 
 export function CampaignLancamentoForm({ 
   campaign, 
@@ -142,6 +135,21 @@ export function CampaignLancamentoForm({
       }
 
       const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch tipos de brinde
+  const { data: tiposBrinde = [] } = useQuery({
+    queryKey: ["tipos-brinde"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_tipos_brinde")
+        .select("codigo, nome")
+        .eq("ativo", true)
+        .order("nome");
+      
       if (error) throw error;
       return data || [];
     },
@@ -431,21 +439,26 @@ export function CampaignLancamentoForm({
                 <Gift className="h-4 w-4" />
                 Tipo de Brinde
               </Label>
-              <Select
-                value={formData.tipo_brinde}
-                onValueChange={(value) => handleInputChange("tipo_brinde", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o brinde" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BRINDE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.tipo_brinde}
+                  onValueChange={(value) => handleInputChange("tipo_brinde", value)}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecione o brinde" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tiposBrinde.map((tipo) => (
+                      <SelectItem key={tipo.codigo} value={tipo.codigo}>
+                        {tipo.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <TipoBrindeQuickAdd 
+                  onSuccess={(codigo) => handleInputChange("tipo_brinde", codigo)} 
+                />
+              </div>
             </div>
 
             {/* Ações Manuais */}
