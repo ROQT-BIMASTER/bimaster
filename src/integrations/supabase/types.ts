@@ -16465,6 +16465,7 @@ export type Database = {
         Args: { batch_size?: number; retention_days?: number }
         Returns: number
       }
+      cleanup_audit_logs_daily: { Args: never; Returns: undefined }
       cleanup_expired_rate_limiter_slots: { Args: never; Returns: undefined }
       complete_sync: {
         Args: {
