@@ -19,6 +19,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { AprovarLancamentoDialog } from "@/components/trade/AprovarLancamentoDialog";
 import { usePendingFinancialEntries, usePendingInvestments } from "@/hooks/useTradeData";
 import { useQueryClient } from "@tanstack/react-query";
+import { TourButton, TRADE_APROVACOES_TOUR_ID, tradeAprovacoesTourSteps } from "@/components/tour";
 
 export default function TradeAprovacoes() {
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
@@ -91,21 +92,27 @@ export default function TradeAprovacoes() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Link to="/dashboard/trade/financeiro">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold">Aprovação de Lançamentos</h1>
-            <p className="text-muted-foreground mt-1">
-              Revise e aprove os lançamentos financeiros pendentes
-            </p>
+        <div className="flex items-center justify-between" data-tour="aprovacoes-header">
+          <div className="flex items-center gap-4">
+            <Link to="/dashboard/trade/financeiro">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold">Aprovação de Lançamentos</h1>
+              <p className="text-muted-foreground mt-1">
+                Revise e aprove os lançamentos financeiros pendentes
+              </p>
+            </div>
           </div>
+          <TourButton 
+            tourId={TRADE_APROVACOES_TOUR_ID} 
+            tourSteps={tradeAprovacoesTourSteps} 
+          />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3" data-tour="aprovacoes-kpis">
           <Card className="p-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-orange-500/10 rounded-lg">
@@ -150,7 +157,7 @@ export default function TradeAprovacoes() {
           </Card>
         </div>
 
-        <Card>
+        <Card data-tour="aprovacoes-tabela">
           {loading ? (
             <div className="p-8 text-center text-muted-foreground">
               Carregando pendências...
