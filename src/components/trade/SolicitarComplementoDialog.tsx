@@ -9,7 +9,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, TrendingUp, Info } from "lucide-react";
 import { sanitizeText } from "@/lib/utils/sanitize";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { BudgetEvidenceSection, formatEvidenceNotes } from "./BudgetEvidenceSection";
+
+interface UploadedFile {
+  name: string;
+  path: string;
+  url: string;
+  type: string;
+  size: number;
+}
 
 interface BudgetInfo {
   id: string;
@@ -28,6 +37,7 @@ interface SolicitarComplementoDialogProps {
   onSuccess: () => void;
   budget: BudgetInfo | null;
   campaignName?: string;
+  campaignId?: string;
   estimatedCost?: number;
 }
 
@@ -37,11 +47,18 @@ export function SolicitarComplementoDialog({
   onSuccess,
   budget,
   campaignName,
+  campaignId,
   estimatedCost = 0,
 }: SolicitarComplementoDialogProps) {
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [complementAmount, setComplementAmount] = useState("");
   const [justification, setJustification] = useState("");
+  
+  // Estados para evidências
+  const [linkedCampaignId, setLinkedCampaignId] = useState<string | null>(null);
+  const [linkedEntryId, setLinkedEntryId] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   // Buscar dados do usuário logado
   const { data: currentUser } = useQuery({
@@ -71,13 +88,26 @@ export function SolicitarComplementoDialog({
     : 0;
   const deficit = Math.max(0, estimatedCost - availableBalance);
 
-  // Pré-preencher com o déficit quando o dialog abrir
+  // Pré-preencher com o déficit e campanha quando o dialog abrir
   useEffect(() => {
     if (open && deficit > 0) {
       setComplementAmount(deficit.toFixed(2));
       setJustification("");
+      // Pré-vincular a campanha se vier do contexto
+      if (campaignId) {
+        setLinkedCampaignId(campaignId);
+      }
     }
-  }, [open, deficit]);
+  }, [open, deficit, campaignId]);
+
+  // Limpar quando fechar
+  useEffect(() => {
+    if (!open) {
+      setLinkedCampaignId(null);
+      setLinkedEntryId(null);
+      setUploadedFiles([]);
+    }
+  }, [open]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -96,27 +126,61 @@ export function SolicitarComplementoDialog({
         throw new Error("Valor do complemento deve ser maior que zero");
       }
 
-      const notes = sanitizeText(justification);
-      const complementNotes = `Complemento de saldo para verba ${budget.code} - ${budget.name}. ${campaignName ? `Solicitado para campanha: ${campaignName}.` : ''} Déficit identificado: ${formatCurrency(deficit)}. ${notes ? `Justificativa: ${notes}` : ''}`;
+      const userNotes = sanitizeText(justification);
+      
+      // Formatar notas com evidências
+      const baseNotes = `Complemento de saldo para verba ${budget.code} - ${budget.name}. ${campaignName ? `Solicitado para campanha: ${campaignName}.` : ''} Déficit identificado: ${formatCurrency(deficit)}. ${userNotes ? `Justificativa: ${userNotes}` : ''}`;
+      
+      const notes = formatEvidenceNotes(
+        baseNotes,
+        linkedCampaignId,
+        campaignName || null,
+        linkedEntryId,
+        uploadedFiles.length
+      );
 
       // Gerar código único para o complemento
       const complementCode = `${budget.code}-COMP-${Date.now().toString(36).toUpperCase().slice(-4)}`;
 
-      const { error } = await supabase.from("trade_budgets").insert({
+      const { data: budgetData, error } = await supabase.from("trade_budgets").insert({
         name: `Complemento - ${budget.name}`,
         code: complementCode,
         total_amount: amount,
         period_start: budget.period_start,
         period_end: budget.period_end,
-        notes: complementNotes,
+        notes,
         approval_status: "pending",
         status: "inactive",
         requested_by: currentUser.id,
         requester_name: currentUser.nome,
         requester_email: currentUser.email,
-      });
+      }).select("id").single();
 
       if (error) throw error;
+
+      // Salvar documentos vinculados ao budget
+      if (uploadedFiles.length > 0 && budgetData?.id) {
+        const documentsToInsert = uploadedFiles.map(file => ({
+          budget_id: budgetData.id,
+          file_name: file.name,
+          file_path: file.path,
+          file_url: file.url,
+          file_type: file.type,
+          file_size: file.size,
+          uploaded_by: currentUser.id,
+        }));
+
+        const { error: docError } = await supabase
+          .from("trade_budget_documents")
+          .insert(documentsToInsert);
+
+        if (docError) {
+          console.error("Erro ao salvar documentos:", docError);
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['trade-budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['trade-pending-budgets'] });
 
       toast.success("Solicitação de complemento enviada para aprovação do financeiro!");
       onOpenChange(false);
@@ -196,10 +260,21 @@ export function SolicitarComplementoDialog({
               value={justification}
               onChange={(e) => setJustification(e.target.value)}
               placeholder="Descreva o motivo do complemento..."
-              rows={3}
+              rows={2}
               maxLength={500}
             />
           </div>
+
+          {/* Seção de Evidências */}
+          <BudgetEvidenceSection
+            linkedCampaignId={linkedCampaignId}
+            onCampaignChange={setLinkedCampaignId}
+            linkedEntryId={linkedEntryId}
+            onEntryChange={setLinkedEntryId}
+            uploadedFiles={uploadedFiles}
+            onFilesChange={setUploadedFiles}
+            campaignName={campaignName}
+          />
 
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
             <p>

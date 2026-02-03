@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, DollarSign, TrendingUp, AlertCircle, Calendar, Pencil, Trash2, BookOpen, Receipt, Wallet, CheckCircle, FileText, LayoutDashboard } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, AlertCircle, Calendar, Pencil, Trash2, BookOpen, Receipt, Wallet, CheckCircle, FileText, LayoutDashboard, Upload, X } from "lucide-react";
 import { format } from "date-fns";
 import { EditarInvestimentoDialog } from "@/components/trade/EditarInvestimentoDialog";
 import { NovaLojaDialog } from "@/components/trade/NovaLojaDialog";
@@ -62,6 +62,8 @@ export default function TradeFinanceiro() {
   const [aiCriteria, setAiCriteria] = useState<any>(null);
   const [isNovaLojaOpen, setIsNovaLojaOpen] = useState(false);
   const [selectedStoreForInvestment, setSelectedStoreForInvestment] = useState<string>("");
+  const [investmentReceiptUrl, setInvestmentReceiptUrl] = useState<string>("");
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -195,7 +197,7 @@ export default function TradeFinanceiro() {
       }
       
       // Sanitizar dados
-      const sanitizedData = {
+      const sanitizedData: any = {
         store_id: storeId,
         investment_date: formData.get("investment_date") as string,
         amount: parseFloat(formData.get("amount") as string),
@@ -206,6 +208,11 @@ export default function TradeFinanceiro() {
         approval_status: "pending" as const,
         status: "pending" as const,
       };
+
+      // Adicionar URL do comprovante se existir
+      if (investmentReceiptUrl) {
+        sanitizedData.receipt_url = investmentReceiptUrl;
+      }
 
       // Validação básica
       if (!sanitizedData.investment_date || !sanitizedData.amount) {
@@ -226,6 +233,7 @@ export default function TradeFinanceiro() {
 
       toast.success("Investimento criado! Aguardando aprovação.");
       setNewInvestmentOpen(false);
+      setInvestmentReceiptUrl("");
       fetchData();
     } catch (error: any) {
       toast.error(getSafeErrorMessage(error));
@@ -681,6 +689,84 @@ export default function TradeFinanceiro() {
                       <Label htmlFor="description">Descrição</Label>
                       <Textarea id="description" name="description" required />
                     </div>
+                    
+                    {/* Upload de Comprovante */}
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Receipt className="h-4 w-4" />
+                        Comprovante / Recibo (Opcional)
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={uploadingReceipt}
+                          onClick={() => document.getElementById("investment-receipt-upload")?.click()}
+                          className="flex-1"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          {uploadingReceipt ? "Enviando..." : investmentReceiptUrl ? "Alterar Arquivo" : "Anexar Comprovante"}
+                        </Button>
+                        <input
+                          id="investment-receipt-upload"
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png,.webp"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            
+                            if (file.size > 10 * 1024 * 1024) {
+                              toast.error("Arquivo deve ter no máximo 10MB");
+                              return;
+                            }
+                            
+                            setUploadingReceipt(true);
+                            try {
+                              const { data: { user } } = await supabase.auth.getUser();
+                              if (!user) throw new Error("Usuário não autenticado");
+                              
+                              const ext = file.name.split('.').pop();
+                              const fileName = `investments/${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+                              
+                              const { error: uploadError } = await supabase.storage
+                                .from("trade-budget-docs")
+                                .upload(fileName, file);
+                              
+                              if (uploadError) throw uploadError;
+                              
+                              const { data: urlData } = supabase.storage
+                                .from("trade-budget-docs")
+                                .getPublicUrl(fileName);
+                              
+                              setInvestmentReceiptUrl(urlData.publicUrl);
+                              toast.success("Comprovante anexado!");
+                            } catch (error) {
+                              toast.error(getSafeErrorMessage(error));
+                            } finally {
+                              setUploadingReceipt(false);
+                            }
+                          }}
+                        />
+                        {investmentReceiptUrl && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setInvestmentReceiptUrl("")}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {investmentReceiptUrl && (
+                        <p className="text-xs text-green-600">✓ Comprovante anexado</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        PDF ou imagem (máx. 10MB)
+                      </p>
+                    </div>
+                    
                     <Button type="submit" className="w-full">Registrar Investimento</Button>
                   </form>
                 </DialogContent>
