@@ -24,17 +24,17 @@ export const TradeDashboardWidget = memo(() => {
         const monthStart = firstDayOfMonth.toISOString();
         const monthStartDate = firstDayOfMonth.toISOString().split("T")[0];
 
-        // Buscar contagem de stores
+        // Buscar contagem de stores (usa status='active', não coluna active)
         const storesQuery = supabase.from("stores").select("id", { count: "exact", head: true });
-        const { count: storesCount } = await (storesQuery as any).eq("active", true);
+        const { count: storesCount } = await (storesQuery as any).eq("status", "active");
         
         // Buscar contagem de visitas
         const visitsQuery = supabase.from("visits").select("id", { count: "exact", head: true });
-        const { count: visitsCount } = await (visitsQuery as any).gte("created_at", monthStart);
+        const { count: visitsCount } = await (visitsQuery as any).gte("scheduled_date", monthStartDate);
         
-        // Buscar contagem de fotos
+        // Buscar contagem de fotos (usa upload_date, não created_at)
         const photosQuery = supabase.from("photos").select("id", { count: "exact", head: true });
-        const { count: photosCount } = await (photosQuery as any).gte("created_at", monthStart);
+        const { count: photosCount } = await (photosQuery as any).gte("upload_date", monthStartDate);
         
         // Buscar investimentos
         const investmentsQuery = supabase.from("trade_investments").select("amount");
