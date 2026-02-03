@@ -1,156 +1,196 @@
 
-# Plano: Tour Guiado na Revisão de Campanha + Integração com Verbas Semestrais
+# Plano: Padronizar Formulários de Verba com Conta Contábil
 
-## Objetivo
+## Problema Identificado
 
-Criar um tour interativo que guie o usuário passo a passo ao revisar uma campanha, explicando cada seção e ação possível. Além disso, melhorar a integração visual entre o fluxo de aprovação de campanhas e a tela de Verbas Semestrais.
+Existem dois contextos diferentes para criar verbas que não estão padronizados:
 
----
+| Formulário | Onde aparece | Status inicial | Conta Contábil |
+|------------|--------------|----------------|----------------|
+| **Adicionar Verba Semestral** | Tela de Verbas | `active` (direto) | ✅ Disponível |
+| **Solicitar Novo Orçamento** | Aprovação de Campanha | `pending` (aprovação) | ❌ Faltando |
+| **Solicitar Complemento** | Aprovação de Campanha | `pending` (aprovação) | ❌ Faltando |
 
-## Mudanças Propostas
-
-### 1. Criar Tour para o Dialog de Aprovação de Campanha
-
-Novo arquivo de tour que será ativado automaticamente quando o dialog abrir (para usuários que nunca viram) ou manualmente via botão de ajuda.
-
-**Passos do tour:**
-
-| Passo | Elemento | Explicação |
-|-------|----------|------------|
-| 1 | Cabeçalho do dialog | "Revisar Campanha - Aqui você analisa os detalhes antes de aprovar" |
-| 2 | Informações da campanha | "Verifique: código, tipo, nome, período e custo estimado" |
-| 3 | Dados do solicitante | "Quem criou a campanha e quando" |
-| 4 | Seção de vinculação de verba | "Obrigatório! Selecione uma verba com saldo suficiente" |
-| 5 | Botão solicitar verba | "Sem verba? Clique aqui para solicitar ao Financeiro" |
-| 6 | Campo de observações | "Adicione notas para registro interno" |
-| 7 | Campo de rejeição | "Se rejeitar, informe o motivo para o solicitante" |
-| 8 | Botões de ação | "Escolha: Cancelar, Rejeitar ou Aprovar" |
-| 9 | Resumo final | "Após aprovar, a verba será reservada. Gerencie verbas em Verbas Semestrais" |
-
-### 2. Adicionar Atributos data-tour nos Elementos
-
-Inserir os atributos `data-tour` nos elementos do `AprovacaoCampanhaDialog` para que o driver.js possa identificá-los.
-
-### 3. Adicionar Botão de Ajuda no Dialog
-
-Incluir um ícone de ajuda (?) no canto superior do dialog que inicia o tour sob demanda.
-
-### 4. Link Direto para Verbas Semestrais
-
-Na seção de solicitação de verba e na mensagem de verbas pendentes, adicionar um link visual para "Acessar Planejamento de Verbas" que leva para `/dashboard/trade/financeiro/verbas`.
+O campo `account_id` **já existe** na tabela `trade_budgets` e está disponível para uso.
 
 ---
 
-## Arquivos a Criar/Modificar
+## Solução Proposta
 
-| Arquivo | Ação | Descrição |
-|---------|------|-----------|
-| `src/components/tour/tours/tradeCampaignApprovalTour.ts` | **Criar** | Definição dos passos do tour |
-| `src/components/tour/tours/index.ts` | **Modificar** | Exportar o novo tour |
-| `src/components/tour/index.ts` | **Modificar** | Exportar o novo tour |
-| `src/components/trade/campaigns/AprovacaoCampanhaDialog.tsx` | **Modificar** | Adicionar data-tour, botão de ajuda e links |
+### 1. Adicionar Campo "Conta Contábil" nos Dialogs de Solicitação
 
----
+Incluir o Select de conta contábil nos dois formulários de solicitação:
+- `SolicitarOrcamentoDialog.tsx`
+- `SolicitarComplementoDialog.tsx`
 
-## Interface Visual
+O campo será **opcional**, pois quem define a conta contábil final pode ser o Financeiro no momento da aprovação.
 
-### Botão de Ajuda no Dialog
+### 2. Padronizar Campos de Descrição/Notas
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  🎯 Revisar Campanha                              [?] [✕]  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  [Conteúdo do dialog com atributos data-tour]              │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+Unificar a nomenclatura:
+- **Verbas Semestrais**: já possui `description` 
+- **Solicitações**: usar `notes` como justificativa + `description` padronizado
 
-### Link para Verbas Semestrais
+### 3. Permitir Financeiro Ajustar Conta na Aprovação
 
-Na seção de verbas pendentes:
-```
-┌─────────────────────────────────────────────────────────────┐
-│ ⏳ 2 solicitações aguardando aprovação financeira           │
-│    • VERBA-2025-01 - R$ 50.000,00                          │
-│    • COMP-XYZ - R$ 10.000,00                               │
-│                                                             │
-│    📊 Ver Planejamento de Verbas →                         │
-└─────────────────────────────────────────────────────────────┘
-```
+Quando o Financeiro aprovar a verba, ele poderá:
+- Revisar/ajustar a conta contábil vinculada
+- Validar se a conta está correta para o tipo de despesa
 
 ---
 
-## Detalhes Técnicos
+## Arquivos a Modificar
 
-### Tour Steps (tradeCampaignApprovalTour.ts)
+| Arquivo | Ação |
+|---------|------|
+| `src/components/trade/SolicitarOrcamentoDialog.tsx` | Adicionar Select de conta contábil |
+| `src/components/trade/SolicitarComplementoDialog.tsx` | Adicionar Select de conta contábil |
+
+---
+
+## Detalhes de Implementação
+
+### SolicitarOrcamentoDialog
+
+Adicionar busca de contas e Select:
 
 ```typescript
-export const tradeCampaignApprovalTourSteps: DriveStep[] = [
-  {
-    element: '[data-tour="approval-header"]',
-    popover: {
-      title: "Revisão de Campanha",
-      description: "Analise os detalhes da campanha antes de tomar sua decisão de aprovação ou rejeição.",
-      side: "bottom",
-    },
+// Buscar contas contábeis
+const { data: accounts } = useQuery({
+  queryKey: ['chart-of-accounts'],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from("trade_chart_of_accounts")
+      .select("id, code, name")
+      .eq("is_active", true)
+      .order("code");
+    return data || [];
   },
-  {
-    element: '[data-tour="approval-info"]',
-    popover: {
-      title: "Informações da Campanha",
-      description: "Verifique: código, tipo, nome, descrição, período de execução e custo estimado.",
-      side: "right",
-    },
-  },
-  // ... demais passos
-];
+});
+
+// Estado
+const [accountId, setAccountId] = useState<string | null>(null);
 ```
 
-### Integração no Dialog
+Campo no formulário:
 
-```tsx
-import { useTour } from "@/components/tour";
-import { HelpCircle } from "lucide-react";
-import { tradeCampaignApprovalTourSteps, TRADE_CAMPAIGN_APPROVAL_TOUR_ID } from "@/components/tour";
+```text
+┌─────────────────────────────────────────────────────────┐
+│ Nome do Orçamento *                  │ Código *        │
+│ [Campanha Verão 2025              ]  │ [CAMP-2025-01]  │
+├─────────────────────────────────────────────────────────┤
+│ Valor Total Solicitado *                                │
+│ [0.00                                                 ] │
+├─────────────────────────────────────────────────────────┤
+│ Data Início *                        │ Data Fim *      │
+│ [dd/mm/aaaa]                         │ [dd/mm/aaaa]    │
+├─────────────────────────────────────────────────────────┤
+│ Conta Contábil (Opcional)                    🆕 NOVO   │
+│ [3.1.05 - Marketing e Publicidade           ▼]         │
+│ "O Financeiro poderá ajustar na aprovação"             │
+├─────────────────────────────────────────────────────────┤
+│ Justificativa                                           │
+│ [                                                     ] │
+└─────────────────────────────────────────────────────────┘
+```
 
-// No componente:
-const { startTour, hasSeenTour } = useTour();
+No submit, incluir `account_id`:
 
-// Iniciar tour automaticamente na primeira vez:
+```typescript
+const { data: budgetData, error } = await supabase
+  .from("trade_budgets")
+  .insert({
+    // ... campos existentes
+    account_id: accountId || null,  // 🆕 Adicionar
+  });
+```
+
+### SolicitarComplementoDialog
+
+Mesmo padrão, mas herdar a conta da verba original se existir:
+
+```typescript
+// Pré-selecionar conta da verba original
 useEffect(() => {
-  if (open && !hasSeenTour(TRADE_CAMPAIGN_APPROVAL_TOUR_ID)) {
-    setTimeout(() => startTour(TRADE_CAMPAIGN_APPROVAL_TOUR_ID, tradeCampaignApprovalTourSteps), 500);
+  if (open && budget?.account_id) {
+    setAccountId(budget.account_id);
   }
-}, [open]);
-
-// Botão manual:
-<Button variant="ghost" size="icon" onClick={() => startTour(...)}>
-  <HelpCircle className="h-4 w-4" />
-</Button>
-```
-
-### Link para Verbas
-
-```tsx
-import { Link } from "react-router-dom";
-
-// No PendingBudgetsInfo:
-<Link 
-  to="/dashboard/trade/financeiro/verbas" 
-  className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-2"
->
-  📊 Ver Planejamento de Verbas →
-</Link>
+}, [open, budget]);
 ```
 
 ---
 
-## Resultado Esperado
+## Fluxo Completo
 
-1. Ao abrir o dialog de aprovação pela primeira vez, o tour inicia automaticamente
-2. Usuário pode reiniciar o tour clicando no botão de ajuda (?)
-3. Cada seção do dialog é explicada de forma clara
-4. Link direto para Verbas Semestrais facilita a navegação
-5. Integração visual entre aprovação de campanhas e gestão de verbas
+```text
+Usuário solicita verba
+        ↓
+Preenche dados + seleciona conta (opcional)
+        ↓
+Salva com approval_status = 'pending'
+        ↓
+Financeiro vê solicitação
+        ↓
+Revisa conta contábil (pode ajustar)
+        ↓
+Aprova → status = 'approved' → Verba disponível
+```
 
+---
+
+## Benefícios
+
+1. **Consistência**: Todos os formulários de verba têm os mesmos campos
+2. **Rastreabilidade**: Cada verba terá sua classificação contábil desde a solicitação
+3. **Flexibilidade**: Solicitante sugere, Financeiro valida
+4. **Integração**: Facilita relatórios DRE e conciliação contábil
+
+---
+
+## Seção Técnica
+
+### Query de Contas Contábeis
+
+```typescript
+const { data: accounts } = useQuery({
+  queryKey: ['chart-of-accounts-active'],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from("trade_chart_of_accounts")
+      .select("id, code, name, account_type")
+      .eq("is_active", true)
+      .eq("permite_lancamento", true) // Apenas contas analíticas
+      .in("account_type", ["expense", "budget"]) // Despesas e verbas
+      .order("code");
+    
+    if (error) throw error;
+    return data || [];
+  },
+  staleTime: 5 * 60 * 1000,
+});
+```
+
+### Componente Select Reutilizável
+
+Usar o mesmo padrão visual da tela de Verbas Semestrais:
+
+```tsx
+<div className="space-y-2">
+  <Label htmlFor="account_id">Conta Contábil (Opcional)</Label>
+  <Select value={accountId || ""} onValueChange={(val) => setAccountId(val || null)}>
+    <SelectTrigger>
+      <SelectValue placeholder="Selecione uma conta" />
+    </SelectTrigger>
+    <SelectContent>
+      {accounts?.map((account) => (
+        <SelectItem key={account.id} value={account.id}>
+          {account.code} - {account.name}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+  <p className="text-xs text-muted-foreground">
+    O departamento financeiro poderá revisar na aprovação
+  </p>
+</div>
+```
