@@ -1,207 +1,68 @@
 
-# Plano: Melhorias na Importação de Insumos via IA
+# Plano de Correção: Campanhas não aparecem na Central de Aprovações
 
-## Resumo das Mudanças
+## Diagnóstico
 
-Este plano implementa 4 melhorias principais:
-1. Ajustar layout para não cortar valores
-2. Obrigar conferência item a item antes de importar
-3. Adicionar aviso de responsabilidade do usuário
-4. Permitir colar texto além de imagem
+Identifiquei a causa raiz do problema:
 
----
+1. **O botão mostra "1" corretamente** - A página `TradeCampaigns` busca todas as campanhas e filtra localmente as que têm `status === "pending_approval"`
 
-## 1. Novo Layout com Valores Completos
+2. **A Central de Aprovações não mostra a campanha** - O hook `usePendingCampaigns()` está retornando **erro 400** porque tenta fazer um join inexistente:
+   ```
+   responsible:profiles!responsible_user_id(id, nome, email)
+   ```
 
-### Problema Atual
-Os valores estão sendo cortados porque usamos `truncate` no nome e layout compacto.
+3. **Erro do PostgREST**: 
+   ```
+   PGRST200: Could not find a relationship between 'trade_campaigns' and 'profiles' 
+   using the hint 'responsible_user_id'
+   ```
 
-### Solução
-Trocar o layout de cards para uma **tabela responsiva** com colunas ajustáveis:
-
-```text
-+---------------------------------------------------------------------------------+
-| [x] | Código  | Nome               | Fornecedor | NF        | Serv.     | Cond. |
-+---------------------------------------------------------------------------------+
-| [x] | 22904   | Bulk               | Rodrigues  | 0.188302  | 0.188302  | 0.00  |
-| [ ] | 00987   | Frasco 50ml        | GlassCo    | 0.245000  | 0.245000  | 0.00  |
-| [x] | 12345   | Tampa rosca        | PackBR     | 0.123456  | 0.123456  | 0.00  |
-+---------------------------------------------------------------------------------+
-```
-
-- Usar `min-w-[...]` nas colunas para garantir visibilidade
-- Valores numéricos alinhados à direita
-- Scroll horizontal se necessário
+4. **Causa técnica**: A coluna `responsible_user_id` não possui foreign key para a tabela `profiles`, então o PostgREST não consegue resolver o relacionamento automaticamente
 
 ---
 
-## 2. Conferência Item a Item Obrigatória
+## Solução
 
-### Fluxo Proposto
+Corrigir o hook `usePendingCampaigns` em `src/hooks/useTradeData.ts`:
 
-```text
-Etapa 1: Upload        →  Etapa 2: Conferência     →  Etapa 3: Confirmação
-(imagem ou texto)         (item por item)              (termo + importar)
-```
+### Alteração
 
-### Mecânica de Conferência
-
-- Cada item começa com status **"Não conferido"**
-- Usuário deve clicar em cada item para **marcar como conferido**
-- Adicionar badge visual de status:
-  - Amarelo: "Pendente de conferência"
-  - Verde: "Conferido"
-- Botão "Importar" só habilita quando **todos os selecionados** estiverem conferidos
-
-### Interface de Conferência
+Remover o join problemático `responsible:profiles!responsible_user_id` e buscar os dados do responsável em uma query separada, seguindo o mesmo padrão já usado para `created_by_profile`:
 
 ```text
-+---------------------------------------------------------------------------------+
-| Item 1 de 5                                           [Anterior] [Próximo]      |
-+---------------------------------------------------------------------------------+
-| Código: 22904                    Status: 🟡 Pendente                            |
-| Nome: Bulk                                                                       |
-| Fornecedor: Rodrigues                                                            |
-|                                                                                  |
-| Custos:                                                                          |
-|   NF: R$ 0.188302                                                                |
-|   Serviço: R$ 0.188302                                                           |
-|   Condição: R$ 0.00                                                              |
-|   NF Ref: -                                                                      |
-|                                                                                  |
-|          [ Rejeitar Item ]   [ ✓ Confirmar e Avançar ]                          |
-+---------------------------------------------------------------------------------+
-| Progresso: ██████░░░░ 3/5 conferidos                                            |
-+---------------------------------------------------------------------------------+
-```
+ANTES:
+.select(`
+  *,
+  budget:trade_budgets(...),
+  responsible:profiles!responsible_user_id(id, nome, email)  ← ERRO
+`)
 
----
-
-## 3. Aviso de Responsabilidade
-
-### Localização
-No footer do dialog, antes do botão de importar.
-
-### Texto
-
-```text
-⚠️ IMPORTANTE: Os dados foram extraídos automaticamente por IA.
-É de sua responsabilidade verificar se todos os valores estão corretos
-antes de confirmar a importação.
-
-[ ] Li e concordo que conferi todos os itens e assumo responsabilidade
-    pela validação dos dados importados.
-```
-
-### Lógica
-- Checkbox obrigatório para habilitar o botão "Importar"
-- Combina com a conferência item a item
-
----
-
-## 4. Opção de Colar Texto
-
-### Interface de Upload Atualizada
-
-```text
-+--------------------------------------------------+
-|  Como deseja importar?                           |
-|                                                   |
-|  [📷 Enviar Imagem]    [📋 Colar Texto]          |
-+--------------------------------------------------+
-```
-
-### Área de Texto
-
-```text
-+--------------------------------------------------+
-| Cole aqui o texto da tabela de custos:           |
-|                                                   |
-| +----------------------------------------------+ |
-| | Código  Nome         Fornecedor  NF    Serv  | |
-| | 22904   Bulk         Rodrigues   0.18  0.18  | |
-| | 00987   Frasco 50ml  GlassCo     0.24  0.24  | |
-| |                                              | |
-| |                                              | |
-| +----------------------------------------------+ |
-|                                                   |
-|                        [Processar com IA]        |
-+--------------------------------------------------+
-```
-
-### Alterações na Edge Function
-
-A edge function precisa aceitar também um campo `text` e processar de forma diferente:
-
-```typescript
-// Se receber imagem
-if (image) {
-  content = [
-    { type: "text", text: promptImagem },
-    { type: "image_url", image_url: { url: image } }
-  ];
-}
-
-// Se receber texto
-if (text) {
-  content = [
-    { type: "text", text: promptTexto + "\n\nTexto da tabela:\n" + text }
-  ];
-}
-```
-
----
-
-## Estrutura de Estados
-
-```typescript
-// Estados atualizados
-const [modoInput, setModoInput] = useState<"imagem" | "texto">("imagem");
-const [textoColado, setTextoColado] = useState("");
-const [etapa, setEtapa] = useState<"upload" | "conferencia" | "confirmacao">("upload");
-const [itemAtual, setItemAtual] = useState(0);
-const [aceitouResponsabilidade, setAceitouResponsabilidade] = useState(false);
-
-// Novo campo no InsumoExtraido
-interface InsumoExtraido {
-  // ... campos existentes
-  conferido: boolean; // NOVO
-  rejeitado: boolean; // NOVO
-}
+DEPOIS:
+.select(`
+  *,
+  budget:trade_budgets(...)
+`)
+// Depois buscar profiles em query separada para created_by E responsible_user_id
 ```
 
 ---
 
 ## Arquivos a Modificar
 
-| Arquivo | Mudança |
-|---------|---------|
-| `src/components/fabrica/ImportarInsumosIA.tsx` | Refatorar toda a UI com novo fluxo de 3 etapas |
-| `supabase/functions/extrair-insumos-imagem/index.ts` | Aceitar campo `text` além de `image` |
+| Arquivo | Modificação |
+|---------|-------------|
+| `src/hooks/useTradeData.ts` | Remover join `profiles!responsible_user_id` e enriquecer dados com query separada |
 
 ---
 
-## Fluxo Completo
+## Detalhes Técnicos
 
-```text
-1. Usuário clica "Importar com IA"
-2. Escolhe: Imagem ou Texto
-3. Envia imagem OU cola texto
-4. IA processa e retorna insumos
-5. Entra na tela de conferência item a item
-6. Para cada item: Confirma ou Rejeita
-7. Após todos conferidos:
-   - Mostra resumo
-   - Checkbox de responsabilidade
-   - Botão importar habilitado
-8. Importa apenas os confirmados
-```
+O hook atualizado irá:
 
----
+1. Buscar campanhas pendentes sem o join para `profiles`
+2. Coletar todos os IDs únicos (`created_by` + `responsible_user_id`)  
+3. Buscar profiles em uma única query
+4. Enriquecer cada campanha com `created_by_profile` e `responsible_profile`
 
-## Validações de Segurança
-
-1. **Conferência obrigatória**: Não permite pular itens
-2. **Checkbox obrigatório**: Termo de responsabilidade
-3. **Feedback visual claro**: Status de cada item
-4. **Barra de progresso**: Mostra quantos faltam conferir
+Isso garante compatibilidade com a estrutura atual do banco de dados que não possui a foreign key entre `trade_campaigns.responsible_user_id` e `profiles`.
