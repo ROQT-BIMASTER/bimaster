@@ -1,83 +1,104 @@
 
+# Plano: Tornar Seleção de Verba Obrigatória na Criação de Campanha
 
-# Plano: Remover Cron Duplicado e Prevenir Reincidência
+## Objetivo
+Modificar o formulário de criação de campanha para que a seleção de uma verba (budget) aprovada seja obrigatória, garantindo que todas as campanhas estejam vinculadas a uma fonte de financiamento validada pelo departamento financeiro.
 
-## Problema Identificado
-
-Existem **2 cron jobs idênticos** sincronizando contas a receber:
-
-| Job ID | Nome | Schedule | Impacto |
-|--------|------|----------|---------|
-| 1 | sync-contas-receber-6h | A cada 6h | Gasto duplo |
-| 2 | sync-contas-receber-auto | A cada 6h | Gasto duplo |
-
-Isso causa **custos dobrados** em execução de edge functions e processamento.
+## Contexto
+Atualmente, o campo `budget_id` está marcado como opcional tanto no schema de validação quanto no formulário de criação. O usuário quer que apenas verbas já aprovadas pelo financeiro possam ser selecionadas, tornando esse vínculo obrigatório.
 
 ---
 
-## Ação Imediata
+## Alterações Planejadas
 
-### 1. Remover o Cron Duplicado
+### 1. Schema de Validação (campaign.ts)
+Alterar a regra de validação do campo `budget_id` de opcional para obrigatório.
 
-Executar o seguinte SQL para remover o job duplicado (mantendo apenas o jobid 1):
+**Arquivo:** `src/lib/validations/campaign.ts`
 
-```sql
-SELECT cron.unschedule('sync-contas-receber-auto');
-```
+| Campo | Antes | Depois |
+|-------|-------|--------|
+| `budget_id` | `.optional().nullable()` | `.uuid({ message: "Selecione uma verba" })` (obrigatório) |
 
 ---
 
-## Plano Preventivo (Boas Práticas)
+### 2. Formulário de Criação de Campanha (TradeCampaigns.tsx)
 
-### 2. Padrão de Nomenclatura
+**Alterações no formulário:**
+- Alterar label de "Verba (Opcional)" para "Verba *" (indicando obrigatoriedade)
+- Adicionar validação que impede submissão sem verba selecionada
+- Filtrar apenas verbas com status "approved" (já aprovadas pelo financeiro)
+- Exibir mensagem de erro se nenhuma verba for selecionada
 
-Adotar convenção para evitar duplicatas:
-- Nome único e descritivo: `{modulo}-{acao}-{frequencia}`
-- Exemplos: `trade-cleanup-10min`, `financeiro-sync-6h`
+**Alterações na busca de verbas:**
+- Atualmente: `.eq("status", "active")`
+- Proposto: `.eq("status", "approved")` ou `.in("status", ["active", "approved"])` dependendo da regra de negócio
 
-### 3. Checagem Antes de Criar Jobs
+---
 
-Sempre verificar jobs existentes antes de criar novos:
+### 3. Experiência do Usuário
 
-```sql
--- Verificar se já existe antes de criar
-SELECT * FROM cron.job WHERE jobname LIKE '%contas-receber%';
+```text
++--------------------------------------------------+
+|              CRIAR NOVA CAMPANHA                  |
++--------------------------------------------------+
+|                                                   |
+|  Código: [________________]  Tipo: [v Sell-In]    |
+|                                                   |
+|  Nome: [_____________________________________]    |
+|                                                   |
+|  Descrição: [________________________________]    |
+|                                                   |
+|  ┌─────────────────────────────────────────────┐  |
+|  │  Verba *                                    │  |
+|  │  [v VERBA-001 - Verba Semestral (R$ 50k)]   │  |
+|  │  ⚠ Apenas verbas aprovadas são exibidas    │  |
+|  └─────────────────────────────────────────────┘  |
+|                                                   |
+|  Custo Estimado: [________]  Receita: [________]  |
+|                                                   |
++--------------------------------------------------+
 ```
-
-### 4. Usar CREATE OR REPLACE
-
-Ao criar funções auxiliares, usar `CREATE OR REPLACE` para evitar duplicação de funções no banco.
-
-### 5. Documentação dos Cron Jobs Ativos
-
-Após a limpeza, os jobs ativos serão:
-
-| Job | Função | Frequência |
-|-----|--------|------------|
-| cleanup-audit-logs-batch | Limpar logs antigos | 10 min |
-| cleanup-sync-control-daily | Limpar sync_control | Diário 03h |
-| sync-contas-receber-6h | Sincronizar financeiro | 6h |
 
 ---
 
 ## Detalhes Técnicos
 
-### Economia Esperada
+### Validação do formulário
+```typescript
+// Antes
+const budget_id = formData.get("budget_id") as string || null;
 
-- **Antes**: 8 execuções/dia (2 jobs × 4 vezes)
-- **Depois**: 4 execuções/dia (1 job × 4 vezes)
-- **Redução**: 50% nas chamadas de sincronização
-
-### Verificação Pós-Implementação
-
-Script para confirmar que não há mais duplicatas:
-
-```sql
-SELECT jobname, schedule, COUNT(*) 
-FROM cron.job 
-GROUP BY jobname, schedule 
-HAVING COUNT(*) > 1;
+// Depois
+const budget_id = formData.get("budget_id") as string;
+if (!budget_id) throw new Error("Selecione uma verba aprovada");
 ```
 
-Se retornar vazio, não há duplicatas.
+### Query de verbas aprovadas
+```typescript
+// Filtrar apenas verbas aprovadas e com saldo disponível
+supabase
+  .from("trade_budgets")
+  .select("*")
+  .in("status", ["active", "approved"])
+  .is("inactivated_at", null)
+  .order("name")
+```
 
+---
+
+## Arquivos a Modificar
+
+| Arquivo | Tipo de Alteração |
+|---------|-------------------|
+| `src/lib/validations/campaign.ts` | Tornar `budget_id` obrigatório |
+| `src/pages/TradeCampaigns.tsx` | Atualizar label, validação e filtro de verbas |
+
+---
+
+## Benefícios
+
+- **Controle financeiro**: Garante que todo investimento em campanhas esteja atrelado a uma verba já aprovada
+- **Rastreabilidade**: Facilita a auditoria e o acompanhamento de gastos
+- **Prevenção de erros**: Evita criação de campanhas sem fonte de financiamento definida
+- **Fluxo aprovado**: Mantém o processo: Verba aprovada → Campanha criada → Execução
