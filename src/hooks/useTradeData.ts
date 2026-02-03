@@ -212,8 +212,7 @@ export function usePendingCampaigns() {
         .from("trade_campaigns")
         .select(`
           *,
-          budget:trade_budgets(id, name, code, total_amount, spent_amount, reserved_amount),
-          responsible:profiles!responsible_user_id(id, nome, email)
+          budget:trade_budgets(id, name, code, total_amount, spent_amount, reserved_amount)
         `)
         .eq("status", "pending_approval")
         .is("deleted_at", null)
@@ -221,9 +220,13 @@ export function usePendingCampaigns() {
 
       if (error) throw error;
 
-      // Enriquecer com informações do criador
+      // Enriquecer com informações do criador E do responsável
       if (data && data.length > 0) {
-        const userIds = [...new Set(data.map(c => c.created_by))];
+        // Coletar todos os IDs únicos (created_by + responsible_user_id)
+        const userIds = [...new Set(
+          data.flatMap(c => [c.created_by, c.responsible_user_id].filter(Boolean))
+        )];
+        
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, nome, email")
@@ -233,7 +236,8 @@ export function usePendingCampaigns() {
         
         return data.map(campaign => ({
           ...campaign,
-          created_by_profile: profileMap.get(campaign.created_by)
+          created_by_profile: profileMap.get(campaign.created_by),
+          responsible_profile: profileMap.get(campaign.responsible_user_id)
         }));
       }
 
