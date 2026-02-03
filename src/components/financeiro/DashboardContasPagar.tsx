@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -8,9 +8,10 @@ import {
 import { format, differenceInDays, subDays, subMonths, startOfMonth, endOfMonth, isWithinInterval, addDays, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, 
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from "recharts";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { parseLocalDate, getDateKey, getToday } from "@/utils/dateUtils";
 import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 interface ContaPagar {
@@ -57,7 +58,7 @@ const formatCompact = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(value);
 
 export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagarProps) {
-  
+  const [chartViewType, setChartViewType] = useState<'area' | 'bar' | 'line'>('area');
   // KPIs Avançados
   const kpisAvancados = useMemo(() => {
     if (!contas || contas.length === 0) {
@@ -470,21 +471,45 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
         </Card>
       </div>
 
-      {/* Gráficos */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Evolução Mensal */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Evolução Mensal
-            </CardTitle>
-            <CardDescription>Pagamentos realizados vs pendentes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+      {/* Gráfico de Evolução Mensal - LARGO com opções de visualização */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Evolução Mensal
+              </CardTitle>
+              <CardDescription>Pagamentos realizados vs pendentes</CardDescription>
+            </div>
+            <ToggleGroup type="single" value={chartViewType} onValueChange={(val) => val && setChartViewType(val as 'area' | 'bar' | 'line')}>
+              <ToggleGroupItem value="area" aria-label="Área" className="text-xs px-3">
+                Área
+              </ToggleGroupItem>
+              <ToggleGroupItem value="bar" aria-label="Barras" className="text-xs px-3">
+                Barras
+              </ToggleGroupItem>
+              <ToggleGroupItem value="line" aria-label="Linhas" className="text-xs px-3">
+                Linhas
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              {chartViewType === 'area' ? (
                 <AreaChart data={dadosEvolucaoMensal}>
+                  <defs>
+                    <linearGradient id="gradPago" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.6}/>
+                      <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0.1}/>
+                    </linearGradient>
+                    <linearGradient id="gradPendente" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.6}/>
+                      <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis dataKey="mes" className="text-xs" />
                   <YAxis tickFormatter={(v) => formatCompact(v)} className="text-xs" />
@@ -504,8 +529,7 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
                     name="Pago"
                     stackId="1"
                     stroke="hsl(var(--chart-2))" 
-                    fill="hsl(var(--chart-2))" 
-                    fillOpacity={0.6}
+                    fill="url(#gradPago)" 
                   />
                   <Area 
                     type="monotone" 
@@ -513,53 +537,81 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
                     name="Pendente"
                     stackId="1"
                     stroke="hsl(var(--chart-1))" 
-                    fill="hsl(var(--chart-1))" 
-                    fillOpacity={0.6}
+                    fill="url(#gradPendente)" 
                   />
                 </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Top Fornecedores */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Top 10 Fornecedores
-            </CardTitle>
-            <CardDescription>Por valor total</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topFornecedores} layout="vertical">
+              ) : chartViewType === 'bar' ? (
+                <BarChart data={dadosEvolucaoMensal}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis type="number" tickFormatter={(v) => formatCompact(v)} className="text-xs" />
-                  <YAxis dataKey="nome" type="category" width={120} className="text-xs" />
+                  <XAxis dataKey="mes" className="text-xs" />
+                  <YAxis tickFormatter={(v) => formatCompact(v)} className="text-xs" />
                   <Tooltip 
-                    formatter={(value: number, name: string, props: any) => [formatCurrency(value), props.payload.nomeCompleto]}
+                    formatter={(value: number) => formatCurrency(value)}
+                    labelStyle={{ color: 'hsl(var(--foreground))' }}
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--card))', 
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px'
                     }}
                   />
+                  <Legend />
                   <Bar 
-                    dataKey="valor" 
-                    radius={[0, 4, 4, 0]}
-                  >
-                    {topFornecedores.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
+                    dataKey="pago" 
+                    name="Pago"
+                    fill="hsl(var(--chart-2))" 
+                    radius={[4, 4, 0, 0]}
+                    stackId="a"
+                  />
+                  <Bar 
+                    dataKey="pendente" 
+                    name="Pendente"
+                    fill="hsl(var(--chart-1))" 
+                    radius={[4, 4, 0, 0]}
+                    stackId="a"
+                  />
                 </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+              ) : (
+                <LineChart data={dadosEvolucaoMensal}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="mes" className="text-xs" />
+                  <YAxis tickFormatter={(v) => formatCompact(v)} className="text-xs" />
+                  <Tooltip 
+                    formatter={(value: number) => formatCurrency(value)}
+                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="pago" 
+                    name="Pago"
+                    stroke="hsl(var(--chart-2))" 
+                    strokeWidth={3}
+                    dot={{ fill: "hsl(var(--chart-2))", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="pendente" 
+                    name="Pendente"
+                    stroke="hsl(var(--chart-1))" 
+                    strokeWidth={3}
+                    dot={{ fill: "hsl(var(--chart-1))", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              )}
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
+      {/* Grid de Gráficos Menores */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Distribuição por Departamento */}
         <Card>
           <CardHeader>
@@ -570,7 +622,7 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
             <CardDescription>Distribuição de despesas</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -578,7 +630,7 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    outerRadius={100}
+                    outerRadius={90}
                     fill="#8884d8"
                     dataKey="valor"
                     label={({ nome, percent }) => `${nome} (${(percent * 100).toFixed(0)}%)`}
@@ -611,7 +663,7 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
             <CardDescription>Situação dos títulos</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={distribuicaoStatus}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -632,6 +684,44 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
                   <Bar dataKey="valor" name="Valor" radius={[4, 4, 0, 0]}>
                     {distribuicaoStatus.map((entry) => (
                       <Cell key={`cell-${entry.nome}`} fill={STATUS_COLORS[entry.nome] || COLORS[0]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top Fornecedores - MOVIDO PARA BAIXO */}
+        <Card className="lg:col-span-1 md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Top 10 Fornecedores
+            </CardTitle>
+            <CardDescription>Por valor total</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topFornecedores} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis type="number" tickFormatter={(v) => formatCompact(v)} className="text-xs" />
+                  <YAxis dataKey="nome" type="category" width={100} className="text-xs" tick={{ fontSize: 10 }} />
+                  <Tooltip 
+                    formatter={(value: number, name: string, props: any) => [formatCurrency(value), props.payload.nomeCompleto]}
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar 
+                    dataKey="valor" 
+                    radius={[0, 4, 4, 0]}
+                  >
+                    {topFornecedores.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Bar>
                 </BarChart>
