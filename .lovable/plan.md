@@ -1,64 +1,137 @@
 
-# Plano: Correcao da Tela de Aprovacoes para Exibir Campanhas Pendentes
+# Plano: Revisao da Arquitetura de Telas de Aprovacao de Trade Marketing
 
-## Diagnostico
+## Resumo Executivo
 
-Apos analise detalhada, identifiquei que:
+A arquitetura atual de aprovacoes de Trade Marketing esta fragmentada em tres fluxos distintos sem uma experiencia unificada. Alem disso, identifiquei erros tecnicos importantes e inconsistencias que afetam a experiencia do usuario.
 
-1. **A campanha existe no banco** com `status = 'pending_approval'` (confirmado via SQL)
-2. **O codigo esta correto** - o hook `usePendingCampaigns` foi implementado corretamente
-3. **A requisicao nao esta sendo feita** - nos logs de rede, a query com filtro `status=eq.pending_approval` nao aparece
+---
 
-## Causa Raiz
+## Problemas Identificados
 
-O problema e que a pagina de aprovacoes esta usando um **cache antigo do React Query**. A requisicao que deveria ser feita pelo hook `usePendingCampaigns`:
+### 1. Erros Tecnicos Criticos
 
+| Problema | Arquivo | Descricao |
+|----------|---------|-----------|
+| Query com coluna invalida | `useTradeCampaigns()` | Referencia `budget:trade_budgets(name, code, available_amount)` - a coluna `available_amount` existe no banco, porem a query falha em contextos de relacionamento aninhado |
+| Exibicao de saldo incorreto | `AprovacaoCampanhaDialog.tsx` linha 297 | Usa `campaign.budget?.available_amount` que pode nao estar atualizado (valor estatico) |
+| Cache desatualizado | Varios arquivos | Invalidacao de cache inconsistente entre telas de aprovacao |
+
+### 2. Fragmentacao de Fluxos de Aprovacao
+
+Atualmente existem 3 fluxos separados:
+
+```text
++-----------------------------+     +-----------------------------+     +-----------------------------+
+|   Aprovar Campanhas         |     |   Aprovar Lancamentos       |     |   Aprovar Orcamentos        |
+|   (TradeAprovarCampanhas)   |     |   (TradeAprovacoes)         |     |   (dentro de ContasAPagar)  |
++-----------------------------+     +-----------------------------+     +-----------------------------+
+        |                                    |                                    |
+        v                                    v                                    v
+  AprovacaoCampanha            AprovarLancamento                      AprovarOrcamento
+     Dialog                        Dialog                                Dialog
 ```
-GET /trade_campaigns?...&status=eq.pending_approval&...
-```
 
-**Nao esta aparecendo nos logs de rede**, indicando que:
-- A pagina nao foi recarregada apos as alteracoes
-- O React Query esta servindo dados do cache (staleTime de 1 minuto)
+**Problemas:**
+- Nao ha visao consolidada de todas as pendencias
+- Usuario precisa navegar em 3 telas diferentes
+- Contadores de pendencias duplicados/inconsistentes
+
+### 3. Inconsistencias de UX
+
+- **Nomenclatura confusa**: "Lancamentos" vs "Investimentos" vs "Campanhas"
+- **Feedback visual diferente** entre dialogs de aprovacao
+- **Navegacao fragmentada**: Links para aprovacoes dispersos pelo sistema
+
+---
 
 ## Solucao Proposta
 
-Para garantir que funcione corretamente e evitar problemas de cache futuros:
+### Fase 1: Correcao de Erros (Prioridade Alta)
 
-### 1. Adicionar Botao de Atualizar na Tela de Aprovacoes
-
-**Arquivo:** `src/pages/TradeAprovacoes.tsx`
-
-Adicionar um botao "Atualizar" no header que forca o refetch de todos os dados:
+#### 1.1 Corrigir Query do Hook `useTradeCampaigns`
 
 ```typescript
-<Button variant="outline" size="sm" onClick={handleRefetch}>
-  <RefreshCw className="h-4 w-4 mr-2" />
-  Atualizar
-</Button>
+// src/hooks/useTradeData.ts
+// Remover available_amount e calcular dinamicamente
+budget:trade_budgets(id, name, code, total_amount, spent_amount, reserved_amount)
 ```
 
-### 2. Reduzir o staleTime do Hook de Campanhas Pendentes
-
-**Arquivo:** `src/hooks/useTradeData.ts`
-
-Alterar o staleTime de 60 segundos para 30 segundos para dados de aprovacao:
+#### 1.2 Corrigir Exibicao de Saldo no Dialog
 
 ```typescript
-staleTime: 30 * 1000, // 30 segundos - aprovacoes precisam ser mais atualizadas
+// src/components/trade/campaigns/AprovacaoCampanhaDialog.tsx
+// Calcular saldo disponivel dinamicamente
+const availableBudget = campaign.budget 
+  ? parseFloat(campaign.budget.total_amount || 0) 
+    - parseFloat(campaign.budget.spent_amount || 0) 
+    - parseFloat(campaign.budget.reserved_amount || 0)
+  : 0;
 ```
 
-### 3. Forcar Refetch ao Montar o Componente
+#### 1.3 Padronizar Invalidacao de Cache
 
-**Arquivo:** `src/pages/TradeAprovacoes.tsx`
-
-Adicionar um `refetchOnMount: 'always'` ou chamar refetch no useEffect para garantir dados frescos:
+Apos cada aprovacao/rejeicao, invalidar todas as queries relacionadas:
 
 ```typescript
-useEffect(() => {
-  handleRefetch();
-}, []);
+queryClient.invalidateQueries({ queryKey: ["trade-pending-campaigns"] });
+queryClient.invalidateQueries({ queryKey: ["trade-campaigns"] });
+queryClient.invalidateQueries({ queryKey: ["trade-budgets"] });
 ```
+
+---
+
+### Fase 2: Hub Central de Aprovacoes (Prioridade Media)
+
+Criar uma tela unificada que consolida todas as aprovacoes pendentes de Trade Marketing.
+
+#### Nova Estrutura
+
+```text
++----------------------------------------------------------+
+|              Centro de Aprovacoes Trade                   |
++----------------------------------------------------------+
+|  [Campanhas: 3]  [Lancamentos: 5]  [Orcamentos: 2]       |
++----------------------------------------------------------+
+|                                                          |
+|  Campanhas Pendentes                                     |
+|  +----------------------------------------------------+  |
+|  | Codigo | Nome | Tipo | Custo | Periodo | Acoes    |  |
+|  +----------------------------------------------------+  |
+|                                                          |
++----------------------------------------------------------+
+```
+
+#### Componentes Novos
+
+| Componente | Descricao |
+|------------|-----------|
+| `TradeApprovalHub.tsx` | Pagina central com tabs para cada tipo de aprovacao |
+| `ApprovalKPICards.tsx` | Cards com metricas consolidadas |
+| `ApprovalFilters.tsx` | Filtros unificados (data, solicitante, tipo) |
+
+---
+
+### Fase 3: Melhorias de UX (Prioridade Media)
+
+#### 3.1 Padronizar Dialogs de Aprovacao
+
+- Layout consistente entre todos os dialogs
+- Mesmo fluxo de confirmacao (aprovar/rejeitar)
+- Cores e icones padronizados
+
+#### 3.2 Notificacoes Visuais
+
+- Badge no menu lateral indicando pendencias totais
+- Toast notifications mais descritivas
+- Feedback de sucesso/erro consistente
+
+#### 3.3 Validacao de Saldo em Tempo Real
+
+Antes de aprovar qualquer item com verba vinculada:
+1. Buscar saldo atualizado da verba
+2. Validar disponibilidade
+3. Mostrar alerta se saldo insuficiente
 
 ---
 
@@ -66,22 +139,80 @@ useEffect(() => {
 
 | Arquivo | Alteracao |
 |---------|-----------|
-| `src/pages/TradeAprovacoes.tsx` | Adicionar botao Atualizar + forcar refetch ao montar |
-| `src/hooks/useTradeData.ts` | Reduzir staleTime do hook de campanhas pendentes |
+| `src/hooks/useTradeData.ts` | Corrigir query de campanhas |
+| `src/components/trade/campaigns/AprovacaoCampanhaDialog.tsx` | Corrigir calculo de saldo |
+| `src/pages/TradeAprovarCampanhas.tsx` | Melhorar invalidacao de cache |
+| `src/pages/TradeAprovacoes.tsx` | Padronizar com novo layout |
+
+## Novos Arquivos
+
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/pages/TradeApprovalHub.tsx` | Hub central de aprovacoes (opcional - Fase 2) |
+| `src/components/trade/approvals/ApprovalKPICards.tsx` | KPIs consolidados (opcional - Fase 2) |
 
 ---
 
-## Acao Imediata para o Usuario
+## Detalhes Tecnicos
 
-Enquanto implemento a correcao, voce pode:
+### Correcao do Hook useTradeCampaigns
 
-1. **Recarregar a pagina com Ctrl+Shift+R** (limpa cache) enquanto estiver na tela de aprovacoes
-2. A aba "Campanhas" devera aparecer com o badge mostrando "1" pendente
+O hook atual em `src/hooks/useTradeData.ts` linha 92-108 usa:
+
+```typescript
+budget:trade_budgets(name, code, available_amount)
+```
+
+Deve ser corrigido para:
+
+```typescript
+budget:trade_budgets(id, name, code, total_amount, spent_amount, reserved_amount)
+```
+
+Isso permite calcular o saldo disponivel dinamicamente onde necessario.
+
+### Calculo de Saldo Disponivel
+
+Formula padrao a ser usada em todo o sistema:
+
+```typescript
+const calcularSaldoDisponivel = (budget: any) => {
+  if (!budget) return 0;
+  return parseFloat(String(budget.total_amount || 0)) 
+    - parseFloat(String(budget.spent_amount || 0)) 
+    - parseFloat(String(budget.reserved_amount || 0));
+};
+```
+
+### Invalidacao de Cache Padronizada
+
+Criar funcao utilitaria:
+
+```typescript
+const invalidateTradeApprovalQueries = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries({ queryKey: ["trade-pending-campaigns"] });
+  queryClient.invalidateQueries({ queryKey: ["trade-campaigns"] });
+  queryClient.invalidateQueries({ queryKey: ["trade-budgets"] });
+  queryClient.invalidateQueries({ queryKey: ["trade-pending-entries"] });
+  queryClient.invalidateQueries({ queryKey: ["trade-pending-investments"] });
+};
+```
 
 ---
 
-## Beneficios da Correcao
+## Resultado Esperado
 
-- **Dados sempre atualizados**: Botao de refresh permite atualizar manualmente
-- **Menor tempo de cache**: Dados de aprovacao serao mais frescos
-- **Melhor UX**: Usuario tera controle sobre quando atualizar os dados
+1. **Erros corrigidos**: Queries funcionando corretamente, saldos exibidos com precisao
+2. **Cache sincronizado**: Atualizacoes refletidas imediatamente em todas as telas
+3. **UX profissional**: Experiencia consistente em todo o fluxo de aprovacoes
+4. **Manutenibilidade**: Codigo mais organizado e reutilizavel
+
+---
+
+## Proximos Passos
+
+Apos aprovacao, implementarei:
+
+1. Correcoes tecnicas imediatas (Fase 1)
+2. Opcao de criar Hub Central se desejado (Fase 2)
+3. Melhorias de UX adicionais conforme necessidade (Fase 3)
