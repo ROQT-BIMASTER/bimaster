@@ -77,7 +77,8 @@ export default function TradeCampaigns() {
         supabase
           .from("trade_budgets")
           .select("*")
-          .eq("status", "active")
+          .in("status", ["active", "approved"])
+          .is("inactivated_at", null)
           .order("name"),
         supabase
           .from("stores")
@@ -113,7 +114,8 @@ export default function TradeCampaigns() {
       const name = sanitizeText(formData.get("name") as string);
       const description = sanitizeText(formData.get("description") as string || "");
       const campaign_type = formData.get("campaign_type") as string;
-      const budget_id = formData.get("budget_id") as string || null;
+      const budget_id = formData.get("budget_id") as string;
+      if (!budget_id) throw new Error("Selecione uma verba aprovada");
       const estimated_cost = parseFloat(formData.get("estimated_cost") as string);
       const target_revenue = formData.get("target_revenue") ? parseFloat(formData.get("target_revenue") as string) : null;
       const start_date = formData.get("start_date") as string;
@@ -356,10 +358,10 @@ export default function TradeCampaigns() {
 
                   <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="budget_id">Verba (Opcional)</Label>
-                    <Select value={selectedBudget} onValueChange={setSelectedBudget}>
+                    <Label htmlFor="budget_id">Verba *</Label>
+                    <Select value={selectedBudget} onValueChange={setSelectedBudget} required>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma verba" />
+                        <SelectValue placeholder="Selecione uma verba aprovada" />
                       </SelectTrigger>
                       <SelectContent>
                         {budgets.map((budget) => (
@@ -369,7 +371,8 @@ export default function TradeCampaigns() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <input type="hidden" name="budget_id" value={selectedBudget} />
+                    <input type="hidden" name="budget_id" value={selectedBudget} required />
+                    <p className="text-xs text-muted-foreground">Apenas verbas aprovadas são exibidas</p>
                   </div>
                     <div className="space-y-2">
                       <Label htmlFor="region">Região</Label>
