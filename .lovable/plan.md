@@ -1,123 +1,79 @@
-
-
-# Plano de Segurança - Hardening Completo
+# Plano de Segurança - CONCLUÍDO ✅
 
 ## Resumo Executivo
 
-Este plano corrige **8 vulnerabilidades de segurança** identificadas no sistema, focando em:
-- Políticas RLS permissivas que usam `USING(true)` ou `WITH CHECK(true)`
-- Políticas duplicadas/conflitantes em tabelas sensíveis
-- Tabela de rate limiting sem RLS habilitado
-- Consolidação de acesso ao módulo fábrica
+Todas as **8 vulnerabilidades de segurança** foram corrigidas com sucesso.
 
-## Problemas Identificados
+## Correções Implementadas
 
-### 1. Tabelas de Custos de Fábrica - CRÍTICO
-As tabelas `fabrica_produto_custos` e `fabrica_produto_custos_config` possuem políticas permissivas que permitem qualquer usuário autenticado:
-- Inserir dados de custos
-- Atualizar custos
-- Excluir custos
+### ✅ 1. Tabelas de Custos de Fábrica - CORRIGIDO
+- Criada função `can_access_fabrica(_user_id)` 
+- Políticas permissivas removidas
+- Novas políticas restritivas baseadas em módulo/role
+- DELETE restrito a admin/supervisor
 
-**Risco:** Usuários sem acesso ao módulo fábrica podem manipular dados de custos de produção.
+### ✅ 2. Políticas Duplicadas em Trade Budgets - CORRIGIDO
+- 10+ políticas duplicadas removidas
+- Criada função `can_access_trade_budget()`
+- 4 políticas consolidadas (SELECT, INSERT, UPDATE, DELETE)
+- DELETE restrito apenas a admins
 
-### 2. Políticas Duplicadas em Trade Budgets - MÉDIO
-A tabela `trade_budgets` possui políticas conflitantes:
-- 3 políticas SELECT diferentes
-- 3 políticas UPDATE diferentes
-- 2 políticas INSERT diferentes
-- 2 políticas DELETE diferentes
+### ✅ 3. Políticas Duplicadas em Bank Accounts - CORRIGIDO
+- Políticas duplicadas removidas
+- Única política `bank_accounts_select_consolidated` usando `can_access_bank_accounts()`
 
-**Risco:** Lógica de acesso confusa e potencialmente inconsistente.
+### ✅ 4. Tabela sync_rate_limiter - CORRIGIDO
+- RLS habilitado
+- Acesso bloqueado para usuários autenticados
 
-### 3. Políticas Duplicadas em Bank Accounts - MÉDIO
-A tabela `trade_bank_accounts` possui 2 políticas SELECT duplicadas.
+### ✅ 5. Tabelas de Sincronização (n8n, sync) - CORRIGIDO
+- Políticas `USING(true)` substituídas por `USING(false)`
+- Acesso bloqueado para usuários autenticados
+- Apenas service_role pode acessar
 
-### 4. Tabela sync_rate_limiter sem RLS - BAIXO
-A tabela `sync_rate_limiter` não tem RLS habilitado.
+### ✅ 6. ai_training_examples - CORRIGIDO
+- Política permissiva removida
+- Acesso bloqueado para usuários autenticados
 
-**Risco:** Embora seja uma tabela de controle interno, deve ter proteção de service_role.
-
-## Ações Planejadas
-
-### Fase 1: Criar Função de Acesso à Fábrica
-
-```text
-┌─────────────────────────────────────────────────────┐
-│            can_access_fabrica(_user_id)             │
-├─────────────────────────────────────────────────────┤
-│  ✓ Admins e Supervisores têm acesso total           │
-│  ✓ Usuários com módulo 'fabrica' têm acesso         │
-│  ✓ SET search_path = public (segurança)             │
-└─────────────────────────────────────────────────────┘
-```
-
-### Fase 2: Hardening das Tabelas de Custos
-
-Substituir políticas permissivas por:
-
-| Operação | Política Atual | Nova Política |
-|----------|----------------|---------------|
-| SELECT | `auth.uid() IS NOT NULL` | `can_access_fabrica(auth.uid())` |
-| INSERT | `WITH CHECK(true)` | `can_access_fabrica(auth.uid())` |
-| UPDATE | `USING(true)` | `can_access_fabrica(auth.uid())` |
-| DELETE | `USING(true)` | `is_admin_or_supervisor(auth.uid())` |
-
-### Fase 3: Consolidar Políticas de Trade Budgets
-
-Remover políticas duplicadas e manter apenas:
-
-| Operação | Política Consolidada |
-|----------|---------------------|
-| SELECT | Criador, solicitante, admin, supervisor, ou módulos marketing/financeiro/trade |
-| INSERT | Criador, solicitante, ou admin/supervisor |
-| UPDATE | Admin ou supervisor |
-| DELETE | Apenas admin |
-
-### Fase 4: Consolidar Políticas de Bank Accounts
-
-Remover política duplicada de SELECT e manter apenas `can_access_bank_accounts()`.
-
-### Fase 5: Proteger sync_rate_limiter
-
-Habilitar RLS e restringir acesso a service_role.
-
-## Detalhes Técnicos
-
-### Migração SQL
-
-A migração criará:
-
-1. **Função `can_access_fabrica`** - Verifica acesso ao módulo fábrica
-2. **Remoção de políticas permissivas** em `fabrica_produto_custos` e `fabrica_produto_custos_config`
-3. **Novas políticas restritivas** baseadas em módulo/role
-4. **Consolidação de políticas** em `trade_budgets` e `trade_bank_accounts`
-5. **Habilitação de RLS** em `sync_rate_limiter` com bloqueio de acesso público
-
-### Hierarquia de Acesso Final
+## Hierarquia de Acesso Final
 
 ```text
 ┌────────────────────────────────────────────────────────────┐
 │                  Tabelas de Custos de Fábrica              │
 ├────────────────────────────────────────────────────────────┤
-│  ADMIN/SUPERVISOR                                          │
-│  ├── SELECT ✓  INSERT ✓  UPDATE ✓  DELETE ✓                │
-│                                                            │
-│  USUÁRIO COM MÓDULO FÁBRICA                                │
-│  ├── SELECT ✓  INSERT ✓  UPDATE ✓  DELETE ✗                │
-│                                                            │
-│  OUTROS USUÁRIOS                                           │
-│  └── SELECT ✗  INSERT ✗  UPDATE ✗  DELETE ✗                │
+│  ADMIN/SUPERVISOR: SELECT ✓ INSERT ✓ UPDATE ✓ DELETE ✓    │
+│  MÓDULO FÁBRICA:   SELECT ✓ INSERT ✓ UPDATE ✓ DELETE ✗    │
+│  OUTROS:           SELECT ✗ INSERT ✗ UPDATE ✗ DELETE ✗    │
+└────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────┐
+│                     Trade Budgets                          │
+├────────────────────────────────────────────────────────────┤
+│  ADMIN:            SELECT ✓ INSERT ✓ UPDATE ✓ DELETE ✓    │
+│  SUPERVISOR:       SELECT ✓ INSERT ✓ UPDATE ✓ DELETE ✗    │
+│  CRIADOR/MÓDULOS:  SELECT ✓ INSERT ✓ UPDATE ✗ DELETE ✗    │
+└────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────┐
+│                  Tabelas Internas                          │
+├────────────────────────────────────────────────────────────┤
+│  sync_rate_limiter, n8n_*, sync_* : service_role only      │
+│  ai_training_examples             : service_role only      │
 └────────────────────────────────────────────────────────────┘
 ```
 
-### Impacto no Sistema
+## Funções de Segurança Criadas
 
-- Usuários do módulo fábrica continuam operando normalmente
-- Admins e supervisores mantêm acesso total
-- Usuários sem permissão ao módulo não conseguirão mais visualizar/modificar custos
-- Operações de trade budget ficam mais consistentes
+| Função | Descrição |
+|--------|-----------|
+| `can_access_fabrica(_user_id)` | Verifica acesso ao módulo fábrica |
+| `can_access_trade_budget(_user_id, _created_by, _requested_by)` | Verifica acesso a budget específico |
+| `can_access_bank_accounts(_user_id)` | Verifica acesso a contas bancárias |
 
-### Rollback
+## Warning Restante
 
-Se necessário reverter, as políticas originais podem ser restauradas via nova migração.
+⚠️ **Extension in Public** - Extensões instaladas no schema `public`. Esta é uma configuração de infraestrutura comum e não representa risco crítico para a aplicação.
 
+## Data da Conclusão
+
+**2026-02-03** - Hardening completo aplicado com sucesso.
