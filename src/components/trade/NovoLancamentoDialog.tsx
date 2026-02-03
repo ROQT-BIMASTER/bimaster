@@ -21,9 +21,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Upload, X } from "lucide-react";
+import { Plus, Upload, X, Target } from "lucide-react";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { NovaLojaDialog } from "./NovaLojaDialog";
+import { useQuery } from "@tanstack/react-query";
 
 interface NovoLancamentoDialogProps {
   onSuccess: () => void;
@@ -48,10 +49,29 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [documentUrl, setDocumentUrl] = useState("");
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [campaignId, setCampaignId] = useState("");
   
   const [isNovaLojaOpen, setIsNovaLojaOpen] = useState(false);
   const [isNovaContaOpen, setIsNovaContaOpen] = useState(false);
   const [isNovaVerbaOpen, setIsNovaVerbaOpen] = useState(false);
+
+  // Buscar campanhas ativas/aprovadas para vincular
+  const { data: campaigns = [] } = useQuery({
+    queryKey: ['lancamento-campaigns'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_campaigns")
+        .select("id, name, code, status")
+        .or("status.in.(active,approved)")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  });
 
   useEffect(() => {
     if (open) {
@@ -157,6 +177,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         reference_number: referenceNumber.trim() || null,
         store_id: storeId || null,
         budget_id: budgetId || null,
+        campaign_id: campaignId || null,
         notes: finalNotes,
         document_url: documentUrl.trim() || null,
         status: "pending",
@@ -175,6 +196,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       setReferenceNumber("");
       setStoreId("");
       setBudgetId("");
+      setCampaignId("");
       setNotes("");
       setDocumentUrl("");
       setUploadedPhotos([]);
@@ -349,6 +371,30 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
                 </Button>
               </div>
             </div>
+          </div>
+
+          {/* Vincular a uma Campanha */}
+          <div className="space-y-2">
+            <Label htmlFor="campaign_id" className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-primary" />
+              Vincular a uma Campanha
+            </Label>
+            <Select value={campaignId} onValueChange={setCampaignId}>
+              <SelectTrigger id="campaign_id">
+                <SelectValue placeholder="Selecione uma campanha (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhuma campanha</SelectItem>
+                {campaigns.map((campaign: any) => (
+                  <SelectItem key={campaign.id} value={campaign.id}>
+                    {campaign.code} - {campaign.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Vincule este lançamento a uma campanha existente para rastreabilidade
+            </p>
           </div>
 
           <div className="space-y-2">

@@ -8,7 +8,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { sanitizeText, sanitizeCode } from "@/lib/utils/sanitize";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { BudgetEvidenceSection, formatEvidenceNotes } from "./BudgetEvidenceSection";
+
+interface UploadedFile {
+  name: string;
+  path: string;
+  url: string;
+  type: string;
+  size: number;
+}
 
 interface SolicitarOrcamentoDialogProps {
   open: boolean;
@@ -21,9 +30,15 @@ export function SolicitarOrcamentoDialog({
   onOpenChange,
   onSuccess,
 }: SolicitarOrcamentoDialogProps) {
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requesterName, setRequesterName] = useState("");
   const [requesterEmail, setRequesterEmail] = useState("");
+  
+  // Estados para evidências
+  const [linkedCampaignId, setLinkedCampaignId] = useState<string | null>(null);
+  const [linkedEntryId, setLinkedEntryId] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   // Buscar dados do usuário logado
   const { data: currentUser } = useQuery({
@@ -47,6 +62,21 @@ export function SolicitarOrcamentoDialog({
     staleTime: 5 * 60 * 1000,
   });
 
+  // Buscar nome da campanha vinculada
+  const { data: linkedCampaign } = useQuery({
+    queryKey: ['linked-campaign', linkedCampaignId],
+    queryFn: async () => {
+      if (!linkedCampaignId) return null;
+      const { data } = await supabase
+        .from('trade_campaigns')
+        .select('name, code')
+        .eq('id', linkedCampaignId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!linkedCampaignId,
+  });
+
   // Preencher automaticamente quando o usuário for carregado
   useEffect(() => {
     if (currentUser && open) {
@@ -54,6 +84,15 @@ export function SolicitarOrcamentoDialog({
       setRequesterEmail(currentUser.email);
     }
   }, [currentUser, open]);
+
+  // Limpar evidências quando fechar
+  useEffect(() => {
+    if (!open) {
+      setLinkedCampaignId(null);
+      setLinkedEntryId(null);
+      setUploadedFiles([]);
+    }
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -72,7 +111,16 @@ export function SolicitarOrcamentoDialog({
       const total_amount = parseFloat(formData.get("total_amount") as string);
       const period_start = formData.get("period_start") as string;
       const period_end = formData.get("period_end") as string;
-      const notes = sanitizeText(formData.get("notes") as string || "");
+      const userNotes = sanitizeText(formData.get("notes") as string || "");
+
+      // Formatar notas com evidências
+      const notes = formatEvidenceNotes(
+        userNotes,
+        linkedCampaignId,
+        linkedCampaign?.name || null,
+        linkedEntryId,
+        uploadedFiles.length
+      );
 
       // Validações
       if (!name || name.length < 3) {
@@ -88,7 +136,7 @@ export function SolicitarOrcamentoDialog({
         throw new Error("Data de fim deve ser posterior à data de início");
       }
 
-      const { error } = await supabase.from("trade_budgets").insert({
+      const { data: budgetData, error } = await supabase.from("trade_budgets").insert({
         name,
         code,
         total_amount,
@@ -100,10 +148,34 @@ export function SolicitarOrcamentoDialog({
         requested_by: user.id,
         requester_name: requesterName,
         requester_email: requesterEmail,
-      });
+      }).select("id").single();
 
       if (error) throw error;
 
+      // Salvar documentos vinculados ao budget
+      if (uploadedFiles.length > 0 && budgetData?.id) {
+        const documentsToInsert = uploadedFiles.map(file => ({
+          budget_id: budgetData.id,
+          file_name: file.name,
+          file_path: file.path,
+          file_url: file.url,
+          file_type: file.type,
+          file_size: file.size,
+          uploaded_by: user.id,
+        }));
+
+        const { error: docError } = await supabase
+          .from("trade_budget_documents")
+          .insert(documentsToInsert);
+
+        if (docError) {
+          console.error("Erro ao salvar documentos:", docError);
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['trade-budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['trade-pending-budgets'] });
+      
       toast.success("Solicitação de orçamento enviada para aprovação!");
       onOpenChange(false);
       onSuccess();
@@ -214,10 +286,20 @@ export function SolicitarOrcamentoDialog({
               id="notes"
               name="notes"
               placeholder="Descreva a justificativa para este orçamento..."
-              rows={4}
+              rows={3}
               maxLength={1000}
             />
           </div>
+
+          {/* Seção de Evidências */}
+          <BudgetEvidenceSection
+            linkedCampaignId={linkedCampaignId}
+            onCampaignChange={setLinkedCampaignId}
+            linkedEntryId={linkedEntryId}
+            onEntryChange={setLinkedEntryId}
+            uploadedFiles={uploadedFiles}
+            onFilesChange={setUploadedFiles}
+          />
 
           <div className="flex justify-end gap-2">
             <Button
