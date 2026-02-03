@@ -119,6 +119,9 @@ export function AprovacaoCampanhaDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trade-pending-campaigns"] });
       queryClient.invalidateQueries({ queryKey: ["trade-campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["trade-budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["trade-pending-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["trade-pending-investments"] });
       toast.success("Campanha aprovada com sucesso!");
       onOpenChange(false);
       onSuccess?.();
@@ -154,6 +157,7 @@ export function AprovacaoCampanhaDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trade-pending-campaigns"] });
       queryClient.invalidateQueries({ queryKey: ["trade-campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["trade-budgets"] });
       toast.success("Campanha rejeitada");
       onOpenChange(false);
       onSuccess?.();
@@ -294,7 +298,11 @@ export function AprovacaoCampanhaDialog({
                 {campaign.budget?.code} - {campaign.budget?.name}
               </p>
               <p className="text-xs text-green-600 mt-1">
-                Disponível: {formatCurrency(parseFloat(campaign.budget?.available_amount || 0))}
+                Disponível: {formatCurrency(
+                  parseFloat(String(campaign.budget?.total_amount || 0)) -
+                  parseFloat(String(campaign.budget?.spent_amount || 0)) -
+                  parseFloat(String(campaign.budget?.reserved_amount || 0))
+                )}
               </p>
             </div>
           )}

@@ -81,7 +81,7 @@ const TradeModule = () => {
     ...(hasPermission("trade_admin") ? {
       "Administrativo": [
         { title: "Campanhas & Verbas", to: "/dashboard/trade/admin", icon: Target, color: "text-blue-600", isNew: true },
-        { title: "Aprovar Campanhas", to: "/dashboard/trade/campanhas/aprovacoes", icon: CheckCircle2, color: "text-green-600" },
+        { title: "Central de Aprovações", to: "/dashboard/trade/aprovacoes", icon: Shield, color: "text-green-600", isNew: true },
       ],
     } : {}),
     "Cadastros e Configurações": [
