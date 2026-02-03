@@ -17,7 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileText, Search, TrendingUp, TrendingDown, Minus, Download, Filter } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { FileText, Search, TrendingUp, TrendingDown, Minus, Download, Filter, Eye, Calendar, User, DollarSign, Tag, ClipboardList } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -31,6 +37,13 @@ interface Lancamento {
   status: string;
   roi: number | null;
   data: string;
+  campaign_id?: string;
+  customer_id?: string;
+  evidencias?: string[];
+  sell_out_anterior?: number;
+  sell_out_atual?: number;
+  tipo_brinde?: string;
+  acoes_manuais?: string;
 }
 
 interface TradeLancamentosTableProps {
@@ -40,6 +53,7 @@ interface TradeLancamentosTableProps {
 export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedLancamento, setSelectedLancamento] = useState<Lancamento | null>(null);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -172,7 +186,11 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
                 </TableRow>
               ) : (
                 filteredLancamentos.map((lancamento) => (
-                  <TableRow key={lancamento.id}>
+                  <TableRow 
+                    key={lancamento.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => setSelectedLancamento(lancamento)}
+                  >
                     <TableCell className="font-medium">{lancamento.cliente}</TableCell>
                     <TableCell>{lancamento.campanha}</TableCell>
                     <TableCell className="text-right">{formatCurrency(lancamento.valor)}</TableCell>
@@ -203,6 +221,143 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
           </div>
         </div>
       </CardContent>
+
+      {/* Dialog de Detalhes */}
+      <Dialog open={!!selectedLancamento} onOpenChange={(open) => !open && setSelectedLancamento(null)}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary" />
+              Detalhes do Lançamento
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedLancamento && (
+            <div className="space-y-6">
+              {/* Informações do Cliente e Campanha */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <User className="h-4 w-4" />
+                    Cliente
+                  </p>
+                  <p className="font-medium">{selectedLancamento.cliente}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <ClipboardList className="h-4 w-4" />
+                    Campanha
+                  </p>
+                  <p className="font-medium">{selectedLancamento.campanha}</p>
+                </div>
+              </div>
+
+              {/* Valor e Status */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <DollarSign className="h-4 w-4" />
+                    Valor do Pedido
+                  </p>
+                  <p className="font-bold text-lg">{formatCurrency(selectedLancamento.valor)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  {getStatusBadge(selectedLancamento.status)}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    Data
+                  </p>
+                  <p className="font-medium">
+                    {selectedLancamento.data 
+                      ? format(new Date(selectedLancamento.data), "dd/MM/yyyy", { locale: ptBR }) 
+                      : '-'}
+                  </p>
+                </div>
+              </div>
+
+              {/* ROI */}
+              <div className="p-4 rounded-lg bg-muted/50 border">
+                <p className="text-sm text-muted-foreground mb-2">Retorno sobre Investimento (ROI)</p>
+                <div className="flex items-center gap-2 text-xl font-bold">
+                  {getRoiBadge(selectedLancamento.roi)}
+                </div>
+              </div>
+
+              {/* Sell Out (se disponível) */}
+              {(selectedLancamento.sell_out_anterior !== undefined || selectedLancamento.sell_out_atual !== undefined) && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 rounded-lg border bg-background">
+                    <p className="text-xs text-muted-foreground mb-1">Sell Out Anterior</p>
+                    <p className="font-bold text-lg">
+                      {selectedLancamento.sell_out_anterior !== undefined 
+                        ? formatCurrency(selectedLancamento.sell_out_anterior) 
+                        : '-'}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-background">
+                    <p className="text-xs text-muted-foreground mb-1">Sell Out Atual</p>
+                    <p className="font-bold text-lg">
+                      {selectedLancamento.sell_out_atual !== undefined 
+                        ? formatCurrency(selectedLancamento.sell_out_atual) 
+                        : '-'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Tipo Brinde */}
+              {selectedLancamento.tipo_brinde && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Tag className="h-4 w-4" />
+                    Tipo de Brinde
+                  </p>
+                  <Badge variant="outline">{selectedLancamento.tipo_brinde}</Badge>
+                </div>
+              )}
+
+              {/* Ações Manuais */}
+              {selectedLancamento.acoes_manuais && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Ações Realizadas</p>
+                  <p className="text-sm p-3 rounded-lg bg-muted/30 border">
+                    {selectedLancamento.acoes_manuais}
+                  </p>
+                </div>
+              )}
+
+              {/* Evidências */}
+              {selectedLancamento.evidencias && selectedLancamento.evidencias.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Evidências ({selectedLancamento.evidencias.length})
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {selectedLancamento.evidencias.map((url, idx) => (
+                      <a
+                        key={idx}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block aspect-square rounded-lg border overflow-hidden hover:ring-2 ring-primary transition-all"
+                      >
+                        <img
+                          src={url}
+                          alt={`Evidência ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
