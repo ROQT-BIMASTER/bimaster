@@ -110,6 +110,7 @@ const FabricaTabelasPreco = lazy(() => import("./pages/FabricaTabelasPreco"));
 const FabricaAprovacaoPrecos = lazy(() => import("./pages/FabricaAprovacaoPrecos"));
 const FabricaLancamentos = lazy(() => import("./pages/FabricaLancamentos"));
 const FabricaExecutiveDashboard = lazy(() => import("./pages/FabricaExecutiveDashboard"));
+const ComercialModule = lazy(() => import("./pages/modules/ComercialModule"));
 const GerenciamentoAcessoPrecos = lazy(() => import("./pages/GerenciamentoAcessoPrecos"));
 const PrecosMatrizComparativa = lazy(() => import("./pages/PrecosMatrizComparativa"));
 const SimuladorCenariosPrecos = lazy(() => import("./pages/SimuladorCenariosPrecos"));
@@ -309,8 +310,11 @@ function AppContent() {
             <Route path="/dashboard/fabrica/produtos-acabados" element={<ProtectedRoute><FabricaProdutosAcabados /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/produtos/:id/custos" element={<ProtectedRoute><FichaCustoProduto /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/produtos/importar" element={<ProtectedRoute><ImportarProdutosAcabados /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/lancamentos" element={<ProtectedRoute><FabricaLancamentos /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/executivo" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_dashboard"><FabricaExecutiveDashboard /></ScreenProtectedRoute></ProtectedRoute>} />
+
+            {/* Módulo Comercial */}
+            <Route path="/dashboard/comercial" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ComercialModule /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/comercial/lancamentos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="comercial_lancamentos"><FabricaLancamentos /></ScreenProtectedRoute></ProtectedRoute>} />
 
             {/* Módulo de Tabelas de Preços */}
             <Route path="/dashboard/precos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="precos"><TabelasPrecosModule /></ModuleProtectedRoute></ProtectedRoute>} />
