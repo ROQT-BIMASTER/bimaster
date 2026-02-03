@@ -59,7 +59,7 @@ export function useTradeFinanceiroDashboard() {
     staleTime: 3 * 60 * 1000,
   });
 
-  // Query para campanhas com despesas
+  // Query para campanhas com despesas e budget_id
   const campanhasQuery = useQuery({
     queryKey: ['trade-dashboard-campanhas'],
     queryFn: async () => {
@@ -70,7 +70,8 @@ export function useTradeFinanceiroDashboard() {
           name,
           status,
           start_date,
-          end_date
+          end_date,
+          budget_id
         `)
         .in("status", ["active", "in_progress", "completed"])
         .order("created_at", { ascending: false });
@@ -81,7 +82,7 @@ export function useTradeFinanceiroDashboard() {
     staleTime: 3 * 60 * 1000,
   });
 
-  // Query para despesas de campanhas
+  // Query para despesas de campanhas com budget_id
   const despesasQuery = useQuery({
     queryKey: ['trade-dashboard-despesas'],
     queryFn: async () => {
@@ -94,7 +95,7 @@ export function useTradeFinanceiroDashboard() {
           valor_realizado,
           status,
           created_at,
-          campaign:trade_campaigns(name)
+          campaign:trade_campaigns(name, budget_id)
         `)
         .order("created_at", { ascending: false });
       
@@ -136,10 +137,20 @@ export function useTradeFinanceiroDashboard() {
     staleTime: 3 * 60 * 1000,
   });
 
-  // Calcular métricas de verbas
+  // Calcular métricas de verbas - usando despesas aprovadas vinculadas a campanhas com budget
+  // Primeiro, criar um mapa de budget_id para as verbas ativas
+  const activeBudgetIds = new Set(verbasQuery.data?.map(v => v.id) || []);
+  
+  // Calcular total utilizado somando despesas aprovadas de campanhas vinculadas a verbas ativas
+  const totalUtilizadoReal = (despesasQuery.data as any[])?.filter((d: any) => {
+    const isApproved = ['approved', 'aprovado', 'completed', 'pago'].includes(d.status?.toLowerCase());
+    const budgetId = d.campaign?.budget_id;
+    return isApproved && budgetId && activeBudgetIds.has(budgetId);
+  }).reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0;
+
   const verbaMetrics: VerbaMetrics = {
     totalOrcado: verbasQuery.data?.reduce((sum, v) => sum + (parseFloat(String(v.total_amount)) || 0), 0) || 0,
-    totalUtilizado: verbasQuery.data?.reduce((sum, v) => sum + (parseFloat(String(v.spent_amount)) || 0), 0) || 0,
+    totalUtilizado: totalUtilizadoReal,
     saldoDisponivel: 0,
     percentualUtilizado: 0,
   };

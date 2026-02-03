@@ -260,6 +260,19 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
 
         if (error) throw error;
       } else {
+        // Buscar despesas pendentes e dados da campanha para consumir verba
+        const { data: expensesData } = await supabase
+          .from("trade_campaign_expenses")
+          .select("id, valor_realizado")
+          .eq("campaign_id", campaignId)
+          .eq("status", "pendente");
+
+        const { data: campaignData } = await supabase
+          .from("trade_campaigns")
+          .select("budget_id")
+          .eq("id", campaignId)
+          .single();
+
         const { error } = await supabase
           .from("trade_campaign_expenses")
           .update({
@@ -271,12 +284,25 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
           .eq("status", "pendente");
 
         if (error) throw error;
+
+        // Consumir crédito da verba com o total das despesas aprovadas
+        if (campaignData?.budget_id && expensesData && expensesData.length > 0) {
+          const totalValor = expensesData.reduce((sum, e) => sum + (e.valor_realizado || 0), 0);
+          if (totalValor > 0) {
+            await supabase.rpc("consume_budget_credit", {
+              p_budget_id: campaignData.budget_id,
+              p_amount: totalValor
+            });
+          }
+        }
       }
     },
     onSuccess: (_, type) => {
       queryClient.invalidateQueries({ queryKey: ["pending-sell-entries", campaignId] });
       queryClient.invalidateQueries({ queryKey: ["pending-expenses", campaignId] });
       queryClient.invalidateQueries({ queryKey: ["trade-campaign-detail", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["trade-dashboard-verbas"] });
+      queryClient.invalidateQueries({ queryKey: ["trade-dashboard-despesas"] });
       toast.success(`${type === "sell" ? "Entradas de Sell" : "Gastos"} aprovados!`);
     },
     onError: (error: any) => {
