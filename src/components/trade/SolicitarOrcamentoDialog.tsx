@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { sanitizeText, sanitizeCode } from "@/lib/utils/sanitize";
+import { useQuery } from "@tanstack/react-query";
 
 interface SolicitarOrcamentoDialogProps {
   open: boolean;
@@ -21,6 +22,38 @@ export function SolicitarOrcamentoDialog({
   onSuccess,
 }: SolicitarOrcamentoDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requesterName, setRequesterName] = useState("");
+  const [requesterEmail, setRequesterEmail] = useState("");
+
+  // Buscar dados do usuário logado
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user-profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nome, email')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      return {
+        id: user.id,
+        email: user.email || profile?.email || '',
+        nome: profile?.nome || user.user_metadata?.full_name || '',
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Preencher automaticamente quando o usuário for carregado
+  useEffect(() => {
+    if (currentUser && open) {
+      setRequesterName(currentUser.nome);
+      setRequesterEmail(currentUser.email);
+    }
+  }, [currentUser, open]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -65,6 +98,8 @@ export function SolicitarOrcamentoDialog({
         approval_status: "pending",
         status: "inactive",
         requested_by: user.id,
+        requester_name: requesterName,
+        requester_email: requesterEmail,
       });
 
       if (error) throw error;
@@ -87,6 +122,33 @@ export function SolicitarOrcamentoDialog({
           <DialogTitle>Solicitar Novo Orçamento</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Dados do Solicitante - Preenchidos automaticamente */}
+          <div className="grid grid-cols-2 gap-4 p-3 bg-muted/50 rounded-lg">
+            <div className="space-y-2">
+              <Label htmlFor="requester_name">Solicitante</Label>
+              <Input
+                id="requester_name"
+                value={requesterName}
+                onChange={(e) => setRequesterName(e.target.value)}
+                placeholder="Nome do solicitante"
+                readOnly
+                className="bg-background"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="requester_email">E-mail</Label>
+              <Input
+                id="requester_email"
+                type="email"
+                value={requesterEmail}
+                onChange={(e) => setRequesterEmail(e.target.value)}
+                placeholder="email@empresa.com"
+                readOnly
+                className="bg-background"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome do Orçamento *</Label>
