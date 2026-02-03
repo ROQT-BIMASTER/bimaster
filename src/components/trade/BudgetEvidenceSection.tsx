@@ -46,37 +46,39 @@ export function BudgetEvidenceSection({
   showUpload = true,
   campaignName,
 }: BudgetEvidenceSectionProps) {
-  // Buscar campanhas ativas/aprovadas
+  // Buscar campanhas pendentes de verba ou não finalizadas
   const { data: campaigns = [] } = useQuery({
-    queryKey: ['evidence-campaigns'],
+    queryKey: ['evidence-campaigns-pending'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trade_campaigns")
         .select("id, name, code, status, approval_status")
-        .or("status.in.(active,approved),approval_status.in.(approved,pending_approval)")
+        .or("status.in.(draft,active,pending),approval_status.eq.pending_approval")
+        .neq("status", "completed")
         .order("created_at", { ascending: false })
         .limit(100);
       
       if (error) throw error;
       return data || [];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
   });
 
-  // Buscar lançamentos recentes
+  // Buscar lançamentos pendentes de aprovação
   const { data: entries = [] } = useQuery({
-    queryKey: ['evidence-entries'],
+    queryKey: ['evidence-entries-pending'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trade_financial_entries")
-        .select("id, description, reference_number, amount, entry_date")
+        .select("id, description, reference_number, amount, entry_date, approval_status")
+        .or("approval_status.eq.pending,approval_status.is.null")
         .order("entry_date", { ascending: false })
         .limit(50);
       
       if (error) throw error;
       return data || [];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
     enabled: showEntryLink,
   });
 
@@ -114,6 +116,7 @@ export function BudgetEvidenceSection({
               {campaigns.map((campaign: any) => (
                 <SelectItem key={campaign.id} value={campaign.id}>
                   {campaign.code} - {campaign.name}
+                  {campaign.approval_status === "pending_approval" && " 🕐"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -144,7 +147,8 @@ export function BudgetEvidenceSection({
               <SelectItem value="none">Nenhum lançamento</SelectItem>
               {entries.map((entry: any) => (
                 <SelectItem key={entry.id} value={entry.id}>
-                  {entry.reference_number || formatDate(entry.entry_date)} - {entry.description?.substring(0, 40)}... ({formatCurrency(entry.amount)})
+                  {entry.reference_number || formatDate(entry.entry_date)} - {entry.description?.substring(0, 35)}... ({formatCurrency(entry.amount)})
+                  {entry.approval_status === "pending" && " 🕐"}
                 </SelectItem>
               ))}
             </SelectContent>
