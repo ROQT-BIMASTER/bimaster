@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, TrendingUp, Info } from "lucide-react";
@@ -29,6 +30,7 @@ interface BudgetInfo {
   reserved_amount: number;
   period_start: string;
   period_end: string;
+  account_id?: string | null;
 }
 
 interface SolicitarComplementoDialogProps {
@@ -59,6 +61,7 @@ export function SolicitarComplementoDialog({
   const [linkedCampaignId, setLinkedCampaignId] = useState<string | null>(null);
   const [linkedEntryId, setLinkedEntryId] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [accountId, setAccountId] = useState<string | null>(null);
 
   // Buscar dados do usuário logado
   const { data: currentUser } = useQuery({
@@ -88,6 +91,23 @@ export function SolicitarComplementoDialog({
     : 0;
   const deficit = Math.max(0, estimatedCost - availableBalance);
 
+  // Buscar contas contábeis ativas
+  const { data: accounts } = useQuery({
+    queryKey: ['chart-of-accounts-active-budgets'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_chart_of_accounts")
+        .select("id, code, name")
+        .eq("is_active", true)
+        .eq("permite_lancamento", true)
+        .order("code");
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Pré-preencher com o déficit e campanha quando o dialog abrir
   useEffect(() => {
     if (open && deficit > 0) {
@@ -97,8 +117,12 @@ export function SolicitarComplementoDialog({
       if (campaignId) {
         setLinkedCampaignId(campaignId);
       }
+      // Herdar conta contábil da verba original
+      if (budget?.account_id) {
+        setAccountId(budget.account_id);
+      }
     }
-  }, [open, deficit, campaignId]);
+  }, [open, deficit, campaignId, budget]);
 
   // Limpar quando fechar
   useEffect(() => {
@@ -106,6 +130,7 @@ export function SolicitarComplementoDialog({
       setLinkedCampaignId(null);
       setLinkedEntryId(null);
       setUploadedFiles([]);
+      setAccountId(null);
     }
   }, [open]);
 
@@ -154,6 +179,7 @@ export function SolicitarComplementoDialog({
         requested_by: currentUser.id,
         requester_name: currentUser.nome,
         requester_email: currentUser.email,
+        account_id: accountId || null,
       }).select("id").single();
 
       if (error) throw error;
@@ -250,6 +276,25 @@ export function SolicitarComplementoDialog({
             />
             <p className="text-xs text-muted-foreground">
               Pré-preenchido com o valor do déficit. Ajuste se necessário.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="account_id">Conta Contábil (Opcional)</Label>
+            <Select value={accountId || ""} onValueChange={(val) => setAccountId(val || null)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma conta contábil" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts?.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.code} - {account.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {budget?.account_id ? "Herdada da verba original. O Financeiro poderá revisar." : "O Financeiro poderá definir na aprovação"}
             </p>
           </div>
 
