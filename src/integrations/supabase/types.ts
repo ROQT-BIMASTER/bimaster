@@ -16542,6 +16542,7 @@ export type Database = {
         Args: { viewer_id: string }
         Returns: boolean
       }
+      can_access_trade_audit: { Args: { p_user_id: string }; Returns: boolean }
       can_access_trade_budget: {
         Args: {
           _budget_created_by: string
