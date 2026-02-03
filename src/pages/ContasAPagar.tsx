@@ -32,6 +32,7 @@ import { EditarClassificacaoRapidaDialog } from "@/components/financeiro/EditarC
 import { useUserRole } from "@/hooks/useUserRole";
 import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 import { formatLocalDate } from "@/utils/dateUtils";
+import { TourButton, contasPagarTourSteps, CONTAS_PAGAR_TOUR_ID } from "@/components/tour";
 
 interface ContaPagar {
   id: string;
@@ -824,7 +825,7 @@ export default function ContasAPagar() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" data-tour="contas-pagar-header">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <Receipt className="h-8 w-8" />
@@ -860,7 +861,7 @@ export default function ContasAPagar() {
               </Button>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2" data-tour="contas-pagar-acoes">
             <Button onClick={handleExport} variant="outline" className="gap-2">
               <Download className="h-4 w-4" />
               Exportar Excel
@@ -873,7 +874,7 @@ export default function ContasAPagar() {
         </div>
 
         {/* KPIs Financeiros */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-tour="contas-pagar-kpis">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pagas no Mês</CardTitle>
@@ -928,7 +929,7 @@ export default function ContasAPagar() {
         </div>
 
         {/* Filtros Globais */}
-        <Card>
+        <Card data-tour="contas-pagar-filtros">
           <CardContent className="pt-6">
             <div className="flex flex-col gap-4">
               <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
@@ -1161,7 +1162,7 @@ export default function ContasAPagar() {
         </Card>
 
         {/* Tabs */}
-        <Tabs defaultValue="dashboard" className="space-y-6">
+        <Tabs defaultValue="dashboard" className="space-y-6" data-tour="contas-pagar-tabs">
           <TabsList>
             <TabsTrigger value="dashboard" className="gap-2">
               <LayoutDashboard className="h-4 w-4" />
@@ -1193,7 +1194,7 @@ export default function ContasAPagar() {
           </TabsList>
 
           {/* Aba Dashboard Analítico */}
-          <TabsContent value="dashboard" className="space-y-6">
+          <TabsContent value="dashboard" className="space-y-6" data-tour="contas-pagar-dashboard">
             <DashboardContasPagar contas={contas} isLoading={isLoading} />
           </TabsContent>
 
@@ -1988,6 +1989,12 @@ export default function ContasAPagar() {
         />
         {/* Sofia Floating Chat */}
         <SofiaFloatingChat contasData={contas} />
+        
+        {/* Tour Button */}
+        <TourButton 
+          tourId={CONTAS_PAGAR_TOUR_ID}
+          tourSteps={contasPagarTourSteps}
+        />
       </div>
     </DashboardLayout>
   );
