@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, XCircle, Clock, AlertTriangle, Loader2, FileText } from "lucide-react";
+import { CheckCircle, XCircle, Clock, AlertTriangle, Loader2, FileText, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { driver } from "driver.js";
+import "driver.js/dist/driver.css";
 
 interface CampaignValidationProps {
   campaignId: string;
@@ -24,6 +26,114 @@ interface CampaignValidationProps {
 export function CampaignValidation({ campaignId, campaign }: CampaignValidationProps) {
   const queryClient = useQueryClient();
   const [validationNotes, setValidationNotes] = useState(campaign.validation_notes || "");
+
+  // Tour guiado para validação
+  const startTour = () => {
+    const driverObj = driver({
+      showProgress: true,
+      progressText: "{{current}} de {{total}}",
+      nextBtnText: "Próximo",
+      prevBtnText: "Anterior",
+      doneBtnText: "Concluir",
+      steps: [
+        {
+          element: '[data-tour="validation-status"]',
+          popover: {
+            title: "Status de Validação",
+            description: "Aqui você vê o status geral da campanha e pode aprovar ou rejeitar toda a campanha.",
+            side: "bottom",
+            align: "start",
+          },
+        },
+        {
+          element: '[data-tour="pending-alert"]',
+          popover: {
+            title: "Alerta de Pendências",
+            description: "Este alerta mostra quantos itens ainda precisam ser validados antes de aprovar a campanha.",
+            side: "bottom",
+            align: "start",
+          },
+        },
+        {
+          element: '[data-tour="supervisor-notes"]',
+          popover: {
+            title: "Observações do Supervisor",
+            description: "Registre aqui suas observações sobre a validação. Em caso de rejeição, o motivo é obrigatório.",
+            side: "top",
+            align: "start",
+          },
+        },
+        {
+          element: '[data-tour="approve-campaign"]',
+          popover: {
+            title: "Aprovar Campanha",
+            description: "Clique aqui para aprovar a campanha inteira. Recomendamos validar os itens pendentes antes.",
+            side: "right",
+            align: "start",
+          },
+        },
+        {
+          element: '[data-tour="reject-campaign"]',
+          popover: {
+            title: "Rejeitar Campanha",
+            description: "Use para rejeitar a campanha. É obrigatório informar o motivo nas observações.",
+            side: "left",
+            align: "start",
+          },
+        },
+        {
+          element: '[data-tour="pending-items"]',
+          popover: {
+            title: "Itens Pendentes",
+            description: "Lista todos os lançamentos e gastos que precisam de validação individual.",
+            side: "top",
+            align: "start",
+          },
+        },
+        {
+          element: '[data-tour="tabs-sell"]',
+          popover: {
+            title: "Aba Sell In/Out",
+            description: "Mostra os lançamentos de vendas pendentes de aprovação.",
+            side: "bottom",
+            align: "start",
+          },
+        },
+        {
+          element: '[data-tour="tabs-expenses"]',
+          popover: {
+            title: "Aba Gastos",
+            description: "Mostra os gastos e despesas da campanha pendentes de aprovação.",
+            side: "bottom",
+            align: "start",
+          },
+        },
+        {
+          element: '[data-tour="approve-all"]',
+          popover: {
+            title: "Aprovar Todos",
+            description: "Aprova todos os itens pendentes da aba selecionada de uma só vez.",
+            side: "left",
+            align: "start",
+          },
+        },
+      ],
+    });
+
+    driverObj.drive();
+    localStorage.setItem("campaign-validation-tour-seen", "true");
+  };
+
+  // Auto-iniciar tour na primeira visita
+  useEffect(() => {
+    const tourSeen = localStorage.getItem("campaign-validation-tour-seen");
+    if (!tourSeen) {
+      const timer = setTimeout(() => {
+        startTour();
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Buscar entradas de Sell pendentes
   const { data: pendingSellEntries = [] } = useQuery({
@@ -176,11 +286,22 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
   return (
     <div className="space-y-6">
       {/* Status Geral */}
-      <Card>
+      <Card data-tour="validation-status">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-lg">Status de Validação</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                Status de Validação
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={startTour}
+                  title="Iniciar tour guiado"
+                >
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </CardTitle>
               <CardDescription>Validação geral da campanha pelo supervisor</CardDescription>
             </div>
             {getValidationStatusBadge(campaign.validation_status)}
@@ -188,7 +309,7 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
         </CardHeader>
         <CardContent className="space-y-4">
           {totalPendingItems > 0 && (
-            <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div data-tour="pending-alert" className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <AlertTriangle className="h-5 w-5 text-yellow-600" />
               <span className="text-sm text-yellow-800">
                 Existem {totalPendingItems} itens pendentes de validação
@@ -196,7 +317,7 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
             </div>
           )}
 
-          <div className="space-y-2">
+          <div data-tour="supervisor-notes" className="space-y-2">
             <Label htmlFor="validation_notes">Observações do Supervisor</Label>
             <Textarea
               id="validation_notes"
@@ -209,6 +330,7 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
 
           <div className="flex gap-3">
             <Button
+              data-tour="approve-campaign"
               onClick={() => approveCampaign.mutate()}
               disabled={approveCampaign.isPending || campaign.validation_status === "approved"}
               className="bg-green-600 hover:bg-green-700"
@@ -218,6 +340,7 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
               Aprovar Campanha
             </Button>
             <Button
+              data-tour="reject-campaign"
               variant="destructive"
               onClick={() => rejectCampaign.mutate()}
               disabled={rejectCampaign.isPending || campaign.validation_status === "rejected"}
@@ -231,20 +354,20 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
       </Card>
 
       {/* Itens Pendentes */}
-      <Card>
+      <Card data-tour="pending-items">
         <CardHeader>
           <CardTitle className="text-lg">Itens Pendentes de Validação</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="sell">
             <TabsList>
-              <TabsTrigger value="sell">
+              <TabsTrigger data-tour="tabs-sell" value="sell">
                 Sell In/Out
                 {pendingSellEntries.length > 0 && (
                   <Badge variant="secondary" className="ml-2">{pendingSellEntries.length}</Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="expenses">
+              <TabsTrigger data-tour="tabs-expenses" value="expenses">
                 Gastos
                 {pendingExpenses.length > 0 && (
                   <Badge variant="secondary" className="ml-2">{pendingExpenses.length}</Badge>
@@ -262,6 +385,7 @@ export function CampaignValidation({ campaignId, campaign }: CampaignValidationP
                 <div className="space-y-4">
                   <div className="flex justify-end">
                     <Button
+                      data-tour="approve-all"
                       size="sm"
                       onClick={() => approveAllPending.mutate("sell")}
                       disabled={approveAllPending.isPending}
