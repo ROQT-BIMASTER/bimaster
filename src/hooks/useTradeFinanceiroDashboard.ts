@@ -31,6 +31,13 @@ interface Lancamento {
   status: string;
   roi: number | null;
   data: string;
+  campaign_id?: string;
+  customer_id?: string;
+  evidencias?: string[];
+  sell_out_anterior?: number;
+  sell_out_atual?: number;
+  tipo_brinde?: string;
+  acoes_manuais?: string;
 }
 
 export function useTradeFinanceiroDashboard() {
@@ -110,6 +117,11 @@ export function useTradeFinanceiroDashboard() {
           status,
           roi_percentual,
           data_lancamento,
+          sell_out_anterior,
+          sell_out_atual,
+          tipo_brinde,
+          acoes_manuais,
+          evidencias,
           prospect:prospects(nome_empresa),
           campaign:trade_campaigns(name)
         `)
@@ -190,6 +202,13 @@ export function useTradeFinanceiroDashboard() {
     status: l.status || 'pending',
     roi: l.roi_percentual ? parseFloat(String(l.roi_percentual)) : null,
     data: l.data_lancamento || '',
+    campaign_id: l.campaign_id || undefined,
+    customer_id: l.customer_id || undefined,
+    evidencias: (l.evidencias as string[]) || [],
+    sell_out_anterior: l.sell_out_anterior ? parseFloat(String(l.sell_out_anterior)) : undefined,
+    sell_out_atual: l.sell_out_atual ? parseFloat(String(l.sell_out_atual)) : undefined,
+    tipo_brinde: l.tipo_brinde || undefined,
+    acoes_manuais: l.acoes_manuais || undefined,
   })) || [];
 
   // Lista de despesas por campanha para o card
