@@ -25,7 +25,7 @@ export default function FabricaFormulas() {
         .from("fabrica_formulas")
         .select(`
           *,
-          fabrica_produtos (
+          fabrica_produtos!fabrica_formulas_produto_id_fkey (
             id,
             nome,
             codigo
