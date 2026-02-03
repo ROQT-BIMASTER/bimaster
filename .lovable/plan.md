@@ -1,90 +1,91 @@
 
-# Plano: Corrigir Atualização do Valor Utilizado nas Verbas
+# Plano: Unificar Validação de Verba na Aprovação de Campanhas
 
-## Problema Identificado
-O campo "Utilizado" no card de Verbas Disponíveis está mostrando R$ 0 porque:
+## Problema
+Existem dois caminhos para aprovar campanhas:
 
-1. O campo `spent_amount` na tabela `trade_budgets` não está sendo atualizado quando despesas são aprovadas
-2. As campanhas não estão sendo vinculadas corretamente às verbas (budget_id está null)
-3. A função `updateExpenseStatus` não atualiza o saldo consumido da verba
+1. **Central de Aprovações** (`AprovacaoCampanhaDialog.tsx`) - ✅ Exige verba
+2. **Aba Validação na Campanha** (`CampaignValidation.tsx`) - ❌ Não exige verba
+
+O usuário usou o segundo caminho, resultando em campanha aprovada sem verba vinculada, e consequentemente os R$ 900 não foram debitados.
 
 ## Solução
 
-### 1. Atualizar Mutação de Aprovação de Despesas
-**Arquivo**: `src/components/trade/campaigns/CampaignExpenses.tsx`
+### 1. Adicionar Validação de Verba no CampaignValidation.tsx
+Modificar o componente para:
+- Adicionar seletor de verba obrigatório antes de aprovar
+- Validar saldo disponível antes de aprovar
+- Atualizar `budget_id` da campanha junto com a aprovação
+- Consumir crédito da verba quando aprovar despesas
 
-Modificar a função `updateExpenseStatus` para:
-- Buscar o `budget_id` da campanha pai quando aprovar uma despesa
-- Chamar a função `consume_budget_credit()` do banco para atualizar o `spent_amount` da verba
+### 2. Corrigir Dados Existentes
+Executar SQL para vincular a campanha "COMPRE E GANHE RR - 03" à verba "01TESTE" e debitar os R$ 900:
 
-### 2. Atualizar Aprovação de Campanhas
-**Arquivo**: `src/components/trade/campaigns/CampaignValidation.tsx`
+```sql
+-- 1. Vincular campanha à verba
+UPDATE trade_campaigns
+SET budget_id = (SELECT id FROM trade_budgets WHERE code = '01TESTE')
+WHERE id = 'add2757e-e00e-49ac-9a31-c3a0959c7bfe';
 
-Modificar a mutação `approveCampaign` e `approveAllPending` para:
-- Buscar todas as despesas aprovadas da campanha
-- Verificar se a campanha tem `budget_id` vinculado
-- Consumir o crédito da verba com o valor total das despesas aprovadas
-
-### 3. Alternativa: Recalcular em Tempo Real
-Como uma solução mais robusta, modificar o hook `useTradeFinanceiroDashboard.ts` para calcular o `totalUtilizado` somando diretamente as despesas aprovadas vinculadas às campanhas que possuem `budget_id`, ao invés de depender apenas do campo `spent_amount`.
+-- 2. Atualizar spent_amount da verba
+UPDATE trade_budgets
+SET spent_amount = COALESCE(spent_amount, 0) + 900
+WHERE code = '01TESTE';
+```
 
 ---
 
 ## Detalhes Técnicos
 
-### Lógica de Consumo de Verba (abordagem proposta)
+### Modificações no CampaignValidation.tsx
+
 ```typescript
-// Em CampaignExpenses.tsx - updateExpenseStatus mutation
-const updateExpenseStatus = useMutation({
-  mutationFn: async ({ expenseId, status }: { expenseId: string; status: string }) => {
-    // ... código existente ...
+// Adicionar state para verba selecionada
+const [selectedBudgetId, setSelectedBudgetId] = useState<string>(campaign.budget_id || "");
+
+// Buscar verbas aprovadas
+const { data: budgets = [] } = useQuery({
+  queryKey: ["trade-budgets-approved"],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from("trade_budgets")
+      .select("*")
+      .eq("status", "approved")
+      .is("inactivated_at", null);
+    return data || [];
+  },
+});
+
+// Na mutação approveCampaign, exigir verba
+const approveCampaign = useMutation({
+  mutationFn: async () => {
+    const finalBudgetId = selectedBudgetId || campaign.budget_id;
     
-    // Se aprovando, consumir crédito da verba
-    if (status === 'aprovado') {
-      // Buscar despesa e campanha para obter budget_id
-      const { data: expense } = await supabase
-        .from("trade_campaign_expenses")
-        .select("valor_realizado, campaign:trade_campaigns(budget_id)")
-        .eq("id", expenseId)
-        .single();
-      
-      if (expense?.campaign?.budget_id && expense.valor_realizado > 0) {
-        await supabase.rpc("consume_budget_credit", {
-          p_budget_id: expense.campaign.budget_id,
-          p_amount: expense.valor_realizado
-        });
-      }
+    if (!finalBudgetId) {
+      throw new Error("Selecione uma verba para aprovar esta campanha");
     }
+
+    // Atualizar campanha COM budget_id
+    await supabase
+      .from("trade_campaigns")
+      .update({
+        budget_id: finalBudgetId, // <-- ADICIONAR ISSO
+        validation_status: "approved",
+        status: "approved",
+        // ...
+      })
+      .eq("id", campaignId);
   },
 });
 ```
 
-### Cálculo Alternativo no Dashboard
-```typescript
-// Em useTradeFinanceiroDashboard.ts
-// Calcular utilizado baseado nas despesas aprovadas (mais robusto)
-const totalUtilizado = despesasQuery.data?.filter((d: any) => 
-  ['approved', 'aprovado', 'completed', 'pago'].includes(d.status?.toLowerCase())
-).reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0;
-```
-
-### Correção de Dados Existentes (SQL)
-Uma migração para recalcular os valores já existentes:
-```sql
--- Recalcular spent_amount baseado nas despesas aprovadas
-UPDATE trade_budgets b
-SET spent_amount = COALESCE(
-  (
-    SELECT SUM(e.valor_realizado)
-    FROM trade_campaign_expenses e
-    JOIN trade_campaigns c ON e.campaign_id = c.id
-    WHERE c.budget_id = b.id
-    AND e.status IN ('aprovado', 'pago')
-  ), 0
-);
-```
+### Interface Adicionada
+Adicionar um seletor de verba antes do botão "Aprovar Campanha" mostrando:
+- Lista de verbas aprovadas com saldo
+- Comparação: Disponível vs Custo Estimado
+- Indicador visual de saldo OK ou insuficiente
 
 ## Resultado Esperado
-- O card "Verbas Disponíveis" exibirá corretamente o valor utilizado
-- A barra de progresso de utilização funcionará corretamente
-- O saldo disponível será calculado de forma precisa
+- Ambos os caminhos de aprovação exigirão seleção de verba
+- Dados existentes serão corrigidos
+- Futuras aprovações debitarão corretamente da verba
