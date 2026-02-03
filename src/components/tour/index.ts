@@ -27,3 +27,6 @@ export { fabricaOrdensTourSteps, FABRICA_ORDENS_TOUR_ID } from "./tours/fabricaO
 
 // Tour definitions - Financeiro
 export { contasPagarTourSteps, CONTAS_PAGAR_TOUR_ID } from "./tours/contasPagarTour";
+
+// Tour definitions - Trade Financeiro
+export { tradeVerbasSemestraisTourSteps, TRADE_VERBAS_SEMESTRAIS_TOUR_ID } from "./tours/tradeVerbasSemestraisTour";
