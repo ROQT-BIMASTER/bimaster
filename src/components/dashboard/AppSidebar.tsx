@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, Pause, Wrench, List, Bot, Wallet, Grid3X3
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,6 +80,13 @@ const moduleColors = {
     text: "text-[hsl(var(--module-precos))]",
     border: "border-[hsl(var(--module-precos))]",
     hover: "hover:bg-[hsl(var(--module-precos)/0.15)]",
+  },
+  comercial: {
+    bg: "bg-[hsl(var(--module-comercial,210_80%_50%))]",
+    bgLight: "bg-[hsl(var(--module-comercial,210_80%_50%)/0.1)]",
+    text: "text-[hsl(var(--module-comercial,210_80%_50%))]",
+    border: "border-[hsl(var(--module-comercial,210_80%_50%))]",
+    hover: "hover:bg-[hsl(var(--module-comercial,210_80%_50%)/0.15)]",
   },
 };
 
@@ -221,6 +228,7 @@ export function AppSidebar() {
   const [tradeOpen, setTradeOpen] = useState(true);
   const [marketingOpen, setMarketingOpen] = useState(true);
   const [fabricaOpen, setFabricaOpen] = useState(true);
+  const [comercialOpen, setComercialOpen] = useState(true);
   const [precosOpen, setPrecosOpen] = useState(true);
   const [tabelasPendentes, setTabelasPendentes] = useState(0);
   const [userName, setUserName] = useState<string>("");
@@ -611,6 +619,45 @@ export function AppSidebar() {
                       })}
                     </SidebarMenu>
                   </ScrollArea>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+        {/* Módulo Comercial */}
+        {hasModulePermission("comercial") && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible open={comercialOpen} onOpenChange={setComercialOpen}>
+              <CollapsibleTrigger className="w-full">
+                <ModuleHeader 
+                  icon={Briefcase} 
+                  title="Comercial" 
+                  isOpen={comercialOpen} 
+                  colorKey="comercial" 
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 pl-2">
+                    {hasPermission("comercial_dashboard") && (
+                      <MenuItemLink 
+                        to="/dashboard/comercial" 
+                        icon={Home} 
+                        title="Dashboard" 
+                        colorKey="comercial"
+                        end 
+                      />
+                    )}
+                    {hasPermission("comercial_lancamentos") && (
+                      <MenuItemLink 
+                        to="/dashboard/comercial/lancamentos" 
+                        icon={Rocket} 
+                        title="Calendário de Lançamentos" 
+                        colorKey="comercial"
+                      />
+                    )}
+                  </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
             </Collapsible>
