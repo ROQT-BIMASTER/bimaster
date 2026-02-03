@@ -307,7 +307,6 @@ export function CampaignLancamentoForm({
         evidencias: allPhotoUrls,
         status: 'pending',
         created_by: user.id,
-        has_photo_analysis: enablePhotoCapture && capturedPhotos.length > 0,
       };
 
       if (lancamentoId) {
