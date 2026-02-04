@@ -2555,6 +2555,7 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          attachments: Json | null
           category: string
           comprovante_url: string | null
           contas_pagar_id: string | null
@@ -2584,6 +2585,7 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          attachments?: Json | null
           category?: string
           comprovante_url?: string | null
           contas_pagar_id?: string | null
@@ -2613,6 +2615,7 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          attachments?: Json | null
           category?: string
           comprovante_url?: string | null
           contas_pagar_id?: string | null
@@ -4844,42 +4847,66 @@ export type Database = {
       }
       fabrica_fornecedores: {
         Row: {
+          agencia: string | null
           ativo: boolean | null
+          banco: string | null
           cnpj: string | null
+          conta: string | null
           contato: string | null
           created_at: string | null
           email: string | null
           endereco: string | null
+          favorecido: string | null
           id: string
+          linha_digitavel: string | null
           nome_fantasia: string | null
+          pix_chave: string | null
+          pix_tipo: string | null
           razao_social: string
           telefone: string | null
+          tipo_conta: string | null
           updated_at: string | null
         }
         Insert: {
+          agencia?: string | null
           ativo?: boolean | null
+          banco?: string | null
           cnpj?: string | null
+          conta?: string | null
           contato?: string | null
           created_at?: string | null
           email?: string | null
           endereco?: string | null
+          favorecido?: string | null
           id?: string
+          linha_digitavel?: string | null
           nome_fantasia?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
           razao_social: string
           telefone?: string | null
+          tipo_conta?: string | null
           updated_at?: string | null
         }
         Update: {
+          agencia?: string | null
           ativo?: boolean | null
+          banco?: string | null
           cnpj?: string | null
+          conta?: string | null
           contato?: string | null
           created_at?: string | null
           email?: string | null
           endereco?: string | null
+          favorecido?: string | null
           id?: string
+          linha_digitavel?: string | null
           nome_fantasia?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
           razao_social?: string
           telefone?: string | null
+          tipo_conta?: string | null
           updated_at?: string | null
         }
         Relationships: []
