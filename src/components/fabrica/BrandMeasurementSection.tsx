@@ -1,10 +1,27 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tag, Calculator } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tag, Calculator, Plus, X } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+
+// Marcas padrão que sempre aparecem
+const DEFAULT_BRAND_NAMES = ["Melu", "Ruby Rose"];
 
 interface BrandMeasurement {
   brand_id: string;
@@ -27,8 +44,9 @@ export default function BrandMeasurementSection({
   totalShelfCount,
 }: BrandMeasurementSectionProps) {
   const hasInitialized = useRef(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
   
-  // Fetch our brands
+  // Fetch all our brands
   const { data: ourBrands } = useQuery({
     queryKey: ["our-brands-active"],
     queryFn: async () => {
@@ -43,22 +61,55 @@ export default function BrandMeasurementSection({
     },
   });
 
-  // Initialize brand measurements when brands are loaded - only once
+  // Initialize brand measurements with only default brands (Melu, Ruby Rose)
   useEffect(() => {
     if (ourBrands && ourBrands.length > 0 && !hasInitialized.current) {
       hasInitialized.current = true;
-      const initialMeasurements = ourBrands.map((brand) => ({
+      
+      // Filter only default brands
+      const defaultBrands = ourBrands.filter(brand => 
+        DEFAULT_BRAND_NAMES.includes(brand.brand_name)
+      );
+      
+      const initialMeasurements = defaultBrands.map((brand) => ({
         brand_id: brand.id,
         brand_name: brand.brand_name,
         width_cm: "",
         shelf_count: "",
       }));
-      // Use setTimeout to break the render cycle
+      
       setTimeout(() => {
         onBrandMeasurementsChange(initialMeasurements);
       }, 0);
     }
   }, [ourBrands]);
+
+  // Get available brands that haven't been added yet
+  const availableBrands = ourBrands?.filter(
+    (brand) => !brandMeasurements.some((m) => m.brand_id === brand.id)
+  ) || [];
+
+  const addBrand = (brandId: string, brandName: string) => {
+    const newMeasurement: BrandMeasurement = {
+      brand_id: brandId,
+      brand_name: brandName,
+      width_cm: "",
+      shelf_count: "",
+    };
+    onBrandMeasurementsChange([...brandMeasurements, newMeasurement]);
+    setPopoverOpen(false);
+  };
+
+  const removeBrand = (brandId: string) => {
+    // Don't allow removing default brands
+    const brandToRemove = brandMeasurements.find(m => m.brand_id === brandId);
+    if (brandToRemove && DEFAULT_BRAND_NAMES.includes(brandToRemove.brand_name)) {
+      return;
+    }
+    
+    const updated = brandMeasurements.filter((m) => m.brand_id !== brandId);
+    onBrandMeasurementsChange(updated);
+  };
 
   const updateBrandMeasurement = (brandId: string, field: "width_cm" | "shelf_count", value: string) => {
     const updated = brandMeasurements.map((m) =>
@@ -88,14 +139,48 @@ export default function BrandMeasurementSection({
 
   return (
     <div className="space-y-4">
-      <Label className="flex items-center gap-2 text-sm font-medium">
-        <Tag className="h-4 w-4 text-primary" />
-        Medidas por Marca
-      </Label>
+      <div className="flex items-center justify-between">
+        <Label className="flex items-center gap-2 text-sm font-medium">
+          <Tag className="h-4 w-4 text-primary" />
+          Medidas por Marca
+        </Label>
+        
+        {availableBrands.length > 0 && (
+          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1">
+                <Plus className="h-3.5 w-3.5" />
+                Adicionar
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0" align="end">
+              <Command>
+                <CommandInput placeholder="Buscar marca..." />
+                <CommandList>
+                  <CommandEmpty>Nenhuma marca encontrada.</CommandEmpty>
+                  <CommandGroup>
+                    {availableBrands.map((brand) => (
+                      <CommandItem
+                        key={brand.id}
+                        value={brand.brand_name}
+                        onSelect={() => addBrand(brand.id, brand.brand_name)}
+                      >
+                        🏷️ {brand.brand_name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>
 
       <div className="space-y-3">
         {brandMeasurements.map((measurement) => {
           const total = calculateTotal(measurement);
+          const isDefaultBrand = DEFAULT_BRAND_NAMES.includes(measurement.brand_name);
+          
           return (
             <div
               key={measurement.brand_id}
@@ -110,6 +195,16 @@ export default function BrandMeasurementSection({
                     <Calculator className="h-3 w-3 mr-1" />
                     {total} cm
                   </Badge>
+                )}
+                {!isDefaultBrand && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeBrand(measurement.brand_id)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-3">

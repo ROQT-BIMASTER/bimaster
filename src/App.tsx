@@ -56,6 +56,7 @@ const TradeRelatorioCompetitivo = lazy(() => import("./pages/TradeRelatorioCompe
 const TradeComparacaoProdutos = lazy(() => import("./pages/TradeComparacaoProdutos"));
 const TradeSellOut = lazy(() => import("./pages/TradeSellOut"));
 const TradeShelfMeasurements = lazy(() => import("./pages/TradeShelfMeasurements"));
+const TradeBrandShareDashboard = lazy(() => import("./pages/TradeBrandShareDashboard"));
 const TradeMeasurementGuide = lazy(() => import("./pages/TradeMeasurementGuide"));
 const TradeOurBrands = lazy(() => import("./pages/TradeOurBrands"));
 const Ranking = lazy(() => import("./pages/Ranking"));
@@ -292,6 +293,7 @@ function AppContent() {
             <Route path="/dashboard/trade/shelf-measurements" element={<ProtectedRoute><TradeShelfMeasurements /></ProtectedRoute>} />
             <Route path="/dashboard/trade/measurement-guide" element={<ProtectedRoute><TradeMeasurementGuide /></ProtectedRoute>} />
             <Route path="/dashboard/trade/our-brands" element={<ProtectedRoute><TradeOurBrands /></ProtectedRoute>} />
+            <Route path="/dashboard/trade/brand-share" element={<ProtectedRoute><TradeBrandShareDashboard /></ProtectedRoute>} />
             <Route path="/dashboard/trade/relatorio-competitivo" element={<ProtectedRoute><TradeRelatorioCompetitivo /></ProtectedRoute>} />
             <Route path="/dashboard/trade/comparacao-produtos" element={<ProtectedRoute><TradeComparacaoProdutos /></ProtectedRoute>} />
             <Route path="/dashboard/trade/performance" element={<ProtectedRoute><TradePerformance /></ProtectedRoute>} />
