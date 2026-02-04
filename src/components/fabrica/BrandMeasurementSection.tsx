@@ -5,7 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tag, Calculator, Plus, X } from "lucide-react";
+import { Tag, Calculator, Plus, X, HelpCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Popover,
   PopoverContent,
@@ -255,12 +261,43 @@ export default function BrandMeasurementSection({
       {totalOurBrandsCm > 0 && (
         <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">Total Nossas Marcas:</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium">Total Nossas Marcas:</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="text-xs">
+                      <strong>Fórmula:</strong> Soma de (Largura × Prateleiras) de cada marca
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <span className="font-bold text-primary">{totalOurBrandsCm.toFixed(0)} cm</span>
           </div>
           {totalShelfArea > 0 && (
             <div className="flex items-center justify-between text-sm mt-1">
-              <span className="text-muted-foreground">Share Total:</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground">Share Total:</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="text-xs">
+                        <strong>Fórmula:</strong> (Total Nossas Marcas ÷ Área Total Gôndola) × 100
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Área Gôndola = Largura × Nº Prateleiras = {totalShelfArea.toFixed(0)} cm
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Badge variant="default">{sharePercentage.toFixed(1)}%</Badge>
             </div>
           )}
