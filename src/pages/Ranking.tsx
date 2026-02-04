@@ -1,12 +1,14 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Users, MapPin, Award } from "lucide-react";
+import { Trophy, Users, MapPin, Award, ShieldAlert } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useNavigate } from "react-router-dom";
 
 interface RankingVendedor {
   id: string;
@@ -36,14 +38,25 @@ interface RankingSupervisor {
 }
 
 const Ranking = () => {
+  const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
+  const navigate = useNavigate();
   const [rankingVendedores, setRankingVendedores] = useState<RankingVendedor[]>([]);
   const [rankingMunicipios, setRankingMunicipios] = useState<RankingMunicipio[]>([]);
   const [rankingSupervisores, setRankingSupervisores] = useState<RankingSupervisor[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Redirect non-authorized users
   useEffect(() => {
-    fetchRankings();
-  }, []);
+    if (!roleLoading && !isAdminOrSupervisor) {
+      navigate("/dashboard");
+    }
+  }, [roleLoading, isAdminOrSupervisor, navigate]);
+
+  useEffect(() => {
+    if (isAdminOrSupervisor) {
+      fetchRankings();
+    }
+  }, [isAdminOrSupervisor]);
 
   const fetchRankings = async () => {
     try {
@@ -179,6 +192,33 @@ const Ranking = () => {
     }
   };
 
+  // Show loading or access denied
+  if (roleLoading || loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!isAdminOrSupervisor) {
+    return (
+      <DashboardLayout>
+        <Card className="max-w-lg mx-auto mt-12">
+          <CardHeader className="text-center">
+            <ShieldAlert className="h-12 w-12 mx-auto text-destructive mb-4" />
+            <CardTitle>Acesso Restrito</CardTitle>
+            <CardDescription>
+              Esta tela é exclusiva para administradores e supervisores.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
   const chartDataVendedores = rankingVendedores.slice(0, 10).map(v => ({
     nome: v.nome.split(' ')[0],
     ganhos: v.prospects_ganhos,
@@ -189,7 +229,7 @@ const Ranking = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Trophy className="h-8 w-8 text-yellow-500" />
+          <Trophy className="h-8 w-8 text-amber-500" />
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Ranking de Desempenho</h2>
             <p className="text-muted-foreground">Acompanhe o desempenho de vendedores, municípios e supervisores</p>
