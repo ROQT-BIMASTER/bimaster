@@ -96,6 +96,13 @@ const moduleColors = {
     border: "border-[hsl(var(--module-eventos,280_60%_50%))]",
     hover: "hover:bg-[hsl(var(--module-eventos,280_60%_50%)/0.15)]",
   },
+  departamentos: {
+    bg: "bg-[hsl(var(--module-departamentos,200_70%_45%))]",
+    bgLight: "bg-[hsl(var(--module-departamentos,200_70%_45%)/0.1)]",
+    text: "text-[hsl(var(--module-departamentos,200_70%_45%))]",
+    border: "border-[hsl(var(--module-departamentos,200_70%_45%))]",
+    hover: "hover:bg-[hsl(var(--module-departamentos,200_70%_45%)/0.15)]",
+  },
 };
 
 // Fábrica module grouped menus
@@ -239,6 +246,7 @@ export function AppSidebar() {
   const [fabricaOpen, setFabricaOpen] = useState(true);
   const [comercialOpen, setComercialOpen] = useState(true);
   const [eventosOpen, setEventosOpen] = useState(true);
+  const [departamentosOpen, setDepartamentosOpen] = useState(true);
   const [precosOpen, setPrecosOpen] = useState(true);
   const [tabelasPendentes, setTabelasPendentes] = useState(0);
   const [userName, setUserName] = useState<string>("");
@@ -713,6 +721,33 @@ export function AppSidebar() {
             </Collapsible>
           </SidebarGroup>
         )}
+
+        {/* Módulo de Departamentos */}
+        <SidebarGroup className="py-2 px-2">
+          <Collapsible open={departamentosOpen} onOpenChange={setDepartamentosOpen}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader 
+                icon={Building2} 
+                title="Departamentos" 
+                isOpen={departamentosOpen} 
+                colorKey="departamentos" 
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarGroupContent className="mt-1">
+                <SidebarMenu className="space-y-0.5 pl-2">
+                  <MenuItemLink 
+                    to="/dashboard/departamentos" 
+                    icon={Home} 
+                    title="Hub de Departamentos" 
+                    colorKey="departamentos"
+                    end 
+                  />
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
 
         {/* Módulo de Tabelas de Preços */}
         {hasModulePermission("precos") && (

@@ -88,6 +88,8 @@ const CorporateEventsDashboard = lazy(() => import("./pages/CorporateEventsDashb
 const EventsApprovalHub = lazy(() => import("./pages/EventsApprovalHub"));
 const DepartmentHub = lazy(() => import("./pages/DepartmentHub"));
 const DepartmentDetail = lazy(() => import("./pages/DepartmentDetail"));
+const DepartmentDashboard = lazy(() => import("./pages/DepartmentDashboard"));
+const DepartmentApprovalHub = lazy(() => import("./pages/DepartmentApprovalHub"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
 const InstalarApp = lazy(() => import("./pages/InstalarApp"));
 const WhatsAppMonitoring = lazy(() => import("./pages/WhatsAppMonitoring"));
@@ -308,6 +310,12 @@ function AppContent() {
             <Route path="/dashboard/eventos/aprovacoes" element={<ProtectedRoute><EventsApprovalHub /></ProtectedRoute>} />
             <Route path="/dashboard/eventos/:id" element={<ProtectedRoute><CorporateEventDetail /></ProtectedRoute>} />
             <Route path="/dashboard/eventos/dashboard" element={<ProtectedRoute><CorporateEventsDashboard /></ProtectedRoute>} />
+
+            {/* Módulo de Departamentos */}
+            <Route path="/dashboard/departamentos" element={<ProtectedRoute><DepartmentHub /></ProtectedRoute>} />
+            <Route path="/dashboard/departamentos/:id" element={<ProtectedRoute><DepartmentDetail /></ProtectedRoute>} />
+            <Route path="/dashboard/departamentos/:id/dashboard" element={<ProtectedRoute><DepartmentDashboard /></ProtectedRoute>} />
+            <Route path="/dashboard/departamentos/:id/aprovacoes" element={<ProtectedRoute><DepartmentApprovalHub /></ProtectedRoute>} />
 
             {/* Módulo de Fábrica */}
             <Route path="/dashboard/fabrica" element={<ProtectedRoute><FabricaModule /></ProtectedRoute>} />
