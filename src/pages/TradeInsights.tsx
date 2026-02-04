@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { useUserRole } from "@/hooks/useUserRole";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { InsightDetailDialog } from "@/components/trade/InsightDetailDialog";
 
@@ -30,6 +31,7 @@ interface Insight {
 
 const TradeInsights = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
+  const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [allInsights, setAllInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,23 +40,63 @@ const TradeInsights = () => {
   const [aiCriteria, setAiCriteria] = useState<any>(null);
   const [selectedInsightId, setSelectedInsightId] = useState<string | null>(null);
   const [insightDetailOpen, setInsightDetailOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!permissionsLoading && hasPermission("trade_insights")) {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id || null);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!permissionsLoading && hasPermission("trade_insights") && currentUserId !== null && !roleLoading) {
       fetchInsights();
     }
-  }, [permissionsLoading]);
+  }, [permissionsLoading, currentUserId, roleLoading, isAdminOrSupervisor]);
 
   const fetchInsights = async () => {
     try {
-      const { data, error } = await supabase
-        .from("ai_insights")
-        .select("*")
-        .order("generated_at", { ascending: false });
+      // Para não-admins/supervisores, precisamos filtrar insights por visitas do usuário
+      if (!isAdminOrSupervisor && currentUserId) {
+        // Buscar IDs das visitas do usuário
+        const { data: userVisits, error: visitsError } = await supabase
+          .from("visits")
+          .select("id")
+          .or(`user_id.eq.${currentUserId},vendedor_id.eq.${currentUserId}`);
 
-      if (error) throw error;
-      setAllInsights(data || []);
-      setInsights(data || []);
+        if (visitsError) throw visitsError;
+
+        const visitIds = userVisits?.map(v => v.id) || [];
+
+        if (visitIds.length === 0) {
+          setAllInsights([]);
+          setInsights([]);
+          setLoading(false);
+          return;
+        }
+
+        // Buscar insights vinculados às visitas do usuário
+        const { data, error } = await supabase
+          .from("ai_insights")
+          .select("*")
+          .eq("entity_type", "visit")
+          .in("entity_id", visitIds)
+          .order("generated_at", { ascending: false });
+
+        if (error) throw error;
+        setAllInsights(data || []);
+        setInsights(data || []);
+      } else {
+        // Admin/Supervisor: ver todos os insights
+        const { data, error } = await supabase
+          .from("ai_insights")
+          .select("*")
+          .order("generated_at", { ascending: false });
+
+        if (error) throw error;
+        setAllInsights(data || []);
+        setInsights(data || []);
+      }
     } catch (error) {
       console.error("Erro ao buscar insights:", error);
       toast.error("Erro ao carregar insights");
