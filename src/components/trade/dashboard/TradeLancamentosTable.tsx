@@ -27,7 +27,7 @@ import { FileText, Search, TrendingUp, TrendingDown, Minus, Download, Filter, Ey
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import * as XLSX from "xlsx";
+import { exportArrayToExcel } from "@/lib/excel-utils";
 
 interface Lancamento {
   id: string;
@@ -110,7 +110,7 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
     return matchesSearch && matchesStatus;
   });
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const exportData = filteredLancamentos.map(l => ({
       Cliente: l.cliente,
       Campanha: l.campanha,
@@ -121,10 +121,7 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
       Data: l.data ? format(new Date(l.data), "dd/MM/yyyy", { locale: ptBR }) : '',
     }));
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
-    XLSX.writeFile(wb, `lancamentos-trade-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    await exportArrayToExcel(exportData, "Lançamentos", `lancamentos-trade-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   };
 
   return (
