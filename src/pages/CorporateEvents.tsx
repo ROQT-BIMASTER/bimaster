@@ -39,9 +39,11 @@ import {
   Building,
   Lock,
   TrendingUp,
-  Wallet
+  Wallet,
+  FileCheck
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
+import { usePendingEvents } from "@/hooks/usePendingEvents";
 
 export default function CorporateEvents() {
   const navigate = useNavigate();
@@ -50,6 +52,8 @@ export default function CorporateEvents() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [solicitarVerbaOpen, setSolicitarVerbaOpen] = useState(false);
   const { isAdminOrSupervisor } = useUserRole();
+  const { data: pendingEvents } = usePendingEvents();
+  const pendingCount = pendingEvents?.length || 0;
 
   const filteredEvents = events.filter(event =>
     event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -114,6 +118,17 @@ export default function CorporateEvents() {
               <TrendingUp className="mr-2 h-4 w-4" />
               Dashboard
             </Button>
+            {isAdminOrSupervisor && (
+              <Button variant="outline" onClick={() => navigate("/dashboard/eventos/aprovacoes")} className="relative">
+                <FileCheck className="mr-2 h-4 w-4" />
+                Aprovações
+                {pendingCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {pendingCount}
+                  </span>
+                )}
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setSolicitarVerbaOpen(true)}>
               <Wallet className="mr-2 h-4 w-4" />
               Solicitar Verba

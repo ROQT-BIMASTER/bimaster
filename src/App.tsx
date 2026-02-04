@@ -84,6 +84,7 @@ const TradeExecutiveDashboard = lazy(() => import("./pages/TradeExecutiveDashboa
 const CorporateEvents = lazy(() => import("./pages/CorporateEvents"));
 const CorporateEventDetail = lazy(() => import("./pages/CorporateEventDetail"));
 const CorporateEventsDashboard = lazy(() => import("./pages/CorporateEventsDashboard"));
+const EventsApprovalHub = lazy(() => import("./pages/EventsApprovalHub"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
 const InstalarApp = lazy(() => import("./pages/InstalarApp"));
 const WhatsAppMonitoring = lazy(() => import("./pages/WhatsAppMonitoring"));
@@ -299,6 +300,7 @@ function AppContent() {
 
             {/* Módulo de Eventos Corporativos */}
             <Route path="/dashboard/eventos" element={<ProtectedRoute><CorporateEvents /></ProtectedRoute>} />
+            <Route path="/dashboard/eventos/aprovacoes" element={<ProtectedRoute><EventsApprovalHub /></ProtectedRoute>} />
             <Route path="/dashboard/eventos/:id" element={<ProtectedRoute><CorporateEventDetail /></ProtectedRoute>} />
             <Route path="/dashboard/eventos/dashboard" element={<ProtectedRoute><CorporateEventsDashboard /></ProtectedRoute>} />
 
