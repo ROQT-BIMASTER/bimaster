@@ -23,6 +23,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCorporateEvents } from "@/hooks/useCorporateEvents";
 import { NovoEventoDialog } from "@/components/events/NovoEventoDialog";
+import { SolicitarVerbaEventoDialog } from "@/components/events/SolicitarVerbaEventoDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -37,7 +38,8 @@ import {
   Eye,
   Building,
   Lock,
-  TrendingUp
+  TrendingUp,
+  Wallet
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -46,6 +48,7 @@ export default function CorporateEvents() {
   const { events, isLoading } = useCorporateEvents();
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [solicitarVerbaOpen, setSolicitarVerbaOpen] = useState(false);
   const { isAdminOrSupervisor } = useUserRole();
 
   const filteredEvents = events.filter(event =>
@@ -110,6 +113,10 @@ export default function CorporateEvents() {
             <Button variant="outline" onClick={() => navigate("/dashboard/eventos/dashboard")}>
               <TrendingUp className="mr-2 h-4 w-4" />
               Dashboard
+            </Button>
+            <Button variant="outline" onClick={() => setSolicitarVerbaOpen(true)}>
+              <Wallet className="mr-2 h-4 w-4" />
+              Solicitar Verba
             </Button>
             <NovoEventoDialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <Button>
@@ -290,6 +297,13 @@ export default function CorporateEvents() {
             )}
           </CardContent>
         </Card>
+
+        {/* Dialog de Solicitação de Verba */}
+        <SolicitarVerbaEventoDialog
+          open={solicitarVerbaOpen}
+          onOpenChange={setSolicitarVerbaOpen}
+          onSuccess={() => {}}
+        />
       </div>
     </DashboardLayout>
   );
