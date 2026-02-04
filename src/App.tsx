@@ -86,6 +86,8 @@ const CorporateEvents = lazy(() => import("./pages/CorporateEvents"));
 const CorporateEventDetail = lazy(() => import("./pages/CorporateEventDetail"));
 const CorporateEventsDashboard = lazy(() => import("./pages/CorporateEventsDashboard"));
 const EventsApprovalHub = lazy(() => import("./pages/EventsApprovalHub"));
+const DepartmentHub = lazy(() => import("./pages/DepartmentHub"));
+const DepartmentDetail = lazy(() => import("./pages/DepartmentDetail"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
 const InstalarApp = lazy(() => import("./pages/InstalarApp"));
 const WhatsAppMonitoring = lazy(() => import("./pages/WhatsAppMonitoring"));

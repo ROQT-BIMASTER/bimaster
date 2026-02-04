@@ -1,0 +1,255 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DepartmentExpense, DEPARTMENT_EXPENSE_CATEGORIES } from "@/hooks/useDepartmentExpenses";
+import { EnviarFinanceiroDepDialog } from "@/components/departments/EnviarFinanceiroDepDialog";
+import { AprovarDespesaDepartamentoDialog } from "@/components/departments/AprovarDespesaDepartamentoDialog";
+import { DepartmentExpenseAttachments } from "@/components/departments/DepartmentExpenseAttachments";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { 
+  Search, 
+  MoreHorizontal, 
+  FileText, 
+  Clock,
+  CheckCircle,
+  XCircle,
+  Send,
+  DollarSign,
+  Paperclip,
+  Eye
+} from "lucide-react";
+
+interface DepartmentExpensesTableProps {
+  expenses: DepartmentExpense[];
+  isLoading: boolean;
+  isManager?: boolean;
+  isFinanceiro?: boolean;
+  departmentId: string;
+}
+
+export function DepartmentExpensesTable({ 
+  expenses, 
+  isLoading, 
+  isManager,
+  isFinanceiro,
+  departmentId 
+}: DepartmentExpensesTableProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [enviarFinanceiroOpen, setEnviarFinanceiroOpen] = useState(false);
+  const [aprovarOpen, setAprovarOpen] = useState(false);
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<DepartmentExpense | null>(null);
+
+  const filteredExpenses = expenses.filter(expense =>
+    expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    expense.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    expense.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusBadge = (status: string) => {
+    const config: Record<string, { variant: any; label: string; icon: any }> = {
+      pending: { variant: "secondary", label: "Pendente", icon: Clock },
+      approved: { variant: "default", label: "Aprovado", icon: CheckCircle },
+      rejected: { variant: "destructive", label: "Rejeitado", icon: XCircle },
+      pending_financial: { variant: "outline", label: "Aguardando Financeiro", icon: Send },
+      paid: { variant: "default", label: "Pago", icon: DollarSign },
+    };
+
+    const { variant, label, icon: Icon } = config[status] || config.pending;
+
+    return (
+      <Badge variant={variant} className="gap-1">
+        <Icon className="h-3 w-3" />
+        {label}
+      </Badge>
+    );
+  };
+
+  const getCategoryLabel = (value: string) => {
+    const cat = DEPARTMENT_EXPENSE_CATEGORIES.find(c => c.value === value);
+    return cat?.label || value;
+  };
+
+  const handleEnviarFinanceiro = (expense: DepartmentExpense) => {
+    setSelectedExpense(expense);
+    setEnviarFinanceiroOpen(true);
+  };
+
+  const handleAprovar = (expense: DepartmentExpense) => {
+    setSelectedExpense(expense);
+    setAprovarOpen(true);
+  };
+
+  const handleOpenAttachments = (expense: DepartmentExpense) => {
+    setSelectedExpense(expense);
+    setAttachmentsOpen(true);
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="py-6">
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Despesas do Departamento</CardTitle>
+            <div className="relative w-72">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar despesas..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {filteredExpenses.length === 0 ? (
+            <div className="text-center py-12">
+              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">Nenhuma despesa encontrada</h3>
+              <p className="text-muted-foreground">
+                {searchTerm ? "Tente ajustar sua busca" : "Crie uma nova despesa para começar"}
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Valor Previsto</TableHead>
+                  <TableHead>Valor Realizado</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Anexos</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredExpenses.map((expense) => (
+                  <TableRow key={expense.id}>
+                    <TableCell className="font-mono text-sm">{expense.code}</TableCell>
+                    <TableCell>{getCategoryLabel(expense.category)}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {expense.description || "-"}
+                    </TableCell>
+                    <TableCell>
+                      R$ {(expense.valor_previsto || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell>
+                      R$ {(expense.valor_realizado || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(expense.status)}</TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleOpenAttachments(expense)}
+                        className="gap-1"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        {expense.attachments?.length || 0}
+                      </Button>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleOpenAttachments(expense)}>
+                            <Paperclip className="mr-2 h-4 w-4" />
+                            Ver Anexos
+                          </DropdownMenuItem>
+                          
+                          {isManager && expense.status === "pending" && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleAprovar(expense)}>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Aprovar / Rejeitar
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          
+                          {isManager && expense.status === "approved" && !expense.send_to_financial && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleEnviarFinanceiro(expense)}>
+                                <Send className="mr-2 h-4 w-4" />
+                                Enviar ao Financeiro
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dialogs */}
+      {selectedExpense && (
+        <>
+          <EnviarFinanceiroDepDialog
+            expense={selectedExpense}
+            open={enviarFinanceiroOpen}
+            onOpenChange={setEnviarFinanceiroOpen}
+          />
+          
+          <AprovarDespesaDepartamentoDialog
+            expense={selectedExpense}
+            open={aprovarOpen}
+            onOpenChange={setAprovarOpen}
+          />
+          
+          <DepartmentExpenseAttachments
+            expense={selectedExpense}
+            open={attachmentsOpen}
+            onOpenChange={setAttachmentsOpen}
+            departmentId={departmentId}
+          />
+        </>
+      )}
+    </>
+  );
+}
