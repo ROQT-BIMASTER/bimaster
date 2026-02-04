@@ -20,6 +20,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface ShelfMeasurement {
   id: string;
@@ -41,6 +42,7 @@ interface ShelfMeasurement {
 
 export default function TradeShelfMeasurements() {
   const navigate = useNavigate();
+  const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
   const [measurements, setMeasurements] = useState<ShelfMeasurement[]>([]);
   const [filteredMeasurements, setFilteredMeasurements] = useState<ShelfMeasurement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +52,7 @@ export default function TradeShelfMeasurements() {
   const [measurementToDelete, setMeasurementToDelete] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [measurementDate, setMeasurementDate] = useState<Date>(new Date());
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     shelf_section: "",
@@ -64,7 +67,9 @@ export default function TradeShelfMeasurements() {
   });
 
   useEffect(() => {
-    fetchMeasurements();
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id || null);
+    });
 
     const channel = supabase
       .channel('shelf-measurements-changes')
@@ -75,6 +80,12 @@ export default function TradeShelfMeasurements() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  useEffect(() => {
+    if (currentUserId !== null && !roleLoading) {
+      fetchMeasurements();
+    }
+  }, [currentUserId, roleLoading, isAdminOrSupervisor]);
 
   useEffect(() => {
     applyFilters();
@@ -91,13 +102,19 @@ export default function TradeShelfMeasurements() {
   const fetchMeasurements = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("shelf_measurements")
         .select(`
           *,
           stores (name, code)
-        `)
-        .order("measurement_date", { ascending: false });
+        `);
+
+      // Filtrar para não-admins/supervisores
+      if (!isAdminOrSupervisor && currentUserId) {
+        query = query.or(`created_by.eq.${currentUserId},vendedor_id.eq.${currentUserId}`);
+      }
+
+      const { data, error } = await query.order("measurement_date", { ascending: false });
 
       if (error) throw error;
       setMeasurements(data || []);

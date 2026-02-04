@@ -9,6 +9,7 @@ import { TradeFilters } from "@/components/trade/TradeFilters";
 import { NovoSellOutMultiprodutos } from "@/components/trade/NovoSellOutMultiprodutos";
 import { GerenciarProdutosLojaDialog } from "@/components/trade/GerenciarProdutosLojaDialog";
 import { TradePageHeader } from "@/components/trade/TradePageHeader";
+import { useUserRole } from "@/hooks/useUserRole";
 import { 
   Plus, Package, DollarSign, TrendingUp, 
   ShoppingCart, BarChart3, Calendar, Settings 
@@ -42,6 +43,7 @@ interface SellOut {
 }
 
 export default function TradeSellOut() {
+  const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
   const [sellouts, setSellouts] = useState<SellOut[]>([]);
   const [filteredSellouts, setFilteredSellouts] = useState<SellOut[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,10 +52,13 @@ export default function TradeSellOut() {
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchSellouts();
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id || null);
+    });
 
     const channel = supabase
       .channel('sellouts-changes')
@@ -64,6 +69,12 @@ export default function TradeSellOut() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  useEffect(() => {
+    if (currentUserId !== null && !roleLoading) {
+      fetchSellouts();
+    }
+  }, [currentUserId, roleLoading, isAdminOrSupervisor]);
 
   useEffect(() => {
     applyFilters();
@@ -89,14 +100,20 @@ export default function TradeSellOut() {
   const fetchSellouts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("store_sellouts")
         .select(`
           *,
           store_products (product_name, product_code, category),
           stores (name, code)
-        `)
-        .order("sale_date", { ascending: false });
+        `);
+
+      // Filtrar para não-admins/supervisores
+      if (!isAdminOrSupervisor && currentUserId) {
+        query = query.or(`created_by.eq.${currentUserId},vendedor_id.eq.${currentUserId}`);
+      }
+
+      const { data, error } = await query.order("sale_date", { ascending: false });
 
       if (error) throw error;
       setSellouts(data || []);

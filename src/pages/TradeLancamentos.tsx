@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   Table,
   TableBody,
@@ -29,6 +30,7 @@ import { NovoLancamentoDialog } from "@/components/trade/NovoLancamentoDialog";
 import { EditarLancamentoDialog } from "@/components/trade/EditarLancamentoDialog";
 
 export default function TradeLancamentos() {
+  const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -38,9 +40,14 @@ export default function TradeLancamentos() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchData();
     getCurrentUser();
   }, []);
+
+  useEffect(() => {
+    if (currentUserId !== null && !roleLoading) {
+      fetchData();
+    }
+  }, [currentUserId, roleLoading, isAdminOrSupervisor]);
 
   const getCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -58,6 +65,11 @@ export default function TradeLancamentos() {
           budget:trade_budgets(name, code),
           investment:trade_investments(amount, category)
         `);
+
+      // Filtrar para não-admins/supervisores
+      if (!isAdminOrSupervisor && currentUserId) {
+        query = query.eq("created_by", currentUserId);
+      }
 
       if (statusFilter !== "all") {
         query = query.eq("approval_status", statusFilter);
