@@ -5,6 +5,14 @@ import { useToast } from "@/hooks/use-toast";
 export type PaymentQueueStatus = 'pending' | 'accepted' | 'rejected' | 'paid' | 'cancelled';
 export type SourceType = 'trade_entry' | 'trade_investment' | 'trade_campaign' | 'event_expense';
 
+export interface PaymentAttachment {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploaded_at: string;
+}
+
 export interface PaymentQueueItem {
   id: string;
   code: string;
@@ -21,6 +29,7 @@ export interface PaymentQueueItem {
   description: string | null;
   notes: string | null;
   attachment_url: string | null;
+  attachments: PaymentAttachment[];
   department_name: string | null;
   requested_by: string | null;
   requested_at: string;
@@ -104,7 +113,12 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as PaymentQueueItem[];
+      
+      // Parse attachments from JSONB
+      return (data || []).map(item => ({
+        ...item,
+        attachments: (item.attachments as unknown as PaymentAttachment[]) || [],
+      })) as PaymentQueueItem[];
     },
   });
 
