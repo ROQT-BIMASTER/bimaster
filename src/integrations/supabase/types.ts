@@ -16945,6 +16945,7 @@ export type Database = {
       icms_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       icms_tipo_credito: { Args: { p_cst: string }; Returns: string }
       importar_clientes: { Args: { p_clientes: Json }; Returns: Json }
+      is_admin: { Args: never; Returns: boolean }
       is_admin_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
       is_participant_of_conversa: {
         Args: { conversa_id_param: string; user_id_param: string }
