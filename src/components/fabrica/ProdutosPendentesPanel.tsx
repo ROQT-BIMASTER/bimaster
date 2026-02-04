@@ -142,24 +142,24 @@ export default function ProdutosPendentesPanel({
               produtos?.map((produto) => (
                 <div
                   key={produto.id}
-                  className="group p-3 rounded-lg border bg-card hover:bg-muted/50 hover:border-primary/30 transition-all overflow-hidden"
+                  className="group p-3 rounded-lg border bg-card hover:bg-muted/50 hover:border-primary/30 transition-all"
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 overflow-hidden">
                     <ProductThumbnail src={produto.foto_url} size="md" className="flex-shrink-0" />
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <h4 className="font-medium text-sm truncate" title={produto.nome}>
+                    <div className="flex-1 min-w-0 overflow-hidden space-y-1">
+                      <h4 className="font-medium text-sm truncate max-w-full" title={produto.nome}>
                         {produto.nome}
                       </h4>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-mono">{produto.codigo}</span>
-                        <span>•</span>
-                        <Badge variant="outline" className="text-[10px] h-4 px-1">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground overflow-hidden">
+                        <span className="font-mono truncate">{produto.codigo}</span>
+                        <span className="flex-shrink-0">•</span>
+                        <Badge variant="outline" className="text-[10px] h-4 px-1 flex-shrink-0">
                           {produto.tipo === "ACABADO" ? "Acabado" : "Intermediário"}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>
+                        <Clock className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">
                           Cadastrado {formatDistanceToNow(new Date(produto.created_at), { 
                             locale: ptBR, 
                             addSuffix: true 
@@ -170,11 +170,11 @@ export default function ProdutosPendentesPanel({
                   </div>
                   <Button
                     size="sm"
-                    className="w-full mt-3 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                    className="w-full mt-3 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 overflow-hidden"
                     onClick={() => onCreateLaunch(produto)}
                   >
-                    <Rocket className="h-3.5 w-3.5" />
-                    Criar Lançamento
+                    <Rocket className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="truncate">Criar Lançamento</span>
                   </Button>
                 </div>
               ))
