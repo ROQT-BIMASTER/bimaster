@@ -11,6 +11,7 @@ import { TradeExecutiveTopClients } from "@/components/trade/executive/TradeExec
 import { TradeExecutiveVisitsTable } from "@/components/trade/executive/TradeExecutiveVisitsTable";
 import { TradeExecutivePhotosGallery } from "@/components/trade/executive/TradeExecutivePhotosGallery";
 import { TradeExecutiveLancamentosTable } from "@/components/trade/executive/TradeExecutiveLancamentosTable";
+import { TradeExecutiveCurvaChart } from "@/components/trade/executive/TradeExecutiveCurvaChart";
 import { Link } from "react-router-dom";
 import {
   Select,
@@ -48,11 +49,13 @@ export default function TradeExecutiveDashboard() {
     visits,
     photos,
     lancamentos,
+    curvaDistribuicao,
     isLoading,
     isLoadingEvolution,
     isLoadingVisits,
     isLoadingPhotos,
     isLoadingLancamentos,
+    isLoadingCurva,
     error,
     refetchAll,
   } = useTradeExecutiveDashboard(dateRange);
@@ -185,17 +188,22 @@ export default function TradeExecutiveDashboard() {
           <TradeExecutiveTopClients data={topClients} isLoading={isLoadingEvolution} />
         </section>
 
-        {/* Seção 4: Tabela de Lançamentos */}
+        {/* Seção 4: Distribuição por Curva de Clientes */}
+        <section>
+          <TradeExecutiveCurvaChart data={curvaDistribuicao} isLoading={isLoadingCurva} />
+        </section>
+
+        {/* Seção 5: Tabela de Lançamentos */}
         <section>
           <TradeExecutiveLancamentosTable data={lancamentos as any} isLoading={isLoadingLancamentos} />
         </section>
 
-        {/* Seção 5: Visitas Recentes */}
+        {/* Seção 6: Visitas Recentes */}
         <section>
           <TradeExecutiveVisitsTable data={visits} isLoading={isLoadingVisits} />
         </section>
 
-        {/* Seção 6: Galeria de Fotos */}
+        {/* Seção 7: Galeria de Fotos */}
         <section>
           <TradeExecutivePhotosGallery data={photos} isLoading={isLoadingPhotos} />
         </section>
