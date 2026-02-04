@@ -17,6 +17,7 @@ import { MobileDataList } from "@/components/trade/MobileDataList";
 import { Card, CardContent } from "@/components/ui/card";
 import { TourButton, tradeStoresTourSteps, TRADE_STORES_TOUR_ID } from "@/components/tour";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 
 interface Store {
   id: string;
@@ -35,6 +36,7 @@ interface Store {
 const TradeStores = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
+  const { isImpersonating, impersonatedUser, impersonatedPermissions } = useImpersonation();
   const navigate = useNavigate();
   const [stores, setStores] = useState<Store[]>([]);
   const [allStores, setAllStores] = useState<Store[]>([]);
@@ -50,6 +52,14 @@ const TradeStores = () => {
   const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  // Determinar o ID efetivo do usuário (impersonado ou real)
+  const effectiveUserId = isImpersonating && impersonatedUser ? impersonatedUser.id : currentUserId;
+  
+  // Determinar se o usuário efetivo é admin/supervisor
+  const effectiveIsAdminOrSupervisor = isImpersonating && impersonatedPermissions 
+    ? impersonatedPermissions.isAdmin || impersonatedPermissions.role === 'supervisor'
+    : isAdminOrSupervisor;
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUserId(data.user?.id || null);
@@ -57,20 +67,22 @@ const TradeStores = () => {
   }, []);
 
   useEffect(() => {
-    if (!permissionsLoading && !roleLoading && hasPermission("trade_stores") && currentUserId !== null) {
+    if (!permissionsLoading && !roleLoading && hasPermission("trade_stores") && (effectiveUserId !== null || currentUserId !== null)) {
       fetchStores();
     }
-  }, [permissionsLoading, roleLoading, currentUserId]);
+  }, [permissionsLoading, roleLoading, currentUserId, effectiveUserId, effectiveIsAdminOrSupervisor]);
 
   const fetchStores = async () => {
     try {
+      const userIdToFilter = effectiveUserId || currentUserId;
+      
       // Para não-admins/supervisores, buscar apenas lojas vinculadas ao usuário
-      if (!isAdminOrSupervisor && currentUserId) {
+      if (!effectiveIsAdminOrSupervisor && userIdToFilter) {
         // Buscar IDs de lojas vinculadas na tabela store_sellers
         const { data: storeSellersData } = await supabase
           .from("store_sellers")
           .select("store_id")
-          .eq("vendedor_id", currentUserId);
+          .eq("vendedor_id", userIdToFilter);
         
         const linkedStoreIds = storeSellersData?.map(ss => ss.store_id) || [];
         
@@ -78,7 +90,7 @@ const TradeStores = () => {
         const { data, error } = await supabase
           .from("stores")
           .select("*")
-          .or(`vendedor_id.eq.${currentUserId}${linkedStoreIds.length > 0 ? `,id.in.(${linkedStoreIds.join(',')})` : ''}`)
+          .or(`vendedor_id.eq.${userIdToFilter}${linkedStoreIds.length > 0 ? `,id.in.(${linkedStoreIds.join(',')})` : ''}`)
           .order("name");
         
         if (error) throw error;
