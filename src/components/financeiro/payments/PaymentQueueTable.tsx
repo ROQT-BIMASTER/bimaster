@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Eye, Target, Calendar, Loader2 } from "lucide-react";
+import { Search, Eye, Target, Calendar, Loader2, Building } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -42,6 +42,7 @@ const sourceTypeConfig: Record<SourceType, { label: string; icon: typeof Target;
   trade_investment: { label: "Trade - Investimento", icon: Target, color: "text-purple-500" },
   trade_campaign: { label: "Trade - Campanha", icon: Target, color: "text-indigo-500" },
   event_expense: { label: "Evento", icon: Calendar, color: "text-pink-500" },
+  department_expense: { label: "Departamento", icon: Building, color: "text-teal-500" },
 };
 
 export function PaymentQueueTable({ items, isLoading, onReview, filters, onFiltersChange }: PaymentQueueTableProps) {
