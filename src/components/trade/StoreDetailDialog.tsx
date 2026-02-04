@@ -10,6 +10,7 @@ import { Calendar, Camera, DollarSign, FileText, MapPin, Phone, Store, TrendingU
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StoreShareHistoryChart } from "./StoreShareHistoryChart";
+import { ClassificationBadge } from "./ClassificationBadge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
@@ -271,6 +272,7 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
           <DialogTitle className="flex items-center gap-2">
             <Store className="h-5 w-5" />
             {store.name}
+            <ClassificationBadge classification={store.classification} size="md" />
           </DialogTitle>
           <div className="flex gap-2 items-center text-sm text-muted-foreground">
             <MapPin className="h-4 w-4" />
@@ -364,6 +366,10 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Categoria</p>
                     <p className="text-base">{store.category || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Classificação</p>
+                    <ClassificationBadge classification={store.classification} size="md" showLabel />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Prioridade</p>

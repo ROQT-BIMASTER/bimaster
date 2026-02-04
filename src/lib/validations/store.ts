@@ -73,6 +73,7 @@ export const storeSchema = z.object({
     .max(50, { message: "Frequência de visita deve ter no máximo 50 caracteres" })
     .optional(),
   status: z.enum(["active", "inactive", "pending"]).default("active"),
+  classification: z.enum(["A+", "A", "B", "C", "D", "E"]).default("C"),
   latitude: z.number()
     .min(-90, { message: "Latitude deve estar entre -90 e 90" })
     .max(90, { message: "Latitude deve estar entre -90 e 90" })

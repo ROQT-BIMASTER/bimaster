@@ -14,6 +14,7 @@ export interface FilteredStore {
   state?: string;
   status?: string;
   vendedor_id?: string;
+  classification?: string;
 }
 
 interface UseFilteredStoresOptions {
@@ -76,7 +77,7 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
       if (effectiveIsAdminOrSupervisor) {
         let query = supabase
           .from("stores")
-          .select("id, name, code, cnpj, city, address, state, status, vendedor_id")
+          .select("id, name, code, cnpj, city, address, state, status, vendedor_id, classification")
           .order("name");
 
         if (activeOnly) {
@@ -114,7 +115,7 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
       //    - id está na lista de store_sellers
       let query = supabase
         .from("stores")
-        .select("id, name, code, cnpj, city, address, state, status, vendedor_id")
+        .select("id, name, code, cnpj, city, address, state, status, vendedor_id, classification")
         .order("name");
 
       if (activeOnly) {
