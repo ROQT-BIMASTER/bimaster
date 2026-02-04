@@ -49,54 +49,22 @@ const TradeInsights = () => {
   }, []);
 
   useEffect(() => {
-    if (!permissionsLoading && hasPermission("trade_insights") && currentUserId !== null && !roleLoading) {
+    if (!permissionsLoading && !roleLoading && isAdminOrSupervisor && currentUserId !== null) {
       fetchInsights();
     }
   }, [permissionsLoading, currentUserId, roleLoading, isAdminOrSupervisor]);
 
   const fetchInsights = async () => {
     try {
-      // Para não-admins/supervisores, precisamos filtrar insights por visitas do usuário
-      if (!isAdminOrSupervisor && currentUserId) {
-        // Buscar IDs das visitas do usuário
-        const { data: userVisits, error: visitsError } = await supabase
-          .from("visits")
-          .select("id")
-          .or(`user_id.eq.${currentUserId},vendedor_id.eq.${currentUserId}`);
+      // Admin/Supervisor: ver todos os insights
+      const { data, error } = await supabase
+        .from("ai_insights")
+        .select("*")
+        .order("generated_at", { ascending: false });
 
-        if (visitsError) throw visitsError;
-
-        const visitIds = userVisits?.map(v => v.id) || [];
-
-        if (visitIds.length === 0) {
-          setAllInsights([]);
-          setInsights([]);
-          setLoading(false);
-          return;
-        }
-
-        // Buscar insights vinculados às visitas do usuário
-        const { data, error } = await supabase
-          .from("ai_insights")
-          .select("*")
-          .eq("entity_type", "visit")
-          .in("entity_id", visitIds)
-          .order("generated_at", { ascending: false });
-
-        if (error) throw error;
-        setAllInsights(data || []);
-        setInsights(data || []);
-      } else {
-        // Admin/Supervisor: ver todos os insights
-        const { data, error } = await supabase
-          .from("ai_insights")
-          .select("*")
-          .order("generated_at", { ascending: false });
-
-        if (error) throw error;
-        setAllInsights(data || []);
-        setInsights(data || []);
-      }
+      if (error) throw error;
+      setAllInsights(data || []);
+      setInsights(data || []);
     } catch (error) {
       console.error("Erro ao buscar insights:", error);
       toast.error("Erro ao carregar insights");
@@ -104,6 +72,11 @@ const TradeInsights = () => {
       setLoading(false);
     }
   };
+
+  // Bloquear acesso para não-admins/supervisores (após todos os hooks)
+  if (!permissionsLoading && !roleLoading && !isAdminOrSupervisor) {
+    return <Navigate to="/dashboard/acesso-restrito" replace />;
+  }
 
   const getInsightIcon = (type: string) => {
     switch (type) {

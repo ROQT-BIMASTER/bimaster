@@ -30,6 +30,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -221,6 +222,7 @@ export function AppSidebar() {
   const { toast } = useToast();
   const { permissions, loading: permissionsLoading, hasPermission } = useScreenPermissions();
   const { hasModulePermission, loading: modulesLoading } = useModulePermissions();
+  const { isAdminOrSupervisor } = useUserRole();
   const { user } = useAuth();
   
   const [prospectsOpen, setProspectsOpen] = useState(true);
@@ -344,7 +346,7 @@ export function AppSidebar() {
     { title: "Análise Competitiva", url: "/dashboard/trade/relatorio-competitivo", icon: BarChart3, screenCode: "trade_competitors" },
     { title: "Premiações", url: "/dashboard/trade/rewards", icon: Trophy, screenCode: "trade_rewards" },
     { title: "WhatsApp", url: "/dashboard/trade/whatsapp", icon: MessageSquare, screenCode: "trade_whatsapp" },
-    { title: "Insights IA", url: "/dashboard/trade/insights", icon: Sparkles, screenCode: "trade_insights" },
+    { title: "Insights IA", url: "/dashboard/trade/insights", icon: Sparkles, screenCode: "trade_insights", requireAdminOrSupervisor: true },
   ];
 
   const marketingSubMenus = [
@@ -552,7 +554,7 @@ export function AppSidebar() {
                         />
                       )}
                       {tradeSubMenus
-                        .filter((item) => hasPermission(item.screenCode))
+                        .filter((item) => hasPermission(item.screenCode) && (!item.requireAdminOrSupervisor || isAdminOrSupervisor))
                         .map((item) => (
                           <MenuItemLink 
                             key={item.url}

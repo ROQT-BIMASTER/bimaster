@@ -103,7 +103,7 @@ const TradeModule = () => {
     "Inteligência Competitiva": [
       { title: "Concorrentes", to: "/dashboard/trade/competitors", icon: Target, color: "text-red-600" },
       { title: "Comparação", to: "/dashboard/trade/comparacao-produtos", icon: BarChart3, color: "text-blue-600" },
-      { title: "Insights IA", to: "/dashboard/trade/insights", icon: TrendingUp, color: "text-green-600" },
+      ...(isAdminOrSupervisor ? [{ title: "Insights IA", to: "/dashboard/trade/insights", icon: TrendingUp, color: "text-green-600" }] : []),
     ],
     ...(isAdminOrSupervisor ? {
       "Performance e Vendas": [
