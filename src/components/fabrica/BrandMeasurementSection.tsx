@@ -45,7 +45,7 @@ export default function BrandMeasurementSection({
 
   // Initialize brand measurements when brands are loaded - only once
   useEffect(() => {
-    if (ourBrands && ourBrands.length > 0 && brandMeasurements.length === 0 && !hasInitialized.current) {
+    if (ourBrands && ourBrands.length > 0 && !hasInitialized.current) {
       hasInitialized.current = true;
       const initialMeasurements = ourBrands.map((brand) => ({
         brand_id: brand.id,
@@ -53,9 +53,12 @@ export default function BrandMeasurementSection({
         width_cm: "",
         shelf_count: "",
       }));
-      onBrandMeasurementsChange(initialMeasurements);
+      // Use setTimeout to break the render cycle
+      setTimeout(() => {
+        onBrandMeasurementsChange(initialMeasurements);
+      }, 0);
     }
-  }, [ourBrands, brandMeasurements.length, onBrandMeasurementsChange]);
+  }, [ourBrands]);
 
   const updateBrandMeasurement = (brandId: string, field: "width_cm" | "shelf_count", value: string) => {
     const updated = brandMeasurements.map((m) =>

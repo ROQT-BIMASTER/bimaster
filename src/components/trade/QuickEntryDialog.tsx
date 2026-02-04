@@ -107,9 +107,9 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     issues_found: [] as string[],
   });
 
-  // Atualizar filteredStores quando stores do hook mudar
+  // Atualizar filteredStores quando stores do hook mudar - com guard para evitar loop
   useEffect(() => {
-    if (!storesLoading) {
+    if (!storesLoading && stores.length > 0 && filteredStores.length === 0 && !storeSearch) {
       setFilteredStores(stores);
     }
   }, [stores, storesLoading]);
