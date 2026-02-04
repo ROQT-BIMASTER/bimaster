@@ -30,6 +30,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
+import { useUserRole } from "@/hooks/useUserRole";
 import { startOfMonth } from "date-fns";
 import { QuickEntryDialog } from "@/components/trade/QuickEntryDialog";
 import {
@@ -42,6 +43,7 @@ import { TourButton, tradeModuleTourSteps, TRADE_MODULE_TOUR_ID } from "@/compon
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
+  const { isAdminOrSupervisor } = useUserRole();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
@@ -102,7 +104,7 @@ const TradeModule = () => {
     "Performance e Vendas": [
       { title: "Promoções", to: "/dashboard/trade/promotions", icon: FileText, color: "text-orange-600" },
       { title: "Performance", to: "/dashboard/trade/performance", icon: TrendingUp, color: "text-blue-600" },
-      { title: "Equipe", to: "/dashboard/trade/team-performance", icon: Users, color: "text-purple-600" },
+      ...(isAdminOrSupervisor ? [{ title: "Equipe", to: "/dashboard/trade/team-performance", icon: Users, color: "text-purple-600" }] : []),
     ],
     "Gamificação": [
       { title: "Ranking", to: "/dashboard/ranking", icon: Trophy, color: "text-amber-500" },
