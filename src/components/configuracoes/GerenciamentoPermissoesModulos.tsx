@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { permissionsCache } from "@/lib/utils/permissions-cache";
+import { logModulePermissionToggle } from "@/lib/utils/permission-audit";
 
 interface Module {
   id: string;
@@ -156,6 +157,9 @@ export function GerenciamentoPermissoesModulos() {
   const toggleUserPermission = async (userId: string, moduleId: string, currentValue: boolean) => {
     setSaving(true);
     try {
+      const module = modules.find(m => m.id === moduleId);
+      const user = users.find(u => u.id === userId);
+
       if (currentValue) {
         // Remover permissão
         await supabase
@@ -178,6 +182,15 @@ export function GerenciamentoPermissoesModulos() {
 
       // Invalidar cache do usuário específico
       permissionsCache.invalidate(userId);
+
+      // Log de auditoria
+      await logModulePermissionToggle(
+        userId,
+        user?.nome || 'Usuário',
+        moduleId,
+        module?.nome || 'Módulo',
+        !currentValue
+      );
 
       toast({
         title: "Sucesso",

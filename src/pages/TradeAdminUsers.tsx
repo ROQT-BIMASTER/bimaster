@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Search, Users, Loader2, Shield, ShieldCheck, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { logModulePermissionToggle } from "@/lib/utils/permission-audit";
 
 interface User {
   id: string;
@@ -130,7 +131,7 @@ export default function TradeAdminUsers() {
 
   // Mutation to toggle trade_admin permission
   const toggleAdminMutation = useMutation({
-    mutationFn: async ({ userId, grant }: { userId: string; grant: boolean }) => {
+    mutationFn: async ({ userId, grant, userName }: { userId: string; grant: boolean; userName: string }) => {
       if (!tradeAdminData?.screenId) throw new Error("Screen ID not found");
       
       if (grant) {
@@ -149,6 +150,15 @@ export default function TradeAdminUsers() {
           .eq("tela_id", tradeAdminData.screenId);
         if (error) throw error;
       }
+
+      // Log de auditoria
+      await logModulePermissionToggle(
+        userId,
+        userName,
+        tradeAdminData.screenId,
+        'Trade Admin',
+        grant
+      );
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["trade-admin-screen-permissions"] });
@@ -357,6 +367,7 @@ export default function TradeAdminUsers() {
                     toggleAdminMutation.mutate({
                       userId: selectedUser.id,
                       grant: !tradeAdminUserIds.has(selectedUser.id),
+                      userName: selectedUser.nome || 'Usuário',
                     });
                   }}
                 >

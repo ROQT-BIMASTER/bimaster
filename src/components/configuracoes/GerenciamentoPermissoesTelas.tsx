@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { permissionsCache } from "@/lib/utils/permissions-cache";
+import { logScreenPermissionsUpdate, logPermissionSync } from "@/lib/utils/permission-audit";
 
 interface Screen {
   id: string;
@@ -172,6 +173,14 @@ export const GerenciamentoPermissoesTelas = () => {
 
     setSaving(true);
     try {
+      // Capturar permissões antigas para auditoria
+      const { data: oldPerms } = await supabase
+        .from("usuario_permissoes_telas")
+        .select("tela_id")
+        .eq("usuario_id", selectedUsuario);
+      
+      const oldPermissionIds = oldPerms?.map(p => p.tela_id) || [];
+
       // Remove all existing permissions
       await supabase
         .from("usuario_permissoes_telas")
@@ -194,6 +203,17 @@ export const GerenciamentoPermissoesTelas = () => {
 
       // Invalidar cache do usuário
       permissionsCache.invalidate(selectedUsuario);
+
+      // Log de auditoria
+      const newPermissionIds = Array.from(userPermissions);
+      const screenNames = screens.map(s => ({ id: s.id, name: s.nome }));
+      await logScreenPermissionsUpdate(
+        selectedUsuario,
+        selectedUser?.nome || 'Usuário',
+        oldPermissionIds,
+        newPermissionIds,
+        screenNames
+      );
 
       toast({
         title: "Permissões atualizadas",

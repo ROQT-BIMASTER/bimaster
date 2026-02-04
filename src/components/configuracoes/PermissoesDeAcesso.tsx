@@ -9,6 +9,7 @@ import * as LucideIcons from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { permissionsCache } from "@/lib/utils/permissions-cache";
+import { logPermissionSync } from "@/lib/utils/permission-audit";
 
 interface Tela {
   id: string;
@@ -167,18 +168,35 @@ export function PermissoesDeAcesso() {
     setSyncing(true);
     try {
       // Sincronizar permissões de todos os usuários não-admin
-      const { data: users } = await supabase
+      const { data: usersData } = await supabase
         .from("user_roles")
         .select("user_id")
         .neq("role", "admin");
 
-      if (users && users.length > 0) {
+      // Buscar nomes dos usuários para auditoria
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, nome")
+        .in("id", usersData?.map(u => u.user_id) || []);
+
+      const profileMap = new Map(profiles?.map(p => [p.id, p.nome]) || []);
+
+      if (usersData && usersData.length > 0) {
         let syncCount = 0;
-        for (const user of users) {
+        for (const user of usersData) {
           const { error } = await supabase.rpc("sincronizar_permissoes_usuario", {
             p_user_id: user.user_id,
           });
-          if (!error) syncCount++;
+          if (!error) {
+            syncCount++;
+            // Log de auditoria para cada usuário sincronizado
+            await logPermissionSync(
+              user.user_id,
+              profileMap.get(user.user_id) || 'Usuário',
+              'screen',
+              telas.filter(t => t.permissoes.vendedor || t.permissoes.supervisor || t.permissoes.promotor).map(t => t.nome)
+            );
+          }
         }
 
         // Invalidar todo o cache após sincronização
