@@ -1,146 +1,80 @@
 
+# Plano: Corrigir Corte de Conteúdo no Painel de Produtos Pendentes
 
-# Otimização do sync_control - Eliminar Gastos Desnecessários
+## Resumo do Problema
+O painel "Produtos Pendentes" está cortando visualmente os nomes dos produtos e os botões "Criar Lançamento" na lateral direita. Isso ocorre devido a um problema de overflow/largura no componente.
 
-## Diagnóstico Definitivo
+## Análise Técnica
 
-### Problema Identificado
-O N8N está funcionando corretamente, enviando ~3000 registros por chamada. O problema está em **dois lugares**:
+### Causa Raiz
+O componente `ProdutosPendentesPanel.tsx` possui:
+- Largura fixa de 320px (`w-80`)
+- Cards internos com `overflow-hidden`
+- Porém o conteúdo interno (nomes de produtos, botões) não está respeitando os limites do container
 
-| Problema | Evidência | Impacto |
-|----------|-----------|---------|
-| **Frequência excessiva** | 2.830 chamadas/hora = 47 chamadas/minuto | Processamento constante |
-| **Dados repetidos** | 280.900 registros/hora = mesmos ~3000 registros enviados 100x | 99% desperdício |
-| **Logs excessivos** | Cada chamada insere em sync_control | 519k linhas, 593MB |
+### Problemas Específicos
+1. O nome do produto tem `truncate` mas o texto ainda ultrapassa visualmente
+2. O botão "Criar Lançamento" está sendo cortado na borda direita
+3. Os badges e informações adicionais também podem sofrer corte
 
-### Cálculo do Desperdício
+## Solução Proposta
 
-```text
-Por hora:
-- Chamadas: 2.830
-- Registros enviados: 280.900
-- Registros ÚNICOS por empresa: ~3.000
-- Fator de repetição: 280.900 / 3.000 = ~93x (!)
+### Arquivo: `src/components/fabrica/ProdutosPendentesPanel.tsx`
 
-Por dia:
-- Chamadas: 67.920
-- Registros processados: 6.7 milhões
-- Registros que DEVERIAM ser: ~18.000 (6 empresas x 3000)
-- Desperdício: 99.7%
+**Alterações:**
+
+1. **Card do Produto (linhas 143-180)**: Adicionar `overflow-hidden` mais restritivo e garantir que todos os elementos filhos respeitem os limites
+
+2. **Container do nome do produto (linha 149)**: Ajustar para `min-w-0 overflow-hidden` no flex container
+
+3. **Título do produto (linha 150)**: Manter `truncate` e adicionar `max-w-full` para garantir truncamento correto
+
+4. **Botão Criar Lançamento (linhas 171-178)**: Garantir que o texto do botão não ultrapasse os limites com `truncate` e `overflow-hidden`
+
+5. **Área de badges (linhas 153-159)**: Adicionar `flex-wrap` para badges longos e `overflow-hidden` nos containers
+
+### Código Corrigido
+
+```tsx
+// Card do produto - linha 143
+<div
+  key={produto.id}
+  className="group p-3 rounded-lg border bg-card hover:bg-muted/50 hover:border-primary/30 transition-all"
+>
+  <div className="flex items-start gap-3 overflow-hidden">
+    <ProductThumbnail src={produto.foto_url} size="md" className="flex-shrink-0" />
+    <div className="flex-1 min-w-0 overflow-hidden space-y-1">
+      <h4 className="font-medium text-sm truncate max-w-full" title={produto.nome}>
+        {produto.nome}
+      </h4>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground overflow-hidden">
+        <span className="font-mono truncate">{produto.codigo}</span>
+        <span className="flex-shrink-0">•</span>
+        <Badge variant="outline" className="text-[10px] h-4 px-1 flex-shrink-0">
+          {produto.tipo === "ACABADO" ? "Acabado" : "Intermediário"}
+        </Badge>
+      </div>
+      <!-- ... demais elementos ... -->
+    </div>
+  </div>
+  <Button
+    size="sm"
+    className="w-full mt-3 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 overflow-hidden"
+    onClick={() => onCreateLaunch(produto)}
+  >
+    <Rocket className="h-3.5 w-3.5 flex-shrink-0" />
+    <span className="truncate">Criar Lançamento</span>
+  </Button>
+</div>
 ```
 
----
+## Resultado Esperado
+- Nomes de produtos longos serão truncados com "..." no final
+- Botão "Criar Lançamento" ficará completamente visível
+- Todo o conteúdo respeitará os limites do painel de 320px
+- Tooltips (via atributo `title`) permitirão ver o nome completo ao passar o mouse
 
-## Causa Raiz
-
-O N8N está configurado com **Schedule Trigger a cada ~30 segundos** ou está em **loop contínuo** sem verificar se os dados já foram sincronizados.
-
-A Edge Function faz o que deveria: processa e registra. Mas está sendo chamada **excessivamente**.
-
----
-
-## Solução em 3 Frentes
-
-### Frente 1: Agregar Logs (Impacto Imediato)
-
-**Remover insert de sync_control do endpoint `/sync`** (endpoint legado) e usar apenas `/sync-complete` para consolidar:
-
-```typescript
-// ANTES: Cada chamada insere no sync_control
-await supabase.from('sync_control').insert({...}); // ❌
-
-// DEPOIS: Apenas /sync-complete insere (1x por sync_id)
-if (path.endsWith('/sync-complete')) {
-  // Agregar chunks e inserir UMA vez
-}
-```
-
-### Frente 2: Implementar "Skip if No Changes" na Edge Function
-
-Adicionar lógica para retornar IMEDIATAMENTE se não há alterações reais:
-
-```typescript
-// No início do processamento
-const result = await processRecordsWithRetry(...);
-
-// Se 100% foi skipped, NÃO registrar no sync_control
-if (result.inserted === 0 && result.updated === 0) {
-  return new Response(JSON.stringify({
-    success: true,
-    skipped: true,
-    message: 'Nenhuma alteração detectada - log ignorado'
-  }));
-  // NÃO inserir em sync_control!
-}
-```
-
-### Frente 3: Limpeza e Manutenção Agressiva
-
-```sql
--- 1. Limpar sync_control (manter 24h apenas)
-DELETE FROM sync_control WHERE created_at < NOW() - INTERVAL '24 hours';
-
--- 2. Alterar cron de limpeza para 4x/dia (a cada 6h)
-SELECT cron.alter_job(
-  (SELECT jobid FROM cron.job WHERE jobname = 'cleanup-sync-control-daily'),
-  schedule := '0 */6 * * *'
-);
-
--- 3. Limpar tabelas relacionadas
-TRUNCATE sync_chunks_tracking;
-```
-
----
-
-## Alterações Técnicas
-
-### Arquivo: `supabase/functions/contas-pagar-api/index.ts`
-
-**Mudança 1:** No endpoint `/sync` (legado) - linhas ~928-943:
-- Adicionar condição para só inserir em sync_control se houve alterações
-
-**Mudança 2:** No endpoint `/sync-incremental` - linhas ~743-754:
-- Mesmo tratamento: só logar se houve inserção/atualização
-
-**Mudança 3:** No endpoint `/bulk-sync` - já usa sync_chunks_tracking:
-- Manter como está (chunks separados são OK pois consolida em /sync-complete)
-
-### Arquivo: `supabase/functions/contas-receber-api/index.ts`
-- Aplicar mesmas alterações para consistência
-
-### Migração SQL:
-- Reduzir retenção de sync_control de 7 dias para 1 dia
-- Aumentar frequência de limpeza para 4x/dia
-- Limpar dados antigos imediatamente
-
----
-
-## Impacto Esperado
-
-| Métrica | Antes | Depois | Redução |
-|---------|-------|--------|---------|
-| Inserções sync_control/hora | 2.830 | ~6 (1 por empresa) | 99.8% |
-| Tamanho sync_control | 593 MB | ~5 MB | 99% |
-| Linhas sync_control | 519.000 | ~1.000 | 99.8% |
-| Custo estimado | Alto | Mínimo | 95%+ |
-
----
-
-## Recomendação Adicional (N8N)
-
-Embora o problema não seja do N8N em si, sugiro verificar:
-
-1. **Schedule Trigger**: Confirmar que está configurado para intervalos maiores (a cada 1-6 horas)
-2. **Query SQL do ERP**: Filtrar apenas `WHERE data_modificacao > :ultima_sync`
-3. **Workflow duplicado**: Verificar se não há múltiplas cópias do workflow rodando
-
----
-
-## Resumo de Arquivos
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/contas-pagar-api/index.ts` | Skip sync_control se 0 alterações |
-| `supabase/functions/contas-receber-api/index.ts` | Mesma lógica |
-| **Migração SQL** | Retenção 1 dia + limpeza 4x/dia + truncate |
-
+## Impacto
+- Apenas visual/UX
+- Sem impacto em funcionalidade
+- Melhora a experiência em telas menores e com nomes de produtos longos
