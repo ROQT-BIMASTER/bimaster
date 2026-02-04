@@ -63,17 +63,38 @@ export function useAllDepartments() {
   return useQuery({
     queryKey: ["all-departments"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Buscar departamentos
+      const { data: departments, error } = await supabase
         .from("departamentos")
-        .select(`
-          *,
-          responsavel:profiles!departamentos_responsavel_id_fkey(id, nome)
-        `)
+        .select("*")
         .eq("ativo", true)
         .order("nome");
 
       if (error) throw error;
-      return data;
+
+      // Buscar responsáveis em batch
+      const responsavelIds = departments
+        ?.map(d => d.responsavel_id)
+        .filter((id): id is string => !!id) || [];
+
+      let responsaveisMap: Record<string, { id: string; nome: string }> = {};
+      
+      if (responsavelIds.length > 0) {
+        const { data: responsaveis } = await supabase
+          .from("profiles")
+          .select("id, nome")
+          .in("id", responsavelIds);
+        
+        responsaveisMap = (responsaveis || []).reduce((acc, p) => {
+          acc[p.id] = p;
+          return acc;
+        }, {} as Record<string, { id: string; nome: string }>);
+      }
+
+      return (departments || []).map(dept => ({
+        ...dept,
+        responsavel: dept.responsavel_id ? responsaveisMap[dept.responsavel_id] || null : null,
+      }));
     },
   });
 }
@@ -96,14 +117,23 @@ export function useDepartmentById(departmentId: string) {
 
       const { data, error } = await supabase
         .from("departamentos")
-        .select(`
-          *,
-          responsavel:profiles!departamentos_responsavel_id_fkey(id, nome)
-        `)
+        .select("*")
         .eq("id", departmentId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) return null;
+
+      // Buscar responsável separadamente se existir
+      let responsavel = null;
+      if (data.responsavel_id) {
+        const { data: respData } = await supabase
+          .from("profiles")
+          .select("id, nome")
+          .eq("id", data.responsavel_id)
+          .maybeSingle();
+        responsavel = respData;
+      }
 
       // Admin ou responsável é considerado manager
       const isManager = isAdmin || data.responsavel_id === user.id;
@@ -125,6 +155,7 @@ export function useDepartmentById(departmentId: string) {
 
       return {
         ...data,
+        responsavel,
         isManager,
         isFinanceiro,
         isAdmin,
