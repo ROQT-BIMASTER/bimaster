@@ -287,7 +287,7 @@ export default function BrandMeasurementSection({
               <div className="space-y-3 text-xs">
                 {/* Detalhamento por marca */}
                 <div className="space-y-1.5">
-                  <p className="font-medium text-muted-foreground">📊 Cálculo por Marca:</p>
+                  <p className="font-medium text-muted-foreground">Cálculo por Marca:</p>
                   {brandMeasurements.map((m) => {
                     const result = calculateTotal(m);
                     if (result.cm === 0) return null;
@@ -307,7 +307,7 @@ export default function BrandMeasurementSection({
                 {/* Fórmula do Share */}
                 {totalShelfArea > 0 && (
                   <div className="space-y-1.5">
-                    <p className="font-medium text-muted-foreground">📐 Cálculo do Share:</p>
+                    <p className="font-medium text-muted-foreground">Cálculo do Share:</p>
                     <div className="pl-3 space-y-1 text-muted-foreground">
                       <p>Área Total Gôndola = {totalShelfWidthCm} cm × {totalShelfCount} prat. = <span className="font-medium text-foreground">{totalShelfArea.toFixed(0)} cm ({(totalShelfArea / 100).toFixed(2)} m)</span></p>
                       <p>Share = ({totalOurBrandsCm.toFixed(0)} ÷ {totalShelfArea.toFixed(0)}) × 100 = <span className="font-medium text-primary">{sharePercentage.toFixed(1)}%</span></p>
