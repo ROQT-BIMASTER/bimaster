@@ -217,6 +217,12 @@ export function useDepartmentExpenses(departmentId?: string) {
         .single();
 
       if (error) throw error;
+
+      // Send email notification (fire-and-forget)
+      supabase.functions.invoke("send-department-expense-notification", {
+        body: { expenseId: id, status: "approved" },
+      }).catch(err => console.error("Error sending approval notification:", err));
+
       return data;
     },
     onSuccess: () => {
@@ -247,6 +253,12 @@ export function useDepartmentExpenses(departmentId?: string) {
         .single();
 
       if (error) throw error;
+
+      // Send email notification (fire-and-forget)
+      supabase.functions.invoke("send-department-expense-notification", {
+        body: { expenseId: id, status: "rejected", rejectionReason: reason },
+      }).catch(err => console.error("Error sending rejection notification:", err));
+
       return data;
     },
     onSuccess: () => {
