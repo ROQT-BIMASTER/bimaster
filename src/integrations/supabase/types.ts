@@ -17369,6 +17369,7 @@ export type Database = {
       }
       can_access_bank_accounts: { Args: { _user_id: string }; Returns: boolean }
       can_access_cliente: { Args: { viewer_id: string }; Returns: boolean }
+      can_access_credit_data: { Args: { _user_id: string }; Returns: boolean }
       can_access_fabrica: { Args: { _user_id: string }; Returns: boolean }
       can_access_notas_fiscais: {
         Args: { viewer_id: string }

@@ -21,7 +21,7 @@ import { FileText, Search, Download, Filter, Calendar, Tag } from "lucide-react"
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import * as XLSX from "xlsx";
+import { exportArrayToExcel } from "@/lib/excel-utils";
 
 interface Despesa {
   id: string;
@@ -72,7 +72,7 @@ export function EventsDespesasTable({ despesas }: EventsDespesasTableProps) {
     return matchesSearch && matchesStatus;
   });
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const exportData = filteredDespesas.map(d => ({
       Evento: d.evento,
       Categoria: d.categoria,
@@ -83,10 +83,7 @@ export function EventsDespesasTable({ despesas }: EventsDespesasTableProps) {
       Data: d.data ? format(new Date(d.data), "dd/MM/yyyy", { locale: ptBR }) : '',
     }));
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Despesas Eventos");
-    XLSX.writeFile(wb, `despesas-eventos-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    await exportArrayToExcel(exportData, "Despesas Eventos", `despesas-eventos-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   };
 
   return (

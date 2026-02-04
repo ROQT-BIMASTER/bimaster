@@ -21,7 +21,7 @@ import { FileText, Search, Download, Filter, Tag } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import * as XLSX from "xlsx";
+import { exportArrayToExcel } from "@/lib/excel-utils";
 
 interface Despesa {
   id: string;
@@ -72,7 +72,7 @@ export function DeptDespesasTable({ despesas, departmentName }: DeptDespesasTabl
     return matchesSearch && matchesStatus;
   });
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const exportData = filteredDespesas.map(d => ({
       Categoria: d.categoria,
       Descrição: d.descricao,
@@ -82,10 +82,7 @@ export function DeptDespesasTable({ despesas, departmentName }: DeptDespesasTabl
       Data: d.data ? format(new Date(d.data), "dd/MM/yyyy", { locale: ptBR }) : '',
     }));
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, `Despesas ${departmentName}`);
-    XLSX.writeFile(wb, `despesas-${departmentName.toLowerCase().replace(/\s+/g, '-')}-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    await exportArrayToExcel(exportData, `Despesas ${departmentName}`, `despesas-${departmentName.toLowerCase().replace(/\s+/g, '-')}-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   };
 
   return (

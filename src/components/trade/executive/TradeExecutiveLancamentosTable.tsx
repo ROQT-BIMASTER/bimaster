@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FileSpreadsheet, Search, TrendingUp, TrendingDown, Minus, Download } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import * as XLSX from "xlsx";
+import { exportArrayToExcel } from "@/lib/excel-utils";
 
 interface Lancamento {
   id: string;
@@ -50,7 +50,7 @@ export function TradeExecutiveLancamentosTable({ data, isLoading }: TradeExecuti
     return cliente.includes(searchLower) || campanha.includes(searchLower);
   });
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!filteredData?.length) return;
 
     const exportData = filteredData.map((l) => ({
@@ -68,10 +68,7 @@ export function TradeExecutiveLancamentosTable({ data, isLoading }: TradeExecuti
         : "-",
     }));
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
-    XLSX.writeFile(wb, `lancamentos_trade_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    await exportArrayToExcel(exportData, "Lançamentos", `lancamentos_trade_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   };
 
   if (isLoading) {
