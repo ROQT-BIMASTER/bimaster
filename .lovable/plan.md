@@ -1,80 +1,109 @@
 
-# Plano: Corrigir Corte de Conteúdo no Painel de Produtos Pendentes
+# Plano: Correção da Tela Visão Executiva Trade Marketing
 
-## Resumo do Problema
-O painel "Produtos Pendentes" está cortando visualmente os nomes dos produtos e os botões "Criar Lançamento" na lateral direita. Isso ocorre devido a um problema de overflow/largura no componente.
+## Problemas Identificados
 
-## Análise Técnica
+### Problema 1: Query de Visitas Retornando Vazio
+A query de visitas recentes usa um relacionamento inexistente:
+```typescript
+vendedor:profiles!visits_vendedor_id_fkey(nome)
+```
 
-### Causa Raiz
-O componente `ProdutosPendentesPanel.tsx` possui:
-- Largura fixa de 320px (`w-80`)
-- Cards internos com `overflow-hidden`
-- Porém o conteúdo interno (nomes de produtos, botões) não está respeitando os limites do container
+Porém a tabela `visits` **NÃO possui** a foreign key `visits_vendedor_id_fkey`. As chaves estrangeiras existentes são:
+- `visits_atribuido_por_fkey` (para profiles)
+- `visits_store_id_fkey` (para stores)  
+- `visits_user_id_fkey` (para auth.users)
 
-### Problemas Específicos
-1. O nome do produto tem `truncate` mas o texto ainda ultrapassa visualmente
-2. O botão "Criar Lançamento" está sendo cortado na borda direita
-3. Os badges e informações adicionais também podem sofrer corte
+Isso causa um erro silencioso que faz a query retornar vazio, mesmo havendo 5 visitas no banco de dados.
+
+### Problema 2: Gráfico de Evolução Desatualizado
+O gráfico de evolução mensal busca visitas por `scheduled_date` mas não atualiza em tempo real. Verificamos que existem:
+- 17 fotos no banco
+- 5 visitas no banco (mais recentes de jan/2026)
+
+### Problema 3: Falta de Filtro de Data Global
+Não existe filtro de período no dashboard executivo, dificultando análise histórica.
+
+---
 
 ## Solução Proposta
 
-### Arquivo: `src/components/fabrica/ProdutosPendentesPanel.tsx`
+### Arquivos a Modificar
 
-**Alterações:**
+1. **src/hooks/useTradeExecutiveDashboard.ts**
+   - Corrigir query de visitas removendo join inválido com vendedor
+   - Adicionar parâmetros de filtro de data (startDate, endDate)
+   - Propagar filtro para todas as queries relevantes
+   - Incluir queryKey com datas para invalidação correta
 
-1. **Card do Produto (linhas 143-180)**: Adicionar `overflow-hidden` mais restritivo e garantir que todos os elementos filhos respeitem os limites
+2. **src/pages/TradeExecutiveDashboard.tsx**
+   - Adicionar estado para filtro de período
+   - Adicionar componente de seleção de datas no header
+   - Passar parâmetros de data para o hook
 
-2. **Container do nome do produto (linha 149)**: Ajustar para `min-w-0 overflow-hidden` no flex container
+3. **src/components/trade/executive/TradeExecutiveVisitsTable.tsx** (sem alterações estruturais, apenas receberá dados corretos)
 
-3. **Título do produto (linha 150)**: Manter `truncate` e adicionar `max-w-full` para garantir truncamento correto
+---
 
-4. **Botão Criar Lançamento (linhas 171-178)**: Garantir que o texto do botão não ultrapasse os limites com `truncate` e `overflow-hidden`
+## Detalhes Técnicos
 
-5. **Área de badges (linhas 153-159)**: Adicionar `flex-wrap` para badges longos e `overflow-hidden` nos containers
+### Correção da Query de Visitas (useTradeExecutiveDashboard.ts)
 
-### Código Corrigido
-
-```tsx
-// Card do produto - linha 143
-<div
-  key={produto.id}
-  className="group p-3 rounded-lg border bg-card hover:bg-muted/50 hover:border-primary/30 transition-all"
->
-  <div className="flex items-start gap-3 overflow-hidden">
-    <ProductThumbnail src={produto.foto_url} size="md" className="flex-shrink-0" />
-    <div className="flex-1 min-w-0 overflow-hidden space-y-1">
-      <h4 className="font-medium text-sm truncate max-w-full" title={produto.nome}>
-        {produto.nome}
-      </h4>
-      <div className="flex items-center gap-2 text-xs text-muted-foreground overflow-hidden">
-        <span className="font-mono truncate">{produto.codigo}</span>
-        <span className="flex-shrink-0">•</span>
-        <Badge variant="outline" className="text-[10px] h-4 px-1 flex-shrink-0">
-          {produto.tipo === "ACABADO" ? "Acabado" : "Intermediário"}
-        </Badge>
-      </div>
-      <!-- ... demais elementos ... -->
-    </div>
-  </div>
-  <Button
-    size="sm"
-    className="w-full mt-3 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 overflow-hidden"
-    onClick={() => onCreateLaunch(produto)}
-  >
-    <Rocket className="h-3.5 w-3.5 flex-shrink-0" />
-    <span className="truncate">Criar Lançamento</span>
-  </Button>
-</div>
+**Antes (com erro):**
+```typescript
+const { data, error } = await supabase
+  .from("visits")
+  .select(`
+    id, scheduled_date, duration_minutes, status, compliance_score,
+    store:stores(name),
+    vendedor:profiles!visits_vendedor_id_fkey(nome)  // FK INVÁLIDA
+  `)
 ```
 
-## Resultado Esperado
-- Nomes de produtos longos serão truncados com "..." no final
-- Botão "Criar Lançamento" ficará completamente visível
-- Todo o conteúdo respeitará os limites do painel de 320px
-- Tooltips (via atributo `title`) permitirão ver o nome completo ao passar o mouse
+**Depois (corrigido):**
+```typescript
+const { data, error } = await supabase
+  .from("visits")
+  .select(`
+    id, scheduled_date, duration_minutes, status, compliance_score,
+    store:stores(name),
+    atribuidor:profiles!visits_atribuido_por_fkey(nome)
+  `)
+```
 
-## Impacto
-- Apenas visual/UX
-- Sem impacto em funcionalidade
-- Melhora a experiência em telas menores e com nomes de produtos longos
+Alternativamente, usar `user_id` com join manual se precisar do usuário que realizou a visita.
+
+### Implementação do Filtro de Data
+
+**Hook modificado:**
+```typescript
+export function useTradeExecutiveDashboard(dateRange?: { from: Date; to: Date }) {
+  const today = new Date();
+  const startDate = dateRange?.from || startOfMonth(today);
+  const endDate = dateRange?.to || today;
+  
+  // Todas as queries usam startDate e endDate
+}
+```
+
+**Componente de filtro (TradeExecutiveDashboard.tsx):**
+- Adicionar Select com opções: "Este mês", "Últimos 30 dias", "Últimos 90 dias", "Este ano", "Personalizado"
+- Para "Personalizado", mostrar DatePicker com range
+- Posicionar ao lado do botão "Atualizar" no header
+
+### Queries que Receberão Filtro de Data
+
+1. **KPIs**: Contar visitas/fotos dentro do período selecionado
+2. **Evolução Mensal**: Ajustar range de meses baseado no filtro
+3. **Visitas Recentes**: Filtrar por `scheduled_date`
+4. **Fotos Recentes**: Filtrar por `upload_date`
+5. **Lançamentos**: Filtrar por `data_lancamento`
+
+---
+
+## Resultado Esperado
+
+1. Tabela "Visitas Recentes" exibirá as 5 visitas existentes no banco
+2. Gráfico de evolução mostrará dados corretos por mês
+3. Usuário poderá filtrar todo o dashboard por período
+4. Cache será invalidado corretamente quando período mudar
