@@ -1,7 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, subMonths, startOfMonth, endOfMonth, startOfYear, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+export interface DateRangeFilter {
+  from: Date;
+  to: Date;
+}
 
 export interface ExecutiveKPIs {
   pdvsAtivos: number;
@@ -49,19 +54,49 @@ export interface RecentPhoto {
   iaScore: number | null;
 }
 
-export function useTradeExecutiveDashboard() {
+// Date range presets
+export type DatePreset = "this_month" | "last_30_days" | "last_90_days" | "this_year" | "custom";
+
+export function getDateRangeFromPreset(preset: DatePreset, customRange?: DateRangeFilter): DateRangeFilter {
   const today = new Date();
-  const monthStart = startOfMonth(today);
-  const monthStartStr = monthStart.toISOString().split("T")[0];
+  today.setHours(23, 59, 59, 999);
+  
+  switch (preset) {
+    case "this_month":
+      return { from: startOfMonth(today), to: today };
+    case "last_30_days":
+      return { from: subDays(today, 30), to: today };
+    case "last_90_days":
+      return { from: subDays(today, 90), to: today };
+    case "this_year":
+      return { from: startOfYear(today), to: today };
+    case "custom":
+      return customRange || { from: startOfMonth(today), to: today };
+    default:
+      return { from: startOfMonth(today), to: today };
+  }
+}
+
+export function useTradeExecutiveDashboard(dateRange?: DateRangeFilter) {
+  const today = new Date();
+  const startDate = dateRange?.from || startOfMonth(today);
+  const endDate = dateRange?.to || today;
+  
+  const startDateStr = startDate.toISOString().split("T")[0];
+  const endDateStr = endDate.toISOString().split("T")[0];
 
   // Query para KPIs principais
   const kpisQuery = useQuery({
-    queryKey: ['trade-executive-kpis'],
+    queryKey: ['trade-executive-kpis', startDateStr, endDateStr],
     queryFn: async () => {
       const [storesRes, visitsRes, photosRes, lancamentosRes] = await Promise.all([
         supabase.from("stores").select("*", { count: "exact", head: true }).eq("status", "active"),
-        supabase.from("visits").select("*", { count: "exact", head: true }).gte("scheduled_date", monthStartStr),
-        supabase.from("photos").select("*", { count: "exact", head: true }).gte("upload_date", monthStartStr),
+        supabase.from("visits").select("*", { count: "exact", head: true })
+          .gte("scheduled_date", startDateStr)
+          .lte("scheduled_date", endDateStr),
+        supabase.from("photos").select("*", { count: "exact", head: true })
+          .gte("upload_date", startDateStr)
+          .lte("upload_date", endDateStr),
         supabase.from("trade_campaign_lancamentos").select("roi_percentual").not("roi_percentual", "is", null)
       ]);
 
@@ -124,14 +159,15 @@ export function useTradeExecutiveDashboard() {
     staleTime: 3 * 60 * 1000,
   });
 
-  // Query para evolução mensal (últimos 6 meses)
+  // Query para evolução mensal (últimos 6 meses a partir da data selecionada)
   const evolutionQuery = useQuery({
-    queryKey: ['trade-executive-evolution'],
+    queryKey: ['trade-executive-evolution', endDateStr],
     queryFn: async () => {
       const evolution: MonthlyEvolution[] = [];
+      const referenceDate = endDate;
 
       for (let i = 5; i >= 0; i--) {
-        const mesDate = subMonths(today, i);
+        const mesDate = subMonths(referenceDate, i);
         const mesInicio = startOfMonth(mesDate);
         const mesFim = endOfMonth(mesDate);
         const mesLabel = format(mesDate, "MMM/yy", { locale: ptBR });
@@ -170,16 +206,19 @@ export function useTradeExecutiveDashboard() {
 
   // Query para top 10 clientes por lançamentos
   const topClientsQuery = useQuery({
-    queryKey: ['trade-executive-top-clients'],
+    queryKey: ['trade-executive-top-clients', startDateStr, endDateStr],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trade_campaign_lancamentos")
         .select(`
           customer_id,
           valor_pedido,
+          data_lancamento,
           prospect:prospects(nome_empresa)
         `)
-        .is("deleted_at", null);
+        .is("deleted_at", null)
+        .gte("data_lancamento", startDateStr)
+        .lte("data_lancamento", endDateStr);
 
       if (error) throw error;
 
@@ -212,9 +251,9 @@ export function useTradeExecutiveDashboard() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Query para visitas recentes
+  // Query para visitas recentes - CORRIGIDO: removida FK inválida
   const visitsQuery = useQuery({
-    queryKey: ['trade-executive-visits'],
+    queryKey: ['trade-executive-visits', startDateStr, endDateStr],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("visits")
@@ -225,8 +264,10 @@ export function useTradeExecutiveDashboard() {
           status,
           compliance_score,
           store:stores(name),
-          vendedor:profiles!visits_vendedor_id_fkey(nome)
+          atribuidor:profiles!visits_atribuido_por_fkey(nome)
         `)
+        .gte("scheduled_date", startDateStr)
+        .lte("scheduled_date", endDateStr)
         .order("scheduled_date", { ascending: false })
         .limit(10);
 
@@ -236,7 +277,7 @@ export function useTradeExecutiveDashboard() {
         return {
           id: v.id,
           pdv: (v.store as any)?.name || 'PDV não identificado',
-          vendedor: (v.vendedor as any)?.nome || 'Vendedor não identificado',
+          vendedor: (v.atribuidor as any)?.nome || 'Atribuidor não identificado',
           data: v.scheduled_date || '',
           duracao: v.duration_minutes,
           status: v.status || 'pending',
@@ -249,7 +290,7 @@ export function useTradeExecutiveDashboard() {
 
   // Query para fotos recentes
   const photosQuery = useQuery({
-    queryKey: ['trade-executive-photos'],
+    queryKey: ['trade-executive-photos', startDateStr, endDateStr],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("photos")
@@ -260,6 +301,8 @@ export function useTradeExecutiveDashboard() {
           ai_analysis,
           store:stores(name)
         `)
+        .gte("upload_date", startDateStr)
+        .lte("upload_date", endDateStr)
         .order("upload_date", { ascending: false })
         .limit(12);
 
@@ -282,7 +325,7 @@ export function useTradeExecutiveDashboard() {
 
   // Query para tabela de lançamentos
   const lancamentosQuery = useQuery({
-    queryKey: ['trade-executive-lancamentos'],
+    queryKey: ['trade-executive-lancamentos', startDateStr, endDateStr],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trade_campaign_lancamentos")
@@ -298,6 +341,8 @@ export function useTradeExecutiveDashboard() {
           campaign:trade_campaigns(name)
         `)
         .is("deleted_at", null)
+        .gte("data_lancamento", startDateStr)
+        .lte("data_lancamento", endDateStr)
         .order("data_lancamento", { ascending: false })
         .limit(50);
 
