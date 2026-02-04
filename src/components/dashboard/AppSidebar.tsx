@@ -725,57 +725,67 @@ export function AppSidebar() {
         )}
 
         {/* Módulo de Departamentos - Cada departamento com submenu */}
-        {userDepartments.length > 0 && userDepartments.map((dept) => (
-          <SidebarGroup key={dept.id} className="py-2 px-2">
-            <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="w-full">
-                <div className={cn(
-                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
-                  moduleColors.departamentos.bgLight,
-                  moduleColors.departamentos.hover
-                )}>
+        {userDepartments.length > 0 && userDepartments.map((dept, index) => {
+          // Cores harmoniosas para cada departamento
+          const deptColors = [
+            { bg: "bg-blue-500", bgLight: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-600 dark:text-blue-400", hover: "hover:bg-blue-100 dark:hover:bg-blue-900/40" },
+            { bg: "bg-emerald-500", bgLight: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-emerald-600 dark:text-emerald-400", hover: "hover:bg-emerald-100 dark:hover:bg-emerald-900/40" },
+            { bg: "bg-amber-500", bgLight: "bg-amber-50 dark:bg-amber-950/30", text: "text-amber-600 dark:text-amber-400", hover: "hover:bg-amber-100 dark:hover:bg-amber-900/40" },
+            { bg: "bg-violet-500", bgLight: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-600 dark:text-violet-400", hover: "hover:bg-violet-100 dark:hover:bg-violet-900/40" },
+            { bg: "bg-rose-500", bgLight: "bg-rose-50 dark:bg-rose-950/30", text: "text-rose-600 dark:text-rose-400", hover: "hover:bg-rose-100 dark:hover:bg-rose-900/40" },
+            { bg: "bg-cyan-500", bgLight: "bg-cyan-50 dark:bg-cyan-950/30", text: "text-cyan-600 dark:text-cyan-400", hover: "hover:bg-cyan-100 dark:hover:bg-cyan-900/40" },
+            { bg: "bg-orange-500", bgLight: "bg-orange-50 dark:bg-orange-950/30", text: "text-orange-600 dark:text-orange-400", hover: "hover:bg-orange-100 dark:hover:bg-orange-900/40" },
+            { bg: "bg-teal-500", bgLight: "bg-teal-50 dark:bg-teal-950/30", text: "text-teal-600 dark:text-teal-400", hover: "hover:bg-teal-100 dark:hover:bg-teal-900/40" },
+          ];
+          const color = deptColors[index % deptColors.length];
+          
+          return (
+            <SidebarGroup key={dept.id} className="py-2 px-2">
+              <Collapsible defaultOpen={false}>
+                <CollapsibleTrigger className="w-full">
                   <div className={cn(
-                    "flex items-center justify-center w-8 h-8 rounded-lg",
-                    moduleColors.departamentos.bg
+                    "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
+                    color.bgLight,
+                    color.hover
                   )}>
-                    <Building2 className="h-4 w-4 text-white" />
+                    <div className={cn(
+                      "flex items-center justify-center w-8 h-8 rounded-lg",
+                      color.bg
+                    )}>
+                      <Building2 className="h-4 w-4 text-white" />
+                    </div>
+                    <span className={cn("font-semibold text-sm flex-1 text-left", color.text)}>
+                      {dept.nome}
+                    </span>
+                    <ChevronDown className={cn(
+                      "h-4 w-4 transition-transform duration-200",
+                      color.text
+                    )} />
                   </div>
-                  <span className={cn("font-semibold text-sm flex-1 text-left", moduleColors.departamentos.text)}>
-                    {dept.nome}
-                  </span>
-                  {dept.isManager && (
-                    <Badge variant="outline" className="text-xs h-5 px-1.5">
-                      Gerente
-                    </Badge>
-                  )}
-                  <ChevronDown className={cn(
-                    "h-4 w-4 transition-transform duration-200",
-                    moduleColors.departamentos.text
-                  )} />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 pl-2">
-                    <MenuItemLink 
-                      to={`/dashboard/departamentos/${dept.id}`} 
-                      icon={FileText} 
-                      title="Despesas" 
-                      colorKey="departamentos"
-                      end
-                    />
-                    <MenuItemLink 
-                      to={`/dashboard/departamentos/${dept.id}/dashboard`} 
-                      icon={BarChart3} 
-                      title="Dashboard" 
-                      colorKey="departamentos"
-                    />
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        ))}
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarGroupContent className="mt-1">
+                    <SidebarMenu className="space-y-0.5 pl-2">
+                      <MenuItemLink 
+                        to={`/dashboard/departamentos/${dept.id}`} 
+                        icon={FileText} 
+                        title="Despesas" 
+                        colorKey="departamentos"
+                        end
+                      />
+                      <MenuItemLink 
+                        to={`/dashboard/departamentos/${dept.id}/dashboard`} 
+                        icon={BarChart3} 
+                        title="Dashboard" 
+                        colorKey="departamentos"
+                      />
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </SidebarGroup>
+          );
+        })}
 
         {/* Módulo de Tabelas de Preços */}
         {hasModulePermission("precos") && (
