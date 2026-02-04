@@ -17014,7 +17014,7 @@ export type Database = {
         Returns: number
       }
       sincronizar_permissoes_usuario: {
-        Args: { p_user_id: string }
+        Args: { p_force_sync?: boolean; p_user_id: string }
         Returns: undefined
       }
       start_sync: {
