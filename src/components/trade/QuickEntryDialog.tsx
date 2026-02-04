@@ -1133,11 +1133,6 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                       <Badge variant="secondary">
                         Área total: {(formData.shelf_width * formData.shelf_count).toFixed(0)} cm
                       </Badge>
-                      {formData.shelf_height > 0 && formData.shelf_depth > 0 && (
-                        <Badge variant="outline">
-                          Volume: {((formData.shelf_width * formData.shelf_height * formData.shelf_depth) / 1000).toFixed(2)} L
-                        </Badge>
-                      )}
                     </div>
                   )}
 
