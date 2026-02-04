@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link } from "react-router-dom";
+import { useUserRole } from "@/hooks/useUserRole";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -47,6 +48,7 @@ import type { BudgetFormData } from "@/lib/validations/budget";
 import { TourButton, tradeFinanceiroTourSteps, TRADE_FINANCEIRO_TOUR_ID } from "@/components/tour";
 
 export default function TradeFinanceiro() {
+  const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [budgets, setBudgets] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -64,20 +66,37 @@ export default function TradeFinanceiro() {
   const [selectedStoreForInvestment, setSelectedStoreForInvestment] = useState<string>("");
   const [investmentReceiptUrl, setInvestmentReceiptUrl] = useState<string>("");
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchData();
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id || null);
+    });
   }, []);
+
+  useEffect(() => {
+    if (currentUserId !== null && !roleLoading) {
+      fetchData();
+    }
+  }, [currentUserId, roleLoading, isAdminOrSupervisor]);
 
   const fetchData = async () => {
     try {
+      // Build investments query with role-based filter
+      let investmentsQuery = supabase.from("trade_investments").select(`
+        *,
+        store:stores(name, code, city)
+      `);
+
+      // Filtrar para não-admins/supervisores
+      if (!isAdminOrSupervisor && currentUserId) {
+        investmentsQuery = investmentsQuery.or(`created_by.eq.${currentUserId},vendedor_id.eq.${currentUserId}`);
+      }
+
       const [budgetsRes, accountsRes, investmentsRes, storesRes] = await Promise.all([
         supabase.from("trade_budgets").select("*").order("period_start", { ascending: false }),
         supabase.from("trade_chart_of_accounts").select("*").eq("is_active", true).order("code"),
-        supabase.from("trade_investments").select(`
-          *,
-          store:stores(name, code, city)
-        `).order("investment_date", { ascending: false }),
+        investmentsQuery.order("investment_date", { ascending: false }),
         supabase.from("stores").select("id, name, code, city").eq("status", "active").order("name"),
       ]);
 

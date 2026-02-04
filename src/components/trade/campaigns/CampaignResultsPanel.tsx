@@ -37,11 +37,12 @@ import {
   Minus,
   Filter
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatCurrency } from "@/lib/formatters";
 import { useNavigate } from "react-router-dom";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface LancamentoResult {
   id: string;
@@ -66,21 +67,31 @@ interface LancamentoResult {
 
 export function CampaignResultsPanel() {
   const navigate = useNavigate();
+  const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCampaign, setSelectedCampaign] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id || null);
+    });
+  }, []);
 
   // Fetch all lancamentos with campaign and customer info
   const { data: lancamentos, isLoading } = useQuery({
-    queryKey: ['campaign-results-panel'],
+    queryKey: ['campaign-results-panel', isAdminOrSupervisor, currentUserId],
+    enabled: !roleLoading && currentUserId !== null,
     queryFn: async () => {
       // Fetch lancamentos with campaign info
-      const { data: lancamentosData, error: lancamentosError } = await supabase
+      let query = supabase
         .from('trade_campaign_lancamentos')
         .select(`
           id,
           campaign_id,
           customer_id,
+          created_by,
           data_lancamento,
           valor_pedido,
           tipo_brinde,
@@ -92,8 +103,14 @@ export function CampaignResultsPanel() {
           roi_percentual,
           status,
           trade_campaigns(id, name, code, campaign_type)
-        `)
-        .order('data_lancamento', { ascending: false });
+        `);
+
+      // Filtrar para não-admins/supervisores
+      if (!isAdminOrSupervisor && currentUserId) {
+        query = query.eq("created_by", currentUserId);
+      }
+
+      const { data: lancamentosData, error: lancamentosError } = await query.order('data_lancamento', { ascending: false });
 
       if (lancamentosError) throw lancamentosError;
 

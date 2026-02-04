@@ -65,9 +65,14 @@ const TradeVisits = () => {
   useEffect(() => {
     if (!permissionsLoading && hasPermission("trade_visits")) {
       fetchCurrentUser();
-      fetchVisits();
     }
   }, [permissionsLoading]);
+
+  useEffect(() => {
+    if (currentUserId !== null && !roleLoading) {
+      fetchVisits();
+    }
+  }, [currentUserId, roleLoading, isAdminOrSupervisor]);
 
   const fetchCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -78,13 +83,19 @@ const TradeVisits = () => {
 
   const fetchVisits = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("visits")
         .select(`
           *,
           stores:store_id (name, city)
-        `)
-        .order("scheduled_date", { ascending: true });
+        `);
+
+      // Filtrar para não-admins/supervisores
+      if (!isAdminOrSupervisor && currentUserId) {
+        query = query.or(`user_id.eq.${currentUserId},vendedor_id.eq.${currentUserId}`);
+      }
+
+      const { data, error } = await query.order("scheduled_date", { ascending: true });
 
       if (error) throw error;
 
