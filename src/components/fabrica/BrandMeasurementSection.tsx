@@ -121,13 +121,14 @@ export default function BrandMeasurementSection({
     onBrandMeasurementsChange(updated);
   };
 
-  const calculateTotal = (measurement: BrandMeasurement): number => {
+  const calculateTotal = (measurement: BrandMeasurement): { cm: number; meters: number } => {
     const width = parseFloat(measurement.width_cm) || 0;
     const shelves = parseInt(measurement.shelf_count) || 0;
-    return width * shelves;
+    const totalCm = width * shelves;
+    return { cm: totalCm, meters: totalCm / 100 };
   };
 
-  const totalOurBrandsCm = brandMeasurements.reduce((sum, m) => sum + calculateTotal(m), 0);
+  const totalOurBrandsCm = brandMeasurements.reduce((sum, m) => sum + calculateTotal(m).cm, 0);
   
   const totalShelfArea = (parseFloat(totalShelfWidthCm) || 0) * (parseInt(totalShelfCount) || 1);
   const sharePercentage = totalShelfArea > 0 ? (totalOurBrandsCm / totalShelfArea) * 100 : 0;
@@ -193,10 +194,10 @@ export default function BrandMeasurementSection({
                 <Badge variant="outline" className="font-medium">
                   🏷️ {measurement.brand_name}
                 </Badge>
-                {total > 0 && (
+                {total.cm > 0 && (
                   <Badge variant="secondary" className="ml-auto">
                     <Calculator className="h-3 w-3 mr-1" />
-                    {total} cm
+                    {total.cm} cm ({total.meters.toFixed(2)} m)
                   </Badge>
                 )}
                 {!isDefaultBrand && (
