@@ -1,7 +1,7 @@
 
 # Plano: Multi-vendedor para PDVs + Visualização Filtrada
 
-## Objetivo
+## ✅ IMPLEMENTADO
 1. Permitir que uma loja (PDV) seja vinculada a **múltiplos vendedores**
 2. Garantir que usuários não-admins/supervisores visualizem **apenas os PDVs vinculados a eles**
 

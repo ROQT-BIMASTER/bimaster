@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { NovaCategoriaDialog } from "./NovaCategoriaDialog";
 import { NovaRedeDialog } from "./NovaRedeDialog";
+import { VendedorMultiSelect } from "./VendedorMultiSelect";
 import { z } from "zod";
 
 // Schema de validação para loja
@@ -32,10 +33,13 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
   const [loading, setLoading] = useState(false);
   const [showCategoriaDialog, setShowCategoriaDialog] = useState(false);
   const [showRedeDialog, setShowRedeDialog] = useState(false);
-  const [vendedores, setVendedores] = useState<any[]>([]);
   const [supervisores, setSupervisores] = useState<any[]>([]);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // Multi-vendedor state
+  const [selectedVendedores, setSelectedVendedores] = useState<string[]>([]);
+  const [principalVendedorId, setPrincipalVendedorId] = useState<string>("");
   
   const [formData, setFormData] = useState({
     name: "",
@@ -53,15 +57,18 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
     manager_name: "",
     manager_phone: "",
     notes: "",
-    vendedor_id: "",
     supervisor_id: "",
   });
 
-  // Carregar vendedores e supervisores quando o dialog abre
+  // Carregar supervisores e configurar usuário atual
   useEffect(() => {
     if (open) {
-      fetchUsuarios();
+      fetchSupervisores();
       fetchCurrentUser();
+    } else {
+      // Limpar estados ao fechar
+      setSelectedVendedores([]);
+      setPrincipalVendedorId("");
     }
   }, [open]);
 
@@ -82,14 +89,15 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
 
       // Se for vendedor ou promotor, já seleciona ele mesmo
       if (roleData?.role === 'vendedor' || roleData?.role === 'promotor') {
-        setFormData(prev => ({ ...prev, vendedor_id: user.id }));
+        setSelectedVendedores([user.id]);
+        setPrincipalVendedorId(user.id);
       }
     } catch (error) {
       console.error("Erro ao buscar usuário atual:", error);
     }
   };
 
-  const fetchUsuarios = async () => {
+  const fetchSupervisores = async () => {
     try {
       const { data: profiles } = await supabase
         .from("profiles")
@@ -107,13 +115,6 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
 
       const roleMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
 
-      const vendedoresList = profiles
-        .filter(p => {
-          const role = roleMap.get(p.id);
-          return role === 'vendedor' || role === 'promotor';
-        })
-        .map(p => ({ ...p, role: roleMap.get(p.id) }));
-
       const supervisoresList = profiles
         .filter(p => {
           const role = roleMap.get(p.id);
@@ -121,15 +122,20 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
         })
         .map(p => ({ ...p, role: roleMap.get(p.id) }));
 
-      setVendedores(vendedoresList);
       setSupervisores(supervisoresList);
     } catch (error) {
-      console.error("Erro ao carregar usuários:", error);
+      console.error("Erro ao carregar supervisores:", error);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar vendedor principal
+    if (!principalVendedorId || selectedVendedores.length === 0) {
+      toast.error("Selecione pelo menos um vendedor responsável");
+      return;
+    }
     
     // Limpar CNPJ e telefone para validação
     const cleanCnpj = formData.cnpj.replace(/\D/g, '');
@@ -142,7 +148,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
       email: formData.email.trim(),
       phone: cleanPhone,
       state: formData.state.trim(),
-      vendedor_id: formData.vendedor_id,
+      vendedor_id: principalVendedorId,
     });
     
     if (!validationResult.success) {
@@ -212,11 +218,11 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
       
       // Buscar supervisor_id do profile do vendedor se não foi informado
       let supervisorId = formData.supervisor_id || null;
-      if (!supervisorId && formData.vendedor_id) {
+      if (!supervisorId && principalVendedorId) {
         const { data: vendedorProfile } = await supabase
           .from("profiles")
           .select("supervisor_id")
-          .eq("id", formData.vendedor_id)
+          .eq("id", principalVendedorId)
           .single();
         
         supervisorId = vendedorProfile?.supervisor_id || null;
@@ -230,11 +236,30 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
         branch_count: formData.branch_count || 1,
         status: "active",
         created_by: userData.user?.id,
-        vendedor_id: formData.vendedor_id,
+        vendedor_id: principalVendedorId,
         supervisor_id: supervisorId,
       }).select().single();
 
       if (error) throw error;
+      
+      // Inserir vínculos na tabela store_sellers
+      if (newStore && selectedVendedores.length > 0) {
+        const storeSellersData = selectedVendedores.map((vendedorId, index) => ({
+          store_id: newStore.id,
+          vendedor_id: vendedorId,
+          is_principal: vendedorId === principalVendedorId,
+          created_by: userData.user?.id,
+        }));
+        
+        const { error: sellersError } = await supabase
+          .from("store_sellers")
+          .insert(storeSellersData);
+        
+        if (sellersError) {
+          console.error("Erro ao vincular vendedores:", sellersError);
+          // Não falhar a operação, apenas logar
+        }
+      }
 
       toast.success(`Loja cadastrada: ${normalizedName}`);
       onSuccess?.(newStore?.id);
@@ -255,9 +280,10 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
         manager_name: "",
         manager_phone: "",
         notes: "",
-        vendedor_id: "",
         supervisor_id: "",
       });
+      setSelectedVendedores([]);
+      setPrincipalVendedorId("");
     } catch (error: any) {
       toast.error("Erro ao cadastrar loja: " + error.message);
     } finally {
@@ -285,29 +311,15 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
               />
             </div>
 
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="vendedor_id">Vendedor Responsável *</Label>
-              <Select 
-                value={formData.vendedor_id} 
-                onValueChange={(value) => setFormData({ ...formData, vendedor_id: value })}
+            <div className="col-span-2">
+              <VendedorMultiSelect
+                selectedVendedores={selectedVendedores}
+                onChange={setSelectedVendedores}
+                principalVendedorId={principalVendedorId}
+                onPrincipalChange={setPrincipalVendedorId}
                 disabled={currentUserRole === 'vendedor' || currentUserRole === 'promotor'}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o vendedor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vendedores.map((vendedor) => (
-                    <SelectItem key={vendedor.id} value={vendedor.id}>
-                      {vendedor.nome} - {vendedor.role === 'vendedor' ? 'Vendedor' : 'Promotor'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                {currentUserRole === 'vendedor' || currentUserRole === 'promotor' 
-                  ? 'Você foi selecionado automaticamente'
-                  : 'Selecione quem será responsável por esta loja'}
-              </p>
+                required
+              />
             </div>
 
             <div className="col-span-2 space-y-2">

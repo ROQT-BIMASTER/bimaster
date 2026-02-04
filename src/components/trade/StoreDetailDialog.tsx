@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Camera, DollarSign, FileText, MapPin, Phone, Store, TrendingUp, User, Lightbulb, Clock, RefreshCw, ShoppingCart, Ruler, Target, AlertCircle } from "lucide-react";
+import { Calendar, Camera, DollarSign, FileText, MapPin, Phone, Store, TrendingUp, User, Users, Lightbulb, Clock, RefreshCw, ShoppingCart, Ruler, Target, AlertCircle, Crown } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StoreShareHistoryChart } from "./StoreShareHistoryChart";
@@ -22,6 +22,7 @@ interface StoreDetailDialogProps {
 
 export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDialogProps) => {
   const [store, setStore] = useState<any>(null);
+  const [storeSellers, setStoreSellers] = useState<any[]>([]);
   const [visits, setVisits] = useState<any[]>([]);
   const [scheduledVisits, setScheduledVisits] = useState<any[]>([]);
   const [insights, setInsights] = useState<any[]>([]);
@@ -42,6 +43,7 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
       // Limpar estados ao fechar o dialog
       console.log("🧹 Limpando estados do StoreDetailDialog");
       setStore(null);
+      setStoreSellers([]);
       setVisits([]);
       setScheduledVisits([]);
       setInsights([]);
@@ -162,6 +164,16 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
           .eq("store_id", storeId)
           .order("recorded_at", { ascending: false })
           .limit(30),
+        
+        // 12: Buscar vendedores vinculados
+        supabase
+          .from("store_sellers")
+          .select(`
+            vendedor_id,
+            is_principal,
+            vendedor:profiles(id, nome, email)
+          `)
+          .eq("store_id", storeId),
       ]);
 
       // Processar resultado da loja (índice 0)
@@ -234,6 +246,11 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
       // Processar inteligência de concorrentes (índice 11)
       if (results[11].status === "fulfilled") {
         setCompetitorIntel(results[11].value.data || []);
+      }
+
+      // Processar vendedores vinculados (índice 12)
+      if (results[12].status === "fulfilled") {
+        setStoreSellers(results[12].value.data || []);
       }
 
     } catch (error) {
@@ -381,6 +398,65 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                   </CardContent>
                 </Card>
               )}
+
+              {/* Vendedores Vinculados */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Vendedores Responsáveis
+                  </CardTitle>
+                  <CardDescription>
+                    {storeSellers.length > 0 
+                      ? `${storeSellers.length} vendedor(es) vinculado(s)`
+                      : "Nenhum vendedor vinculado via tabela store_sellers"
+                    }
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {storeSellers.length > 0 ? (
+                    <div className="space-y-2">
+                      {storeSellers
+                        .sort((a, b) => (b.is_principal ? 1 : 0) - (a.is_principal ? 1 : 0))
+                        .map((ss, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`flex items-center justify-between p-3 rounded-lg border ${
+                              ss.is_principal ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {ss.vendedor?.nome || "Vendedor não encontrado"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {ss.vendedor?.email}
+                                </p>
+                              </div>
+                            </div>
+                            {ss.is_principal && (
+                              <Badge variant="default" className="text-xs flex items-center gap-1">
+                                <Crown className="h-3 w-3" />
+                                Principal
+                              </Badge>
+                            )}
+                          </div>
+                        ))
+                      }
+                    </div>
+                  ) : store.vendedor_id ? (
+                    <p className="text-sm text-muted-foreground">
+                      Vendedor principal definido no cadastro da loja (ID: {store.vendedor_id.substring(0, 8)}...)
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum vendedor vinculado a esta loja.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="share">
