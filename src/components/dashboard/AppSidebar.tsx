@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { useUserDepartments } from "@/hooks/useUserDepartments";
 
 // Module color configuration
 const moduleColors = {
@@ -238,6 +239,7 @@ export function AppSidebar() {
   const { hasModulePermission, loading: modulesLoading } = useModulePermissions();
   const { isAdminOrSupervisor } = useUserRole();
   const { user } = useAuth();
+  const { data: userDepartments = [] } = useUserDepartments();
   
   const [prospectsOpen, setProspectsOpen] = useState(true);
   const [financeiroOpen, setFinanceiroOpen] = useState(true);
@@ -723,31 +725,40 @@ export function AppSidebar() {
         )}
 
         {/* Módulo de Departamentos */}
-        <SidebarGroup className="py-2 px-2">
-          <Collapsible open={departamentosOpen} onOpenChange={setDepartamentosOpen}>
-            <CollapsibleTrigger className="w-full">
-              <ModuleHeader 
-                icon={Building2} 
-                title="Departamentos" 
-                isOpen={departamentosOpen} 
-                colorKey="departamentos" 
-              />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarGroupContent className="mt-1">
-                <SidebarMenu className="space-y-0.5 pl-2">
-                  <MenuItemLink 
-                    to="/dashboard/departamentos" 
-                    icon={Home} 
-                    title="Hub de Departamentos" 
-                    colorKey="departamentos"
-                    end 
-                  />
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </SidebarGroup>
+        {userDepartments.length > 0 && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible open={departamentosOpen} onOpenChange={setDepartamentosOpen}>
+              <CollapsibleTrigger className="w-full">
+                <ModuleHeader 
+                  icon={Building2} 
+                  title="Departamentos" 
+                  isOpen={departamentosOpen} 
+                  colorKey="departamentos" 
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 pl-2">
+                    {userDepartments.map((dept) => (
+                      <MenuItemLink 
+                        key={dept.id}
+                        to={`/dashboard/departamentos/${dept.id}`} 
+                        icon={Building2} 
+                        title={dept.nome} 
+                        colorKey="departamentos"
+                        badge={dept.isManager ? (
+                          <Badge variant="outline" className="ml-auto text-xs h-5 px-1.5">
+                            Gerente
+                          </Badge>
+                        ) : undefined}
+                      />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
 
         {/* Módulo de Tabelas de Preços */}
         {hasModulePermission("precos") && (

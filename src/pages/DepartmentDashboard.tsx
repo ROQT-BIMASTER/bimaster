@@ -143,9 +143,9 @@ export default function DepartmentDashboard() {
     <DashboardLayout>
       <div className="space-y-6">
         <ModuleBreadcrumb
-          moduleName="Departamentos"
-          moduleHref="/dashboard/departamentos"
-          currentPage={`Dashboard - ${department.nome}`}
+          moduleName={department.nome}
+          moduleHref={`/dashboard/departamentos/${id}`}
+          currentPage="Dashboard Financeiro"
         />
 
         <div className="flex items-center justify-between">
