@@ -199,10 +199,37 @@ export function useCorporateEvents() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["corporate-events"] });
       queryClient.invalidateQueries({ queryKey: ["corporate-event", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["pending-corporate-events"] });
       toast.success("Evento aprovado com sucesso!");
     },
     onError: (error: Error) => {
       toast.error(`Erro ao aprovar evento: ${error.message}`);
+    },
+  });
+
+  const rejectEvent = useMutation({
+    mutationFn: async ({ id, observations }: { id: string; observations: string }) => {
+      const { data, error } = await supabase
+        .from("corporate_events")
+        .update({
+          status: "rejected",
+          description: observations, // Store rejection reason
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["corporate-events"] });
+      queryClient.invalidateQueries({ queryKey: ["corporate-event", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["pending-corporate-events"] });
+      toast.success("Evento rejeitado.");
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao rejeitar evento: ${error.message}`);
     },
   });
 
@@ -216,6 +243,7 @@ export function useCorporateEvents() {
     updateEvent,
     deleteEvent,
     approveEvent,
+    rejectEvent,
   };
 }
 
