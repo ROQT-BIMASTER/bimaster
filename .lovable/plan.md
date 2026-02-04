@@ -1,91 +1,160 @@
 
-# Plano: Unificar Validação de Verba na Aprovação de Campanhas
+# Plano: Correção de Acesso Indevido a Fotos - Hierarquia e RLS
 
-## Problema
-Existem dois caminhos para aprovar campanhas:
+## Problema Identificado
 
-1. **Central de Aprovações** (`AprovacaoCampanhaDialog.tsx`) - ✅ Exige verba
-2. **Aba Validação na Campanha** (`CampaignValidation.tsx`) - ❌ Não exige verba
+A usuária **Juliana Germinhasi** (vendedora) está conseguindo visualizar fotos de **Jessika Marcondes** (sua supervisora) na tela Trade Photos. Isso viola a hierarquia de acesso onde:
+- Vendedores só podem ver suas próprias fotos
+- Supervisores podem ver fotos de seus subordinados
+- Admins podem ver todas as fotos
 
-O usuário usou o segundo caminho, resultando em campanha aprovada sem verba vinculada, e consequentemente os R$ 900 não foram debitados.
+### Causa Raiz (2 problemas críticos)
+
+**1. Policies de Storage Excessivamente Permissivas**
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ BUCKET: trade-photos                                        │
+│                                                             │
+│ Policy "Fotos são publicamente acessíveis"                  │
+│ USING: bucket_id = 'trade-photos'  ← PERMITE TUDO!          │
+│                                                             │
+│ Policy "Todos podem ver fotos trade"                        │
+│ USING: bucket_id = 'trade-photos'  ← DUPLICADA!             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**2. Função `is_supervisor_of` Usada de Forma Invertida**
+Na policy `Users can view own trade photos` do storage:
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ ERRADO:  is_supervisor_of(auth.uid(), p.vendedor_id)         │
+│          ↑ "Juliana é supervisora de Jessika?" → FALSE       │
+│          Mas outra policy permite acesso sem verificação!    │
+│                                                              │
+│ CORRETO: is_supervisor_of(p.vendedor_id, auth.uid())         │
+│          ↑ "Jessika é subordinada de Juliana?" → FALSE       │
+│          E "Juliana é subordinada de Jessika?" → TRUE        │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
 
 ## Solução
 
-### 1. Adicionar Validação de Verba no CampaignValidation.tsx
-Modificar o componente para:
-- Adicionar seletor de verba obrigatório antes de aprovar
-- Validar saldo disponível antes de aprovar
-- Atualizar `budget_id` da campanha junto com a aprovação
-- Consumir crédito da verba quando aprovar despesas
+### 1. Remover Policies de Storage Excessivamente Permissivas
+Deletar as policies que permitem acesso irrestrito ao bucket `trade-photos`:
+- "Fotos são publicamente acessíveis"
+- "Todos podem ver fotos trade"
 
-### 2. Corrigir Dados Existentes
-Executar SQL para vincular a campanha "COMPRE E GANHE RR - 03" à verba "01TESTE" e debitar os R$ 900:
+### 2. Criar Policy de Storage com Hierarquia Correta
+Nova policy que verifica:
+- Usuário é dono da foto (vendedor_id = auth.uid())
+- Usuário é supervisor do dono da foto
+- Usuário é admin/supervisor global
 
+### 3. Corrigir Policies de RLS na Tabela `photos`
+A policy `Supervisores podem ver fotos de seus subordinados` tem a inversão:
 ```sql
--- 1. Vincular campanha à verba
-UPDATE trade_campaigns
-SET budget_id = (SELECT id FROM trade_budgets WHERE code = '01TESTE')
-WHERE id = 'add2757e-e00e-49ac-9a31-c3a0959c7bfe';
+-- ATUAL (errado):
+is_supervisor_of(auth.uid(), vendedor_id)
 
--- 2. Atualizar spent_amount da verba
-UPDATE trade_budgets
-SET spent_amount = COALESCE(spent_amount, 0) + 900
-WHERE code = '01TESTE';
+-- CORRETO:
+is_supervisor_of(vendedor_id, auth.uid())
 ```
 
 ---
 
 ## Detalhes Técnicos
 
-### Modificações no CampaignValidation.tsx
+### Migração SQL
 
-```typescript
-// Adicionar state para verba selecionada
-const [selectedBudgetId, setSelectedBudgetId] = useState<string>(campaign.budget_id || "");
+```sql
+-- 1. Remover policies permissivas no Storage
+DROP POLICY IF EXISTS "Fotos são publicamente acessíveis" ON storage.objects;
+DROP POLICY IF EXISTS "Todos podem ver fotos trade" ON storage.objects;
 
-// Buscar verbas aprovadas
-const { data: budgets = [] } = useQuery({
-  queryKey: ["trade-budgets-approved"],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from("trade_budgets")
-      .select("*")
-      .eq("status", "approved")
-      .is("inactivated_at", null);
-    return data || [];
-  },
-});
+-- 2. Criar policy de Storage com hierarquia correta
+CREATE POLICY "Trade photos hierarquia correta" ON storage.objects
+FOR SELECT TO authenticated
+USING (
+  bucket_id = 'trade-photos' 
+  AND (
+    -- Admin ou supervisor global
+    is_admin_or_supervisor(auth.uid())
+    -- OU é dono da foto (verifica na tabela photos)
+    OR EXISTS (
+      SELECT 1 FROM photos p
+      WHERE p.photo_url LIKE '%' || objects.name || '%'
+      AND (
+        p.vendedor_id = auth.uid()
+        OR p.supervisor_id = auth.uid()
+        -- Supervisor do vendedor pode ver
+        OR is_supervisor_of(p.vendedor_id, auth.uid())
+      )
+    )
+  )
+);
 
-// Na mutação approveCampaign, exigir verba
-const approveCampaign = useMutation({
-  mutationFn: async () => {
-    const finalBudgetId = selectedBudgetId || campaign.budget_id;
-    
-    if (!finalBudgetId) {
-      throw new Error("Selecione uma verba para aprovar esta campanha");
-    }
+-- 3. Corrigir policy da tabela photos
+DROP POLICY IF EXISTS "Supervisores podem ver fotos de seus subordinados" ON photos;
 
-    // Atualizar campanha COM budget_id
-    await supabase
-      .from("trade_campaigns")
-      .update({
-        budget_id: finalBudgetId, // <-- ADICIONAR ISSO
-        validation_status: "approved",
-        status: "approved",
-        // ...
-      })
-      .eq("id", campaignId);
-  },
-});
+CREATE POLICY "Supervisores podem ver fotos de subordinados" ON photos
+FOR SELECT TO authenticated
+USING (
+  supervisor_id IS NOT NULL
+  AND is_supervisor_of(vendedor_id, auth.uid())
+);
+
+-- 4. Corrigir policy "Usuários veem fotos permitidas"
+DROP POLICY IF EXISTS "Usuários veem fotos permitidas" ON photos;
+
+CREATE POLICY "Usuários veem fotos permitidas" ON photos
+FOR SELECT TO authenticated
+USING (
+  vendedor_id = auth.uid()
+  OR supervisor_id = auth.uid()
+  OR is_admin_or_supervisor(auth.uid())
+  OR EXISTS (
+    SELECT 1 FROM visits v
+    WHERE v.id = photos.visit_id 
+    AND (
+      v.user_id = auth.uid()
+      OR is_supervisor_of(v.user_id, auth.uid())
+    )
+  )
+);
 ```
 
-### Interface Adicionada
-Adicionar um seletor de verba antes do botão "Aprovar Campanha" mostrando:
-- Lista de verbas aprovadas com saldo
-- Comparação: Disponível vs Custo Estimado
-- Indicador visual de saldo OK ou insuficiente
+### Validação Pós-Migração
+
+Executar query para confirmar isolamento:
+```sql
+-- Simular acesso de Juliana às fotos de Jessika (deve retornar FALSE para todas)
+SELECT 
+  p.id,
+  (p.vendedor_id = 'bf225976...'::uuid) as is_owner,
+  is_supervisor_of(p.vendedor_id, 'bf225976...'::uuid) as is_supervisor
+FROM photos p
+WHERE p.vendedor_id = '23d470c6...' -- Jessika
+LIMIT 5;
+```
+
+---
 
 ## Resultado Esperado
-- Ambos os caminhos de aprovação exigirão seleção de verba
-- Dados existentes serão corrigidos
-- Futuras aprovações debitarão corretamente da verba
+
+| Usuário | Role | Pode Ver Fotos de |
+|---------|------|-------------------|
+| Juliana | vendedor | Apenas suas próprias |
+| Jessika (supervisora) | vendedor | Suas próprias + Juliana |
+| Leandro | supervisor | Sua equipe |
+| Fabio | admin | Todas |
+
+---
+
+## Impacto
+
+- **Segurança**: Vendedores não terão mais acesso a fotos de outros vendedores
+- **Performance**: Nenhum impacto negativo
+- **UX**: A tela Trade Photos mostrará apenas fotos autorizadas
+
