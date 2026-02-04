@@ -1,103 +1,94 @@
 
-# Plano: Multi-vendedor para PDVs + Visualização Filtrada
+# Plano: Bloquear Visualização de PDVs Sem Vendedor + Filtro Centralizado
 
-## ✅ IMPLEMENTADO
-1. Permitir que uma loja (PDV) seja vinculada a **múltiplos vendedores**
-2. Garantir que usuários não-admins/supervisores visualizem **apenas os PDVs vinculados a eles**
+## Problema Identificado
 
----
+O componente `TradeFilters.tsx` busca **todas as lojas ativas** sem nenhum filtro por vendedor. Este componente é usado em **11 telas** do Trade Marketing:
+- TradeStores, TradeVisits, TradePhotos, TradePromotions
+- TradeCompetitors, TradeInsights, TradeShelfMeasurements
+- TradeSellOut, TradeFinanceiro, TradeAuditorias, TradeCalendar
 
-## Situação Atual
+Além disso, outros componentes também buscam lojas sem filtro:
+- TradeModule.tsx (dashboard)
+- EditarInvestimentoDialog.tsx
+- useTradeData.ts (hook)
+- QuickEntryDialog.tsx
 
-### Estrutura Existente
-- A tabela `stores` possui `vendedor_id` (UUID único) - suporta apenas 1 vendedor
-- Já existe uma tabela `store_sellers` com a estrutura correta para múltiplos vendedores:
+## Regra de Negócio
 
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | uuid | Chave primária |
-| store_id | uuid | FK para stores |
-| vendedor_id | uuid | FK para profiles |
-| is_principal | boolean | Indica vendedor principal |
-| created_at | timestamp | Data de criação |
-| created_by | uuid | Quem criou o vínculo |
-
-- A tabela `store_sellers` já possui **73 registros**, mas não está sendo usada na interface
-
-### Problema
-- Os formulários de criação e edição de loja usam apenas o campo `vendedor_id` (seleção única)
-- A listagem de lojas (`TradeStores.tsx`) mostra todos os PDVs para todos os usuários
-- Não há filtro por vendedor vinculado
-
----
+| Tipo de Usuário | Visualização |
+|-----------------|--------------|
+| Admin/Supervisor | Todas as lojas |
+| Vendedor/Promotor | Apenas lojas onde é vendedor principal OU está vinculado via `store_sellers` |
+| Lojas sem vendedor | **Visíveis apenas para Admins/Supervisores** |
 
 ## Solução Proposta
 
-### Parte 1: Seleção Multi-vendedor
+### Parte 1: Criar Hook Centralizado `useFilteredStores`
 
-**Arquivos a modificar:**
-- `src/components/trade/NovaLojaDialog.tsx`
-- `src/components/trade/EditarLojaDialog.tsx`
-- `src/components/trade/StoreDetailDialog.tsx`
+Criar um hook reutilizável que:
+1. Verifica o role do usuário (e contexto de impersonação)
+2. Para não-admins: busca lojas vinculadas via `store_sellers` + `vendedor_id`
+3. Para admins: retorna todas as lojas
+4. Retorna função de fetch e lista de lojas filtradas
 
-**Implementação:**
-1. Trocar o `<Select>` único por um componente de seleção múltipla com checkboxes
-2. Ao salvar a loja:
-   - Manter o `vendedor_id` principal na tabela `stores` (compatibilidade)
-   - Sincronizar os vendedores selecionados na tabela `store_sellers`
-3. Exibir lista de vendedores no dialog de detalhes com indicação de "Principal"
+**Arquivo novo:** `src/hooks/useFilteredStores.ts`
 
-### Parte 2: Visualização Filtrada por Vendedor
+```text
+useFilteredStores()
+  ├── Detecta isAdminOrSupervisor (respeitando impersonação)
+  ├── Obtém effectiveUserId
+  ├── Se não-admin:
+  │   ├── Busca store_sellers WHERE vendedor_id = userId
+  │   └── Busca stores WHERE id IN (linkedIds) OR vendedor_id = userId
+  └── Se admin: busca todas as stores
+```
 
-**Arquivo a modificar:**
-- `src/pages/TradeStores.tsx`
+### Parte 2: Atualizar TradeFilters
 
-**Implementação:**
-1. Detectar role do usuário com `useUserRole`
-2. Para não-admins/supervisores:
-   - Buscar os `store_id` da tabela `store_sellers` onde `vendedor_id = currentUserId`
-   - Filtrar a listagem de lojas para mostrar apenas esses IDs
-3. Admins e supervisores continuam visualizando todos os PDVs
+Substituir a busca direta por utilização do hook `useFilteredStores`, passando a lista filtrada para o dropdown.
+
+### Parte 3: Atualizar Outros Componentes
+
+| Componente | Modificação |
+|------------|-------------|
+| `TradeModule.tsx` | Usar hook para contar apenas lojas visíveis |
+| `EditarInvestimentoDialog.tsx` | Usar hook para popular dropdown |
+| `useTradeData.ts` | Incorporar lógica de filtro |
+| `QuickEntryDialog.tsx` | Usar hook para seleção de lojas |
 
 ---
 
 ## Detalhes Técnicos
 
-### 1. Componente Multi-Select de Vendedores
-
-Criar um novo componente `VendedorMultiSelect.tsx`:
+### Hook `useFilteredStores`
 
 ```text
-┌─────────────────────────────────────────────┐
-│ Vendedores Responsáveis *                   │
-├─────────────────────────────────────────────┤
-│ ☑ João Silva - Vendedor (Principal)         │
-│ ☑ Maria Santos - Vendedor                   │
-│ ☐ Carlos Lima - Promotor                    │
-│ ☐ Ana Costa - Vendedor                      │
-└─────────────────────────────────────────────┘
+interface UseFilteredStoresResult {
+  stores: Store[];
+  loading: boolean;
+  refetch: () => Promise<void>;
+}
+
+function useFilteredStores(options?: { 
+  activeOnly?: boolean;
+  includeFields?: string[];
+}): UseFilteredStoresResult
 ```
 
-### 2. Lógica de Salvamento
+**Lógica interna:**
+1. Usar `useUserRole()` para obter `isAdminOrSupervisor`
+2. Usar `useImpersonation()` para detectar visualização personificada
+3. Calcular `effectiveUserId` e `effectiveIsAdminOrSupervisor`
+4. Se não-admin:
+   - Buscar `store_sellers.store_id` para o usuário
+   - Combinar com lojas onde `vendedor_id = userId`
+   - Retornar apenas essas lojas
+5. Se admin: retornar todas as lojas
 
-```text
-Ao salvar loja:
-1. INSERT/UPDATE na tabela stores (com vendedor_id do primeiro selecionado)
-2. DELETE FROM store_sellers WHERE store_id = ?
-3. INSERT INTO store_sellers (store_id, vendedor_id, is_principal)
-   VALUES (?, ?, true/false) -- primeiro é principal
-```
+### Integração com TradeFilters
 
-### 3. Filtro de Visualização
-
-```text
-fetchStores():
-  SE isAdminOrSupervisor:
-    SELECT * FROM stores
-  SENÃO:
-    SELECT store_id FROM store_sellers WHERE vendedor_id = currentUserId
-    SELECT * FROM stores WHERE id IN (store_ids) OR vendedor_id = currentUserId
-```
+O `TradeFilters` receberá opcionalmente uma lista de lojas já filtradas via props OU usará o hook internamente se não receber.
 
 ---
 
@@ -105,17 +96,23 @@ fetchStores():
 
 | Arquivo | Ação | Descrição |
 |---------|------|-----------|
-| `src/components/trade/VendedorMultiSelect.tsx` | Criar | Componente de seleção múltipla de vendedores |
-| `src/components/trade/NovaLojaDialog.tsx` | Modificar | Usar multi-select e salvar em store_sellers |
-| `src/components/trade/EditarLojaDialog.tsx` | Modificar | Carregar e salvar múltiplos vendedores |
-| `src/components/trade/StoreDetailDialog.tsx` | Modificar | Exibir lista de vendedores vinculados |
-| `src/pages/TradeStores.tsx` | Modificar | Filtrar PDVs por vendedor para não-admins |
+| `src/hooks/useFilteredStores.ts` | **Criar** | Hook centralizado de lojas filtradas |
+| `src/components/trade/TradeFilters.tsx` | Modificar | Usar hook para filtrar lojas |
+| `src/pages/modules/TradeModule.tsx` | Modificar | Usar hook para contagem |
+| `src/components/trade/EditarInvestimentoDialog.tsx` | Modificar | Usar hook para dropdown |
+| `src/hooks/useTradeData.ts` | Modificar | Incorporar filtro de lojas |
+| `src/components/trade/QuickEntryDialog.tsx` | Modificar | Usar hook para seleção |
 
 ---
 
-## Considerações
+## Benefícios
 
-1. **Compatibilidade**: Manter o campo `vendedor_id` na tabela `stores` para não quebrar funcionalidades existentes
-2. **Migração de dados**: Os 73 registros em `store_sellers` já existem, então lojas que já têm vínculo funcionarão automaticamente
-3. **Performance**: Usar JOINs eficientes ao invés de múltiplas queries
-4. **Segurança**: O filtro no frontend complementa as políticas RLS existentes
+1. **Segurança**: PDVs sem vendedor não serão expostos a usuários não autorizados
+2. **Centralização**: Lógica de filtro em um único lugar (DRY)
+3. **Consistência**: Todas as telas usarão a mesma regra
+4. **Impersonação**: Respeita o contexto de "Visualizar como"
+5. **Manutenibilidade**: Alterações futuras em um só lugar
+
+## Considerações de Segurança
+
+O filtro no frontend é uma camada de usabilidade. A proteção real deve estar nas políticas RLS do banco. Esta implementação complementa (não substitui) as políticas de segurança do backend.
