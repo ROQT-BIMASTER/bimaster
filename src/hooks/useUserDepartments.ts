@@ -85,6 +85,15 @@ export function useDepartmentById(departmentId: string) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      // Check if user is admin
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const isAdmin = roleData?.role === "admin";
+
       const { data, error } = await supabase
         .from("departamentos")
         .select(`
@@ -96,8 +105,8 @@ export function useDepartmentById(departmentId: string) {
 
       if (error) throw error;
 
-      // Check if user is manager
-      const isManager = data.responsavel_id === user.id;
+      // Admin ou responsável é considerado manager
+      const isManager = isAdmin || data.responsavel_id === user.id;
 
       // Check if user is from financeiro
       const { data: profile } = await supabase
@@ -110,7 +119,7 @@ export function useDepartmentById(departmentId: string) {
         .from("departamentos")
         .select("id")
         .eq("nome", "Financeiro")
-        .single();
+        .maybeSingle();
 
       const isFinanceiro = profile?.departamento_id === financeiroDept?.id;
 
@@ -118,6 +127,7 @@ export function useDepartmentById(departmentId: string) {
         ...data,
         isManager,
         isFinanceiro,
+        isAdmin,
       };
     },
     enabled: !!departmentId,
