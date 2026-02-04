@@ -343,7 +343,7 @@ export function AppSidebar() {
     { title: "Fotos", url: "/dashboard/trade/photos", icon: Camera, screenCode: "TRADE_FOTOS" },
     { title: "Fotos Ideais", url: "/dashboard/trade/ideal-photos", icon: Image, screenCode: "trade_ideal_photos" },
     { title: "Auditoria Gôndola", url: "/dashboard/trade/auditorias", icon: ClipboardCheck, screenCode: "TRADE_AUDITORIAS" },
-    { title: "Análise Competitiva", url: "/dashboard/trade/relatorio-competitivo", icon: BarChart3, screenCode: "trade_competitors" },
+    { title: "Análise Competitiva", url: "/dashboard/trade/relatorio-competitivo", icon: BarChart3, screenCode: "trade_competitors", requireAdminOrSupervisor: true },
     { title: "Premiações", url: "/dashboard/trade/rewards", icon: Trophy, screenCode: "trade_rewards" },
     { title: "WhatsApp", url: "/dashboard/trade/whatsapp", icon: MessageSquare, screenCode: "trade_whatsapp" },
     { title: "Insights IA", url: "/dashboard/trade/insights", icon: Sparkles, screenCode: "trade_insights", requireAdminOrSupervisor: true },

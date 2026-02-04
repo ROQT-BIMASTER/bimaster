@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -13,7 +15,8 @@ import {
   CheckCircle2,
   Target,
   Lightbulb,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,10 +55,29 @@ export default function TradeRelatorioCompetitivo() {
   const [analyses, setAnalyses] = useState<CompetitiveAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
-    fetchAnalyses();
-  }, []);
+    if (!roleLoading && isAdminOrSupervisor) {
+      fetchAnalyses();
+    }
+  }, [roleLoading, isAdminOrSupervisor]);
+
+  // Bloqueia acesso para não-admin/supervisor
+  if (!roleLoading && !isAdminOrSupervisor) {
+    return <Navigate to="/dashboard/acesso-restrito" replace />;
+  }
+
+  // Loading do role check
+  if (roleLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const fetchAnalyses = async () => {
     setLoading(true);
