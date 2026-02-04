@@ -165,14 +165,14 @@ export function NovoEventoDialog({ children, open, onOpenChange }: NovoEventoDia
             <div className="space-y-2">
               <Label htmlFor="budget_id">Verba (Opcional)</Label>
               <Select
-                value={formData.budget_id}
-                onValueChange={(value) => setFormData({ ...formData, budget_id: value })}
+                value={formData.budget_id || "none"}
+                onValueChange={(value) => setFormData({ ...formData, budget_id: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma verba" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem verba vinculada</SelectItem>
+                  <SelectItem value="none">Sem verba vinculada</SelectItem>
                   {budgets?.map((budget) => (
                     <SelectItem key={budget.id} value={budget.id}>
                       {budget.code} - {budget.name} (Disponível: R$ {parseFloat(String(budget.available_amount || 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })})
@@ -199,13 +199,14 @@ export function NovoEventoDialog({ children, open, onOpenChange }: NovoEventoDia
           <div className="space-y-2">
             <Label htmlFor="responsible_user_id">Responsável</Label>
             <Select
-              value={formData.responsible_user_id}
-              onValueChange={(value) => setFormData({ ...formData, responsible_user_id: value })}
+              value={formData.responsible_user_id || "none"}
+              onValueChange={(value) => setFormData({ ...formData, responsible_user_id: value === "none" ? "" : value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o responsável" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">Nenhum responsável</SelectItem>
                 {users?.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.nome}
