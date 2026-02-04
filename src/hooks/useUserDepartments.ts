@@ -17,6 +17,15 @@ export function useUserDepartments() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
+      // Check if user is admin
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const isAdmin = roleData?.role === "admin";
+
       // Get user's profile to check department_id
       const { data: profile } = await supabase
         .from("profiles")
@@ -24,7 +33,7 @@ export function useUserDepartments() {
         .eq("id", user.id)
         .single();
 
-      // Get all departments where user is manager or member
+      // Get all departments
       const { data: departments, error } = await supabase
         .from("departamentos")
         .select("*")
@@ -33,15 +42,16 @@ export function useUserDepartments() {
 
       if (error) throw error;
 
-      // Filter departments where user is manager or member
+      // Admins see all departments, others see only their own
       const userDepartments = (departments || [])
         .filter(dept => 
+          isAdmin || 
           dept.responsavel_id === user.id || 
           dept.id === profile?.departamento_id
         )
         .map(dept => ({
           ...dept,
-          isManager: dept.responsavel_id === user.id,
+          isManager: isAdmin || dept.responsavel_id === user.id,
         }));
 
       return userDepartments as UserDepartment[];

@@ -78,15 +78,15 @@ export default function DepartmentDetail() {
     <DashboardLayout>
       <div className="space-y-6">
         <ModuleBreadcrumb
-          moduleName="Departamentos"
-          moduleHref="/dashboard/departamentos"
-          currentPage={department.nome}
+          moduleName={department.nome}
+          moduleHref={`/dashboard/departamentos/${id}`}
+          currentPage="Visão Geral"
         />
 
         {/* Header */}
         <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/departamentos")}>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
