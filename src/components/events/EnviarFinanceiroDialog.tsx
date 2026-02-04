@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,8 +17,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { useEventExpenses, DOCUMENT_TYPES, usePortadores } from "@/hooks/useEventExpenses";
-import { Loader2, Send, FileText, Building2, CreditCard } from "lucide-react";
+import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
+import { cn } from "@/lib/utils";
+
+interface Fornecedor {
+  id: string;
+  razao_social: string;
+  cnpj: string | null;
+}
 
 interface EnviarFinanceiroDialogProps {
   expenseId: string;
@@ -34,6 +56,10 @@ export function EnviarFinanceiroDialog({
   const { sendToFinancial } = useEventExpenses();
   const { data: portadores } = usePortadores();
 
+  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [fornecedorId, setFornecedorId] = useState<string>("");
+  const [openCombobox, setOpenCombobox] = useState(false);
+
   const [formData, setFormData] = useState({
     supplier_name: "",
     supplier_document: "",
@@ -44,10 +70,71 @@ export function EnviarFinanceiroDialog({
     payment_notes: "",
   });
 
+  // Fetch suppliers when dialog opens
+  useEffect(() => {
+    if (open) {
+      supabase
+        .from("fabrica_fornecedores")
+        .select("id, razao_social, cnpj")
+        .eq("ativo", true)
+        .order("razao_social")
+        .then(({ data }) => setFornecedores(data || []));
+    }
+  }, [open]);
+
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setFornecedorId("");
+      setFormData({
+        supplier_name: "",
+        supplier_document: "",
+        document_type: "",
+        document_number: "",
+        due_date: "",
+        portador: "",
+        payment_notes: "",
+      });
+    }
+  }, [open]);
+
+  const handleSelectFornecedor = (id: string) => {
+    const fornecedor = fornecedores.find(f => f.id === id);
+    if (fornecedor) {
+      setFornecedorId(id);
+      setFormData({
+        ...formData,
+        supplier_name: fornecedor.razao_social,
+        supplier_document: fornecedor.cnpj || "",
+      });
+    }
+    setOpenCombobox(false);
+  };
+
+  const handleFornecedorCriado = (novo: { id: string; nome: string }) => {
+    // Fetch the complete data including CNPJ
+    supabase
+      .from("fabrica_fornecedores")
+      .select("id, razao_social, cnpj")
+      .eq("id", novo.id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setFornecedores(prev => [...prev, data]);
+          setFornecedorId(data.id);
+          setFormData({
+            ...formData,
+            supplier_name: data.razao_social,
+            supplier_document: data.cnpj || "",
+          });
+        }
+      });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.supplier_name || !formData.document_type || !formData.document_number || !formData.due_date || !formData.portador) {
+    if (!fornecedorId || !formData.document_type || !formData.document_number || !formData.due_date || !formData.portador) {
       return;
     }
 
@@ -63,16 +150,9 @@ export function EnviarFinanceiroDialog({
     });
 
     onOpenChange(false);
-    setFormData({
-      supplier_name: "",
-      supplier_document: "",
-      document_type: "",
-      document_number: "",
-      due_date: "",
-      portador: "",
-      payment_notes: "",
-    });
   };
+
+  const selectedFornecedor = fornecedores.find(f => f.id === fornecedorId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -95,14 +175,66 @@ export function EnviarFinanceiroDialog({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="supplier_name">Nome do Fornecedor *</Label>
-              <Input
-                id="supplier_name"
-                value={formData.supplier_name}
-                onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
-                placeholder="Ex: Buffet Central Ltda"
-                required
-              />
+              <Label>Fornecedor *</Label>
+              <div className="flex gap-2">
+                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openCombobox}
+                      className="flex-1 justify-between font-normal"
+                    >
+                      {selectedFornecedor ? (
+                        <span className="truncate">
+                          {selectedFornecedor.razao_social}
+                          {selectedFornecedor.cnpj && (
+                            <span className="text-muted-foreground ml-2">
+                              - {selectedFornecedor.cnpj}
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Selecione um fornecedor...</span>
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar fornecedor..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          {fornecedores.map((fornecedor) => (
+                            <CommandItem
+                              key={fornecedor.id}
+                              value={`${fornecedor.razao_social} ${fornecedor.cnpj || ""}`}
+                              onSelect={() => handleSelectFornecedor(fornecedor.id)}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  fornecedorId === fornecedor.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span>{fornecedor.razao_social}</span>
+                                {fornecedor.cnpj && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {fornecedor.cnpj}
+                                  </span>
+                                )}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FornecedorQuickAdd onFornecedorCriado={handleFornecedorCriado} />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -111,7 +243,8 @@ export function EnviarFinanceiroDialog({
                 id="supplier_document"
                 value={formData.supplier_document}
                 onChange={(e) => setFormData({ ...formData, supplier_document: e.target.value })}
-                placeholder="00.000.000/0000-00"
+                placeholder="Preenchido automaticamente"
+                className="bg-muted/50"
               />
             </div>
           </div>
@@ -211,7 +344,10 @@ export function EnviarFinanceiroDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={sendToFinancial.isPending}>
+            <Button 
+              type="submit" 
+              disabled={sendToFinancial.isPending || !fornecedorId}
+            >
               {sendToFinancial.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Send className="mr-2 h-4 w-4" />
               Enviar ao Financeiro
