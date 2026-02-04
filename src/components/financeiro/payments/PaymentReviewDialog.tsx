@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { PaymentQueueItem, SourceType, PaymentQueueStatus } from "@/hooks/useFinancialPaymentQueue";
+import { AttachmentAcknowledgement } from "./AttachmentAcknowledgement";
 
 interface PaymentReviewDialogProps {
   open: boolean;
@@ -55,6 +57,7 @@ export function PaymentReviewDialog({
 }: PaymentReviewDialogProps) {
   const [notes, setNotes] = useState("");
   const [action, setAction] = useState<'accept' | 'reject' | 'paid' | null>(null);
+  const [allAttachmentsAcknowledged, setAllAttachmentsAcknowledged] = useState(false);
 
   const handleAction = (actionType: 'accept' | 'reject' | 'paid') => {
     if (!item) return;
@@ -76,6 +79,7 @@ export function PaymentReviewDialog({
   const handleClose = () => {
     setNotes("");
     setAction(null);
+    setAllAttachmentsAcknowledged(false);
     onOpenChange(false);
   };
 
@@ -85,6 +89,8 @@ export function PaymentReviewDialog({
   const isPending = item.financial_status === 'pending';
   const isAccepted = item.financial_status === 'accepted';
   const status = statusConfig[item.financial_status];
+  const hasAttachments = item.attachments && item.attachments.length > 0;
+  const canAccept = !hasAttachments || allAttachmentsAcknowledged;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -210,6 +216,35 @@ export function PaymentReviewDialog({
             </Card>
           )}
 
+          {/* Attachments Acknowledgement - Required for approval */}
+          {hasAttachments && isPending && (
+            <Card className={cn(
+              "border-2",
+              canAccept ? "border-emerald-500/50" : "border-amber-500/50"
+            )}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Paperclip className="h-4 w-4 text-primary" />
+                  <Label className="font-medium">
+                    Documentos Anexados ({item.attachments.length})
+                  </Label>
+                </div>
+                <AttachmentAcknowledgement
+                  attachments={item.attachments}
+                  onAllAcknowledged={setAllAttachmentsAcknowledged}
+                />
+                {!canAccept && (
+                  <Alert variant="destructive" className="mt-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      Você deve abrir e confirmar ciência de todos os documentos antes de aprovar.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Financial Review Notes */}
           {item.financial_notes && !isPending && (
             <Card className="border-primary/30">
@@ -265,7 +300,8 @@ export function PaymentReviewDialog({
               <Button
                 variant="default"
                 onClick={() => handleAction('accept')}
-                disabled={isProcessing}
+                disabled={isProcessing || !canAccept}
+                title={!canAccept ? "Confirme todos os documentos antes de aprovar" : undefined}
               >
                 {isProcessing && action === 'accept' ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />

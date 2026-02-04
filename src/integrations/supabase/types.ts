@@ -7826,6 +7826,7 @@ export type Database = {
         Row: {
           amount: number
           attachment_url: string | null
+          attachments: Json | null
           code: string
           contas_pagar_id: string | null
           created_at: string
@@ -7854,6 +7855,7 @@ export type Database = {
         Insert: {
           amount: number
           attachment_url?: string | null
+          attachments?: Json | null
           code: string
           contas_pagar_id?: string | null
           created_at?: string
@@ -7882,6 +7884,7 @@ export type Database = {
         Update: {
           amount?: number
           attachment_url?: string | null
+          attachments?: Json | null
           code?: string
           contas_pagar_id?: string | null
           created_at?: string
