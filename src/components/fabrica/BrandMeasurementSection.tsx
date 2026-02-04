@@ -294,13 +294,13 @@ export default function BrandMeasurementSection({
                     return (
                       <div key={m.brand_id} className="flex items-center justify-between pl-3 py-1 bg-background/50 rounded">
                         <span>{m.brand_name}: {m.width_cm} cm × {m.shelf_count} prat.</span>
-                        <span className="font-medium">{result.cm} cm</span>
+                        <span className="font-medium">{result.cm} cm <span className="text-muted-foreground">({result.meters.toFixed(2)} m)</span></span>
                       </div>
                     );
                   })}
                   <div className="flex items-center justify-between pl-3 pt-1 font-medium border-t border-dashed">
                     <span>Total Nossas Marcas</span>
-                    <span className="text-primary">{totalOurBrandsCm.toFixed(0)} cm</span>
+                    <span className="text-primary">{totalOurBrandsCm.toFixed(0)} cm <span className="text-muted-foreground">({(totalOurBrandsCm / 100).toFixed(2)} m)</span></span>
                   </div>
                 </div>
                 
@@ -309,7 +309,7 @@ export default function BrandMeasurementSection({
                   <div className="space-y-1.5">
                     <p className="font-medium text-muted-foreground">📐 Cálculo do Share:</p>
                     <div className="pl-3 space-y-1 text-muted-foreground">
-                      <p>Área Total Gôndola = {totalShelfWidthCm} cm × {totalShelfCount} prat. = <span className="font-medium text-foreground">{totalShelfArea.toFixed(0)} cm</span></p>
+                      <p>Área Total Gôndola = {totalShelfWidthCm} cm × {totalShelfCount} prat. = <span className="font-medium text-foreground">{totalShelfArea.toFixed(0)} cm ({(totalShelfArea / 100).toFixed(2)} m)</span></p>
                       <p>Share = ({totalOurBrandsCm.toFixed(0)} ÷ {totalShelfArea.toFixed(0)}) × 100 = <span className="font-medium text-primary">{sharePercentage.toFixed(1)}%</span></p>
                     </div>
                   </div>
