@@ -1,73 +1,121 @@
 
-# Plano: Restringir Visualização de Dados no Trade Marketing por Usuário
+# Plano: Multi-vendedor para PDVs + Visualização Filtrada
 
-## Status: ✅ IMPLEMENTADO
-
-## Contexto
-Atualmente, algumas telas do Trade Marketing mostram dados de todos os usuários, quando deveriam restringir para que **vendedores** e outros usuários não-administradores vejam **apenas os dados que eles mesmos inseriram**.
-
-A regra é:
-- **Admins e Supervisores**: Visualizam todos os dados
-- **Outros usuários (vendedores, promotores)**: Visualizam apenas dados onde são o criador (`created_by`) ou vendedor responsável (`vendedor_id`)
+## Objetivo
+1. Permitir que uma loja (PDV) seja vinculada a **múltiplos vendedores**
+2. Garantir que usuários não-admins/supervisores visualizem **apenas os PDVs vinculados a eles**
 
 ---
 
-## Implementação Concluída
+## Situação Atual
 
-### Arquivos Modificados
+### Estrutura Existente
+- A tabela `stores` possui `vendedor_id` (UUID único) - suporta apenas 1 vendedor
+- Já existe uma tabela `store_sellers` com a estrutura correta para múltiplos vendedores:
 
-| Arquivo | Status | Filtro Aplicado |
-|---------|--------|-----------------|
-| `src/pages/TradeVisits.tsx` | ✅ | `user_id` OU `vendedor_id` |
-| `src/pages/TradeShelfMeasurements.tsx` | ✅ | `created_by` OU `vendedor_id` |
-| `src/pages/TradeSellOut.tsx` | ✅ | `created_by` OU `vendedor_id` |
-| `src/pages/TradeFinanceiro.tsx` | ✅ | `created_by` OU `vendedor_id` (investimentos) |
-| `src/pages/TradeLancamentos.tsx` | ✅ | `created_by` |
-| `src/components/trade/campaigns/CampaignResultsPanel.tsx` | ✅ | `created_by` |
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| id | uuid | Chave primária |
+| store_id | uuid | FK para stores |
+| vendedor_id | uuid | FK para profiles |
+| is_principal | boolean | Indica vendedor principal |
+| created_at | timestamp | Data de criação |
+| created_by | uuid | Quem criou o vínculo |
 
-### Padrão de Implementação Utilizado
+- A tabela `store_sellers` já possui **73 registros**, mas não está sendo usada na interface
 
-```typescript
-// 1. Importar o hook de role
-import { useUserRole } from "@/hooks/useUserRole";
+### Problema
+- Os formulários de criação e edição de loja usam apenas o campo `vendedor_id` (seleção única)
+- A listagem de lojas (`TradeStores.tsx`) mostra todos os PDVs para todos os usuários
+- Não há filtro por vendedor vinculado
 
-// 2. Obter flags e ID do usuário
-const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
-const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+---
 
-// Na inicialização:
-useEffect(() => {
-  supabase.auth.getUser().then(({ data }) => {
-    setCurrentUserId(data.user?.id || null);
-  });
-}, []);
+## Solução Proposta
 
-// Aguardar role e userId antes de buscar dados
-useEffect(() => {
-  if (currentUserId !== null && !roleLoading) {
-    fetchData();
-  }
-}, [currentUserId, roleLoading, isAdminOrSupervisor]);
+### Parte 1: Seleção Multi-vendedor
 
-// 3. Modificar a query de busca
-const fetchData = async () => {
-  let query = supabase.from("tabela").select("*");
-  
-  // Filtrar para não-admins/supervisores
-  if (!isAdminOrSupervisor && currentUserId) {
-    query = query.or(`created_by.eq.${currentUserId},vendedor_id.eq.${currentUserId}`);
-  }
-  
-  const { data, error } = await query;
-  // ...
-};
+**Arquivos a modificar:**
+- `src/components/trade/NovaLojaDialog.tsx`
+- `src/components/trade/EditarLojaDialog.tsx`
+- `src/components/trade/StoreDetailDialog.tsx`
+
+**Implementação:**
+1. Trocar o `<Select>` único por um componente de seleção múltipla com checkboxes
+2. Ao salvar a loja:
+   - Manter o `vendedor_id` principal na tabela `stores` (compatibilidade)
+   - Sincronizar os vendedores selecionados na tabela `store_sellers`
+3. Exibir lista de vendedores no dialog de detalhes com indicação de "Principal"
+
+### Parte 2: Visualização Filtrada por Vendedor
+
+**Arquivo a modificar:**
+- `src/pages/TradeStores.tsx`
+
+**Implementação:**
+1. Detectar role do usuário com `useUserRole`
+2. Para não-admins/supervisores:
+   - Buscar os `store_id` da tabela `store_sellers` onde `vendedor_id = currentUserId`
+   - Filtrar a listagem de lojas para mostrar apenas esses IDs
+3. Admins e supervisores continuam visualizando todos os PDVs
+
+---
+
+## Detalhes Técnicos
+
+### 1. Componente Multi-Select de Vendedores
+
+Criar um novo componente `VendedorMultiSelect.tsx`:
+
+```text
+┌─────────────────────────────────────────────┐
+│ Vendedores Responsáveis *                   │
+├─────────────────────────────────────────────┤
+│ ☑ João Silva - Vendedor (Principal)         │
+│ ☑ Maria Santos - Vendedor                   │
+│ ☐ Carlos Lima - Promotor                    │
+│ ☐ Ana Costa - Vendedor                      │
+└─────────────────────────────────────────────┘
+```
+
+### 2. Lógica de Salvamento
+
+```text
+Ao salvar loja:
+1. INSERT/UPDATE na tabela stores (com vendedor_id do primeiro selecionado)
+2. DELETE FROM store_sellers WHERE store_id = ?
+3. INSERT INTO store_sellers (store_id, vendedor_id, is_principal)
+   VALUES (?, ?, true/false) -- primeiro é principal
+```
+
+### 3. Filtro de Visualização
+
+```text
+fetchStores():
+  SE isAdminOrSupervisor:
+    SELECT * FROM stores
+  SENÃO:
+    SELECT store_id FROM store_sellers WHERE vendedor_id = currentUserId
+    SELECT * FROM stores WHERE id IN (store_ids) OR vendedor_id = currentUserId
 ```
 
 ---
 
-## Notas
+## Arquivos a Criar/Modificar
 
-- A tela `TradePhotos.tsx` já implementa filtro por impersonação e hierarquia
-- A tela `CampaignLancamentosList.tsx` já implementa filtro por clientes do vendedor
-- Tabelas de referência como `competitors` permanecem globais (dados de mercado)
-- Performance e Gamificação foram restritos completamente para vendedores (não aparecem no menu)
+| Arquivo | Ação | Descrição |
+|---------|------|-----------|
+| `src/components/trade/VendedorMultiSelect.tsx` | Criar | Componente de seleção múltipla de vendedores |
+| `src/components/trade/NovaLojaDialog.tsx` | Modificar | Usar multi-select e salvar em store_sellers |
+| `src/components/trade/EditarLojaDialog.tsx` | Modificar | Carregar e salvar múltiplos vendedores |
+| `src/components/trade/StoreDetailDialog.tsx` | Modificar | Exibir lista de vendedores vinculados |
+| `src/pages/TradeStores.tsx` | Modificar | Filtrar PDVs por vendedor para não-admins |
+
+---
+
+## Considerações
+
+1. **Compatibilidade**: Manter o campo `vendedor_id` na tabela `stores` para não quebrar funcionalidades existentes
+2. **Migração de dados**: Os 73 registros em `store_sellers` já existem, então lojas que já têm vínculo funcionarão automaticamente
+3. **Performance**: Usar JOINs eficientes ao invés de múltiplas queries
+4. **Segurança**: O filtro no frontend complementa as políticas RLS existentes
