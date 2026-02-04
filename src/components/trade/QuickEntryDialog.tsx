@@ -1140,15 +1140,13 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                     </div>
                   )}
 
-                  {/* Medidas por Marca */}
-                  {formData.shelf_width > 0 && (
-                    <BrandMeasurementSection
-                      brandMeasurements={brandMeasurements}
-                      onBrandMeasurementsChange={setBrandMeasurements}
-                      totalShelfWidthCm={formData.shelf_width.toString()}
-                      totalShelfCount={formData.shelf_count.toString()}
-                    />
-                  )}
+                  {/* Medidas por Marca - Sempre visível */}
+                  <BrandMeasurementSection
+                    brandMeasurements={brandMeasurements}
+                    onBrandMeasurementsChange={setBrandMeasurements}
+                    totalShelfWidthCm={formData.shelf_width.toString()}
+                    totalShelfCount={formData.shelf_count.toString()}
+                  />
                 </CardContent>
               </Card>
 
