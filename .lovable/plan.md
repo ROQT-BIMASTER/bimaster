@@ -1,164 +1,105 @@
 
 
-# Plano: Medição de Prateleiras por Marca
+# Plano: Implementar Interface de Aprovação para Eventos Corporativos
 
-## Objetivo
+## Contexto
 
-Ajustar o formulário de **Lançamento Rápido** (medição de prateleiras) para permitir o registro de medidas **por marca**, incluindo a quantidade de prateleiras. O resultado será o cálculo: **Largura (cm) × Quantidade de Prateleiras**.
+O módulo de Eventos Corporativos foi criado, mas atualmente quando um evento é enviado para aprovação (status `pending_approval`), não existe uma interface onde administradores/supervisores possam aprová-lo. O hook `approveEvent` já existe em `useCorporateEvents.ts`, mas não há UI para utilizá-lo.
 
----
+## Solução Proposta
 
-## Análise da Estrutura Atual
+Criar uma **Central de Aprovações de Eventos** seguindo o mesmo padrão da Central de Aprovações do Trade Marketing, com:
 
-### Tabela `shelf_measurements` (atual)
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| our_brands_width_cm | numeric | Largura total de "nossas marcas" |
-| our_brands_facings | integer | Frentes totais de "nossas marcas" |
-
-### Tabela `our_brands` (existente)
-Já contém as marcas cadastradas:
-- **Melu** (marca própria)
-- **Ruby Rose** (marca principal)
-- **Luluca** (by Melu)
-- **Nathalia Beauty** (by Ruby Rose)
+1. Uma tela dedicada para listar eventos pendentes de aprovação
+2. Um dialog de aprovação com seleção obrigatória de verba
+3. Integração com o sidebar do módulo de Eventos
 
 ---
 
-## Mudanças Necessárias
+## Implementação Técnica
 
-### 1. Nova Tabela: `shelf_measurement_brands`
+### 1. Criar Hook para Eventos Pendentes
 
-Tabela de detalhamento por marca para cada medição:
+**Arquivo:** `src/hooks/usePendingEvents.ts`
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| id | uuid | PK |
-| measurement_id | uuid | FK → shelf_measurements |
-| brand_id | uuid | FK → our_brands |
-| width_cm | numeric | Largura ocupada pela marca (cm) |
-| shelf_count | integer | Quantidade de prateleiras |
-| total_cm | numeric | Calculado: width_cm × shelf_count |
-| facings | integer | Número de frentes (opcional) |
-| created_at | timestamp | Data de criação |
-
-### 2. Atualização da Tabela `shelf_measurements`
-
-Adicionar campo para quantidade total de prateleiras:
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| shelf_count | integer | Quantidade de prateleiras medidas |
-
----
-
-## Interface do Usuário
-
-### Formulário de Medição (QuickLaunchDialog)
-
-O formulário atual será modificado para incluir:
-
+```typescript
+// Query para buscar eventos com status 'pending_approval'
+// Retorna lista de eventos com joins de budget, responsible e creator
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  MEDIÇÃO DE PRATELEIRA                                       │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Loja: [Drogaria XYZ        ▼]   Data: [04/02/2026]         │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ DIMENSÕES DA GÔNDOLA                                    │ │
-│  ├─────────────────────────────────────────────────────────┤ │
-│  │ Largura Total (cm): [______]                            │ │
-│  │ Qtd Prateleiras:    [______]                            │ │
-│  │ Seção:              [Maquiagem___]                      │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ MEDIDAS POR MARCA                                       │ │
-│  ├─────────────────────────────────────────────────────────┤ │
-│  │                                                         │ │
-│  │  🏷️ Melu                                                │ │
-│  │  Largura (cm): [__60__]  Prateleiras: [__3__]          │ │
-│  │  📊 Resultado: 180 cm                                   │ │
-│  │                                                         │ │
-│  │  🏷️ Ruby Rose                                           │ │
-│  │  Largura (cm): [__80__]  Prateleiras: [__4__]          │ │
-│  │  📊 Resultado: 320 cm                                   │ │
-│  │                                                         │ │
-│  │  🏷️ Luluca                                              │ │
-│  │  Largura (cm): [__40__]  Prateleiras: [__2__]          │ │
-│  │  📊 Resultado: 80 cm                                    │ │
-│  │                                                         │ │
-│  │  🏷️ Nathalia Beauty                                     │ │
-│  │  Largura (cm): [__30__]  Prateleiras: [__2__]          │ │
-│  │  📊 Resultado: 60 cm                                    │ │
-│  │                                                         │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ RESUMO                                                  │ │
-│  ├─────────────────────────────────────────────────────────┤ │
-│  │ Total Nossas Marcas: 640 cm                             │ │
-│  │ Share Total: 53.3%                                      │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                              │
-│  [Cancelar]                              [Salvar Medição]   │
-└──────────────────────────────────────────────────────────────┘
+
+### 2. Criar Dialog de Aprovação de Evento
+
+**Arquivo:** `src/components/events/AprovarEventoDialog.tsx`
+
+- Exibir detalhes do evento (nome, tipo, data, local, orçamento solicitado)
+- Dropdown obrigatório para seleção de verba (usando `useEventBudgets`)
+- Validação de saldo disponível na verba vs. orçamento do evento
+- Campo de observações
+- Botões: Aprovar / Rejeitar
+- Usar o `approveEvent` mutation existente
+
+### 3. Criar Página de Aprovações de Eventos
+
+**Arquivo:** `src/pages/EventsApprovalHub.tsx`
+
+- Header com título "Central de Aprovações de Eventos"
+- KPIs: Total pendentes, Valor total de orçamentos pendentes
+- Tabela com eventos pendentes (código, nome, tipo, data, orçamento, solicitante)
+- Botão "Revisar" que abre o `AprovarEventoDialog`
+- Acesso restrito a admin/supervisor via `useUserRole`
+
+### 4. Adicionar Rota
+
+**Arquivo:** `src/App.tsx`
+
+```text
+Adicionar rota: /dashboard/eventos/aprovacoes → EventsApprovalHub
+```
+
+### 5. Atualizar Navegação
+
+**Arquivo:** `src/pages/CorporateEvents.tsx`
+
+- Adicionar botão "Aprovações" no header (visível apenas para admin/supervisor)
+- Exibir badge com contagem de pendentes
+
+### 6. Atualizar Hook useCorporateEvents
+
+**Arquivo:** `src/hooks/useCorporateEvents.ts`
+
+- Adicionar mutation `rejectEvent` para rejeitar eventos
+- O `approveEvent` já existe e funcionará perfeitamente
+
+---
+
+## Fluxo do Usuário (Após Implementação)
+
+```text
+1. Funcionário cria evento → status: draft
+2. Funcionário clica "Enviar para Aprovação" → status: pending_approval
+3. Admin/Supervisor acessa "Aprovações" no módulo de Eventos
+4. Visualiza lista de eventos pendentes
+5. Clica "Revisar" no evento
+6. Seleciona verba obrigatoriamente (com validação de saldo)
+7. Aprova ou rejeita com observação
+8. Evento aprovado → status: approved, pode lançar despesas
 ```
 
 ---
 
-## Lógica de Cálculo
+## Arquivos a Criar
 
-1. **Por Marca**: `total_cm = width_cm × shelf_count`
-2. **Total Nossas Marcas**: Soma de todos os `total_cm` das marcas
-3. **Share**: `(total_nossas_marcas / total_shelf_area) × 100`
-   - Onde `total_shelf_area = total_shelf_width_cm × shelf_count`
-
----
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/hooks/usePendingEvents.ts` | Hook para buscar eventos pendentes |
+| `src/components/events/AprovarEventoDialog.tsx` | Dialog de aprovação |
+| `src/pages/EventsApprovalHub.tsx` | Página central de aprovações |
 
 ## Arquivos a Modificar
 
-### Banco de Dados (Migração SQL)
-
-1. Criar tabela `shelf_measurement_brands`
-2. Adicionar coluna `shelf_count` em `shelf_measurements`
-3. Trigger para calcular `total_cm` automaticamente
-4. RLS policies para a nova tabela
-
-### Frontend
-
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/fabrica/QuickLaunchDialog.tsx` | Reformular seção de medição para listar marcas dinamicamente |
-| `src/pages/TradeShelfMeasurements.tsx` | Exibir detalhamento por marca nos cards |
-| `src/integrations/supabase/types.ts` | Será atualizado automaticamente |
-
----
-
-## Comportamento Esperado
-
-1. Ao abrir a seção de medição, carregar automaticamente todas as marcas ativas de `our_brands`
-2. Usuário preenche largura e quantidade de prateleiras para cada marca presente
-3. Sistema calcula automaticamente o resultado (Largura × Prateleiras)
-4. Ao salvar:
-   - Registro principal em `shelf_measurements` com totais consolidados
-   - Registros detalhados em `shelf_measurement_brands` para cada marca preenchida
-5. Na listagem/dashboard, mostrar breakdown por marca
-
----
-
-## Considerações de Extensibilidade
-
-- Novas marcas cadastradas em `our_brands` aparecerão automaticamente no formulário
-- O campo `shelf_count` permite calcular a área total da gôndola
-- Compatibilidade retroativa: medições antigas continuarão funcionando (campos novos são opcionais)
-
----
-
-## Resumo de Entregáveis
-
-1. **Migração SQL**: 1 nova tabela + 1 coluna nova + RLS + trigger
-2. **QuickLaunchDialog.tsx**: Reformulação da seção de medição
-3. **TradeShelfMeasurements.tsx**: Exibição do detalhamento por marca
+| `src/App.tsx` | Adicionar rota `/dashboard/eventos/aprovacoes` |
+| `src/pages/CorporateEvents.tsx` | Botão de navegação para aprovações |
+| `src/hooks/useCorporateEvents.ts` | Adicionar `rejectEvent` mutation |
 
