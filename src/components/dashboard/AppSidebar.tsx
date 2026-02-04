@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,6 +88,13 @@ const moduleColors = {
     text: "text-[hsl(var(--module-comercial,210_80%_50%))]",
     border: "border-[hsl(var(--module-comercial,210_80%_50%))]",
     hover: "hover:bg-[hsl(var(--module-comercial,210_80%_50%)/0.15)]",
+  },
+  eventos: {
+    bg: "bg-[hsl(var(--module-eventos,280_60%_50%))]",
+    bgLight: "bg-[hsl(var(--module-eventos,280_60%_50%)/0.1)]",
+    text: "text-[hsl(var(--module-eventos,280_60%_50%))]",
+    border: "border-[hsl(var(--module-eventos,280_60%_50%))]",
+    hover: "hover:bg-[hsl(var(--module-eventos,280_60%_50%)/0.15)]",
   },
 };
 
@@ -231,6 +238,7 @@ export function AppSidebar() {
   const [marketingOpen, setMarketingOpen] = useState(true);
   const [fabricaOpen, setFabricaOpen] = useState(true);
   const [comercialOpen, setComercialOpen] = useState(true);
+  const [eventosOpen, setEventosOpen] = useState(true);
   const [precosOpen, setPrecosOpen] = useState(true);
   const [tabelasPendentes, setTabelasPendentes] = useState(0);
   const [userName, setUserName] = useState<string>("");
@@ -657,6 +665,45 @@ export function AppSidebar() {
                         icon={Rocket} 
                         title="Calendário de Lançamentos" 
                         colorKey="comercial"
+                      />
+                    )}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+        {/* Módulo de Eventos Corporativos */}
+        {hasModulePermission("eventos") && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible open={eventosOpen} onOpenChange={setEventosOpen}>
+              <CollapsibleTrigger className="w-full">
+                <ModuleHeader 
+                  icon={PartyPopper} 
+                  title="Eventos" 
+                  isOpen={eventosOpen} 
+                  colorKey="eventos" 
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 pl-2">
+                    {hasPermission("eventos_dashboard") && (
+                      <MenuItemLink 
+                        to="/dashboard/eventos" 
+                        icon={Home} 
+                        title="Eventos" 
+                        colorKey="eventos"
+                        end 
+                      />
+                    )}
+                    {hasPermission("eventos_dashboard") && (
+                      <MenuItemLink 
+                        to="/dashboard/eventos/dashboard" 
+                        icon={BarChart3} 
+                        title="Dashboard" 
+                        colorKey="eventos"
                       />
                     )}
                   </SidebarMenu>
