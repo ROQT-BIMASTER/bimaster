@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,8 @@ export default function BrandMeasurementSection({
   totalShelfWidthCm,
   totalShelfCount,
 }: BrandMeasurementSectionProps) {
+  const hasInitialized = useRef(false);
+  
   // Fetch our brands
   const { data: ourBrands } = useQuery({
     queryKey: ["our-brands-active"],
@@ -40,9 +43,10 @@ export default function BrandMeasurementSection({
     },
   });
 
-  // Initialize brand measurements when brands are loaded
-  const initializeBrandMeasurements = () => {
-    if (ourBrands && ourBrands.length > 0 && brandMeasurements.length === 0) {
+  // Initialize brand measurements when brands are loaded - only once
+  useEffect(() => {
+    if (ourBrands && ourBrands.length > 0 && brandMeasurements.length === 0 && !hasInitialized.current) {
+      hasInitialized.current = true;
       const initialMeasurements = ourBrands.map((brand) => ({
         brand_id: brand.id,
         brand_name: brand.brand_name,
@@ -51,12 +55,7 @@ export default function BrandMeasurementSection({
       }));
       onBrandMeasurementsChange(initialMeasurements);
     }
-  };
-
-  // Call initialization when brands load
-  if (ourBrands && ourBrands.length > 0 && brandMeasurements.length === 0) {
-    initializeBrandMeasurements();
-  }
+  }, [ourBrands, brandMeasurements.length, onBrandMeasurementsChange]);
 
   const updateBrandMeasurement = (brandId: string, field: "width_cm" | "shelf_count", value: string) => {
     const updated = brandMeasurements.map((m) =>

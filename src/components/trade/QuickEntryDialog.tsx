@@ -14,6 +14,7 @@ import {
   CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck, Ruler, HelpCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import BrandMeasurementSection from "@/components/fabrica/BrandMeasurementSection";
 import { Progress } from "@/components/ui/progress";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useNavigate } from "react-router-dom";
@@ -40,6 +41,12 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   const [completedVisitId, setCompletedVisitId] = useState<string | null>(null);
   const [showSuccessActions, setShowSuccessActions] = useState(false);
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
+  const [brandMeasurements, setBrandMeasurements] = useState<{
+    brand_id: string;
+    brand_name: string;
+    width_cm: string;
+    shelf_count: string;
+  }[]>([]);
   
   const { hasPermission } = useScreenPermissions();
   const navigate = useNavigate();
@@ -83,6 +90,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     shelf_width: 0,
     shelf_height: 0,
     shelf_depth: 0,
+    shelf_count: 1, // Quantidade de prateleiras
     
     // Promoções e Campanhas
     promotion_id: "",
@@ -528,6 +536,65 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         }
       }
 
+      // 6. Salvar medições de prateleira se preenchidas
+      if (formData.shelf_width > 0) {
+        // Calcular totais das nossas marcas
+        const totalOurBrandsCm = brandMeasurements.reduce((sum, m) => {
+          const width = parseFloat(m.width_cm) || 0;
+          const shelves = parseInt(m.shelf_count) || 0;
+          return sum + (width * shelves);
+        }, 0);
+        
+        const totalShelfArea = formData.shelf_width * formData.shelf_count;
+        const shelfSharePct = totalShelfArea > 0 ? (totalOurBrandsCm / totalShelfArea) * 100 : 0;
+
+        const { data: measurementRecord, error: measurementError } = await supabase
+          .from("shelf_measurements")
+          .insert({
+            store_id: formData.store_id,
+            visit_id: visit.id,
+            measurement_date: formData.visit_date,
+            total_shelf_width_cm: formData.shelf_width,
+            total_shelf_height_cm: formData.shelf_height || null,
+            shelf_count: formData.shelf_count,
+            our_brands_width_cm: totalOurBrandsCm,
+            our_brands_facings: formData.our_facings,
+            competitors_facings: formData.competitor_facings,
+            total_facings: formData.our_facings + formData.competitor_facings,
+            shelf_share_percentage: shelfSharePct,
+            vendedor_id: user.id,
+            supervisor_id: supervisorId,
+            created_by: user.id,
+          })
+          .select()
+          .single();
+
+        if (measurementError) {
+          console.error('Erro ao salvar medição:', measurementError);
+        } else if (measurementRecord && brandMeasurements.length > 0) {
+          // Salvar medições por marca
+          const brandMeasurementsToInsert = brandMeasurements
+            .filter(m => parseFloat(m.width_cm) > 0)
+            .map(m => ({
+              measurement_id: measurementRecord.id,
+              brand_id: m.brand_id,
+              width_cm: parseFloat(m.width_cm) || 0,
+              shelf_count: parseInt(m.shelf_count) || 1,
+              total_cm: (parseFloat(m.width_cm) || 0) * (parseInt(m.shelf_count) || 1),
+            }));
+
+          if (brandMeasurementsToInsert.length > 0) {
+            const { error: brandError } = await supabase
+              .from("shelf_measurement_brands")
+              .insert(brandMeasurementsToInsert);
+
+            if (brandError) {
+              console.error('Erro ao salvar medições por marca:', brandError);
+            }
+          }
+        }
+      }
+
       toast.success("✅ Lançamento concluído com sucesso!");
       
       // Mostrar opções de ações pós-lançamento
@@ -561,6 +628,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       shelf_width: 0,
       shelf_height: 0,
       shelf_depth: 0,
+      shelf_count: 1,
       promotion_id: "",
       promotion_active: false,
       materials_present: [],
@@ -572,6 +640,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
       notes: "",
       issues_found: [],
     });
+    setBrandMeasurements([]);
   };
   
   const handleGoToAudit = () => {
@@ -1018,7 +1087,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                   <CardDescription>Dimensões do espaço ocupado em cm</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <Label>Largura (cm)</Label>
                       <Input
@@ -1026,6 +1095,16 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                         placeholder="0"
                         value={formData.shelf_width || ""}
                         onChange={(e) => setFormData(prev => ({ ...prev, shelf_width: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Prateleiras</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="1"
+                        value={formData.shelf_count || ""}
+                        onChange={(e) => setFormData(prev => ({ ...prev, shelf_count: parseInt(e.target.value) || 1 }))}
                       />
                     </div>
                     <div className="space-y-2">
@@ -1047,15 +1126,28 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                       />
                     </div>
                   </div>
-                  {formData.shelf_width > 0 && formData.shelf_height > 0 && formData.shelf_depth > 0 && (
+                  
+                  {formData.shelf_width > 0 && formData.shelf_count > 0 && (
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
                       <Badge variant="secondary">
-                        Volume: {((formData.shelf_width * formData.shelf_height * formData.shelf_depth) / 1000).toFixed(2)} L
+                        Área total: {(formData.shelf_width * formData.shelf_count).toFixed(0)} cm
                       </Badge>
-                      <Badge variant="outline">
-                        Área frontal: {(formData.shelf_width * formData.shelf_height / 100).toFixed(2)} m²
-                      </Badge>
+                      {formData.shelf_height > 0 && formData.shelf_depth > 0 && (
+                        <Badge variant="outline">
+                          Volume: {((formData.shelf_width * formData.shelf_height * formData.shelf_depth) / 1000).toFixed(2)} L
+                        </Badge>
+                      )}
                     </div>
+                  )}
+
+                  {/* Medidas por Marca */}
+                  {formData.shelf_width > 0 && (
+                    <BrandMeasurementSection
+                      brandMeasurements={brandMeasurements}
+                      onBrandMeasurementsChange={setBrandMeasurements}
+                      totalShelfWidthCm={formData.shelf_width.toString()}
+                      totalShelfCount={formData.shelf_count.toString()}
+                    />
                   )}
                 </CardContent>
               </Card>
