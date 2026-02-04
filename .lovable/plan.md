@@ -1,120 +1,240 @@
 
+# Plano: Central de Pagamentos do Financeiro para Trade e Eventos
 
-# Plano: Filtrar Marcas e Criar Dashboard de Share por Marca
+## Contexto e Problema
 
-## Contexto
+Atualmente, quando uma campanha de Trade, lançamento financeiro, investimento ou despesa de evento é aprovado pelos supervisores, **não há um fluxo seguro e padronizado para que o Financeiro receba e processe esses pagamentos**.
 
-O usuário solicita duas alterações no módulo de Trade Marketing:
-
-1. **Filtrar Marcas na Medição de Prateleira**: No formulário "Lançamento Rápido", exibir por padrão apenas as marcas **Melu** e **Ruby Rose**, com opção de adicionar outras marcas via botão "+"
-2. **Dashboard de Share por Marca**: Criar uma tela de dashboard que mostre o share de prateleira de cada marca individualmente
+O módulo de Eventos já tem uma implementação parcial (`send_to_financial`, status `pending_financial`), mas:
+- Trade Marketing não tem esse fluxo
+- O Financeiro não tem uma tela centralizada para visualizar todos os itens pendentes
+- Não há rastreabilidade do aceite/recusa pelo financeiro
 
 ---
 
-## 1. Modificar BrandMeasurementSection
+## Arquitetura Proposta
 
-**Arquivo:** `src/components/fabrica/BrandMeasurementSection.tsx`
-
-### Alterações:
-- Mudar lógica de inicialização para mostrar apenas Melu e Ruby Rose por padrão (IDs conhecidos do banco)
-- Adicionar botão "+" para incluir outras marcas disponíveis
-- Criar dropdown/dialog para selecionar marcas adicionais
-- Permitir remover marcas adicionadas (exceto as padrão)
-
-### Estrutura de dados:
-- IDs das marcas padrão (do banco):
-  - Melu: `4fd4afcf-f280-4615-a73a-a227c59cb37e`
-  - Ruby Rose: `a992f282-475b-4863-8c41-4061d3c24ddb`
-- Outras disponíveis: Luluca, Nathalia Beauty
-
-### Nova UI:
 ```text
-┌─────────────────────────────────────────────┐
-│ 🏷️ Medidas por Marca           [+ Adicionar]│
-├─────────────────────────────────────────────┤
-│ ┌─────────────────────────────────────────┐ │
-│ │ 🏷️ Melu              Total: 120 cm     │ │
-│ │ Largura: [60]  Prateleiras: [2]        │ │
-│ └─────────────────────────────────────────┘ │
-│ ┌─────────────────────────────────────────┐ │
-│ │ 🏷️ Ruby Rose        Total: 80 cm   [X] │ │
-│ │ Largura: [40]  Prateleiras: [2]        │ │
-│ └─────────────────────────────────────────┘ │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        FLUXO DE APROVAÇÃO PARA PAGAMENTO                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────────┐  │
+│   │  TRADE MARKETING│     │  EVENTOS CORP.  │     │   OUTRAS ORIGENS    │  │
+│   │   - Campanhas   │     │   - Despesas    │     │   (futuro)          │  │
+│   │   - Lançamentos │     │                 │     │                     │  │
+│   │   - Investimentos│    │                 │     │                     │  │
+│   └────────┬────────┘     └────────┬────────┘     └──────────┬──────────┘  │
+│            │                       │                         │              │
+│            ▼                       ▼                         ▼              │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │              APROVAÇÃO SUPERVISOR/GERENTE (já existe)               │  │
+│   │         status = "approved" / approval_status = "approved"          │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                        │
+│                     ┌──────────────┴──────────────┐                        │
+│                     ▼                              ▼                        │
+│            ┌────────────────┐           ┌────────────────────┐             │
+│            │ SEM PAGAMENTO  │           │ ENVIAR AO FINANCEIRO│             │
+│            │ (apenas verba) │           │ send_to_financial=true│           │
+│            └────────────────┘           └──────────┬─────────┘             │
+│                                                     │                        │
+│                                                     ▼                        │
+│                              ┌──────────────────────────────────────────┐  │
+│                              │     FILA DE PAGAMENTOS DO FINANCEIRO     │  │
+│                              │     (financial_payment_queue - NOVA)     │  │
+│                              │                                          │  │
+│                              │  • ID único de rastreamento              │  │
+│                              │  • Origem (trade/evento)                 │  │
+│                              │  • Dados do fornecedor                   │  │
+│                              │  • Dados do documento                    │  │
+│                              │  • Vencimento                            │  │
+│                              │  • Valor                                 │  │
+│                              │  • Status financeiro                     │  │
+│                              └────────────────────┬─────────────────────┘  │
+│                                                   │                         │
+│                    ┌──────────────────────────────┼───────────────────┐    │
+│                    ▼                              ▼                   ▼    │
+│           ┌────────────────┐           ┌────────────────┐    ┌───────────┐│
+│           │ ACEITO         │           │ REJEITADO      │    │ PAGO      ││
+│           │ financial_     │           │ Volta para     │    │ Vincula   ││
+│           │ status=accepted│           │ solicitante    │    │ contas_   ││
+│           └────────────────┘           └────────────────┘    │ pagar     ││
+│                                                              └───────────┘│
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Criar Dashboard de Share por Marca
+## 1. Nova Tabela: `financial_payment_queue`
 
-### 2.1 Novo Hook: `useBrandShareDashboard.ts`
+Centraliza todos os itens de pagamento vindos de diferentes módulos.
 
-**Arquivo:** `src/hooks/useBrandShareDashboard.ts`
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| `id` | uuid | Identificador único |
+| `code` | varchar | Código legível (FPQ-2025-001) |
+| `source_type` | varchar | Origem: 'trade_entry', 'trade_investment', 'trade_campaign', 'event_expense' |
+| `source_id` | uuid | ID do registro de origem |
+| `source_code` | varchar | Código da origem (p/ referência rápida) |
+| `supplier_name` | varchar | Nome do fornecedor/beneficiário |
+| `supplier_document` | varchar | CNPJ/CPF |
+| `document_type` | varchar | Tipo: NF, Boleto, Recibo, etc. |
+| `document_number` | varchar | Número do documento |
+| `amount` | numeric | Valor a pagar |
+| `due_date` | date | Data de vencimento |
+| `portador` | varchar | Forma de pagamento |
+| `description` | text | Descrição do pagamento |
+| `notes` | text | Observações |
+| `attachment_url` | text | URL do comprovante/documento |
+| `department_name` | varchar | Departamento solicitante |
+| `requested_by` | uuid | Usuário que solicitou |
+| `requested_at` | timestamptz | Data da solicitação |
+| `financial_status` | varchar | 'pending', 'accepted', 'rejected', 'paid', 'cancelled' |
+| `financial_notes` | text | Justificativa do financeiro |
+| `reviewed_by` | uuid | Usuário do financeiro que revisou |
+| `reviewed_at` | timestamptz | Data da revisão |
+| `paid_at` | timestamptz | Data do pagamento |
+| `contas_pagar_id` | uuid | FK para contas_pagar (quando criado) |
+| `created_at` | timestamptz | Data de criação |
+| `updated_at` | timestamptz | Última atualização |
 
-Responsável por:
-- Buscar dados agregados de `shelf_measurement_brands` com join em `our_brands`
-- Agrupar por marca e calcular share médio
-- Calcular evolução mensal por marca (últimos 6 meses)
-- Calcular ranking de marcas por share
+---
 
-### Queries principais:
+## 2. Modificações em Tabelas Existentes
+
+### 2.1 `trade_financial_entries`
+Adicionar campos para direcionar ao financeiro:
+- `send_to_financial` (boolean)
+- `supplier_name` (varchar)
+- `supplier_document` (varchar)
+- `document_type` (varchar)
+- `document_number` (varchar)
+- `due_date` (date)
+- `portador` (varchar)
+- `payment_queue_id` (uuid, FK para financial_payment_queue)
+
+### 2.2 `trade_investments`
+Adicionar os mesmos campos acima.
+
+---
+
+## 3. Nova Página: Central de Pagamentos do Financeiro
+
+**Rota:** `/dashboard/financeiro/central-pagamentos`
+
+### Layout:
+
 ```text
-1. KPIs Gerais:
-   - Total de medições
-   - Share médio global
-   - Marca líder em share
-   - Crescimento vs. período anterior
-
-2. Share por Marca (Gráfico de Pizza/Barras):
-   - Soma de total_cm por brand_id
-   - Cálculo de percentual
-
-3. Evolução Mensal por Marca (Gráfico de Linhas):
-   - Agrupar por mês e brand_id
-   - Mostrar evolução do share de cada marca
-
-4. Ranking de Lojas por Share:
-   - Top 10 lojas com melhor share das nossas marcas
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  💳 Central de Pagamentos                    [Filtro Data] [🔄 Atualizar]   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
+│  │ Pendentes│  │ Aceitos  │  │ Rejeitados│  │   Pagos  │  │  Total   │      │
+│  │    12    │  │    8     │  │     2     │  │    45    │  │R$ 125.000│      │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  [Trade] [Eventos] [Todos]           [Filtrar por Status ▼] [Buscar...]     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  📋 Itens Pendentes de Aprovação Financeira                                 │
+│  ┌─────────────────────────────────────────────────────────────────────────┐│
+│  │ Código    │ Origem     │ Fornecedor      │ Valor     │ Venc.   │ Ações  ││
+│  ├───────────┼────────────┼─────────────────┼───────────┼─────────┼────────┤│
+│  │ FPQ-001   │ 🎯 Trade   │ ABC Materiais   │ R$ 5.000  │ 10/02   │[Revisar]│
+│  │ FPQ-002   │ 📅 Evento  │ Hotel XYZ       │ R$ 12.000 │ 12/02   │[Revisar]│
+│  │ FPQ-003   │ 🎯 Trade   │ Gráfica 123     │ R$ 800    │ 15/02   │[Revisar]│
+│  └─────────────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 Novos Componentes do Dashboard
+---
 
-**Diretório:** `src/components/trade/brand-share/`
+## 4. Dialog de Revisão Financeira
+
+Ao clicar em "Revisar", o financeiro visualiza:
+
+1. **Dados do Solicitante** - Quem pediu, quando, de qual módulo
+2. **Detalhes do Pagamento** - Fornecedor, documento, valor, vencimento
+3. **Histórico de Aprovações** - Quem aprovou no Trade/Eventos
+4. **Documentos Anexos** - Notas fiscais, comprovantes
+5. **Ações:**
+   - ✅ **Aceitar** - Marca como aceito, cria registro em `contas_pagar`
+   - ❌ **Rejeitar** - Requer justificativa, notifica solicitante
+   - 💰 **Marcar como Pago** - Após pagamento efetivo
+
+---
+
+## 5. Novos Componentes
 
 | Componente | Descrição |
 |------------|-----------|
-| `BrandShareKPIs.tsx` | Cards com KPIs principais (Total Medições, Share Médio, Marca Líder) |
-| `BrandSharePieChart.tsx` | Gráfico de pizza mostrando distribuição de share por marca |
-| `BrandShareEvolutionChart.tsx` | Gráfico de linhas com evolução mensal de cada marca |
-| `BrandShareRankingTable.tsx` | Tabela com ranking de lojas por share |
-
-### 2.3 Nova Página: `TradeBrandShareDashboard.tsx`
-
-**Arquivo:** `src/pages/TradeBrandShareDashboard.tsx`
-
-Estrutura similar ao `TradeExecutiveDashboard`:
-- Header com título e filtros de data
-- Seção de KPIs
-- Grid com gráficos de distribuição e evolução
-- Tabela de ranking
+| `FinancialPaymentCentral.tsx` | Página principal da central |
+| `PaymentQueueKPIs.tsx` | Cards de métricas |
+| `PaymentQueueTable.tsx` | Tabela de itens |
+| `PaymentReviewDialog.tsx` | Dialog de revisão/aprovação |
+| `EnviarFinanceiroTradeDialog.tsx` | Dialog para Trade enviar ao financeiro |
 
 ---
 
-## 3. Adicionar Navegação
+## 6. Hooks e Queries
 
-### 3.1 Nova Rota
+| Hook | Descrição |
+|------|-----------|
+| `useFinancialPaymentQueue.ts` | CRUD da fila de pagamentos |
+| `usePendingPayments.ts` | Items pendentes de revisão financeira |
 
-**Arquivo:** `src/App.tsx`
+---
 
-```text
-/dashboard/trade/brand-share → TradeBrandShareDashboard
+## 7. Fluxo do Usuário
+
+### Trade Marketing:
+1. Vendedor cria lançamento/investimento
+2. Supervisor aprova
+3. Na aprovação, aparece checkbox **"Direcionar ao Financeiro para Pagamento"**
+4. Se marcado, abre dialog para preencher dados do fornecedor
+5. Item entra na fila do financeiro
+
+### Eventos Corporativos:
+1. Fluxo já existente com `send_to_financial`
+2. Ajustar para usar a nova tabela `financial_payment_queue`
+
+### Financeiro:
+1. Acessa Central de Pagamentos
+2. Visualiza todos os itens pendentes de Trade e Eventos
+3. Revisa, aceita ou rejeita
+4. Ao aceitar, pode vincular/criar registro em `contas_pagar`
+
+---
+
+## 8. Segurança e RLS
+
+### Políticas:
+- **Leitura:** Apenas usuários do departamento Financeiro/Tesouraria
+- **Inserção:** Usuários autenticados com permissão em Trade ou Eventos
+- **Atualização:** Apenas usuários do Financeiro podem alterar `financial_status`
+- **Auditoria:** Todos os campos de revisão são obrigatórios
+
+### Função RLS:
+```sql
+CREATE OR REPLACE FUNCTION can_access_payment_queue(_user_id uuid)
+RETURNS boolean AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles p
+    JOIN departamentos d ON p.departamento_id = d.id
+    WHERE p.id = _user_id 
+    AND d.nome IN ('Financeiro', 'Tesouraria', 'Controladoria')
+  )
+  OR public.has_role(_user_id, 'admin')
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
 ```
 
-### 3.2 Link no Menu de Trade
+---
 
-**Arquivo:** Sidebar ou página principal do Trade
+## 9. Navegação
 
-Adicionar botão/link para "Dashboard de Marcas" na seção de Medições de Prateleira
+- Adicionar link na sidebar do Financeiro: **"Central de Pagamentos"**
+- Badge com contador de itens pendentes
+- Notificação quando novos itens chegarem
 
 ---
 
@@ -122,67 +242,36 @@ Adicionar botão/link para "Dashboard de Marcas" na seção de Medições de Pra
 
 | Arquivo | Descrição |
 |---------|-----------|
-| `src/hooks/useBrandShareDashboard.ts` | Hook para dados do dashboard |
-| `src/components/trade/brand-share/BrandShareKPIs.tsx` | KPIs principais |
-| `src/components/trade/brand-share/BrandSharePieChart.tsx` | Gráfico de distribuição |
-| `src/components/trade/brand-share/BrandShareEvolutionChart.tsx` | Evolução mensal |
-| `src/components/trade/brand-share/BrandShareRankingTable.tsx` | Ranking de lojas |
-| `src/pages/TradeBrandShareDashboard.tsx` | Página do dashboard |
+| `src/pages/FinancialPaymentCentral.tsx` | Página principal |
+| `src/components/financeiro/payments/PaymentQueueKPIs.tsx` | KPIs |
+| `src/components/financeiro/payments/PaymentQueueTable.tsx` | Tabela |
+| `src/components/financeiro/payments/PaymentReviewDialog.tsx` | Dialog revisão |
+| `src/components/trade/EnviarFinanceiroTradeDialog.tsx` | Dialog Trade→Financeiro |
+| `src/hooks/useFinancialPaymentQueue.ts` | Hook principal |
 
 ## Arquivos a Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/fabrica/BrandMeasurementSection.tsx` | Filtrar para Melu/Ruby Rose + botão adicionar |
-| `src/App.tsx` | Nova rota `/dashboard/trade/brand-share` |
-| `src/pages/TradeShelfMeasurements.tsx` | Botão para acessar dashboard de marcas |
+| `src/components/trade/AprovarLancamentoDialog.tsx` | Adicionar opção de enviar ao financeiro |
+| `src/components/dashboard/AppSidebar.tsx` | Adicionar link Central de Pagamentos |
+| `src/App.tsx` | Nova rota |
+| `src/hooks/useEventExpenses.ts` | Integrar com nova tabela |
+
+## Migrações de Banco
+
+1. Criar tabela `financial_payment_queue`
+2. Adicionar colunas em `trade_financial_entries`
+3. Adicionar colunas em `trade_investments`
+4. Criar políticas RLS
+5. Criar função `can_access_payment_queue`
 
 ---
 
-## Fluxo do Usuário (Após Implementação)
+## Benefícios
 
-```text
-1. Lançamento Rápido:
-   - Usuário vê apenas Melu e Ruby Rose por padrão
-   - Clica "+" para adicionar Luluca ou Nathalia Beauty se necessário
-   - Preenche medições e salva
-
-2. Dashboard de Marcas:
-   - Acessa via /dashboard/trade/brand-share ou botão em Medições
-   - Visualiza KPIs: Total medições, Share médio, Marca líder
-   - Analisa gráfico de pizza com distribuição por marca
-   - Acompanha evolução mensal de cada marca
-   - Consulta ranking de lojas por share
-```
-
----
-
-## Visualização do Dashboard
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  📊 Dashboard de Share por Marca        [Filtro Data] [Atualizar]│
-├─────────────────────────────────────────────────────────────────┤
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
-│  │  Total   │  │  Share   │  │  Marca   │  │  +/- vs  │        │
-│  │ Medições │  │  Médio   │  │  Líder   │  │ Anterior │        │
-│  │    45    │  │  38.5%   │  │  Melu    │  │  +2.3%   │        │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────┐  ┌─────────────────────────────────┐   │
-│  │  Distribuição Share │  │  Evolução Mensal                │   │
-│  │     (Pie Chart)     │  │     (Line Chart)                │   │
-│  │  [Melu: 45%]        │  │  Melu ───── Ruby Rose ─────     │   │
-│  │  [Ruby Rose: 32%]   │  │                                 │   │
-│  │  [Outros: 23%]      │  │  Set Out Nov Dez Jan Fev        │   │
-│  └─────────────────────┘  └─────────────────────────────────┘   │
-├─────────────────────────────────────────────────────────────────┤
-│  🏆 Ranking de Lojas por Share                                  │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │ #1 | Loja ABC         | 52.3%  | Melu: 30% | Ruby: 22.3%  ││
-│  │ #2 | Loja XYZ         | 48.7%  | Melu: 28% | Ruby: 20.7%  ││
-│  │ #3 | ...                                                   ││
-│  └─────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────┘
-```
-
+1. **Centralização** - Todos os pagamentos em um único lugar
+2. **Rastreabilidade** - Histórico completo de quem solicitou, aprovou, pagou
+3. **Segurança** - RLS garante que apenas o financeiro pode aprovar pagamentos
+4. **Auditoria** - Campos obrigatórios de justificativa e timestamp
+5. **Flexibilidade** - Fácil adicionar novas origens de pagamento no futuro
