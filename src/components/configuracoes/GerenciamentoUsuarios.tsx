@@ -295,22 +295,20 @@ export const GerenciamentoUsuarios = () => {
 
       if (profileError) throw profileError;
 
-      // Atualizar role do usuário
-      const { error: deleteRoleError } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", editingUser.id);
+      // Só atualizar role se realmente mudou (evita trigger destrutivo)
+      if (novoUsuario.tipo_usuario !== editingUser.tipo_usuario) {
+        // Usar UPDATE ao invés de DELETE/INSERT para preservar o registro
+        // O trigger só dispara sincronização suave quando o role realmente muda
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .upsert({
+            user_id: editingUser.id,
+            role: novoUsuario.tipo_usuario
+          }, { onConflict: 'user_id' });
 
-      if (deleteRoleError) throw deleteRoleError;
-
-      const { error: insertRoleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: editingUser.id,
-          role: novoUsuario.tipo_usuario
-        });
-
-      if (insertRoleError) throw insertRoleError;
+        if (roleError) throw roleError;
+      }
+      // Se o role não mudou, não mexe na tabela user_roles - preserva permissões customizadas
 
       // Atualizar municípios se for vendedor
       if (novoUsuario.tipo_usuario === "vendedor") {
