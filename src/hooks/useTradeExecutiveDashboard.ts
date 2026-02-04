@@ -329,7 +329,7 @@ export function useTradeExecutiveDashboard(dateRange?: DateRangeFilter) {
     staleTime: 2 * 60 * 1000,
   });
 
-  // Query para tabela de lançamentos
+  // Query para tabela de lançamentos - com curva do cliente
   const lancamentosQuery = useQuery({
     queryKey: ['trade-executive-lancamentos', startDateStr, endDateStr],
     queryFn: async () => {
@@ -343,7 +343,7 @@ export function useTradeExecutiveDashboard(dateRange?: DateRangeFilter) {
           roi_percentual,
           crescimento_percentual,
           data_lancamento,
-          prospect:prospects(nome_empresa),
+          prospect:prospects(nome_empresa, categoria),
           campaign:trade_campaigns(name)
         `)
         .is("deleted_at", null)
@@ -358,6 +358,52 @@ export function useTradeExecutiveDashboard(dateRange?: DateRangeFilter) {
     staleTime: 3 * 60 * 1000,
   });
 
+  // Query para distribuição por curva de clientes
+  const curvaDistribuicaoQuery = useQuery({
+    queryKey: ['trade-executive-curva-distribuicao', startDateStr, endDateStr],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_campaign_lancamentos")
+        .select(`
+          id,
+          valor_pedido,
+          prospect:prospects(categoria)
+        `)
+        .is("deleted_at", null)
+        .gte("data_lancamento", startDateStr)
+        .lte("data_lancamento", endDateStr);
+
+      if (error) throw error;
+
+      // Agrupar por curva
+      const curvaMap: Record<string, { count: number; valor: number }> = {
+        'A': { count: 0, valor: 0 },
+        'B': { count: 0, valor: 0 },
+        'C': { count: 0, valor: 0 },
+        'D': { count: 0, valor: 0 },
+        'Não classificado': { count: 0, valor: 0 },
+      };
+
+      data?.forEach(l => {
+        const curva = (l.prospect as any)?.categoria || 'Não classificado';
+        const curvaKey = ['A', 'B', 'C', 'D'].includes(curva) ? curva : 'Não classificado';
+        const valor = parseFloat(String(l.valor_pedido)) || 0;
+        
+        curvaMap[curvaKey].count += 1;
+        curvaMap[curvaKey].valor += valor;
+      });
+
+      return Object.entries(curvaMap)
+        .filter(([_, data]) => data.count > 0)
+        .map(([curva, data]) => ({
+          curva,
+          count: data.count,
+          valor: data.valor,
+        }));
+    },
+    staleTime: 3 * 60 * 1000,
+  });
+
   return {
     kpis: kpisQuery.data,
     campaigns: campaignsQuery.data,
@@ -366,11 +412,13 @@ export function useTradeExecutiveDashboard(dateRange?: DateRangeFilter) {
     visits: visitsQuery.data,
     photos: photosQuery.data,
     lancamentos: lancamentosQuery.data,
+    curvaDistribuicao: curvaDistribuicaoQuery.data,
     isLoading: kpisQuery.isLoading || campaignsQuery.isLoading,
     isLoadingEvolution: evolutionQuery.isLoading,
     isLoadingVisits: visitsQuery.isLoading,
     isLoadingPhotos: photosQuery.isLoading,
     isLoadingLancamentos: lancamentosQuery.isLoading,
+    isLoadingCurva: curvaDistribuicaoQuery.isLoading,
     error: kpisQuery.error || campaignsQuery.error,
     refetchAll: () => {
       kpisQuery.refetch();
@@ -380,6 +428,7 @@ export function useTradeExecutiveDashboard(dateRange?: DateRangeFilter) {
       visitsQuery.refetch();
       photosQuery.refetch();
       lancamentosQuery.refetch();
+      curvaDistribuicaoQuery.refetch();
     },
   };
 }

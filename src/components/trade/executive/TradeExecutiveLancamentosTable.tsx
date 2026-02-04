@@ -18,8 +18,14 @@ interface Lancamento {
   roi_percentual: number | null;
   crescimento_percentual: number | null;
   data_lancamento: string;
-  prospect: { nome_empresa: string } | null;
+  prospect: { nome_empresa: string; categoria: string | null } | null;
   campaign: { name: string } | null;
+}
+
+interface CurvaDistribuicao {
+  curva: string;
+  count: number;
+  valor: number;
 }
 
 interface TradeExecutiveLancamentosTableProps {
@@ -49,6 +55,7 @@ export function TradeExecutiveLancamentosTable({ data, isLoading }: TradeExecuti
 
     const exportData = filteredData.map((l) => ({
       Cliente: (l.prospect as any)?.nome_empresa || "-",
+      Curva: (l.prospect as any)?.categoria || "-",
       Campanha: (l.campaign as any)?.name || "-",
       Valor: parseFloat(String(l.valor_pedido)) || 0,
       Status: statusConfig[l.status]?.label || l.status,
@@ -73,9 +80,17 @@ export function TradeExecutiveLancamentosTable({ data, isLoading }: TradeExecuti
 
   const getRoiIcon = (roi: number | null) => {
     if (roi === null) return <Minus className="h-3 w-3 text-muted-foreground" />;
-    if (roi > 0) return <TrendingUp className="h-3 w-3 text-green-500" />;
-    if (roi < 0) return <TrendingDown className="h-3 w-3 text-red-500" />;
+    if (roi > 0) return <TrendingUp className="h-3 w-3 text-emerald-500" />;
+    if (roi < 0) return <TrendingDown className="h-3 w-3 text-destructive" />;
     return <Minus className="h-3 w-3 text-muted-foreground" />;
+  };
+
+  const getCurvaBadgeVariant = (curva: string | null): "default" | "secondary" | "outline" => {
+    switch (curva) {
+      case 'A': return 'default';
+      case 'B': return 'secondary';
+      default: return 'outline';
+    }
   };
 
   return (
@@ -110,6 +125,7 @@ export function TradeExecutiveLancamentosTable({ data, isLoading }: TradeExecuti
               <TableHeader>
                 <TableRow>
                   <TableHead>Cliente</TableHead>
+                  <TableHead>Curva</TableHead>
                   <TableHead>Campanha</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>Status</TableHead>
@@ -125,11 +141,19 @@ export function TradeExecutiveLancamentosTable({ data, isLoading }: TradeExecuti
                   const crescimento = l.crescimento_percentual
                     ? parseFloat(String(l.crescimento_percentual))
                     : null;
+                  const curva = (l.prospect as any)?.categoria || null;
 
                   return (
                     <TableRow key={l.id}>
                       <TableCell className="font-medium max-w-[180px] truncate">
                         {(l.prospect as any)?.nome_empresa || "-"}
+                      </TableCell>
+                      <TableCell>
+                        {curva ? (
+                          <Badge variant={getCurvaBadgeVariant(curva)}>{curva}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-muted-foreground max-w-[150px] truncate">
                         {(l.campaign as any)?.name || "-"}
