@@ -1,6 +1,33 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, subMonths, startOfMonth, endOfMonth, startOfYear, subDays } from "date-fns";
+
+export interface DateRangeFilter {
+  from: Date;
+  to: Date;
+}
+
+export type DatePreset = "this_month" | "last_30_days" | "last_90_days" | "this_year" | "custom";
+
+export function getDateRangeFromPreset(preset: DatePreset, customRange?: DateRangeFilter): DateRangeFilter {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  
+  switch (preset) {
+    case "this_month":
+      return { from: startOfMonth(today), to: today };
+    case "last_30_days":
+      return { from: subDays(today, 30), to: today };
+    case "last_90_days":
+      return { from: subDays(today, 90), to: today };
+    case "this_year":
+      return { from: startOfYear(today), to: today };
+    case "custom":
+      return customRange || { from: startOfMonth(today), to: today };
+    default:
+      return { from: startOfMonth(today), to: today };
+  }
+}
 
 interface VerbaMetrics {
   totalOrcado: number;
@@ -41,7 +68,14 @@ interface Lancamento {
   acoes_manuais?: string;
 }
 
-export function useTradeFinanceiroDashboard() {
+export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
+  const today = new Date();
+  const startDate = dateRange?.from || startOfMonth(today);
+  const endDate = dateRange?.to || today;
+  
+  const startDateStr = startDate.toISOString().split("T")[0];
+  const endDateStr = endDate.toISOString().split("T")[0];
+
   // Query para verbas ativas (exclui inativas)
   const verbasQuery = useQuery({
     queryKey: ['trade-dashboard-verbas'],
@@ -61,7 +95,7 @@ export function useTradeFinanceiroDashboard() {
 
   // Query para campanhas com despesas e budget_id
   const campanhasQuery = useQuery({
-    queryKey: ['trade-dashboard-campanhas'],
+    queryKey: ['trade-dashboard-campanhas', startDateStr, endDateStr],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trade_campaigns")
@@ -73,7 +107,8 @@ export function useTradeFinanceiroDashboard() {
           end_date,
           budget_id
         `)
-        .in("status", ["active", "in_progress", "completed"])
+        .in("status", ["active", "approved", "in_progress", "completed", "pago"])
+        .or(`start_date.gte.${startDateStr},end_date.lte.${endDateStr}`)
         .order("created_at", { ascending: false });
       
       if (error) throw error;
@@ -84,7 +119,7 @@ export function useTradeFinanceiroDashboard() {
 
   // Query para despesas de campanhas com budget_id
   const despesasQuery = useQuery({
-    queryKey: ['trade-dashboard-despesas'],
+    queryKey: ['trade-dashboard-despesas', startDateStr, endDateStr],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trade_campaign_expenses")
@@ -97,6 +132,8 @@ export function useTradeFinanceiroDashboard() {
           created_at,
           campaign:trade_campaigns(name, budget_id)
         `)
+        .gte("created_at", startDateStr)
+        .lte("created_at", endDateStr + "T23:59:59")
         .order("created_at", { ascending: false });
       
       if (error) throw error;
@@ -107,7 +144,7 @@ export function useTradeFinanceiroDashboard() {
 
   // Query para lançamentos com clientes e despesas
   const lancamentosQuery = useQuery({
-    queryKey: ['trade-dashboard-lancamentos'],
+    queryKey: ['trade-dashboard-lancamentos', startDateStr, endDateStr],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trade_campaign_lancamentos")
@@ -128,6 +165,8 @@ export function useTradeFinanceiroDashboard() {
           campaign:trade_campaigns(name),
           expense:trade_campaign_expenses(valor_realizado, status)
         `)
+        .gte("data_lancamento", startDateStr)
+        .lte("data_lancamento", endDateStr)
         .order("data_lancamento", { ascending: false })
         .limit(50);
       
@@ -138,7 +177,6 @@ export function useTradeFinanceiroDashboard() {
   });
 
   // Calcular métricas de verbas - usando despesas aprovadas vinculadas a campanhas com budget
-  // Primeiro, criar um mapa de budget_id para as verbas ativas
   const activeBudgetIds = new Set(verbasQuery.data?.map(v => v.id) || []);
   
   // Calcular total utilizado somando despesas aprovadas de campanhas vinculadas a verbas ativas
@@ -175,13 +213,13 @@ export function useTradeFinanceiroDashboard() {
     ? (campanhaMetrics.valorPago / totalDespesas) * 100 
     : 0;
 
-  // Calcular fluxo de caixa mensal (últimos 6 meses)
+  // Calcular fluxo de caixa mensal (últimos 6 meses a partir da data de referência)
   const fluxoCaixa: FluxoCaixaItem[] = [];
-  const today = new Date();
+  const referenceDate = endDate;
   let saldoAcumulado = 0;
 
   for (let i = 5; i >= 0; i--) {
-    const mesDate = subMonths(today, i);
+    const mesDate = subMonths(referenceDate, i);
     const mesInicio = startOfMonth(mesDate);
     const mesFim = endOfMonth(mesDate);
     const mesLabel = format(mesDate, "MMM/yy");
