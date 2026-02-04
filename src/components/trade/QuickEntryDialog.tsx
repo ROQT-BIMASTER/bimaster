@@ -11,13 +11,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   Store, Calendar, Camera, Tag, Upload, Sparkles, 
-  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck, Ruler
+  CheckCircle2, Loader2, ArrowRight, ImagePlus, ClipboardCheck, Ruler, HelpCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useNavigate } from "react-router-dom";
 import { compressImage, uploadFile } from "@/lib/utils/storage-helper";
+import { useTour, tradeQuickEntryTourSteps, TRADE_QUICK_ENTRY_TOUR_ID } from "@/components/tour";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface QuickEntryDialogProps {
   open: boolean;
@@ -41,6 +43,21 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   
   const { hasPermission } = useScreenPermissions();
   const navigate = useNavigate();
+  const { startTour, hasSeenTour } = useTour();
+
+  // Auto-start tour on first visit
+  useEffect(() => {
+    if (open && !hasSeenTour(TRADE_QUICK_ENTRY_TOUR_ID)) {
+      const timer = setTimeout(() => {
+        startTour(TRADE_QUICK_ENTRY_TOUR_ID, tradeQuickEntryTourSteps);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [open, hasSeenTour, startTour]);
+
+  const handleStartTour = () => {
+    startTour(TRADE_QUICK_ENTRY_TOUR_ID, tradeQuickEntryTourSteps);
+  };
   
   const [formData, setFormData] = useState({
     // Visita
@@ -641,13 +658,32 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-tour="quick-entry-dialog">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Lançamento Rápido Inteligente
+          <DialogTitle className="flex items-center gap-2 justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Lançamento Rápido Inteligente
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleStartTour}
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Ver tour guiado</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </DialogTitle>
-          <div className="space-y-2">
+          <div className="space-y-2" data-tour="quick-entry-progress">
             <Progress value={progress} className="h-2" />
             <p className="text-sm text-muted-foreground">
               Passo {currentStep} de 4 - {progress.toFixed(0)}% concluído
@@ -656,7 +692,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         </DialogHeader>
 
         <Tabs value={`step${currentStep}`} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-4" data-tour="quick-entry-tabs">
             <TabsTrigger value="step1" disabled={currentStep !== 1}>
               <Store className="h-4 w-4 mr-2" />
               PDV
@@ -676,7 +712,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           </TabsList>
 
           {/* Step 1: Selecionar PDV */}
-          <TabsContent value="step1" className="space-y-4">
+          <TabsContent value="step1" className="space-y-4" data-tour="quick-entry-step1">
             <Card>
               <CardHeader>
                 <CardTitle>Informações da Visita</CardTitle>
@@ -684,7 +720,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="col-span-2 space-y-2">
+                  <div className="col-span-2 space-y-2" data-tour="quick-entry-store-search">
                     <Label>Buscar PDV / Loja por Nome ou CNPJ</Label>
                     <Input
                       placeholder="Digite o nome da loja, cidade ou CNPJ..."
@@ -769,7 +805,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           </TabsContent>
 
           {/* Step 2: Upload de Fotos + IA */}
-          <TabsContent value="step2" className="space-y-4">
+          <TabsContent value="step2" className="space-y-4" data-tour="quick-entry-step2">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -782,7 +818,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Fotos ANTES */}
-                <div className="space-y-3">
+                <div className="space-y-3" data-tour="quick-entry-photos-before">
                   <Label className="text-base font-semibold">Fotos ANTES *</Label>
                   <div className="border-2 border-dashed rounded-lg p-8 text-center">
                     <input
@@ -845,7 +881,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                 )}
 
                 {/* Fotos DEPOIS (Opcional) */}
-                <div className="space-y-3">
+                <div className="space-y-3" data-tour="quick-entry-photos-after">
                   <div className="flex items-center gap-2">
                     <Label className="text-base font-semibold">Fotos DEPOIS</Label>
                     <Badge variant="secondary">Opcional</Badge>
@@ -940,9 +976,9 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           </TabsContent>
 
           {/* Step 3: Dados de Shelf Share e Promoção */}
-          <TabsContent value="step3" className="space-y-4">
+          <TabsContent value="step3" className="space-y-4" data-tour="quick-entry-step3">
             <div className="grid gap-4">
-              <Card>
+              <Card data-tour="quick-entry-shelf-share">
                 <CardHeader>
                   <CardTitle>Share de Gôndola</CardTitle>
                 </CardHeader>
@@ -968,7 +1004,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card data-tour="quick-entry-shelf-measures">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Ruler className="h-4 w-4" />
@@ -1043,7 +1079,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
               </Card>
 
               {/* Campanha e Gasto */}
-              <Card>
+              <Card data-tour="quick-entry-campaign">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Tag className="h-4 w-4" />
@@ -1135,7 +1171,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                       </div>
 
                       {/* Upload de Evidências */}
-                      <div className="space-y-2">
+                      <div className="space-y-2" data-tour="quick-entry-evidence">
                         <Label className="flex items-center gap-2">
                           <Upload className="h-4 w-4" />
                           Evidências (Fotos/Comprovantes)
@@ -1205,7 +1241,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
           </TabsContent>
 
           {/* Step 4: Revisão e Observações */}
-          <TabsContent value="step4" className="space-y-4">
+          <TabsContent value="step4" className="space-y-4" data-tour="quick-entry-step4">
             <Card>
               <CardHeader>
                 <CardTitle>Observações Finais</CardTitle>
@@ -1221,7 +1257,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                   />
                 </div>
 
-                <Card className="bg-muted/50">
+                <Card className="bg-muted/50" data-tour="quick-entry-summary">
                   <CardHeader>
                     <CardTitle className="text-sm">Resumo do Lançamento</CardTitle>
                   </CardHeader>
@@ -1277,7 +1313,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
               <Button variant="outline" onClick={() => setCurrentStep(3)}>
                 Voltar
               </Button>
-              <Button onClick={handleSubmit} disabled={loading}>
+              <Button onClick={handleSubmit} disabled={loading} data-tour="quick-entry-submit">
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
