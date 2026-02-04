@@ -248,7 +248,7 @@ export function AppSidebar() {
   const [fabricaOpen, setFabricaOpen] = useState(true);
   const [comercialOpen, setComercialOpen] = useState(true);
   const [eventosOpen, setEventosOpen] = useState(true);
-  const [departamentosOpen, setDepartamentosOpen] = useState(true);
+  const [departamentosOpen, setDepartamentosOpen] = useState(true); // Mantido para compatibilidade futura
   const [precosOpen, setPrecosOpen] = useState(true);
   const [tabelasPendentes, setTabelasPendentes] = useState(0);
   const [userName, setUserName] = useState<string>("");
@@ -724,41 +724,58 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Módulo de Departamentos */}
-        {userDepartments.length > 0 && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible open={departamentosOpen} onOpenChange={setDepartamentosOpen}>
+        {/* Módulo de Departamentos - Cada departamento com submenu */}
+        {userDepartments.length > 0 && userDepartments.map((dept) => (
+          <SidebarGroup key={dept.id} className="py-2 px-2">
+            <Collapsible defaultOpen={false}>
               <CollapsibleTrigger className="w-full">
-                <ModuleHeader 
-                  icon={Building2} 
-                  title="Departamentos" 
-                  isOpen={departamentosOpen} 
-                  colorKey="departamentos" 
-                />
+                <div className={cn(
+                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
+                  moduleColors.departamentos.bgLight,
+                  moduleColors.departamentos.hover
+                )}>
+                  <div className={cn(
+                    "flex items-center justify-center w-8 h-8 rounded-lg",
+                    moduleColors.departamentos.bg
+                  )}>
+                    <Building2 className="h-4 w-4 text-white" />
+                  </div>
+                  <span className={cn("font-semibold text-sm flex-1 text-left", moduleColors.departamentos.text)}>
+                    {dept.nome}
+                  </span>
+                  {dept.isManager && (
+                    <Badge variant="outline" className="text-xs h-5 px-1.5">
+                      Gerente
+                    </Badge>
+                  )}
+                  <ChevronDown className={cn(
+                    "h-4 w-4 transition-transform duration-200",
+                    moduleColors.departamentos.text
+                  )} />
+                </div>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
                   <SidebarMenu className="space-y-0.5 pl-2">
-                    {userDepartments.map((dept) => (
-                      <MenuItemLink 
-                        key={dept.id}
-                        to={`/dashboard/departamentos/${dept.id}`} 
-                        icon={Building2} 
-                        title={dept.nome} 
-                        colorKey="departamentos"
-                        badge={dept.isManager ? (
-                          <Badge variant="outline" className="ml-auto text-xs h-5 px-1.5">
-                            Gerente
-                          </Badge>
-                        ) : undefined}
-                      />
-                    ))}
+                    <MenuItemLink 
+                      to={`/dashboard/departamentos/${dept.id}`} 
+                      icon={FileText} 
+                      title="Despesas" 
+                      colorKey="departamentos"
+                      end
+                    />
+                    <MenuItemLink 
+                      to={`/dashboard/departamentos/${dept.id}/dashboard`} 
+                      icon={BarChart3} 
+                      title="Dashboard" 
+                      colorKey="departamentos"
+                    />
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
             </Collapsible>
           </SidebarGroup>
-        )}
+        ))}
 
         {/* Módulo de Tabelas de Preços */}
         {hasModulePermission("precos") && (
