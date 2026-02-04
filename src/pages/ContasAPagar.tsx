@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { 
   Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, 
   ArrowLeft, Brain, Bot, Pencil, User, Lock, ArrowUpDown, ArrowUp, ArrowDown, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown, RefreshCw
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown, RefreshCw, CreditCard
 } from "lucide-react";
 import { DashboardContasPagar } from "@/components/financeiro/DashboardContasPagar";
 import { CalendarioVencimentos } from "@/components/financeiro/CalendarioVencimentos";
@@ -1191,6 +1191,12 @@ export default function ContasAPagar() {
               <TrendingUp className="h-4 w-4" />
               Ajuste para o DRE
             </TabsTrigger>
+            <Link to="/dashboard/financeiro/central-pagamentos">
+              <Button variant="ghost" className="gap-2 h-9 px-3 text-sm font-medium">
+                <CreditCard className="h-4 w-4" />
+                Central de Pagamentos
+              </Button>
+            </Link>
           </TabsList>
 
           {/* Aba Dashboard Analítico */}
