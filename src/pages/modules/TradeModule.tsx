@@ -101,15 +101,17 @@ const TradeModule = () => {
       { title: "Comparação", to: "/dashboard/trade/comparacao-produtos", icon: BarChart3, color: "text-blue-600" },
       { title: "Insights IA", to: "/dashboard/trade/insights", icon: TrendingUp, color: "text-green-600" },
     ],
-    "Performance e Vendas": [
-      { title: "Promoções", to: "/dashboard/trade/promotions", icon: FileText, color: "text-orange-600" },
-      { title: "Performance", to: "/dashboard/trade/performance", icon: TrendingUp, color: "text-blue-600" },
-      ...(isAdminOrSupervisor ? [{ title: "Equipe", to: "/dashboard/trade/team-performance", icon: Users, color: "text-purple-600" }] : []),
-    ],
-    "Gamificação": [
-      { title: "Ranking", to: "/dashboard/ranking", icon: Trophy, color: "text-amber-500" },
-      { title: "Recompensas", to: "/dashboard/trade/rewards", icon: Award, color: "text-green-600" },
-    ],
+    ...(isAdminOrSupervisor ? {
+      "Performance e Vendas": [
+        { title: "Promoções", to: "/dashboard/trade/promotions", icon: FileText, color: "text-orange-600" },
+        { title: "Performance", to: "/dashboard/trade/performance", icon: TrendingUp, color: "text-blue-600" },
+        { title: "Equipe", to: "/dashboard/trade/team-performance", icon: Users, color: "text-purple-600" },
+      ],
+      "Gamificação": [
+        { title: "Ranking", to: "/dashboard/ranking", icon: Trophy, color: "text-amber-500" },
+        { title: "Recompensas", to: "/dashboard/trade/rewards", icon: Award, color: "text-green-600" },
+      ],
+    } : {}),
   };
 
   return (
