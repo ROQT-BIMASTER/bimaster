@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Image as ImageIcon, Upload, Trash2, ExternalLink, RefreshCw, Camera } from "lucide-react";
@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { PhotoDetailDialog } from "@/components/trade/PhotoDetailDialog";
 import { TradePageHeader } from "@/components/trade/TradePageHeader";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 
 interface Photo {
   id: string;
@@ -28,14 +29,64 @@ interface Photo {
 
 const TradePhotos = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
+  const { isImpersonating, impersonatedUser, impersonatedPermissions } = useImpersonation();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
+  const [rawPhotos, setRawPhotos] = useState<Photo[]>([]); // Fotos brutas antes do filtro de impersonação
   const [loading, setLoading] = useState(true);
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [aiCriteria, setAiCriteria] = useState<any>(null);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [photoDetailOpen, setPhotoDetailOpen] = useState(false);
+  const [subordinateIds, setSubordinateIds] = useState<string[]>([]);
+
+  // Buscar subordinados do usuário impersonado para filtro correto
+  useEffect(() => {
+    const fetchSubordinates = async () => {
+      if (!isImpersonating || !impersonatedUser) {
+        setSubordinateIds([]);
+        return;
+      }
+
+      // Verificar se é admin no contexto de impersonação
+      if (impersonatedPermissions?.isAdmin) {
+        setSubordinateIds([]); // Admin vê tudo
+        return;
+      }
+
+      try {
+        // Buscar subordinados usando a função is_supervisor_of
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id")
+          .neq("id", impersonatedUser.id);
+
+        if (error) throw error;
+
+        // Filtrar apenas os que são subordinados do usuário impersonado
+        const subordinates: string[] = [];
+        for (const profile of data || []) {
+          const { data: isSupervisor } = await supabase
+            .rpc("is_supervisor_of", { 
+              _supervisor_id: impersonatedUser.id, 
+              _user_id: profile.id 
+            });
+          
+          if (isSupervisor) {
+            subordinates.push(profile.id);
+          }
+        }
+
+        setSubordinateIds(subordinates);
+      } catch (error) {
+        console.error("Erro ao buscar subordinados:", error);
+        setSubordinateIds([]);
+      }
+    };
+
+    fetchSubordinates();
+  }, [isImpersonating, impersonatedUser, impersonatedPermissions?.isAdmin]);
 
   useEffect(() => {
     if (!permissionsLoading && hasPermission("trade_photos")) {
@@ -69,8 +120,7 @@ const TradePhotos = () => {
         .limit(50);
 
       if (error) throw error;
-      setAllPhotos(data || []);
-      setPhotos(data || []);
+      setRawPhotos(data || []);
     } catch (error) {
       console.error("Erro ao buscar fotos:", error);
       toast.error("Erro ao carregar fotos");
@@ -78,6 +128,44 @@ const TradePhotos = () => {
       setLoading(false);
     }
   };
+
+  // Filtrar fotos baseado no contexto de impersonação
+  const filteredByImpersonation = useMemo(() => {
+    if (!isImpersonating || !impersonatedUser) {
+      return rawPhotos; // Sem impersonação, retorna tudo que RLS permite
+    }
+
+    // Admin impersonado vê tudo
+    if (impersonatedPermissions?.isAdmin) {
+      return rawPhotos;
+    }
+
+    // Filtrar apenas fotos que o usuário impersonado deveria ver:
+    // 1. Fotos próprias (vendedor_id = impersonatedUser.id)
+    // 2. Fotos onde é supervisor direto (supervisor_id = impersonatedUser.id)
+    // 3. Fotos de subordinados na hierarquia
+    return rawPhotos.filter(photo => {
+      const vendedorId = (photo as any).vendedor_id;
+      const supervisorId = (photo as any).supervisor_id;
+      
+      // É o próprio vendedor
+      if (vendedorId === impersonatedUser.id) return true;
+      
+      // É o supervisor direto registrado na foto
+      if (supervisorId === impersonatedUser.id) return true;
+      
+      // É supervisor do vendedor na hierarquia
+      if (subordinateIds.includes(vendedorId)) return true;
+      
+      return false;
+    });
+  }, [rawPhotos, isImpersonating, impersonatedUser, impersonatedPermissions?.isAdmin, subordinateIds]);
+
+  // Atualizar allPhotos quando filteredByImpersonation mudar
+  useEffect(() => {
+    setAllPhotos(filteredByImpersonation);
+    setPhotos(filteredByImpersonation);
+  }, [filteredByImpersonation]);
 
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
