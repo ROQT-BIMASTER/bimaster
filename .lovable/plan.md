@@ -1,160 +1,121 @@
 
-# Plano: Correção de Acesso Indevido a Fotos - Hierarquia e RLS
+# Plano: Restringir Visualização de Dados no Trade Marketing por Usuário
 
-## Problema Identificado
+## Contexto
+Atualmente, algumas telas do Trade Marketing mostram dados de todos os usuários, quando deveriam restringir para que **vendedores** e outros usuários não-administradores vejam **apenas os dados que eles mesmos inseriram**.
 
-A usuária **Juliana Germinhasi** (vendedora) está conseguindo visualizar fotos de **Jessika Marcondes** (sua supervisora) na tela Trade Photos. Isso viola a hierarquia de acesso onde:
-- Vendedores só podem ver suas próprias fotos
-- Supervisores podem ver fotos de seus subordinados
-- Admins podem ver todas as fotos
+A regra é:
+- **Admins e Supervisores**: Visualizam todos os dados
+- **Outros usuários (vendedores, promotores)**: Visualizam apenas dados onde são o criador (`created_by`) ou vendedor responsável (`vendedor_id`)
 
-### Causa Raiz (2 problemas críticos)
+---
 
-**1. Policies de Storage Excessivamente Permissivas**
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ BUCKET: trade-photos                                        │
-│                                                             │
-│ Policy "Fotos são publicamente acessíveis"                  │
-│ USING: bucket_id = 'trade-photos'  ← PERMITE TUDO!          │
-│                                                             │
-│ Policy "Todos podem ver fotos trade"                        │
-│ USING: bucket_id = 'trade-photos'  ← DUPLICADA!             │
-└─────────────────────────────────────────────────────────────┘
-```
+## Análise das Tabelas
 
-**2. Função `is_supervisor_of` Usada de Forma Invertida**
-Na policy `Users can view own trade photos` do storage:
-```text
-┌──────────────────────────────────────────────────────────────┐
-│ ERRADO:  is_supervisor_of(auth.uid(), p.vendedor_id)         │
-│          ↑ "Juliana é supervisora de Jessika?" → FALSE       │
-│          Mas outra policy permite acesso sem verificação!    │
-│                                                              │
-│ CORRETO: is_supervisor_of(p.vendedor_id, auth.uid())         │
-│          ↑ "Jessika é subordinada de Juliana?" → FALSE       │
-│          E "Juliana é subordinada de Jessika?" → TRUE        │
-└──────────────────────────────────────────────────────────────┘
+| Tabela | Coluna de Filtro | Usada Em |
+|--------|------------------|----------|
+| `photos` | `vendedor_id` | TradePhotos.tsx |
+| `visits` | `user_id`, `vendedor_id` | TradeVisits.tsx |
+| `shelf_measurements` | `created_by`, `vendedor_id` | TradeShelfMeasurements.tsx |
+| `store_sellouts` | `created_by`, `vendedor_id` | TradeSellOut.tsx |
+| `trade_investments` | `created_by`, `vendedor_id` | TradeFinanceiro.tsx |
+| `trade_financial_entries` | `created_by` | TradeLancamentos.tsx |
+| `trade_campaign_lancamentos` | `created_by` | CampaignResultsPanel.tsx |
+| `competitors` | Sem coluna de usuário | TradeCompetitors.tsx (tabela global) |
+
+---
+
+## Telas que Precisam de Ajuste
+
+### 1. **TradeVisits.tsx** (Visitas de Campo)
+- **Situação atual**: Mostra todas as visitas
+- **Ajuste**: Filtrar por `user_id = currentUserId` OU `vendedor_id = currentUserId` para não-admins/supervisores
+
+### 2. **TradeShelfMeasurements.tsx** (Medição de Prateleiras)
+- **Situação atual**: Mostra todas as medições
+- **Ajuste**: Filtrar por `created_by = currentUserId` OU `vendedor_id = currentUserId`
+
+### 3. **TradeSellOut.tsx** (Sell Out)
+- **Situação atual**: Mostra todos os registros
+- **Ajuste**: Filtrar por `created_by = currentUserId` OU `vendedor_id = currentUserId`
+
+### 4. **TradeFinanceiro.tsx** (Investimentos)
+- **Situação atual**: Mostra todos os investimentos
+- **Ajuste**: Filtrar por `created_by = currentUserId` OU `vendedor_id = currentUserId`
+
+### 5. **TradeLancamentos.tsx** (Lançamentos Financeiros)
+- **Situação atual**: Mostra todos os lançamentos
+- **Ajuste**: Filtrar por `created_by = currentUserId`
+
+### 6. **CampaignResultsPanel.tsx** (Painel de Resultados)
+- **Situação atual**: Mostra todos os lançamentos de campanhas
+- **Ajuste**: Já implementado em `CampaignLancamentosList.tsx` (filtra por clientes do vendedor)
+- **Ação**: Aplicar mesma lógica ao `CampaignResultsPanel.tsx`
+
+### 7. **TradeCompetitors.tsx** (Concorrentes)
+- **Situação**: Tabela global sem `created_by`
+- **Ação**: Manter como está (dados de referência do mercado)
+
+---
+
+## Implementação Técnica
+
+Para cada tela, será implementado o seguinte padrão:
+
+```typescript
+// 1. Importar o hook de role
+import { useUserRole } from "@/hooks/useUserRole";
+
+// 2. Obter flags e ID do usuário
+const { isAdminOrSupervisor } = useUserRole();
+const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+// Na inicialização:
+useEffect(() => {
+  supabase.auth.getUser().then(({ data }) => {
+    setCurrentUserId(data.user?.id || null);
+  });
+}, []);
+
+// 3. Modificar a query de busca
+const fetchData = async () => {
+  let query = supabase.from("tabela").select("*");
+  
+  // Filtrar para não-admins/supervisores
+  if (!isAdminOrSupervisor && currentUserId) {
+    query = query.or(`created_by.eq.${currentUserId},vendedor_id.eq.${currentUserId}`);
+  }
+  
+  const { data, error } = await query;
+  // ...
+};
 ```
 
 ---
 
-## Solução
+## Arquivos a Modificar
 
-### 1. Remover Policies de Storage Excessivamente Permissivas
-Deletar as policies que permitem acesso irrestrito ao bucket `trade-photos`:
-- "Fotos são publicamente acessíveis"
-- "Todos podem ver fotos trade"
-
-### 2. Criar Policy de Storage com Hierarquia Correta
-Nova policy que verifica:
-- Usuário é dono da foto (vendedor_id = auth.uid())
-- Usuário é supervisor do dono da foto
-- Usuário é admin/supervisor global
-
-### 3. Corrigir Policies de RLS na Tabela `photos`
-A policy `Supervisores podem ver fotos de seus subordinados` tem a inversão:
-```sql
--- ATUAL (errado):
-is_supervisor_of(auth.uid(), vendedor_id)
-
--- CORRETO:
-is_supervisor_of(vendedor_id, auth.uid())
-```
+| Arquivo | Modificação |
+|---------|-------------|
+| `src/pages/TradeVisits.tsx` | Adicionar filtro por `user_id` ou `vendedor_id` |
+| `src/pages/TradeShelfMeasurements.tsx` | Adicionar filtro por `created_by` ou `vendedor_id` |
+| `src/pages/TradeSellOut.tsx` | Adicionar filtro por `created_by` ou `vendedor_id` |
+| `src/pages/TradeFinanceiro.tsx` | Adicionar filtro por `created_by` ou `vendedor_id` nos investimentos |
+| `src/pages/TradeLancamentos.tsx` | Adicionar filtro por `created_by` |
+| `src/components/trade/campaigns/CampaignResultsPanel.tsx` | Adicionar filtro por clientes do vendedor |
 
 ---
 
-## Detalhes Técnicos
+## Considerações de Segurança
 
-### Migração SQL
-
-```sql
--- 1. Remover policies permissivas no Storage
-DROP POLICY IF EXISTS "Fotos são publicamente acessíveis" ON storage.objects;
-DROP POLICY IF EXISTS "Todos podem ver fotos trade" ON storage.objects;
-
--- 2. Criar policy de Storage com hierarquia correta
-CREATE POLICY "Trade photos hierarquia correta" ON storage.objects
-FOR SELECT TO authenticated
-USING (
-  bucket_id = 'trade-photos' 
-  AND (
-    -- Admin ou supervisor global
-    is_admin_or_supervisor(auth.uid())
-    -- OU é dono da foto (verifica na tabela photos)
-    OR EXISTS (
-      SELECT 1 FROM photos p
-      WHERE p.photo_url LIKE '%' || objects.name || '%'
-      AND (
-        p.vendedor_id = auth.uid()
-        OR p.supervisor_id = auth.uid()
-        -- Supervisor do vendedor pode ver
-        OR is_supervisor_of(p.vendedor_id, auth.uid())
-      )
-    )
-  )
-);
-
--- 3. Corrigir policy da tabela photos
-DROP POLICY IF EXISTS "Supervisores podem ver fotos de seus subordinados" ON photos;
-
-CREATE POLICY "Supervisores podem ver fotos de subordinados" ON photos
-FOR SELECT TO authenticated
-USING (
-  supervisor_id IS NOT NULL
-  AND is_supervisor_of(vendedor_id, auth.uid())
-);
-
--- 4. Corrigir policy "Usuários veem fotos permitidas"
-DROP POLICY IF EXISTS "Usuários veem fotos permitidas" ON photos;
-
-CREATE POLICY "Usuários veem fotos permitidas" ON photos
-FOR SELECT TO authenticated
-USING (
-  vendedor_id = auth.uid()
-  OR supervisor_id = auth.uid()
-  OR is_admin_or_supervisor(auth.uid())
-  OR EXISTS (
-    SELECT 1 FROM visits v
-    WHERE v.id = photos.visit_id 
-    AND (
-      v.user_id = auth.uid()
-      OR is_supervisor_of(v.user_id, auth.uid())
-    )
-  )
-);
-```
-
-### Validação Pós-Migração
-
-Executar query para confirmar isolamento:
-```sql
--- Simular acesso de Juliana às fotos de Jessika (deve retornar FALSE para todas)
-SELECT 
-  p.id,
-  (p.vendedor_id = 'bf225976...'::uuid) as is_owner,
-  is_supervisor_of(p.vendedor_id, 'bf225976...'::uuid) as is_supervisor
-FROM photos p
-WHERE p.vendedor_id = '23d470c6...' -- Jessika
-LIMIT 5;
-```
+1. **Defesa em profundidade**: Embora o RLS no banco de dados seja a camada primária de segurança, adicionar filtros no frontend melhora a experiência do usuário e reduz dados desnecessários
+2. **Consistência**: Usar o mesmo padrão (`isAdminOrSupervisor`) já estabelecido em `CampaignLancamentosList.tsx`
+3. **Performance**: Filtrar no lado do servidor (query Supabase) em vez de filtrar todos os dados no cliente
 
 ---
 
-## Resultado Esperado
+## Notas
 
-| Usuário | Role | Pode Ver Fotos de |
-|---------|------|-------------------|
-| Juliana | vendedor | Apenas suas próprias |
-| Jessika (supervisora) | vendedor | Suas próprias + Juliana |
-| Leandro | supervisor | Sua equipe |
-| Fabio | admin | Todas |
-
----
-
-## Impacto
-
-- **Segurança**: Vendedores não terão mais acesso a fotos de outros vendedores
-- **Performance**: Nenhum impacto negativo
-- **UX**: A tela Trade Photos mostrará apenas fotos autorizadas
-
+- A tela `TradePhotos.tsx` já implementa filtro por impersonação e hierarquia
+- A tela `CampaignLancamentosList.tsx` já implementa filtro por clientes do vendedor
+- Tabelas de referência como `competitors` permanecem globais
