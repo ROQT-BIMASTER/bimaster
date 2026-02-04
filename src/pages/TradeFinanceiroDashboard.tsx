@@ -1,19 +1,47 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
-import { Plus, CheckCircle, RefreshCw, LayoutDashboard } from "lucide-react";
-import { useTradeFinanceiroDashboard } from "@/hooks/useTradeFinanceiroDashboard";
+import { Plus, CheckCircle, RefreshCw, LayoutDashboard, CalendarDays } from "lucide-react";
+import { useTradeFinanceiroDashboard, getDateRangeFromPreset, DatePreset, DateRangeFilter } from "@/hooks/useTradeFinanceiroDashboard";
 import { TradeVerbaCard } from "@/components/trade/dashboard/TradeVerbaCard";
 import { TradeCampanhasAPagarCard } from "@/components/trade/dashboard/TradeCampanhasAPagarCard";
 import { TradeFluxoCaixaChart } from "@/components/trade/dashboard/TradeFluxoCaixaChart";
 import { TradeLancamentosTable } from "@/components/trade/dashboard/TradeLancamentosTable";
 import { useQueryClient } from "@tanstack/react-query";
 import { TourButton, tradeDashboardTourSteps, TRADE_DASHBOARD_TOUR_ID } from "@/components/tour";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
+
+const presetLabels: Record<DatePreset, string> = {
+  this_month: "Este mês",
+  last_30_days: "Últimos 30 dias",
+  last_90_days: "Últimos 90 dias",
+  this_year: "Este ano",
+  custom: "Personalizado",
+};
 
 export default function TradeFinanceiroDashboard() {
   const queryClient = useQueryClient();
+  const [datePreset, setDatePreset] = useState<DatePreset>("this_year");
+  const [customRange, setCustomRange] = useState<DateRangeFilter | undefined>();
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  const dateRange = getDateRangeFromPreset(datePreset, customRange);
+
   const {
     verbas,
     verbaMetrics,
@@ -23,13 +51,30 @@ export default function TradeFinanceiroDashboard() {
     lancamentos,
     isLoading,
     error,
-  } = useTradeFinanceiroDashboard();
+  } = useTradeFinanceiroDashboard(dateRange);
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['trade-dashboard-verbas'] });
     queryClient.invalidateQueries({ queryKey: ['trade-dashboard-campanhas'] });
     queryClient.invalidateQueries({ queryKey: ['trade-dashboard-despesas'] });
     queryClient.invalidateQueries({ queryKey: ['trade-dashboard-lancamentos'] });
+  };
+
+  const handlePresetChange = (value: string) => {
+    const preset = value as DatePreset;
+    setDatePreset(preset);
+    if (preset === "custom") {
+      setCalendarOpen(true);
+    }
+  };
+
+  const handleCalendarSelect = (range: DateRange | undefined) => {
+    if (range?.from && range?.to) {
+      setCustomRange({ from: range.from, to: range.to });
+      setCalendarOpen(false);
+    } else if (range?.from) {
+      setCustomRange({ from: range.from, to: range.from });
+    }
   };
 
   if (error) {
@@ -55,17 +100,58 @@ export default function TradeFinanceiroDashboard() {
             moduleHref="/dashboard/trade/financeiro"
             currentPage="Dashboard Financeiro"
           />
-          <div className="flex items-center justify-between mt-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 gap-4">
             <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <LayoutDashboard className="h-8 w-8 text-primary" />
+              <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+                <LayoutDashboard className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
                 Dashboard Financeiro Trade
               </h1>
               <p className="text-muted-foreground mt-1">
                 Visão consolidada de verbas, campanhas e lançamentos
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
+              {/* Date Filter */}
+              <div className="flex items-center gap-2">
+                <Select value={datePreset} onValueChange={handlePresetChange}>
+                  <SelectTrigger className="w-[180px]">
+                    <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(presetLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {datePreset === "custom" && (
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-xs">
+                        {customRange
+                          ? `${format(customRange.from, "dd/MM", { locale: ptBR })} - ${format(customRange.to, "dd/MM", { locale: ptBR })}`
+                          : "Selecionar"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={customRange?.from}
+                        selected={customRange ? { from: customRange.from, to: customRange.to } : undefined}
+                        onSelect={handleCalendarSelect}
+                        numberOfMonths={2}
+                        locale={ptBR}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
+
               <Button variant="outline" size="sm" onClick={handleRefresh}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Atualizar
@@ -83,6 +169,11 @@ export default function TradeFinanceiroDashboard() {
                 </Button>
               </Link>
             </div>
+          </div>
+
+          {/* Date Range Indicator */}
+          <div className="mt-2 text-sm text-muted-foreground">
+            Período: {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} até {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
           </div>
         </div>
 
