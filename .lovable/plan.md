@@ -1,266 +1,133 @@
 
-# Plano: Replicar Estrutura de Eventos para Cada Departamento
+# Plano: Sistema de Permissões para Módulo de Departamentos
 
-## Entendimento do Problema
+## Contexto
+Os departamentos que criamos (TI, RH, Financeiro, etc.) estão aparecendo automaticamente para todos os usuários em produção que tenham `departamento_id` preenchido ou sejam responsáveis. Isso acontece porque o módulo não segue o padrão de permissões centralizado do sistema.
 
-Atualmente, o modulo de **Eventos Corporativos** tem a seguinte estrutura:
-
-```
-Sidebar:
-  Eventos (expandivel)
-    ├── Eventos (lista de eventos)
-    └── Dashboard (dashboard financeiro)
-```
-
-Ao clicar em "Eventos", abre uma **landing page** com:
-- KPIs (Total de Eventos, Eventos Ativos, Orcamento Total, Custo Realizado)
-- Botoes: Dashboard, Aprovacoes, Solicitar Verba, Novo Evento
-- Tabela listando todos os eventos
-
-O modulo de **Departamentos** precisa ter a mesma estrutura para **cada departamento**.
+## Objetivo
+Integrar os departamentos ao sistema de permissões existente, garantindo que apareçam apenas para usuários explicitamente autorizados pelo administrador.
 
 ---
 
-## Solucao Proposta
+## Alterações no Banco de Dados
 
-### Nova Estrutura do Sidebar
+### 1. Criar Módulo "Departamentos"
+Inserir na tabela `modulos_sistema`:
+- **código**: `departamentos`
+- **nome**: Gestão de Departamentos
+- **descrição**: Gestão de despesas, verbas e aprovações por departamento
+- **ícone**: Building2
+- **ordem**: 75 (após Eventos)
 
-```
-Sidebar:
-  Departamentos (expandivel)
-    ├── Trade Marketing
-    │     ├── Despesas (landing page)
-    │     └── Dashboard
-    ├── RH
-    │     ├── Despesas
-    │     └── Dashboard
-    └── TI
-          ├── Despesas
-          └── Dashboard
-```
-
-### Fluxo de Navegacao
-
-| Rota | Pagina | Funcao |
-|------|--------|--------|
-| `/dashboard/departamentos/:id` | DepartmentLanding (NOVA) | Landing page igual a CorporateEvents |
-| `/dashboard/departamentos/:id/despesas/:despesaId` | DepartmentExpenseDetail (futura) | Detalhe da despesa |
-| `/dashboard/departamentos/:id/dashboard` | DepartmentDashboard | Dashboard financeiro (ja existe) |
-| `/dashboard/departamentos/:id/aprovacoes` | DepartmentApprovalHub | Hub de aprovacoes (ja existe) |
+### 2. Criar Telas do Módulo
+Inserir na tabela `telas_sistema`:
+- `departamentos_hub` - Hub de Departamentos (lista)
+- `departamentos_detail` - Detalhes do Departamento
+- `departamentos_dashboard` - Dashboard Financeiro
+- `departamentos_aprovacoes` - Central de Aprovações
 
 ---
 
-## Arquivos a Criar/Modificar
+## Alterações no Frontend
 
-### 1. Criar: `DepartmentLanding.tsx`
-
-Nova pagina que replica a estrutura de `CorporateEvents.tsx`:
-
-```
-+------------------------------------------------------------------+
-| Departamento > Trade Marketing                                    |
-+------------------------------------------------------------------+
-| Trade Marketing                                                   |
-| Gestao de despesas com controle de orcamento                     |
-|                                                                   |
-| [Dashboard] [Aprovacoes (3)] [Solicitar Verba] [+ Nova Despesa]  |
-+------------------------------------------------------------------+
-| KPIs:                                                             |
-| Total Despesas | Despesas Ativas | Orcamento Total | Custo Real  |
-+------------------------------------------------------------------+
-| Lista de Despesas                           [Buscar despesas...] |
-| +--------------------------------------------------------------+ |
-| | Codigo | Categoria | Descricao | Valor | Status | Acoes      | |
-| | DEP001 | Viagem    | ...       | 1.500 | Pend.  | [Ver]      | |
-| +--------------------------------------------------------------+ |
-+------------------------------------------------------------------+
+### 3. Atualizar AppSidebar.tsx
+**Antes:**
+```tsx
+{userDepartments.length > 0 && userDepartments.map((dept) => ...)}
 ```
 
-Elementos da landing page:
-- Header com nome do departamento
-- Botoes de acao: Dashboard, Aprovacoes, Solicitar Verba, Nova Despesa
-- 4 KPIs: Total Despesas, Despesas Ativas, Orcamento Total, Custo Realizado
-- Tabela de despesas com busca e filtros
-
-### 2. Modificar: `AppSidebar.tsx`
-
-Alterar a renderizacao dos departamentos para mostrar submenus:
-
-```
-Antes:
-  {userDepartments.map((dept) => (
-    <MenuItemLink to={`/dashboard/departamentos/${dept.id}`} title={dept.nome} />
-  ))}
-
-Depois:
-  {userDepartments.map((dept) => (
-    <Collapsible>
-      <ModuleHeader title={dept.nome} />
-      <CollapsibleContent>
-        <MenuItemLink to={`/dashboard/departamentos/${dept.id}`} title="Despesas" />
-        <MenuItemLink to={`/dashboard/departamentos/${dept.id}/dashboard`} title="Dashboard" />
-      </CollapsibleContent>
-    </Collapsible>
-  ))}
+**Depois:**
+```tsx
+{hasModulePermission("departamentos") && userDepartments.length > 0 && 
+  userDepartments.map((dept) => ...)}
 ```
 
-### 3. Renomear Rota Existente
+Isso garante que:
+- Apenas usuários com permissão no módulo "departamentos" veem o menu
+- Mesmo com permissão, só vê os departamentos aos quais está vinculado
 
-| Pagina Atual | Nova Funcao |
-|--------------|-------------|
-| `DepartmentDetail.tsx` | Renomear para `DepartmentLanding.tsx` |
-| Manter estrutura existente | Ja tem despesas e verbas em tabs |
+### 4. Atualizar Páginas com Proteção de Tela (Opcional)
 
-Na verdade, `DepartmentDetail.tsx` ja tem a estrutura correta de landing page! Apenas precisa:
-1. Adicionar botao "Dashboard" no header
-2. Ajustar o sidebar para mostrar submenus
+Adicionar verificação de permissão de tela nas rotas:
+- `DepartmentHub` → verificar `departamentos_hub`
+- `DepartmentDetail` → verificar `departamentos_detail`
+- `DepartmentDashboard` → verificar `departamentos_dashboard`
+- `DepartmentApprovalHub` → verificar `departamentos_aprovacoes`
 
 ---
 
-## Modificacoes Detalhadas
+## Fluxo de Configuração pelo Admin
 
-### A. `AppSidebar.tsx` - Submenus por Departamento
+1. Admin acessa **Configurações → Permissões de Módulos**
+2. Seleciona o usuário desejado
+3. Ativa o módulo "Gestão de Departamentos"
+4. O usuário passa a ver seus departamentos no sidebar
 
-Modificar a secao de Departamentos (linhas 727-761):
-
-```typescript
-{userDepartments.length > 0 && (
-  <SidebarGroup className="py-2 px-2">
-    {userDepartments.map((dept) => (
-      <Collapsible key={dept.id}>
-        <CollapsibleTrigger className="w-full">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[hsl(var(--module-departamentos)/0.1)]">
-            <Building2 className="h-4 w-4 text-[hsl(var(--module-departamentos))]" />
-            <span className="font-semibold text-sm">{dept.nome}</span>
-            {dept.isManager && (
-              <Badge variant="outline" className="ml-auto text-xs">Gerente</Badge>
-            )}
-            <ChevronDown className="h-4 w-4" />
-          </div>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <SidebarMenu className="space-y-0.5 pl-4">
-            <MenuItemLink 
-              to={`/dashboard/departamentos/${dept.id}`} 
-              icon={FileText} 
-              title="Despesas" 
-              colorKey="departamentos"
-              end
-            />
-            <MenuItemLink 
-              to={`/dashboard/departamentos/${dept.id}/dashboard`} 
-              icon={BarChart3} 
-              title="Dashboard" 
-              colorKey="departamentos"
-            />
-          </SidebarMenu>
-        </CollapsibleContent>
-      </Collapsible>
-    ))}
-  </SidebarGroup>
-)}
-```
-
-### B. `DepartmentDetail.tsx` - Adicionar Botao Dashboard
-
-Adicionar botao "Dashboard" no header (apos linha 110):
-
-```typescript
-<Button 
-  variant="outline" 
-  onClick={() => navigate(`/dashboard/departamentos/${id}/dashboard`)}
->
-  <TrendingUp className="mr-2 h-4 w-4" />
-  Dashboard
-</Button>
-```
-
-### C. `DepartmentDashboard.tsx` - Ajustar Breadcrumb
-
-Corrigir o breadcrumb para apontar para a landing do departamento:
-
-```typescript
-<ModuleBreadcrumb
-  moduleName={department?.nome || "Departamento"}
-  moduleHref={`/dashboard/departamentos/${id}`}
-  currentPage="Dashboard Financeiro"
-/>
-```
-
-### D. Verificar `DepartmentApprovalHub.tsx`
-
-Garantir que o breadcrumb tambem aponte para a landing:
-
-```typescript
-<ModuleBreadcrumb
-  moduleName={department?.nome || "Departamento"}
-  moduleHref={`/dashboard/departamentos/${id}`}
-  currentPage="Aprovacoes"
-/>
+```text
+┌─────────────────────────────────────────┐
+│        Tela de Permissões               │
+├─────────────────────────────────────────┤
+│                                         │
+│  Usuário: João Silva                    │
+│                                         │
+│  ☐ Prospects                            │
+│  ☐ Financeiro                           │
+│  ☐ Trade Marketing                      │
+│  ☐ Eventos Corporativos                 │
+│  ☑ Gestão de Departamentos  ← NOVO      │
+│  ☐ Tabelas de Preços                    │
+│                                         │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
-## Resultado Final
+## Hierarquia de Visibilidade
 
-### Navegacao do Sidebar
+Após implementação:
 
-```
-Departamentos
-  └── Trade Marketing
-        ├── Despesas (landing com tabela, KPIs, botoes)
-        └── Dashboard (dashboard financeiro com graficos)
-  └── RH
-        ├── Despesas
-        └── Dashboard
-  └── TI
-        ├── Despesas
-        └── Dashboard
-```
-
-### Fluxo de Uso
-
-1. Usuario clica em "Trade Marketing" no sidebar → expande submenu
-2. Clica em "Despesas" → abre landing page com lista de despesas, KPIs e acoes
-3. Pode clicar em "Dashboard" → abre dashboard financeiro com graficos
-4. Pode clicar em "Aprovacoes" → abre hub de aprovacoes
-5. Pode clicar em "Nova Despesa" → dialog para criar despesa
-6. Pode clicar em "Solicitar Verba" → dialog para solicitar verba
+1. **Admin**: Vê todos os departamentos (se tiver o módulo ativo)
+2. **Supervisor**: Vê departamentos conforme configuração de permissão
+3. **Outros usuários**: Só vê se:
+   - Tiver permissão no módulo "departamentos" E
+   - For membro ou responsável do departamento
 
 ---
 
-## Arquivos a Modificar
+## Impacto em Produção
 
-| Arquivo | Alteracao |
-|---------|-----------|
-| `src/components/dashboard/AppSidebar.tsx` | Transformar lista de departamentos em submenus expandiveis |
-| `src/pages/DepartmentDetail.tsx` | Adicionar botao "Dashboard" no header |
-| `src/pages/DepartmentDashboard.tsx` | Ajustar breadcrumb |
-| `src/pages/DepartmentApprovalHub.tsx` | Ajustar breadcrumb |
+- Usuários atuais **perdem acesso** imediato aos departamentos
+- Admin precisa ativar o módulo para os usuários desejados
+- Nenhum dado é perdido, apenas a visibilidade é controlada
 
 ---
 
-## Comparacao Visual: Eventos vs Departamentos
+## Seção Técnica
 
-### Eventos (modelo)
+### Migration SQL:
+```sql
+-- Criar módulo departamentos
+INSERT INTO modulos_sistema (codigo, nome, descricao, icone, ordem, ativo)
+VALUES ('departamentos', 'Gestão de Departamentos', 
+        'Gestão de despesas, verbas e aprovações por departamento', 
+        'Building2', 75, true);
 
+-- Criar telas
+INSERT INTO telas_sistema (codigo, nome, descricao, modulo_codigo, rota, icone, ordem, ativo)
+VALUES 
+  ('departamentos_hub', 'Hub de Departamentos', 'Lista de departamentos', 
+   'departamentos', '/dashboard/departamentos', 'Building2', 10, true),
+  ('departamentos_detail', 'Detalhes do Departamento', 'Visão geral e despesas', 
+   'departamentos', '/dashboard/departamentos/:id', 'FileText', 20, true),
+  ('departamentos_dashboard', 'Dashboard Financeiro', 'Métricas e gráficos', 
+   'departamentos', '/dashboard/departamentos/:id/dashboard', 'BarChart3', 30, true),
+  ('departamentos_aprovacoes', 'Central de Aprovações', 'Aprovação de despesas', 
+   'departamentos', '/dashboard/departamentos/:id/aprovacoes', 'CheckCircle', 40, true);
 ```
-Sidebar:
-  Eventos
-    ├── Eventos (CorporateEvents.tsx - lista + KPIs)
-    └── Dashboard (CorporateEventsDashboard.tsx)
-```
 
-### Departamentos (apos implementacao)
+### Arquivos a Modificar:
+- `src/components/dashboard/AppSidebar.tsx` (linha ~728)
+- `src/App.tsx` (opcional: adicionar ScreenProtectedRoute)
 
-```
-Sidebar:
-  Trade Marketing
-    ├── Despesas (DepartmentDetail.tsx - lista + KPIs)
-    └── Dashboard (DepartmentDashboard.tsx)
-  RH
-    ├── Despesas
-    └── Dashboard
-```
-
-A estrutura sera **identica**, com cada departamento funcionando como um "modulo de eventos" independente.
+### Política de Segurança:
+Seguindo o padrão "deny-by-default" já estabelecido, o módulo não será atribuído automaticamente a nenhum role.
