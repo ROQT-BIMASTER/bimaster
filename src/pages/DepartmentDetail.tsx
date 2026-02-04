@@ -108,6 +108,13 @@ export default function DepartmentDetail() {
           </div>
 
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(`/dashboard/departamentos/${id}/dashboard`)}
+            >
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Dashboard
+            </Button>
             {department.isManager && pendingCount > 0 && (
               <Button 
                 variant="outline" 
