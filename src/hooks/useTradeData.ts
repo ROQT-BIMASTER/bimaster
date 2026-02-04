@@ -70,7 +70,9 @@ export function useTradeInvestments() {
   });
 }
 
-// Hook otimizado para buscar lojas ativas
+// Hook otimizado para buscar lojas ativas (DEPRECATED - use useFilteredStores)
+// Mantido para compatibilidade, mas recomenda-se migrar para useFilteredStores
+// que respeita as permissões do usuário e impersonação
 export function useActiveStores() {
   return useQuery({
     queryKey: ['active-stores'],
