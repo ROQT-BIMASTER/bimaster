@@ -4,6 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Crown, User } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface Vendedor {
   id: string;
@@ -33,13 +34,41 @@ export const VendedorMultiSelect = ({
 }: VendedorMultiSelectProps) => {
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isAdminOrSupervisor } = useUserRole();
 
   useEffect(() => {
     fetchVendedores();
-  }, []);
+  }, [isAdminOrSupervisor]);
 
   const fetchVendedores = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Se não é admin/supervisor, mostrar apenas o próprio usuário
+      if (!isAdminOrSupervisor) {
+        const { data: ownProfile } = await supabase
+          .from("profiles")
+          .select("id, nome, email")
+          .eq("id", user.id)
+          .single();
+
+        if (ownProfile) {
+          const { data: ownRole } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", user.id)
+            .single();
+
+          setVendedores([{
+            ...ownProfile,
+            role: ownRole?.role || 'vendedor'
+          }]);
+        }
+        return;
+      }
+
+      // Admin/Supervisor: mostrar todos os vendedores/promotores
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, nome, email")
