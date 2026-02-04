@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useNavigate } from "react-router-dom";
+import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { compressImage, uploadFile } from "@/lib/utils/storage-helper";
 import { useTour, tradeQuickEntryTourSteps, TRADE_QUICK_ENTRY_TOUR_ID } from "@/components/tour";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -31,9 +32,8 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [stores, setStores] = useState<any[]>([]);
-  const [filteredStores, setFilteredStores] = useState<any[]>([]);
   const [storeSearch, setStoreSearch] = useState("");
+  const [filteredStores, setFilteredStores] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [promotions, setPromotions] = useState<any[]>([]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -44,6 +44,9 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   const { hasPermission } = useScreenPermissions();
   const navigate = useNavigate();
   const { startTour, hasSeenTour } = useTour();
+  
+  // Usar hook centralizado para lojas filtradas
+  const { stores, loading: storesLoading } = useFilteredStores();
 
   // Auto-start tour on first visit
   useEffect(() => {
@@ -96,6 +99,13 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     issues_found: [] as string[],
   });
 
+  // Atualizar filteredStores quando stores do hook mudar
+  useEffect(() => {
+    if (!storesLoading) {
+      setFilteredStores(stores);
+    }
+  }, [stores, storesLoading]);
+
   useEffect(() => {
     let mounted = true;
     
@@ -110,8 +120,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
 
   const fetchInitialData = async () => {
     try {
-      const [storesData, productsData, promotionsData, campaignsData] = await Promise.all([
-        supabase.from("stores").select("*").eq("status", "active").order("name"),
+      const [productsData, promotionsData, campaignsData] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).eq("is_our_product", true),
         supabase.from("promotions").select("*").eq("status", "active"),
         supabase.from("trade_campaigns").select(`
@@ -120,10 +129,6 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
         `).in("status", ["approved", "active"]).order("name"),
       ]);
 
-      if (storesData.data) {
-        setStores(storesData.data);
-        setFilteredStores(storesData.data);
-      }
       if (productsData.data) setProducts(productsData.data);
       if (promotionsData.data) setPromotions(promotionsData.data);
       if (campaignsData.data) setCampaigns(campaignsData.data);

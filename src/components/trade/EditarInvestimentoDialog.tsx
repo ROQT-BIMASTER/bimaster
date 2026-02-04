@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
 import { sanitizeText, getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { NovaLojaDialog } from "./NovaLojaDialog";
+import { useFilteredStores } from "@/hooks/useFilteredStores";
 
 interface EditarInvestimentoDialogProps {
   open: boolean;
@@ -25,7 +26,6 @@ export const EditarInvestimentoDialog = ({
   onSuccess 
 }: EditarInvestimentoDialogProps) => {
   const [loading, setLoading] = useState(false);
-  const [stores, setStores] = useState<any[]>([]);
   const [isNovaLojaOpen, setIsNovaLojaOpen] = useState(false);
   const [formData, setFormData] = useState({
     store_id: "",
@@ -37,21 +37,14 @@ export const EditarInvestimentoDialog = ({
     notes: "",
   });
 
+  // Usar hook centralizado para lojas filtradas
+  const { stores, refetch: refetchStores } = useFilteredStores();
+
   useEffect(() => {
     if (open && investmentId) {
       fetchInvestmentData();
-      fetchStores();
     }
   }, [open, investmentId]);
-
-  const fetchStores = async () => {
-    const { data } = await supabase
-      .from("stores")
-      .select("id, name, city")
-      .eq("status", "active")
-      .order("name");
-    if (data) setStores(data);
-  };
 
   const fetchInvestmentData = async () => {
     try {
@@ -259,7 +252,7 @@ export const EditarInvestimentoDialog = ({
           if (newStoreId) {
             setFormData(prev => ({ ...prev, store_id: newStoreId }));
           }
-          fetchStores();
+          refetchStores();
         }}
       />
     </Dialog>

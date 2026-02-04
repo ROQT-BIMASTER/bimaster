@@ -40,24 +40,27 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { TourButton, tradeModuleTourSteps, TRADE_MODULE_TOUR_ID } from "@/components/tour";
+import { useFilteredStores } from "@/hooks/useFilteredStores";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const { isAdminOrSupervisor } = useUserRole();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  
+  // Usar hook centralizado para contagem de lojas filtradas
+  const { stores: filteredStores, loading: storesLoading } = useFilteredStores();
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
   const { data: stats } = useQuery({
-    queryKey: ['trade-module-stats'],
+    queryKey: ['trade-module-stats', filteredStores.length],
     queryFn: async () => {
       const monthStart = startOfMonth(new Date());
       
-      const [storesRes, visitsRes, photosRes, investmentsRes] = await Promise.all([
-        supabase.from("stores").select("*", { count: "exact", head: true }).eq("status", "active"),
+      const [visitsRes, photosRes, investmentsRes] = await Promise.all([
         supabase.from("visits").select("*", { count: "exact", head: true }).gte("scheduled_date", monthStart.toISOString().split("T")[0]),
         supabase.from("photos").select("*", { count: "exact", head: true }),
         supabase.from("trade_investments").select("amount")
@@ -66,12 +69,13 @@ const TradeModule = () => {
       const totalInvestments = investmentsRes.data?.reduce((sum, i) => sum + (parseFloat(i.amount as any) || 0), 0) || 0;
 
       return {
-        totalStores: storesRes.count || 0,
+        totalStores: filteredStores.length, // Usar contagem do hook filtrado
         visitsMonth: visitsRes.count || 0,
         totalPhotos: photosRes.count || 0,
         totalInvestments
       };
-    }
+    },
+    enabled: !storesLoading,
   });
 
   if (!permissionsLoading && !hasPermission("trade_marketing")) {

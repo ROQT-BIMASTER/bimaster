@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { debounce } from "@/lib/utils/debounce";
+import { useFilteredStores } from "@/hooks/useFilteredStores";
 
 interface TradeFiltersProps {
   onStoreChange: (storeId: string | null) => void;
@@ -22,7 +23,9 @@ interface Store {
 }
 
 export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: TradeFiltersProps) => {
-  const [stores, setStores] = useState<Store[]>([]);
+  // Usar hook centralizado para lojas filtradas por permissão
+  const { stores: filteredStoresFromHook, loading: storesLoading } = useFilteredStores();
+  
   const [filteredStores, setFilteredStores] = useState<Store[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [aiQuery, setAiQuery] = useState("");
@@ -30,9 +33,12 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Atualizar lista filtrada quando hook retornar dados
   useEffect(() => {
-    fetchStores();
-  }, []);
+    if (!storesLoading) {
+      setFilteredStores(filteredStoresFromHook);
+    }
+  }, [filteredStoresFromHook, storesLoading]);
 
   // Debounced filter function
   const debouncedFilter = useMemo(
@@ -42,7 +48,7 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
           const searchLower = query.toLowerCase();
           const searchNumbers = query.replace(/\D/g, '');
           
-          const filtered = stores.filter(store => {
+          const filtered = filteredStoresFromHook.filter(store => {
             const nameMatch = store.name?.toLowerCase().includes(searchLower);
             const codeMatch = store.code?.toLowerCase().includes(searchLower);
             const cnpjMatch = searchNumbers && store.cnpj?.replace(/\D/g, '').includes(searchNumbers);
@@ -53,19 +59,19 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
           setFilteredStores(filtered);
           setShowDropdown(true);
         } else {
-          setFilteredStores(stores);
+          setFilteredStores(filteredStoresFromHook);
           setShowDropdown(false);
           if (selectedStore) {
             onStoreChange(null);
           }
         }
       }, 300),
-    [stores, selectedStore, onStoreChange]
+    [filteredStoresFromHook, selectedStore, onStoreChange]
   );
 
   useEffect(() => {
     debouncedFilter(searchQuery);
-  }, [searchQuery, stores, debouncedFilter]);
+  }, [searchQuery, filteredStoresFromHook, debouncedFilter]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -84,21 +90,6 @@ export const TradeFilters = ({ onStoreChange, onAIFilter, selectedStore }: Trade
     onStoreChange(store.id);
     setSearchQuery(store.name);
     setShowDropdown(false);
-  };
-
-  const fetchStores = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("stores")
-        .select("id, name, code, cnpj, city, address")
-        .eq("status", "active")
-        .order("name");
-
-      if (error) throw error;
-      setStores(data || []);
-    } catch (error) {
-      console.error("Erro ao carregar lojas:", error);
-    }
   };
 
   const handleAISearch = async () => {
