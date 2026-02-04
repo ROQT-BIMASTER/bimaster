@@ -137,6 +137,7 @@ const FluxoDeCaixa = lazy(() => import("./pages/FluxoDeCaixa"));
 const SaldosBancarios = lazy(() => import("./pages/SaldosBancarios"));
 const ContasReceberSyncPage = lazy(() => import("./pages/financeiro/ContasReceberSyncPage"));
 const ContasPagarSyncPage = lazy(() => import("./pages/financeiro/ContasPagarSyncPage"));
+const FinancialPaymentCentral = lazy(() => import("./pages/FinancialPaymentCentral"));
 // Portal do Cliente (isolado)
 const PortalPrecos = lazy(() => import("./pages/portal/PortalPrecos"));
 const PortalPerfil = lazy(() => import("./pages/portal/PortalPerfil"));
@@ -357,6 +358,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/plano-contas" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><PlanoContas /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/saldos-bancarios" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><SaldosBancarios /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/classificar-banco" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ClassificarTodoBanco /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/central-pagamentos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><FinancialPaymentCentral /></ModuleProtectedRoute></ProtectedRoute>} />
             
             {/* Marketing Mission Control */}
             <Route path="/dashboard/marketing/mission-control" element={<ProtectedRoute><MarketingMissionControlPage /></ProtectedRoute>} />

@@ -7795,6 +7795,101 @@ export type Database = {
           },
         ]
       }
+      financial_payment_queue: {
+        Row: {
+          amount: number
+          attachment_url: string | null
+          code: string
+          contas_pagar_id: string | null
+          created_at: string
+          department_name: string | null
+          description: string | null
+          document_number: string | null
+          document_type: string | null
+          due_date: string
+          financial_notes: string | null
+          financial_status: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          portador: string | null
+          requested_at: string
+          requested_by: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_code: string | null
+          source_id: string
+          source_type: string
+          supplier_document: string | null
+          supplier_name: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          attachment_url?: string | null
+          code: string
+          contas_pagar_id?: string | null
+          created_at?: string
+          department_name?: string | null
+          description?: string | null
+          document_number?: string | null
+          document_type?: string | null
+          due_date: string
+          financial_notes?: string | null
+          financial_status?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          portador?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_code?: string | null
+          source_id: string
+          source_type: string
+          supplier_document?: string | null
+          supplier_name: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          attachment_url?: string | null
+          code?: string
+          contas_pagar_id?: string | null
+          created_at?: string
+          department_name?: string | null
+          description?: string | null
+          document_number?: string | null
+          document_type?: string | null
+          due_date?: string
+          financial_notes?: string | null
+          financial_status?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          portador?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_code?: string | null
+          source_id?: string
+          source_type?: string
+          supplier_document?: string | null
+          supplier_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_payment_queue_contas_pagar_id_fkey"
+            columns: ["contas_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string | null
@@ -15164,16 +15259,24 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string
+          document_number: string | null
+          document_type: string | null
           document_url: string | null
+          due_date: string | null
           entry_date: string
           entry_type: string
           id: string
           investment_id: string | null
           notes: string | null
+          payment_queue_id: string | null
+          portador: string | null
           reference_number: string | null
           rejected_reason: string | null
+          send_to_financial: boolean | null
           status: string | null
           store_id: string | null
+          supplier_document: string | null
+          supplier_name: string | null
           updated_at: string | null
         }
         Insert: {
@@ -15188,16 +15291,24 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description: string
+          document_number?: string | null
+          document_type?: string | null
           document_url?: string | null
+          due_date?: string | null
           entry_date: string
           entry_type: string
           id?: string
           investment_id?: string | null
           notes?: string | null
+          payment_queue_id?: string | null
+          portador?: string | null
           reference_number?: string | null
           rejected_reason?: string | null
+          send_to_financial?: boolean | null
           status?: string | null
           store_id?: string | null
+          supplier_document?: string | null
+          supplier_name?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -15212,16 +15323,24 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string
+          document_number?: string | null
+          document_type?: string | null
           document_url?: string | null
+          due_date?: string | null
           entry_date?: string
           entry_type?: string
           id?: string
           investment_id?: string | null
           notes?: string | null
+          payment_queue_id?: string | null
+          portador?: string | null
           reference_number?: string | null
           rejected_reason?: string | null
+          send_to_financial?: boolean | null
           status?: string | null
           store_id?: string | null
+          supplier_document?: string | null
+          supplier_name?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -15261,6 +15380,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "trade_financial_entries_payment_queue_id_fkey"
+            columns: ["payment_queue_id"]
+            isOneToOne: false
+            referencedRelation: "financial_payment_queue"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "trade_financial_entries_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
@@ -15295,15 +15421,23 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string | null
+          document_number: string | null
+          document_type: string | null
+          due_date: string | null
           id: string
           investment_date: string
           notes: string | null
           payment_method: string | null
+          payment_queue_id: string | null
+          portador: string | null
           receipt_url: string | null
           rejected_reason: string | null
+          send_to_financial: boolean | null
           status: string | null
           store_id: string
           supervisor_id: string | null
+          supplier_document: string | null
+          supplier_name: string | null
           updated_at: string | null
           vendedor_id: string | null
           visit_id: string | null
@@ -15319,15 +15453,23 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          document_number?: string | null
+          document_type?: string | null
+          due_date?: string | null
           id?: string
           investment_date: string
           notes?: string | null
           payment_method?: string | null
+          payment_queue_id?: string | null
+          portador?: string | null
           receipt_url?: string | null
           rejected_reason?: string | null
+          send_to_financial?: boolean | null
           status?: string | null
           store_id: string
           supervisor_id?: string | null
+          supplier_document?: string | null
+          supplier_name?: string | null
           updated_at?: string | null
           vendedor_id?: string | null
           visit_id?: string | null
@@ -15343,15 +15485,23 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          document_number?: string | null
+          document_type?: string | null
+          due_date?: string | null
           id?: string
           investment_date?: string
           notes?: string | null
           payment_method?: string | null
+          payment_queue_id?: string | null
+          portador?: string | null
           receipt_url?: string | null
           rejected_reason?: string | null
+          send_to_financial?: boolean | null
           status?: string | null
           store_id?: string
           supervisor_id?: string | null
+          supplier_document?: string | null
+          supplier_name?: string | null
           updated_at?: string | null
           vendedor_id?: string | null
           visit_id?: string | null
@@ -15369,6 +15519,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_investments_payment_queue_id_fkey"
+            columns: ["payment_queue_id"]
+            isOneToOne: false
+            referencedRelation: "financial_payment_queue"
             referencedColumns: ["id"]
           },
           {
@@ -17003,6 +17160,7 @@ export type Database = {
         Args: { viewer_id: string }
         Returns: boolean
       }
+      can_access_payment_queue: { Args: { _user_id: string }; Returns: boolean }
       can_access_trade_audit: { Args: { p_user_id: string }; Returns: boolean }
       can_access_trade_budget: {
         Args: {
