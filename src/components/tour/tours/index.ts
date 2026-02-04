@@ -22,3 +22,6 @@ export * from "./fabricaOrdensTour";
 
 // Tour - Aprovação de Campanha
 export * from "./tradeCampaignApprovalTour";
+
+// Tour - Lançamento Rápido
+export * from "./tradeQuickEntryTour";

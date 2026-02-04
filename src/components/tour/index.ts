@@ -34,3 +34,6 @@ export { tradeAprovacoesTourSteps, TRADE_APROVACOES_TOUR_ID } from "./tours/trad
 
 // Tour - Aprovação de Campanha (Dialog)
 export { tradeCampaignApprovalTourSteps, TRADE_CAMPAIGN_APPROVAL_TOUR_ID } from "./tours/tradeCampaignApprovalTour";
+
+// Tour - Lançamento Rápido (Dialog)
+export { tradeQuickEntryTourSteps, TRADE_QUICK_ENTRY_TOUR_ID } from "./tours/tradeQuickEntryTour";
