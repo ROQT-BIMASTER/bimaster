@@ -12213,6 +12213,54 @@ export type Database = {
         }
         Relationships: []
       }
+      shelf_measurement_brands: {
+        Row: {
+          brand_id: string
+          created_at: string
+          facings: number | null
+          id: string
+          measurement_id: string
+          shelf_count: number
+          total_cm: number | null
+          width_cm: number
+        }
+        Insert: {
+          brand_id: string
+          created_at?: string
+          facings?: number | null
+          id?: string
+          measurement_id: string
+          shelf_count?: number
+          total_cm?: number | null
+          width_cm?: number
+        }
+        Update: {
+          brand_id?: string
+          created_at?: string
+          facings?: number | null
+          id?: string
+          measurement_id?: string
+          shelf_count?: number
+          total_cm?: number | null
+          width_cm?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelf_measurement_brands_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "our_brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelf_measurement_brands_measurement_id_fkey"
+            columns: ["measurement_id"]
+            isOneToOne: false
+            referencedRelation: "shelf_measurements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shelf_measurements: {
         Row: {
           competitors_facings: number | null
@@ -12226,6 +12274,7 @@ export type Database = {
           our_brands_facings: number | null
           our_brands_width_cm: number | null
           photo_ids: string[] | null
+          shelf_count: number | null
           shelf_section: string | null
           shelf_share_percentage: number | null
           store_id: string
@@ -12249,6 +12298,7 @@ export type Database = {
           our_brands_facings?: number | null
           our_brands_width_cm?: number | null
           photo_ids?: string[] | null
+          shelf_count?: number | null
           shelf_section?: string | null
           shelf_share_percentage?: number | null
           store_id: string
@@ -12272,6 +12322,7 @@ export type Database = {
           our_brands_facings?: number | null
           our_brands_width_cm?: number | null
           photo_ids?: string[] | null
+          shelf_count?: number | null
           shelf_section?: string | null
           shelf_share_percentage?: number | null
           store_id?: string

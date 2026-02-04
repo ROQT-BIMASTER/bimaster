@@ -22,12 +22,25 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useUserRole } from "@/hooks/useUserRole";
 
+interface BrandMeasurement {
+  id: string;
+  brand_id: string;
+  width_cm: number;
+  shelf_count: number;
+  total_cm: number;
+  facings: number | null;
+  our_brands: {
+    brand_name: string;
+  } | null;
+}
+
 interface ShelfMeasurement {
   id: string;
   store_id: string;
   measurement_date: string;
   shelf_section: string | null;
   total_shelf_width_cm: number;
+  shelf_count: number | null;
   our_brands_width_cm: number | null;
   shelf_share_percentage: number | null;
   total_facings: number | null;
@@ -38,6 +51,7 @@ interface ShelfMeasurement {
     name: string;
     code: string;
   } | null;
+  shelf_measurement_brands?: BrandMeasurement[];
 }
 
 export default function TradeShelfMeasurements() {
@@ -106,7 +120,16 @@ export default function TradeShelfMeasurements() {
         .from("shelf_measurements")
         .select(`
           *,
-          stores (name, code)
+          stores (name, code),
+          shelf_measurement_brands (
+            id,
+            brand_id,
+            width_cm,
+            shelf_count,
+            total_cm,
+            facings,
+            our_brands (brand_name)
+          )
         `);
 
       // Filtrar para não-admins/supervisores
@@ -374,10 +397,14 @@ export default function TradeShelfMeasurements() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Largura Total</p>
                       <p className="font-semibold">{measurement.total_shelf_width_cm} cm</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Prateleiras</p>
+                      <p className="font-semibold">{measurement.shelf_count || 1}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Nossas Marcas</p>
@@ -392,6 +419,30 @@ export default function TradeShelfMeasurements() {
                       <p className="font-semibold">{measurement.our_brands_facings || 0}</p>
                     </div>
                   </div>
+
+                  {/* Breakdown por Marca */}
+                  {measurement.shelf_measurement_brands && measurement.shelf_measurement_brands.length > 0 && (
+                    <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/10">
+                      <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                        🏷️ Detalhamento por Marca
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {measurement.shelf_measurement_brands.map((brand) => (
+                          <div key={brand.id} className="p-2 bg-background rounded-md border">
+                            <p className="text-xs text-muted-foreground truncate">
+                              {brand.our_brands?.brand_name || "Marca"}
+                            </p>
+                            <p className="font-semibold text-sm">
+                              {brand.width_cm} cm × {brand.shelf_count}
+                            </p>
+                            <p className="text-xs text-primary font-medium">
+                              = {brand.total_cm} cm
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   {measurement.shelf_share_percentage !== null && (
                     <div className="mt-4">

@@ -21,6 +21,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import ProductThumbnail from "./ProductThumbnail";
+import BrandMeasurementSection from "./BrandMeasurementSection";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon, Rocket, Loader2, Sparkles, CheckCircle2, Ruler, ChevronDown, ChevronUp } from "lucide-react";
@@ -78,6 +79,7 @@ export default function QuickLaunchDialog({
     measurement_date: new Date(),
     total_shelf_width_cm: "",
     total_shelf_height_cm: "",
+    shelf_count: "", // Quantidade total de prateleiras da gôndola
     our_brands_width_cm: "",
     our_brands_facings: "",
     competitors_width_cm: "",
@@ -85,6 +87,12 @@ export default function QuickLaunchDialog({
     total_facings: "",
     observations: "",
   });
+  const [brandMeasurements, setBrandMeasurements] = useState<{
+    brand_id: string;
+    brand_name: string;
+    width_cm: string;
+    shelf_count: string;
+  }[]>([]);
   const [selectedTarefas, setSelectedTarefas] = useState<string[]>([]);
 
   // Fetch templates
@@ -155,6 +163,7 @@ export default function QuickLaunchDialog({
         measurement_date: new Date(),
         total_shelf_width_cm: "",
         total_shelf_height_cm: "",
+        shelf_count: "",
         our_brands_width_cm: "",
         our_brands_facings: "",
         competitors_width_cm: "",
@@ -162,6 +171,7 @@ export default function QuickLaunchDialog({
         total_facings: "",
         observations: "",
       });
+      setBrandMeasurements([]);
     }
   }, [produto, open, preselectedDate]);
 
@@ -228,14 +238,22 @@ export default function QuickLaunchDialog({
 
       // Save shelf measurement if provided
       if (showMedicao && medicaoData.total_shelf_width_cm && medicaoData.store_id) {
+        // Calculate totals from brand measurements
+        const totalBrandsCm = brandMeasurements.reduce((sum, m) => {
+          const width = parseFloat(m.width_cm) || 0;
+          const shelves = parseInt(m.shelf_count) || 0;
+          return sum + (width * shelves);
+        }, 0);
+
         const measurementPayload = {
           store_id: medicaoData.store_id,
           measurement_date: format(medicaoData.measurement_date, "yyyy-MM-dd"),
           shelf_section: medicaoData.shelf_section || null,
           total_shelf_width_cm: parseFloat(medicaoData.total_shelf_width_cm),
           total_shelf_height_cm: medicaoData.total_shelf_height_cm ? parseFloat(medicaoData.total_shelf_height_cm) : null,
+          shelf_count: medicaoData.shelf_count ? parseInt(medicaoData.shelf_count) : 1,
           total_facings: medicaoData.total_facings ? parseInt(medicaoData.total_facings) : null,
-          our_brands_width_cm: medicaoData.our_brands_width_cm ? parseFloat(medicaoData.our_brands_width_cm) : null,
+          our_brands_width_cm: totalBrandsCm > 0 ? totalBrandsCm : (medicaoData.our_brands_width_cm ? parseFloat(medicaoData.our_brands_width_cm) : null),
           our_brands_facings: medicaoData.our_brands_facings ? parseInt(medicaoData.our_brands_facings) : null,
           competitors_width_cm: medicaoData.competitors_width_cm ? parseFloat(medicaoData.competitors_width_cm) : null,
           competitors_facings: medicaoData.competitors_facings ? parseInt(medicaoData.competitors_facings) : null,
@@ -243,14 +261,38 @@ export default function QuickLaunchDialog({
           created_by: user.id,
         };
         
-        const { error: medicaoError } = await supabase
+        const { data: measurementResult, error: medicaoError } = await supabase
           .from("shelf_measurements")
-          .insert(measurementPayload);
+          .insert(measurementPayload)
+          .select()
+          .single();
 
         if (medicaoError) {
           console.error("Erro ao salvar medição:", medicaoError);
-          // Não bloquear o lançamento se a medição falhar
           toast.warning("Lançamento criado, mas a medição não foi salva");
+        } else if (measurementResult) {
+          // Save brand measurements if any
+          const brandsToSave = brandMeasurements.filter(
+            (m) => (parseFloat(m.width_cm) || 0) > 0 && (parseInt(m.shelf_count) || 0) > 0
+          );
+
+          if (brandsToSave.length > 0) {
+            const brandPayloads = brandsToSave.map((m) => ({
+              measurement_id: measurementResult.id,
+              brand_id: m.brand_id,
+              width_cm: parseFloat(m.width_cm),
+              shelf_count: parseInt(m.shelf_count),
+              facings: 0,
+            }));
+
+            const { error: brandsError } = await supabase
+              .from("shelf_measurement_brands")
+              .insert(brandPayloads);
+
+            if (brandsError) {
+              console.error("Erro ao salvar medições por marca:", brandsError);
+            }
+          }
         }
       }
 
@@ -520,10 +562,10 @@ export default function QuickLaunchDialog({
                 </div>
               </div>
 
-              {/* Dimensões da Prateleira */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Dimensões da Prateleira</Label>
-                <div className="grid grid-cols-2 gap-4">
+              {/* Dimensões da Gôndola */}
+              <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
+                <Label className="text-sm font-medium">Dimensões da Gôndola</Label>
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground">Largura Total (cm) *</Label>
                     <Input
@@ -531,6 +573,16 @@ export default function QuickLaunchDialog({
                       placeholder="Ex: 300"
                       value={medicaoData.total_shelf_width_cm}
                       onChange={(e) => setMedicaoData({ ...medicaoData, total_shelf_width_cm: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Qtd Prateleiras *</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="Ex: 5"
+                      value={medicaoData.shelf_count}
+                      onChange={(e) => setMedicaoData({ ...medicaoData, shelf_count: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -545,30 +597,13 @@ export default function QuickLaunchDialog({
                 </div>
               </div>
 
-              {/* Nossas Marcas */}
-              <div className="space-y-2 p-3 rounded-lg border bg-primary/5">
-                <Label className="text-sm font-medium">Nossas Marcas</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Largura Ocupada (cm)</Label>
-                    <Input
-                      type="number"
-                      placeholder="Ex: 120"
-                      value={medicaoData.our_brands_width_cm}
-                      onChange={(e) => setMedicaoData({ ...medicaoData, our_brands_width_cm: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Número de Frentes</Label>
-                    <Input
-                      type="number"
-                      placeholder="Ex: 12"
-                      value={medicaoData.our_brands_facings}
-                      onChange={(e) => setMedicaoData({ ...medicaoData, our_brands_facings: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
+              {/* Medidas por Marca */}
+              <BrandMeasurementSection
+                brandMeasurements={brandMeasurements}
+                onBrandMeasurementsChange={setBrandMeasurements}
+                totalShelfWidthCm={medicaoData.total_shelf_width_cm}
+                totalShelfCount={medicaoData.shelf_count}
+              />
 
               {/* Concorrentes */}
               <div className="space-y-2 p-3 rounded-lg border bg-muted/50">
@@ -616,20 +651,6 @@ export default function QuickLaunchDialog({
                   rows={2}
                 />
               </div>
-
-              {/* Preview Share */}
-              {medicaoData.total_shelf_width_cm && medicaoData.our_brands_width_cm && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                  <Badge variant="default">
-                    Share: {((parseFloat(medicaoData.our_brands_width_cm) / parseFloat(medicaoData.total_shelf_width_cm)) * 100).toFixed(1)}%
-                  </Badge>
-                  {medicaoData.total_facings && medicaoData.our_brands_facings && (
-                    <Badge variant="outline">
-                      Frentes: {((parseInt(medicaoData.our_brands_facings) / parseInt(medicaoData.total_facings)) * 100).toFixed(1)}%
-                    </Badge>
-                  )}
-                </div>
-              )}
             </CollapsibleContent>
           </Collapsible>
         </div>
