@@ -1,89 +1,120 @@
 
 
-# Plano: Implementar Interface de Aprovação para Eventos Corporativos
+# Plano: Filtrar Marcas e Criar Dashboard de Share por Marca
 
 ## Contexto
 
-O módulo de Eventos Corporativos foi criado, mas atualmente quando um evento é enviado para aprovação (status `pending_approval`), não existe uma interface onde administradores/supervisores possam aprová-lo. O hook `approveEvent` já existe em `useCorporateEvents.ts`, mas não há UI para utilizá-lo.
+O usuário solicita duas alterações no módulo de Trade Marketing:
 
-## Solução Proposta
-
-Criar uma **Central de Aprovações de Eventos** seguindo o mesmo padrão da Central de Aprovações do Trade Marketing, com:
-
-1. Uma tela dedicada para listar eventos pendentes de aprovação
-2. Um dialog de aprovação com seleção obrigatória de verba
-3. Integração com o sidebar do módulo de Eventos
+1. **Filtrar Marcas na Medição de Prateleira**: No formulário "Lançamento Rápido", exibir por padrão apenas as marcas **Melu** e **Ruby Rose**, com opção de adicionar outras marcas via botão "+"
+2. **Dashboard de Share por Marca**: Criar uma tela de dashboard que mostre o share de prateleira de cada marca individualmente
 
 ---
 
-## Implementação Técnica
+## 1. Modificar BrandMeasurementSection
 
-### 1. Criar Hook para Eventos Pendentes
+**Arquivo:** `src/components/fabrica/BrandMeasurementSection.tsx`
 
-**Arquivo:** `src/hooks/usePendingEvents.ts`
+### Alterações:
+- Mudar lógica de inicialização para mostrar apenas Melu e Ruby Rose por padrão (IDs conhecidos do banco)
+- Adicionar botão "+" para incluir outras marcas disponíveis
+- Criar dropdown/dialog para selecionar marcas adicionais
+- Permitir remover marcas adicionadas (exceto as padrão)
 
-```typescript
-// Query para buscar eventos com status 'pending_approval'
-// Retorna lista de eventos com joins de budget, responsible e creator
+### Estrutura de dados:
+- IDs das marcas padrão (do banco):
+  - Melu: `4fd4afcf-f280-4615-a73a-a227c59cb37e`
+  - Ruby Rose: `a992f282-475b-4863-8c41-4061d3c24ddb`
+- Outras disponíveis: Luluca, Nathalia Beauty
+
+### Nova UI:
+```text
+┌─────────────────────────────────────────────┐
+│ 🏷️ Medidas por Marca           [+ Adicionar]│
+├─────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────┐ │
+│ │ 🏷️ Melu              Total: 120 cm     │ │
+│ │ Largura: [60]  Prateleiras: [2]        │ │
+│ └─────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────┐ │
+│ │ 🏷️ Ruby Rose        Total: 80 cm   [X] │ │
+│ │ Largura: [40]  Prateleiras: [2]        │ │
+│ └─────────────────────────────────────────┘ │
+└─────────────────────────────────────────────┘
 ```
 
-### 2. Criar Dialog de Aprovação de Evento
+---
 
-**Arquivo:** `src/components/events/AprovarEventoDialog.tsx`
+## 2. Criar Dashboard de Share por Marca
 
-- Exibir detalhes do evento (nome, tipo, data, local, orçamento solicitado)
-- Dropdown obrigatório para seleção de verba (usando `useEventBudgets`)
-- Validação de saldo disponível na verba vs. orçamento do evento
-- Campo de observações
-- Botões: Aprovar / Rejeitar
-- Usar o `approveEvent` mutation existente
+### 2.1 Novo Hook: `useBrandShareDashboard.ts`
 
-### 3. Criar Página de Aprovações de Eventos
+**Arquivo:** `src/hooks/useBrandShareDashboard.ts`
 
-**Arquivo:** `src/pages/EventsApprovalHub.tsx`
+Responsável por:
+- Buscar dados agregados de `shelf_measurement_brands` com join em `our_brands`
+- Agrupar por marca e calcular share médio
+- Calcular evolução mensal por marca (últimos 6 meses)
+- Calcular ranking de marcas por share
 
-- Header com título "Central de Aprovações de Eventos"
-- KPIs: Total pendentes, Valor total de orçamentos pendentes
-- Tabela com eventos pendentes (código, nome, tipo, data, orçamento, solicitante)
-- Botão "Revisar" que abre o `AprovarEventoDialog`
-- Acesso restrito a admin/supervisor via `useUserRole`
+### Queries principais:
+```text
+1. KPIs Gerais:
+   - Total de medições
+   - Share médio global
+   - Marca líder em share
+   - Crescimento vs. período anterior
 
-### 4. Adicionar Rota
+2. Share por Marca (Gráfico de Pizza/Barras):
+   - Soma de total_cm por brand_id
+   - Cálculo de percentual
+
+3. Evolução Mensal por Marca (Gráfico de Linhas):
+   - Agrupar por mês e brand_id
+   - Mostrar evolução do share de cada marca
+
+4. Ranking de Lojas por Share:
+   - Top 10 lojas com melhor share das nossas marcas
+```
+
+### 2.2 Novos Componentes do Dashboard
+
+**Diretório:** `src/components/trade/brand-share/`
+
+| Componente | Descrição |
+|------------|-----------|
+| `BrandShareKPIs.tsx` | Cards com KPIs principais (Total Medições, Share Médio, Marca Líder) |
+| `BrandSharePieChart.tsx` | Gráfico de pizza mostrando distribuição de share por marca |
+| `BrandShareEvolutionChart.tsx` | Gráfico de linhas com evolução mensal de cada marca |
+| `BrandShareRankingTable.tsx` | Tabela com ranking de lojas por share |
+
+### 2.3 Nova Página: `TradeBrandShareDashboard.tsx`
+
+**Arquivo:** `src/pages/TradeBrandShareDashboard.tsx`
+
+Estrutura similar ao `TradeExecutiveDashboard`:
+- Header com título e filtros de data
+- Seção de KPIs
+- Grid com gráficos de distribuição e evolução
+- Tabela de ranking
+
+---
+
+## 3. Adicionar Navegação
+
+### 3.1 Nova Rota
 
 **Arquivo:** `src/App.tsx`
 
 ```text
-Adicionar rota: /dashboard/eventos/aprovacoes → EventsApprovalHub
+/dashboard/trade/brand-share → TradeBrandShareDashboard
 ```
 
-### 5. Atualizar Navegação
+### 3.2 Link no Menu de Trade
 
-**Arquivo:** `src/pages/CorporateEvents.tsx`
+**Arquivo:** Sidebar ou página principal do Trade
 
-- Adicionar botão "Aprovações" no header (visível apenas para admin/supervisor)
-- Exibir badge com contagem de pendentes
-
-### 6. Atualizar Hook useCorporateEvents
-
-**Arquivo:** `src/hooks/useCorporateEvents.ts`
-
-- Adicionar mutation `rejectEvent` para rejeitar eventos
-- O `approveEvent` já existe e funcionará perfeitamente
-
----
-
-## Fluxo do Usuário (Após Implementação)
-
-```text
-1. Funcionário cria evento → status: draft
-2. Funcionário clica "Enviar para Aprovação" → status: pending_approval
-3. Admin/Supervisor acessa "Aprovações" no módulo de Eventos
-4. Visualiza lista de eventos pendentes
-5. Clica "Revisar" no evento
-6. Seleciona verba obrigatoriamente (com validação de saldo)
-7. Aprova ou rejeita com observação
-8. Evento aprovado → status: approved, pode lançar despesas
-```
+Adicionar botão/link para "Dashboard de Marcas" na seção de Medições de Prateleira
 
 ---
 
@@ -91,15 +122,67 @@ Adicionar rota: /dashboard/eventos/aprovacoes → EventsApprovalHub
 
 | Arquivo | Descrição |
 |---------|-----------|
-| `src/hooks/usePendingEvents.ts` | Hook para buscar eventos pendentes |
-| `src/components/events/AprovarEventoDialog.tsx` | Dialog de aprovação |
-| `src/pages/EventsApprovalHub.tsx` | Página central de aprovações |
+| `src/hooks/useBrandShareDashboard.ts` | Hook para dados do dashboard |
+| `src/components/trade/brand-share/BrandShareKPIs.tsx` | KPIs principais |
+| `src/components/trade/brand-share/BrandSharePieChart.tsx` | Gráfico de distribuição |
+| `src/components/trade/brand-share/BrandShareEvolutionChart.tsx` | Evolução mensal |
+| `src/components/trade/brand-share/BrandShareRankingTable.tsx` | Ranking de lojas |
+| `src/pages/TradeBrandShareDashboard.tsx` | Página do dashboard |
 
 ## Arquivos a Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/App.tsx` | Adicionar rota `/dashboard/eventos/aprovacoes` |
-| `src/pages/CorporateEvents.tsx` | Botão de navegação para aprovações |
-| `src/hooks/useCorporateEvents.ts` | Adicionar `rejectEvent` mutation |
+| `src/components/fabrica/BrandMeasurementSection.tsx` | Filtrar para Melu/Ruby Rose + botão adicionar |
+| `src/App.tsx` | Nova rota `/dashboard/trade/brand-share` |
+| `src/pages/TradeShelfMeasurements.tsx` | Botão para acessar dashboard de marcas |
+
+---
+
+## Fluxo do Usuário (Após Implementação)
+
+```text
+1. Lançamento Rápido:
+   - Usuário vê apenas Melu e Ruby Rose por padrão
+   - Clica "+" para adicionar Luluca ou Nathalia Beauty se necessário
+   - Preenche medições e salva
+
+2. Dashboard de Marcas:
+   - Acessa via /dashboard/trade/brand-share ou botão em Medições
+   - Visualiza KPIs: Total medições, Share médio, Marca líder
+   - Analisa gráfico de pizza com distribuição por marca
+   - Acompanha evolução mensal de cada marca
+   - Consulta ranking de lojas por share
+```
+
+---
+
+## Visualização do Dashboard
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  📊 Dashboard de Share por Marca        [Filtro Data] [Atualizar]│
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │  Total   │  │  Share   │  │  Marca   │  │  +/- vs  │        │
+│  │ Medições │  │  Médio   │  │  Líder   │  │ Anterior │        │
+│  │    45    │  │  38.5%   │  │  Melu    │  │  +2.3%   │        │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────┐  ┌─────────────────────────────────┐   │
+│  │  Distribuição Share │  │  Evolução Mensal                │   │
+│  │     (Pie Chart)     │  │     (Line Chart)                │   │
+│  │  [Melu: 45%]        │  │  Melu ───── Ruby Rose ─────     │   │
+│  │  [Ruby Rose: 32%]   │  │                                 │   │
+│  │  [Outros: 23%]      │  │  Set Out Nov Dez Jan Fev        │   │
+│  └─────────────────────┘  └─────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│  🏆 Ranking de Lojas por Share                                  │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │ #1 | Loja ABC         | 52.3%  | Melu: 30% | Ruby: 22.3%  ││
+│  │ #2 | Loja XYZ         | 48.7%  | Melu: 28% | Ruby: 20.7%  ││
+│  │ #3 | ...                                                   ││
+│  └─────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
+```
 
