@@ -2,6 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export interface ExpenseAttachment {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploaded_at: string;
+}
+
 export interface EventExpense {
   id: string;
   event_id: string;
@@ -30,6 +38,7 @@ export interface EventExpense {
   approved_at: string | null;
   created_at: string;
   updated_at: string;
+  attachments: ExpenseAttachment[];
   event?: {
     id: string;
     code: string;
@@ -105,7 +114,10 @@ export function useEventExpenses(eventId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as EventExpense[];
+      return (data || []).map(item => ({
+        ...item,
+        attachments: (item.attachments as unknown as ExpenseAttachment[]) || [],
+      })) as EventExpense[];
     },
     enabled: eventId !== undefined,
   });
@@ -139,10 +151,15 @@ export function useEventExpenses(eventId?: string) {
   });
 
   const updateExpense = useMutation({
-    mutationFn: async ({ id, ...input }: { id: string } & Partial<EventExpense>) => {
+    mutationFn: async ({ id, attachments, event, creator, ...input }: { id: string } & Partial<EventExpense>) => {
+      const updateData: Record<string, unknown> = { ...input };
+      if (attachments !== undefined) {
+        updateData.attachments = attachments as unknown;
+      }
+      
       const { data, error } = await supabase
         .from("corporate_event_expenses")
-        .update(input)
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();
@@ -327,7 +344,10 @@ export function useFinancialPendingItems() {
         .order("due_date", { ascending: true });
 
       if (error) throw error;
-      return data as EventExpense[];
+      return (data || []).map(item => ({
+        ...item,
+        attachments: (item.attachments as unknown as ExpenseAttachment[]) || [],
+      })) as EventExpense[];
     },
   });
 }
