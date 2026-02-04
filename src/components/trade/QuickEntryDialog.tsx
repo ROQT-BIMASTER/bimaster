@@ -44,6 +44,7 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   const [brandMeasurements, setBrandMeasurements] = useState<{
     brand_id: string;
     brand_name: string;
+    header_dimensions: string;
     width_cm: string;
     shelf_count: string;
   }[]>([]);

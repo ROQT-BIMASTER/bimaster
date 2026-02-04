@@ -26,6 +26,7 @@ const DEFAULT_BRAND_NAMES = ["Melu", "Ruby Rose"];
 interface BrandMeasurement {
   brand_id: string;
   brand_name: string;
+  header_dimensions: string; // Testeira (LxA)
   width_cm: string;
   shelf_count: string;
 }
@@ -74,6 +75,7 @@ export default function BrandMeasurementSection({
       const initialMeasurements = defaultBrands.map((brand) => ({
         brand_id: brand.id,
         brand_name: brand.brand_name,
+        header_dimensions: "",
         width_cm: "",
         shelf_count: "",
       }));
@@ -93,6 +95,7 @@ export default function BrandMeasurementSection({
     const newMeasurement: BrandMeasurement = {
       brand_id: brandId,
       brand_name: brandName,
+      header_dimensions: "",
       width_cm: "",
       shelf_count: "",
     };
@@ -111,7 +114,7 @@ export default function BrandMeasurementSection({
     onBrandMeasurementsChange(updated);
   };
 
-  const updateBrandMeasurement = (brandId: string, field: "width_cm" | "shelf_count", value: string) => {
+  const updateBrandMeasurement = (brandId: string, field: "header_dimensions" | "width_cm" | "shelf_count", value: string) => {
     const updated = brandMeasurements.map((m) =>
       m.brand_id === brandId ? { ...m, [field]: value } : m
     );
@@ -207,7 +210,17 @@ export default function BrandMeasurementSection({
                   </Button>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Testeira (LxA)</Label>
+                  <Input
+                    type="text"
+                    placeholder="Ex: 90x15"
+                    value={measurement.header_dimensions}
+                    onChange={(e) => updateBrandMeasurement(measurement.brand_id, "header_dimensions", e.target.value)}
+                    className="h-9"
+                  />
+                </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Largura (cm)</Label>
                   <Input
