@@ -36,6 +36,7 @@ const sourceTypeLabels: Record<SourceType, string> = {
   trade_investment: "Trade Marketing - Investimento",
   trade_campaign: "Trade Marketing - Campanha",
   event_expense: "Eventos Corporativos - Despesa",
+  department_expense: "Departamento - Despesa",
 };
 
 const statusConfig: Record<PaymentQueueStatus, { label: string; color: string }> = {
