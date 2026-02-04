@@ -96,10 +96,10 @@ export default function DepartmentDetail() {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold">{department.nome}</h1>
-                  {department.responsavel && (
+                {department.responsavel && (
                     <p className="text-muted-foreground flex items-center gap-1">
                       <User className="h-4 w-4" />
-                      Responsável: {Array.isArray(department.responsavel) ? (department.responsavel as any)[0]?.nome : (department.responsavel as any).nome}
+                      Responsável: {(department.responsavel as any).nome}
                     </p>
                   )}
                 </div>
