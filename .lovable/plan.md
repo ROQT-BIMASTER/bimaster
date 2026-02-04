@@ -1,283 +1,233 @@
 
-# Plano: Sistema de Gestao de Despesas por Departamento
+# Plano: Padronizar Dashboard de Departamentos (Identico a Eventos)
 
-## Contexto
+## Problema Identificado
 
-O usuario deseja replicar a estrutura do modulo de Eventos Corporativos para **todos os departamentos da empresa**. Cada departamento tera:
-- Seu proprio modulo de gestao de despesas
-- Um gerente responsavel com poder de aprovacao
-- Funcionarios que podem criar despesas e envia-las ao financeiro
-- Verba propria com controle financeiro dedicado
-- Dashboard financeiro especifico
+A tela de detalhes do departamento apresenta "Departamento nao encontrado" porque:
 
-A tabela `departamentos` ja existe no banco com departamentos como: RH, Financeiro, Comercial, Marketing, Operacoes, TI, Administrativo, Logistica, Trade Marketing.
+1. O hook `useDepartmentById` tenta fazer um JOIN com `profiles` usando uma Foreign Key inexistente:
+   ```typescript
+   responsavel:profiles!departamentos_responsavel_id_fkey(id, nome)
+   ```
 
----
+2. A tabela `departamentos` NAO possui Foreign Key para `profiles.id` no campo `responsavel_id`
 
-## Arquitetura da Solucao
-
-```text
-+------------------------------------------------------------------+
-|                    SISTEMA DE DEPARTAMENTOS                       |
-+------------------------------------------------------------------+
-|                                                                  |
-|  DEPARTAMENTO (ex: Marketing, RH, TI)                            |
-|  +------------------------------------------------------------+  |
-|  |                                                            |  |
-|  |  VERBAS DO DEPARTAMENTO                                    |  |
-|  |  +-------------------------------------------------------+ |  |
-|  |  | - Verba anual alocada                                 | |  |
-|  |  | - Verba utilizada                                     | |  |
-|  |  | - Verba disponivel                                    | |  |
-|  |  | - Solicitacao de verba adicional                      | |  |
-|  |  +-------------------------------------------------------+ |  |
-|  |                                                            |  |
-|  |  SOLICITACOES DE DESPESAS                                  |  |
-|  |  +-------------------------------------------------------+ |  |
-|  |  | - Categoria (viagem, material, servicos, etc)         | |  |
-|  |  | - Valor previsto / realizado                          | |  |
-|  |  | - Status: rascunho -> pendente -> aprovado -> pago    | |  |
-|  |  | - Anexos (notas fiscais, comprovantes)                | |  |
-|  |  | - Envio ao financeiro                                 | |  |
-|  |  +-------------------------------------------------------+ |  |
-|  |                                                            |  |
-|  |  FLUXO DE APROVACAO                                        |  |
-|  |  +-------------------------------------------------------+ |  |
-|  |  | Funcionario -> Gerente Dept -> Financeiro -> Pago     | |  |
-|  |  +-------------------------------------------------------+ |  |
-|  |                                                            |  |
-|  +------------------------------------------------------------+  |
-+------------------------------------------------------------------+
-```
+3. O Dashboard de Departamentos atual tem estrutura diferente do Dashboard de Eventos
 
 ---
 
-## Estrutura de Banco de Dados
-
-### 1. Nova Tabela: `department_budgets` (Verbas por Departamento)
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid | PK |
-| department_id | uuid | FK para departamentos |
-| code | varchar | Codigo auto-gerado (VDEP-001) |
-| name | varchar | Nome da verba |
-| total_amount | numeric | Valor total alocado |
-| spent_amount | numeric | Valor utilizado |
-| available_amount | numeric | Valor disponivel (computed) |
-| period_start | date | Inicio do periodo |
-| period_end | date | Fim do periodo |
-| status | varchar | active, pending, approved, closed |
-| approval_status | text | pending, approved, rejected |
-| created_by | uuid | Usuario que criou |
-| approved_by | uuid | Usuario que aprovou |
-| approved_at | timestamptz | Data de aprovacao |
-| notes | text | Observacoes |
-| created_at | timestamptz | |
-| updated_at | timestamptz | |
-
-### 2. Nova Tabela: `department_expenses` (Despesas por Departamento)
-
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid | PK |
-| department_id | uuid | FK para departamentos |
-| budget_id | uuid | FK para department_budgets |
-| code | varchar | Codigo auto-gerado (DDEP-001) |
-| category | varchar | Categoria da despesa |
-| description | text | Descricao |
-| valor_previsto | numeric | Valor estimado |
-| valor_realizado | numeric | Valor efetivo |
-| expense_date | date | Data da despesa |
-| status | varchar | pending, approved, rejected, pending_financial, paid |
-| supplier_name | varchar | Nome do fornecedor |
-| supplier_document | varchar | CNPJ/CPF |
-| document_type | varchar | NF, Boleto, Recibo |
-| document_number | varchar | Numero do documento |
-| due_date | date | Data de vencimento |
-| portador | varchar | Portador para pagamento |
-| attachments | jsonb | Array de anexos |
-| payment_notes | text | Notas para pagamento |
-| send_to_financial | boolean | Enviado ao financeiro |
-| created_by | uuid | Criador |
-| approved_by | uuid | Aprovador (gerente) |
-| approved_at | timestamptz | |
-| financial_approved_by | uuid | |
-| financial_approved_at | timestamptz | |
-| paid_at | timestamptz | |
-| created_at | timestamptz | |
-| updated_at | timestamptz | |
-
-### 3. Atualizar Tabela: `departamentos`
-
-Adicionar coluna `responsavel_id` (ja existe, mas precisa ser populada) para definir o gerente de cada departamento.
-
----
-
-## Paginas e Componentes
-
-### Paginas Novas
-
-| Rota | Arquivo | Descricao |
-|------|---------|-----------|
-| `/dashboard/departamentos` | `DepartmentHub.tsx` | Hub de acesso - usuario ve apenas seu(s) departamento(s) |
-| `/dashboard/departamentos/:id` | `DepartmentDetail.tsx` | Detalhes do departamento com despesas e verbas |
-| `/dashboard/departamentos/:id/dashboard` | `DepartmentDashboard.tsx` | Dashboard financeiro do departamento |
-| `/dashboard/departamentos/:id/aprovacoes` | `DepartmentApprovalHub.tsx` | Central de aprovacoes (para gerentes) |
-
-### Componentes Novos
-
-| Componente | Descricao |
-|------------|-----------|
-| `DepartmentExpenseCard.tsx` | Card de despesa |
-| `DepartmentBudgetCard.tsx` | Card de verba |
-| `NovaDespesaDepartamentoDialog.tsx` | Criar nova despesa |
-| `SolicitarVerbaDepartamentoDialog.tsx` | Solicitar verba |
-| `EnviarFinanceiroDepDialog.tsx` | Enviar ao financeiro |
-| `AprovarDespesaDepartamentoDialog.tsx` | Aprovar despesa (gerente) |
-| `DepartmentExpenseAttachments.tsx` | Anexos de despesa |
-
-### Hooks Novos
-
-| Hook | Descricao |
-|------|-----------|
-| `useDepartmentBudgets.ts` | CRUD de verbas por departamento |
-| `useDepartmentExpenses.ts` | CRUD de despesas por departamento |
-| `useDepartmentDashboard.ts` | Dados agregados do dashboard |
-| `useUserDepartments.ts` | Departamentos do usuario logado |
-
----
-
-## Fluxo de Acesso e Permissoes
-
-### Hierarquia de Acesso
-
-```text
-FUNCIONARIO (membro do departamento)
-  - Ver e criar despesas proprias
-  - Anexar documentos
-  - Enviar para aprovacao do gerente
-  - Ver saldo de verba do departamento (apenas leitura)
-
-GERENTE DO DEPARTAMENTO (responsavel_id)
-  - Tudo do funcionario
-  - Aprovar/rejeitar despesas de funcionarios
-  - Enviar despesas aprovadas ao financeiro
-  - Solicitar verba adicional
-  - Ver dashboard do departamento
-
-FINANCEIRO
-  - Aprovar verbas de departamentos
-  - Receber despesas na Central de Pagamentos
-  - Aprovar pagamentos
-  - Ver todos os departamentos
-```
-
-### Regras de Filtro (RLS)
-
-- Funcionarios veem apenas despesas que criaram
-- Gerentes veem todas as despesas do seu departamento
-- Financeiro ve todas as despesas de todos os departamentos
-
----
-
-## Integracao com Central de Pagamentos
-
-As despesas aprovadas pelo gerente e enviadas ao financeiro aparecerao na tabela `financial_payment_queue` com:
-- `source_type: 'department_expense'`
-- `source_id: [expense.id]`
-- `department_name: [nome do departamento]`
-
-O financeiro revisa e aprova usando o mesmo fluxo ja existente, com exigencia de visualizar todos os anexos.
-
----
-
-## Interface do Usuario
-
-### Hub de Departamentos
-
-O usuario acessa `/dashboard/departamentos` e ve:
-- Lista de departamentos aos quais pertence
-- Para cada departamento: KPIs rapidos (verba disponivel, despesas pendentes)
-- Acesso rapido para criar despesa
-
-### Detalhe do Departamento
-
-Similar ao detalhe de evento:
-- Tabs: Despesas | Verbas | Historico
-- Botoes: Nova Despesa, Solicitar Verba
-- Para gerentes: Central de Aprovacoes
-
-### Dashboard do Departamento
-
-Similar ao dashboard de eventos:
-- KPIs: Verba total, utilizada, disponivel
-- Grafico de evolucao de gastos
-- Top categorias de despesas
-- Lista de despesas recentes
-
----
-
-## Etapas de Implementacao
+## Solucao Completa
 
 ### Fase 1: Banco de Dados
-1. Criar tabela `department_budgets`
-2. Criar tabela `department_expenses`
-3. Criar triggers para auto-geracao de codigos
-4. Criar politicas RLS
-5. Criar bucket de storage `department-expense-docs`
 
-### Fase 2: Backend (Hooks)
-1. Criar `useDepartmentBudgets.ts`
-2. Criar `useDepartmentExpenses.ts`
-3. Criar `useUserDepartments.ts`
-4. Criar `useDepartmentDashboard.ts`
+Criar a Foreign Key que falta:
 
-### Fase 3: Componentes e Dialogs
-1. Dialogs de criacao (despesa, verba)
-2. Dialog de envio ao financeiro
-3. Dialog de aprovacao
-4. Componente de anexos
-5. Cards de exibicao
+```sql
+ALTER TABLE public.departamentos
+ADD CONSTRAINT departamentos_responsavel_id_fkey 
+FOREIGN KEY (responsavel_id) 
+REFERENCES public.profiles(id) 
+ON DELETE SET NULL;
+```
 
-### Fase 4: Paginas
-1. Hub de departamentos
-2. Detalhe do departamento
-3. Dashboard financeiro
-4. Central de aprovacoes
+### Fase 2: Corrigir Hook `useDepartmentById`
 
-### Fase 5: Integracao
-1. Atualizar `financial_payment_queue` para receber despesas de departamentos
-2. Atualizar `PaymentReviewDialog` para exibir nome do departamento
-3. Adicionar menu no sidebar
-4. Configurar permissoes
+Adicionar verificacao de admin (igual a eventos):
+
+```text
+ANTES:
+const isManager = data.responsavel_id === user.id;
+
+DEPOIS:
+const { data: roleData } = await supabase
+  .from("user_roles")
+  .select("role")
+  .eq("user_id", user.id)
+  .maybeSingle();
+
+const isAdmin = roleData?.role === "admin";
+const isManager = isAdmin || data.responsavel_id === user.id;
+```
+
+### Fase 3: Criar Hook `useDepartmentDashboard`
+
+Novo hook que replica a estrutura de `useEventsDashboard`:
+
+| Dado | Origem | Descricao |
+|------|--------|-----------|
+| verbas | department_budgets | Verbas ativas do departamento |
+| verbaMetrics | Calculado | Total orcado, utilizado, disponivel, % |
+| despesaMetrics | Calculado | Qtd despesas, pendentes, pagas, % pago |
+| fluxoCaixa | Calculado | Entradas/saidas ultimos 6 meses |
+| despesasPorCategoria | Calculado | Agrupamento por categoria |
+| despesas | department_expenses | Lista formatada para tabela |
+
+### Fase 4: Criar Componentes de Dashboard
+
+Replicar os 4 componentes do dashboard de eventos:
+
+| Componente Eventos | Componente Departamentos | Funcao |
+|--------------------|--------------------------|--------|
+| EventsVerbaCard | DeptVerbaCard | Card com KPIs de verba (Total, Utilizado, Disponivel) |
+| EventsDespesasCard | DeptDespesasCard | Card com KPIs de despesas (Qtd, Pendentes, Pagas) |
+| EventsFluxoCaixaChart | DeptFluxoCaixaChart | Grafico de barras + linha (Entradas, Saidas, Saldo) |
+| EventsDespesasTable | DeptDespesasTable | Tabela com busca, filtro e exportacao |
+
+### Fase 5: Reescrever `DepartmentDashboard.tsx`
+
+A nova pagina tera exatamente a mesma estrutura visual do Dashboard de Eventos:
+
+```text
++------------------------------------------------------------------+
+| < Voltar   Departamento > Dashboard Financeiro                   |
++------------------------------------------------------------------+
+| Dashboard Financeiro [Nome Dept]      [Periodo] [Atualizar] [+]  |
+| Visao consolidada de verbas e despesas                           |
+| Periodo: 01/01/2026 ate 04/02/2026                               |
++------------------------------------------------------------------+
+|                                                                  |
+|  +---------------------------+  +------------------------------+ |
+|  | Verbas do Departamento    |  | Despesas por Categoria       | |
+|  | Total | Utilizado | Disp  |  | Qtd | Ativos | Pend | Pago   | |
+|  | R$X   | R$Y       | R$Z   |  | XX  | YY     | R$A  | R$B    | |
+|  |                           |  |                              | |
+|  | [Barra de Progresso]      |  | [Barra de Progresso]         | |
+|  |                           |  |                              | |
+|  | verba 1        R$ X.XXX   |  | Categoria 1      R$ XXX     | |
+|  | verba 2        R$ Y.YYY   |  | Categoria 2      R$ YYY     | |
+|  +---------------------------+  +------------------------------+ |
+|                                                                  |
+|  +------------------------------------------------------------+  |
+|  | Fluxo de Caixa [Nome Dept]        Entradas | Saidas | Saldo|  |
+|  | Ultimos 6 meses                   R$X.XXX  | R$Y.YY | R$Z  |  |
+|  |                                                            |  |
+|  |  [GRAFICO: Barras verdes/vermelhas + Linha azul saldo]     |  |
+|  |                                                            |  |
+|  +------------------------------------------------------------+  |
+|                                                                  |
+|  +------------------------------------------------------------+  |
+|  | Despesas do Departamento                        [Exportar] |  |
+|  | [Buscar por categoria ou descricao]   [Filtro Status]      |  |
+|  |                                                            |  |
+|  | Categoria | Descricao | Valor Realizado | Status | Data   |  |
+|  | --------- | --------- | --------------- | ------ | -----  |  |
+|  | Viagem    | Desc 1    | R$ 1.500,00     | Pago   | 01/02  |  |
+|  |                                                            |  |
+|  | Exibindo X de Y despesas    Total Realizado: R$ Z.ZZZ,ZZ  |  |
+|  +------------------------------------------------------------+  |
+|                                                                  |
++------------------------------------------------------------------+
+```
 
 ---
 
-## Consideracoes de Seguranca
+## Arquivos a Criar/Modificar
 
-1. **RLS Obrigatorio** - Funcionarios so veem suas proprias despesas
-2. **Verificacao de Gerente** - Apenas `responsavel_id` pode aprovar
-3. **Anexos Obrigatorios** - Despesas so podem ser enviadas ao financeiro com documentos anexados
-4. **Confirmacao de Leitura** - Financeiro deve visualizar cada anexo antes de aprovar
+### Criar Novos
+
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/hooks/useDepartmentDashboard.ts` | Hook de dados do dashboard |
+| `src/components/departments/dashboard/DeptVerbaCard.tsx` | Card de verbas |
+| `src/components/departments/dashboard/DeptDespesasCard.tsx` | Card de despesas |
+| `src/components/departments/dashboard/DeptFluxoCaixaChart.tsx` | Grafico fluxo de caixa |
+| `src/components/departments/dashboard/DeptDespesasTable.tsx` | Tabela de despesas |
+
+### Modificar
+
+| Arquivo | Alteracao |
+|---------|-----------|
+| Migration SQL | Adicionar FK `departamentos_responsavel_id_fkey` |
+| `src/hooks/useUserDepartments.ts` | Adicionar verificacao de admin no `useDepartmentById` |
+| `src/pages/DepartmentDashboard.tsx` | Reescrever com nova estrutura |
 
 ---
 
-## Beneficios
+## Detalhes Tecnicos
 
-1. **Descentralizacao** - Cada departamento gerencia suas despesas
-2. **Controle** - Gerentes tem visao e aprovacao de gastos
-3. **Rastreabilidade** - Historico completo de despesas por departamento
-4. **Integracao** - Fluxo unificado com Central de Pagamentos existente
-5. **Verbas** - Controle de orcamento por departamento
-6. **Auditoria** - Anexos obrigatorios e confirmacao de leitura
+### Hook `useDepartmentDashboard`
+
+```typescript
+interface DepartmentDashboardParams {
+  departmentId: string;
+  dateRange?: DateRangeFilter;
+}
+
+interface VerbaMetrics {
+  totalOrcado: number;
+  totalUtilizado: number;
+  saldoDisponivel: number;
+  percentualUtilizado: number;
+}
+
+interface DespesaMetrics {
+  qtdDespesas: number;
+  despesasAtivas: number; // approved, pending
+  valorPendente: number;
+  valorPago: number;
+  percentualPago: number;
+}
+
+interface FluxoCaixaItem {
+  mes: string;
+  entradas: number; // verbas liberadas
+  saidas: number;   // despesas pagas
+  saldo: number;    // acumulado
+}
+
+return {
+  verbas,
+  verbaMetrics,
+  despesaMetrics,
+  fluxoCaixa,
+  despesasPorCategoria,
+  despesas,
+  isLoading,
+  error,
+}
+```
+
+### Adaptacoes do Card de Despesas
+
+O Dashboard de Eventos mostra "Despesas por Evento" (agrupado por evento).
+O Dashboard de Departamentos mostrara "Despesas por Categoria" (agrupado por categoria), ja que cada departamento nao tem sub-eventos.
+
+### Filtro de Periodo
+
+Implementar o mesmo seletor de periodo usado em Eventos:
+- Este mes
+- Ultimos 30 dias
+- Ultimos 90 dias
+- Este ano
+- Personalizado
+
+### Botoes do Header
+
+| Botao | Rota | Condicao |
+|-------|------|----------|
+| Atualizar | - | Sempre visivel |
+| Aprovacoes | `/dashboard/departamentos/:id/aprovacoes` | Apenas se `isManager && pendingCount > 0` |
+| Nova Despesa | - | Abre dialog |
 
 ---
 
-## Estimativa de Escopo
+## Sequencia de Implementacao
 
-- Banco de dados: 2 tabelas + triggers + RLS
-- Hooks: 4 novos hooks
-- Componentes: ~10 componentes novos
-- Paginas: 4 paginas novas
-- Integracao: Atualizacoes em 2-3 componentes existentes
+1. Criar migracao SQL com a FK
+2. Atualizar `useDepartmentById` com verificacao de admin
+3. Criar `useDepartmentDashboard.ts`
+4. Criar componentes de dashboard (4 arquivos)
+5. Reescrever `DepartmentDashboard.tsx`
+6. Testar fluxo completo
+
+---
+
+## Resultado Esperado
+
+- Admin acessa qualquer departamento
+- Dashboard identico visualmente ao de Eventos
+- Seletor de periodo funcional
+- Grafico de fluxo de caixa com entradas/saidas
+- Tabela de despesas com busca, filtro e exportacao
+- Botoes de acao no header (Atualizar, Aprovacoes, Nova Despesa)
+
