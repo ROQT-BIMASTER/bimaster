@@ -2968,6 +2968,190 @@ export type Database = {
         }
         Relationships: []
       }
+      department_budgets: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          department_id: string
+          id: string
+          name: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          spent_amount: number
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          department_id: string
+          id?: string
+          name: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          spent_amount?: number
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          department_id?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          spent_amount?: number
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_budgets_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_budgets_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
+      }
+      department_expenses: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          attachments: Json
+          budget_id: string | null
+          category: string
+          code: string
+          created_at: string
+          created_by: string | null
+          department_id: string
+          description: string | null
+          document_number: string | null
+          document_type: string | null
+          due_date: string | null
+          expense_date: string | null
+          financial_approved_at: string | null
+          financial_approved_by: string | null
+          id: string
+          paid_at: string | null
+          payment_notes: string | null
+          portador: string | null
+          send_to_financial: boolean
+          status: string
+          supplier_document: string | null
+          supplier_name: string | null
+          updated_at: string
+          valor_previsto: number
+          valor_realizado: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          attachments?: Json
+          budget_id?: string | null
+          category: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          department_id: string
+          description?: string | null
+          document_number?: string | null
+          document_type?: string | null
+          due_date?: string | null
+          expense_date?: string | null
+          financial_approved_at?: string | null
+          financial_approved_by?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_notes?: string | null
+          portador?: string | null
+          send_to_financial?: boolean
+          status?: string
+          supplier_document?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+          valor_previsto?: number
+          valor_realizado?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          attachments?: Json
+          budget_id?: string | null
+          category?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          department_id?: string
+          description?: string | null
+          document_number?: string | null
+          document_type?: string | null
+          due_date?: string | null
+          expense_date?: string | null
+          financial_approved_at?: string | null
+          financial_approved_by?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_notes?: string | null
+          portador?: string | null
+          send_to_financial?: boolean
+          status?: string
+          supplier_document?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+          valor_previsto?: number
+          valor_realizado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_expenses_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "department_budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_expenses_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_expenses_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
+      }
       estoque_distribuidoras: {
         Row: {
           ativo: boolean | null
