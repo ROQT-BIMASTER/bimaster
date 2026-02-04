@@ -16,6 +16,7 @@ import { TradePageHeader } from "@/components/trade/TradePageHeader";
 import { MobileDataList } from "@/components/trade/MobileDataList";
 import { Card, CardContent } from "@/components/ui/card";
 import { TourButton, tradeStoresTourSteps, TRADE_STORES_TOUR_ID } from "@/components/tour";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface Store {
   id: string;
@@ -33,6 +34,7 @@ interface Store {
 
 const TradeStores = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
+  const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const [stores, setStores] = useState<Store[]>([]);
   const [allStores, setAllStores] = useState<Store[]>([]);
@@ -46,23 +48,53 @@ const TradeStores = () => {
   const [editStoreId, setEditStoreId] = useState<string | null>(null);
   const [deleteStoreId, setDeleteStoreId] = useState<string | null>(null);
   const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!permissionsLoading && hasPermission("trade_stores")) {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id || null);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!permissionsLoading && !roleLoading && hasPermission("trade_stores") && currentUserId !== null) {
       fetchStores();
     }
-  }, [permissionsLoading]);
+  }, [permissionsLoading, roleLoading, currentUserId]);
 
   const fetchStores = async () => {
     try {
-      const { data, error } = await supabase
-        .from("stores")
-        .select("*")
-        .order("name");
+      // Para não-admins/supervisores, buscar apenas lojas vinculadas ao usuário
+      if (!isAdminOrSupervisor && currentUserId) {
+        // Buscar IDs de lojas vinculadas na tabela store_sellers
+        const { data: storeSellersData } = await supabase
+          .from("store_sellers")
+          .select("store_id")
+          .eq("vendedor_id", currentUserId);
+        
+        const linkedStoreIds = storeSellersData?.map(ss => ss.store_id) || [];
+        
+        // Buscar lojas onde o usuário é vendedor principal OU está vinculado
+        const { data, error } = await supabase
+          .from("stores")
+          .select("*")
+          .or(`vendedor_id.eq.${currentUserId}${linkedStoreIds.length > 0 ? `,id.in.(${linkedStoreIds.join(',')})` : ''}`)
+          .order("name");
+        
+        if (error) throw error;
+        setAllStores(data || []);
+        setStores(data || []);
+      } else {
+        // Admins e supervisores veem todas as lojas
+        const { data, error } = await supabase
+          .from("stores")
+          .select("*")
+          .order("name");
 
-      if (error) throw error;
-      setAllStores(data || []);
-      setStores(data || []);
+        if (error) throw error;
+        setAllStores(data || []);
+        setStores(data || []);
+      }
     } catch (error) {
       console.error("Erro ao buscar PDVs:", error);
       toast.error("Erro ao carregar PDVs");
@@ -97,7 +129,7 @@ const TradeStores = () => {
     applyFilters();
   }, [selectedStore, aiCriteria, allStores]);
 
-  if (permissionsLoading) {
+  if (permissionsLoading || roleLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center py-12">

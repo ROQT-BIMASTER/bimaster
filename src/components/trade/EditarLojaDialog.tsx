@@ -21,6 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
+import { VendedorMultiSelect } from "./VendedorMultiSelect";
 
 interface EditarLojaDialogProps {
   open: boolean;
@@ -37,8 +38,11 @@ export function EditarLojaDialog({
 }: EditarLojaDialogProps) {
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const [vendedores, setVendedores] = useState<any[]>([]);
   const [supervisores, setSupervisores] = useState<any[]>([]);
+  
+  // Multi-vendedor state
+  const [selectedVendedores, setSelectedVendedores] = useState<string[]>([]);
+  const [principalVendedorId, setPrincipalVendedorId] = useState<string>("");
   
   const [formData, setFormData] = useState({
     code: "",
@@ -57,18 +61,17 @@ export function EditarLojaDialog({
     status: "active",
     monthly_revenue: "",
     notes: "",
-    vendedor_id: "",
     supervisor_id: "",
   });
 
   useEffect(() => {
     if (open && storeId) {
       loadStoreData();
-      fetchUsuarios();
+      fetchSupervisores();
     }
   }, [open, storeId]);
 
-  const fetchUsuarios = async () => {
+  const fetchSupervisores = async () => {
     try {
       const { data: profiles } = await supabase
         .from("profiles")
@@ -86,13 +89,6 @@ export function EditarLojaDialog({
 
       const roleMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
 
-      const vendedoresList = profiles
-        .filter(p => {
-          const role = roleMap.get(p.id);
-          return role === 'vendedor' || role === 'promotor';
-        })
-        .map(p => ({ ...p, role: roleMap.get(p.id) }));
-
       const supervisoresList = profiles
         .filter(p => {
           const role = roleMap.get(p.id);
@@ -100,16 +96,16 @@ export function EditarLojaDialog({
         })
         .map(p => ({ ...p, role: roleMap.get(p.id) }));
 
-      setVendedores(vendedoresList);
       setSupervisores(supervisoresList);
     } catch (error) {
-      console.error("Erro ao carregar usuários:", error);
+      console.error("Erro ao carregar supervisores:", error);
     }
   };
 
   const loadStoreData = async () => {
     setLoadingData(true);
     try {
+      // Buscar dados da loja
       const { data, error } = await supabase
         .from("stores")
         .select("*")
@@ -136,9 +132,29 @@ export function EditarLojaDialog({
         status: data.status || "active",
         monthly_revenue: data.monthly_revenue?.toString() || "",
         notes: data.notes || "",
-        vendedor_id: data.vendedor_id || "",
         supervisor_id: data.supervisor_id || "",
       });
+      
+      // Buscar vendedores vinculados na tabela store_sellers
+      const { data: storeSellers } = await supabase
+        .from("store_sellers")
+        .select("vendedor_id, is_principal")
+        .eq("store_id", storeId);
+      
+      if (storeSellers && storeSellers.length > 0) {
+        const vendedorIds = storeSellers.map(ss => ss.vendedor_id);
+        setSelectedVendedores(vendedorIds);
+        
+        const principal = storeSellers.find(ss => ss.is_principal);
+        setPrincipalVendedorId(principal?.vendedor_id || data.vendedor_id || vendedorIds[0]);
+      } else if (data.vendedor_id) {
+        // Fallback para o vendedor_id da tabela stores
+        setSelectedVendedores([data.vendedor_id]);
+        setPrincipalVendedorId(data.vendedor_id);
+      } else {
+        setSelectedVendedores([]);
+        setPrincipalVendedorId("");
+      }
     } catch (error) {
       toast.error(getSafeErrorMessage(error));
     } finally {
@@ -154,13 +170,15 @@ export function EditarLojaDialog({
       return;
     }
 
-    if (!formData.vendedor_id) {
-      toast.error("Vendedor responsável é obrigatório");
+    if (!principalVendedorId || selectedVendedores.length === 0) {
+      toast.error("Selecione pelo menos um vendedor responsável");
       return;
     }
 
     setLoading(true);
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      
       const updateData: any = {
         code: formData.code.trim(),
         name: formData.name.trim(),
@@ -178,7 +196,7 @@ export function EditarLojaDialog({
         status: formData.status,
         monthly_revenue: formData.monthly_revenue ? parseFloat(formData.monthly_revenue) : null,
         notes: formData.notes.trim() || null,
-        vendedor_id: formData.vendedor_id,
+        vendedor_id: principalVendedorId,
         supervisor_id: formData.supervisor_id || null,
       };
 
@@ -188,6 +206,31 @@ export function EditarLojaDialog({
         .eq("id", storeId);
 
       if (error) throw error;
+      
+      // Sincronizar store_sellers
+      // 1. Remover vínculos antigos
+      await supabase
+        .from("store_sellers")
+        .delete()
+        .eq("store_id", storeId);
+      
+      // 2. Inserir novos vínculos
+      if (selectedVendedores.length > 0) {
+        const storeSellersData = selectedVendedores.map(vendedorId => ({
+          store_id: storeId,
+          vendedor_id: vendedorId,
+          is_principal: vendedorId === principalVendedorId,
+          created_by: userData.user?.id,
+        }));
+        
+        const { error: sellersError } = await supabase
+          .from("store_sellers")
+          .insert(storeSellersData);
+        
+        if (sellersError) {
+          console.error("Erro ao sincronizar vendedores:", sellersError);
+        }
+      }
 
       toast.success("Loja atualizada com sucesso!");
       onOpenChange(false);
@@ -198,6 +241,7 @@ export function EditarLojaDialog({
       setLoading(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -251,26 +295,17 @@ export function EditarLojaDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="vendedor_id">Vendedor Responsável *</Label>
-                <Select 
-                  value={formData.vendedor_id} 
-                  onValueChange={(value) => setFormData({ ...formData, vendedor_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o vendedor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vendedores.map((vendedor) => (
-                      <SelectItem key={vendedor.id} value={vendedor.id}>
-                        {vendedor.nome} - {vendedor.role === 'vendedor' ? 'Vendedor' : 'Promotor'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="col-span-2">
+              <VendedorMultiSelect
+                selectedVendedores={selectedVendedores}
+                onChange={setSelectedVendedores}
+                principalVendedorId={principalVendedorId}
+                onPrincipalChange={setPrincipalVendedorId}
+                required
+              />
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="supervisor_id">Supervisor</Label>
                 <Select 
