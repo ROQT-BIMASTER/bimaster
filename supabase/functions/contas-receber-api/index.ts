@@ -353,22 +353,26 @@ Deno.serve(async (req) => {
 
     console.log(`✅ [SYNC] Done: ${processed} processed, ${upsertErrors} errors, ${duration}ms (${rate}/sec)`);
 
-    // Log async para sync_control (fire and forget)
-    (async () => {
-      try {
-        await supabase.from('sync_control').insert({
-          entidade: 'contas_receber',
-          empresa_id: rawRecords[0]?.['ID Empresa'] || rawRecords[0]?.empresa_id || null,
-          ultima_sync: new Date().toISOString(),
-          total_registros: rawRecords.length,
-          registros_inseridos: processed,
-          duracao_ms: duration,
-          status: upsertErrors === 0 ? 'success' : 'partial'
-        });
-      } catch {
-        // Ignore logging errors
-      }
-    })();
+    // ✅ OTIMIZAÇÃO: Só registrar em sync_control se houve alterações reais
+    if (processed > 0) {
+      (async () => {
+        try {
+          await supabase.from('sync_control').insert({
+            entidade: 'contas_receber',
+            empresa_id: rawRecords[0]?.['ID Empresa'] || rawRecords[0]?.empresa_id || null,
+            ultima_sync: new Date().toISOString(),
+            total_registros: rawRecords.length,
+            registros_inseridos: processed,
+            duracao_ms: duration,
+            status: upsertErrors === 0 ? 'success' : 'partial'
+          });
+        } catch {
+          // Ignore logging errors
+        }
+      })();
+    } else {
+      console.log(`⏭️ [SYNC] Nenhuma alteração - sync_control ignorado (${rawRecords.length} registros processados sem mudanças)`);
+    }
 
     return new Response(JSON.stringify({
       success: true,
