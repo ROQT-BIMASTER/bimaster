@@ -1,148 +1,234 @@
 
-# Plano: Obrigar Cadastro de Fornecedor no Sistema
+# Plano: Obrigar Visualizacao e Assinatura de Anexos na Aprovacao
 
 ## Contexto
 
-Na tela "Enviar para Pagamento" do módulo de Eventos (dialog `EnviarFinanceiroDialog.tsx`), o campo "Nome do Fornecedor" é atualmente um campo de texto livre. O usuário solicita que seja obrigatório **selecionar um fornecedor cadastrado no sistema**, seguindo o padrão de cadastro rápido já existente.
+Na Central de Pagamentos, ao revisar solicitacoes de pagamento vindas de despesas de eventos, o financeiro precisa:
+1. Visualizar todos os documentos anexados a despesa
+2. Obrigatoriamente abrir cada arquivo para revisao
+3. Confirmar/assinar que esta ciente do conteudo de cada documento
+4. So entao poder aprovar ou rejeitar o pagamento
+
+Atualmente, a tabela `financial_payment_queue` possui apenas uma coluna `attachment_url` (texto unico), enquanto as despesas de eventos (`corporate_event_expenses`) possuem uma coluna `attachments` (JSONB com array de arquivos).
 
 ---
 
-## Solução Proposta
-
-Substituir o campo de texto por um **seletor de fornecedores** com as seguintes características:
-
-1. **Dropdown com busca** - Lista de fornecedores da tabela `fabrica_fornecedores`
-2. **Botão "+" para cadastro rápido** - Seguindo o padrão existente (`FornecedorQuickAdd`)
-3. **Auto-preenchimento do CNPJ** - Quando selecionar um fornecedor, preencher automaticamente o campo CNPJ
-
----
-
-## Arquitetura
+## Arquitetura da Solucao
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    ENVIAR PARA PAGAMENTO                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │ Fornecedor *                                         [+]  │  │
-│  │ ┌─────────────────────────────────────────────────────┐   │  │
-│  │ │ 🔍 Buscar fornecedor...                          ▼  │   │  │
-│  │ └─────────────────────────────────────────────────────┘   │  │
-│  │                                                           │  │
-│  │  Opções (filtradas pela busca):                           │  │
-│  │  ├─ Buffet Central Ltda - 12.345.678/0001-90             │  │
-│  │  ├─ Gráfica ABC - 98.765.432/0001-00                     │  │
-│  │  └─ Hotel Premium - 11.222.333/0001-44                   │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │ CNPJ/CPF                                                   │  │
-│  │ [ 12.345.678/0001-90 ] (preenchido automaticamente)       │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
++-------------------------------------------+
+|       DIALOG DE REVISAO DE PAGAMENTO       |
++-------------------------------------------+
+|                                           |
+|  Dados do Fornecedor / Valor / Vencimento |
+|                                           |
++-------------------------------------------+
+|  DOCUMENTOS ANEXADOS (obrigatorio)        |
++-------------------------------------------+
+|                                           |
+|  +---------------------------------------+|
+|  | Arquivo 1.pdf              [Abrir]    ||
+|  | [ ] Li e estou ciente                 ||
+|  +---------------------------------------+|
+|                                           |
+|  +---------------------------------------+|
+|  | Nota_Fiscal.pdf            [Abrir]    ||
+|  | [X] Li e estou ciente  (habilitado    ||
+|  |     apos clicar em Abrir)             ||
+|  +---------------------------------------+|
+|                                           |
+|  +---------------------------------------+|
+|  | Boleto.pdf                 [Abrir]    ||
+|  | [ ] Li e estou ciente (desabilitado)  ||
+|  +---------------------------------------+|
+|                                           |
++-------------------------------------------+
+|                                           |
+|  Aviso: Voce deve abrir e confirmar       |
+|  ciencia de todos os 3 documentos         |
+|  antes de aprovar.                        |
+|                                           |
++-------------------------------------------+
+|           [Rejeitar]  [Aceitar] (disabled)|
++-------------------------------------------+
 ```
 
 ---
 
-## Modificações
+## Modificacoes Necessarias
 
-### Arquivo: `src/components/events/EnviarFinanceiroDialog.tsx`
+### 1. Banco de Dados
 
-**Mudanças:**
+Adicionar coluna `attachments` (JSONB) na tabela `financial_payment_queue` para armazenar array de anexos.
 
-| Campo Atual | Novo Campo |
-|-------------|------------|
-| `Input` texto livre para Nome do Fornecedor | `Combobox` com busca + lista de fornecedores |
-| CNPJ manual | CNPJ auto-preenchido ao selecionar |
+```sql
+ALTER TABLE financial_payment_queue 
+ADD COLUMN IF NOT EXISTS attachments jsonb DEFAULT '[]'::jsonb;
+```
 
-**Novo estado:**
-- `fornecedores: Array` - Lista de fornecedores ativos do banco
-- `fornecedorId: string` - ID do fornecedor selecionado
-- `searchFornecedor: string` - Termo de busca
+### 2. Hook `useFinancialPaymentQueue.ts`
 
-**Novo fluxo:**
-1. Ao abrir o dialog, buscar fornecedores ativos de `fabrica_fornecedores`
-2. Exibir combobox com busca (filtro por nome/CNPJ)
-3. Ao selecionar, preencher `supplier_name` e `supplier_document`
-4. Botão "+" abre popover para cadastro rápido (reutilizar `FornecedorQuickAdd`)
-
----
-
-## Implementação Detalhada
-
-### 1. Adicionar busca de fornecedores
+Atualizar interface `PaymentQueueItem` para incluir `attachments`:
 
 ```typescript
-// Novo estado para fornecedores
-const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-const [fornecedorId, setFornecedorId] = useState<string>("");
-const [openCombobox, setOpenCombobox] = useState(false);
+interface Attachment {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploaded_at: string;
+}
 
-// Buscar ao abrir o dialog
-useEffect(() => {
-  if (open) {
-    supabase
-      .from("fabrica_fornecedores")
-      .select("id, razao_social, cnpj")
-      .eq("ativo", true)
-      .order("razao_social")
-      .then(({ data }) => setFornecedores(data || []));
+export interface PaymentQueueItem {
+  // ... existing fields ...
+  attachments: Attachment[];
+}
+```
+
+### 3. Dialog `EnviarFinanceiroDialog.tsx`
+
+Ao enviar despesa para fila de pagamentos, copiar os anexos da despesa:
+
+```typescript
+// Buscar anexos da despesa antes de criar item na fila
+const { data: expense } = await supabase
+  .from("corporate_event_expenses")
+  .select("attachments")
+  .eq("id", expenseId)
+  .single();
+
+// Passar anexos na criacao do item da fila
+createPayment({
+  // ... other fields ...
+  attachments: expense?.attachments || [],
+});
+```
+
+### 4. Novo Componente `AttachmentAcknowledgement.tsx`
+
+Componente que:
+- Lista todos os anexos
+- Rastreia quais foram abertos
+- Exibe checkbox "Li e estou ciente" para cada um
+- Checkbox so habilita apos abrir o arquivo
+- Retorna status de todos confirmados
+
+```typescript
+interface AttachmentAcknowledgementProps {
+  attachments: Attachment[];
+  onAllAcknowledged: (allConfirmed: boolean) => void;
+}
+```
+
+Logica interna:
+
+```typescript
+const [openedFiles, setOpenedFiles] = useState<Set<string>>(new Set());
+const [acknowledgedFiles, setAcknowledgedFiles] = useState<Set<string>>(new Set());
+
+const handleOpenFile = (url: string) => {
+  window.open(url, "_blank");
+  setOpenedFiles(prev => new Set(prev).add(url));
+};
+
+const handleAcknowledge = (url: string, checked: boolean) => {
+  if (!openedFiles.has(url)) return; // Nao pode confirmar sem abrir
+  
+  const updated = new Set(acknowledgedFiles);
+  if (checked) {
+    updated.add(url);
+  } else {
+    updated.delete(url);
   }
-}, [open]);
+  setAcknowledgedFiles(updated);
+  
+  // Notificar se todos foram confirmados
+  onAllAcknowledged(updated.size === attachments.length);
+};
 ```
 
-### 2. Substituir Input por Combobox
+### 5. Dialog `PaymentReviewDialog.tsx`
 
-Usar componentes `Popover` + `Command` (padrão shadcn/ui) para criar um seletor com busca:
-
-- Exibir `razao_social` e `cnpj` em cada opção
-- Filtrar por ambos os campos
-- Ao selecionar, atualizar `formData.supplier_name` e `formData.supplier_document`
-
-### 3. Integrar FornecedorQuickAdd
-
-Adicionar botão "+" ao lado do seletor:
+Integrar componente de anexos e bloquear aprovacao:
 
 ```typescript
-<div className="flex gap-2">
-  <Combobox ... />
-  <FornecedorQuickAdd 
-    onFornecedorCriado={(f) => {
-      setFornecedores(prev => [...prev, { id: f.id, razao_social: f.nome, cnpj: null }]);
-      setFornecedorId(f.id);
-      setFormData({...formData, supplier_name: f.nome, supplier_document: ""});
-    }} 
-  />
-</div>
+const [allAttachmentsAcknowledged, setAllAttachmentsAcknowledged] = useState(false);
+const hasAttachments = item.attachments && item.attachments.length > 0;
+
+// No JSX, adicionar secao de anexos
+{hasAttachments && (
+  <Card>
+    <CardContent className="p-4">
+      <Label className="text-muted-foreground text-xs mb-3 block">
+        Documentos Anexados ({item.attachments.length})
+      </Label>
+      <AttachmentAcknowledgement
+        attachments={item.attachments}
+        onAllAcknowledged={setAllAttachmentsAcknowledged}
+      />
+      {!allAttachmentsAcknowledged && (
+        <Alert variant="destructive" className="mt-3">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Voce deve abrir e confirmar ciencia de todos os 
+            documentos antes de aprovar.
+          </AlertDescription>
+        </Alert>
+      )}
+    </CardContent>
+  </Card>
+)}
+
+// Botao de aceitar desabilitado se houver anexos nao confirmados
+<Button
+  onClick={() => handleAction('accept')}
+  disabled={isProcessing || (hasAttachments && !allAttachmentsAcknowledged)}
+>
+  Aceitar e Criar Conta
+</Button>
 ```
+
+---
+
+## Fluxo de Usuario
+
+1. Financeiro abre dialog de revisao de pagamento
+2. Ve os dados do fornecedor, valor, vencimento
+3. Ve lista de documentos anexados com botao "Abrir" em cada
+4. Para cada documento:
+   - Clica em "Abrir" (abre em nova aba)
+   - Checkbox "Li e estou ciente" fica habilitado
+   - Marca o checkbox
+5. Apos confirmar todos os documentos:
+   - Botao "Aceitar e Criar Conta" fica habilitado
+6. Pode aprovar ou rejeitar
 
 ---
 
 ## Arquivos a Modificar
 
-| Arquivo | Alteração |
+| Arquivo | Alteracao |
 |---------|-----------|
-| `src/components/events/EnviarFinanceiroDialog.tsx` | Substituir Input por Combobox + integrar FornecedorQuickAdd |
+| Migracao SQL | Adicionar coluna `attachments` em `financial_payment_queue` |
+| `src/hooks/useFinancialPaymentQueue.ts` | Adicionar `attachments` na interface |
+| `src/hooks/useEventExpenses.ts` | Copiar anexos ao enviar para financeiro |
+| `src/components/financeiro/payments/AttachmentAcknowledgement.tsx` | **NOVO** - Componente de visualizacao e confirmacao |
+| `src/components/financeiro/payments/PaymentReviewDialog.tsx` | Integrar anexos e logica de bloqueio |
 
 ---
 
-## Benefícios
+## Beneficios
 
-1. **Padronização** - Fornecedores ficam cadastrados no sistema para uso em outros módulos
-2. **Integridade de dados** - Evita erros de digitação e duplicidade
-3. **Rastreabilidade** - Pagamentos vinculados a fornecedores identificados
-4. **Agilidade** - CNPJ preenchido automaticamente
-5. **Flexibilidade** - Cadastro rápido caso o fornecedor não exista
+1. **Compliance** - Garantia de que documentos foram revisados antes da aprovacao
+2. **Rastreabilidade** - Confirmacao explicita de ciencia
+3. **Seguranca** - Evita aprovacoes sem analise documental
+4. **Auditoria** - Registro de que o aprovador visualizou os anexos
 
 ---
 
-## Validação
+## Consideracoes
 
-O botão "Enviar ao Financeiro" só será habilitado quando:
-- ✅ Fornecedor selecionado (obrigatório)
-- ✅ Tipo de documento preenchido
-- ✅ Número do documento preenchido
-- ✅ Data de vencimento preenchida
-- ✅ Portador selecionado
+- Se nao houver anexos, o fluxo segue normal (sem bloqueio)
+- O checkbox so pode ser marcado apos abrir o arquivo
+- Todos os anexos devem ser confirmados para liberar aprovacao
+- A rejeicao nao exige confirmacao dos anexos (pode rejeitar sem ver)
