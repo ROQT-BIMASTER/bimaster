@@ -1,184 +1,146 @@
 
-# Plano: Log de Auditoria para Alterações de Permissões
 
-## Objetivo
-Adicionar logging de auditoria sempre que permissões de usuário forem alteradas, facilitando o diagnóstico de problemas como o que ocorreu com o Ricardo (perda de permissões customizadas).
+# Otimização do sync_control - Eliminar Gastos Desnecessários
 
-## Arquitetura Atual
+## Diagnóstico Definitivo
 
-### Tabela Existente: `audit_logs`
-A tabela `audit_logs` já existe e possui estrutura adequada:
-- `user_id`: quem fez a alteração
-- `action`: tipo de ação (ex: "permission_update")
-- `entity_type`: tipo de entidade (ex: "user_permission")
-- `entity_id`: ID do usuário afetado
-- `old_data` / `new_data`: dados em JSONB para before/after
-- `metadata`: informações adicionais
+### Problema Identificado
+O N8N está funcionando corretamente, enviando ~3000 registros por chamada. O problema está em **dois lugares**:
 
-### Pontos de Alteração de Permissões
-1. **GerenciamentoPermissoesTelas.tsx** - Salva permissões individuais de telas
-2. **GerenciamentoPermissoesModulos.tsx** - Alterna permissões de módulos
-3. **TradeAdminUsers.tsx** - Concede/revoga acesso ao Trade Admin
-4. **PermissoesDeAcesso.tsx** - Sincroniza permissões por role
-5. **GerenciamentoUsuarios.tsx** - Altera role do usuário (trigger)
-6. **Função SQL `sincronizar_permissoes_usuario`** - Sincronização automática
+| Problema | Evidência | Impacto |
+|----------|-----------|---------|
+| **Frequência excessiva** | 2.830 chamadas/hora = 47 chamadas/minuto | Processamento constante |
+| **Dados repetidos** | 280.900 registros/hora = mesmos ~3000 registros enviados 100x | 99% desperdício |
+| **Logs excessivos** | Cada chamada insere em sync_control | 519k linhas, 593MB |
+
+### Cálculo do Desperdício
+
+```text
+Por hora:
+- Chamadas: 2.830
+- Registros enviados: 280.900
+- Registros ÚNICOS por empresa: ~3.000
+- Fator de repetição: 280.900 / 3.000 = ~93x (!)
+
+Por dia:
+- Chamadas: 67.920
+- Registros processados: 6.7 milhões
+- Registros que DEVERIAM ser: ~18.000 (6 empresas x 3000)
+- Desperdício: 99.7%
+```
 
 ---
 
-## Implementação
+## Causa Raiz
 
-### Fase 1: Criar Função de Log de Permissões
+O N8N está configurado com **Schedule Trigger a cada ~30 segundos** ou está em **loop contínuo** sem verificar se os dados já foram sincronizados.
 
-Adicionar em `src/lib/auditLog.ts`:
+A Edge Function faz o que deveria: processa e registra. Mas está sendo chamada **excessivamente**.
 
-```text
-Novas funções:
-- logPermissionChange(): Log genérico de alteração de permissão
-- logScreenPermissionsUpdate(): Log de alteração de telas
-- logModulePermissionToggle(): Log de alteração de módulo
-- logRoleChange(): Log de alteração de role de usuário
-- logPermissionSync(): Log de sincronização forçada
-```
+---
 
-**Interface proposta:**
+## Solução em 3 Frentes
+
+### Frente 1: Agregar Logs (Impacto Imediato)
+
+**Remover insert de sync_control do endpoint `/sync`** (endpoint legado) e usar apenas `/sync-complete` para consolidar:
+
 ```typescript
-interface PermissionAuditEntry {
-  targetUserId: string;
-  targetUserName?: string;
-  action: 'grant' | 'revoke' | 'sync' | 'role_change';
-  permissionType: 'screen' | 'module' | 'role';
-  permissionIds?: string[];
-  permissionNames?: string[];
-  oldRole?: string;
-  newRole?: string;
-  source: 'manual' | 'trigger' | 'sync';
+// ANTES: Cada chamada insere no sync_control
+await supabase.from('sync_control').insert({...}); // ❌
+
+// DEPOIS: Apenas /sync-complete insere (1x por sync_id)
+if (path.endsWith('/sync-complete')) {
+  // Agregar chunks e inserir UMA vez
 }
 ```
 
-### Fase 2: Integrar nos Componentes
+### Frente 2: Implementar "Skip if No Changes" na Edge Function
 
-**2.1 GerenciamentoPermissoesTelas.tsx**
-- Na função `handleSave()`, registrar:
-  - Quais telas foram adicionadas
-  - Quais telas foram removidas
-  - Usuário afetado e admin responsável
+Adicionar lógica para retornar IMEDIATAMENTE se não há alterações reais:
 
-**2.2 GerenciamentoPermissoesModulos.tsx**
-- Na função `toggleUserPermission()`, registrar:
-  - Módulo concedido/revogado
-  - Usuário afetado
+```typescript
+// No início do processamento
+const result = await processRecordsWithRetry(...);
 
-- Na função `toggleRolePermission()`, registrar:
-  - Alteração de permissão padrão do role
+// Se 100% foi skipped, NÃO registrar no sync_control
+if (result.inserted === 0 && result.updated === 0) {
+  return new Response(JSON.stringify({
+    success: true,
+    skipped: true,
+    message: 'Nenhuma alteração detectada - log ignorado'
+  }));
+  // NÃO inserir em sync_control!
+}
+```
 
-**2.3 TradeAdminUsers.tsx**
-- Na mutation `toggleAdminMutation`, registrar:
-  - Concessão/revogação de acesso Trade Admin
-
-**2.4 PermissoesDeAcesso.tsx**
-- Na função `handleSync()`, registrar:
-  - Sincronização em massa de permissões
-  - Quantidade de usuários afetados
-
-**2.5 GerenciamentoUsuarios.tsx**
-- Na função `handleSaveEdit()`, quando role mudar:
-  - Registrar role antigo e novo
-
-### Fase 3: Adicionar Trigger SQL (Opcional)
-
-Criar trigger no banco para capturar alterações via SQL diretamente:
+### Frente 3: Limpeza e Manutenção Agressiva
 
 ```sql
-CREATE OR REPLACE FUNCTION log_permission_changes()
-RETURNS trigger AS $$
-BEGIN
-  -- Inserir log na tabela audit_logs
-  INSERT INTO audit_logs (
-    user_id, action, entity_type, entity_id, 
-    old_data, new_data, metadata
-  ) VALUES (
-    auth.uid(),
-    TG_OP,
-    TG_TABLE_NAME,
-    COALESCE(NEW.usuario_id, OLD.usuario_id),
-    CASE WHEN TG_OP = 'DELETE' THEN row_to_json(OLD) ELSE NULL END,
-    CASE WHEN TG_OP IN ('INSERT', 'UPDATE') THEN row_to_json(NEW) ELSE NULL END,
-    jsonb_build_object('trigger', 'permission_audit')
-  );
-  RETURN COALESCE(NEW, OLD);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- 1. Limpar sync_control (manter 24h apenas)
+DELETE FROM sync_control WHERE created_at < NOW() - INTERVAL '24 hours';
 
--- Aplicar nas tabelas de permissões
-CREATE TRIGGER audit_usuario_permissoes_telas
-  AFTER INSERT OR UPDATE OR DELETE ON usuario_permissoes_telas
-  FOR EACH ROW EXECUTE FUNCTION log_permission_changes();
+-- 2. Alterar cron de limpeza para 4x/dia (a cada 6h)
+SELECT cron.alter_job(
+  (SELECT jobid FROM cron.job WHERE jobname = 'cleanup-sync-control-daily'),
+  schedule := '0 */6 * * *'
+);
 
-CREATE TRIGGER audit_usuario_permissoes_modulos
-  AFTER INSERT OR UPDATE OR DELETE ON usuario_permissoes_modulos
-  FOR EACH ROW EXECUTE FUNCTION log_permission_changes();
+-- 3. Limpar tabelas relacionadas
+TRUNCATE sync_chunks_tracking;
 ```
 
 ---
 
-## Resumo de Arquivos a Modificar
+## Alterações Técnicas
+
+### Arquivo: `supabase/functions/contas-pagar-api/index.ts`
+
+**Mudança 1:** No endpoint `/sync` (legado) - linhas ~928-943:
+- Adicionar condição para só inserir em sync_control se houve alterações
+
+**Mudança 2:** No endpoint `/sync-incremental` - linhas ~743-754:
+- Mesmo tratamento: só logar se houve inserção/atualização
+
+**Mudança 3:** No endpoint `/bulk-sync` - já usa sync_chunks_tracking:
+- Manter como está (chunks separados são OK pois consolida em /sync-complete)
+
+### Arquivo: `supabase/functions/contas-receber-api/index.ts`
+- Aplicar mesmas alterações para consistência
+
+### Migração SQL:
+- Reduzir retenção de sync_control de 7 dias para 1 dia
+- Aumentar frequência de limpeza para 4x/dia
+- Limpar dados antigos imediatamente
+
+---
+
+## Impacto Esperado
+
+| Métrica | Antes | Depois | Redução |
+|---------|-------|--------|---------|
+| Inserções sync_control/hora | 2.830 | ~6 (1 por empresa) | 99.8% |
+| Tamanho sync_control | 593 MB | ~5 MB | 99% |
+| Linhas sync_control | 519.000 | ~1.000 | 99.8% |
+| Custo estimado | Alto | Mínimo | 95%+ |
+
+---
+
+## Recomendação Adicional (N8N)
+
+Embora o problema não seja do N8N em si, sugiro verificar:
+
+1. **Schedule Trigger**: Confirmar que está configurado para intervalos maiores (a cada 1-6 horas)
+2. **Query SQL do ERP**: Filtrar apenas `WHERE data_modificacao > :ultima_sync`
+3. **Workflow duplicado**: Verificar se não há múltiplas cópias do workflow rodando
+
+---
+
+## Resumo de Arquivos
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/lib/auditLog.ts` | Adicionar funções de log de permissões |
-| `src/components/configuracoes/GerenciamentoPermissoesTelas.tsx` | Integrar log em `handleSave()` |
-| `src/components/configuracoes/GerenciamentoPermissoesModulos.tsx` | Integrar log em `toggleUserPermission()` e `toggleRolePermission()` |
-| `src/components/configuracoes/PermissoesDeAcesso.tsx` | Integrar log em `handleSync()` |
-| `src/components/configuracoes/GerenciamentoUsuarios.tsx` | Integrar log em `handleSaveEdit()` quando role mudar |
-| `src/pages/TradeAdminUsers.tsx` | Integrar log em `toggleAdminMutation` |
-| **Banco de dados (migração)** | Criar triggers de auditoria nas tabelas de permissões |
+| `supabase/functions/contas-pagar-api/index.ts` | Skip sync_control se 0 alterações |
+| `supabase/functions/contas-receber-api/index.ts` | Mesma lógica |
+| **Migração SQL** | Retenção 1 dia + limpeza 4x/dia + truncate |
 
----
-
-## Benefícios
-
-1. **Diagnóstico Fácil**: Quando permissões "desaparecem", basta consultar `audit_logs` para ver quem/quando/como foram alteradas
-2. **Rastreabilidade**: Saber quem alterou permissões de quem
-3. **Prevenção**: Identificar padrões problemáticos (ex: muitas sincronizações automáticas)
-4. **Conformidade**: Histórico completo de alterações de acesso
-
----
-
-## Seção Técnica
-
-### Consulta de Exemplo para Diagnóstico
-```sql
-SELECT 
-  al.created_at,
-  p.nome as admin_responsavel,
-  al.action,
-  al.entity_type,
-  al.old_data,
-  al.new_data,
-  al.metadata
-FROM audit_logs al
-LEFT JOIN profiles p ON p.id = al.user_id
-WHERE al.entity_id = 'UUID_DO_USUARIO_AFETADO'
-  AND al.entity_type IN ('user_permission', 'screen_permission', 'module_permission', 'role_change')
-ORDER BY al.created_at DESC;
-```
-
-### Estrutura do Log de Permissões
-```json
-{
-  "action": "permission_update",
-  "entity_type": "screen_permission", 
-  "old_data": {
-    "screens": ["dashboard", "instalar_app"]
-  },
-  "new_data": {
-    "screens": ["dashboard", "instalar_app", "comercial_dashboard", "precos_dashboard"]
-  },
-  "metadata": {
-    "source": "manual",
-    "screens_added": ["comercial_dashboard", "precos_dashboard"],
-    "screens_removed": [],
-    "target_user_name": "Ricardo Flausino"
-  }
-}
-```
