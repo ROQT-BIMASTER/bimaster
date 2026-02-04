@@ -81,6 +81,9 @@ const TradeReportCampaigns = lazy(() => import("./pages/trade/reports/TradeRepor
 const TradeReportClients = lazy(() => import("./pages/trade/reports/TradeReportClients"));
 const TradeReportSellers = lazy(() => import("./pages/trade/reports/TradeReportSellers"));
 const TradeExecutiveDashboard = lazy(() => import("./pages/TradeExecutiveDashboard"));
+const CorporateEvents = lazy(() => import("./pages/CorporateEvents"));
+const CorporateEventDetail = lazy(() => import("./pages/CorporateEventDetail"));
+const CorporateEventsDashboard = lazy(() => import("./pages/CorporateEventsDashboard"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
 const InstalarApp = lazy(() => import("./pages/InstalarApp"));
 const WhatsAppMonitoring = lazy(() => import("./pages/WhatsAppMonitoring"));
@@ -293,6 +296,11 @@ function AppContent() {
             <Route path="/dashboard/trade/performance" element={<ProtectedRoute><TradePerformance /></ProtectedRoute>} />
             <Route path="/dashboard/trade/team-performance" element={<ProtectedRoute><TradeTeamPerformance /></ProtectedRoute>} />
             <Route path="/dashboard/trade/rewards" element={<ProtectedRoute><TradeRewards /></ProtectedRoute>} />
+
+            {/* Módulo de Eventos Corporativos */}
+            <Route path="/dashboard/eventos" element={<ProtectedRoute><CorporateEvents /></ProtectedRoute>} />
+            <Route path="/dashboard/eventos/:id" element={<ProtectedRoute><CorporateEventDetail /></ProtectedRoute>} />
+            <Route path="/dashboard/eventos/dashboard" element={<ProtectedRoute><CorporateEventsDashboard /></ProtectedRoute>} />
 
             {/* Módulo de Fábrica */}
             <Route path="/dashboard/fabrica" element={<ProtectedRoute><FabricaModule /></ProtectedRoute>} />

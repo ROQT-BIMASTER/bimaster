@@ -2475,6 +2475,380 @@ export type Database = {
           },
         ]
       }
+      corporate_event_access: {
+        Row: {
+          can_approve_events: boolean | null
+          can_create_events: boolean | null
+          can_manage_expenses: boolean | null
+          can_view_confidential: boolean | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          can_approve_events?: boolean | null
+          can_create_events?: boolean | null
+          can_manage_expenses?: boolean | null
+          can_view_confidential?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          can_approve_events?: boolean | null
+          can_create_events?: boolean | null
+          can_manage_expenses?: boolean | null
+          can_view_confidential?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corporate_event_access_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_access_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_access_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "corporate_event_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      corporate_event_expenses: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          category: string
+          comprovante_url: string | null
+          contas_pagar_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          document_number: string | null
+          document_type: string | null
+          due_date: string | null
+          event_id: string
+          evidencias: Json | null
+          expense_date: string | null
+          financial_approved_at: string | null
+          financial_approved_by: string | null
+          id: string
+          paid_at: string | null
+          payment_notes: string | null
+          portador: string | null
+          send_to_financial: boolean | null
+          status: string | null
+          supplier_document: string | null
+          supplier_name: string | null
+          updated_at: string | null
+          valor_previsto: number | null
+          valor_realizado: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string
+          comprovante_url?: string | null
+          contas_pagar_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_number?: string | null
+          document_type?: string | null
+          due_date?: string | null
+          event_id: string
+          evidencias?: Json | null
+          expense_date?: string | null
+          financial_approved_at?: string | null
+          financial_approved_by?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_notes?: string | null
+          portador?: string | null
+          send_to_financial?: boolean | null
+          status?: string | null
+          supplier_document?: string | null
+          supplier_name?: string | null
+          updated_at?: string | null
+          valor_previsto?: number | null
+          valor_realizado?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string
+          comprovante_url?: string | null
+          contas_pagar_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_number?: string | null
+          document_type?: string | null
+          due_date?: string | null
+          event_id?: string
+          evidencias?: Json | null
+          expense_date?: string | null
+          financial_approved_at?: string | null
+          financial_approved_by?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_notes?: string | null
+          portador?: string | null
+          send_to_financial?: boolean | null
+          status?: string | null
+          supplier_document?: string | null
+          supplier_name?: string | null
+          updated_at?: string | null
+          valor_previsto?: number | null
+          valor_realizado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corporate_event_expenses_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "corporate_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_financial_approved_by_fkey"
+            columns: ["financial_approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_financial_approved_by_fkey"
+            columns: ["financial_approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_financial_approved_by_fkey"
+            columns: ["financial_approved_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      corporate_events: {
+        Row: {
+          actual_cost: number | null
+          approved_at: string | null
+          approved_by: string | null
+          budget_amount: number | null
+          budget_id: string | null
+          code: string
+          confidential: boolean | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          event_date: string | null
+          event_type: string | null
+          id: string
+          location: string | null
+          name: string
+          responsible_user_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_cost?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          budget_amount?: number | null
+          budget_id?: string | null
+          code: string
+          confidential?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          event_date?: string | null
+          event_type?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          responsible_user_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_cost?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          budget_amount?: number | null
+          budget_id?: string | null
+          code?: string
+          confidential?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          event_date?: string | null
+          event_type?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          responsible_user_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corporate_events_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_events_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_events_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "corporate_events_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "trade_budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "corporate_events_responsible_user_id_fkey"
+            columns: ["responsible_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_events_responsible_user_id_fkey"
+            columns: ["responsible_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corporate_events_responsible_user_id_fkey"
+            columns: ["responsible_user_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       departamento_permissoes_modulos: {
         Row: {
           created_at: string | null
@@ -16587,6 +16961,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_view_event: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_view_profile: {
         Args: { target_profile_id: string; viewer_id: string }
         Returns: boolean
@@ -16924,6 +17302,10 @@ export type Database = {
         Returns: {
           tela_codigo: string
         }[]
+      }
+      has_event_access: {
+        Args: { _permission?: string; _user_id: string }
+        Returns: boolean
       }
       has_finance_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
