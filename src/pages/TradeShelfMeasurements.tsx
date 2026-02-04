@@ -291,6 +291,13 @@ export default function TradeShelfMeasurements() {
           <div className="flex gap-2">
             <Button 
               variant="outline"
+              onClick={() => navigate("/dashboard/trade/brand-share")}
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Dashboard de Marcas
+            </Button>
+            <Button 
+              variant="outline"
               onClick={() => navigate("/dashboard/trade/measurement-guide")}
             >
               <HelpCircle className="mr-2 h-4 w-4" />
