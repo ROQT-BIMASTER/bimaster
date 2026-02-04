@@ -11,10 +11,13 @@ interface TradeExecutiveCampaignsProps {
 
 const statusLabels: Record<string, string> = {
   active: "Ativas",
+  approved: "Aprovadas",
   in_progress: "Em Andamento",
   completed: "Concluídas",
+  pago: "Pagas",
   cancelled: "Canceladas",
   draft: "Rascunho",
+  pending: "Pendentes",
 };
 
 export function TradeExecutiveCampaigns({ data, isLoading }: TradeExecutiveCampaignsProps) {

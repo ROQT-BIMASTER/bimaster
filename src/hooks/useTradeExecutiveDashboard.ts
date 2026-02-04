@@ -124,8 +124,11 @@ export function useTradeExecutiveDashboard(dateRange?: DateRangeFilter) {
 
       if (error) throw error;
 
-      const ativas = campaigns?.filter(c => c.status === 'active' || c.status === 'in_progress').length || 0;
-      const concluidas = campaigns?.filter(c => c.status === 'completed').length || 0;
+      // Incluir 'approved' como status ativo (conforme padrão do sistema)
+      const ativas = campaigns?.filter(c => 
+        c.status === 'active' || c.status === 'in_progress' || c.status === 'approved'
+      ).length || 0;
+      const concluidas = campaigns?.filter(c => c.status === 'completed' || c.status === 'pago').length || 0;
       const valorInvestido = campaigns?.reduce((sum, c) => sum + (parseFloat(String(c.estimated_cost)) || 0), 0) || 0;
 
       // Agrupar por status
@@ -137,10 +140,13 @@ export function useTradeExecutiveDashboard(dateRange?: DateRangeFilter) {
 
       const statusColors: Record<string, string> = {
         active: "hsl(var(--chart-1))",
+        approved: "hsl(var(--chart-1))",
         in_progress: "hsl(var(--chart-2))",
         completed: "hsl(var(--chart-3))",
+        pago: "hsl(var(--chart-3))",
         cancelled: "hsl(var(--chart-4))",
         draft: "hsl(var(--chart-5))",
+        pending: "hsl(var(--chart-5))",
       };
 
       const byStatus = Object.entries(statusCount).map(([status, count]) => ({
