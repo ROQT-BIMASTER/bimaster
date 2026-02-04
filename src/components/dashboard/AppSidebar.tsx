@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -333,6 +333,7 @@ export function AppSidebar() {
     { title: "DRE Analítico", url: "/dashboard/financeiro/dre-analitico", icon: FileText, screenCode: "financeiro_dre" },
     { title: "Visão por Departamento", url: "/dashboard/financeiro/visao-departamentos", icon: Building2, screenCode: "financeiro_departamentos" },
     { title: "Gestão de Verbas", url: "/dashboard/financeiro/trade", icon: Store, screenCode: "financeiro_verbas" },
+    { title: "Central de Pagamentos", url: "/dashboard/financeiro/central-pagamentos", icon: CreditCard, screenCode: "financeiro_central_pagamentos" },
     { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar" },
     { title: "Contas a Receber", url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign, screenCode: "financeiro_contas_receber" },
     { title: "Fluxo de Caixa", url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp, screenCode: "financeiro_fluxo_caixa" },

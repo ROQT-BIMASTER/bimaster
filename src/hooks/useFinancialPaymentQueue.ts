@@ -1,0 +1,330 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+export type PaymentQueueStatus = 'pending' | 'accepted' | 'rejected' | 'paid' | 'cancelled';
+export type SourceType = 'trade_entry' | 'trade_investment' | 'trade_campaign' | 'event_expense';
+
+export interface PaymentQueueItem {
+  id: string;
+  code: string;
+  source_type: SourceType;
+  source_id: string;
+  source_code: string | null;
+  supplier_name: string;
+  supplier_document: string | null;
+  document_type: string | null;
+  document_number: string | null;
+  amount: number;
+  due_date: string;
+  portador: string | null;
+  description: string | null;
+  notes: string | null;
+  attachment_url: string | null;
+  department_name: string | null;
+  requested_by: string | null;
+  requested_at: string;
+  financial_status: PaymentQueueStatus;
+  financial_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  paid_at: string | null;
+  contas_pagar_id: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  requester_name?: string;
+  reviewer_name?: string;
+}
+
+interface CreatePaymentQueueInput {
+  source_type: SourceType;
+  source_id: string;
+  source_code?: string;
+  supplier_name: string;
+  supplier_document?: string;
+  document_type?: string;
+  document_number?: string;
+  amount: number;
+  due_date: string;
+  portador?: string;
+  description?: string;
+  notes?: string;
+  attachment_url?: string;
+  department_name?: string;
+}
+
+interface UpdatePaymentStatusInput {
+  id: string;
+  financial_status: PaymentQueueStatus;
+  financial_notes?: string;
+}
+
+interface PaymentQueueFilters {
+  status?: PaymentQueueStatus | 'all';
+  source_type?: SourceType | 'all';
+  search?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch payment queue items
+  const { data: items = [], isLoading, refetch } = useQuery({
+    queryKey: ['financial-payment-queue', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('financial_payment_queue')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (filters?.status && filters.status !== 'all') {
+        query = query.eq('financial_status', filters.status);
+      }
+
+      if (filters?.source_type && filters.source_type !== 'all') {
+        query = query.eq('source_type', filters.source_type);
+      }
+
+      if (filters?.search) {
+        query = query.or(`supplier_name.ilike.%${filters.search}%,code.ilike.%${filters.search}%,source_code.ilike.%${filters.search}%`);
+      }
+
+      if (filters?.startDate) {
+        query = query.gte('created_at', filters.startDate.toISOString());
+      }
+
+      if (filters?.endDate) {
+        query = query.lte('created_at', filters.endDate.toISOString());
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data as PaymentQueueItem[];
+    },
+  });
+
+  // Fetch KPIs
+  const { data: kpis } = useQuery({
+    queryKey: ['financial-payment-queue-kpis', filters?.startDate, filters?.endDate],
+    queryFn: async () => {
+      let query = supabase
+        .from('financial_payment_queue')
+        .select('financial_status, amount');
+
+      if (filters?.startDate) {
+        query = query.gte('created_at', filters.startDate.toISOString());
+      }
+
+      if (filters?.endDate) {
+        query = query.lte('created_at', filters.endDate.toISOString());
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const pending = data?.filter(i => i.financial_status === 'pending') || [];
+      const accepted = data?.filter(i => i.financial_status === 'accepted') || [];
+      const rejected = data?.filter(i => i.financial_status === 'rejected') || [];
+      const paid = data?.filter(i => i.financial_status === 'paid') || [];
+
+      return {
+        pendingCount: pending.length,
+        pendingAmount: pending.reduce((sum, i) => sum + Number(i.amount), 0),
+        acceptedCount: accepted.length,
+        acceptedAmount: accepted.reduce((sum, i) => sum + Number(i.amount), 0),
+        rejectedCount: rejected.length,
+        paidCount: paid.length,
+        paidAmount: paid.reduce((sum, i) => sum + Number(i.amount), 0),
+        totalAmount: data?.reduce((sum, i) => sum + Number(i.amount), 0) || 0,
+        totalCount: data?.length || 0,
+      };
+    },
+  });
+
+  // Create payment queue item
+  const createMutation = useMutation({
+    mutationFn: async (input: CreatePaymentQueueInput) => {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('financial_payment_queue')
+        .insert({
+          ...input,
+          code: '', // Will be auto-generated by trigger
+          requested_by: userData.user?.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['financial-payment-queue'] });
+      toast({
+        title: "Sucesso",
+        description: "Solicitação de pagamento enviada ao financeiro",
+      });
+    },
+    onError: (error) => {
+      console.error('Error creating payment queue item:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível enviar a solicitação",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update payment status
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, financial_status, financial_notes }: UpdatePaymentStatusInput) => {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      const updateData: Record<string, unknown> = {
+        financial_status,
+        financial_notes,
+        reviewed_by: userData.user?.id,
+        reviewed_at: new Date().toISOString(),
+      };
+
+      if (financial_status === 'paid') {
+        updateData.paid_at = new Date().toISOString();
+      }
+
+      const { data, error } = await supabase
+        .from('financial_payment_queue')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['financial-payment-queue'] });
+      
+      const statusMessages: Record<PaymentQueueStatus, string> = {
+        pending: 'Status atualizado',
+        accepted: 'Pagamento aceito com sucesso',
+        rejected: 'Pagamento rejeitado',
+        paid: 'Pagamento marcado como pago',
+        cancelled: 'Pagamento cancelado',
+      };
+
+      toast({
+        title: "Sucesso",
+        description: statusMessages[variables.financial_status],
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating payment status:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Accept payment (creates contas_pagar entry)
+  const acceptPaymentMutation = useMutation({
+    mutationFn: async ({ id, financial_notes }: { id: string; financial_notes?: string }) => {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      // Get the payment queue item
+      const { data: item, error: fetchError } = await supabase
+        .from('financial_payment_queue')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Create contas_pagar entry using correct column names
+      const contaPagarData = {
+        fornecedor_nome: item.supplier_name,
+        fornecedor_codigo: item.supplier_document,
+        tipo_documento: item.document_type,
+        numero_documento: item.document_number,
+        valor_original: item.amount,
+        valor_aberto: item.amount,
+        data_vencimento: item.due_date,
+        data_emissao: new Date().toISOString().split('T')[0],
+        portador: item.portador,
+        categoria_nome: `${item.source_type} - ${item.source_code || item.code}`,
+        status: 'pendente',
+      };
+
+      const { data: contaPagar, error: contaError } = await supabase
+        .from('contas_pagar')
+        .insert(contaPagarData as never)
+        .select()
+        .single();
+
+      if (contaError) throw contaError;
+
+      // Update payment queue status
+      const { data, error } = await supabase
+        .from('financial_payment_queue')
+        .update({
+          financial_status: 'accepted',
+          financial_notes,
+          reviewed_by: userData.user?.id,
+          reviewed_at: new Date().toISOString(),
+          contas_pagar_id: contaPagar.id,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['financial-payment-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
+      toast({
+        title: "Pagamento Aceito",
+        description: "Registro criado em Contas a Pagar",
+      });
+    },
+    onError: (error) => {
+      console.error('Error accepting payment:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível aceitar o pagamento",
+        variant: "destructive",
+      });
+    },
+  });
+
+  return {
+    items,
+    kpis: kpis || {
+      pendingCount: 0,
+      pendingAmount: 0,
+      acceptedCount: 0,
+      acceptedAmount: 0,
+      rejectedCount: 0,
+      paidCount: 0,
+      paidAmount: 0,
+      totalAmount: 0,
+      totalCount: 0,
+    },
+    isLoading,
+    refetch,
+    createPayment: createMutation.mutate,
+    isCreating: createMutation.isPending,
+    updateStatus: updateStatusMutation.mutate,
+    isUpdating: updateStatusMutation.isPending,
+    acceptPayment: acceptPaymentMutation.mutate,
+    isAccepting: acceptPaymentMutation.isPending,
+  };
+}
