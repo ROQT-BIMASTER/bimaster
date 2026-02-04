@@ -30,6 +30,7 @@ interface ContaPagar {
   status: string;
   empresa_nome: string;
   departamento_nome: string | null;
+  portador: string | null;
 }
 
 interface CalendarioVencimentosProps {
@@ -396,11 +397,18 @@ export function CalendarioVencimentos({ contas, isLoading }: CalendarioVenciment
                       <p className="text-sm text-muted-foreground">
                         {conta.empresa_nome}
                       </p>
-                      {conta.departamento_nome && (
-                        <Badge variant="outline" className="text-xs">
-                          {conta.departamento_nome}
-                        </Badge>
-                      )}
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {conta.departamento_nome && (
+                          <Badge variant="outline" className="text-xs">
+                            {conta.departamento_nome}
+                          </Badge>
+                        )}
+                        {conta.portador && (
+                          <Badge variant="secondary" className="text-xs">
+                            Portador: {conta.portador}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold">
