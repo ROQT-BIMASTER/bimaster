@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { VendedorMultiSelect } from "./VendedorMultiSelect";
+import { ClassificationSelector } from "./ClassificationSelector";
 
 interface EditarLojaDialogProps {
   open: boolean;
@@ -58,6 +59,7 @@ export function EditarLojaDialog({
     chain: "",
     category: "",
     priority: "media",
+    classification: "C",
     status: "active",
     monthly_revenue: "",
     notes: "",
@@ -129,6 +131,7 @@ export function EditarLojaDialog({
         chain: data.chain || "",
         category: data.category || "",
         priority: data.priority || "media",
+        classification: data.classification || "C",
         status: data.status || "active",
         monthly_revenue: data.monthly_revenue?.toString() || "",
         notes: data.notes || "",
@@ -193,6 +196,7 @@ export function EditarLojaDialog({
         chain: formData.chain.trim() || null,
         category: formData.category.trim() || null,
         priority: formData.priority,
+        classification: formData.classification || "C",
         status: formData.status,
         monthly_revenue: formData.monthly_revenue ? parseFloat(formData.monthly_revenue) : null,
         notes: formData.notes.trim() || null,
@@ -468,6 +472,13 @@ export function EditarLojaDialog({
                   placeholder="0,00"
                 />
               </div>
+            </div>
+
+            <div className="col-span-2">
+              <ClassificationSelector
+                value={formData.classification}
+                onChange={(value) => setFormData({ ...formData, classification: value })}
+              />
             </div>
 
             <div className="space-y-2">

@@ -11,6 +11,7 @@ import { Plus } from "lucide-react";
 import { NovaCategoriaDialog } from "./NovaCategoriaDialog";
 import { NovaRedeDialog } from "./NovaRedeDialog";
 import { VendedorMultiSelect } from "./VendedorMultiSelect";
+import { ClassificationSelector } from "./ClassificationSelector";
 import { z } from "zod";
 
 // Schema de validação para loja
@@ -54,6 +55,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
     email: "",
     category: "",
     priority: "media",
+    classification: "C",
     manager_name: "",
     manager_phone: "",
     notes: "",
@@ -234,6 +236,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
         cnpj: formData.cnpj ? formData.cnpj.replace(/\D/g, '') : null, // Limpar CNPJ
         code: formData.code || `STORE-${Date.now()}`,
         branch_count: formData.branch_count || 1,
+        classification: formData.classification || "C",
         status: "active",
         created_by: userData.user?.id,
         vendedor_id: principalVendedorId,
@@ -277,6 +280,7 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
         email: "",
         category: "",
         priority: "media",
+        classification: "C",
         manager_name: "",
         manager_phone: "",
         notes: "",
@@ -484,6 +488,13 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
                   <SelectItem value="baixa">Baixa</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="col-span-2">
+              <ClassificationSelector
+                value={formData.classification}
+                onChange={(value) => setFormData({ ...formData, classification: value })}
+              />
             </div>
 
             <div className="col-span-2 space-y-2">

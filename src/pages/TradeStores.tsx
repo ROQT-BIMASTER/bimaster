@@ -12,6 +12,7 @@ import { EditarLojaDialog } from "@/components/trade/EditarLojaDialog";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { StoreDetailDialog } from "@/components/trade/StoreDetailDialog";
+import { ClassificationBadge } from "@/components/trade/ClassificationBadge";
 import { TradePageHeader } from "@/components/trade/TradePageHeader";
 import { MobileDataList } from "@/components/trade/MobileDataList";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +32,7 @@ interface Store {
   status: string;
   latitude: number | null;
   longitude: number | null;
+  classification: string | null;
 }
 
 const TradeStores = () => {
@@ -213,6 +215,13 @@ const TradeStores = () => {
   const columns = [
     { key: "code", label: "Código", hideOnMobile: true },
     { key: "name", label: "Nome" },
+    { 
+      key: "classification", 
+      label: "Class.", 
+      render: (store: Store) => (
+        <ClassificationBadge classification={store.classification} size="sm" />
+      )
+    },
     { key: "chain", label: "Rede", hideOnMobile: true, render: (store: Store) => store.chain || "-" },
     { 
       key: "location", 
@@ -251,7 +260,10 @@ const TradeStores = () => {
               <StoreIcon className="h-4 w-4 text-trade" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-medium text-sm truncate">{store.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-sm truncate">{store.name}</p>
+                <ClassificationBadge classification={store.classification} size="sm" />
+              </div>
               <p className="text-xs text-muted-foreground truncate">
                 {store.chain || "Sem rede"} • {store.city || "Sem cidade"}
               </p>

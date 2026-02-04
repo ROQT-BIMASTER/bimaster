@@ -12924,6 +12924,7 @@ export type Database = {
           category: string | null
           chain: string | null
           city: string | null
+          classification: string | null
           cnpj: string | null
           code: string
           created_at: string | null
@@ -12954,6 +12955,7 @@ export type Database = {
           category?: string | null
           chain?: string | null
           city?: string | null
+          classification?: string | null
           cnpj?: string | null
           code: string
           created_at?: string | null
@@ -12984,6 +12986,7 @@ export type Database = {
           category?: string | null
           chain?: string | null
           city?: string | null
+          classification?: string | null
           cnpj?: string | null
           code?: string
           created_at?: string | null
