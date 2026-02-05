@@ -49,6 +49,8 @@ export interface CreateEventInput {
   budget_amount?: number;
   confidential?: boolean;
   responsible_user_id?: string;
+  empresa_id?: number;
+  empresa_nome?: string;
 }
 
 export interface UpdateEventInput extends Partial<CreateEventInput> {
@@ -120,6 +122,8 @@ export function useCorporateEvents() {
           responsible_user_id: input.responsible_user_id || null,
           created_by: user.id,
           status: "draft",
+          empresa_id: input.empresa_id || null,
+          empresa_nome: input.empresa_nome || null,
         })
         .select()
         .single();

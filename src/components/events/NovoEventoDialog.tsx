@@ -1,4 +1,4 @@
-import { useState, ReactNode } from "react";
+import { useState, useEffect, ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCorporateEvents, useEventBudgets, useEventUsers } from "@/hooks/useCorporateEvents";
-import { Loader2 } from "lucide-react";
+import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
+import { Loader2, Building } from "lucide-react";
 
 interface NovoEventoDialogProps {
   children: ReactNode;
@@ -35,6 +36,8 @@ export function NovoEventoDialog({ children, open, onOpenChange }: NovoEventoDia
   const { createEvent } = useCorporateEvents();
   const { data: budgets } = useEventBudgets();
   const { data: users } = useEventUsers();
+  const { data: userEmpresas = [] } = useUserEmpresas();
+  const { primaryEmpresa } = usePrimaryEmpresa();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -47,10 +50,25 @@ export function NovoEventoDialog({ children, open, onOpenChange }: NovoEventoDia
     budget_amount: "",
     responsible_user_id: "",
     confidential: false,
+    empresa_id: "",
   });
+
+  // Pre-selecionar filial principal
+  useEffect(() => {
+    if (primaryEmpresa && !formData.empresa_id) {
+      setFormData(prev => ({ 
+        ...prev, 
+        empresa_id: primaryEmpresa.id.toString() 
+      }));
+    }
+  }, [primaryEmpresa]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const selectedEmpresa = userEmpresas.find(
+      ue => ue.empresa_id.toString() === formData.empresa_id
+    );
     
     await createEvent.mutateAsync({
       name: formData.name,
@@ -63,6 +81,8 @@ export function NovoEventoDialog({ children, open, onOpenChange }: NovoEventoDia
       budget_amount: formData.budget_amount ? parseFloat(formData.budget_amount) : undefined,
       responsible_user_id: formData.responsible_user_id || undefined,
       confidential: formData.confidential,
+      empresa_id: selectedEmpresa?.empresa_id,
+      empresa_nome: selectedEmpresa?.empresa.nome,
     });
 
     setIsOpen(false);
@@ -77,6 +97,7 @@ export function NovoEventoDialog({ children, open, onOpenChange }: NovoEventoDia
       budget_amount: "",
       responsible_user_id: "",
       confidential: false,
+      empresa_id: primaryEmpresa?.id.toString() || "",
     });
   };
 
@@ -98,6 +119,35 @@ export function NovoEventoDialog({ children, open, onOpenChange }: NovoEventoDia
                 placeholder="Ex: Conferência Anual 2026"
                 required
               />
+            </div>
+
+            {/* Seletor de Filial */}
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="empresa_id" className="flex items-center gap-2">
+                <Building className="h-4 w-4" />
+                Filial *
+              </Label>
+              <Select
+                value={formData.empresa_id}
+                onValueChange={(value) => setFormData({ ...formData, empresa_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a filial" />
+                </SelectTrigger>
+                <SelectContent>
+                  {userEmpresas.map((ue) => (
+                    <SelectItem key={ue.empresa_id} value={ue.empresa_id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                        {ue.empresa.nome}
+                        {ue.is_primary && (
+                          <span className="text-xs text-primary">(Principal)</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
