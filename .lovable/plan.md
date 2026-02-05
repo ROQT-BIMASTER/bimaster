@@ -1,130 +1,130 @@
 
+# Plano: Criar Hierarquia de Gerente e Configurar Milene
 
-# Plano de Correção: Isolamento de Dados para Supervisores e Vendedores
+## Situacao Atual
 
-## Problema Raiz Identificado
+A hierarquia atual do sistema possui 4 niveis (admin, supervisor, vendedor, promotor). O banco de dados ja possui o valor 'gerente' no enum `app_role` e a coluna `gerente_id` na tabela `profiles`, porem nenhum dos dois esta em uso.
 
-A pagina **TradeStores.tsx** (PDVs) -- que e exatamente onde a Michele esta -- **NAO usa o hook centralizado `useFilteredStores`**. Ela tem sua propria funcao `fetchStores` que trata supervisores como administradores, buscando TODOS os 73 PDVs sem filtrar pela hierarquia.
-
-A mesma falha existe em **TradeFinanceiro.tsx**, que busca todas as lojas para seu dropdown.
-
-### O que acontece quando Michele acessa a pagina de PDVs:
-
+### Hierarquia Atual (Banco de Dados)
 ```text
-TradeStores.tsx linha 82:
-  if (!effectiveIsAdminOrSupervisor) { ... filtrar ... }
-  else { buscar TODAS as lojas }
+Leandro (Admin)
+  |-- Jessika (Supervisor) -> Adm Sistema, Juliana G., Leandro R.
+  |-- Michele (Supervisor) -> Douglas, Juliana M., Monique, Nathalia
 
-Michele e supervisor → effectiveIsAdminOrSupervisor = true → ve TUDO
+Milene (Supervisor, sem vinculo) -> Larissa Araujo
 ```
 
-### O hook centralizado `useFilteredStores` ja tem a logica correta:
-
+### Hierarquia Desejada
 ```text
-useFilteredStores.ts:
-  if (effectiveIsAdmin) { buscar tudo }
-  else if (effectiveIsSupervisor) { buscar subordinados, filtrar por hierarquia }
-  else { buscar apenas lojas vinculadas }
+Leandro (Admin)
+  |
+  Milene (Gerente)
+    |-- Jessika (Supervisor) -> Adm Sistema, Juliana G., Leandro R.
+    |-- Michele (Supervisor) -> Douglas, Juliana M., Monique, Nathalia
+    |-- Larissa Araujo (Vendedor - direto)
 ```
 
-## Dados Atuais no Banco
+## O Que Sera Feito
 
-- **73 lojas** ativas no sistema
-- **70 lojas** com supervisor_id = Jessika Marcondes
-- **Michele** NAO tem lojas atribuidas via supervisor_id, vendedor_id ou store_sellers
-- **Subordinados da Michele**: Nathalia, Douglas, Juliana, Monique -- tambem sem lojas vinculadas
-- O hook `useFilteredStores` corretamente retornaria ZERO lojas para Michele (ate que lojas sejam atribuidas a ela)
+### Passo 1 -- Migracoes no Banco de Dados
 
-## Plano de Acao
+Uma unica migracao SQL que faz:
 
-### Passo 1 -- Migrar TradeStores.tsx para usar useFilteredStores
+1. **Alterar role da Milene** de 'supervisor' para 'gerente' na tabela `user_roles`
+2. **Vincular supervisoras a Milene** -- definir `supervisor_id` de Jessika e Michele para o ID da Milene, de modo que a funcao recursiva `get_subordinados` retorne toda a arvore abaixo
+3. **Atualizar funcao `is_admin_or_supervisor`** para incluir 'gerente' -- isso corrige automaticamente todas as **43 politicas RLS** que usam esta funcao, sem precisar alterar cada uma individualmente
+4. **Atualizar funcao `has_role_or_higher`** para incluir gerente na hierarquia (admin=1, gerente=2, supervisor=3, vendedor=4, promotor=5)
 
-Substituir a funcao `fetchStores` customizada pelo hook centralizado:
+Apos esta migracao, a Milene tera acesso via RLS a todos os dados que seus supervisores e vendedores acessam, porque `get_subordinados(Milene)` retornara recursivamente: Jessika, Michele, e todos os vendedores de ambas.
 
-- Remover o estado local `allStores` e a funcao `fetchStores`
-- Importar e usar `useFilteredStores` (que ja respeita hierarquia e impersonacao)
-- Manter a busca com `select("*")` via uma segunda query filtrada pelos IDs retornados pelo hook, ou adaptar o hook para retornar todos os campos necessarios
-- Remover a variavel `effectiveIsAdminOrSupervisor` do controle de dados (manter apenas para UI como botao de importar)
+### Passo 2 -- Atualizar Hook `useUserRole`
 
-### Passo 2 -- Corrigir TradeFinanceiro.tsx
+Adicionar no hook:
+- Flag `isGerente` (role === 'gerente')
+- Atualizar `isAdminOrSupervisor` para incluir gerente: `admin || supervisor || gerente`
+- Manter retrocompatibilidade -- todos os componentes que ja usam `isAdminOrSupervisor` passam a funcionar com gerente automaticamente
 
-A linha 100 busca todas as lojas para o dropdown sem filtro:
-```
-supabase.from("stores").select("id, name, code, city").eq("status", "active")
-```
+### Passo 3 -- Atualizar Hook `useFilteredStores`
 
-Substituir por `useFilteredStores` para que o dropdown de lojas respeite a hierarquia.
+O calculo de `effectiveIsSupervisor` sera expandido para incluir gerente. Como a funcao `get_subordinados` ja e recursiva, o gerente vera automaticamente as lojas de toda a cadeia hierarquica abaixo.
 
-### Passo 3 -- Auditar e corrigir outros componentes
+### Passo 4 -- Atualizar `TeamHierarchyFilter`
 
-Verificar e corrigir todos os locais que usam `isAdminOrSupervisor` como check combinado para buscar dados sem filtro:
+Adicionar suporte ao role 'gerente':
+- Icone e label para gerente
+- Permitir que gerentes vejam a hierarquia (mesmo acesso que supervisores e admins)
+- O gerente vera seus subordinados (supervisores + vendedores) na arvore
 
-- **CampaignResultsPanel.tsx**: usa `isAdminOrSupervisor` para decidir se filtra lancamentos
-- **TradeLancamentos.tsx**: usa `isAdminOrSupervisor` para filtrar entradas financeiras  
-- **useTradeExecutiveDashboard.ts**: busca stores count sem filtro
+### Passo 5 -- Atualizar `GerenciamentoUsuarios`
 
-### Passo 4 -- Incrementar versao do app
+- Adicionar 'Gerente' como opcao no dropdown de tipo de usuario
+- Ajustar filtro de "Superior Hierarquico" para que supervisores possam ter gerentes como superior
+- Exibir badge correta na tabela de usuarios
 
-Atualizar `APP_VERSION` em `src/lib/version.ts` para `1.1.3` para forcar limpeza de cache em todos os dispositivos.
+### Passo 6 -- Atualizar `useTradeSupervisorDashboard`
+
+O dashboard "Minha Equipe" precisa reconhecer o role 'gerente'. O gerente deve usar o mesmo caminho de codigo que o supervisor (filtrado por hierarquia usando `supervisor_id`), e nao o caminho do admin (que ve tudo).
+
+### Passo 7 -- Incrementar Versao
+
+Atualizar `APP_VERSION` para `1.1.4` para forcar limpeza de cache em todos os dispositivos.
 
 ## Detalhes Tecnicos
 
-### TradeStores.tsx -- Mudancas Principais
+### Migracao SQL
 
-**Antes (problematico):**
-```typescript
-const { isAdminOrSupervisor } = useUserRole();
-// ...
-const effectiveIsAdminOrSupervisor = isImpersonating 
-  ? impersonatedPermissions.isAdmin || impersonatedPermissions.role === 'supervisor'
-  : isAdminOrSupervisor;
+```text
+-- 1. Alterar role da Milene para gerente
+UPDATE user_roles SET role = 'gerente' WHERE user_id = '7eb17733-...';
 
-const fetchStores = async () => {
-  if (!effectiveIsAdminOrSupervisor) {
-    // Filtrar por vendedor
-  } else {
-    // BUSCAR TUDO ← PROBLEMA
-    const { data } = await supabase.from("stores").select("*").order("name");
-  }
-};
+-- 2. Vincular supervisoras a Milene via supervisor_id
+UPDATE profiles SET supervisor_id = '7eb17733-...' WHERE id IN ('23d470c6-...', '9b55c37f-...');
+
+-- 3. Atualizar is_admin_or_supervisor para incluir gerente
+CREATE OR REPLACE FUNCTION is_admin_or_supervisor(_user_id uuid)
+  ... WHERE role IN ('admin', 'supervisor', 'gerente') ...
+
+-- 4. Atualizar has_role_or_higher com gerente no nivel 2
+  WHEN 'gerente' THEN 2
+  WHEN 'supervisor' THEN 3
+  WHEN 'vendedor' THEN 4
+  WHEN 'promotor' THEN 5
 ```
 
-**Depois (corrigido):**
-```typescript
-import { useFilteredStores } from "@/hooks/useFilteredStores";
+### useUserRole.ts -- Mudancas
 
-// Usar hook centralizado que ja separa admin/supervisor/vendedor
-const { stores: filteredStoreIds, loading: storesLoading } = useFilteredStores();
+```text
+// Adicionar:
+isGerente: userType === "gerente"
 
-// Para obter dados completos (*), fazer query filtrada pelos IDs
-const fetchStoreDetails = async () => {
-  if (filteredStoreIds.length === 0) { setStores([]); return; }
-  const ids = filteredStoreIds.map(s => s.id);
-  const { data } = await supabase
-    .from("stores")
-    .select("*")
-    .in("id", ids)
-    .order("name");
-  setAllStores(data || []);
-  setStores(data || []);
-};
+// Atualizar:
+isAdminOrSupervisor: admin || supervisor || gerente
 ```
 
-### TradeFinanceiro.tsx -- Mudanca no dropdown de lojas
+### useFilteredStores.ts -- Mudancas
 
-Substituir a busca direta por `useFilteredStores`:
-```typescript
-const { stores: filteredStores } = useFilteredStores();
-// Usar filteredStores no dropdown em vez do resultado direto do banco
+```text
+// effectiveIsSupervisor passa a incluir gerente:
+const effectiveIsSupervisor = role === 'supervisor' || role === 'gerente'
 ```
 
-### Arquivos que serao modificados
+### Arquivos Modificados
 
-1. `src/pages/TradeStores.tsx` -- substituir fetchStores pelo hook centralizado
-2. `src/pages/TradeFinanceiro.tsx` -- usar useFilteredStores para dropdown
-3. `src/lib/version.ts` -- incrementar para 1.1.3
+1. Nova migracao SQL (banco de dados)
+2. `src/hooks/useUserRole.ts`
+3. `src/hooks/useFilteredStores.ts`
+4. `src/components/trade/TeamHierarchyFilter.tsx`
+5. `src/components/configuracoes/GerenciamentoUsuarios.tsx`
+6. `src/hooks/useTradeSupervisorDashboard.ts`
+7. `src/lib/version.ts`
 
-### Nota importante sobre dados
+### Por que funciona sem alterar 43 politicas RLS
 
-Apos a correcao, Michele vera apenas lojas que estao vinculadas a ela ou sua equipe. Atualmente **nenhuma loja** esta atribuida a Michele ou seus vendedores (Nathalia, Douglas, Juliana, Monique). Para que ela veja lojas, sera necessario atribuir lojas a esses vendedores no cadastro de PDVs (via campo vendedor ou tabela store_sellers).
+A funcao `is_admin_or_supervisor` e usada em 43 politicas RLS. Ao adicionar 'gerente' nesta funcao, TODAS as politicas passam a reconhecer o novo role automaticamente, sem necessidade de drop/recreate de cada policy individual.
 
+### Fluxo recursivo do `get_subordinados`
+
+A funcao ja e recursiva (usa WITH RECURSIVE). Ao definir `supervisor_id` das supervisoras para Milene:
+- `get_subordinados(Milene)` retorna Jessika, Michele, Larissa
+- Depois desce recursivamente: todos os vendedores de Jessika e Michele
+- Resultado: toda a arvore fica acessivel para Milene
