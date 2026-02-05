@@ -51,6 +51,7 @@ export default function TradeSupervisorDashboard() {
 
   const {
     team,
+    teamHierarchy,
     isLoadingTeam,
     kpis,
     campaigns,
@@ -126,6 +127,7 @@ export default function TradeSupervisorDashboard() {
               {/* Team Selector */}
               <SupervisorTeamSelector
                 team={team || []}
+                teamHierarchy={teamHierarchy}
                 selectedMemberId={selectedMemberId}
                 onSelectMember={setSelectedMemberId}
                 isLoading={isLoadingTeam}
