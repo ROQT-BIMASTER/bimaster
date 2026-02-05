@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDepartmentById } from "@/hooks/useUserDepartments";
-import { usePendingDepartmentExpenses, DepartmentExpense } from "@/hooks/useDepartmentExpenses";
+import { usePendingDepartmentExpenses, DepartmentExpense, DEPARTMENT_EXPENSE_CATEGORIES } from "@/hooks/useDepartmentExpenses";
 import { AprovarDespesaDepartamentoDialog } from "@/components/departments/AprovarDespesaDepartamentoDialog";
 import { 
   ArrowLeft,
@@ -32,6 +32,12 @@ export default function DepartmentApprovalHub() {
   const [selectedExpense, setSelectedExpense] = useState<DepartmentExpense | null>(null);
 
   const isLoading = loadingDept || loadingExpenses;
+
+  // Helper function to get category label
+  const getCategoryLabel = (value: string) => {
+    const cat = DEPARTMENT_EXPENSE_CATEGORIES.find(c => c.value === value);
+    return cat?.label || value;
+  };
 
   // Calcular totais
   const totalPending = pendingExpenses?.reduce((sum, e) => sum + (e.valor_realizado || e.valor_previsto || 0), 0) || 0;
@@ -204,7 +210,7 @@ export default function DepartmentApprovalHub() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <Badge variant="outline">{expense.code}</Badge>
-                            <Badge>{expense.category}</Badge>
+                            <Badge variant="secondary">{getCategoryLabel(expense.category)}</Badge>
                           </div>
                           <p className="font-medium">{expense.description}</p>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -212,10 +218,17 @@ export default function DepartmentApprovalHub() {
                               <User className="h-3 w-3" />
                               {expense.creator?.nome || "Usuário"}
                             </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {expense.expense_date && format(new Date(expense.expense_date), "dd/MM/yyyy", { locale: ptBR })}
-                            </span>
+                            {expense.expense_date ? (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {format(new Date(expense.expense_date), "dd/MM/yyyy", { locale: ptBR })}
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-muted-foreground italic">
+                                <Calendar className="h-3 w-3" />
+                                Sem data
+                              </span>
+                            )}
                             {expense.attachments && expense.attachments.length > 0 && (
                               <span className="flex items-center gap-1">
                                 <FileText className="h-3 w-3" />

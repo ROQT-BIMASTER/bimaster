@@ -292,6 +292,8 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         portador: item.portador,
         categoria_nome: `${item.source_type} - ${item.source_code || item.code}`,
         status: 'pendente',
+        empresa_id: item.empresa_id || 1, // Fallback para empresa padrão
+        empresa_nome: item.empresa_nome || 'Matriz',
       };
 
       const { data: contaPagar, error: contaError } = await supabase
