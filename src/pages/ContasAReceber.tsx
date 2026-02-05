@@ -21,7 +21,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatLocalDate } from "@/utils/dateUtils";
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { toast } from "sonner";
 import { DashboardContasReceberAggregated } from "@/components/financeiro/DashboardContasReceberAggregated";
 import { CalendarioRecebimentosAggregated } from "@/components/financeiro/CalendarioRecebimentosAggregated";
@@ -300,24 +301,44 @@ export default function ContasAReceber() {
     // Se tem poucos registros, exportar diretamente
     if (sortedAndPaginatedData.totalItems <= pageSize) {
       const dataToExport = tableData.map(c => ({
-        'Empresa': c.empresa_nome,
-        'Documento': `${c.numero_documento}/${c.parcela}`,
-        'Cliente': c.cliente_nome,
-        'Vendedor': c.vendedor_nome,
-        'Emissão': formatLocalDate(c.data_emissao),
-        'Vencimento': formatLocalDate(c.data_vencimento),
-        'Valor Original': c.valor_original,
-        'Valor Aberto': c.valor_aberto,
-        'Valor Recebido': c.valor_recebido,
-        'Status': c.status,
-        'Portador': c.portador,
-        'Conta': c.conta
+        empresa: c.empresa_nome,
+        documento: `${c.numero_documento}/${c.parcela}`,
+        cliente: c.cliente_nome,
+        vendedor: c.vendedor_nome,
+        emissao: formatLocalDate(c.data_emissao),
+        vencimento: formatLocalDate(c.data_vencimento),
+        valor_original: c.valor_original,
+        valor_aberto: c.valor_aberto,
+        valor_recebido: c.valor_recebido,
+        status: c.status,
+        portador: c.portador,
+        conta: c.conta
       }));
 
-      const ws = XLSX.utils.json_to_sheet(dataToExport);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Contas a Receber");
-      XLSX.writeFile(wb, `contas-receber-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'BiMaster';
+      const worksheet = workbook.addWorksheet('Contas a Receber');
+      worksheet.columns = [
+        { header: 'Empresa', key: 'empresa', width: 20 },
+        { header: 'Documento', key: 'documento', width: 15 },
+        { header: 'Cliente', key: 'cliente', width: 30 },
+        { header: 'Vendedor', key: 'vendedor', width: 25 },
+        { header: 'Emissão', key: 'emissao', width: 12 },
+        { header: 'Vencimento', key: 'vencimento', width: 12 },
+        { header: 'Valor Original', key: 'valor_original', width: 15 },
+        { header: 'Valor Aberto', key: 'valor_aberto', width: 15 },
+        { header: 'Valor Recebido', key: 'valor_recebido', width: 15 },
+        { header: 'Status', key: 'status', width: 12 },
+        { header: 'Portador', key: 'portador', width: 20 },
+        { header: 'Conta', key: 'conta', width: 15 },
+      ];
+      dataToExport.forEach(row => worksheet.addRow(row));
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, `contas-receber-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
       toast.success("Exportação concluída!");
       return;
     }
@@ -359,24 +380,44 @@ export default function ContasAReceber() {
       }
       
       const dataToExport = allData.map(c => ({
-        'Empresa': c.empresa_nome,
-        'Documento': `${c.numero_documento}/${c.parcela}`,
-        'Cliente': c.cliente_nome,
-        'Vendedor': c.vendedor_nome,
-        'Emissão': formatLocalDate(c.data_emissao),
-        'Vencimento': formatLocalDate(c.data_vencimento),
-        'Valor Original': c.valor_original,
-        'Valor Aberto': c.valor_aberto,
-        'Valor Recebido': c.valor_recebido,
-        'Status': c.status,
-        'Portador': c.portador,
-        'Conta': c.conta
+        empresa: c.empresa_nome,
+        documento: `${c.numero_documento}/${c.parcela}`,
+        cliente: c.cliente_nome,
+        vendedor: c.vendedor_nome,
+        emissao: formatLocalDate(c.data_emissao),
+        vencimento: formatLocalDate(c.data_vencimento),
+        valor_original: c.valor_original,
+        valor_aberto: c.valor_aberto,
+        valor_recebido: c.valor_recebido,
+        status: c.status,
+        portador: c.portador,
+        conta: c.conta
       }));
 
-      const ws = XLSX.utils.json_to_sheet(dataToExport);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Contas a Receber");
-      XLSX.writeFile(wb, `contas-receber-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'BiMaster';
+      const worksheet = workbook.addWorksheet('Contas a Receber');
+      worksheet.columns = [
+        { header: 'Empresa', key: 'empresa', width: 20 },
+        { header: 'Documento', key: 'documento', width: 15 },
+        { header: 'Cliente', key: 'cliente', width: 30 },
+        { header: 'Vendedor', key: 'vendedor', width: 25 },
+        { header: 'Emissão', key: 'emissao', width: 12 },
+        { header: 'Vencimento', key: 'vencimento', width: 12 },
+        { header: 'Valor Original', key: 'valor_original', width: 15 },
+        { header: 'Valor Aberto', key: 'valor_aberto', width: 15 },
+        { header: 'Valor Recebido', key: 'valor_recebido', width: 15 },
+        { header: 'Status', key: 'status', width: 12 },
+        { header: 'Portador', key: 'portador', width: 20 },
+        { header: 'Conta', key: 'conta', width: 15 },
+      ];
+      dataToExport.forEach(row => worksheet.addRow(row));
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, `contas-receber-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
       toast.success(`Exportação concluída! ${allData.length.toLocaleString()} registros.`);
     } catch (error) {
       console.error('Erro ao exportar:', error);
