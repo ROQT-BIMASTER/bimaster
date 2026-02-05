@@ -370,15 +370,17 @@ const TradeStores = () => {
             description={`${stores.length} PDVs cadastrados`}
             actions={
               <div data-tour="stores-actions" className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="h-9 text-xs sm:text-sm"
-                  onClick={() => navigate('/dashboard/trade/import-stores')}
-                >
-                  <Upload className="mr-1.5 h-4 w-4" />
-                  <span className="hidden sm:inline">Importar</span>
-                </Button>
+                {effectiveIsAdminOrSupervisor && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="h-9 text-xs sm:text-sm"
+                    onClick={() => navigate('/dashboard/trade/import-stores')}
+                  >
+                    <Upload className="mr-1.5 h-4 w-4" />
+                    <span className="hidden sm:inline">Importar</span>
+                  </Button>
+                )}
                 <Button 
                   size="sm"
                   className="h-9 text-xs sm:text-sm bg-trade hover:bg-trade-dark"

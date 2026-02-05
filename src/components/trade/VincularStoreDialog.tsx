@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface Store {
   id: string;
@@ -44,6 +45,7 @@ export const VincularStoreDialog = ({
   onStoreLinked,
 }: VincularStoreDialogProps) => {
   const navigate = useNavigate();
+  const { isAdminOrSupervisor } = useUserRole();
   const [stores, setStores] = useState<Store[]>([]);
   const [filteredStores, setFilteredStores] = useState<Store[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -175,18 +177,20 @@ export const VincularStoreDialog = ({
           {stores.length === 0 && (
             <div className="rounded-lg border border-dashed p-4 text-center">
               <p className="text-sm text-muted-foreground">
-                Nenhuma loja cadastrada. Importe lojas primeiro.
+                Nenhuma loja cadastrada. {isAdminOrSupervisor ? "Importe lojas primeiro." : "Solicite ao supervisor."}
               </p>
-              <Button
-                variant="link"
-                size="sm"
-                onClick={() => {
-                  onOpenChange(false);
-                  navigate("/dashboard/trade/import-stores");
-                }}
-              >
-                Ir para Importação
-              </Button>
+              {isAdminOrSupervisor && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate("/dashboard/trade/import-stores");
+                  }}
+                >
+                  Ir para Importação
+                </Button>
+              )}
             </div>
           )}
         </div>
