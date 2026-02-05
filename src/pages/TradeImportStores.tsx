@@ -12,7 +12,8 @@ import { toast } from "sonner";
 import { Upload, FileSpreadsheet, Sparkles, Download } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
-import * as XLSX from "xlsx";
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Configurar worker do PDF.js
@@ -137,10 +138,24 @@ const TradeImportStores = () => {
 
     try {
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(data);
+      const worksheet = workbook.worksheets[0];
+      
+      if (!worksheet) {
+        toast.error("Nenhuma planilha encontrada no arquivo");
+        setLoading(false);
+        return;
+      }
+      
+      const jsonData: any[][] = [];
+      worksheet.eachRow((row, rowNumber) => {
+        const rowData: any[] = [];
+        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          rowData[colNumber - 1] = cell.value;
+        });
+        jsonData.push(rowData);
+      });
 
       if (jsonData.length < 2) {
         toast.error("Arquivo vazio ou sem dados");
@@ -360,39 +375,47 @@ const TradeImportStores = () => {
   };
 
   const handleDownloadModelo = () => {
-    // Criar dados de exemplo
-    const modeloData = [
-      ["Código", "Nome", "Rede", "CNPJ", "Endereço", "Cidade", "Estado", "Telefone", "Email", "Categoria", "Prioridade"],
-      ["LOJA001", "Supermercado Centro", "Rede Bom Preço", "12.345.678/0001-99", "Rua Principal, 123", "São Paulo", "SP", "(11) 98765-4321", "centro@exemplo.com", "supermercado", "alta"],
-      ["LOJA002", "Farmácia Saúde", "Rede Farma+", "98.765.432/0001-11", "Av. Comercial, 456", "Rio de Janeiro", "RJ", "(21) 91234-5678", "contato@farma.com", "farmacia", "media"],
-      ["", "Minimercado Bairro", "", "", "Rua das Flores, 789", "Curitiba", "PR", "", "", "conveniencia", "baixa"],
-    ];
-
-    // Criar workbook
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(modeloData);
-
-    // Definir larguras das colunas
-    ws['!cols'] = [
-      { wch: 12 }, // Código
-      { wch: 25 }, // Nome
-      { wch: 20 }, // Rede
-      { wch: 20 }, // CNPJ
-      { wch: 30 }, // Endereço
-      { wch: 20 }, // Cidade
-      { wch: 8 },  // Estado
-      { wch: 18 }, // Telefone
-      { wch: 25 }, // Email
-      { wch: 15 }, // Categoria
-      { wch: 12 }, // Prioridade
-    ];
-
-    // Adicionar worksheet ao workbook
-    XLSX.utils.book_append_sheet(wb, ws, "Lojas");
-
-    // Gerar arquivo e fazer download
-    XLSX.writeFile(wb, "modelo_importacao_lojas.xlsx");
-    toast.success("Modelo baixado com sucesso!");
+    const downloadModelo = async () => {
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'BiMaster';
+      
+      const worksheet = workbook.addWorksheet('Lojas');
+      
+      worksheet.columns = [
+        { header: 'Código', key: 'codigo', width: 12 },
+        { header: 'Nome', key: 'nome', width: 25 },
+        { header: 'Rede', key: 'rede', width: 20 },
+        { header: 'CNPJ', key: 'cnpj', width: 20 },
+        { header: 'Endereço', key: 'endereco', width: 30 },
+        { header: 'Cidade', key: 'cidade', width: 20 },
+        { header: 'Estado', key: 'estado', width: 8 },
+        { header: 'Telefone', key: 'telefone', width: 18 },
+        { header: 'Email', key: 'email', width: 25 },
+        { header: 'Categoria', key: 'categoria', width: 15 },
+        { header: 'Prioridade', key: 'prioridade', width: 12 },
+      ];
+      
+      // Estilizar header
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4472C4' },
+      };
+      
+      // Dados de exemplo
+      worksheet.addRow({ codigo: 'LOJA001', nome: 'Supermercado Centro', rede: 'Rede Bom Preço', cnpj: '12.345.678/0001-99', endereco: 'Rua Principal, 123', cidade: 'São Paulo', estado: 'SP', telefone: '(11) 98765-4321', email: 'centro@exemplo.com', categoria: 'supermercado', prioridade: 'alta' });
+      worksheet.addRow({ codigo: 'LOJA002', nome: 'Farmácia Saúde', rede: 'Rede Farma+', cnpj: '98.765.432/0001-11', endereco: 'Av. Comercial, 456', cidade: 'Rio de Janeiro', estado: 'RJ', telefone: '(21) 91234-5678', email: 'contato@farma.com', categoria: 'farmacia', prioridade: 'media' });
+      worksheet.addRow({ codigo: '', nome: 'Minimercado Bairro', rede: '', cnpj: '', endereco: 'Rua das Flores, 789', cidade: 'Curitiba', estado: 'PR', telefone: '', email: '', categoria: 'conveniencia', prioridade: 'baixa' });
+      
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, 'modelo_importacao_lojas.xlsx');
+      toast.success("Modelo baixado com sucesso!");
+    };
+    
+    downloadModelo();
   };
 
   return (
