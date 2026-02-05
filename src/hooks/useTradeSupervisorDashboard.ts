@@ -116,11 +116,11 @@ export function useTradeSupervisorDashboard(
         .gte("scheduled_date", startDateStr)
         .lte("scheduled_date", endDateStr);
 
-      // Photos - usando .in()
+      // Photos - usando .in() com vendedor_id
       const photosRes = await (supabase
         .from("photos")
         .select("id", { count: "exact", head: true }) as any)
-        .in("created_by", filterIds)
+        .in("vendedor_id", filterIds)
         .gte("upload_date", startDateStr)
         .lte("upload_date", endDateStr);
         
@@ -217,13 +217,13 @@ export function useTradeSupervisorDashboard(
           (supabase
             .from("photos")
             .select("id", { count: "exact", head: true }) as any)
-            .in("created_by", filterIds)
+            .in("vendedor_id", filterIds)
             .gte("upload_date", mesInicioStr)
             .lte("upload_date", mesFimStr),
           (supabase
             .from("photos")
             .select("id", { count: "exact", head: true }) as any)
-            .in("created_by", filterIds)
+            .in("vendedor_id", filterIds)
             .gte("upload_date", mesInicioStr)
             .lte("upload_date", mesFimStr)
             .not("ai_analysis", "is", null),
@@ -318,7 +318,7 @@ export function useTradeSupervisorDashboard(
       const res = await (supabase
         .from("photos")
         .select("id, photo_url, upload_date, ai_analysis, store:stores(name)") as any)
-        .in("created_by", filterIds)
+        .in("vendedor_id", filterIds)
         .gte("upload_date", startDateStr)
         .lte("upload_date", endDateStr)
         .order("upload_date", { ascending: false })
