@@ -103,9 +103,19 @@ export function useTradeSupervisorDashboard(
   const teamFlat = teamQuery.data?.flat || [];
   const teamHierarchy = teamQuery.data?.hierarchy || [];
   const teamIds = teamFlat.map((m) => m.id);
-  const filterIds = selectedMemberId ? [selectedMemberId] : teamIds;
+  
+  // CORREÇÃO: Incluir o próprio supervisor nos dados quando "Toda equipe" está selecionada
+  // Isso garante que os dados do supervisor também apareçam no painel consolidado
+  const filterIds = selectedMemberId 
+    ? [selectedMemberId] 
+    : effectiveUserId 
+      ? [effectiveUserId, ...teamIds] 
+      : teamIds;
+  
   const hasTeam = filterIds.length > 0;
   const filterIdsKey = filterIds.join(",");
+  
+  console.log("[SupervisorDashboard] FilterIds:", filterIds.length, "membros (inclui supervisor)");
 
   // Query para KPIs principais - usando .in() para eficiência
   const kpisQuery = useQuery({
