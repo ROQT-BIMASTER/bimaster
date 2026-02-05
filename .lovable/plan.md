@@ -1,166 +1,178 @@
 
-# Plano de Correção e Profissionalização - Painel Supervisor Trade Marketing
+# Plano: Consulta de CNPJ Gratuita via OpenCNPJ
 
-## Diagnóstico do Problema
+## Objetivo
+Adicionar funcionalidade opcional de consulta de CNPJ usando a API gratuita OpenCNPJ nos formulários de cadastro manual de:
+- Lojas/PDVs (Nova Loja)
+- Fornecedores (FornecedorQuickAdd e formulários completos)
+- Clientes
+- Distribuidoras (NovaDistribuidoraDialog)
 
-### Erro Identificado
-O hook `useTradeSupervisorDashboard.ts` está usando o campo `ativo` que **não existe** na tabela `profiles`. O campo correto é `status = 'ativo'`.
+## Arquitetura da Solução
 
-### Problemas Adicionais Encontrados
+### 1. Criar Edge Function para Consulta OpenCNPJ
 
-| Problema | Impacto |
-|----------|---------|
-| Campo `ativo` inexistente | Query falha silenciosamente |
-| Visitas usam `user_id`, não `atribuido_por` | Dados não aparecem |
-| Equipe de Michele não tem dados de fotos/visitas ainda | Esperado (dados novos) |
-| Falta tratamento de erros robusto | Dificulta debug |
+**Arquivo:** `supabase/functions/opencnpj-consulta/index.ts`
 
-### Estrutura Real das Tabelas
+A edge function servirá como proxy para a API OpenCNPJ, oferecendo:
+- Validação de CNPJ antes da consulta
+- Tratamento de erros padronizado
+- Cache de resultados (para economia de chamadas)
+- Proteção de autenticação
 
-```text
-+------------------+     +------------------+     +------------------+
-|    profiles      |     |     visits       |     |     photos       |
-+------------------+     +------------------+     +------------------+
-| id               |     | id               |     | id               |
-| nome             |     | user_id      ◄───|───► | vendedor_id  ◄───|
-| email            |     | vendedor_id      |     | supervisor_id    |
-| supervisor_id    |     | supervisor_id    |     | store_id         |
-| status ('ativo') |     | atribuido_por    |     | upload_date      |
-+------------------+     | scheduled_date   |     +------------------+
-                         +------------------+
-```
+**Endpoint da API:** `GET https://api.opencnpj.org/{CNPJ}`
 
-### Hierarquia Verificada (Michele)
+**Campos retornados:**
+| Campo API | Campo Formulário |
+|-----------|-----------------|
+| `razao_social` | Nome/Razão Social |
+| `nome_fantasia` | Nome Fantasia/Rede |
+| `logradouro`, `numero`, `complemento` | Endereço |
+| `municipio` | Cidade |
+| `uf` | Estado/UF |
+| `telefone_1` | Telefone |
+| `email` | Email |
+| `cep` | CEP |
 
-```text
-Leandro (Admin)
-├── Michele Silva (Supervisor) ◄── USUÁRIO LOGADO
-│   ├── Douglas Cruz (Vendedor)
-│   ├── Juliana Moura (Vendedor)
-│   ├── Monique Campos (Vendedor)
-│   └── Nathalia Martini (Vendedor)
-├── Jessika (Supervisor)
-│   ├── Administrador Sistema
-│   ├── Juliana Germinhasi
-│   └── Leandro Ramos
-└── ...
-```
+### 2. Criar Componente Reutilizável
 
-## Solução Proposta
+**Arquivo:** `src/components/shared/CnpjSearchButton.tsx`
 
-### 1. Correção do Hook de Dados
-
-**Arquivo:** `src/hooks/useTradeSupervisorDashboard.ts`
-
-Correções necessárias:
-
-1. **Campo de status**: Trocar `.eq("ativo", true)` por `.eq("status", "ativo")`
-2. **Query de visitas**: Usar `user_id` ao invés de `atribuido_por` para buscar visitas realizadas
-3. **Incluir o próprio supervisor**: Supervisor deve ver seus próprios dados também
-4. **Melhorar tratamento de erros**: Adicionar logs e mensagens claras
-
-### 2. Arquitetura Profissionalizada
+Botão reutilizável que:
+- Recebe o CNPJ atual como prop
+- Exibe loading durante a consulta
+- Retorna os dados via callback `onDataFound`
+- Mostra toast de sucesso/erro
 
 ```text
-+-----------------------------------------------------------------------+
-|                    ARQUITETURA PROFISSIONAL                           |
-+-----------------------------------------------------------------------+
-|                                                                       |
-|  src/hooks/useTradeSupervisorDashboard.ts                            |
-|  ├── fetchTeamMembers()     - Busca subordinados diretos             |
-|  ├── buildFilterIds()       - Constrói array de IDs para filtrar     |
-|  └── useQuery() paralelas   - Busca dados de forma otimizada         |
-|                                                                       |
-|  Queries Corrigidas:                                                  |
-|  ├── profiles: .eq("status", "ativo")                                |
-|  ├── visits: .in("user_id", filterIds)                               |
-|  ├── photos: .in("vendedor_id", filterIds)                           |
-|  ├── stores: .in("vendedor_id", filterIds)                           |
-|  └── lancamentos: .in("created_by", filterIds)                       |
-|                                                                       |
-+-----------------------------------------------------------------------+
+┌─────────────────────────────────────────────┐
+│  CNPJ: [00.000.000/0000-00    ] [🔍]       │
+│                                 └─ botão    │
+└─────────────────────────────────────────────┘
 ```
 
-### 3. Melhorias no Seletor de Equipe
+### 3. Integrar nos Formulários
 
-**Arquivo:** `src/components/trade/supervisor/SupervisorTeamSelector.tsx`
+#### 3.1 Nova Loja/PDV
+**Arquivo:** `src/components/trade/NovaLojaDialog.tsx`
+- Adicionar botão de busca ao lado do campo CNPJ
+- Preencher: nome, endereço, cidade, UF, telefone
 
-- Mostrar nome do supervisor logado como cabeçalho
-- Badge com contagem de membros ativos
-- Indicador visual quando não há dados da equipe
+#### 3.2 Fornecedores (Quick Add)
+**Arquivo:** `src/components/fabrica/FornecedorQuickAdd.tsx`
+- Adicionar botão de busca na aba "Básico"
+- Preencher: nome/razão social, CNPJ formatado
 
-### 4. Ajustes na Página Principal
+#### 3.3 Nova Distribuidora
+**Arquivo:** `src/components/estoque/NovaDistribuidoraDialog.tsx`
+- Adicionar botão de busca ao lado do campo CNPJ
+- Preencher: nome, endereço, cidade, UF, telefone, email
 
-**Arquivo:** `src/pages/TradeSupervisorDashboard.tsx`
-
-- Adicionar indicador de "carregando equipe"
-- Mostrar mensagem quando equipe não tem dados no período
-- Melhorar feedback visual para estados vazios
+#### 3.4 Cadastro de Clientes
+**Arquivo:** A ser identificado (formulário de novo cliente)
+- Mesmo padrão dos demais formulários
 
 ## Detalhes Técnicos
 
-### Correção Principal - Query de Equipe
+### Edge Function - opencnpj-consulta
 
 ```typescript
-// ANTES (incorreto)
-const { data: profiles } = await supabase
-  .from("profiles")
-  .select("id, nome, email, supervisor_id")
-  .eq("supervisor_id", user.id)
-  .eq("ativo", true);  // ❌ Campo não existe
-
-// DEPOIS (correto)
-const { data: profiles } = await supabase
-  .from("profiles")
-  .select("id, nome, email, supervisor_id")
-  .eq("supervisor_id", user.id)
-  .eq("status", "ativo");  // ✅ Campo correto
+// Estrutura básica
+serve(async (req) => {
+  // 1. Verificar autenticação
+  // 2. Validar CNPJ (14 dígitos)
+  // 3. Verificar cache (tabela opencnpj_cache)
+  // 4. Chamar API OpenCNPJ
+  // 5. Salvar no cache
+  // 6. Retornar dados formatados
+});
 ```
 
-### Correção de Visitas
+### Tabela de Cache (opcional)
+
+```sql
+CREATE TABLE IF NOT EXISTS opencnpj_cache (
+  cnpj TEXT PRIMARY KEY,
+  data JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ DEFAULT (now() + interval '30 days')
+);
+```
+
+### Componente CnpjSearchButton
 
 ```typescript
-// ANTES (incorreto para visitas realizadas)
-.in("atribuido_por", filterIds)
+interface CnpjSearchButtonProps {
+  cnpj: string;
+  onDataFound: (data: CnpjData) => void;
+  disabled?: boolean;
+}
 
-// DEPOIS (correto - user_id é quem realizou)
-.in("user_id", filterIds)
+interface CnpjData {
+  razaoSocial?: string;
+  nomeFantasia?: string;
+  endereco?: string;
+  cidade?: string;
+  uf?: string;
+  telefone?: string;
+  email?: string;
+  cep?: string;
+}
 ```
 
-### Inclusão do Próprio Supervisor
+### Fluxo de Uso
 
-```typescript
-// O supervisor também deve aparecer nos dados
-const filterIds = selectedMemberId 
-  ? [selectedMemberId] 
-  : [user.id, ...teamIds];  // ✅ Inclui o próprio supervisor
+```text
+Usuário digita CNPJ
+        │
+        ▼
+Clica no botão 🔍
+        │
+        ▼
+┌───────────────────┐
+│ Valida 14 dígitos │
+└───────────────────┘
+        │
+        ▼ (válido)
+┌───────────────────┐
+│ Chama Edge Func   │
+│ opencnpj-consulta │
+└───────────────────┘
+        │
+        ▼
+┌───────────────────┐
+│ Preenche campos   │
+│ automaticamente   │
+└───────────────────┘
+        │
+        ▼
+Toast: "Dados carregados!"
 ```
 
-## Ordem de Implementação
+## Arquivos a Serem Criados/Modificados
 
-| Passo | Ação | Arquivo |
-|-------|------|---------|
-| 1 | Corrigir campo `ativo` para `status` | useTradeSupervisorDashboard.ts |
-| 2 | Corrigir query de visitas para `user_id` | useTradeSupervisorDashboard.ts |
-| 3 | Incluir supervisor nos filterIds | useTradeSupervisorDashboard.ts |
-| 4 | Adicionar tratamento de erros melhorado | useTradeSupervisorDashboard.ts |
-| 5 | Melhorar UX do seletor de equipe | SupervisorTeamSelector.tsx |
-| 6 | Adicionar estados vazios na página | TradeSupervisorDashboard.tsx |
+| Arquivo | Ação |
+|---------|------|
+| `supabase/functions/opencnpj-consulta/index.ts` | Criar |
+| `src/components/shared/CnpjSearchButton.tsx` | Criar |
+| `src/components/trade/NovaLojaDialog.tsx` | Modificar |
+| `src/components/fabrica/FornecedorQuickAdd.tsx` | Modificar |
+| `src/components/estoque/NovaDistribuidoraDialog.tsx` | Modificar |
+| Formulário de cadastro de clientes | Modificar |
 
-## Testes a Realizar
+## Vantagens do OpenCNPJ
 
-1. **Teste como Michele**: Verificar se apenas Douglas, Juliana, Monique e Nathalia aparecem
-2. **Teste como Jessika**: Verificar se apenas sua equipe aparece (Administrador Sistema, Juliana Germinhasi, Leandro Ramos)
-3. **Teste como Admin (Leandro)**: Verificar se tem acesso via menu correto
-4. **Teste filtro individual**: Selecionar um membro e verificar se dados filtram corretamente
-5. **Teste período**: Alterar datas e verificar se KPIs atualizam
+- **100% Gratuito**: Sem custos de API
+- **Sem API Key**: Não precisa cadastro
+- **Dados da Receita Federal**: Dados oficiais atualizados
+- **Simples**: GET request direto
 
-## Resultado Esperado
+## Considerações
 
-Após as correções:
+1. **Rate Limiting**: A API pode ter limites de requisições. A edge function pode implementar throttling se necessário.
 
-1. Michele verá apenas seus 4 subordinados diretos
-2. Dados de visitas, fotos e lançamentos serão filtrados corretamente
-3. Seletor de equipe mostrará hierarquia limpa
-4. Estados vazios serão tratados com mensagens amigáveis
-5. Performance otimizada com queries paralelas
+2. **Disponibilidade**: APIs gratuitas podem ficar fora do ar. O sistema continuará funcionando normalmente sem a consulta.
+
+3. **Fallback**: Se OpenCNPJ falhar, podemos implementar fallback para CNPJ.BIZ (já configurado no projeto).
+
+4. **UX**: O botão de busca é opcional - usuário pode preencher manualmente se preferir.
