@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Download, FileSpreadsheet, FileText, File } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 
 interface Props {
@@ -59,7 +60,21 @@ export function ExportarTabelaPreco({ tabelaId, tabelaNome, tabelaBaseId }: Prop
       setExportando(true);
       const { precos: dados, precosTabelaBase } = await buscarDadosExportacao();
 
-      const linhas = dados.map((preco: any) => {
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'BiMaster';
+      const worksheet = workbook.addWorksheet('Preços');
+
+      worksheet.columns = [
+        { header: 'Código', key: 'codigo', width: 15 },
+        { header: 'Produto', key: 'produto', width: 35 },
+        { header: 'Descrição', key: 'descricao', width: 30 },
+        { header: tabelaBaseId ? 'Preço Base' : 'Custo Base', key: 'custo_base', width: 12 },
+        { header: 'Preço Calculado', key: 'preco_calculado', width: 15 },
+        { header: 'Preço Final', key: 'preco_final', width: 15 },
+        { header: 'Margem (%)', key: 'margem', width: 10 },
+      ];
+
+      dados.forEach((preco: any) => {
         const precoBase = precosTabelaBase[preco.produto_id];
         const referencia = precoBase && precoBase > 0 ? precoBase : (preco.custo_base || 0);
         const precoFinal = preco.preco_final || 0;
@@ -67,34 +82,24 @@ export function ExportarTabelaPreco({ tabelaId, tabelaNome, tabelaBaseId }: Prop
           ? ((precoFinal - referencia) / precoFinal) * 100
           : (preco.margem_lucro_percentual || 0);
 
-        return {
-          "Código": preco.produto.codigo,
-          "Produto": preco.produto.nome,
-          "Descrição": preco.produto.descricao || "",
-          [tabelaBaseId ? "Preço Base" : "Custo Base"]: referencia,
-          "Preço Calculado": preco.preco_calculado || 0,
-          "Preço Final": precoFinal,
-          "Margem (%)": margemCalculada.toFixed(2),
-        };
+        worksheet.addRow({
+          codigo: preco.produto.codigo,
+          produto: preco.produto.nome,
+          descricao: preco.produto.descricao || '',
+          custo_base: referencia,
+          preco_calculado: preco.preco_calculado || 0,
+          preco_final: precoFinal,
+          margem: margemCalculada.toFixed(2),
+        });
       });
 
-      const worksheet = XLSX.utils.json_to_sheet(linhas);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Preços");
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
 
-      // Auto-ajustar largura das colunas
-      const maxWidth = linhas.reduce((w, r) => Math.max(w, r.Produto.length), 10);
-      worksheet["!cols"] = [
-        { wch: 15 }, // Código
-        { wch: maxWidth }, // Produto
-        { wch: 30 }, // Descrição
-        { wch: 12 }, // Custo Base
-        { wch: 15 }, // Preço Calculado
-        { wch: 15 }, // Preço Final
-        { wch: 10 }, // Margem
-      ];
-
-      XLSX.writeFile(workbook, `tabela_preco_${tabelaNome.replace(/\s/g, "_")}.xlsx`);
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, `tabela_preco_${tabelaNome.replace(/\s/g, "_")}.xlsx`);
       setExportando(false);
       toast.success("Planilha exportada com sucesso!");
     },
@@ -109,7 +114,9 @@ export function ExportarTabelaPreco({ tabelaId, tabelaNome, tabelaBaseId }: Prop
       setExportando(true);
       const { precos: dados, precosTabelaBase } = await buscarDadosExportacao();
 
-      const linhas = dados.map((preco: any) => {
+      // Create CSV content manually
+      const header = ['Código', 'Produto', tabelaBaseId ? 'Preço Base' : 'Custo Base', 'Preço Final', 'Margem'];
+      const rows = dados.map((preco: any) => {
         const precoBase = precosTabelaBase[preco.produto_id];
         const referencia = precoBase && precoBase > 0 ? precoBase : (preco.custo_base || 0);
         const precoFinal = preco.preco_final || 0;
@@ -117,18 +124,16 @@ export function ExportarTabelaPreco({ tabelaId, tabelaNome, tabelaBaseId }: Prop
           ? ((precoFinal - referencia) / precoFinal) * 100
           : (preco.margem_lucro_percentual || 0);
 
-        return {
-          "Código": preco.produto.codigo,
-          "Produto": preco.produto.nome,
-          [tabelaBaseId ? "Preço Base" : "Custo Base"]: referencia,
-          "Preço Final": precoFinal,
-          "Margem": margemCalculada.toFixed(2),
-        };
+        return [
+          preco.produto.codigo,
+          `"${preco.produto.nome.replace(/"/g, '""')}"`,
+          referencia,
+          precoFinal,
+          margemCalculada.toFixed(2),
+        ].join(',');
       });
 
-      const worksheet = XLSX.utils.json_to_sheet(linhas);
-      const csv = XLSX.utils.sheet_to_csv(worksheet);
-
+      const csv = [header.join(','), ...rows].join('\n');
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);

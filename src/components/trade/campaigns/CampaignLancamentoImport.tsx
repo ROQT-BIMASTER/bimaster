@@ -30,7 +30,7 @@ import {
   Loader2
 } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 interface CampaignLancamentoImportProps {
   campaignId: string;
@@ -84,20 +84,29 @@ export function CampaignLancamentoImport({
     setIsProcessing(true);
 
     try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
+      const buffer = await file.arrayBuffer();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
       
       // Find the Lancamentos sheet
-      const sheetName = workbook.SheetNames.find(name => 
-        name.toLowerCase().includes("lançamento") || 
-        name.toLowerCase().includes("lancamento")
-      ) || workbook.SheetNames[0];
+      const worksheet = workbook.worksheets.find(ws => 
+        ws.name.toLowerCase().includes("lançamento") || 
+        ws.name.toLowerCase().includes("lancamento")
+      ) || workbook.worksheets[0];
       
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-      
-      // Skip header row
-      const rows = jsonData.slice(1).filter(row => row.length > 0 && row[0]);
+      // Convert worksheet to array of rows
+      const rows: any[][] = [];
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber > 1) { // Skip header
+          const rowData: any[] = [];
+          row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+            rowData[colNumber - 1] = cell.value;
+          });
+          if (rowData[0]) { // Only add rows with first column value
+            rows.push(rowData);
+          }
+        }
+      });
 
       // Validate customer IDs exist in the database
       const customerIds = rows.map(row => row[0]).filter(Boolean);

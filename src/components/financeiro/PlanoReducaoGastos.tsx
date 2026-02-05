@@ -18,7 +18,8 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { MetasReducaoChart } from "./MetasReducaoChart";
 import { RevisaoGastosCard } from "./RevisaoGastosCard";
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 interface PlanoReducaoGastosProps {
   dataInicio: string;
@@ -183,33 +184,62 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     }
   };
 
-  const exportarExcel = () => {
+  const exportarExcel = async () => {
     if (!revisoes) return;
 
-    const data = revisoes.map(r => ({
-      'Item': r.plano_contas?.name || r.categoria_nome || 'N/A',
-      'Fornecedor': r.fornecedor_nome || 'N/A',
-      'Documento': r.numero_documento || 'N/A',
-      'Tipo Documento': r.tipo_documento || 'N/A',
-      'Vencimento': r.data_vencimento ? format(parseISO(r.data_vencimento), 'dd/MM/yyyy') : 'N/A',
-      'Empresa': r.empresa_nome || 'N/A',
-      'Departamento': r.departamento?.nome || 'N/A',
-      'Tipo': tipoConfig[r.tipo_revisao as keyof typeof tipoConfig]?.label || r.tipo_revisao,
-      'Prioridade': prioridadeConfig[r.prioridade as keyof typeof prioridadeConfig]?.label || r.prioridade,
-      'Valor Atual': r.valor_atual || 0,
-      'Meta Redução (%)': r.meta_reducao_percentual || 0,
-      'Meta Redução (R$)': r.meta_reducao_valor || 0,
-      'Resultado Obtido': r.resultado_obtido || 0,
-      'Responsável': (r as any).responsavel?.nome || (r as any).responsavel?.email || 'N/A',
-      'Prazo': r.prazo_revisao ? format(parseISO(r.prazo_revisao), 'dd/MM/yyyy') : 'N/A',
-      'Status': statusConfig[r.status as keyof typeof statusConfig]?.label || r.status,
-      'Observações': r.observacoes || ''
-    }));
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'BiMaster';
+    const worksheet = workbook.addWorksheet('Plano Redução');
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Plano Redução");
-    XLSX.writeFile(wb, `Plano_Reducao_Gastos_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
+    worksheet.columns = [
+      { header: 'Item', key: 'item', width: 30 },
+      { header: 'Fornecedor', key: 'fornecedor', width: 25 },
+      { header: 'Documento', key: 'documento', width: 15 },
+      { header: 'Tipo Documento', key: 'tipo_documento', width: 15 },
+      { header: 'Vencimento', key: 'vencimento', width: 12 },
+      { header: 'Empresa', key: 'empresa', width: 20 },
+      { header: 'Departamento', key: 'departamento', width: 20 },
+      { header: 'Tipo', key: 'tipo', width: 12 },
+      { header: 'Prioridade', key: 'prioridade', width: 10 },
+      { header: 'Valor Atual', key: 'valor_atual', width: 15 },
+      { header: 'Meta Redução (%)', key: 'meta_percentual', width: 15 },
+      { header: 'Meta Redução (R$)', key: 'meta_valor', width: 15 },
+      { header: 'Resultado Obtido', key: 'resultado', width: 15 },
+      { header: 'Responsável', key: 'responsavel', width: 25 },
+      { header: 'Prazo', key: 'prazo', width: 12 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Observações', key: 'observacoes', width: 40 },
+    ];
+
+    revisoes.forEach(r => {
+      worksheet.addRow({
+        item: r.plano_contas?.name || r.categoria_nome || 'N/A',
+        fornecedor: r.fornecedor_nome || 'N/A',
+        documento: r.numero_documento || 'N/A',
+        tipo_documento: r.tipo_documento || 'N/A',
+        vencimento: r.data_vencimento ? format(parseISO(r.data_vencimento), 'dd/MM/yyyy') : 'N/A',
+        empresa: r.empresa_nome || 'N/A',
+        departamento: r.departamento?.nome || 'N/A',
+        tipo: tipoConfig[r.tipo_revisao as keyof typeof tipoConfig]?.label || r.tipo_revisao,
+        prioridade: prioridadeConfig[r.prioridade as keyof typeof prioridadeConfig]?.label || r.prioridade,
+        valor_atual: r.valor_atual || 0,
+        meta_percentual: r.meta_reducao_percentual || 0,
+        meta_valor: r.meta_reducao_valor || 0,
+        resultado: r.resultado_obtido || 0,
+        responsavel: (r as any).responsavel?.nome || (r as any).responsavel?.email || 'N/A',
+        prazo: r.prazo_revisao ? format(parseISO(r.prazo_revisao), 'dd/MM/yyyy') : 'N/A',
+        status: statusConfig[r.status as keyof typeof statusConfig]?.label || r.status,
+        observacoes: r.observacoes || '',
+      });
+    });
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `Plano_Reducao_Gastos_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
     toast.success("Relatório exportado!");
   };
 

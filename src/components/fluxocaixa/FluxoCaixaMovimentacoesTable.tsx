@@ -26,7 +26,8 @@ import {
 } from "lucide-react";
 import { parseLocalDate, formatLocalDate } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import { toast } from "sonner";
 
 type SortColumn = "data_vencimento" | "tipo" | "nome" | "valor" | "status";
@@ -148,33 +149,52 @@ export const FluxoCaixaMovimentacoesTable = memo(function FluxoCaixaMovimentacoe
       : <ArrowDown className="h-3 w-3 ml-1" />;
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     try {
-      const exportData = allMovimentos.map(m => ({
-        "Vencimento": formatLocalDate(m.data_vencimento, "dd/MM/yyyy"),
-        "Tipo": m.tipo === "receber" ? "Entrada" : "Saída",
-        "Empresa": m.empresa_nome || "-",
-        "Nome": m.nome,
-        "Documento": m.numero_documento || "-",
-        "Valor": m.valor,
-        "Status": m.status || "-"
-      }));
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'BiMaster';
+      const worksheet = workbook.addWorksheet('Movimentações');
 
-      // Add totals row
-      exportData.push({
-        "Vencimento": "TOTAIS",
-        "Tipo": "",
-        "Empresa": "",
-        "Nome": `Entradas: ${formatCurrency(totals.entradas)}`,
-        "Documento": `Saídas: ${formatCurrency(totals.saidas)}`,
-        "Valor": totals.saldo,
-        "Status": `Saldo: ${formatCurrency(totals.saldo)}`
+      worksheet.columns = [
+        { header: 'Vencimento', key: 'vencimento', width: 12 },
+        { header: 'Tipo', key: 'tipo', width: 10 },
+        { header: 'Empresa', key: 'empresa', width: 25 },
+        { header: 'Nome', key: 'nome', width: 30 },
+        { header: 'Documento', key: 'documento', width: 15 },
+        { header: 'Valor', key: 'valor', width: 15 },
+        { header: 'Status', key: 'status', width: 12 },
+      ];
+
+      allMovimentos.forEach(m => {
+        worksheet.addRow({
+          vencimento: formatLocalDate(m.data_vencimento, "dd/MM/yyyy"),
+          tipo: m.tipo === "receber" ? "Entrada" : "Saída",
+          empresa: m.empresa_nome || "-",
+          nome: m.nome,
+          documento: m.numero_documento || "-",
+          valor: m.valor,
+          status: m.status || "-",
+        });
       });
 
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Movimentações");
-      XLSX.writeFile(wb, `fluxo_caixa_movimentacoes_${new Date().toISOString().split('T')[0]}.xlsx`);
+      // Add totals row
+      worksheet.addRow({
+        vencimento: 'TOTAIS',
+        tipo: '',
+        empresa: '',
+        nome: `Entradas: ${formatCurrency(totals.entradas)}`,
+        documento: `Saídas: ${formatCurrency(totals.saidas)}`,
+        valor: totals.saldo,
+        status: `Saldo: ${formatCurrency(totals.saldo)}`,
+      });
+
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, `fluxo_caixa_movimentacoes_${new Date().toISOString().split('T')[0]}.xlsx`);
       
       toast.success(`${allMovimentos.length} registros exportados com sucesso!`);
     } catch (error) {
