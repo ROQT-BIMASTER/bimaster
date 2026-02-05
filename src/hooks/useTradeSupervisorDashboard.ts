@@ -21,6 +21,16 @@ export interface TeamMember {
   id: string;
   nome: string;
   email: string;
+  supervisor_id: string | null;
+  supervisor_nome: string | null;
+}
+
+export interface TeamHierarchy {
+  supervisor: {
+    id: string;
+    nome: string;
+  } | null;
+  members: TeamMember[];
 }
 
 export function useTradeSupervisorDashboard(
@@ -35,11 +45,11 @@ export function useTradeSupervisorDashboard(
   const startDateStr = startDate.toISOString().split("T")[0];
   const endDateStr = endDate.toISOString().split("T")[0];
 
-  // Query para buscar subordinados
+  // Query para buscar subordinados com hierarquia
   const teamQuery = useQuery({
     queryKey: ["trade-supervisor-team", user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) return { flat: [], hierarchy: [] };
 
       const { data, error } = await supabase.rpc("get_subordinados", {
         _user_id: user.id,
@@ -48,22 +58,103 @@ export function useTradeSupervisorDashboard(
       if (error) throw error;
 
       const subordinadoIds = data?.map((s: { subordinado_id: string }) => s.subordinado_id) || [];
-      if (subordinadoIds.length === 0) return [];
+      if (subordinadoIds.length === 0) return { flat: [], hierarchy: [] };
 
+      // Buscar profiles com informação do supervisor
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, nome, email")
+        .select("id, nome, email, supervisor_id")
         .in("id", subordinadoIds);
 
       if (profilesError) throw profilesError;
 
-      return (profiles || []) as TeamMember[];
+      const allProfiles = profiles || [];
+      
+      // Buscar nomes dos supervisores
+      const supervisorIds = [...new Set(allProfiles.map(p => p.supervisor_id).filter(Boolean))];
+      let supervisorNames: Record<string, string> = {};
+      
+      if (supervisorIds.length > 0) {
+        const { data: supervisors } = await supabase
+          .from("profiles")
+          .select("id, nome")
+          .in("id", supervisorIds);
+        
+        supervisorNames = (supervisors || []).reduce((acc, s) => {
+          acc[s.id] = s.nome;
+          return acc;
+        }, {} as Record<string, string>);
+      }
+
+      // Criar lista flat com info do supervisor
+      const flat: TeamMember[] = allProfiles.map(p => ({
+        id: p.id,
+        nome: p.nome,
+        email: p.email,
+        supervisor_id: p.supervisor_id,
+        supervisor_nome: p.supervisor_id ? supervisorNames[p.supervisor_id] || null : null,
+      }));
+
+      // Criar hierarquia agrupada por supervisor
+      const hierarchyMap = new Map<string | null, TeamMember[]>();
+      
+      flat.forEach(member => {
+        // Só mostrar se o supervisor também está na lista de subordinados (é da minha equipe)
+        // OU se o supervisor sou eu
+        const supervisorKey = member.supervisor_id === user.id 
+          ? user.id 
+          : (subordinadoIds.includes(member.supervisor_id || '') ? member.supervisor_id : null);
+        
+        if (!hierarchyMap.has(supervisorKey)) {
+          hierarchyMap.set(supervisorKey, []);
+        }
+        hierarchyMap.get(supervisorKey)!.push(member);
+      });
+
+      // Ordenar membros em cada grupo
+      hierarchyMap.forEach((members) => {
+        members.sort((a, b) => a.nome.localeCompare(b.nome));
+      });
+
+      // Criar array de hierarquia ordenado
+      const hierarchy: TeamHierarchy[] = [];
+      
+      // Primeiro: diretos do usuário atual
+      if (hierarchyMap.has(user.id)) {
+        hierarchy.push({
+          supervisor: null, // Meus diretos
+          members: hierarchyMap.get(user.id)!,
+        });
+      }
+      
+      // Depois: subordinados de supervisores intermediários
+      const supervisorEntries = Array.from(hierarchyMap.entries())
+        .filter(([key]) => key !== user.id && key !== null)
+        .sort((a, b) => {
+          const nameA = supervisorNames[a[0]!] || '';
+          const nameB = supervisorNames[b[0]!] || '';
+          return nameA.localeCompare(nameB);
+        });
+      
+      for (const [supId, members] of supervisorEntries) {
+        hierarchy.push({
+          supervisor: {
+            id: supId!,
+            nome: supervisorNames[supId!] || 'Supervisor',
+          },
+          members,
+        });
+      }
+
+      return { flat, hierarchy };
     },
     enabled: !!user?.id,
     staleTime: 10 * 60 * 1000,
   });
 
-  const teamIds = teamQuery.data?.map((m) => m.id) || [];
+  const teamFlat = teamQuery.data?.flat || [];
+  const teamHierarchy = teamQuery.data?.hierarchy || [];
+  const teamIds = teamFlat.map((m) => m.id);
   const filterIds = selectedMemberId ? [selectedMemberId] : teamIds;
   const hasTeam = filterIds.length > 0;
   const filterIdsKey = filterIds.join(",");
@@ -380,7 +471,8 @@ export function useTradeSupervisorDashboard(
   });
 
   return {
-    team: teamQuery.data,
+    team: teamFlat,
+    teamHierarchy,
     isLoadingTeam: teamQuery.isLoading,
     kpis: kpisQuery.data,
     campaigns: campaignsQuery.data,
