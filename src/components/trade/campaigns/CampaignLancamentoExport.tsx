@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/dialog";
 import { Download, Search, Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface CampaignLancamentoExportProps {
@@ -88,7 +89,7 @@ export function CampaignLancamentoExport({
     );
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (selectedCustomers.length === 0) {
       toast.error("Selecione pelo menos um cliente para exportar");
       return;
@@ -100,91 +101,76 @@ export function CampaignLancamentoExport({
         selectedCustomers.includes(c.id)
       );
 
-      // Create worksheet data
-      const wsData = [
-        // Header row
-        [
-          "ID Cliente (NÃO ALTERAR)",
-          "Nome do Cliente",
-          "CNPJ",
-          "Valor Pedido (R$)",
-          "Tipo Brinde",
-          "Sell Out Anterior (R$)",
-          "Sell Out Atual (R$)",
-          "UNON Anterior",
-          "UNON Atual",
-          "Observações",
-        ],
-        // Data rows with customer info pre-filled
-        ...selectedData.map((customer) => [
-          customer.id,
-          customer.nome_empresa,
-          customer.cnpj || "",
-          "", // Valor Pedido - user fills
-          "", // Tipo Brinde - user fills
-          "", // Sell Out Anterior - user fills
-          "", // Sell Out Atual - user fills
-          "", // UNON Anterior - user fills
-          "", // UNON Atual - user fills
-          "", // Observações - user fills
-        ]),
-      ];
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'BiMaster';
 
-      // Create instructions sheet
+      // Create instructions sheet first
+      const wsInstructions = workbook.addWorksheet('Instruções');
       const instructionsData = [
-        ["INSTRUÇÕES DE PREENCHIMENTO"],
-        [""],
-        ["Campanha:", campaignName],
-        ["Código:", campaignCode],
-        [""],
-        ["CAMPOS OBRIGATÓRIOS:"],
-        ["- ID Cliente: NÃO ALTERE este campo, é usado para identificar o cliente"],
-        ["- Valor Pedido: Valor total do pedido em reais"],
-        [""],
-        ["CAMPOS OPCIONAIS:"],
-        ["- Tipo Brinde: brinde_produto, desconto, bonificacao, kit_promocional, premio, outro"],
-        ["- Sell Out Anterior: Valor de vendas no período anterior"],
-        ["- Sell Out Atual: Valor de vendas no período atual"],
-        ["- UNON Anterior/Atual: Quantidade de unidades vendidas"],
-        ["- Observações: Comentários adicionais sobre a execução"],
-        [""],
-        ["IMPORTANTE:"],
-        ["- Mantenha os IDs dos clientes inalterados"],
-        ["- Use valores numéricos sem formatação (ex: 1500.50, não R$ 1.500,50)"],
-        ["- Após preencher, importe o arquivo de volta no sistema"],
+        ['INSTRUÇÕES DE PREENCHIMENTO'],
+        [''],
+        ['Campanha:', campaignName],
+        ['Código:', campaignCode],
+        [''],
+        ['CAMPOS OBRIGATÓRIOS:'],
+        ['- ID Cliente: NÃO ALTERE este campo, é usado para identificar o cliente'],
+        ['- Valor Pedido: Valor total do pedido em reais'],
+        [''],
+        ['CAMPOS OPCIONAIS:'],
+        ['- Tipo Brinde: brinde_produto, desconto, bonificacao, kit_promocional, premio, outro'],
+        ['- Sell Out Anterior: Valor de vendas no período anterior'],
+        ['- Sell Out Atual: Valor de vendas no período atual'],
+        ['- UNON Anterior/Atual: Quantidade de unidades vendidas'],
+        ['- Observações: Comentários adicionais sobre a execução'],
+        [''],
+        ['IMPORTANTE:'],
+        ['- Mantenha os IDs dos clientes inalterados'],
+        ['- Use valores numéricos sem formatação (ex: 1500.50, não R$ 1.500,50)'],
+        ['- Após preencher, importe o arquivo de volta no sistema'],
+      ];
+      instructionsData.forEach(row => wsInstructions.addRow(row));
+
+      // Create data sheet
+      const wsLancamentos = workbook.addWorksheet('Lançamentos');
+      wsLancamentos.columns = [
+        { header: 'ID Cliente (NÃO ALTERAR)', key: 'id', width: 40 },
+        { header: 'Nome do Cliente', key: 'nome', width: 40 },
+        { header: 'CNPJ', key: 'cnpj', width: 20 },
+        { header: 'Valor Pedido (R$)', key: 'valor_pedido', width: 18 },
+        { header: 'Tipo Brinde', key: 'tipo_brinde', width: 18 },
+        { header: 'Sell Out Anterior (R$)', key: 'sell_out_anterior', width: 20 },
+        { header: 'Sell Out Atual (R$)', key: 'sell_out_atual', width: 18 },
+        { header: 'UNON Anterior', key: 'unon_anterior', width: 15 },
+        { header: 'UNON Atual', key: 'unon_atual', width: 12 },
+        { header: 'Observações', key: 'observacoes', width: 40 },
       ];
 
-      // Create workbook
-      const wb = XLSX.utils.book_new();
+      selectedData.forEach(customer => {
+        wsLancamentos.addRow({
+          id: customer.id,
+          nome: customer.nome_empresa,
+          cnpj: customer.cnpj || '',
+          valor_pedido: '',
+          tipo_brinde: '',
+          sell_out_anterior: '',
+          sell_out_atual: '',
+          unon_anterior: '',
+          unon_atual: '',
+          observacoes: '',
+        });
+      });
 
-      // Add instructions sheet first
-      const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
-      XLSX.utils.book_append_sheet(wb, wsInstructions, "Instruções");
-
-      // Add data sheet
-      const wsLancamentos = XLSX.utils.aoa_to_sheet(wsData);
-
-      // Set column widths
-      wsLancamentos["!cols"] = [
-        { wch: 40 }, // ID Cliente
-        { wch: 40 }, // Nome
-        { wch: 20 }, // CNPJ
-        { wch: 18 }, // Valor Pedido
-        { wch: 18 }, // Tipo Brinde
-        { wch: 20 }, // Sell Out Anterior
-        { wch: 18 }, // Sell Out Atual
-        { wch: 15 }, // UNON Anterior
-        { wch: 12 }, // UNON Atual
-        { wch: 40 }, // Observações
-      ];
-
-      XLSX.utils.book_append_sheet(wb, wsLancamentos, "Lançamentos");
+      const headerRow = wsLancamentos.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
 
       // Generate filename
       const fileName = `lancamentos_${campaignCode}_${new Date().toISOString().split("T")[0]}.xlsx`;
 
       // Save file
-      XLSX.writeFile(wb, fileName);
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, fileName);
 
       toast.success(`Planilha exportada com ${selectedData.length} cliente(s)`);
       onOpenChange(false);

@@ -51,7 +51,8 @@ import {
   Shield
 } from "lucide-react";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -590,45 +591,59 @@ export function MatrizPrecosComparativa() {
     setHistoricoOpen(true);
   };
 
-  const exportarExcel = () => {
+  const exportarExcel = async () => {
     if (!matrizDados.length || !tabelasOrdenadas.length) {
       toast.error("Não há dados para exportar");
       return;
     }
 
-    const headers = ["Código", "Produto", "Categoria", "Marca", "Linha"];
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'BiMaster';
+    const worksheet = workbook.addWorksheet('Matriz de Preços');
+
+    // Construir colunas dinamicamente
+    const columns: { header: string; key: string; width: number }[] = [
+      { header: 'Código', key: 'codigo', width: 15 },
+      { header: 'Produto', key: 'produto', width: 35 },
+      { header: 'Categoria', key: 'categoria', width: 20 },
+      { header: 'Marca', key: 'marca', width: 15 },
+      { header: 'Linha', key: 'linha', width: 15 },
+    ];
+
     tabelasOrdenadas.forEach((t) => {
-      headers.push(`${t.nome} (Preço)`);
-      headers.push(`${t.nome} (Margem %)`);
+      columns.push({ header: `${t.nome} (Preço)`, key: `preco_${t.id}`, width: 15 });
+      columns.push({ header: `${t.nome} (Margem %)`, key: `margem_${t.id}`, width: 12 });
     });
 
-    const rows = matrizDados.map((row) => {
-      const linha: (string | number)[] = [
-        row.produto.codigo,
-        row.produto.nome,
-        row.produto.categoria || "-",
-        row.produto.marca || "-",
-        row.produto.linha || "-",
-      ];
+    worksheet.columns = columns;
+
+    // Adicionar dados
+    matrizDados.forEach((row) => {
+      const rowData: Record<string, string | number> = {
+        codigo: row.produto.codigo,
+        produto: row.produto.nome,
+        categoria: row.produto.categoria || '-',
+        marca: row.produto.marca || '-',
+        linha: row.produto.linha || '-',
+      };
 
       tabelasOrdenadas.forEach((t) => {
         const preco = row.precos[t.id];
-        linha.push(preco ? preco.preco : "-");
-        linha.push(preco ? `${preco.margem.toFixed(1)}%` : "-");
+        rowData[`preco_${t.id}`] = preco ? preco.preco : '-';
+        rowData[`margem_${t.id}`] = preco ? `${preco.margem.toFixed(1)}%` : '-';
       });
 
-      return linha;
+      worksheet.addRow(rowData);
     });
 
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    // Estilizar cabeçalho
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
 
-    // Ajustar largura das colunas
-    const colWidths = headers.map((h) => ({ wch: Math.max(h.length, 12) }));
-    ws["!cols"] = colWidths;
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Matriz de Preços");
-    XLSX.writeFile(wb, `matriz-precos-${new Date().toISOString().split("T")[0]}.xlsx`);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `matriz-precos-${new Date().toISOString().split("T")[0]}.xlsx`);
     toast.success("Arquivo exportado com sucesso!");
   };
 
