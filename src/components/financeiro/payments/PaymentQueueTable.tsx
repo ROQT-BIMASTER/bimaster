@@ -2,7 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Eye, Target, Calendar, Loader2, Building } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -21,8 +21,7 @@ interface PaymentQueueTableProps {
   departments: Department[];
   filters: {
     status: PaymentQueueStatus | 'all';
-    source_type: SourceType | 'all';
-    department_name: string | 'all';
+    source_type: string; // Can be SourceType, 'all', or 'dept:DepartmentName'
     search: string;
   };
   onFiltersChange: (filters: PaymentQueueTableProps['filters']) => void;
@@ -68,40 +67,36 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, fil
         
         <Select
           value={filters.source_type}
-          onValueChange={(value) => onFiltersChange({ ...filters, source_type: value as SourceType | 'all', department_name: 'all' })}
+          onValueChange={(value) => onFiltersChange({ ...filters, source_type: value })}
         >
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-[220px]">
             <SelectValue placeholder="Origem" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas Origens</SelectItem>
-            <SelectItem value="trade_entry">Trade - Lançamento</SelectItem>
-            <SelectItem value="trade_investment">Trade - Investimento</SelectItem>
-            <SelectItem value="trade_campaign">Trade - Campanha</SelectItem>
-            <SelectItem value="event_expense">Evento</SelectItem>
-            <SelectItem value="department_expense">Departamento</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Department filter - only show when source_type is department_expense or all */}
-        {(filters.source_type === 'department_expense' || filters.source_type === 'all') && (
-          <Select
-            value={filters.department_name}
-            onValueChange={(value) => onFiltersChange({ ...filters, department_name: value })}
-          >
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Departamento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Departamentos</SelectItem>
+            
+            <SelectGroup>
+              <SelectLabel className="text-xs text-muted-foreground px-2">Trade</SelectLabel>
+              <SelectItem value="trade_entry">Trade - Lançamento</SelectItem>
+              <SelectItem value="trade_investment">Trade - Investimento</SelectItem>
+              <SelectItem value="trade_campaign">Trade - Campanha</SelectItem>
+            </SelectGroup>
+            
+            <SelectGroup>
+              <SelectLabel className="text-xs text-muted-foreground px-2">Eventos</SelectLabel>
+              <SelectItem value="event_expense">Evento</SelectItem>
+            </SelectGroup>
+            
+            <SelectGroup>
+              <SelectLabel className="text-xs text-muted-foreground px-2">Departamentos</SelectLabel>
               {departments.map((dept) => (
-                <SelectItem key={dept.id} value={dept.nome}>
+                <SelectItem key={dept.id} value={`dept:${dept.nome}`}>
                   {dept.nome}
                 </SelectItem>
               ))}
-            </SelectContent>
-          </Select>
-        )}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
 
         <Select
           value={filters.status}
