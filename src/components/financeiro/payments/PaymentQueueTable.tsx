@@ -73,6 +73,7 @@ export function PaymentQueueTable({ items, isLoading, onReview, filters, onFilte
             <SelectItem value="trade_investment">Trade - Investimento</SelectItem>
             <SelectItem value="trade_campaign">Trade - Campanha</SelectItem>
             <SelectItem value="event_expense">Evento</SelectItem>
+            <SelectItem value="department_expense">Departamento</SelectItem>
           </SelectContent>
         </Select>
 
