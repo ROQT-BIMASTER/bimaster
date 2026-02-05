@@ -51,21 +51,29 @@ export function useTradeSupervisorDashboard(
     queryFn: async () => {
       if (!user?.id) return { flat: [], hierarchy: [] };
 
+      console.log("[SupervisorDashboard] Buscando equipe para supervisor:", user.id);
+
       // Buscar APENAS subordinados diretos do usuário atual
+      // CORREÇÃO: usar status = 'ativo' ao invés de ativo = true
       const { data: profiles, error: profilesError } = await (supabase
         .from("profiles")
         .select("id, nome, email, supervisor_id") as any)
         .eq("supervisor_id", user.id)
-        .eq("ativo", true);
+        .eq("status", "ativo");
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error("[SupervisorDashboard] Erro ao buscar equipe:", profilesError);
+        throw profilesError;
+      }
 
       const allProfiles = profiles || [];
+      console.log("[SupervisorDashboard] Subordinados diretos encontrados:", allProfiles.length, allProfiles.map((p: any) => p.nome));
+      
       if (allProfiles.length === 0) return { flat: [], hierarchy: [] };
 
       // Criar lista flat (todos são diretos do usuário atual)
       const flat: TeamMember[] = allProfiles
-        .map(p => ({
+        .map((p: any) => ({
           id: p.id,
           nome: p.nome,
           email: p.email,
@@ -108,11 +116,11 @@ export function useTradeSupervisorDashboard(
         .eq("status", "active")
         .in("vendedor_id", filterIds);
       
-      // Visits - usando .in()
+      // Visits - CORREÇÃO: usar user_id (quem realizou a visita)
       const visitsRes = await supabase
         .from("visits")
         .select("id", { count: "exact", head: true })
-        .in("atribuido_por", filterIds)
+        .in("user_id", filterIds)
         .gte("scheduled_date", startDateStr)
         .lte("scheduled_date", endDateStr);
 
@@ -211,7 +219,7 @@ export function useTradeSupervisorDashboard(
           supabase
             .from("visits")
             .select("id", { count: "exact", head: true })
-            .in("atribuido_por", filterIds)
+            .in("user_id", filterIds)
             .gte("scheduled_date", mesInicioStr)
             .lte("scheduled_date", mesFimStr),
           (supabase
@@ -286,8 +294,8 @@ export function useTradeSupervisorDashboard(
 
       const res = await supabase
         .from("visits")
-        .select("id, scheduled_date, duration_minutes, status, compliance_score, store:stores(name), atribuidor:profiles!visits_atribuido_por_fkey(nome)")
-        .in("atribuido_por", filterIds)
+        .select("id, scheduled_date, duration_minutes, status, compliance_score, store:stores(name), vendedor:profiles!visits_user_id_fkey(nome)")
+        .in("user_id", filterIds)
         .gte("scheduled_date", startDateStr)
         .lte("scheduled_date", endDateStr)
         .order("scheduled_date", { ascending: false })
@@ -298,7 +306,7 @@ export function useTradeSupervisorDashboard(
       return allData.map((v: any) => ({
         id: v.id,
         pdv: v.store?.name || "PDV não identificado",
-        vendedor: v.atribuidor?.nome || "Vendedor não identificado",
+        vendedor: v.vendedor?.nome || "Vendedor não identificado",
         data: v.scheduled_date || "",
         duracao: v.duration_minutes,
         status: v.status || "pending",
