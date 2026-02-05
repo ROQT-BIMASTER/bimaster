@@ -100,11 +100,13 @@ const TradeModule = () => {
       { title: "Medições", to: "/dashboard/trade/shelf-measurements", icon: Ruler, color: "text-cyan-600" },
       { title: "Calendário", to: "/dashboard/trade/calendar", icon: MapPin, color: "text-orange-600" },
     ],
-    "Inteligência Competitiva": [
-      { title: "Concorrentes", to: "/dashboard/trade/competitors", icon: Target, color: "text-red-600" },
-      { title: "Comparação", to: "/dashboard/trade/comparacao-produtos", icon: BarChart3, color: "text-blue-600" },
-      ...(isAdminOrSupervisor ? [{ title: "Insights IA", to: "/dashboard/trade/insights", icon: TrendingUp, color: "text-green-600" }] : []),
-    ],
+    ...(isAdmin ? {
+      "Inteligência Competitiva": [
+        { title: "Concorrentes", to: "/dashboard/trade/competitors", icon: Target, color: "text-red-600" },
+        { title: "Comparação", to: "/dashboard/trade/comparacao-produtos", icon: BarChart3, color: "text-blue-600" },
+        { title: "Insights IA", to: "/dashboard/trade/insights", icon: TrendingUp, color: "text-green-600" },
+      ],
+    } : {}),
     ...(isAdmin ? {
       "Performance e Vendas": [
         { title: "Minha Equipe", to: "/dashboard/trade/minha-equipe", icon: Users, color: "text-indigo-600", isNew: true },
