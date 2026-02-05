@@ -10,6 +10,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { distribuidoraSchema, DistribuidoraInput, cleanCNPJ } from "@/lib/validations/estoque";
 import { useEffect } from "react";
+import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton";
 
 interface Props {
   open: boolean;
@@ -67,7 +68,26 @@ export function NovaDistribuidoraDialog({ open, onOpenChange, editingItem }: Pro
               <FormItem><FormLabel>Nome *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
             )} />
             <FormField control={form.control} name="cnpj" render={({ field }) => (
-              <FormItem><FormLabel>CNPJ *</FormLabel><FormControl><Input {...field} placeholder="00.000.000/0000-00" /></FormControl><FormMessage /></FormItem>
+              <FormItem>
+                <FormLabel>CNPJ *</FormLabel>
+                <div className="flex gap-2">
+                  <FormControl>
+                    <Input {...field} placeholder="00.000.000/0000-00" className="flex-1" />
+                  </FormControl>
+                  <CnpjSearchButton
+                    cnpj={field.value}
+                    onDataFound={(data: CnpjData) => {
+                      form.setValue("nome", data.razaoSocial || data.nomeFantasia || form.getValues("nome"));
+                      form.setValue("endereco", data.endereco || form.getValues("endereco"));
+                      form.setValue("cidade", data.cidade || form.getValues("cidade"));
+                      form.setValue("uf", data.uf || form.getValues("uf"));
+                      form.setValue("telefone", data.telefone || form.getValues("telefone"));
+                      form.setValue("email", data.email || form.getValues("email"));
+                    }}
+                  />
+                </div>
+                <FormMessage />
+              </FormItem>
             )} />
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="cidade" render={({ field }) => (

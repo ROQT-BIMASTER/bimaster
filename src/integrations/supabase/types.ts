@@ -10851,6 +10851,27 @@ export type Database = {
         }
         Relationships: []
       }
+      opencnpj_cache: {
+        Row: {
+          cnpj: string
+          created_at: string | null
+          data: Json
+          expires_at: string | null
+        }
+        Insert: {
+          cnpj: string
+          created_at?: string | null
+          data: Json
+          expires_at?: string | null
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string | null
+          data?: Json
+          expires_at?: string | null
+        }
+        Relationships: []
+      }
       our_brands: {
         Row: {
           active: boolean | null

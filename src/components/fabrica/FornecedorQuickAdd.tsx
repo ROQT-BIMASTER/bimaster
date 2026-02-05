@@ -23,6 +23,7 @@ import {
 import { Plus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton";
 
 interface Props {
   onFornecedorCriado: (fornecedor: { id: string; nome: string; cnpj?: string }) => void;
@@ -149,13 +150,24 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
 
               <div>
                 <Label htmlFor="quick-cnpj">CNPJ/CPF</Label>
-                <Input
-                  id="quick-cnpj"
-                  value={cnpj}
-                  onChange={(e) => setCnpj(e.target.value)}
-                  placeholder="00.000.000/0000-00"
-                  className="mt-1"
-                />
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="quick-cnpj"
+                    value={cnpj}
+                    onChange={(e) => setCnpj(e.target.value)}
+                    placeholder="00.000.000/0000-00"
+                    className="flex-1"
+                  />
+                  <CnpjSearchButton
+                    cnpj={cnpj}
+                    onDataFound={(data: CnpjData) => {
+                      setNome(data.razaoSocial || data.nomeFantasia || nome);
+                      if (data.razaoSocial || data.nomeFantasia) {
+                        setFavorecido(data.razaoSocial || data.nomeFantasia || favorecido);
+                      }
+                    }}
+                  />
+                </div>
               </div>
             </TabsContent>
             
