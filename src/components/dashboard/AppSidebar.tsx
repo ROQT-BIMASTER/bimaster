@@ -355,6 +355,7 @@ export function AppSidebar() {
 
   const tradeSubMenus = [
     { title: "Administrativo", url: "/dashboard/trade/admin", icon: Settings, screenCode: "trade_admin" },
+    { title: "Minha Equipe", url: "/dashboard/trade/minha-equipe", icon: Users, screenCode: "TRADE_DASHBOARD", requireAdminOrSupervisor: true },
     { title: "PDVs", url: "/dashboard/trade/stores", icon: Store, screenCode: "TRADE_LOJAS" },
     { title: "Visitas", url: "/dashboard/trade/visits", icon: Calendar, screenCode: "TRADE_VISITAS" },
     { title: "Sell Out", url: "/dashboard/trade/sellout", icon: DollarSign, screenCode: "trade_sellout" },
