@@ -1,274 +1,173 @@
 
-# Implementação de Vínculo Multi-Filial para Despesas
+# Adicionar Seletor de Filial em Telas de Criação
 
 ## Objetivo
-Garantir que cada funcionário/filial visualize apenas suas despesas, mantendo vínculo com suas respectivas empresas. Gestores e Financeiro Central terão visão global.
+Garantir que ao criar eventos, despesas de eventos, lançamentos e outros registros financeiros, o usuário selecione sua filial. Isso mantém consistência com o padrão já implementado para despesas de departamento.
 
-## Estrutura Atual
+## Contexto Atual
+O seletor de filial já foi implementado em:
+- `NovaDespesaDepartamentoDialog.tsx` - Despesas de departamento
 
-### Tabelas Existentes
-- `profiles` - possui `departamento_id` mas não possui vínculo com empresa/filial
-- `departamentos` - não possui vínculo com empresa/filial
-- `department_expenses` - não possui `empresa_id`
-- `financial_payment_queue` - não possui `empresa_id`
-- Dados de empresas existem apenas em `contas_pagar` e `contas_receber` (vindos do ERP)
+Já existem os hooks necessários:
+- `useUserEmpresas()` - Lista filiais vinculadas ao usuário
+- `usePrimaryEmpresa()` - Obtém filial principal do usuário
 
-### Empresas Identificadas no Sistema
-| ID | Nome |
-|----|------|
-| 1 | RUBY ROSE-SP |
-| 2 | RUBY ROSE - GYN |
-| 3 | UNION MEDIC MG LTDA |
-| 4 | RUBY ROSE - PR |
-| 5 | PARTY COSMETICOS |
-| 6 | RUBY ROSE [FILIAL] - (GLASS) |
-| 8 | RUBY ROSE-PE |
-| 9 | NEW COSMIC (M MARIA) |
-| 10 | MIDDAY COSMIC (MELU) |
-| 11 | A GENTE COSMETICS (RR) |
+## Telas a Modificar
 
-## Alterações Planejadas
+### Prioridade Alta (Módulo Eventos)
 
-### 1. Criar Tabela de Empresas Centralizada
+| Arquivo | Função | Alteração |
+|---------|--------|-----------|
+| `NovoEventoDialog.tsx` | Criar evento | Adicionar seletor de filial |
+| `NovaDespesaEventoDialog.tsx` | Criar despesa de evento | Adicionar seletor de filial |
+| `SolicitarVerbaEventoDialog.tsx` | Solicitar verba para evento | Adicionar seletor de filial |
 
-Criar tabela `empresas` para centralizar dados de filiais:
+### Prioridade Alta (Módulo Trade)
 
-```sql
-CREATE TABLE empresas (
-  id SERIAL PRIMARY KEY,
-  nome VARCHAR(255) NOT NULL,
-  cnpj VARCHAR(18),
-  uf VARCHAR(2),
-  ativa BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-```
+| Arquivo | Função | Alteração |
+|---------|--------|-----------|
+| `NovoLancamentoDialog.tsx` | Criar lançamento financeiro | Adicionar seletor de filial |
+| `SolicitarOrcamentoDialog.tsx` | Solicitar orçamento Trade | Adicionar seletor de filial |
+| `EditarLancamentoDialog.tsx` | Editar lançamento | Exibir/editar filial |
+| `EditarInvestimentoDialog.tsx` | Editar investimento | Exibir/editar filial |
 
-Popular com dados existentes de `contas_pagar`:
-```sql
-INSERT INTO empresas (id, nome)
-SELECT DISTINCT empresa_id, empresa_nome 
-FROM contas_pagar 
-WHERE empresa_id IS NOT NULL;
-```
+### Prioridade Média (Módulo Departamentos)
 
-### 2. Criar Tabela de Vínculo Usuário-Empresa (N:N)
+| Arquivo | Função | Alteração |
+|---------|--------|-----------|
+| `SolicitarVerbaDepartamentoDialog.tsx` | Solicitar verba | Adicionar seletor de filial |
 
-Permitir que um usuário esteja vinculado a múltiplas filiais:
+### Prioridade Baixa (Outras Telas - Futura Implementação)
+
+| Arquivo | Função |
+|---------|--------|
+| `NovaVisitaDialog.tsx` | Criar visita Trade |
+| `NovoSellOutDialog.tsx` | Registrar sell-out |
+| `NovaPromocaoDialog.tsx` | Criar promoção |
+| `NovoLancamentoDialog.tsx` (Fábrica) | Lançamento de produção |
+
+## Alterações no Banco de Dados
+
+Adicionar colunas `empresa_id` e `empresa_nome` nas tabelas:
 
 ```sql
-CREATE TABLE user_empresas (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  empresa_id INTEGER REFERENCES empresas(id) ON DELETE CASCADE NOT NULL,
-  is_primary BOOLEAN DEFAULT false, -- Filial principal do usuário
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, empresa_id)
-);
+-- Eventos corporativos
+ALTER TABLE corporate_events 
+ADD COLUMN IF NOT EXISTS empresa_id INTEGER REFERENCES empresas(id),
+ADD COLUMN IF NOT EXISTS empresa_nome VARCHAR(255);
+
+-- Despesas de eventos
+ALTER TABLE corporate_event_expenses 
+ADD COLUMN IF NOT EXISTS empresa_id INTEGER REFERENCES empresas(id),
+ADD COLUMN IF NOT EXISTS empresa_nome VARCHAR(255);
+
+-- Lançamentos Trade
+ALTER TABLE trade_financial_entries 
+ADD COLUMN IF NOT EXISTS empresa_id INTEGER REFERENCES empresas(id),
+ADD COLUMN IF NOT EXISTS empresa_nome VARCHAR(255);
+
+-- Orçamentos Trade
+ALTER TABLE trade_budgets 
+ADD COLUMN IF NOT EXISTS empresa_id INTEGER REFERENCES empresas(id),
+ADD COLUMN IF NOT EXISTS empresa_nome VARCHAR(255);
+
+-- Verbas de Departamento
+ALTER TABLE department_budgets 
+ADD COLUMN IF NOT EXISTS empresa_id INTEGER REFERENCES empresas(id),
+ADD COLUMN IF NOT EXISTS empresa_nome VARCHAR(255);
+
+-- Índices para performance
+CREATE INDEX IF NOT EXISTS idx_corporate_events_empresa ON corporate_events(empresa_id);
+CREATE INDEX IF NOT EXISTS idx_corporate_event_expenses_empresa ON corporate_event_expenses(empresa_id);
+CREATE INDEX IF NOT EXISTS idx_trade_financial_entries_empresa ON trade_financial_entries(empresa_id);
+CREATE INDEX IF NOT EXISTS idx_trade_budgets_empresa ON trade_budgets(empresa_id);
+CREATE INDEX IF NOT EXISTS idx_department_budgets_empresa ON department_budgets(empresa_id);
 ```
 
-### 3. Adicionar Coluna empresa_id nas Tabelas de Despesas
+## Padrão de Implementação
 
-**Tabela `department_expenses`:**
-```sql
-ALTER TABLE department_expenses 
-ADD COLUMN empresa_id INTEGER REFERENCES empresas(id);
+Cada dialog seguirá o mesmo padrão já implementado em `NovaDespesaDepartamentoDialog`:
 
-CREATE INDEX idx_department_expenses_empresa_id 
-ON department_expenses(empresa_id);
-```
-
-**Tabela `financial_payment_queue`:**
-```sql
-ALTER TABLE financial_payment_queue 
-ADD COLUMN empresa_id INTEGER REFERENCES empresas(id);
-ADD COLUMN empresa_nome VARCHAR(255);
-
-CREATE INDEX idx_financial_payment_queue_empresa_id 
-ON financial_payment_queue(empresa_id);
-```
-
-### 4. Criar Funções de Segurança
-
-**Função para verificar acesso à empresa:**
-```sql
-CREATE OR REPLACE FUNCTION user_has_empresa_access(_user_id UUID, _empresa_id INTEGER)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT 
-    -- Admin vê tudo
-    public.has_role(_user_id, 'admin') OR
-    -- Supervisor vê tudo
-    public.has_role(_user_id, 'supervisor') OR
-    -- Usuário tem vínculo com a empresa
-    EXISTS (
-      SELECT 1 FROM user_empresas 
-      WHERE user_id = _user_id AND empresa_id = _empresa_id
-    )
-$$;
-```
-
-**Função para obter empresas do usuário:**
-```sql
-CREATE OR REPLACE FUNCTION get_user_empresa_ids(_user_id UUID)
-RETURNS INTEGER[]
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT ARRAY(
-    SELECT empresa_id FROM user_empresas WHERE user_id = _user_id
-  )
-$$;
-```
-
-### 5. Atualizar Políticas RLS
-
-**Despesas de Departamento:**
-```sql
--- Drop existing policies
-DROP POLICY IF EXISTS "Allow users to view department expenses" ON department_expenses;
-
--- New policy with empresa filter
-CREATE POLICY "Allow users to view department expenses" ON department_expenses
-FOR SELECT USING (
-  -- Criador vê suas despesas
-  created_by = auth.uid() OR
-  -- Gestor do departamento vê despesas do departamento
-  EXISTS (
-    SELECT 1 FROM departamentos d
-    WHERE d.id = department_expenses.department_id 
-    AND d.responsavel_id = auth.uid()
-  ) OR
-  -- Financeiro vê tudo
-  can_access_payment_queue(auth.uid()) OR
-  -- Admin/Supervisor vê tudo
-  is_admin_or_supervisor(auth.uid()) OR
-  -- Usuário com acesso à empresa vê despesas da empresa
-  user_has_empresa_access(auth.uid(), empresa_id)
-);
-```
-
-**Fila de Pagamentos:**
-```sql
-DROP POLICY IF EXISTS "fpq_select_policy" ON financial_payment_queue;
-
-CREATE POLICY "fpq_select_policy" ON financial_payment_queue
-FOR SELECT USING (
-  -- Financeiro/Tesouraria/Controladoria veem tudo
-  can_access_payment_queue(auth.uid()) OR
-  -- Solicitante vê suas solicitações
-  requested_by = auth.uid() OR
-  -- Admin/Supervisor vê tudo
-  is_admin_or_supervisor(auth.uid()) OR
-  -- Usuário com acesso à empresa vê solicitações da empresa
-  user_has_empresa_access(auth.uid(), empresa_id)
-);
-```
-
-### 6. Atualizar Hooks do Frontend
-
-**Novo hook `useUserEmpresas`:**
 ```typescript
-// src/hooks/useUserEmpresas.ts
-export function useUserEmpresas() {
-  return useQuery({
-    queryKey: ["user-empresas"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+// 1. Importar hooks
+import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
+import { Building } from "lucide-react";
 
-      const { data, error } = await supabase
-        .from("user_empresas")
-        .select(`
-          empresa_id,
-          is_primary,
-          empresa:empresas(id, nome)
-        `)
-        .eq("user_id", user.id);
+// 2. Usar hooks no componente
+const { data: userEmpresas = [] } = useUserEmpresas();
+const { primaryEmpresa } = usePrimaryEmpresa();
 
-      if (error) throw error;
-      return data;
-    },
-  });
-}
+// 3. Estado do formulário
+const [formData, setFormData] = useState({
+  // ... outros campos
+  empresa_id: "",
+});
+
+// 4. Pre-selecionar filial principal
+useEffect(() => {
+  if (primaryEmpresa && !formData.empresa_id) {
+    setFormData(prev => ({ 
+      ...prev, 
+      empresa_id: primaryEmpresa.id.toString() 
+    }));
+  }
+}, [primaryEmpresa]);
+
+// 5. No submit, obter dados completos da empresa
+const selectedEmpresa = userEmpresas.find(
+  ue => ue.empresa_id.toString() === formData.empresa_id
+);
+
+// 6. Incluir na criação
+await createMutation({
+  // ... outros campos
+  empresa_id: selectedEmpresa?.empresa_id,
+  empresa_nome: selectedEmpresa?.empresa.nome,
+});
 ```
 
-**Atualizar `useDepartmentExpenses`:**
-- Adicionar `empresa_id` ao criar despesa
-- Filtrar por empresas do usuário quando não for gestor
-
-**Atualizar `useFinancialPaymentQueue`:**
-- Adicionar filtro por empresa na interface
-- Propagar `empresa_id` ao enviar para financeiro
-
-### 7. Atualizar Interface
-
-**Nova coluna na tabela de despesas:**
-- Exibir nome da empresa/filial em cada linha
-
-**Novo filtro na Central de Pagamentos:**
-- Adicionar select de empresas no filtro de origens
-- Exibir coluna "Filial" na tabela
-
-**Formulário de nova despesa:**
-- Adicionar seletor de empresa/filial
-- Pre-selecionar filial principal do usuário
-
-**Gestão de Usuários (Admin):**
-- Adicionar seção para vincular usuários a empresas
-- Permitir definir filial principal
-
-## Arquivos a Serem Modificados
-
-### Banco de Dados (Migrações)
-1. Criar tabela `empresas`
-2. Criar tabela `user_empresas`
-3. Adicionar colunas `empresa_id` em `department_expenses` e `financial_payment_queue`
-4. Criar funções de segurança
-5. Atualizar políticas RLS
-
-### Frontend
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/hooks/useUserEmpresas.ts` | Novo - Hook para empresas do usuário |
-| `src/hooks/useDepartmentExpenses.ts` | Adicionar filtro e propagação de empresa_id |
-| `src/hooks/useFinancialPaymentQueue.ts` | Adicionar filtro e interface para empresa |
-| `src/components/departments/NovaDespesaDepartamentoDialog.tsx` | Adicionar seletor de filial |
-| `src/components/departments/DepartmentExpensesTable.tsx` | Exibir coluna de filial |
-| `src/components/financeiro/payments/PaymentQueueTable.tsx` | Adicionar filtro e coluna de filial |
-| `src/pages/FinancialPaymentCentral.tsx` | Integrar filtro de empresas |
-
-## Fluxo de Visibilidade
+## Interface do Seletor
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                      VISIBILIDADE DE DESPESAS                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  FUNCIONÁRIO (vinculado à filial SP e GYN)                      │
-│  └─ Vê: Despesas da SP + Despesas da GYN                        │
-│                                                                 │
-│  GESTOR DE DEPARTAMENTO                                         │
-│  └─ Vê: Todas despesas do seu departamento (todas filiais)      │
-│                                                                 │
-│  SUPERVISOR / ADMIN                                             │
-│  └─ Vê: Todas despesas de todas filiais                         │
-│                                                                 │
-│  FINANCEIRO CENTRAL                                             │
-│  └─ Vê: Todas solicitações de pagamento de todas filiais        │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│ Filial *                                     │
+├──────────────────────────────────────────────┤
+│ 🏢 RUBY ROSE-SP (Principal)              ▼  │
+└──────────────────────────────────────────────┘
+  ↓ Dropdown aberto:
+  ┌────────────────────────────────────────────┐
+  │ 🏢 RUBY ROSE-SP (Principal)                │
+  │ 🏢 RUBY ROSE - GYN                         │
+  │ 🏢 RUBY ROSE - PR                          │
+  └────────────────────────────────────────────┘
 ```
 
-## Benefícios
-- Isolamento de dados por filial mantendo colaboração entre equipes
-- Gestores mantêm visão completa do departamento
-- Financeiro Central consolida todas as filiais
-- Flexibilidade para usuários multi-filial
-- Auditoria clara de qual filial gerou cada despesa
+## Hooks a Atualizar
+
+### useCorporateEvents.ts
+- Adicionar `empresa_id` e `empresa_nome` na interface `CreateEventInput`
+- Propagar campos no insert
+
+### useEventExpenses.ts
+- Adicionar `empresa_id` e `empresa_nome` na interface `CreateExpenseInput`
+- Propagar campos no insert e ao enviar para financeiro
+
+### Hooks de Trade (lançamentos/orçamentos)
+- Atualizar interfaces e mutations para incluir empresa
+
+## Tabelas de Listagem a Atualizar
+
+Exibir coluna "Filial" nas tabelas:
+- `EventsExpensesTable.tsx`
+- Tabela de Eventos
+- Tabela de Lançamentos Trade
+- Tabela de Orçamentos
+
+## Ordem de Implementação
+
+1. **Migração SQL** - Adicionar colunas em todas as tabelas
+2. **Dialogs de Eventos** - NovoEventoDialog, NovaDespesaEventoDialog
+3. **Dialogs de Trade** - NovoLancamentoDialog, SolicitarOrcamentoDialog
+4. **Dialogs de Departamentos** - SolicitarVerbaDepartamentoDialog
+5. **Hooks** - Atualizar interfaces e mutations
+6. **Tabelas** - Adicionar colunas de exibição
