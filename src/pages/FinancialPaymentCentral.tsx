@@ -13,13 +13,11 @@ import { supabase } from "@/integrations/supabase/client";
 export default function FinancialPaymentCentral() {
   const [filters, setFilters] = useState<{
     status: PaymentQueueStatus | 'all';
-    source_type: SourceType | 'all';
-    department_name: string | 'all';
+    source_type: string; // Can be SourceType, 'all', or 'dept:DepartmentName'
     search: string;
   }>({
     status: 'all',
     source_type: 'all',
-    department_name: 'all',
     search: '',
   });
 
@@ -52,7 +50,6 @@ export default function FinancialPaymentCentral() {
   } = useFinancialPaymentQueue({
     status: filters.status,
     source_type: filters.source_type,
-    department_name: filters.department_name,
     search: filters.search,
   });
 

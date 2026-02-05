@@ -71,8 +71,7 @@ interface UpdatePaymentStatusInput {
 
 interface PaymentQueueFilters {
   status?: PaymentQueueStatus | 'all';
-  source_type?: SourceType | 'all';
-  department_name?: string | 'all';
+  source_type?: string; // Can be SourceType, 'all', or 'dept:DepartmentName'
   search?: string;
   startDate?: Date;
   endDate?: Date;
@@ -95,12 +94,15 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         query = query.eq('financial_status', filters.status);
       }
 
+      // Handle unified origin filter with dept: prefix for departments
       if (filters?.source_type && filters.source_type !== 'all') {
-        query = query.eq('source_type', filters.source_type);
-      }
-
-      if (filters?.department_name && filters.department_name !== 'all') {
-        query = query.eq('department_name', filters.department_name);
+        if (filters.source_type.startsWith('dept:')) {
+          const deptName = filters.source_type.replace('dept:', '');
+          query = query.eq('source_type', 'department_expense');
+          query = query.eq('department_name', deptName);
+        } else {
+          query = query.eq('source_type', filters.source_type);
+        }
       }
 
       if (filters?.search) {
