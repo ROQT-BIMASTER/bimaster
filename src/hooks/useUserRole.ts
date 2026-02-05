@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 
-type UserType = "admin" | "supervisor" | "vendedor" | "promotor" | "cliente" | null;
+type UserType = "admin" | "gerente" | "supervisor" | "vendedor" | "promotor" | "cliente" | null;
 
 /**
  * Hook para role do usuário - respeita o modo de impersonação
@@ -25,11 +25,12 @@ export const useUserRole = () => {
     return {
       userType,
       isAdmin: userType === "admin",
+      isGerente: userType === "gerente",
       isSupervisor: userType === "supervisor",
       isVendedor: userType === "vendedor",
       isPromotor: userType === "promotor",
       isCliente: userType === "cliente",
-      isAdminOrSupervisor: userType === "admin" || userType === "supervisor",
+      isAdminOrSupervisor: userType === "admin" || userType === "gerente" || userType === "supervisor",
       isSalesTeam: userType === "vendedor" || userType === "promotor",
       isInternal: userType !== null && userType !== "cliente",
     };

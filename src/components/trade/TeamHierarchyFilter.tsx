@@ -143,6 +143,8 @@ export const TeamHierarchyFilter = ({ onUserSelect, selectedUserId }: TeamHierar
     switch (role) {
       case 'admin':
         return '👑';
+      case 'gerente':
+        return '🏆';
       case 'supervisor':
         return '👨‍💼';
       case 'vendedor':
@@ -157,6 +159,7 @@ export const TeamHierarchyFilter = ({ onUserSelect, selectedUserId }: TeamHierar
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
       admin: 'Admin',
+      gerente: 'Gerente',
       supervisor: 'Supervisor',
       vendedor: 'Vendedor',
       promotor: 'Promotor'
@@ -251,7 +254,7 @@ export const TeamHierarchyFilter = ({ onUserSelect, selectedUserId }: TeamHierar
     );
   }
 
-  if (!currentUserRole || (currentUserRole !== 'admin' && currentUserRole !== 'supervisor')) {
+  if (!currentUserRole || (currentUserRole !== 'admin' && currentUserRole !== 'gerente' && currentUserRole !== 'supervisor')) {
     return null;
   }
 

@@ -39,7 +39,7 @@ interface UseFilteredStoresResult {
  * Respeita o contexto de impersonação (Visualizar como Usuário)
  */
 export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilteredStoresResult {
-  const { isAdmin, isSupervisor, loading: roleLoading } = useUserRole();
+  const { isAdmin, isSupervisor, isGerente, loading: roleLoading } = useUserRole();
   const { isImpersonating, impersonatedUser, impersonatedPermissions } = useImpersonation();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -69,10 +69,10 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
 
   const effectiveIsSupervisor = useMemo(() => {
     if (isImpersonating && impersonatedPermissions) {
-      return impersonatedPermissions.role === 'supervisor';
+      return impersonatedPermissions.role === 'supervisor' || impersonatedPermissions.role === 'gerente';
     }
-    return isSupervisor;
-  }, [isImpersonating, impersonatedPermissions, isSupervisor]);
+    return isSupervisor || isGerente;
+  }, [isImpersonating, impersonatedPermissions, isSupervisor, isGerente]);
 
   const activeOnly = options?.activeOnly !== false; // Default true
 

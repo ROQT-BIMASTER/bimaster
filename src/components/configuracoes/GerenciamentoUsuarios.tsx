@@ -17,7 +17,7 @@ interface Usuario {
   id: string;
   nome: string;
   email: string;
-  tipo_usuario: "admin" | "supervisor" | "vendedor" | "promotor";
+  tipo_usuario: "admin" | "gerente" | "supervisor" | "vendedor" | "promotor";
   status: "ativo" | "inativo";
   aprovado: boolean;
 }
@@ -43,7 +43,7 @@ export const GerenciamentoUsuarios = () => {
   const [novoUsuario, setNovoUsuario] = useState<{
     nome: string;
     email: string;
-    tipo_usuario: "admin" | "supervisor" | "vendedor" | "promotor";
+    tipo_usuario: "admin" | "gerente" | "supervisor" | "vendedor" | "promotor";
     senha: string;
   }>({
     nome: "",
@@ -488,6 +488,7 @@ export const GerenciamentoUsuarios = () => {
                         <SelectItem value="vendedor">Vendedor</SelectItem>
                         <SelectItem value="promotor">Promotor</SelectItem>
                         <SelectItem value="supervisor">Supervisor</SelectItem>
+                        <SelectItem value="gerente">Gerente</SelectItem>
                         <SelectItem value="admin">Administrador</SelectItem>
                       </SelectContent>
                     </Select>
@@ -525,10 +526,12 @@ export const GerenciamentoUsuarios = () => {
                             .filter(u => {
                               // Filtrar superiores possíveis baseado no role
                               if (novoUsuario.tipo_usuario === "promotor") {
-                                return u.tipo_usuario === "vendedor" || u.tipo_usuario === "supervisor" || u.tipo_usuario === "admin";
+                                return u.tipo_usuario === "vendedor" || u.tipo_usuario === "supervisor" || u.tipo_usuario === "gerente" || u.tipo_usuario === "admin";
                               } else if (novoUsuario.tipo_usuario === "vendedor") {
-                                return u.tipo_usuario === "supervisor" || u.tipo_usuario === "admin";
+                                return u.tipo_usuario === "supervisor" || u.tipo_usuario === "gerente" || u.tipo_usuario === "admin";
                               } else if (novoUsuario.tipo_usuario === "supervisor") {
+                                return u.tipo_usuario === "gerente" || u.tipo_usuario === "admin";
+                              } else if (novoUsuario.tipo_usuario === "gerente") {
                                 return u.tipo_usuario === "admin";
                               }
                               return false;
