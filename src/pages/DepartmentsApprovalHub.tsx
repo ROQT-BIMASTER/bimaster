@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useManagerPendingExpenses } from "@/hooks/useManagerPendingExpenses";
 import { AprovarDespesaDepartamentoDialog } from "@/components/departments/AprovarDespesaDepartamentoDialog";
 import { DepartmentExpense, DEPARTMENT_EXPENSE_CATEGORIES } from "@/hooks/useDepartmentExpenses";
+import { exportDepartmentExpensesToExcel } from "@/lib/exportExpenses";
+import { toast } from "sonner";
 import { 
   Clock, 
   Building2, 
@@ -19,19 +21,23 @@ import {
   DollarSign, 
   Search,
   FileText,
-  ArrowLeft
+  ArrowLeft,
+  RefreshCw,
+  Download,
+  Loader2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function DepartmentsApprovalHub() {
   const navigate = useNavigate();
-  const { data, isLoading } = useManagerPendingExpenses();
+  const { data, isLoading, refetch } = useManagerPendingExpenses();
   
   const [selectedExpense, setSelectedExpense] = useState<DepartmentExpense | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [isExporting, setIsExporting] = useState(false);
 
   const expenses = data?.expenses || [];
   const departments = data?.departments || [];
@@ -54,6 +60,19 @@ export default function DepartmentsApprovalHub() {
   const getCategoryLabel = (value: string) => {
     const cat = DEPARTMENT_EXPENSE_CATEGORIES.find(c => c.value === value);
     return cat?.label || value;
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await exportDepartmentExpensesToExcel(filteredExpenses, "despesas-pendentes-aprovacao");
+      toast.success("Exportação concluída com sucesso!");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Erro ao exportar dados");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (isLoading) {
@@ -119,6 +138,25 @@ export default function DepartmentsApprovalHub() {
                 Revise e aprove despesas de todos os seus departamentos
               </p>
             </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleExport}
+              disabled={isExporting || filteredExpenses.length === 0}
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Exportar Excel
+            </Button>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
           </div>
         </div>
 

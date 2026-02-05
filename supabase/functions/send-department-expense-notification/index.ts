@@ -53,14 +53,12 @@ serve(async (req) => {
 
     const { expenseId, status, rejectionReason } = await req.json() as NotificationPayload;
 
-    // Fetch expense details with department and creator info
+    // Fetch expense details with department info
     const { data: expense, error: expenseError } = await supabase
       .from("department_expenses")
       .select(`
         *,
-        department:departamentos!department_id(id, nome),
-        creator:profiles!created_by(id, name, email),
-        approver:profiles!approved_by(id, name)
+        department:departamentos!department_id(id, nome)
       `)
       .eq("id", expenseId)
       .single();
@@ -73,8 +71,30 @@ serve(async (req) => {
       );
     }
 
+    // Fetch creator and approver profiles separately (profiles may not have email column)
+    let creator: { id: string; nome: string; email?: string } | null = null;
+    let approver: { id: string; nome: string } | null = null;
+
+    if (expense.created_by) {
+      const { data: creatorData } = await supabase
+        .from("profiles")
+        .select("id, nome, email")
+        .eq("id", expense.created_by)
+        .single();
+      creator = creatorData;
+    }
+
+    if (expense.approved_by) {
+      const { data: approverData } = await supabase
+        .from("profiles")
+        .select("id, nome")
+        .eq("id", expense.approved_by)
+        .single();
+      approver = approverData;
+    }
+
     // Check if creator has an email
-    if (!expense.creator?.email) {
+    if (!creator?.email) {
       console.log("Creator has no email, skipping notification");
       return new Response(
         JSON.stringify({ message: "Creator has no email configured" }),
@@ -86,39 +106,39 @@ serve(async (req) => {
     const siteUrl = Deno.env.get("SITE_URL") || "https://bimaster.lovable.app";
     const actionUrl = `${siteUrl}/dashboard/departamentos/${expense.department_id}`;
 
-    // Format amount as Brazilian currency
+    // Format amount as Brazilian currency - using correct field names
     const amount = new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(expense.actual_amount || expense.estimated_amount || 0);
+    }).format(expense.valor_realizado || expense.valor_previsto || 0);
 
     // Logo URL from storage
     const logoUrl = `${supabaseUrl}/storage/v1/object/public/email-assets/logo-union.png?v=1`;
 
-    // Render the email template
+    // Render the email template - using correct field names
     const html = await renderAsync(
       React.createElement(ExpenseStatusEmail, {
-        userName: expense.creator.name || "Usuário",
-        expenseCode: expense.expense_code || `DEP-${expenseId.slice(0, 8).toUpperCase()}`,
+        userName: creator.nome || "Usuário",
+        expenseCode: expense.code || `DEP-${expenseId.slice(0, 8).toUpperCase()}`,
         expenseDescription: expense.description || "Sem descrição",
         categoryName: expense.category || "N/A",
         departmentName: expense.department?.nome || "Departamento",
         amount,
         status,
-        approverName: expense.approver?.name || "Gerente",
+        approverName: approver?.nome || "Gerente",
         rejectionReason: rejectionReason || expense.payment_notes,
         actionUrl,
         logoUrl,
       })
     );
 
-    // Send email
+    // Send email - using correct field names
     const { data: emailResult, error: emailError } = await resend.emails.send({
       from: "Sistema Huggs <noreply@resend.dev>",
-      to: [expense.creator.email],
+      to: [creator.email],
       subject: status === "approved"
-        ? `✅ Despesa ${expense.expense_code} aprovada!`
-        : `❌ Despesa ${expense.expense_code} rejeitada`,
+        ? `✅ Despesa ${expense.code} aprovada!`
+        : `❌ Despesa ${expense.code} rejeitada`,
       html,
     });
 
@@ -129,15 +149,15 @@ serve(async (req) => {
 
     console.log("Email sent successfully:", emailResult);
 
-    // Also create an in-app notification
+    // Also create an in-app notification - using correct field names
     await supabase.from("notifications").insert({
       user_id: expense.created_by,
       type: status === "approved" ? "expense_approved" : "expense_rejected",
       title: status === "approved"
-        ? `Despesa ${expense.expense_code} aprovada`
-        : `Despesa ${expense.expense_code} rejeitada`,
+        ? `Despesa ${expense.code} aprovada`
+        : `Despesa ${expense.code} rejeitada`,
       message: status === "approved"
-        ? `Sua despesa foi aprovada por ${expense.approver?.name || "gerente"}.`
+        ? `Sua despesa foi aprovada por ${approver?.nome || "gerente"}.`
         : `Sua despesa foi rejeitada. Motivo: ${rejectionReason || "Não informado"}`,
       action_url: actionUrl,
     });

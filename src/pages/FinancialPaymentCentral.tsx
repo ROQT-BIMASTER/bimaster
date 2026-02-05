@@ -4,13 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, CreditCard, ArrowLeft } from "lucide-react";
+import { RefreshCw, CreditCard, ArrowLeft, Download, Loader2 } from "lucide-react";
 import { PaymentQueueKPIs } from "@/components/financeiro/payments/PaymentQueueKPIs";
 import { PaymentQueueTable } from "@/components/financeiro/payments/PaymentQueueTable";
 import { PaymentReviewDialog } from "@/components/financeiro/payments/PaymentReviewDialog";
 import { useFinancialPaymentQueue, type PaymentQueueItem, type PaymentQueueStatus, type SourceType } from "@/hooks/useFinancialPaymentQueue";
 import { useAllEmpresas } from "@/hooks/useUserEmpresas";
 import { supabase } from "@/integrations/supabase/client";
+import { exportPaymentQueueToExcel } from "@/lib/exportExpenses";
+import { toast } from "sonner";
 
 export default function FinancialPaymentCentral() {
   const navigate = useNavigate();
@@ -28,6 +30,7 @@ export default function FinancialPaymentCentral() {
 
   const [selectedItem, setSelectedItem] = useState<PaymentQueueItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Fetch departments for the filter
   const { data: departments = [] } = useQuery({
@@ -94,6 +97,19 @@ export default function FinancialPaymentCentral() {
     });
   };
 
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await exportPaymentQueueToExcel(items, "central-pagamentos");
+      toast.success("Exportação concluída com sucesso!");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Erro ao exportar dados");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -113,15 +129,29 @@ export default function FinancialPaymentCentral() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Central de Pagamentos</h1>
               <p className="text-muted-foreground">
-                Gerencie solicitações de pagamento de Trade e Eventos
+                Gerencie solicitações de pagamento de Trade, Eventos e Departamentos
               </p>
             </div>
           </div>
           
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleExport}
+              disabled={isExporting || items.length === 0}
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Exportar Excel
+            </Button>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}

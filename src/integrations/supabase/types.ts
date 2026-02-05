@@ -3575,6 +3575,45 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_approval_audit: {
+        Row: {
+          action: string
+          expense_id: string
+          expense_type: string
+          id: string
+          metadata: Json | null
+          new_status: string | null
+          notes: string | null
+          old_status: string | null
+          performed_at: string
+          performed_by: string | null
+        }
+        Insert: {
+          action: string
+          expense_id: string
+          expense_type: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          notes?: string | null
+          old_status?: string | null
+          performed_at?: string
+          performed_by?: string | null
+        }
+        Update: {
+          action?: string
+          expense_id?: string
+          expense_type?: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          notes?: string | null
+          old_status?: string | null
+          performed_at?: string
+          performed_by?: string | null
+        }
+        Relationships: []
+      }
       fabrica_acoes_corretivas: {
         Row: {
           created_at: string | null

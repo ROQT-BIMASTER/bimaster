@@ -239,6 +239,7 @@ export function useDepartmentExpenses(departmentId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["department-expenses"] });
       queryClient.invalidateQueries({ queryKey: ["pending-department-expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["manager-pending-expenses"] });
       toast.success("Despesa aprovada com sucesso!");
     },
     onError: (error: Error) => {
@@ -275,6 +276,7 @@ export function useDepartmentExpenses(departmentId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["department-expenses"] });
       queryClient.invalidateQueries({ queryKey: ["pending-department-expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["manager-pending-expenses"] });
       toast.success("Despesa rejeitada!");
     },
     onError: (error: Error) => {
