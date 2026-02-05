@@ -207,3 +207,7 @@ verify_jwt = true
 # Create Admin Users - REQUIRES ADMIN AUTHENTICATION
 [functions.create-admin-users]
 verify_jwt = false
+
+# OpenCNPJ - Consulta gratuita de CNPJ na Receita Federal
+[functions.opencnpj-consulta]
+verify_jwt = true

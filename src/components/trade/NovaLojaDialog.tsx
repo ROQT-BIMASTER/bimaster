@@ -12,6 +12,7 @@ import { NovaCategoriaDialog } from "./NovaCategoriaDialog";
 import { NovaRedeDialog } from "./NovaRedeDialog";
 import { VendedorMultiSelect } from "./VendedorMultiSelect";
 import { ClassificationSelector } from "./ClassificationSelector";
+import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton";
 import { z } from "zod";
 
 // Schema de validação para loja
@@ -371,12 +372,30 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
 
             <div className="space-y-2">
               <Label htmlFor="cnpj">CNPJ</Label>
-              <Input
-                id="cnpj"
-                value={formData.cnpj}
-                onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                placeholder="00.000.000/0000-00"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="cnpj"
+                  value={formData.cnpj}
+                  onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                  placeholder="00.000.000/0000-00"
+                  className="flex-1"
+                />
+                <CnpjSearchButton
+                  cnpj={formData.cnpj}
+                  onDataFound={(data: CnpjData) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      name: data.razaoSocial || data.nomeFantasia || prev.name,
+                      chain: data.nomeFantasia || prev.chain,
+                      address: data.endereco || prev.address,
+                      city: data.cidade || prev.city,
+                      state: data.uf || prev.state,
+                      phone: data.telefone || prev.phone,
+                      email: data.email || prev.email,
+                    }));
+                  }}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
