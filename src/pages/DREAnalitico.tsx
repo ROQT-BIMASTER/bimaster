@@ -22,7 +22,8 @@ import { DREFontSizeControl, FontSizeLevel, fontSizeClasses } from "@/components
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfQuarter, endOfQuarter, subMonths, subYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { DetalheLancamentoDialog } from "@/components/financeiro/DetalheLancamentoDialog";
 
 interface DRENode {
@@ -1391,23 +1392,23 @@ export default function DREAnalitico() {
     );
   };
 
-  const exportarExcel = () => {
+  const exportarExcel = async () => {
     const flattenData = (nodes: DRENode[]): any[] => {
       const result: any[] = [];
       
       nodes.forEach(node => {
         const row: any = { 
-          'Código': node.codigo, 
-          'Descrição': node.nome, 
-          'Tipo': node.tipo 
+          codigo: node.codigo, 
+          descricao: node.nome, 
+          tipo: node.tipo 
         };
         mesesPeriodo.forEach(m => { 
-          row[`${m.label} (R$)`] = node.valoresMensais?.[m.key] || 0;
-          row[`${m.label} (AV%)`] = receitaBrutaTotal > 0 ? ((node.valoresMensais?.[m.key] || 0) / receitaBrutaTotal * 100).toFixed(2) : 0;
+          row[`${m.key}_valor`] = node.valoresMensais?.[m.key] || 0;
+          row[`${m.key}_av`] = receitaBrutaTotal > 0 ? ((node.valoresMensais?.[m.key] || 0) / receitaBrutaTotal * 100).toFixed(2) : 0;
         });
-        row['Total (R$)'] = node.valor;
-        row['Total (AV%)'] = receitaBrutaTotal > 0 ? (node.valor / receitaBrutaTotal * 100).toFixed(2) : 0;
-        row['AH%'] = calcularAH(node.valoresMensais || {})?.toFixed(2) || '-';
+        row['total_valor'] = node.valor;
+        row['total_av'] = receitaBrutaTotal > 0 ? (node.valor / receitaBrutaTotal * 100).toFixed(2) : 0;
+        row['ah'] = calcularAH(node.valoresMensais || {})?.toFixed(2) || '-';
         result.push(row);
         if (node.children) result.push(...flattenData(node.children));
       });
@@ -1416,11 +1417,35 @@ export default function DREAnalitico() {
     };
 
     const data = flattenData(visaoAtiva === 'contas' ? hierarquia : hierarquiaDepartamentos);
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "DRE Gerencial");
     
-    XLSX.writeFile(wb, `DRE_Gerencial_${format(new Date(dataInicio), 'dd-MM-yyyy')}_a_${format(new Date(dataFim), 'dd-MM-yyyy')}.xlsx`);
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'BiMaster';
+    const worksheet = workbook.addWorksheet('DRE Gerencial');
+    
+    // Build columns dynamically
+    const columns: { header: string; key: string; width: number }[] = [
+      { header: 'Código', key: 'codigo', width: 15 },
+      { header: 'Descrição', key: 'descricao', width: 40 },
+      { header: 'Tipo', key: 'tipo', width: 12 },
+    ];
+    mesesPeriodo.forEach(m => {
+      columns.push({ header: `${m.label} (R$)`, key: `${m.key}_valor`, width: 15 });
+      columns.push({ header: `${m.label} (AV%)`, key: `${m.key}_av`, width: 12 });
+    });
+    columns.push({ header: 'Total (R$)', key: 'total_valor', width: 15 });
+    columns.push({ header: 'Total (AV%)', key: 'total_av', width: 12 });
+    columns.push({ header: 'AH%', key: 'ah', width: 10 });
+    
+    worksheet.columns = columns;
+    data.forEach(row => worksheet.addRow(row));
+    
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+    
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `DRE_Gerencial_${format(new Date(dataInicio), 'dd-MM-yyyy')}_a_${format(new Date(dataFim), 'dd-MM-yyyy')}.xlsx`);
     toast.success("Relatório DRE exportado com sucesso!");
   };
 
