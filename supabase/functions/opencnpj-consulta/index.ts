@@ -1,3 +1,4 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -29,7 +30,7 @@ interface OpenCNPJResponse {
   natureza_juridica?: string;
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -106,13 +107,13 @@ Deno.serve(async (req) => {
     // Consultar API OpenCNPJ
     console.log(`[OpenCNPJ] Cache miss, consultando API para: ${cnpjLimpo}`);
     
-    const apiUrl = `https://api.opencnpj.com/v1/${cnpjLimpo}`;
+    // URL correta da API OpenCNPJ: https://api.opencnpj.org/{CNPJ}
+    const apiUrl = `https://api.opencnpj.org/${cnpjLimpo}`;
     
     const apiResponse = await fetch(apiUrl, {
       method: "GET",
       headers: {
         "Accept": "application/json",
-        "User-Agent": "Lovable-App/1.0",
       },
     });
 
