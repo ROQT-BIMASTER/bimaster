@@ -16,7 +16,9 @@ import { CNPJBizCreditos } from "@/components/prospects/CNPJBizCreditos";
 import { CNPJBizFilters } from "@/components/prospects/CNPJBizFilters";
 import { CNPJBizPreview } from "@/components/prospects/CNPJBizPreview";
 import { CNPJBizSearch } from "@/components/prospects/CNPJBizSearch";
-import * as XLSX from 'xlsx';
+import { readExcelFile } from "@/utils/excelExport";
+import { createImportTemplate } from "@/utils/excelExport";
+import ExcelJS from 'exceljs';
 
 interface ImportResult {
   total: number;
@@ -265,17 +267,26 @@ const ImportarClientes = () => {
 
         // Processar Excel
         if (extension === 'xlsx' || extension === 'xls') {
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(data as ArrayBuffer);
+          const worksheet = workbook.worksheets[0];
           
-          if (jsonData.length < 2) {
+          if (!worksheet || worksheet.rowCount < 2) {
             throw new Error("Arquivo vazio ou sem dados");
           }
           
+          const jsonData: any[][] = [];
+          worksheet.eachRow((row, rowNumber) => {
+            const rowData: any[] = [];
+            row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+              rowData[colNumber - 1] = cell.value;
+            });
+            jsonData.push(rowData);
+          });
+          
           headers = jsonData[0].map((h: any) => String(h || '').trim().toLowerCase());
           rows = jsonData.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== ''));
-        } 
+        }
         // Processar CSV
         else {
           const text = new TextDecoder('utf-8').decode(data as ArrayBuffer);
@@ -928,36 +939,100 @@ const ImportarClientes = () => {
     }
   };
 
-  const downloadTemplate = () => {
-    const ws_data = [
-      [
-        "Nome da empresa", "CNPJ", "CNPJ Raiz", "Domínio", "Nome Fantasia", "Perfil do LinkedIn", 
-        "Segmento", "CNAE principal (Código)", "CNAE principal", "Tipo de Estabelecimento", 
-        "Porte da empresa", "Total de funcionários", "Faixa de funcionários", "Faixa de faturamento", 
-        "Total de filiais", "Tipo de entidade", "Natureza jurídica", "Data de abertura", 
-        "Nível de atividade", "Tendência de crescimento", "Telefone principal", "Demais telefones", 
-        "Endereço completo", "Tipo de logradouro", "Logradouro", "Número", "CEP", "Bairro", 
-        "Município", "UF", "Email principal", "Demais emails", "Perfil do facebook", 
-        "Perfil do instagram", "Perfil do twitter", "URL company page", "Situação", "Território", 
-        "TRM", "Faixa Score Propensão", "Score Propensão", "Faixa Score Contactability", 
-        "Variação Score Propensão"
-      ],
-      [
-        "Empresa Exemplo Ltda", "11.222.333/0001-81", "11222333", "exemplo.com.br", "Exemplo", 
-        "linkedin.com/company/exemplo", "Tecnologia", "6201-5/00", "Desenvolvimento de programas", 
-        "Matriz", "Pequeno", "50", "11-50", "R$ 1M-10M", "3", "Empresa Privada", "LTDA", 
-        "01/01/2020", "Ativo", "Crescimento", "(11) 99999-9999", "(11) 88888-8888", 
-        "Rua Exemplo, 123, Sala 10", "Rua", "Exemplo", "123", "01234-567", "Centro", 
-        "São Paulo", "SP", "contato@exemplo.com", "vendas@exemplo.com", 
-        "facebook.com/exemplo", "instagram.com/exemplo", "twitter.com/exemplo", 
-        "exemplo.com.br", "Ativa", "Sul", "Regional Sul", "Alto", "85", "Médio", "5"
-      ]
+  const downloadTemplate = async () => {
+    const columns = [
+      { header: "Nome da empresa", key: "nome_empresa", width: 30 },
+      { header: "CNPJ", key: "cnpj", width: 20 },
+      { header: "CNPJ Raiz", key: "cnpj_raiz", width: 15 },
+      { header: "Domínio", key: "dominio", width: 20 },
+      { header: "Nome Fantasia", key: "nome_fantasia", width: 25 },
+      { header: "Perfil do LinkedIn", key: "perfil_linkedin", width: 30 },
+      { header: "Segmento", key: "segmento", width: 20 },
+      { header: "CNAE principal (Código)", key: "cnae_codigo", width: 20 },
+      { header: "CNAE principal", key: "cnae_principal", width: 30 },
+      { header: "Tipo de Estabelecimento", key: "tipo_estabelecimento", width: 20 },
+      { header: "Porte da empresa", key: "porte_empresa", width: 15 },
+      { header: "Total de funcionários", key: "total_funcionarios", width: 20 },
+      { header: "Faixa de funcionários", key: "faixa_funcionarios", width: 20 },
+      { header: "Faixa de faturamento", key: "faixa_faturamento", width: 20 },
+      { header: "Total de filiais", key: "total_filiais", width: 15 },
+      { header: "Tipo de entidade", key: "tipo_entidade", width: 20 },
+      { header: "Natureza jurídica", key: "natureza_juridica", width: 20 },
+      { header: "Data de abertura", key: "data_abertura", width: 15 },
+      { header: "Nível de atividade", key: "nivel_atividade", width: 15 },
+      { header: "Tendência de crescimento", key: "tendencia_crescimento", width: 20 },
+      { header: "Telefone principal", key: "telefone", width: 20 },
+      { header: "Demais telefones", key: "demais_telefones", width: 25 },
+      { header: "Endereço completo", key: "endereco", width: 40 },
+      { header: "Tipo de logradouro", key: "tipo_logradouro", width: 15 },
+      { header: "Logradouro", key: "logradouro", width: 30 },
+      { header: "Número", key: "numero", width: 10 },
+      { header: "CEP", key: "cep", width: 12 },
+      { header: "Bairro", key: "bairro", width: 20 },
+      { header: "Município", key: "municipio", width: 20 },
+      { header: "UF", key: "uf", width: 5 },
+      { header: "Email principal", key: "email", width: 30 },
+      { header: "Demais emails", key: "demais_emails", width: 30 },
+      { header: "Perfil do facebook", key: "perfil_facebook", width: 25 },
+      { header: "Perfil do instagram", key: "perfil_instagram", width: 25 },
+      { header: "Perfil do twitter", key: "perfil_twitter", width: 25 },
+      { header: "URL company page", key: "url_company_page", width: 30 },
+      { header: "Situação", key: "situacao", width: 15 },
+      { header: "Território", key: "territorio", width: 15 },
+      { header: "TRM", key: "trm", width: 15 },
+      { header: "Faixa Score Propensão", key: "faixa_score_propensao", width: 20 },
+      { header: "Score Propensão", key: "score_propensao", width: 15 },
+      { header: "Faixa Score Contactability", key: "faixa_score_contactability", width: 25 },
+      { header: "Variação Score Propensão", key: "variacao_score_propensao", width: 25 },
     ];
-    
-    const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Clientes");
-    XLSX.writeFile(wb, 'template_importacao_completo.xlsx');
+
+    const sampleData = [{
+      nome_empresa: "Empresa Exemplo Ltda",
+      cnpj: "11.222.333/0001-81",
+      cnpj_raiz: "11222333",
+      dominio: "exemplo.com.br",
+      nome_fantasia: "Exemplo",
+      perfil_linkedin: "linkedin.com/company/exemplo",
+      segmento: "Tecnologia",
+      cnae_codigo: "6201-5/00",
+      cnae_principal: "Desenvolvimento de programas",
+      tipo_estabelecimento: "Matriz",
+      porte_empresa: "Pequeno",
+      total_funcionarios: "50",
+      faixa_funcionarios: "11-50",
+      faixa_faturamento: "R$ 1M-10M",
+      total_filiais: "3",
+      tipo_entidade: "Empresa Privada",
+      natureza_juridica: "LTDA",
+      data_abertura: "01/01/2020",
+      nivel_atividade: "Ativo",
+      tendencia_crescimento: "Crescimento",
+      telefone: "(11) 99999-9999",
+      demais_telefones: "(11) 88888-8888",
+      endereco: "Rua Exemplo, 123, Sala 10",
+      tipo_logradouro: "Rua",
+      logradouro: "Exemplo",
+      numero: "123",
+      cep: "01234-567",
+      bairro: "Centro",
+      municipio: "São Paulo",
+      uf: "SP",
+      email: "contato@exemplo.com",
+      demais_emails: "vendas@exemplo.com",
+      perfil_facebook: "facebook.com/exemplo",
+      perfil_instagram: "instagram.com/exemplo",
+      perfil_twitter: "twitter.com/exemplo",
+      url_company_page: "exemplo.com.br",
+      situacao: "Ativa",
+      territorio: "Sul",
+      trm: "Regional Sul",
+      faixa_score_propensao: "Alto",
+      score_propensao: "85",
+      faixa_score_contactability: "Médio",
+      variacao_score_propensao: "5",
+    }];
+
+    await createImportTemplate(columns, 'template_importacao_completo', sampleData);
   };
 
   if (!isAdmin) {
