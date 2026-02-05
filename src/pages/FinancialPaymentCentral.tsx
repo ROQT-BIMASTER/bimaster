@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, CreditCard } from "lucide-react";
+import { RefreshCw, CreditCard, ArrowLeft } from "lucide-react";
 import { PaymentQueueKPIs } from "@/components/financeiro/payments/PaymentQueueKPIs";
 import { PaymentQueueTable } from "@/components/financeiro/payments/PaymentQueueTable";
 import { PaymentReviewDialog } from "@/components/financeiro/payments/PaymentReviewDialog";
@@ -12,6 +13,7 @@ import { useAllEmpresas } from "@/hooks/useUserEmpresas";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function FinancialPaymentCentral() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<{
     status: PaymentQueueStatus | 'all';
     source_type: string; // Can be SourceType, 'all', or 'dept:DepartmentName'
@@ -98,6 +100,13 @@ export default function FinancialPaymentCentral() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
             <div className="p-2.5 rounded-xl bg-primary/10">
               <CreditCard className="h-6 w-6 text-primary" />
             </div>
