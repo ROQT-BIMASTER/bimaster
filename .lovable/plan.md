@@ -1,79 +1,40 @@
 
 
-# Correção: Isolamento de Dados da Equipe no Dashboard "Minha Equipe"
+# Correção: Isolamento de Dados por Hierarquia (photos, visits, stores)
 
-## Problema Identificado
+## Status: ✅ APLICADO
 
-A tabela `photos` possui **múltiplas políticas RLS conflitantes** que dão a supervisores acesso a **TODAS** as fotos do sistema, em vez de restringir apenas aos subordinados diretos. A tabela `visits` tem o mesmo problema.
+## Problemas Corrigidos
 
-### Políticas Problemáticas em `photos` (SELECT)
+### 1. Parâmetros invertidos em `is_supervisor_of` (photos, visits)
+- **Antes**: `is_supervisor_of(vendedor_id, auth.uid())` → vendedores viam dados do chefe
+- **Depois**: `is_supervisor_of(auth.uid(), vendedor_id)` → supervisores veem apenas subordinados
 
-| Politica | Condição | Problema |
-|---|---|---|
-| "Admins e supervisores podem ver todas as fotos" | `is_admin_or_supervisor(auth.uid())` | Supervisores veem TUDO |
-| "Usuários veem fotos permitidas" | inclui `is_admin_or_supervisor(auth.uid())` | Redundante e permissiva |
-| "Usuários gerenciam próprias fotos" (ALL) | inclui `is_admin_or_supervisor(auth.uid())` | Cobre SELECT tambem |
-| "visits_select_restricted" (visits) | inclui `is_admin_or_supervisor(auth.uid())` | Mesmo problema |
+### 2. Políticas permissivas usando `is_admin_or_supervisor` (photos, visits)  
+- **Antes**: Qualquer supervisor via TODAS as fotos e visitas do sistema
+- **Depois**: Políticas granulares separando admin, supervisor (hierarquia) e vendedor (próprios)
 
-Como as políticas RLS funcionam com lógica OR (qualquer uma verdadeira libera o acesso), a política "Admins e supervisores" anula todas as restrições mais granulares.
+### 3. Stores (PDVs) sem isolamento por hierarquia
+- **Antes**: `is_admin_or_supervisor(auth.uid())` → supervisores viam TODOS os 73 PDVs
+- **Depois**: Supervisor vê apenas PDVs onde é supervisor direto ou vinculados a seus subordinados via store_sellers
 
-## Plano de Correção
+## Políticas Finais
 
-### Passo 1 -- Limpar e corrigir RLS da tabela `photos`
+### photos (SELECT)
+- `photos_select_admin`: `is_admin()`
+- `photos_select_supervisor`: `is_supervisor_of(auth.uid(), vendedor_id)`
+- `photos_select_own`: `vendedor_id = auth.uid()`
+- `photos_select_via_visit`: via visita acessível com `is_supervisor_of(auth.uid(), v.user_id)`
 
-Remover as políticas excessivamente permissivas e recriar com isolamento correto:
+### visits (SELECT)
+- `visits_select_admin`: `is_admin()`
+- `visits_select_supervisor`: `has_role('supervisor') AND (own OR get_subordinados OR store.supervisor_id)`
+- `visits_select_own`: `user_id = auth.uid()`
 
-- **DROP**: "Admins e supervisores podem ver todas as fotos", "Usuários veem fotos permitidas", "Usuários gerenciam próprias fotos"
-- **CRIAR**: 
-  - "Admins veem todas as fotos" (apenas role = admin)
-  - "Supervisores veem fotos de subordinados" (usar `is_supervisor_of` -- ja existe, manter)
-  - "Vendedores veem suas fotos" (ja existe, manter)
-  - "Fotos vinculadas a visitas acessiveis" (manter acesso via visita)
+### stores (SELECT)
+- `stores_select_admin`: `is_admin()`
+- `stores_select_supervisor`: `has_role('supervisor') AND (supervisor_id OR subordinados via store_sellers)`
+- `stores_select_own`: `created_by OR via store_sellers`
 
-### Passo 2 -- Limpar e corrigir RLS da tabela `visits`
-
-Mesma abordagem -- remover politicas duplicadas que usam `is_admin_or_supervisor` e manter apenas:
-
-- **DROP**: "Users can view visits based on role", "Usuários veem visitas conforme hierarquia", "visits_select_restricted" 
-- **MANTER**: "Admin vê todas visitas" (apenas admin), "Supervisor vê visitas de subordinados" (ja usa `get_subordinados`), "Vendedor vê suas visitas"
-
-### Passo 3 -- Atualizar versão do app
-
-Incrementar `APP_VERSION` em `src/lib/version.ts` de `1.1.1` para `1.1.2` para forcar a limpeza de cache nos dispositivos dos usuarios, garantindo que Michele e a equipe recebam o codigo mais recente.
-
-## Detalhes Tecnicos
-
-### Novas politicas RLS para `photos` (SELECT)
-
-```text
-1. Admins veem tudo:
-   USING (is_admin())
-
-2. Supervisores veem subordinados (existente):  
-   USING (is_supervisor_of(vendedor_id, auth.uid()))
-
-3. Vendedores veem proprias (existente):
-   USING (vendedor_id = auth.uid())
-
-4. Via visita acessivel:
-   USING (EXISTS(SELECT 1 FROM visits v WHERE v.id = visit_id AND (v.user_id = auth.uid() OR is_supervisor_of(v.user_id, auth.uid()))))
-```
-
-### Politicas RLS para `photos` (UPDATE/DELETE)
-
-- UPDATE: vendedor_id = auth.uid() OR is_admin()
-- DELETE: is_admin()
-
-### Politicas RLS para `visits` (SELECT)
-
-```text
-1. Admin ve todas: USING (is_admin())
-2. Supervisor ve subordinados (existente com get_subordinados)
-3. Vendedor ve suas: USING (user_id = auth.uid())
-```
-
-### Arquivos alterados
-
-- Nova migracao SQL para corrigir RLS de `photos` e `visits`
-- `src/lib/version.ts` -- incremento de versao
-
+## Versão do app
+- `APP_VERSION` incrementada para `1.1.2` para forçar limpeza de cache
