@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import type {
   DateRangeFilter,
   ExecutiveKPIs,
@@ -38,6 +39,11 @@ export function useTradeSupervisorDashboard(
   selectedMemberId?: string | null
 ) {
   const { user } = useAuth();
+  const { isImpersonating, impersonatedUser } = useImpersonation();
+  
+  // Usar o ID efetivo (impersonado ou real)
+  const effectiveUserId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
+  
   const today = new Date();
   const startDate = dateRange?.from || startOfMonth(today);
   const endDate = dateRange?.to || today;
@@ -45,20 +51,20 @@ export function useTradeSupervisorDashboard(
   const startDateStr = startDate.toISOString().split("T")[0];
   const endDateStr = endDate.toISOString().split("T")[0];
 
-  // Query para buscar APENAS subordinados diretos (supervisor_id = user.id)
+  // Query para buscar APENAS subordinados diretos (supervisor_id = effectiveUserId)
   const teamQuery = useQuery({
-    queryKey: ["trade-supervisor-team", user?.id],
+    queryKey: ["trade-supervisor-team", effectiveUserId, isImpersonating],
     queryFn: async () => {
-      if (!user?.id) return { flat: [], hierarchy: [] };
+      if (!effectiveUserId) return { flat: [], hierarchy: [] };
 
-      console.log("[SupervisorDashboard] Buscando equipe para supervisor:", user.id);
+      console.log("[SupervisorDashboard] Buscando equipe para supervisor:", effectiveUserId, isImpersonating ? "(personificado)" : "");
 
-      // Buscar APENAS subordinados diretos do usuário atual
+      // Buscar APENAS subordinados diretos do usuário efetivo
       // CORREÇÃO: usar status = 'ativo' ao invés de ativo = true
       const { data: profiles, error: profilesError } = await (supabase
         .from("profiles")
         .select("id, nome, email, supervisor_id") as any)
-        .eq("supervisor_id", user.id)
+        .eq("supervisor_id", effectiveUserId)
         .eq("status", "ativo");
 
       if (profilesError) {
@@ -90,7 +96,7 @@ export function useTradeSupervisorDashboard(
 
       return { flat, hierarchy };
     },
-    enabled: !!user?.id,
+    enabled: !!effectiveUserId,
     staleTime: 10 * 60 * 1000,
   });
 
