@@ -23,7 +23,8 @@ import { SofiaFloatingChat } from "@/components/financeiro/SofiaFloatingChat";
 import { ContasPagarDREView } from "@/components/financeiro/ContasPagarDREView";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { toast } from "sonner";
 import { SolicitarOrcamentoDialog } from "@/components/trade/SolicitarOrcamentoDialog";
 import { AprovarOrcamentoDialog } from "@/components/trade/AprovarOrcamentoDialog";
@@ -545,7 +546,7 @@ export default function ContasAPagar() {
   const isSomeSelected = sortedAndPaginatedData.data.some(c => selectedIds.has(c.id)) && !isAllSelected;
 
   // Ações em lote
-  const handleBatchExport = () => {
+  const handleBatchExport = async () => {
     const selectedContas = contas?.filter(c => selectedIds.has(c.id));
     if (!selectedContas || selectedContas.length === 0) {
       toast.error("Selecione ao menos uma conta para exportar");
@@ -553,24 +554,44 @@ export default function ContasAPagar() {
     }
 
     const dataToExport = selectedContas.map(c => ({
-      'Empresa': c.empresa_nome,
-      'Documento': `${c.numero_documento}/${c.parcela}`,
-      'Fornecedor': c.fornecedor_nome,
-      'Categoria': c.categoria_nome,
-      'Emissão': formatLocalDate(c.data_emissao, 'dd/MM/yyyy'),
-      'Vencimento': formatLocalDate(c.data_vencimento, 'dd/MM/yyyy'),
-      'Valor Original': c.valor_original,
-      'Valor Aberto': c.valor_aberto,
-      'Valor Pago': c.valor_pago,
-      'Status': c.status,
-      'Departamento': c.departamento_nome || '',
-      'Plano de Contas': c.plano_contas_nome || ''
+      empresa: c.empresa_nome,
+      documento: `${c.numero_documento}/${c.parcela}`,
+      fornecedor: c.fornecedor_nome,
+      categoria: c.categoria_nome,
+      emissao: formatLocalDate(c.data_emissao, 'dd/MM/yyyy'),
+      vencimento: formatLocalDate(c.data_vencimento, 'dd/MM/yyyy'),
+      valor_original: c.valor_original,
+      valor_aberto: c.valor_aberto,
+      valor_pago: c.valor_pago,
+      status: c.status,
+      departamento: c.departamento_nome || '',
+      plano_contas: c.plano_contas_nome || ''
     }));
 
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Contas Selecionadas");
-    XLSX.writeFile(wb, `contas-selecionadas-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'BiMaster';
+    const worksheet = workbook.addWorksheet('Contas Selecionadas');
+    worksheet.columns = [
+      { header: 'Empresa', key: 'empresa', width: 20 },
+      { header: 'Documento', key: 'documento', width: 15 },
+      { header: 'Fornecedor', key: 'fornecedor', width: 30 },
+      { header: 'Categoria', key: 'categoria', width: 20 },
+      { header: 'Emissão', key: 'emissao', width: 12 },
+      { header: 'Vencimento', key: 'vencimento', width: 12 },
+      { header: 'Valor Original', key: 'valor_original', width: 15 },
+      { header: 'Valor Aberto', key: 'valor_aberto', width: 15 },
+      { header: 'Valor Pago', key: 'valor_pago', width: 15 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Departamento', key: 'departamento', width: 20 },
+      { header: 'Plano de Contas', key: 'plano_contas', width: 25 },
+    ];
+    dataToExport.forEach(row => worksheet.addRow(row));
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `contas-selecionadas-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
     toast.success(`${selectedContas.length} contas exportadas!`);
     setSelectedIds(new Set());
   };
@@ -715,31 +736,51 @@ export default function ContasAPagar() {
   };
 
   // Exportar para Excel (todas)
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!contas || contas.length === 0) {
       toast.error("Não há dados para exportar");
       return;
     }
 
     const dataToExport = contas.map(c => ({
-      'Empresa': c.empresa_nome,
-      'Documento': `${c.numero_documento}/${c.parcela}`,
-      'Fornecedor': c.fornecedor_nome,
-      'Categoria': c.categoria_nome,
-      'Emissão': formatLocalDate(c.data_emissao, 'dd/MM/yyyy'),
-      'Vencimento': formatLocalDate(c.data_vencimento, 'dd/MM/yyyy'),
-      'Valor Original': c.valor_original,
-      'Valor Aberto': c.valor_aberto,
-      'Valor Pago': c.valor_pago,
-      'Status': c.status,
-      'Portador': c.portador,
-      'Conta': c.conta
+      empresa: c.empresa_nome,
+      documento: `${c.numero_documento}/${c.parcela}`,
+      fornecedor: c.fornecedor_nome,
+      categoria: c.categoria_nome,
+      emissao: formatLocalDate(c.data_emissao, 'dd/MM/yyyy'),
+      vencimento: formatLocalDate(c.data_vencimento, 'dd/MM/yyyy'),
+      valor_original: c.valor_original,
+      valor_aberto: c.valor_aberto,
+      valor_pago: c.valor_pago,
+      status: c.status,
+      portador: c.portador,
+      conta: c.conta
     }));
 
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Contas a Pagar");
-    XLSX.writeFile(wb, `contas-pagar-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'BiMaster';
+    const worksheet = workbook.addWorksheet('Contas a Pagar');
+    worksheet.columns = [
+      { header: 'Empresa', key: 'empresa', width: 20 },
+      { header: 'Documento', key: 'documento', width: 15 },
+      { header: 'Fornecedor', key: 'fornecedor', width: 30 },
+      { header: 'Categoria', key: 'categoria', width: 20 },
+      { header: 'Emissão', key: 'emissao', width: 12 },
+      { header: 'Vencimento', key: 'vencimento', width: 12 },
+      { header: 'Valor Original', key: 'valor_original', width: 15 },
+      { header: 'Valor Aberto', key: 'valor_aberto', width: 15 },
+      { header: 'Valor Pago', key: 'valor_pago', width: 15 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Portador', key: 'portador', width: 20 },
+      { header: 'Conta', key: 'conta', width: 15 },
+    ];
+    dataToExport.forEach(row => worksheet.addRow(row));
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `contas-pagar-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
     toast.success("Exportação concluída!");
   };
 
