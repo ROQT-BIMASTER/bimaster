@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Store, Calendar, Camera, DollarSign } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface TradeStats {
   totalStores: number;
@@ -14,6 +16,12 @@ interface TradeStats {
 export const TradeDashboardWidget = memo(() => {
   const [stats, setStats] = useState<TradeStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isImpersonating, impersonatedUser } = useImpersonation();
+  const { isAdmin } = useUserRole();
+
+  // Determinar o userId efetivo para filtros
+  const effectiveUserId = isImpersonating ? impersonatedUser?.id : null;
+  const shouldFilter = !isAdmin || isImpersonating;
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -21,24 +29,35 @@ export const TradeDashboardWidget = memo(() => {
         const firstDayOfMonth = new Date();
         firstDayOfMonth.setDate(1);
         firstDayOfMonth.setHours(0, 0, 0, 0);
-        const monthStart = firstDayOfMonth.toISOString();
         const monthStartDate = firstDayOfMonth.toISOString().split("T")[0];
 
-        // Buscar contagem de stores (usa status='active', não coluna active)
-        const storesQuery = supabase.from("stores").select("id", { count: "exact", head: true });
-        const { count: storesCount } = await (storesQuery as any).eq("status", "active");
+        // Buscar contagem de stores
+        let storesQuery = supabase.from("stores").select("id", { count: "exact", head: true }).eq("status", "active");
+        if (shouldFilter && effectiveUserId) {
+          storesQuery = storesQuery.eq("vendedor_id", effectiveUserId);
+        }
+        const { count: storesCount } = await storesQuery;
         
         // Buscar contagem de visitas
-        const visitsQuery = supabase.from("visits").select("id", { count: "exact", head: true });
-        const { count: visitsCount } = await (visitsQuery as any).gte("scheduled_date", monthStartDate);
+        let visitsQuery = supabase.from("visits").select("id", { count: "exact", head: true }).gte("scheduled_date", monthStartDate);
+        if (shouldFilter && effectiveUserId) {
+          visitsQuery = visitsQuery.eq("user_id", effectiveUserId);
+        }
+        const { count: visitsCount } = await visitsQuery;
         
-        // Buscar contagem de fotos (usa upload_date, não created_at)
-        const photosQuery = supabase.from("photos").select("id", { count: "exact", head: true });
-        const { count: photosCount } = await (photosQuery as any).gte("upload_date", monthStartDate);
+        // Buscar contagem de fotos
+        let photosQuery = supabase.from("photos").select("id", { count: "exact", head: true }).gte("upload_date", monthStartDate);
+        if (shouldFilter && effectiveUserId) {
+          photosQuery = photosQuery.eq("vendedor_id", effectiveUserId);
+        }
+        const { count: photosCount } = await photosQuery;
         
         // Buscar investimentos
-        const investmentsQuery = supabase.from("trade_investments").select("amount");
-        const { data: investmentsData } = await (investmentsQuery as any).gte("investment_date", monthStartDate);
+        let investmentsQuery = supabase.from("trade_investments").select("amount").gte("investment_date", monthStartDate);
+        if (shouldFilter && effectiveUserId) {
+          investmentsQuery = investmentsQuery.eq("created_by", effectiveUserId);
+        }
+        const { data: investmentsData } = await investmentsQuery;
 
         const totalInv = (investmentsData as Array<{ amount: number | null }> | null)?.reduce(
           (sum: number, inv: { amount: number | null }) => sum + (inv.amount || 0), 
@@ -59,7 +78,7 @@ export const TradeDashboardWidget = memo(() => {
     };
 
     fetchStats();
-  }, []);
+  }, [effectiveUserId, shouldFilter]);
 
   const statCards = useMemo(() => [
     {
