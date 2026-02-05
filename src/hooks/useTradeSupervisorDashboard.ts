@@ -86,18 +86,30 @@ export function useTradeSupervisorDashboard(
         }
         allProfiles = profiles || [];
       } else {
-        // Supervisor/outros: buscar APENAS subordinados diretos
-        const { data: profiles, error: profilesError } = await (supabase
-          .from("profiles")
-          .select("id, nome, email, supervisor_id") as any)
-          .eq("supervisor_id", effectiveUserId)
-          .eq("status", "ativo");
+        // Gerente/Supervisor/outros: buscar subordinados via get_subordinados (recursivo)
+        const { data: subordinados, error: subError } = await supabase
+          .rpc('get_subordinados', { _user_id: effectiveUserId });
 
-        if (profilesError) {
-          console.error("[SupervisorDashboard] Erro ao buscar equipe:", profilesError);
-          throw profilesError;
+        if (subError) {
+          console.error("[SupervisorDashboard] Erro ao buscar subordinados:", subError);
+          throw subError;
         }
-        allProfiles = profiles || [];
+
+        const subordinadoIds = subordinados?.map((s: any) => s.subordinado_id) || [];
+        
+        if (subordinadoIds.length > 0) {
+          const { data: profiles, error: profilesError } = await (supabase
+            .from("profiles")
+            .select("id, nome, email, supervisor_id") as any)
+            .in("id", subordinadoIds)
+            .eq("status", "ativo");
+
+          if (profilesError) {
+            console.error("[SupervisorDashboard] Erro ao buscar equipe:", profilesError);
+            throw profilesError;
+          }
+          allProfiles = profiles || [];
+        }
       }
 
       console.log("[SupervisorDashboard] Membros encontrados:", allProfiles.length, allProfiles.slice(0, 5).map((p: any) => p.nome));
