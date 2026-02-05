@@ -1,4 +1,4 @@
-import { Users, User, Check, ChevronRight } from "lucide-react";
+import { Users, User, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +21,28 @@ interface SupervisorTeamSelectorProps {
   isLoading?: boolean;
 }
 
+const getRoleIcon = (role?: string) => {
+  switch (role) {
+    case 'admin': return '👑';
+    case 'gerente': return '🏆';
+    case 'supervisor': return '👨‍💼';
+    case 'vendedor': return '💼';
+    case 'promotor': return '🎯';
+    default: return '👤';
+  }
+};
+
+const getRoleLabel = (role?: string) => {
+  const labels: Record<string, string> = {
+    admin: 'Admin',
+    gerente: 'Gerente',
+    supervisor: 'Supervisor',
+    vendedor: 'Vendedor',
+    promotor: 'Promotor',
+  };
+  return labels[role || ''] || role || '';
+};
+
 export function SupervisorTeamSelector({
   team,
   teamHierarchy = [],
@@ -29,8 +51,6 @@ export function SupervisorTeamSelector({
   isLoading,
 }: SupervisorTeamSelectorProps) {
   const selectedMember = team.find((m) => m.id === selectedMemberId);
-
-  // Se temos hierarquia, usar ela; senão, fallback para lista flat
   const hasHierarchy = teamHierarchy.length > 0;
 
   return (
@@ -44,7 +64,7 @@ export function SupervisorTeamSelector({
         >
           {selectedMember ? (
             <>
-              <User className="h-4 w-4" />
+              <span>{getRoleIcon(selectedMember.role)}</span>
               <span className="max-w-[120px] truncate">{selectedMember.nome}</span>
             </>
           ) : (
@@ -56,9 +76,10 @@ export function SupervisorTeamSelector({
               </Badge>
             </>
           )}
+          <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64 max-h-[400px] overflow-y-auto">
+      <DropdownMenuContent align="end" className="w-72 max-h-[450px] overflow-y-auto">
         <DropdownMenuLabel className="flex items-center gap-2">
           <Users className="h-4 w-4 text-muted-foreground" />
           Minha Equipe
@@ -75,7 +96,10 @@ export function SupervisorTeamSelector({
         >
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-primary" />
-            <span>Todos os membros</span>
+            <span className="font-medium">Toda a equipe</span>
+            <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+              {team.length}
+            </Badge>
           </div>
           {!selectedMemberId && <Check className="h-4 w-4 text-primary" />}
         </DropdownMenuItem>
@@ -83,15 +107,14 @@ export function SupervisorTeamSelector({
         <DropdownMenuSeparator />
 
         {hasHierarchy ? (
-          // Renderizar com hierarquia
           teamHierarchy.map((group, groupIdx) => (
-            <DropdownMenuGroup key={group.supervisor?.id || 'direct'}>
+            <DropdownMenuGroup key={group.supervisor?.id || `direct-${groupIdx}`}>
               {/* Cabeçalho do grupo */}
-              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-1 bg-muted/50">
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-1.5 bg-muted/50">
                 {group.supervisor ? (
                   <>
-                    <ChevronRight className="h-3 w-3" />
-                    <span>Equipe de {group.supervisor.nome}</span>
+                    <span>{getRoleIcon('supervisor')}</span>
+                    <span>Equipe {group.supervisor.nome.split(' ')[0]}</span>
                     <Badge variant="outline" className="ml-auto px-1 py-0 text-[10px]">
                       {group.members.length}
                     </Badge>
@@ -117,15 +140,23 @@ export function SupervisorTeamSelector({
                     selectedMemberId === member.id && "bg-primary/10"
                   )}
                 >
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-medium truncate">{member.nome}</span>
-                    <span className="text-xs text-muted-foreground truncate">
-                      {member.email}
-                    </span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-sm flex-shrink-0">{getRoleIcon(member.role)}</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-medium truncate text-sm">{member.nome}</span>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {member.email}
+                      </span>
+                    </div>
                   </div>
-                  {selectedMemberId === member.id && (
-                    <Check className="h-4 w-4 text-primary flex-shrink-0 ml-2" />
-                  )}
+                  <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                      {getRoleLabel(member.role)}
+                    </Badge>
+                    {selectedMemberId === member.id && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
+                  </div>
                 </DropdownMenuItem>
               ))}
               
@@ -143,11 +174,14 @@ export function SupervisorTeamSelector({
                 selectedMemberId === member.id && "bg-primary/10"
               )}
             >
-              <div className="flex flex-col min-w-0">
-                <span className="font-medium truncate">{member.nome}</span>
-                <span className="text-xs text-muted-foreground truncate">
-                  {member.email}
-                </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm">{getRoleIcon(member.role)}</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-medium truncate">{member.nome}</span>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {member.email}
+                  </span>
+                </div>
               </div>
               {selectedMemberId === member.id && (
                 <Check className="h-4 w-4 text-primary flex-shrink-0 ml-2" />

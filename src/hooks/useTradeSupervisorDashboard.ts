@@ -22,6 +22,7 @@ export interface TeamMember {
   id: string;
   nome: string;
   email: string;
+  role?: string;
   supervisor_id: string | null;
   supervisor_nome: string | null;
 }
@@ -116,22 +117,74 @@ export function useTradeSupervisorDashboard(
       
       if (allProfiles.length === 0) return { flat: [], hierarchy: [], isAdmin: isRealAdmin };
 
-      // Criar lista flat (todos são diretos do usuário atual)
+      // Buscar roles de todos os membros para exibição
+      const memberIds = allProfiles.map((p: any) => p.id);
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", memberIds);
+      const rolesMap = new Map(rolesData?.map((r: any) => [r.user_id, r.role]) || []);
+
+      // Criar lista flat com role
       const flat: TeamMember[] = allProfiles
         .map((p: any) => ({
           id: p.id,
           nome: p.nome,
           email: p.email,
+          role: rolesMap.get(p.id) || 'vendedor',
           supervisor_id: p.supervisor_id,
-          supervisor_nome: null, // Todos reportam diretamente ao usuário logado
+          supervisor_nome: null,
         }))
         .sort((a, b) => a.nome.localeCompare(b.nome));
 
-      // Hierarquia simples - todos são diretos
-      const hierarchy: TeamHierarchy[] = [{
-        supervisor: null,
-        members: flat,
-      }];
+      // Construir hierarquia agrupada por supervisor
+      // Separar subordinados diretos (supervisor_id = usuário logado) dos indiretos
+      const directReports = flat.filter(m => m.supervisor_id === effectiveUserId);
+      const indirectReports = flat.filter(m => m.supervisor_id !== effectiveUserId);
+
+      // Agrupar indiretos por seu supervisor
+      const supervisorGroups = new Map<string, TeamMember[]>();
+      indirectReports.forEach(member => {
+        const supId = member.supervisor_id || 'unknown';
+        if (!supervisorGroups.has(supId)) {
+          supervisorGroups.set(supId, []);
+        }
+        supervisorGroups.get(supId)!.push(member);
+      });
+
+      const hierarchy: TeamHierarchy[] = [];
+
+      // Primeiro: subordinados diretos que são supervisores/gerentes (com suas equipes)
+      const directSupervisors = directReports.filter(m => m.role === 'supervisor' || m.role === 'gerente');
+      const directNonSupervisors = directReports.filter(m => m.role !== 'supervisor' && m.role !== 'gerente');
+
+      // Adicionar cada supervisor direto como grupo com seus subordinados
+      directSupervisors.forEach(sup => {
+        const subMembers = supervisorGroups.get(sup.id) || [];
+        hierarchy.push({
+          supervisor: { id: sup.id, nome: sup.nome },
+          members: [sup, ...subMembers],
+        });
+        // Remover do mapa para não duplicar
+        supervisorGroups.delete(sup.id);
+      });
+
+      // Vendedores/promotores diretos do usuário logado
+      if (directNonSupervisors.length > 0) {
+        hierarchy.push({
+          supervisor: null,
+          members: directNonSupervisors,
+        });
+      }
+
+      // Qualquer grupo órfão restante (indiretos cujo supervisor não é subordinado direto)
+      supervisorGroups.forEach((members, supId) => {
+        const supProfile = flat.find(m => m.id === supId);
+        hierarchy.push({
+          supervisor: supProfile ? { id: supProfile.id, nome: supProfile.nome } : { id: supId, nome: 'Equipe' },
+          members,
+        });
+      });
 
       return { flat, hierarchy, isAdmin: isRealAdmin };
     },
