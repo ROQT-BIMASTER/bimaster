@@ -709,7 +709,7 @@ export function AppSidebar() {
                         end 
                       />
                     )}
-                    {hasPermission("eventos_dashboard") && (
+                    {hasPermission("eventos_analytics") && (
                       <MenuItemLink 
                         to="/dashboard/eventos/dashboard" 
                         icon={BarChart3} 
