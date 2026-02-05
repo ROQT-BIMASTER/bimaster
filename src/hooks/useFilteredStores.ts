@@ -39,7 +39,7 @@ interface UseFilteredStoresResult {
  * Respeita o contexto de impersonação (Visualizar como Usuário)
  */
 export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilteredStoresResult {
-  const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
+  const { isAdmin, isSupervisor, loading: roleLoading } = useUserRole();
   const { isImpersonating, impersonatedUser, impersonatedPermissions } = useImpersonation();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -60,21 +60,28 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
     return currentUserId;
   }, [isImpersonating, impersonatedUser, currentUserId]);
 
-  const effectiveIsAdminOrSupervisor = useMemo(() => {
+  const effectiveIsAdmin = useMemo(() => {
     if (isImpersonating && impersonatedPermissions) {
-      return impersonatedPermissions.isAdmin || impersonatedPermissions.role === 'supervisor';
+      return impersonatedPermissions.isAdmin;
     }
-    return isAdminOrSupervisor;
-  }, [isImpersonating, impersonatedPermissions, isAdminOrSupervisor]);
+    return isAdmin;
+  }, [isImpersonating, impersonatedPermissions, isAdmin]);
+
+  const effectiveIsSupervisor = useMemo(() => {
+    if (isImpersonating && impersonatedPermissions) {
+      return impersonatedPermissions.role === 'supervisor';
+    }
+    return isSupervisor;
+  }, [isImpersonating, impersonatedPermissions, isSupervisor]);
 
   const activeOnly = options?.activeOnly !== false; // Default true
 
   // Query para buscar lojas
   const { data: stores = [], isLoading, refetch: queryRefetch } = useQuery({
-    queryKey: ['filtered-stores', effectiveUserId, effectiveIsAdminOrSupervisor, activeOnly],
+    queryKey: ['filtered-stores', effectiveUserId, effectiveIsAdmin, effectiveIsSupervisor, activeOnly],
     queryFn: async (): Promise<FilteredStore[]> => {
-      // Se admin/supervisor, retorna todas as lojas
-      if (effectiveIsAdminOrSupervisor) {
+      // Admin: retorna todas as lojas (RLS já permite)
+      if (effectiveIsAdmin) {
         let query = supabase
           .from("stores")
           .select("id, name, code, cnpj, city, address, state, status, vendedor_id, classification")
@@ -92,12 +99,67 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
         return data || [];
       }
 
-      // Para não-admins, buscar apenas lojas vinculadas
       if (!effectiveUserId) {
         console.warn("[useFilteredStores] Usuário não identificado");
         return [];
       }
 
+      // Supervisor: buscar subordinados e filtrar lojas por hierarquia
+      if (effectiveIsSupervisor) {
+        // 1. Buscar subordinados diretos
+        const { data: subordinados, error: subError } = await supabase
+          .rpc('get_subordinados', { _user_id: effectiveUserId });
+
+        if (subError) {
+          console.error("[useFilteredStores] Erro ao buscar subordinados:", subError);
+        }
+
+        const subordinadoIds = subordinados?.map((s: { subordinado_id: string }) => s.subordinado_id) || [];
+        const allTeamIds = [effectiveUserId, ...subordinadoIds];
+
+        // 2. Buscar IDs de lojas vinculadas via store_sellers
+        const { data: storeSellersData } = await supabase
+          .from("store_sellers")
+          .select("store_id")
+          .in("vendedor_id", allTeamIds);
+
+        const linkedStoreIds = storeSellersData?.map(ss => ss.store_id) || [];
+
+        // 3. Buscar lojas onde:
+        //    - supervisor_id = supervisor OU
+        //    - vendedor_id IN equipe OU
+        //    - created_by IN equipe OU
+        //    - id IN lojas vinculadas via store_sellers
+        let query = supabase
+          .from("stores")
+          .select("id, name, code, cnpj, city, address, state, status, vendedor_id, classification")
+          .order("name");
+
+        if (activeOnly) {
+          query = query.eq("status", "active");
+        }
+
+        const orFilters = [
+          `supervisor_id.eq.${effectiveUserId}`,
+          ...allTeamIds.map(id => `vendedor_id.eq.${id}`),
+          ...allTeamIds.map(id => `created_by.eq.${id}`),
+        ];
+
+        if (linkedStoreIds.length > 0) {
+          orFilters.push(`id.in.(${linkedStoreIds.join(',')})`);
+        }
+
+        query = query.or(orFilters.join(','));
+
+        const { data, error } = await query;
+        if (error) {
+          console.error("[useFilteredStores] Erro ao buscar lojas (supervisor):", error);
+          throw error;
+        }
+        return data || [];
+      }
+
+      // Vendedor/Promotor: apenas lojas vinculadas
       // 1. Buscar IDs das lojas vinculadas via store_sellers
       const { data: storeSellersData, error: sellersError } = await supabase
         .from("store_sellers")
@@ -110,9 +172,6 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
 
       const linkedStoreIds = storeSellersData?.map(ss => ss.store_id) || [];
 
-      // 2. Construir query para buscar lojas onde:
-      //    - vendedor_id = usuário atual OU
-      //    - id está na lista de store_sellers
       let query = supabase
         .from("stores")
         .select("id, name, code, cnpj, city, address, state, status, vendedor_id, classification")
@@ -122,12 +181,9 @@ export function useFilteredStores(options?: UseFilteredStoresOptions): UseFilter
         query = query.eq("status", "active");
       }
 
-      // Construir filtro OR
       if (linkedStoreIds.length > 0) {
-        // Usar filter OR para vendedor_id = userId OU id IN (linkedStoreIds)
         query = query.or(`vendedor_id.eq.${effectiveUserId},id.in.(${linkedStoreIds.join(',')})`);
       } else {
-        // Apenas lojas onde vendedor_id = userId
         query = query.eq("vendedor_id", effectiveUserId);
       }
 
