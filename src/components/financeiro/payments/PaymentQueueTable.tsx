@@ -14,14 +14,21 @@ interface Department {
   nome: string;
 }
 
+interface Empresa {
+  id: number;
+  nome: string;
+}
+
 interface PaymentQueueTableProps {
   items: PaymentQueueItem[];
   isLoading: boolean;
   onReview: (item: PaymentQueueItem) => void;
   departments: Department[];
+  empresas: Empresa[];
   filters: {
     status: PaymentQueueStatus | 'all';
     source_type: string; // Can be SourceType, 'all', or 'dept:DepartmentName'
+    empresa_id: number | 'all';
     search: string;
   };
   onFiltersChange: (filters: PaymentQueueTableProps['filters']) => void;
@@ -50,7 +57,7 @@ const sourceTypeConfig: Record<SourceType, { label: string; icon: typeof Target;
   department_expense: { label: "Departamento", icon: Building, color: "text-teal-500" },
 };
 
-export function PaymentQueueTable({ items, isLoading, onReview, departments, filters, onFiltersChange }: PaymentQueueTableProps) {
+export function PaymentQueueTable({ items, isLoading, onReview, departments, empresas, filters, onFiltersChange }: PaymentQueueTableProps) {
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -98,6 +105,30 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, fil
           </SelectContent>
         </Select>
 
+        {/* Empresa/Filial filter */}
+        <Select
+          value={filters.empresa_id === 'all' ? 'all' : filters.empresa_id.toString()}
+          onValueChange={(value) => onFiltersChange({ 
+            ...filters, 
+            empresa_id: value === 'all' ? 'all' : parseInt(value) 
+          })}
+        >
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Filial" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas Filiais</SelectItem>
+            {empresas.map((empresa) => (
+              <SelectItem key={empresa.id} value={empresa.id.toString()}>
+                <div className="flex items-center gap-2">
+                  <Building className="h-3 w-3" />
+                  {empresa.nome}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select
           value={filters.status}
           onValueChange={(value) => onFiltersChange({ ...filters, status: value as PaymentQueueStatus | 'all' })}
@@ -122,6 +153,7 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, fil
             <TableRow className="bg-muted/50">
               <TableHead className="w-[120px]">Código</TableHead>
               <TableHead>Origem</TableHead>
+              <TableHead>Filial</TableHead>
               <TableHead>Fornecedor</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Vencimento</TableHead>
@@ -132,13 +164,13 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, fil
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   Nenhum item encontrado
                 </TableCell>
               </TableRow>
@@ -165,6 +197,18 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, fil
                           )}
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {item.empresa_nome ? (
+                        <div className="flex items-center gap-1 text-sm">
+                          <Building className="h-3 w-3 text-muted-foreground" />
+                          <span className="truncate max-w-[120px]" title={item.empresa_nome}>
+                            {item.empresa_nome}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">

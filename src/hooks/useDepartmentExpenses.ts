@@ -38,6 +38,9 @@ export interface DepartmentExpense {
   paid_at: string | null;
   created_at: string;
   updated_at: string;
+  // Multi-filial fields
+  empresa_id: number | null;
+  empresa_nome: string | null;
   department?: {
     id: string;
     nome: string;
@@ -51,6 +54,10 @@ export interface DepartmentExpense {
     id: string;
     nome: string;
   };
+  empresa?: {
+    id: number;
+    nome: string;
+  };
 }
 
 export interface CreateDepartmentExpenseInput {
@@ -61,6 +68,8 @@ export interface CreateDepartmentExpenseInput {
   valor_previsto?: number;
   valor_realizado?: number;
   expense_date?: string;
+  empresa_id?: number;
+  empresa_nome?: string;
 }
 
 export interface SendToFinancialInput {
@@ -109,7 +118,8 @@ export function useDepartmentExpenses(departmentId?: string) {
         .select(`
           *,
           department:departamentos(id, nome),
-          budget:department_budgets(id, name, code)
+          budget:department_budgets(id, name, code),
+          empresa:empresas(id, nome)
         `)
         .order("created_at", { ascending: false });
 
@@ -140,6 +150,7 @@ export function useDepartmentExpenses(departmentId?: string) {
         ...item,
         attachments: (item.attachments as unknown as ExpenseAttachment[]) || [],
         creator: item.created_by ? creatorsMap[item.created_by] : undefined,
+        empresa: item.empresa as unknown as { id: number; nome: string } | undefined,
       })) as DepartmentExpense[];
     },
     enabled: departmentId !== undefined,
@@ -275,10 +286,10 @@ export function useDepartmentExpenses(departmentId?: string) {
     mutationFn: async (input: SendToFinancialInput) => {
       const { id, ...financialData } = input;
 
-      // First, get the expense to retrieve attachments and department
+      // First, get the expense to retrieve attachments, department, and empresa
       const { data: expense, error: fetchError } = await supabase
         .from("department_expenses")
-        .select("attachments, department:departamentos(nome)")
+        .select("attachments, empresa_id, empresa_nome, department:departamentos(nome)")
         .eq("id", id)
         .single();
 
@@ -320,6 +331,8 @@ export function useDepartmentExpenses(departmentId?: string) {
           department_name: expense?.department?.nome || 'Departamento',
           requested_by: userData.user?.id,
           attachments: expense?.attachments || [],
+          empresa_id: expense?.empresa_id,
+          empresa_nome: expense?.empresa_nome,
         });
 
       if (queueError) throw queueError;

@@ -41,6 +41,9 @@ export interface PaymentQueueItem {
   contas_pagar_id: string | null;
   created_at: string;
   updated_at: string;
+  // Multi-filial fields
+  empresa_id: number | null;
+  empresa_nome: string | null;
   // Joined data
   requester_name?: string;
   reviewer_name?: string;
@@ -61,6 +64,8 @@ interface CreatePaymentQueueInput {
   notes?: string;
   attachment_url?: string;
   department_name?: string;
+  empresa_id?: number;
+  empresa_nome?: string;
 }
 
 interface UpdatePaymentStatusInput {
@@ -72,6 +77,7 @@ interface UpdatePaymentStatusInput {
 interface PaymentQueueFilters {
   status?: PaymentQueueStatus | 'all';
   source_type?: string; // Can be SourceType, 'all', or 'dept:DepartmentName'
+  empresa_id?: number | 'all'; // Filter by empresa
   search?: string;
   startDate?: Date;
   endDate?: Date;
@@ -103,6 +109,11 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         } else {
           query = query.eq('source_type', filters.source_type);
         }
+      }
+
+      // Filter by empresa
+      if (filters?.empresa_id && filters.empresa_id !== 'all') {
+        query = query.eq('empresa_id', filters.empresa_id);
       }
 
       if (filters?.search) {

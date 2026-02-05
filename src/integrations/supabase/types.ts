@@ -3055,6 +3055,8 @@ export type Database = {
           document_number: string | null
           document_type: string | null
           due_date: string | null
+          empresa_id: number | null
+          empresa_nome: string | null
           expense_date: string | null
           financial_approved_at: string | null
           financial_approved_by: string | null
@@ -3084,6 +3086,8 @@ export type Database = {
           document_number?: string | null
           document_type?: string | null
           due_date?: string | null
+          empresa_id?: number | null
+          empresa_nome?: string | null
           expense_date?: string | null
           financial_approved_at?: string | null
           financial_approved_by?: string | null
@@ -3113,6 +3117,8 @@ export type Database = {
           document_number?: string | null
           document_type?: string | null
           due_date?: string | null
+          empresa_id?: number | null
+          empresa_nome?: string | null
           expense_date?: string | null
           financial_approved_at?: string | null
           financial_approved_by?: string | null
@@ -3150,7 +3156,41 @@ export type Database = {
             referencedRelation: "mv_analise_departamentos"
             referencedColumns: ["departamento_id"]
           },
+          {
+            foreignKeyName: "department_expenses_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      empresas: {
+        Row: {
+          ativa: boolean | null
+          cnpj: string | null
+          created_at: string | null
+          id: number
+          nome: string
+          uf: string | null
+        }
+        Insert: {
+          ativa?: boolean | null
+          cnpj?: string | null
+          created_at?: string | null
+          id?: number
+          nome: string
+          uf?: string | null
+        }
+        Update: {
+          ativa?: boolean | null
+          cnpj?: string | null
+          created_at?: string | null
+          id?: number
+          nome?: string
+          uf?: string | null
+        }
+        Relationships: []
       }
       estoque_distribuidoras: {
         Row: {
@@ -8019,6 +8059,8 @@ export type Database = {
           document_number: string | null
           document_type: string | null
           due_date: string
+          empresa_id: number | null
+          empresa_nome: string | null
           financial_notes: string | null
           financial_status: string
           id: string
@@ -8048,6 +8090,8 @@ export type Database = {
           document_number?: string | null
           document_type?: string | null
           due_date: string
+          empresa_id?: number | null
+          empresa_nome?: string | null
           financial_notes?: string | null
           financial_status?: string
           id?: string
@@ -8077,6 +8121,8 @@ export type Database = {
           document_number?: string | null
           document_type?: string | null
           due_date?: string
+          empresa_id?: number | null
+          empresa_nome?: string | null
           financial_notes?: string | null
           financial_status?: string
           id?: string
@@ -8100,6 +8146,13 @@ export type Database = {
             columns: ["contas_pagar_id"]
             isOneToOne: false
             referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_payment_queue_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -16128,6 +16181,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_empresas: {
+        Row: {
+          created_at: string | null
+          empresa_id: number
+          id: string
+          is_primary: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          empresa_id: number
+          id?: string
+          is_primary?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          empresa_id?: number
+          id?: string
+          is_primary?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_empresas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_points_history: {
         Row: {
           action_code: string
@@ -17715,6 +17800,7 @@ export type Database = {
           tela_codigo: string
         }[]
       }
+      get_user_empresa_ids: { Args: { _user_id: string }; Returns: number[] }
       get_user_module_permissions: {
         Args: { _user_id: string }
         Returns: {
@@ -17863,6 +17949,10 @@ export type Database = {
       }
       user_can_approve_price_table: {
         Args: { _tabela_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_has_empresa_access: {
+        Args: { _empresa_id: number; _user_id: string }
         Returns: boolean
       }
       user_has_store_access: {
