@@ -55,6 +55,12 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
   
   // Usar hook centralizado para lojas filtradas
   const { stores, loading: storesLoading } = useFilteredStores();
+  
+  // Estado para dados do cliente selecionado
+  const [selectedStoreData, setSelectedStoreData] = useState<{
+    storesCount: number;
+    curva: string | null;
+  } | null>(null);
 
   // Auto-start tour on first visit
   useEffect(() => {
@@ -107,6 +113,57 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
     notes: "",
     issues_found: [] as string[],
   });
+
+  // Buscar dados do cliente quando PDV é selecionado
+  useEffect(() => {
+    const fetchClientData = async () => {
+      if (!formData.store_id) {
+        setSelectedStoreData(null);
+        return;
+      }
+      
+      const selectedStore = stores.find(s => s.id === formData.store_id);
+      if (!selectedStore) {
+        setSelectedStoreData(null);
+        return;
+      }
+      
+      // Buscar quantas lojas esse cliente (pela rede/chain) tem
+      let storesCount = 1;
+      let curva: string | null = null;
+      
+      // Contar todas as lojas do mesmo vendedor (grupo de lojas atendidas)
+      if (selectedStore.vendedor_id) {
+        const { count } = await supabase
+          .from("stores")
+          .select("id", { count: 'exact', head: true })
+          .eq("vendedor_id", selectedStore.vendedor_id);
+        
+        storesCount = count || 1;
+      }
+      
+      // Buscar curva do prospect associado (se houver CNPJ)
+      if (selectedStore.cnpj) {
+        const cnpjNumerico = selectedStore.cnpj.replace(/\D/g, '');
+        const { data: prospect } = await supabase
+          .from("prospects")
+          .select("categoria")
+          .eq("cnpj", cnpjNumerico)
+          .maybeSingle();
+        
+        curva = prospect?.categoria || null;
+      }
+      
+      // Fallback: buscar classificação comercial da loja
+      if (!curva && selectedStore.classification) {
+        curva = selectedStore.classification;
+      }
+      
+      setSelectedStoreData({ storesCount, curva });
+    };
+    
+    fetchClientData();
+  }, [formData.store_id, stores]);
 
   // Atualizar filteredStores quando stores do hook mudar - com guard para evitar loop
   useEffect(() => {
@@ -835,6 +892,38 @@ export const QuickEntryDialog = ({ open, onOpenChange, onSuccess }: QuickEntryDi
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Exibir dados do cliente selecionado */}
+                  {formData.store_id && selectedStoreData && (
+                    <div className="col-span-2 flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Store className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Lojas:</span>
+                        <Badge variant="secondary" className="font-semibold">
+                          {selectedStoreData.storesCount}
+                        </Badge>
+                      </div>
+                      {selectedStoreData.curva && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">Curva:</span>
+                          <Badge 
+                            variant="outline"
+                            className={
+                              selectedStoreData.curva === 'A' || selectedStoreData.curva === 'A+' 
+                                ? 'border-blue-500 text-blue-700 bg-blue-50' 
+                                : selectedStoreData.curva === 'B' 
+                                  ? 'border-green-500 text-green-700 bg-green-50'
+                                  : selectedStoreData.curva === 'C'
+                                    ? 'border-yellow-500 text-yellow-700 bg-yellow-50'
+                                    : 'border-orange-500 text-orange-700 bg-orange-50'
+                            }
+                          >
+                            {selectedStoreData.curva}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>Tipo de Visita</Label>
