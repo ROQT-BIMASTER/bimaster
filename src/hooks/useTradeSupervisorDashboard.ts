@@ -402,7 +402,7 @@ export function useTradeSupervisorDashboard(
 
       const res = await supabase
         .from("visits")
-        .select("id, scheduled_date, duration_minutes, status, compliance_score, store:stores(name), vendedor:profiles!visits_user_id_fkey(nome)")
+        .select("id, scheduled_date, duration_minutes, status, compliance_score, user_id, store:stores(name)")
         .in("user_id", filterIds)
         .gte("scheduled_date", startDateStr)
         .lte("scheduled_date", endDateStr)
@@ -411,10 +411,13 @@ export function useTradeSupervisorDashboard(
       
       const allData = res.data || [];
 
+      // Map vendedor names from team data already in cache
+      const teamNameMap = new Map(teamFlat.map(m => [m.id, m.nome]));
+
       return allData.map((v: any) => ({
         id: v.id,
         pdv: v.store?.name || "PDV não identificado",
-        vendedor: v.vendedor?.nome || "Vendedor não identificado",
+        vendedor: teamNameMap.get(v.user_id) || "Vendedor",
         data: v.scheduled_date || "",
         duracao: v.duration_minutes,
         status: v.status || "pending",
