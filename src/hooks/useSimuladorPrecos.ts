@@ -6,7 +6,8 @@ import {
   calcularMargemLucro,
   MarkupConfig,
 } from "@/lib/fabrica/pricing-calculator";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 export interface CenarioSimulacao {
   id?: string;
@@ -301,28 +302,46 @@ export function useSimuladorPrecos() {
   };
 
   // Exportar Excel
-  const exportarExcel = () => {
+  const exportarExcel = async () => {
     if (resultados.length === 0) return;
 
     const dadosExport = resultados.map(r => ({
-      'Código': r.produto_codigo,
-      'Produto': r.produto_nome,
-      'Categoria': r.categoria || '-',
-      'Custo Base': r.custo_base,
-      'Preço Atual': r.preco_atual,
-      'Preço Simulado': r.preco_simulado,
-      'Variação (R$)': r.variacao_absoluta,
-      'Variação (%)': r.variacao_percentual.toFixed(2) + '%',
-      'Margem Atual': r.margem_atual.toFixed(2) + '%',
-      'Margem Simulada': r.margem_simulada.toFixed(2) + '%',
+      codigo: r.produto_codigo,
+      produto: r.produto_nome,
+      categoria: r.categoria || '-',
+      custo_base: r.custo_base,
+      preco_atual: r.preco_atual,
+      preco_simulado: r.preco_simulado,
+      variacao_absoluta: r.variacao_absoluta,
+      variacao_percentual: r.variacao_percentual.toFixed(2) + '%',
+      margem_atual: r.margem_atual.toFixed(2) + '%',
+      margem_simulada: r.margem_simulada.toFixed(2) + '%',
     }));
 
-    const ws = XLSX.utils.json_to_sheet(dadosExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Simulação');
-    
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'BiMaster';
+    const worksheet = workbook.addWorksheet('Simulação');
+    worksheet.columns = [
+      { header: 'Código', key: 'codigo', width: 15 },
+      { header: 'Produto', key: 'produto', width: 35 },
+      { header: 'Categoria', key: 'categoria', width: 20 },
+      { header: 'Custo Base', key: 'custo_base', width: 12 },
+      { header: 'Preço Atual', key: 'preco_atual', width: 12 },
+      { header: 'Preço Simulado', key: 'preco_simulado', width: 14 },
+      { header: 'Variação (R$)', key: 'variacao_absoluta', width: 12 },
+      { header: 'Variação (%)', key: 'variacao_percentual', width: 12 },
+      { header: 'Margem Atual', key: 'margem_atual', width: 12 },
+      { header: 'Margem Simulada', key: 'margem_simulada', width: 14 },
+    ];
+    dadosExport.forEach(row => worksheet.addRow(row));
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+
     const nomeArquivo = `simulacao_precos_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(wb, nomeArquivo);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, nomeArquivo);
   };
 
   return {
