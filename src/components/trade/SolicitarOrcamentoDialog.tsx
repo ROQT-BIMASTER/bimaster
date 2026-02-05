@@ -7,10 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Building } from "lucide-react";
 import { sanitizeText, sanitizeCode } from "@/lib/utils/sanitize";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BudgetEvidenceSection, formatEvidenceNotes } from "./BudgetEvidenceSection";
+import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
 
 interface UploadedFile {
   name: string;
@@ -36,11 +37,22 @@ export function SolicitarOrcamentoDialog({
   const [requesterName, setRequesterName] = useState("");
   const [requesterEmail, setRequesterEmail] = useState("");
   
+  const { data: userEmpresas = [] } = useUserEmpresas();
+  const { primaryEmpresa } = usePrimaryEmpresa();
+  const [empresaId, setEmpresaId] = useState("");
+  
   // Estados para evidências
   const [linkedCampaignId, setLinkedCampaignId] = useState<string | null>(null);
   const [linkedEntryId, setLinkedEntryId] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [accountId, setAccountId] = useState<string | null>(null);
+
+  // Pre-selecionar filial principal
+  useEffect(() => {
+    if (primaryEmpresa && !empresaId) {
+      setEmpresaId(primaryEmpresa.id.toString());
+    }
+  }, [primaryEmpresa]);
 
   // Buscar dados do usuário logado
   const { data: currentUser } = useQuery({
@@ -94,8 +106,9 @@ export function SolicitarOrcamentoDialog({
       setLinkedEntryId(null);
       setUploadedFiles([]);
       setAccountId(null);
+      setEmpresaId(primaryEmpresa?.id.toString() || "");
     }
-  }, [open]);
+  }, [open, primaryEmpresa]);
 
   // Buscar contas contábeis ativas
   const { data: accounts } = useQuery({
@@ -156,6 +169,11 @@ export function SolicitarOrcamentoDialog({
         throw new Error("Data de fim deve ser posterior à data de início");
       }
 
+      // Obter empresa selecionada
+      const selectedEmpresa = userEmpresas.find(
+        ue => ue.empresa_id.toString() === empresaId
+      );
+
       const { data: budgetData, error } = await supabase.from("trade_budgets").insert({
         name,
         code,
@@ -169,6 +187,8 @@ export function SolicitarOrcamentoDialog({
         requester_name: requesterName,
         requester_email: requesterEmail,
         account_id: accountId || null,
+        empresa_id: selectedEmpresa?.empresa_id || null,
+        empresa_nome: selectedEmpresa?.empresa.nome || null,
       }).select("id").single();
 
       if (error) throw error;
@@ -240,6 +260,32 @@ export function SolicitarOrcamentoDialog({
                 className="bg-background"
               />
             </div>
+          </div>
+
+          {/* Seletor de Filial */}
+          <div className="space-y-2">
+            <Label htmlFor="empresa_id" className="flex items-center gap-2">
+              <Building className="h-4 w-4" />
+              Filial *
+            </Label>
+            <Select value={empresaId} onValueChange={setEmpresaId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a filial" />
+              </SelectTrigger>
+              <SelectContent>
+                {userEmpresas.map((ue) => (
+                  <SelectItem key={ue.empresa_id} value={ue.empresa_id.toString()}>
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      {ue.empresa.nome}
+                      {ue.is_primary && (
+                        <span className="text-xs text-primary">(Principal)</span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

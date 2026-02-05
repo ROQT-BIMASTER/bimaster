@@ -58,6 +58,8 @@ export interface CreateExpenseInput {
   valor_realizado?: number;
   expense_date?: string;
   comprovante_url?: string;
+  empresa_id?: number;
+  empresa_nome?: string;
 }
 
 export interface SendToFinancialInput {
@@ -130,7 +132,15 @@ export function useEventExpenses(eventId?: string) {
       const { data, error } = await supabase
         .from("corporate_event_expenses")
         .insert({
-          ...input,
+          event_id: input.event_id,
+          category: input.category,
+          description: input.description,
+          valor_previsto: input.valor_previsto,
+          valor_realizado: input.valor_realizado,
+          expense_date: input.expense_date,
+          comprovante_url: input.comprovante_url,
+          empresa_id: input.empresa_id || null,
+          empresa_nome: input.empresa_nome || null,
           created_by: user.id,
           status: "pending",
         })
@@ -285,6 +295,8 @@ export function useEventExpenses(eventId?: string) {
           department_name: 'Eventos Corporativos',
           requested_by: userData.user?.id,
           attachments: expense?.attachments || [],
+          empresa_id: data.empresa_id || null,
+          empresa_nome: data.empresa_nome || null,
         });
 
       if (queueError) throw queueError;

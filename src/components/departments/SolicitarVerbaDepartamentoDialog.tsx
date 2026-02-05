@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDepartmentBudgets } from "@/hooks/useDepartmentBudgets";
-import { Loader2, Wallet } from "lucide-react";
+import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
+import { Loader2, Wallet, Building } from "lucide-react";
 
 interface SolicitarVerbaDepartamentoDialogProps {
   departmentId: string;
@@ -25,6 +27,8 @@ export function SolicitarVerbaDepartamentoDialog({
   onOpenChange 
 }: SolicitarVerbaDepartamentoDialogProps) {
   const { createBudget } = useDepartmentBudgets(departmentId);
+  const { data: userEmpresas = [] } = useUserEmpresas();
+  const { primaryEmpresa } = usePrimaryEmpresa();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -32,7 +36,18 @@ export function SolicitarVerbaDepartamentoDialog({
     period_start: "",
     period_end: "",
     notes: "",
+    empresa_id: "",
   });
+
+  // Pre-selecionar filial principal
+  useEffect(() => {
+    if (primaryEmpresa && !formData.empresa_id) {
+      setFormData(prev => ({ 
+        ...prev, 
+        empresa_id: primaryEmpresa.id.toString() 
+      }));
+    }
+  }, [primaryEmpresa]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +56,10 @@ export function SolicitarVerbaDepartamentoDialog({
       return;
     }
 
+    const selectedEmpresa = userEmpresas.find(
+      ue => ue.empresa_id.toString() === formData.empresa_id
+    );
+
     await createBudget.mutateAsync({
       department_id: departmentId,
       name: formData.name,
@@ -48,6 +67,8 @@ export function SolicitarVerbaDepartamentoDialog({
       period_start: formData.period_start,
       period_end: formData.period_end,
       notes: formData.notes || undefined,
+      empresa_id: selectedEmpresa?.empresa_id,
+      empresa_nome: selectedEmpresa?.empresa.nome,
     });
 
     // Reset form
@@ -57,6 +78,7 @@ export function SolicitarVerbaDepartamentoDialog({
       period_start: "",
       period_end: "",
       notes: "",
+      empresa_id: primaryEmpresa?.id.toString() || "",
     });
     onOpenChange(false);
   };
@@ -74,6 +96,35 @@ export function SolicitarVerbaDepartamentoDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Seletor de Filial */}
+          <div className="space-y-2">
+            <Label htmlFor="empresa_id" className="flex items-center gap-2">
+              <Building className="h-4 w-4" />
+              Filial *
+            </Label>
+            <Select
+              value={formData.empresa_id}
+              onValueChange={(value) => setFormData({ ...formData, empresa_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a filial" />
+              </SelectTrigger>
+              <SelectContent>
+                {userEmpresas.map((ue) => (
+                  <SelectItem key={ue.empresa_id} value={ue.empresa_id.toString()}>
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      {ue.empresa.nome}
+                      {ue.is_primary && (
+                        <span className="text-xs text-primary">(Principal)</span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name">Nome da Verba *</Label>
             <Input

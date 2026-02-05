@@ -2565,6 +2565,8 @@ export type Database = {
           document_number: string | null
           document_type: string | null
           due_date: string | null
+          empresa_id: number | null
+          empresa_nome: string | null
           event_id: string
           evidencias: Json | null
           expense_date: string | null
@@ -2595,6 +2597,8 @@ export type Database = {
           document_number?: string | null
           document_type?: string | null
           due_date?: string | null
+          empresa_id?: number | null
+          empresa_nome?: string | null
           event_id: string
           evidencias?: Json | null
           expense_date?: string | null
@@ -2625,6 +2629,8 @@ export type Database = {
           document_number?: string | null
           document_type?: string | null
           due_date?: string | null
+          empresa_id?: number | null
+          empresa_nome?: string | null
           event_id?: string
           evidencias?: Json | null
           expense_date?: string | null
@@ -2686,6 +2692,13 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
           {
+            foreignKeyName: "corporate_event_expenses_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "corporate_event_expenses_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
@@ -2727,6 +2740,8 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string | null
+          empresa_id: number | null
+          empresa_nome: string | null
           end_date: string | null
           event_date: string | null
           event_type: string | null
@@ -2748,6 +2763,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          empresa_id?: number | null
+          empresa_nome?: string | null
           end_date?: string | null
           event_date?: string | null
           event_type?: string | null
@@ -2769,6 +2786,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          empresa_id?: number | null
+          empresa_nome?: string | null
           end_date?: string | null
           event_date?: string | null
           event_type?: string | null
@@ -2828,6 +2847,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "corporate_events_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "corporate_events_responsible_user_id_fkey"
@@ -2977,6 +3003,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           department_id: string
+          empresa_id: number | null
+          empresa_nome: string | null
           id: string
           name: string
           notes: string | null
@@ -2995,6 +3023,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           department_id: string
+          empresa_id?: number | null
+          empresa_nome?: string | null
           id?: string
           name: string
           notes?: string | null
@@ -3013,6 +3043,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           department_id?: string
+          empresa_id?: number | null
+          empresa_nome?: string | null
           id?: string
           name?: string
           notes?: string | null
@@ -3037,6 +3069,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "mv_analise_departamentos"
             referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "department_budgets_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -14638,6 +14677,8 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string | null
+          empresa_id: number | null
+          empresa_nome: string | null
           id: string
           inactivated_at: string | null
           inactivated_by: string | null
@@ -14667,6 +14708,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          empresa_id?: number | null
+          empresa_nome?: string | null
           id?: string
           inactivated_at?: string | null
           inactivated_by?: string | null
@@ -14696,6 +14739,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          empresa_id?: number | null
+          empresa_nome?: string | null
           id?: string
           inactivated_at?: string | null
           inactivated_by?: string | null
@@ -14742,6 +14787,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "trade_budgets_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "trade_budgets_requested_by_fkey"
@@ -15530,6 +15582,8 @@ export type Database = {
           document_type: string | null
           document_url: string | null
           due_date: string | null
+          empresa_id: number | null
+          empresa_nome: string | null
           entry_date: string
           entry_type: string
           id: string
@@ -15562,6 +15616,8 @@ export type Database = {
           document_type?: string | null
           document_url?: string | null
           due_date?: string | null
+          empresa_id?: number | null
+          empresa_nome?: string | null
           entry_date: string
           entry_type: string
           id?: string
@@ -15594,6 +15650,8 @@ export type Database = {
           document_type?: string | null
           document_url?: string | null
           due_date?: string | null
+          empresa_id?: number | null
+          empresa_nome?: string | null
           entry_date?: string
           entry_type?: string
           id?: string
@@ -15637,6 +15695,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_financial_entries_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
           {

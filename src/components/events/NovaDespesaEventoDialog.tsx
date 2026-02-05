@@ -1,4 +1,4 @@
-import { useState, ReactNode } from "react";
+import { useState, useEffect, ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useEventExpenses, EXPENSE_CATEGORIES } from "@/hooks/useEventExpenses";
-import { Loader2 } from "lucide-react";
+import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
+import { Loader2, Building } from "lucide-react";
 import { ExpenseAttachments } from "./ExpenseAttachments";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -49,6 +50,8 @@ export function NovaDespesaEventoDialog({
   const setIsOpen = onOpenChange ?? setInternalOpen;
 
   const { createExpense } = useEventExpenses(eventId);
+  const { data: userEmpresas = [] } = useUserEmpresas();
+  const { primaryEmpresa } = usePrimaryEmpresa();
 
   const [formData, setFormData] = useState({
     category: "outros",
@@ -56,15 +59,30 @@ export function NovaDespesaEventoDialog({
     valor_previsto: "",
     valor_realizado: "",
     expense_date: "",
+    empresa_id: "",
   });
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [tempExpenseId] = useState(() => crypto.randomUUID());
 
+  // Pre-selecionar filial principal
+  useEffect(() => {
+    if (primaryEmpresa && !formData.empresa_id) {
+      setFormData(prev => ({ 
+        ...prev, 
+        empresa_id: primaryEmpresa.id.toString() 
+      }));
+    }
+  }, [primaryEmpresa]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
+      const selectedEmpresa = userEmpresas.find(
+        ue => ue.empresa_id.toString() === formData.empresa_id
+      );
+
       // Create the expense with attachments
       const expenseData = await createExpense.mutateAsync({
         event_id: eventId,
@@ -73,6 +91,8 @@ export function NovaDespesaEventoDialog({
         valor_previsto: formData.valor_previsto ? parseFloat(formData.valor_previsto) : undefined,
         valor_realizado: formData.valor_realizado ? parseFloat(formData.valor_realizado) : undefined,
         expense_date: formData.expense_date || undefined,
+        empresa_id: selectedEmpresa?.empresa_id,
+        empresa_nome: selectedEmpresa?.empresa.nome,
       });
 
       // If we have attachments, update the expense with them
@@ -99,6 +119,7 @@ export function NovaDespesaEventoDialog({
         valor_previsto: "",
         valor_realizado: "",
         expense_date: "",
+        empresa_id: primaryEmpresa?.id.toString() || "",
       });
       setAttachments([]);
     } catch (error) {
@@ -115,6 +136,35 @@ export function NovaDespesaEventoDialog({
           <DialogTitle>Nova Despesa do Evento</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Seletor de Filial */}
+          <div className="space-y-2">
+            <Label htmlFor="empresa_id" className="flex items-center gap-2">
+              <Building className="h-4 w-4" />
+              Filial *
+            </Label>
+            <Select
+              value={formData.empresa_id}
+              onValueChange={(value) => setFormData({ ...formData, empresa_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a filial" />
+              </SelectTrigger>
+              <SelectContent>
+                {userEmpresas.map((ue) => (
+                  <SelectItem key={ue.empresa_id} value={ue.empresa_id.toString()}>
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      {ue.empresa.nome}
+                      {ue.is_primary && (
+                        <span className="text-xs text-primary">(Principal)</span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="category">Categoria *</Label>
             <Select

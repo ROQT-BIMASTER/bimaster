@@ -21,10 +21,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Upload, X, Target } from "lucide-react";
+import { Plus, Upload, X, Target, Building } from "lucide-react";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { NovaLojaDialog } from "./NovaLojaDialog";
 import { useQuery } from "@tanstack/react-query";
+import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
 
 interface NovoLancamentoDialogProps {
   onSuccess: () => void;
@@ -36,6 +37,9 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
+  
+  const { data: userEmpresas = [] } = useUserEmpresas();
+  const { primaryEmpresa } = usePrimaryEmpresa();
   
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split("T")[0]);
   const [entryType, setEntryType] = useState("expense");
@@ -50,10 +54,18 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [campaignId, setCampaignId] = useState("");
+  const [empresaId, setEmpresaId] = useState("");
   
   const [isNovaLojaOpen, setIsNovaLojaOpen] = useState(false);
   const [isNovaContaOpen, setIsNovaContaOpen] = useState(false);
   const [isNovaVerbaOpen, setIsNovaVerbaOpen] = useState(false);
+
+  // Pre-selecionar filial principal
+  useEffect(() => {
+    if (primaryEmpresa && !empresaId) {
+      setEmpresaId(primaryEmpresa.id.toString());
+    }
+  }, [primaryEmpresa]);
 
   // Buscar campanhas ativas/aprovadas para vincular
   const { data: campaigns = [] } = useQuery({
@@ -168,6 +180,11 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         finalNotes = finalNotes ? finalNotes + photosSection : photosSection.trim();
       }
 
+      // Obter empresa selecionada
+      const selectedEmpresa = userEmpresas.find(
+        ue => ue.empresa_id.toString() === empresaId
+      );
+
       const { error } = await supabase.from("trade_financial_entries").insert({
         entry_date: entryDate,
         account_id: accountId,
@@ -183,6 +200,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         status: "pending",
         approval_status: "pending",
         created_by: user.id,
+        empresa_id: selectedEmpresa?.empresa_id || null,
+        empresa_nome: selectedEmpresa?.empresa.nome || null,
       });
 
       if (error) throw error;
@@ -195,6 +214,14 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       setDescription("");
       setReferenceNumber("");
       setStoreId("");
+      setBudgetId("");
+      setCampaignId("");
+      setNotes("");
+      setDocumentUrl("");
+      setUploadedPhotos([]);
+      setEmpresaId(primaryEmpresa?.id.toString() || "");
+      setOpen(false);
+      onSuccess();
       setBudgetId("");
       setCampaignId("");
       setNotes("");
@@ -226,6 +253,32 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Seletor de Filial */}
+          <div className="space-y-2">
+            <Label htmlFor="empresa_id" className="flex items-center gap-2">
+              <Building className="h-4 w-4" />
+              Filial *
+            </Label>
+            <Select value={empresaId} onValueChange={setEmpresaId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a filial" />
+              </SelectTrigger>
+              <SelectContent>
+                {userEmpresas.map((ue) => (
+                  <SelectItem key={ue.empresa_id} value={ue.empresa_id.toString()}>
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      {ue.empresa.nome}
+                      {ue.is_primary && (
+                        <span className="text-xs text-primary">(Principal)</span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="entry_date">Data *</Label>

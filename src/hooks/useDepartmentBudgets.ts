@@ -36,6 +36,8 @@ export interface CreateDepartmentBudgetInput {
   period_start: string;
   period_end: string;
   notes?: string;
+  empresa_id?: number;
+  empresa_nome?: string;
 }
 
 export interface UpdateDepartmentBudgetInput extends Partial<CreateDepartmentBudgetInput> {
@@ -121,7 +123,14 @@ export function useDepartmentBudgets(departmentId?: string) {
       const { data, error } = await supabase
         .from("department_budgets")
         .insert({
-          ...input,
+          department_id: input.department_id,
+          name: input.name,
+          total_amount: input.total_amount,
+          period_start: input.period_start,
+          period_end: input.period_end,
+          notes: input.notes,
+          empresa_id: input.empresa_id || null,
+          empresa_nome: input.empresa_nome || null,
           created_by: user.id,
           status: "pending",
           approval_status: "pending",
