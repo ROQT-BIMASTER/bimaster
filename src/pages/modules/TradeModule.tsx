@@ -107,6 +107,7 @@ const TradeModule = () => {
     ],
     ...(isAdminOrSupervisor ? {
       "Performance e Vendas": [
+        { title: "Minha Equipe", to: "/dashboard/trade/minha-equipe", icon: Users, color: "text-indigo-600", isNew: true },
         { title: "Promoções", to: "/dashboard/trade/promotions", icon: FileText, color: "text-orange-600" },
         { title: "Performance", to: "/dashboard/trade/performance", icon: TrendingUp, color: "text-blue-600" },
         { title: "Equipe", to: "/dashboard/trade/team-performance", icon: Users, color: "text-purple-600" },
