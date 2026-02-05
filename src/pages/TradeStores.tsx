@@ -19,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TourButton, tradeStoresTourSteps, TRADE_STORES_TOUR_ID } from "@/components/tour";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { useFilteredStores } from "@/hooks/useFilteredStores";
 
 interface Store {
   id: string;
@@ -52,69 +53,53 @@ const TradeStores = () => {
   const [editStoreId, setEditStoreId] = useState<string | null>(null);
   const [deleteStoreId, setDeleteStoreId] = useState<string | null>(null);
   const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Determinar o ID efetivo do usuário (impersonado ou real)
-  const effectiveUserId = isImpersonating && impersonatedUser ? impersonatedUser.id : currentUserId;
-  
-  // Determinar se o usuário efetivo é admin/supervisor
+  // Determinar se o usuário efetivo é admin/supervisor (para controles de UI apenas)
   const effectiveIsAdminOrSupervisor = isImpersonating && impersonatedPermissions 
     ? impersonatedPermissions.isAdmin || impersonatedPermissions.role === 'supervisor'
     : isAdminOrSupervisor;
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setCurrentUserId(data.user?.id || null);
-    });
-  }, []);
+  // Hook centralizado que respeita hierarquia e impersonação
+  const { stores: filteredStores, loading: filteredLoading, refetch: refetchFilteredStores } = useFilteredStores({ activeOnly: false });
 
+  // Buscar detalhes completos das lojas filtradas pelo hook
   useEffect(() => {
-    if (!permissionsLoading && !roleLoading && hasPermission("trade_stores") && (effectiveUserId !== null || currentUserId !== null)) {
-      fetchStores();
-    }
-  }, [permissionsLoading, roleLoading, currentUserId, effectiveUserId, effectiveIsAdminOrSupervisor]);
+    if (filteredLoading || permissionsLoading || roleLoading) return;
+    if (!hasPermission("trade_stores")) return;
+    
+    const fetchStoreDetails = async () => {
+      try {
+        if (filteredStores.length === 0) {
+          setAllStores([]);
+          setStores([]);
+          setLoading(false);
+          return;
+        }
 
-  const fetchStores = async () => {
-    try {
-      const userIdToFilter = effectiveUserId || currentUserId;
-      
-      // Para não-admins/supervisores, buscar apenas lojas vinculadas ao usuário
-      if (!effectiveIsAdminOrSupervisor && userIdToFilter) {
-        // Buscar IDs de lojas vinculadas na tabela store_sellers
-        const { data: storeSellersData } = await supabase
-          .from("store_sellers")
-          .select("store_id")
-          .eq("vendedor_id", userIdToFilter);
-        
-        const linkedStoreIds = storeSellersData?.map(ss => ss.store_id) || [];
-        
-        // Buscar lojas onde o usuário é vendedor principal OU está vinculado
+        const ids = filteredStores.map(s => s.id);
         const { data, error } = await supabase
           .from("stores")
           .select("*")
-          .or(`vendedor_id.eq.${userIdToFilter}${linkedStoreIds.length > 0 ? `,id.in.(${linkedStoreIds.join(',')})` : ''}`)
-          .order("name");
-        
-        if (error) throw error;
-        setAllStores(data || []);
-        setStores(data || []);
-      } else {
-        // Admins e supervisores veem todas as lojas
-        const { data, error } = await supabase
-          .from("stores")
-          .select("*")
+          .in("id", ids)
           .order("name");
 
         if (error) throw error;
         setAllStores(data || []);
         setStores(data || []);
+      } catch (error) {
+        console.error("Erro ao buscar PDVs:", error);
+        toast.error("Erro ao carregar PDVs");
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Erro ao buscar PDVs:", error);
-      toast.error("Erro ao carregar PDVs");
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    fetchStoreDetails();
+  }, [filteredStores, filteredLoading, permissionsLoading, roleLoading]);
+
+  const refetchStores = async () => {
+    setLoading(true);
+    await refetchFilteredStores();
   };
 
   const applyFilters = () => {
@@ -169,7 +154,7 @@ const TradeStores = () => {
       if (error) throw error;
 
       toast.success("Loja desativada com sucesso!");
-      fetchStores();
+      refetchStores();
       setDeleteStoreId(null);
     } catch (error: any) {
       toast.error("Erro ao desativar loja: " + error.message);
@@ -200,7 +185,7 @@ const TradeStores = () => {
       if (error) throw error;
 
       toast.success("Loja excluída permanentemente!");
-      fetchStores();
+      refetchStores();
       setPermanentDeleteId(null);
     } catch (error: any) {
       toast.error("Erro ao excluir loja: " + error.message);
@@ -426,7 +411,7 @@ const TradeStores = () => {
         <NovaLojaDialog
           open={showNovaLoja}
           onOpenChange={setShowNovaLoja}
-          onSuccess={fetchStores}
+          onSuccess={refetchStores}
         />
         
         <StoreDetailDialog
@@ -442,7 +427,7 @@ const TradeStores = () => {
           open={showEditDialog}
           onOpenChange={setShowEditDialog}
           storeId={editStoreId}
-          onSuccess={fetchStores}
+          onSuccess={refetchStores}
         />
 
         <AlertDialog open={!!deleteStoreId} onOpenChange={(open) => !open && setDeleteStoreId(null)}>

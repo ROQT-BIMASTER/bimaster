@@ -46,9 +46,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { BudgetFormData } from "@/lib/validations/budget";
 import { TourButton, tradeFinanceiroTourSteps, TRADE_FINANCEIRO_TOUR_ID } from "@/components/tour";
+import { useFilteredStores } from "@/hooks/useFilteredStores";
 
 export default function TradeFinanceiro() {
   const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
+  const { stores: filteredStoresList } = useFilteredStores();
   const [loading, setLoading] = useState(true);
   const [budgets, setBudgets] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -74,6 +76,13 @@ export default function TradeFinanceiro() {
     });
   }, []);
 
+  // Sincronizar lojas filtradas pelo hook centralizado
+  useEffect(() => {
+    if (filteredStoresList.length > 0) {
+      setStores(filteredStoresList.map(s => ({ id: s.id, name: s.name, code: s.code, city: s.city || null })));
+    }
+  }, [filteredStoresList]);
+
   useEffect(() => {
     if (currentUserId !== null && !roleLoading) {
       fetchData();
@@ -93,11 +102,10 @@ export default function TradeFinanceiro() {
         investmentsQuery = investmentsQuery.or(`created_by.eq.${currentUserId},vendedor_id.eq.${currentUserId}`);
       }
 
-      const [budgetsRes, accountsRes, investmentsRes, storesRes] = await Promise.all([
+      const [budgetsRes, accountsRes, investmentsRes] = await Promise.all([
         supabase.from("trade_budgets").select("*").order("period_start", { ascending: false }),
         supabase.from("trade_chart_of_accounts").select("*").eq("is_active", true).order("code"),
         investmentsQuery.order("investment_date", { ascending: false }),
-        supabase.from("stores").select("id, name, code, city").eq("status", "active").order("name"),
       ]);
 
       if (budgetsRes.data) setBudgets(budgetsRes.data);
@@ -106,7 +114,6 @@ export default function TradeFinanceiro() {
         setAllInvestments(investmentsRes.data);
         setInvestments(investmentsRes.data);
       }
-      if (storesRes.data) setStores(storesRes.data);
     } catch (error: any) {
       toast.error(getSafeErrorMessage(error));
     } finally {
