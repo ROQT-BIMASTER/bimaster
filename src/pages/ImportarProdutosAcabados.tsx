@@ -9,7 +9,8 @@ import { toast } from "sonner";
 import { Upload, FileSpreadsheet, Sparkles, Download, ArrowLeft } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
-import * as XLSX from "xlsx";
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Configurar worker do PDF.js
@@ -61,10 +62,24 @@ export default function ImportarProdutosAcabados() {
 
     try {
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(data);
+      const worksheet = workbook.worksheets[0];
+      
+      if (!worksheet) {
+        toast.error("Nenhuma planilha encontrada no arquivo");
+        setLoading(false);
+        return;
+      }
+      
+      const jsonData: any[][] = [];
+      worksheet.eachRow((row, rowNumber) => {
+        const rowData: any[] = [];
+        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          rowData[colNumber - 1] = cell.value;
+        });
+        jsonData.push(rowData);
+      });
 
       if (jsonData.length < 2) {
         toast.error("Arquivo vazio ou sem dados");
@@ -250,34 +265,44 @@ export default function ImportarProdutosAcabados() {
     }
   };
 
-  const handleDownloadModelo = () => {
-    const modeloData = [
-      ["Código*", "Nome*", "Tipo", "SKU", "EAN", "Categoria", "Subcategoria", "Linha", "Marca", "Unidade", "Descrição", "Status"],
-      ["PROD001", "Body Splash 250ml", "ACABADO", "SKU001", "7891234567890", "Perfumaria", "Corporal", "Premium", "MinhaMarca", "UN", "Fragrância floral", "ativo"],
-      ["PROD002", "Creme Hidratante 100g", "ACABADO", "SKU002", "7891234567891", "Corpo", "Hidratação", "Básica", "MinhaMarca", "UN", "Hidratação profunda", "ativo"],
-      ["INTER001", "Base Perfumada", "INTER", "SKU-INT001", "", "Intermediário", "Base", "", "MinhaMarca", "L", "Base para perfumes", "ativo"],
+  const handleDownloadModelo = async () => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'BiMaster';
+    
+    const worksheet = workbook.addWorksheet('Produtos');
+    
+    worksheet.columns = [
+      { header: 'Código*', key: 'codigo', width: 12 },
+      { header: 'Nome*', key: 'nome', width: 25 },
+      { header: 'Tipo', key: 'tipo', width: 12 },
+      { header: 'SKU', key: 'sku', width: 15 },
+      { header: 'EAN', key: 'ean', width: 18 },
+      { header: 'Categoria', key: 'categoria', width: 15 },
+      { header: 'Subcategoria', key: 'subcategoria', width: 15 },
+      { header: 'Linha', key: 'linha', width: 12 },
+      { header: 'Marca', key: 'marca', width: 15 },
+      { header: 'Unidade', key: 'unidade', width: 10 },
+      { header: 'Descrição', key: 'descricao', width: 25 },
+      { header: 'Status', key: 'status', width: 10 },
     ];
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(modeloData);
-
-    ws['!cols'] = [
-      { wch: 12 }, // Código
-      { wch: 25 }, // Nome
-      { wch: 12 }, // Tipo
-      { wch: 15 }, // SKU
-      { wch: 18 }, // EAN
-      { wch: 15 }, // Categoria
-      { wch: 15 }, // Subcategoria
-      { wch: 12 }, // Linha
-      { wch: 15 }, // Marca
-      { wch: 10 }, // Unidade
-      { wch: 25 }, // Descrição
-      { wch: 10 }, // Status
-    ];
-
-    XLSX.utils.book_append_sheet(wb, ws, "Produtos");
-    XLSX.writeFile(wb, "modelo_importacao_produtos.xlsx");
+    
+    // Estilizar header
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+    
+    // Dados de exemplo
+    worksheet.addRow({ codigo: 'PROD001', nome: 'Body Splash 250ml', tipo: 'ACABADO', sku: 'SKU001', ean: '7891234567890', categoria: 'Perfumaria', subcategoria: 'Corporal', linha: 'Premium', marca: 'MinhaMarca', unidade: 'UN', descricao: 'Fragrância floral', status: 'ativo' });
+    worksheet.addRow({ codigo: 'PROD002', nome: 'Creme Hidratante 100g', tipo: 'ACABADO', sku: 'SKU002', ean: '7891234567891', categoria: 'Corpo', subcategoria: 'Hidratação', linha: 'Básica', marca: 'MinhaMarca', unidade: 'UN', descricao: 'Hidratação profunda', status: 'ativo' });
+    worksheet.addRow({ codigo: 'INTER001', nome: 'Base Perfumada', tipo: 'INTER', sku: 'SKU-INT001', ean: '', categoria: 'Intermediário', subcategoria: 'Base', linha: '', marca: 'MinhaMarca', unidade: 'L', descricao: 'Base para perfumes', status: 'ativo' });
+    
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, 'modelo_importacao_produtos.xlsx');
     toast.success("Modelo baixado com sucesso!");
   };
 
