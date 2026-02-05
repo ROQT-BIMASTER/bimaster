@@ -1,210 +1,166 @@
 
-# Painel de Supervisor - Trade Marketing
+# Plano de Correção e Profissionalização - Painel Supervisor Trade Marketing
 
-## Objetivo
+## Diagnóstico do Problema
 
-Criar um painel similar ao "Visao Executiva Trade Marketing" para supervisores visualizarem exclusivamente os dados de suas equipes, com filtro por membro opcional.
+### Erro Identificado
+O hook `useTradeSupervisorDashboard.ts` está usando o campo `ativo` que **não existe** na tabela `profiles`. O campo correto é `status = 'ativo'`.
 
-## Arquitetura da Solucao
+### Problemas Adicionais Encontrados
+
+| Problema | Impacto |
+|----------|---------|
+| Campo `ativo` inexistente | Query falha silenciosamente |
+| Visitas usam `user_id`, não `atribuido_por` | Dados não aparecem |
+| Equipe de Michele não tem dados de fotos/visitas ainda | Esperado (dados novos) |
+| Falta tratamento de erros robusto | Dificulta debug |
+
+### Estrutura Real das Tabelas
+
+```text
++------------------+     +------------------+     +------------------+
+|    profiles      |     |     visits       |     |     photos       |
++------------------+     +------------------+     +------------------+
+| id               |     | id               |     | id               |
+| nome             |     | user_id      ◄───|───► | vendedor_id  ◄───|
+| email            |     | vendedor_id      |     | supervisor_id    |
+| supervisor_id    |     | supervisor_id    |     | store_id         |
+| status ('ativo') |     | atribuido_por    |     | upload_date      |
++------------------+     | scheduled_date   |     +------------------+
+                         +------------------+
+```
+
+### Hierarquia Verificada (Michele)
+
+```text
+Leandro (Admin)
+├── Michele Silva (Supervisor) ◄── USUÁRIO LOGADO
+│   ├── Douglas Cruz (Vendedor)
+│   ├── Juliana Moura (Vendedor)
+│   ├── Monique Campos (Vendedor)
+│   └── Nathalia Martini (Vendedor)
+├── Jessika (Supervisor)
+│   ├── Administrador Sistema
+│   ├── Juliana Germinhasi
+│   └── Leandro Ramos
+└── ...
+```
+
+## Solução Proposta
+
+### 1. Correção do Hook de Dados
+
+**Arquivo:** `src/hooks/useTradeSupervisorDashboard.ts`
+
+Correções necessárias:
+
+1. **Campo de status**: Trocar `.eq("ativo", true)` por `.eq("status", "ativo")`
+2. **Query de visitas**: Usar `user_id` ao invés de `atribuido_por` para buscar visitas realizadas
+3. **Incluir o próprio supervisor**: Supervisor deve ver seus próprios dados também
+4. **Melhorar tratamento de erros**: Adicionar logs e mensagens claras
+
+### 2. Arquitetura Profissionalizada
 
 ```text
 +-----------------------------------------------------------------------+
-|                     ARQUITETURA DO PAINEL SUPERVISOR                   |
+|                    ARQUITETURA PROFISSIONAL                           |
 +-----------------------------------------------------------------------+
 |                                                                       |
-|  +--------------------------+    +-----------------------------+      |
-|  |   TradeExecutiveDashboard |    |  TradeSupervisorDashboard   |      |
-|  |   (Diretoria/Admin)      |    |  (Supervisores)             |      |
-|  |                          |    |                             |      |
-|  |  Dados: GLOBAIS          |    |  Dados: EQUIPE FILTRADA     |      |
-|  |  Acesso: trade_admin     |    |  Acesso: supervisor role    |      |
-|  +--------------------------+    +-----------------------------+      |
-|            |                                 |                        |
-|            v                                 v                        |
-|  +---------------------------+   +-----------------------------+      |
-|  | useTradeExecutiveDashboard|   | useTradeSupervisorDashboard |      |
-|  | (sem filtro de equipe)    |   | (COM filtro por subordinados)|     |
-|  +---------------------------+   +-----------------------------+      |
-|                                              |                        |
-|                                              v                        |
-|                                  +-------------------------+          |
-|                                  |   get_subordinados      |          |
-|                                  |   (RPC existente)       |          |
-|                                  +-------------------------+          |
+|  src/hooks/useTradeSupervisorDashboard.ts                            |
+|  ├── fetchTeamMembers()     - Busca subordinados diretos             |
+|  ├── buildFilterIds()       - Constrói array de IDs para filtrar     |
+|  └── useQuery() paralelas   - Busca dados de forma otimizada         |
+|                                                                       |
+|  Queries Corrigidas:                                                  |
+|  ├── profiles: .eq("status", "ativo")                                |
+|  ├── visits: .in("user_id", filterIds)                               |
+|  ├── photos: .in("vendedor_id", filterIds)                           |
+|  ├── stores: .in("vendedor_id", filterIds)                           |
+|  └── lancamentos: .in("created_by", filterIds)                       |
 |                                                                       |
 +-----------------------------------------------------------------------+
 ```
 
-## Interface Visual do Painel
+### 3. Melhorias no Seletor de Equipe
 
-```text
-+-----------------------------------------------------------------------+
-| [Logo] Visao da Equipe - Trade Marketing       [Este mes v] [Atualizar]|
-|        Painel consolidado da sua equipe                               |
-| Periodo: 01/02/2026 ate 05/02/2026                                    |
-+-----------------------------------------------------------------------+
-|                                                                       |
-| +---------------------+  +----------------------+  FILTRO POR MEMBRO  |
-| |  MINHA EQUIPE       |  |  KPIs PRINCIPAIS     |  +--------------+   |
-| |                     |  |                      |  | Todos        |   |
-| |  [x] Todos (4)      |  |  12    5    8   85%  |  | Nathalia  [ ]|   |
-| |  [ ] Nathalia       |  | PDVs Visitas Fotos   |  | Douglas   [ ]|   |
-| |  [ ] Douglas        |  +----------------------+  | Juliana   [ ]|   |
-| |  [ ] Juliana        |                           | Monique   [ ]|   |
-| |  [ ] Monique        |                           +--------------+   |
-| +---------------------+                                              |
-|                                                                       |
-| +-----------------------------------+  +-----------------------------+|
-| |  EVOLUCAO - VISITAS E FOTOS       |  |  TOP CLIENTES (EQUIPE)      ||
-| |  [Grafico de area]                |  |  [Grafico de barras]        ||
-| +-----------------------------------+  +-----------------------------+|
-|                                                                       |
-| +-------------------------------------------------------------------+|
-| |  VISITAS RECENTES DA EQUIPE                                       ||
-| |  +-------+----------+-----------+--------+--------+               ||
-| |  | PDV   | Vendedor | Data      | Status | Score  |               ||
-| |  +-------+----------+-----------+--------+--------+               ||
-| |  | Loja A| Nathalia | 05/02     | OK     | 95%    |               ||
-| |  | Loja B| Douglas  | 04/02     | OK     | 88%    |               ||
-| +-------------------------------------------------------------------+|
-|                                                                       |
-| +-------------------------------------------------------------------+|
-| |  FOTOS RECENTES DA EQUIPE                                         ||
-| |  [Grade de fotos com miniaturas]                                  ||
-| +-------------------------------------------------------------------+|
-+-----------------------------------------------------------------------+
-```
+**Arquivo:** `src/components/trade/supervisor/SupervisorTeamSelector.tsx`
 
-## Componentes a Criar
+- Mostrar nome do supervisor logado como cabeçalho
+- Badge com contagem de membros ativos
+- Indicador visual quando não há dados da equipe
 
-### 1. Nova Pagina: `TradeSupervisorDashboard.tsx`
+### 4. Ajustes na Página Principal
 
-Pagina principal do painel do supervisor com:
-- Filtro de periodo (mesmo do dashboard executivo)
-- Seletor de membro da equipe (ou todos)
-- Reutilizacao dos componentes visuais existentes
-- Dados filtrados apenas para a equipe
+**Arquivo:** `src/pages/TradeSupervisorDashboard.tsx`
 
-### 2. Novo Hook: `useTradeSupervisorDashboard.ts`
+- Adicionar indicador de "carregando equipe"
+- Mostrar mensagem quando equipe não tem dados no período
+- Melhorar feedback visual para estados vazios
 
-Hook que adapta o `useTradeExecutiveDashboard` para:
-- Buscar IDs dos subordinados via `get_subordinados`
-- Filtrar todas as queries pelos IDs da equipe
-- Permitir selecao de membro especifico
+## Detalhes Técnicos
 
-### 3. Componente: `SupervisorTeamSelector.tsx`
-
-Seletor compacto para escolher membro da equipe ou ver todos.
-
-## Fluxo de Dados
-
-```text
-1. Supervisor acessa /dashboard/trade/minha-equipe
-
-2. Hook carrega subordinados:
-   get_subordinados(supervisor_id) -> [id1, id2, id3, id4]
-
-3. Queries sao filtradas:
-   - visits: .in('atribuido_por', [id1, id2, id3, id4])
-   - photos: .in('created_by', [id1, id2, id3, id4])
-   - stores: .in('vendedor_id', [id1, id2, id3, id4])
-   - lancamentos: .in('created_by', [id1, id2, id3, id4])
-
-4. Se usuario selecionar membro especifico:
-   - Filtros mudam para apenas aquele ID
-
-5. Dados sao exibidos nos mesmos componentes visuais
-```
-
-## Alteracoes no Sistema
-
-### Arquivos a Criar
-
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/pages/TradeSupervisorDashboard.tsx` | Pagina principal do painel |
-| `src/hooks/useTradeSupervisorDashboard.ts` | Hook de dados filtrados por equipe |
-| `src/components/trade/supervisor/SupervisorTeamSelector.tsx` | Seletor de membros |
-
-### Arquivos a Modificar
-
-| Arquivo | Alteracao |
-|---------|-----------|
-| `src/App.tsx` | Adicionar rota `/dashboard/trade/minha-equipe` |
-| `src/pages/modules/TradeModule.tsx` | Adicionar card de acesso para supervisores |
-
-### Banco de Dados
-
-Nenhuma alteracao necessaria - usa infraestrutura existente:
-- `get_subordinados` RPC
-- Tabelas `visits`, `photos`, `stores`, `trade_campaign_lancamentos`
-
-## Seguranca e Permissoes
-
-### Regras de Acesso
-
-1. **Visibilidade da rota**: Apenas usuarios com role `supervisor` no menu
-2. **Dados**: Filtrados automaticamente pelo hook usando `get_subordinados`
-3. **Sem acesso a dados de outras equipes**: RPC retorna apenas subordinados do supervisor logado
-
-### Implementacao de Seguranca
+### Correção Principal - Query de Equipe
 
 ```typescript
-// No hook useTradeSupervisorDashboard.ts
-const { data: subordinados } = await supabase
-  .rpc('get_subordinados', { _user_id: user.id });
+// ANTES (incorreto)
+const { data: profiles } = await supabase
+  .from("profiles")
+  .select("id, nome, email, supervisor_id")
+  .eq("supervisor_id", user.id)
+  .eq("ativo", true);  // ❌ Campo não existe
 
-const teamIds = [
-  user.id, // Inclui o proprio supervisor
-  ...subordinados.map(s => s.subordinado_id)
-];
-
-// Todas as queries usam .in('campo_id', teamIds)
+// DEPOIS (correto)
+const { data: profiles } = await supabase
+  .from("profiles")
+  .select("id, nome, email, supervisor_id")
+  .eq("supervisor_id", user.id)
+  .eq("status", "ativo");  // ✅ Campo correto
 ```
 
-## Reutilizacao de Componentes
+### Correção de Visitas
 
-Componentes do Dashboard Executivo que serao reutilizados:
-- `TradeExecutiveKPIs` - Cards de KPIs
-- `TradeExecutiveEvolutionChart` - Grafico de evolucao
-- `TradeExecutiveTopClients` - Top clientes
-- `TradeExecutiveVisitsTable` - Tabela de visitas
-- `TradeExecutivePhotosGallery` - Galeria de fotos
+```typescript
+// ANTES (incorreto para visitas realizadas)
+.in("atribuido_por", filterIds)
 
-## Navegacao
-
-### Onde aparecera o acesso
-
-No `TradeModule.tsx`, na secao "Performance e Vendas" para supervisores:
-
-```text
-Performance e Vendas
-+------------------------+
-| Minha Equipe      [NOVO]|  <- Acesso ao painel do supervisor
-| Promoções              |
-| Performance            |
-| Equipe                 |
-+------------------------+
+// DEPOIS (correto - user_id é quem realizou)
+.in("user_id", filterIds)
 ```
 
-### Rota
+### Inclusão do Próprio Supervisor
 
-- URL: `/dashboard/trade/minha-equipe`
-- Protecao: Role `supervisor` ou `admin`
+```typescript
+// O supervisor também deve aparecer nos dados
+const filterIds = selectedMemberId 
+  ? [selectedMemberId] 
+  : [user.id, ...teamIds];  // ✅ Inclui o próprio supervisor
+```
 
-## Beneficios
+## Ordem de Implementação
 
-1. **Foco na equipe**: Supervisor ve apenas dados relevantes
-2. **Filtro por membro**: Analise individual de cada vendedor
-3. **Mesma experiencia visual**: Consistencia com o dashboard executivo
-4. **Seguranca**: Dados isolados por hierarquia
-5. **Performance**: Queries otimizadas com filtros especificos
+| Passo | Ação | Arquivo |
+|-------|------|---------|
+| 1 | Corrigir campo `ativo` para `status` | useTradeSupervisorDashboard.ts |
+| 2 | Corrigir query de visitas para `user_id` | useTradeSupervisorDashboard.ts |
+| 3 | Incluir supervisor nos filterIds | useTradeSupervisorDashboard.ts |
+| 4 | Adicionar tratamento de erros melhorado | useTradeSupervisorDashboard.ts |
+| 5 | Melhorar UX do seletor de equipe | SupervisorTeamSelector.tsx |
+| 6 | Adicionar estados vazios na página | TradeSupervisorDashboard.tsx |
 
-## Ordem de Implementacao
+## Testes a Realizar
 
-1. Criar hook `useTradeSupervisorDashboard.ts` com logica de filtro
-2. Criar componente `SupervisorTeamSelector.tsx`
-3. Criar pagina `TradeSupervisorDashboard.tsx`
-4. Adicionar rota no `App.tsx`
-5. Adicionar link no menu do `TradeModule.tsx`
-6. Testar com usuario supervisor (Michele)
+1. **Teste como Michele**: Verificar se apenas Douglas, Juliana, Monique e Nathalia aparecem
+2. **Teste como Jessika**: Verificar se apenas sua equipe aparece (Administrador Sistema, Juliana Germinhasi, Leandro Ramos)
+3. **Teste como Admin (Leandro)**: Verificar se tem acesso via menu correto
+4. **Teste filtro individual**: Selecionar um membro e verificar se dados filtram corretamente
+5. **Teste período**: Alterar datas e verificar se KPIs atualizam
+
+## Resultado Esperado
+
+Após as correções:
+
+1. Michele verá apenas seus 4 subordinados diretos
+2. Dados de visitas, fotos e lançamentos serão filtrados corretamente
+3. Seletor de equipe mostrará hierarquia limpa
+4. Estados vazios serão tratados com mensagens amigáveis
+5. Performance otimizada com queries paralelas
