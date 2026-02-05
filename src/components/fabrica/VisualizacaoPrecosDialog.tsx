@@ -37,7 +37,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatarMoeda, formatarPercentual } from "@/lib/fabrica/pricing-calculator";
 import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag, Edit, Trash2, FileText, History, Shield, AlertTriangle, Eye } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import { EditarPrecosProdutoDialog } from "./EditarPrecosProdutoDialog";
 import { ExportarTabelaPDF } from "./ExportarTabelaPDF";
 import { HistoricoPrecoProduto } from "./HistoricoPrecoProduto";
@@ -199,53 +200,56 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
     produtosLimitados: precosFiltrados?.filter(p => p.preco_limitado)?.length || 0,
   };
 
-  const handleExportar = () => {
+  const handleExportar = async () => {
     if (!precosFiltrados || precosFiltrados.length === 0) {
       toast.error("Nenhum dado para exportar");
       return;
     }
 
     const dadosExportacao = precosFiltrados.map((preco) => ({
-      "Código": preco.produto?.codigo || "",
-      "SKU": preco.produto?.sku || "",
-      "Produto": preco.produto?.nome || "",
-      "Nome Comercial": preco.produto?.nome_comercial || "",
-      "Categoria": preco.produto?.categoria || "",
-      "Subcategoria": preco.produto?.subcategoria || "",
-      "Marca": preco.produto?.marca || "",
-      "Linha": preco.produto?.linha || "",
-      "Modelo": preco.produto?.modelo || "",
-      "Unidade": preco.produto?.unidade_medida?.sigla || "",
-      "Preço Tabela Base": preco.preco_tabela_base || preco.custo_base || 0,
-      "Preço Final": preco.preco_final || 0,
-      "Margem (%)": preco.margem_calculada || 0,
-      "Origem Custo": preco.custo_base_origem || "",
+      codigo: preco.produto?.codigo || "",
+      sku: preco.produto?.sku || "",
+      produto: preco.produto?.nome || "",
+      nome_comercial: preco.produto?.nome_comercial || "",
+      categoria: preco.produto?.categoria || "",
+      subcategoria: preco.produto?.subcategoria || "",
+      marca: preco.produto?.marca || "",
+      linha: preco.produto?.linha || "",
+      modelo: preco.produto?.modelo || "",
+      unidade: preco.produto?.unidade_medida?.sigla || "",
+      preco_tabela_base: preco.preco_tabela_base || preco.custo_base || 0,
+      preco_final: preco.preco_final || 0,
+      margem: preco.margem_calculada || 0,
+      origem_custo: preco.custo_base_origem || "",
     }));
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(dadosExportacao);
-
-    // Ajustar largura das colunas
-    const colWidths = [
-      { wch: 12 }, // Código
-      { wch: 15 }, // SKU
-      { wch: 35 }, // Produto
-      { wch: 25 }, // Nome Comercial
-      { wch: 15 }, // Categoria
-      { wch: 15 }, // Subcategoria
-      { wch: 15 }, // Marca
-      { wch: 15 }, // Linha
-      { wch: 15 }, // Modelo
-      { wch: 8 },  // Unidade
-      { wch: 12 }, // Custo Base
-      { wch: 12 }, // Preço Final
-      { wch: 10 }, // Margem
-      { wch: 15 }, // Origem Custo
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'BiMaster';
+    const worksheet = workbook.addWorksheet('Preços');
+    worksheet.columns = [
+      { header: 'Código', key: 'codigo', width: 12 },
+      { header: 'SKU', key: 'sku', width: 15 },
+      { header: 'Produto', key: 'produto', width: 35 },
+      { header: 'Nome Comercial', key: 'nome_comercial', width: 25 },
+      { header: 'Categoria', key: 'categoria', width: 15 },
+      { header: 'Subcategoria', key: 'subcategoria', width: 15 },
+      { header: 'Marca', key: 'marca', width: 15 },
+      { header: 'Linha', key: 'linha', width: 15 },
+      { header: 'Modelo', key: 'modelo', width: 15 },
+      { header: 'Unidade', key: 'unidade', width: 8 },
+      { header: 'Preço Tabela Base', key: 'preco_tabela_base', width: 12 },
+      { header: 'Preço Final', key: 'preco_final', width: 12 },
+      { header: 'Margem (%)', key: 'margem', width: 10 },
+      { header: 'Origem Custo', key: 'origem_custo', width: 15 },
     ];
-    ws['!cols'] = colWidths;
+    dadosExportacao.forEach(row => worksheet.addRow(row));
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
 
-    XLSX.utils.book_append_sheet(wb, ws, "Preços");
-    XLSX.writeFile(wb, `Tabela_Precos_${tabela?.codigo}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `Tabela_Precos_${tabela?.codigo}_${new Date().toISOString().split('T')[0]}.xlsx`);
     toast.success("Tabela exportada com sucesso!");
   };
 
