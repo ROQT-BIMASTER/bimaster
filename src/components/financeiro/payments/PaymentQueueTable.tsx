@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,13 +9,20 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { PaymentQueueItem, PaymentQueueStatus, SourceType } from "@/hooks/useFinancialPaymentQueue";
 
+interface Department {
+  id: string;
+  nome: string;
+}
+
 interface PaymentQueueTableProps {
   items: PaymentQueueItem[];
   isLoading: boolean;
   onReview: (item: PaymentQueueItem) => void;
+  departments: Department[];
   filters: {
     status: PaymentQueueStatus | 'all';
     source_type: SourceType | 'all';
+    department_name: string | 'all';
     search: string;
   };
   onFiltersChange: (filters: PaymentQueueTableProps['filters']) => void;
@@ -45,7 +51,7 @@ const sourceTypeConfig: Record<SourceType, { label: string; icon: typeof Target;
   department_expense: { label: "Departamento", icon: Building, color: "text-teal-500" },
 };
 
-export function PaymentQueueTable({ items, isLoading, onReview, filters, onFiltersChange }: PaymentQueueTableProps) {
+export function PaymentQueueTable({ items, isLoading, onReview, departments, filters, onFiltersChange }: PaymentQueueTableProps) {
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -62,7 +68,7 @@ export function PaymentQueueTable({ items, isLoading, onReview, filters, onFilte
         
         <Select
           value={filters.source_type}
-          onValueChange={(value) => onFiltersChange({ ...filters, source_type: value as SourceType | 'all' })}
+          onValueChange={(value) => onFiltersChange({ ...filters, source_type: value as SourceType | 'all', department_name: 'all' })}
         >
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Origem" />
@@ -76,6 +82,26 @@ export function PaymentQueueTable({ items, isLoading, onReview, filters, onFilte
             <SelectItem value="department_expense">Departamento</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* Department filter - only show when source_type is department_expense or all */}
+        {(filters.source_type === 'department_expense' || filters.source_type === 'all') && (
+          <Select
+            value={filters.department_name}
+            onValueChange={(value) => onFiltersChange({ ...filters, department_name: value })}
+          >
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Departamento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos Departamentos</SelectItem>
+              {departments.map((dept) => (
+                <SelectItem key={dept.id} value={dept.nome}>
+                  {dept.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         <Select
           value={filters.status}
@@ -128,13 +154,17 @@ export function PaymentQueueTable({ items, isLoading, onReview, filters, onFilte
                 const isOverdue = new Date(item.due_date) < new Date() && item.financial_status === 'pending';
 
                 return (
-                  <TableRow key={item.id} className={cn(isOverdue && "bg-red-50 dark:bg-red-950/20")}>
+                  <TableRow key={item.id} className={cn(isOverdue && "bg-destructive/10")}>
                     <TableCell className="font-mono text-sm">{item.code}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <sourceConfig.icon className={cn("h-4 w-4", sourceConfig.color)} />
                         <div className="flex flex-col">
-                          <span className="text-sm">{sourceConfig.label}</span>
+                          <span className="text-sm">
+                            {item.source_type === 'department_expense' && item.department_name
+                              ? item.department_name
+                              : sourceConfig.label}
+                          </span>
                           {item.source_code && (
                             <span className="text-xs text-muted-foreground">{item.source_code}</span>
                           )}
@@ -153,11 +183,11 @@ export function PaymentQueueTable({ items, isLoading, onReview, filters, onFilte
                       {formatCurrency(item.amount)}
                     </TableCell>
                     <TableCell>
-                      <span className={cn(isOverdue && "text-red-600 font-medium")}>
+                      <span className={cn(isOverdue && "text-destructive font-medium")}>
                         {format(new Date(item.due_date), "dd/MM/yyyy", { locale: ptBR })}
                       </span>
                       {isOverdue && (
-                        <span className="text-xs text-red-500 block">Vencido</span>
+                        <span className="text-xs text-destructive block">Vencido</span>
                       )}
                     </TableCell>
                     <TableCell>
