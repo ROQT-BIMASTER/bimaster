@@ -21,19 +21,26 @@ import {
   Plus,
   ChevronRight,
   Users,
-  Wallet
+  Wallet,
+  ClipboardCheck
 } from "lucide-react";
+import { useManagerPendingExpenses } from "@/hooks/useManagerPendingExpenses";
 
 export default function DepartmentHub() {
   const navigate = useNavigate();
   const { data: userDepartments, isLoading: loadingUserDepts } = useUserDepartments();
   const { data: allDepartments, isLoading: loadingAllDepts } = useAllDepartments();
   const { isAdminOrSupervisor } = useUserRole();
+  const { data: managerData } = useManagerPendingExpenses();
   const [searchTerm, setSearchTerm] = useState("");
 
   // Mostrar todos departamentos para admin/supervisor, ou apenas os do usuário
   const departments = isAdminOrSupervisor ? allDepartments : userDepartments;
   const isLoading = isAdminOrSupervisor ? loadingAllDepts : loadingUserDepts;
+
+  // Show unified approval hub button only for managers
+  const showApprovalHub = managerData?.isManager || false;
+  const pendingApprovals = managerData?.metrics.totalPending || 0;
 
   const filteredDepartments = (departments || []).filter(dept =>
     dept.nome.toLowerCase().includes(searchTerm.toLowerCase())
@@ -55,6 +62,21 @@ export default function DepartmentHub() {
               Controle de despesas e verbas por departamento
             </p>
           </div>
+          
+          {showApprovalHub && (
+            <Button 
+              onClick={() => navigate("/dashboard/departamentos/aprovacoes")}
+              className="gap-2"
+            >
+              <ClipboardCheck className="h-4 w-4" />
+              Central de Aprovações
+              {pendingApprovals > 0 && (
+                <Badge variant="secondary" className="ml-1">
+                  {pendingApprovals}
+                </Badge>
+              )}
+            </Button>
+          )}
         </div>
 
         {/* Filtro */}
@@ -181,7 +203,7 @@ function DepartmentCard({ department, onClick }: DepartmentCardProps) {
           </div>
           
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-emerald-500" />
+            <TrendingUp className="h-4 w-4 text-success" />
             <div>
               <div className="text-muted-foreground text-xs">Utilizado</div>
               <div className="font-semibold">
@@ -192,7 +214,7 @@ function DepartmentCard({ department, onClick }: DepartmentCardProps) {
         </div>
 
         {pendingCount > 0 && (
-          <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-md px-2 py-1">
+          <div className="flex items-center gap-2 text-sm text-warning bg-warning/10 rounded-md px-2 py-1">
             <Clock className="h-4 w-4" />
             <span>{pendingCount} despesa{pendingCount > 1 ? 's' : ''} pendente{pendingCount > 1 ? 's' : ''}</span>
           </div>
