@@ -51,31 +51,58 @@ export function useTradeSupervisorDashboard(
   const startDateStr = startDate.toISOString().split("T")[0];
   const endDateStr = endDate.toISOString().split("T")[0];
 
-  // Query para buscar APENAS subordinados diretos (supervisor_id = effectiveUserId)
+  // Query para buscar equipe - Admin vê TODOS, outros veem apenas subordinados diretos
   const teamQuery = useQuery({
-    queryKey: ["trade-supervisor-team", effectiveUserId, isImpersonating],
+    queryKey: ["trade-supervisor-team", effectiveUserId, isImpersonating, user?.id],
     queryFn: async () => {
-      if (!effectiveUserId) return { flat: [], hierarchy: [] };
+      if (!effectiveUserId) return { flat: [], hierarchy: [], isAdmin: false };
 
-      console.log("[SupervisorDashboard] Buscando equipe para supervisor:", effectiveUserId, isImpersonating ? "(personificado)" : "");
-
-      // Buscar APENAS subordinados diretos do usuário efetivo
-      // CORREÇÃO: usar status = 'ativo' ao invés de ativo = true
-      const { data: profiles, error: profilesError } = await (supabase
-        .from("profiles")
-        .select("id, nome, email, supervisor_id") as any)
-        .eq("supervisor_id", effectiveUserId)
-        .eq("status", "ativo");
-
-      if (profilesError) {
-        console.error("[SupervisorDashboard] Erro ao buscar equipe:", profilesError);
-        throw profilesError;
+      // Verificar se o usuário REAL (não personificado) é admin
+      let isRealAdmin = false;
+      if (user?.id && !isImpersonating) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        isRealAdmin = roleData?.role === "admin";
       }
 
-      const allProfiles = profiles || [];
-      console.log("[SupervisorDashboard] Subordinados diretos encontrados:", allProfiles.length, allProfiles.map((p: any) => p.nome));
+      console.log("[SupervisorDashboard] Buscando equipe para:", effectiveUserId, isRealAdmin ? "(admin - todas equipes)" : isImpersonating ? "(personificado)" : "");
+
+      let allProfiles: any[] = [];
+
+      if (isRealAdmin) {
+        // Admin: buscar TODOS os usuários ativos (exceto o próprio admin)
+        const { data: profiles, error: profilesError } = await (supabase
+          .from("profiles")
+          .select("id, nome, email, supervisor_id") as any)
+          .eq("status", "ativo")
+          .neq("id", effectiveUserId);
+
+        if (profilesError) {
+          console.error("[SupervisorDashboard] Erro ao buscar equipe:", profilesError);
+          throw profilesError;
+        }
+        allProfiles = profiles || [];
+      } else {
+        // Supervisor/outros: buscar APENAS subordinados diretos
+        const { data: profiles, error: profilesError } = await (supabase
+          .from("profiles")
+          .select("id, nome, email, supervisor_id") as any)
+          .eq("supervisor_id", effectiveUserId)
+          .eq("status", "ativo");
+
+        if (profilesError) {
+          console.error("[SupervisorDashboard] Erro ao buscar equipe:", profilesError);
+          throw profilesError;
+        }
+        allProfiles = profiles || [];
+      }
+
+      console.log("[SupervisorDashboard] Membros encontrados:", allProfiles.length, allProfiles.slice(0, 5).map((p: any) => p.nome));
       
-      if (allProfiles.length === 0) return { flat: [], hierarchy: [] };
+      if (allProfiles.length === 0) return { flat: [], hierarchy: [], isAdmin: isRealAdmin };
 
       // Criar lista flat (todos são diretos do usuário atual)
       const flat: TeamMember[] = allProfiles
@@ -94,7 +121,7 @@ export function useTradeSupervisorDashboard(
         members: flat,
       }];
 
-      return { flat, hierarchy };
+      return { flat, hierarchy, isAdmin: isRealAdmin };
     },
     enabled: !!effectiveUserId,
     staleTime: 10 * 60 * 1000,
