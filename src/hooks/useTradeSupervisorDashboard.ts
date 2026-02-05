@@ -68,7 +68,7 @@ export function useTradeSupervisorDashboard(
   const hasTeam = filterIds.length > 0;
   const filterIdsKey = filterIds.join(",");
 
-  // Query para KPIs principais
+  // Query para KPIs principais - usando .in() para eficiência
   const kpisQuery = useQuery({
     queryKey: ["trade-supervisor-kpis", startDateStr, endDateStr, filterIdsKey],
     queryFn: async (): Promise<ExecutiveKPIs> => {
@@ -76,52 +76,45 @@ export function useTradeSupervisorDashboard(
         return { pdvsAtivos: 0, visitasMes: 0, fotosMes: 0, roiMedio: 0 };
       }
 
-      let storesCount = 0;
-      let visitsCount = 0;
-      let photosCount = 0;
-      const allRoiValues: number[] = [];
+      // Stores - usando .in() para buscar todos de uma vez
+      const storesRes = await supabase
+        .from("stores")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "active")
+        .in("vendedor_id", filterIds);
+      
+      // Visits - usando .in()
+      const visitsRes = await supabase
+        .from("visits")
+        .select("id", { count: "exact", head: true })
+        .in("atribuido_por", filterIds)
+        .gte("scheduled_date", startDateStr)
+        .lte("scheduled_date", endDateStr);
 
-      for (const id of filterIds) {
-        // Stores
-        const storesRes = await supabase
-          .from("stores")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "active")
-          .eq("vendedor_id", id);
-        storesCount += storesRes.count || 0;
-
-        // Visits
-        const visitsRes = await supabase
-          .from("visits")
-          .select("id", { count: "exact", head: true })
-          .eq("atribuido_por", id)
-          .gte("scheduled_date", startDateStr)
-          .lte("scheduled_date", endDateStr);
-        visitsCount += visitsRes.count || 0;
-
-        // Photos  
-        const photosRes = await (supabase
-          .from("photos")
-          .select("id", { count: "exact", head: true }) as any)
-          .eq("created_by", id)
-          .gte("upload_date", startDateStr)
-          .lte("upload_date", endDateStr);
-        photosCount += photosRes.count || 0;
+      // Photos - usando .in()
+      const photosRes = await (supabase
+        .from("photos")
+        .select("id", { count: "exact", head: true }) as any)
+        .in("created_by", filterIds)
+        .gte("upload_date", startDateStr)
+        .lte("upload_date", endDateStr);
         
-        // ROI
-        const roiRes = await supabase
-          .from("trade_campaign_lancamentos")
-          .select("roi_percentual")
-          .eq("created_by", id)
-          .not("roi_percentual", "is", null);
-        (roiRes.data || []).forEach((l) => {
-          allRoiValues.push(parseFloat(String(l.roi_percentual)) || 0);
-        });
-      }
+      // ROI - usando .in()
+      const roiRes = await supabase
+        .from("trade_campaign_lancamentos")
+        .select("roi_percentual")
+        .in("created_by", filterIds)
+        .not("roi_percentual", "is", null);
+      
+      const roiValues = (roiRes.data || []).map(l => parseFloat(String(l.roi_percentual)) || 0);
+      const roiMedio = roiValues.length > 0 ? roiValues.reduce((a, b) => a + b, 0) / roiValues.length : 0;
 
-      const roiMedio = allRoiValues.length > 0 ? allRoiValues.reduce((a, b) => a + b, 0) / allRoiValues.length : 0;
-
-      return { pdvsAtivos: storesCount, visitasMes: visitsCount, fotosMes: photosCount, roiMedio };
+      return { 
+        pdvsAtivos: storesRes.count || 0, 
+        visitasMes: visitsRes.count || 0, 
+        fotosMes: photosRes.count || 0, 
+        roiMedio 
+      };
     },
     enabled: hasTeam,
     staleTime: 3 * 60 * 1000,
@@ -135,15 +128,13 @@ export function useTradeSupervisorDashboard(
         return { ativas: 0, concluidas: 0, valorInvestido: 0, byStatus: [] };
       }
 
-      const allLancamentos: { campaign_id: string | null; valor_pedido: number | null; status: string | null }[] = [];
-      for (const id of filterIds) {
-        const res = await supabase
-          .from("trade_campaign_lancamentos")
-          .select("campaign_id, valor_pedido, status")
-          .eq("created_by", id)
-          .is("deleted_at", null);
-        (res.data || []).forEach((l) => allLancamentos.push(l));
-      }
+      const res = await supabase
+        .from("trade_campaign_lancamentos")
+        .select("campaign_id, valor_pedido, status")
+        .in("created_by", filterIds)
+        .is("deleted_at", null);
+      
+      const allLancamentos = res.data || [];
 
       const valorInvestido = allLancamentos.reduce((sum, l) => sum + (parseFloat(String(l.valor_pedido)) || 0), 0);
       const statusCount: Record<string, number> = {};
@@ -191,38 +182,34 @@ export function useTradeSupervisorDashboard(
         const mesInicioStr = mesInicio.toISOString().split("T")[0];
         const mesFimStr = mesFim.toISOString().split("T")[0];
 
-        let visitsCount = 0;
-        let photosCount = 0;
-        let photosProcessedCount = 0;
-
-        for (const id of filterIds) {
-          const vRes = await supabase
+        const [vRes, pRes, ppRes] = await Promise.all([
+          supabase
             .from("visits")
             .select("id", { count: "exact", head: true })
-            .eq("atribuido_por", id)
+            .in("atribuido_por", filterIds)
             .gte("scheduled_date", mesInicioStr)
-            .lte("scheduled_date", mesFimStr);
-          visitsCount += vRes.count || 0;
-
-          const pRes = await (supabase
+            .lte("scheduled_date", mesFimStr),
+          (supabase
             .from("photos")
             .select("id", { count: "exact", head: true }) as any)
-            .eq("created_by", id)
+            .in("created_by", filterIds)
             .gte("upload_date", mesInicioStr)
-            .lte("upload_date", mesFimStr);
-          photosCount += pRes.count || 0;
-          
-          const ppRes = await (supabase
+            .lte("upload_date", mesFimStr),
+          (supabase
             .from("photos")
             .select("id", { count: "exact", head: true }) as any)
-            .eq("created_by", id)
+            .in("created_by", filterIds)
             .gte("upload_date", mesInicioStr)
             .lte("upload_date", mesFimStr)
-            .not("ai_analysis", "is", null);
-          photosProcessedCount += ppRes.count || 0;
-        }
+            .not("ai_analysis", "is", null),
+        ]);
 
-        evolution.push({ mes: mesLabel, visitas: visitsCount, fotos: photosCount, fotosProcessadas: photosProcessedCount });
+        evolution.push({ 
+          mes: mesLabel, 
+          visitas: vRes.count || 0, 
+          fotos: pRes.count || 0, 
+          fotosProcessadas: ppRes.count || 0 
+        });
       }
 
       return evolution;
@@ -237,22 +224,18 @@ export function useTradeSupervisorDashboard(
     queryFn: async (): Promise<TopClient[]> => {
       if (!hasTeam) return [];
 
-      type LancData = { customer_id: string; valor_pedido: number | null; prospect: { nome_empresa: string | null } | null };
-      const allData: LancData[] = [];
+      const res = await supabase
+        .from("trade_campaign_lancamentos")
+        .select("customer_id, valor_pedido, prospect:prospects(nome_empresa)")
+        .in("created_by", filterIds)
+        .is("deleted_at", null)
+        .gte("data_lancamento", startDateStr)
+        .lte("data_lancamento", endDateStr);
       
-      for (const id of filterIds) {
-        const res = await supabase
-          .from("trade_campaign_lancamentos")
-          .select("customer_id, valor_pedido, prospect:prospects(nome_empresa)")
-          .eq("created_by", id)
-          .is("deleted_at", null)
-          .gte("data_lancamento", startDateStr)
-          .lte("data_lancamento", endDateStr);
-        (res.data || []).forEach((l) => allData.push(l as LancData));
-      }
+      const allData = res.data || [];
 
       const clientMap: Record<string, { valor: number; quantidade: number; nome: string }> = {};
-      allData.forEach((l) => {
+      allData.forEach((l: any) => {
         const clientId = l.customer_id;
         const nome = l.prospect?.nome_empresa || "Cliente não identificado";
         const valor = parseFloat(String(l.valor_pedido)) || 0;
@@ -276,33 +259,26 @@ export function useTradeSupervisorDashboard(
     queryFn: async (): Promise<RecentVisit[]> => {
       if (!hasTeam) return [];
 
-      type VisitData = { id: string; scheduled_date: string | null; duration_minutes: number | null; status: string | null; compliance_score: number | null; store: { name: string | null } | null; atribuidor: { nome: string | null } | null };
-      const allData: VisitData[] = [];
+      const res = await supabase
+        .from("visits")
+        .select("id, scheduled_date, duration_minutes, status, compliance_score, store:stores(name), atribuidor:profiles!visits_atribuido_por_fkey(nome)")
+        .in("atribuido_por", filterIds)
+        .gte("scheduled_date", startDateStr)
+        .lte("scheduled_date", endDateStr)
+        .order("scheduled_date", { ascending: false })
+        .limit(20);
       
-      for (const id of filterIds) {
-        const res = await supabase
-          .from("visits")
-          .select("id, scheduled_date, duration_minutes, status, compliance_score, store:stores(name), atribuidor:profiles!visits_atribuido_por_fkey(nome)")
-          .eq("atribuido_por", id)
-          .gte("scheduled_date", startDateStr)
-          .lte("scheduled_date", endDateStr)
-          .order("scheduled_date", { ascending: false })
-          .limit(10);
-        (res.data || []).forEach((v) => allData.push(v as VisitData));
-      }
+      const allData = res.data || [];
 
-      return allData
-        .sort((a, b) => new Date(b.scheduled_date || 0).getTime() - new Date(a.scheduled_date || 0).getTime())
-        .slice(0, 10)
-        .map((v) => ({
-          id: v.id,
-          pdv: v.store?.name || "PDV não identificado",
-          vendedor: v.atribuidor?.nome || "Vendedor não identificado",
-          data: v.scheduled_date || "",
-          duracao: v.duration_minutes,
-          status: v.status || "pending",
-          score: v.compliance_score,
-        }));
+      return allData.map((v: any) => ({
+        id: v.id,
+        pdv: v.store?.name || "PDV não identificado",
+        vendedor: v.atribuidor?.nome || "Vendedor não identificado",
+        data: v.scheduled_date || "",
+        duracao: v.duration_minutes,
+        status: v.status || "pending",
+        score: v.compliance_score,
+      }));
     },
     enabled: hasTeam,
     staleTime: 2 * 60 * 1000,
@@ -314,35 +290,28 @@ export function useTradeSupervisorDashboard(
     queryFn: async (): Promise<RecentPhoto[]> => {
       if (!hasTeam) return [];
 
-      type PhotoData = { id: string; photo_url: string | null; upload_date: string | null; ai_analysis: unknown; store: { name: string | null } | null };
-      const allData: PhotoData[] = [];
+      const res = await (supabase
+        .from("photos")
+        .select("id, photo_url, upload_date, ai_analysis, store:stores(name)") as any)
+        .in("created_by", filterIds)
+        .gte("upload_date", startDateStr)
+        .lte("upload_date", endDateStr)
+        .order("upload_date", { ascending: false })
+        .limit(12);
       
-      for (const id of filterIds) {
-        const res = await (supabase
-          .from("photos")
-          .select("id, photo_url, upload_date, ai_analysis, store:stores(name)") as any)
-          .eq("created_by", id)
-          .gte("upload_date", startDateStr)
-          .lte("upload_date", endDateStr)
-          .order("upload_date", { ascending: false })
-          .limit(12);
-        (res.data || []).forEach((p: any) => allData.push(p as PhotoData));
-      }
+      const allData = res.data || [];
 
-      return allData
-        .sort((a, b) => new Date(b.upload_date || 0).getTime() - new Date(a.upload_date || 0).getTime())
-        .slice(0, 12)
-        .map((p) => {
-          const analysis = p.ai_analysis as { overall_score?: number } | null;
-          return {
-            id: p.id,
-            url: p.photo_url || "",
-            pdv: p.store?.name || "PDV não identificado",
-            data: p.upload_date || "",
-            iaStatus: analysis ? "processed" : "pending",
-            iaScore: analysis?.overall_score || null,
-          };
-        });
+      return allData.map((p: any) => {
+        const analysis = p.ai_analysis as { overall_score?: number } | null;
+        return {
+          id: p.id,
+          url: p.photo_url || "",
+          pdv: p.store?.name || "PDV não identificado",
+          data: p.upload_date || "",
+          iaStatus: analysis ? "processed" : "pending",
+          iaScore: analysis?.overall_score || null,
+        };
+      });
     },
     enabled: hasTeam,
     staleTime: 2 * 60 * 1000,
@@ -354,21 +323,17 @@ export function useTradeSupervisorDashboard(
     queryFn: async () => {
       if (!hasTeam) return [];
 
-      const allData: unknown[] = [];
-      for (const id of filterIds) {
-        const res = await supabase
-          .from("trade_campaign_lancamentos")
-          .select("id, customer_id, valor_pedido, status, roi_percentual, crescimento_percentual, data_lancamento, prospect:prospects(nome_empresa, categoria), campaign:trade_campaigns(name)")
-          .eq("created_by", id)
-          .is("deleted_at", null)
-          .gte("data_lancamento", startDateStr)
-          .lte("data_lancamento", endDateStr)
-          .order("data_lancamento", { ascending: false })
-          .limit(50);
-        (res.data || []).forEach((l) => allData.push(l));
-      }
+      const res = await supabase
+        .from("trade_campaign_lancamentos")
+        .select("id, customer_id, valor_pedido, status, roi_percentual, crescimento_percentual, data_lancamento, prospect:prospects(nome_empresa, categoria), campaign:trade_campaigns(name)")
+        .in("created_by", filterIds)
+        .is("deleted_at", null)
+        .gte("data_lancamento", startDateStr)
+        .lte("data_lancamento", endDateStr)
+        .order("data_lancamento", { ascending: false })
+        .limit(50);
 
-      return allData.sort((a: any, b: any) => new Date(b.data_lancamento).getTime() - new Date(a.data_lancamento).getTime()).slice(0, 50);
+      return res.data || [];
     },
     enabled: hasTeam,
     staleTime: 3 * 60 * 1000,
@@ -380,19 +345,15 @@ export function useTradeSupervisorDashboard(
     queryFn: async () => {
       if (!hasTeam) return [];
 
-      type CurvaData = { id: string; valor_pedido: number | null; prospect: { categoria: string | null } | null };
-      const allData: CurvaData[] = [];
+      const res = await supabase
+        .from("trade_campaign_lancamentos")
+        .select("id, valor_pedido, prospect:prospects(categoria)")
+        .in("created_by", filterIds)
+        .is("deleted_at", null)
+        .gte("data_lancamento", startDateStr)
+        .lte("data_lancamento", endDateStr);
       
-      for (const id of filterIds) {
-        const res = await supabase
-          .from("trade_campaign_lancamentos")
-          .select("id, valor_pedido, prospect:prospects(categoria)")
-          .eq("created_by", id)
-          .is("deleted_at", null)
-          .gte("data_lancamento", startDateStr)
-          .lte("data_lancamento", endDateStr);
-        (res.data || []).forEach((l) => allData.push(l as CurvaData));
-      }
+      const allData = res.data || [];
 
       const curvaMap: Record<string, { count: number; valor: number }> = {
         A: { count: 0, valor: 0 },
@@ -402,7 +363,7 @@ export function useTradeSupervisorDashboard(
         "Não classificado": { count: 0, valor: 0 },
       };
 
-      allData.forEach((l) => {
+      allData.forEach((l: any) => {
         const curva = l.prospect?.categoria || "Não classificado";
         const curvaKey = ["A", "B", "C", "D"].includes(curva) ? curva : "Não classificado";
         const valor = parseFloat(String(l.valor_pedido)) || 0;
