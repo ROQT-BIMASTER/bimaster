@@ -72,6 +72,7 @@ interface UpdatePaymentStatusInput {
 interface PaymentQueueFilters {
   status?: PaymentQueueStatus | 'all';
   source_type?: SourceType | 'all';
+  department_name?: string | 'all';
   search?: string;
   startDate?: Date;
   endDate?: Date;
@@ -96,6 +97,10 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       if (filters?.source_type && filters.source_type !== 'all') {
         query = query.eq('source_type', filters.source_type);
+      }
+
+      if (filters?.department_name && filters.department_name !== 'all') {
+        query = query.eq('department_name', filters.department_name);
       }
 
       if (filters?.search) {

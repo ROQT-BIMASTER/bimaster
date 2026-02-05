@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,20 +8,37 @@ import { PaymentQueueKPIs } from "@/components/financeiro/payments/PaymentQueueK
 import { PaymentQueueTable } from "@/components/financeiro/payments/PaymentQueueTable";
 import { PaymentReviewDialog } from "@/components/financeiro/payments/PaymentReviewDialog";
 import { useFinancialPaymentQueue, type PaymentQueueItem, type PaymentQueueStatus, type SourceType } from "@/hooks/useFinancialPaymentQueue";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function FinancialPaymentCentral() {
   const [filters, setFilters] = useState<{
     status: PaymentQueueStatus | 'all';
     source_type: SourceType | 'all';
+    department_name: string | 'all';
     search: string;
   }>({
     status: 'all',
     source_type: 'all',
+    department_name: 'all',
     search: '',
   });
 
   const [selectedItem, setSelectedItem] = useState<PaymentQueueItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+
+  // Fetch departments for the filter
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('departamentos')
+        .select('id, nome')
+        .eq('ativo', true)
+        .order('nome');
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   const { 
     items, 
@@ -34,6 +52,7 @@ export default function FinancialPaymentCentral() {
   } = useFinancialPaymentQueue({
     status: filters.status,
     source_type: filters.source_type,
+    department_name: filters.department_name,
     search: filters.search,
   });
 
@@ -105,6 +124,7 @@ export default function FinancialPaymentCentral() {
               items={items}
               isLoading={isLoading}
               onReview={handleReview}
+              departments={departments}
               filters={filters}
               onFiltersChange={setFilters}
             />
