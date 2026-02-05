@@ -58,23 +58,25 @@ export function useTradeSupervisorDashboard(
     queryFn: async () => {
       if (!effectiveUserId) return { flat: [], hierarchy: [], isAdmin: false };
 
-      // Verificar se o usuário REAL (não personificado) é admin
-      let isRealAdmin = false;
-      if (user?.id && !isImpersonating) {
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        isRealAdmin = roleData?.role === "admin";
-      }
+      // Verificar role do usuário efetivo
+      let effectiveRole = '';
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", effectiveUserId)
+        .maybeSingle();
+      effectiveRole = roleData?.role || '';
 
-      console.log("[SupervisorDashboard] Buscando equipe para:", effectiveUserId, isRealAdmin ? "(admin - todas equipes)" : isImpersonating ? "(personificado)" : "");
+      // Admin e Gerente veem TODAS as equipes; se personificando, usa o role do personificado
+      const isRealAdmin = !isImpersonating && effectiveRole === 'admin';
+      const hasFullVisibility = effectiveRole === 'admin' || effectiveRole === 'gerente';
+
+      console.log("[SupervisorDashboard] Buscando equipe para:", effectiveUserId, `(${effectiveRole})`, hasFullVisibility ? "- visão total" : "- hierarquia");
 
       let allProfiles: any[] = [];
 
-      if (isRealAdmin) {
-        // Admin: buscar TODOS os usuários ativos (exceto o próprio admin)
+      if (hasFullVisibility) {
+        // Admin e Gerente: buscar TODOS os usuários ativos (exceto o próprio)
         const { data: profiles, error: profilesError } = await (supabase
           .from("profiles")
           .select("id, nome, email, supervisor_id") as any)
@@ -115,7 +117,7 @@ export function useTradeSupervisorDashboard(
 
       console.log("[SupervisorDashboard] Membros encontrados:", allProfiles.length, allProfiles.slice(0, 5).map((p: any) => p.nome));
       
-      if (allProfiles.length === 0) return { flat: [], hierarchy: [], isAdmin: isRealAdmin };
+      if (allProfiles.length === 0) return { flat: [], hierarchy: [], isAdmin: isRealAdmin, hasFullVisibility };
 
       // Buscar roles de todos os membros para exibição
       const memberIds = allProfiles.map((p: any) => p.id);
@@ -186,7 +188,7 @@ export function useTradeSupervisorDashboard(
         });
       });
 
-      return { flat, hierarchy, isAdmin: isRealAdmin };
+      return { flat, hierarchy, isAdmin: isRealAdmin, hasFullVisibility };
     },
     enabled: !!effectiveUserId,
     staleTime: 10 * 60 * 1000,
