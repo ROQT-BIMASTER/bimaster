@@ -1,61 +1,86 @@
 
-# Central de Pagamentos - Correção do Filtro de Departamentos
+# Simplificação do Filtro de Origens
 
-## Resumo do Diagnóstico
+## Objetivo
+Unificar todos os filtros em um único dropdown de "Origens", listando cada departamento individualmente junto com Trade e Eventos.
 
-A Central de Pagamentos está **parcialmente preparada** para receber despesas de todos os departamentos. A estrutura de dados e fluxo de envio estão corretos, porém há uma lacuna na interface de filtragem.
-
-## Problema Encontrado
-
-O filtro de "Origem" na tabela de pagamentos não inclui a opção para filtrar por despesas de Departamentos, embora o sistema suporte esse tipo de dado.
-
-## Alteração Necessária
-
-**Arquivo:** `src/components/financeiro/payments/PaymentQueueTable.tsx`
-
-Adicionar a opção `department_expense` no Select de filtro de origens:
+## Mudança Visual
 
 ```text
-Antes:
-┌─────────────────────────────┐
-│ Todas Origens              ▼│
-├─────────────────────────────┤
-│ Trade - Lançamento          │
-│ Trade - Investimento        │
-│ Trade - Campanha            │
-│ Evento                      │
-└─────────────────────────────┘
+ANTES (2 filtros):
+┌──────────────────┐  ┌──────────────────┐
+│ Origens         ▼│  │ Departamento    ▼│  ← Filtro extra
+├──────────────────┤  ├──────────────────┤
+│ Todas Origens    │  │ Todos           │
+│ Trade - Lanç.    │  │ Administrativo   │
+│ Trade - Invest.  │  │ Logística        │
+│ Trade - Campanha │  │ ...              │
+│ Evento           │  └──────────────────┘
+│ Departamento     │
+└──────────────────┘
 
-Depois:
-┌─────────────────────────────┐
-│ Todas Origens              ▼│
-├─────────────────────────────┤
-│ Trade - Lançamento          │
-│ Trade - Investimento        │
-│ Trade - Campanha            │
-│ Evento                      │
-│ Departamento          ← NOVO│
-└─────────────────────────────┘
+DEPOIS (1 filtro unificado):
+┌──────────────────────┐
+│ Origens             ▼│
+├──────────────────────┤
+│ Todas Origens        │
+│ ── Trade ──          │  ← Separador visual
+│ Trade - Lançamento   │
+│ Trade - Investimento │
+│ Trade - Campanha     │
+│ ── Eventos ──        │
+│ Evento               │
+│ ── Departamentos ──  │  ← Separador visual
+│ Administrativo       │
+│ Logística            │
+│ Marketing            │
+│ ...                  │
+└──────────────────────┘
 ```
+
+## Arquivos a Modificar
+
+### 1. PaymentQueueTable.tsx
+- Remover o segundo Select de departamentos
+- Modificar o Select de origens para incluir departamentos dinamicamente
+- Usar separadores visuais para organizar as opções
+- Ajustar o tipo do filtro para suportar valores compostos como `dept:Administrativo`
+
+### 2. FinancialPaymentCentral.tsx
+- Simplificar o estado dos filtros (remover `department_name`)
+- Ajustar a lógica de parsing do valor selecionado
+
+### 3. useFinancialPaymentQueue.ts
+- Modificar a lógica de filtragem para interpretar valores compostos
+- Quando valor começar com `dept:`, filtrar por `source_type = department_expense` E `department_name`
 
 ## Detalhes Técnicos
 
-A modificação será feita na linha 76 do arquivo, adicionando:
-
+**Estrutura do valor do filtro:**
 ```typescript
-<SelectItem value="department_expense">Departamento</SelectItem>
+// Valores possíveis:
+"all"                    // Todas origens
+"trade_entry"            // Trade - Lançamento
+"trade_investment"       // Trade - Investimento
+"trade_campaign"         // Trade - Campanha
+"event_expense"          // Evento
+"dept:Administrativo"    // Departamento específico
+"dept:Logística"         // Departamento específico
 ```
 
-## Validação Completa
+**Lógica de parsing no hook:**
+```typescript
+if (filters?.source_type?.startsWith('dept:')) {
+  const deptName = filters.source_type.replace('dept:', '');
+  query = query.eq('source_type', 'department_expense');
+  query = query.eq('department_name', deptName);
+} else if (filters?.source_type && filters.source_type !== 'all') {
+  query = query.eq('source_type', filters.source_type);
+}
+```
 
-Outros componentes já estão preparados:
-- Hook `useFinancialPaymentQueue` - tipos corretos definidos
-- `PaymentReviewDialog` - label "Departamento - Despesa" configurado
-- `useDepartmentExpenses` - envia com `source_type: 'department_expense'`
-- Políticas RLS - acesso configurado para equipe financeira
-
-## Impacto
-
-- Zero impacto em funcionalidades existentes
-- Melhora a usabilidade para a equipe financeira filtrar por origem
-- Nenhuma alteração no banco de dados necessária
+## Benefícios
+- Interface mais simples e intuitiva
+- Menos cliques para filtrar
+- Consistência visual com Trade e Eventos
+- Código mais limpo sem filtro condicional
