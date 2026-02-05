@@ -44,7 +44,7 @@ import { useFilteredStores } from "@/hooks/useFilteredStores";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
-  const { isAdminOrSupervisor } = useUserRole();
+  const { isAdmin, isAdminOrSupervisor } = useUserRole();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   
@@ -105,7 +105,7 @@ const TradeModule = () => {
       { title: "Comparação", to: "/dashboard/trade/comparacao-produtos", icon: BarChart3, color: "text-blue-600" },
       ...(isAdminOrSupervisor ? [{ title: "Insights IA", to: "/dashboard/trade/insights", icon: TrendingUp, color: "text-green-600" }] : []),
     ],
-    ...(isAdminOrSupervisor ? {
+    ...(isAdmin ? {
       "Performance e Vendas": [
         { title: "Minha Equipe", to: "/dashboard/trade/minha-equipe", icon: Users, color: "text-indigo-600", isNew: true },
         { title: "Promoções", to: "/dashboard/trade/promotions", icon: FileText, color: "text-orange-600" },
