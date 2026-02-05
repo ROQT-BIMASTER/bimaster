@@ -8,16 +8,19 @@ import { PaymentQueueKPIs } from "@/components/financeiro/payments/PaymentQueueK
 import { PaymentQueueTable } from "@/components/financeiro/payments/PaymentQueueTable";
 import { PaymentReviewDialog } from "@/components/financeiro/payments/PaymentReviewDialog";
 import { useFinancialPaymentQueue, type PaymentQueueItem, type PaymentQueueStatus, type SourceType } from "@/hooks/useFinancialPaymentQueue";
+import { useAllEmpresas } from "@/hooks/useUserEmpresas";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function FinancialPaymentCentral() {
   const [filters, setFilters] = useState<{
     status: PaymentQueueStatus | 'all';
     source_type: string; // Can be SourceType, 'all', or 'dept:DepartmentName'
+    empresa_id: number | 'all';
     search: string;
   }>({
     status: 'all',
     source_type: 'all',
+    empresa_id: 'all',
     search: '',
   });
 
@@ -38,6 +41,9 @@ export default function FinancialPaymentCentral() {
     },
   });
 
+  // Fetch empresas for the filter
+  const { data: empresas = [] } = useAllEmpresas();
+
   const { 
     items, 
     kpis, 
@@ -50,6 +56,7 @@ export default function FinancialPaymentCentral() {
   } = useFinancialPaymentQueue({
     status: filters.status,
     source_type: filters.source_type,
+    empresa_id: filters.empresa_id,
     search: filters.search,
   });
 
@@ -122,6 +129,7 @@ export default function FinancialPaymentCentral() {
               isLoading={isLoading}
               onReview={handleReview}
               departments={departments}
+              empresas={empresas}
               filters={filters}
               onFiltersChange={setFilters}
             />

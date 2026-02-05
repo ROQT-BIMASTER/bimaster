@@ -35,7 +35,8 @@ import {
   Send,
   DollarSign,
   Paperclip,
-  Eye
+  Eye,
+  Building
 } from "lucide-react";
 
 interface DepartmentExpensesTableProps {
@@ -151,6 +152,7 @@ export function DepartmentExpensesTable({
                   <TableHead>Código</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Descrição</TableHead>
+                  <TableHead>Filial</TableHead>
                   <TableHead>Valor Previsto</TableHead>
                   <TableHead>Valor Realizado</TableHead>
                   <TableHead>Status</TableHead>
@@ -165,6 +167,16 @@ export function DepartmentExpensesTable({
                     <TableCell>{getCategoryLabel(expense.category)}</TableCell>
                     <TableCell className="max-w-[200px] truncate">
                       {expense.description || "-"}
+                    </TableCell>
+                    <TableCell>
+                      {expense.empresa_nome || expense.empresa?.nome ? (
+                        <div className="flex items-center gap-1 text-sm">
+                          <Building className="h-3 w-3 text-muted-foreground" />
+                          <span>{expense.empresa_nome || expense.empresa?.nome}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       R$ {(expense.valor_previsto || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}

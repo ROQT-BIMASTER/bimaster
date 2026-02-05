@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/select";
 import { useDepartmentExpenses, DEPARTMENT_EXPENSE_CATEGORIES } from "@/hooks/useDepartmentExpenses";
 import { useDepartmentBudgets } from "@/hooks/useDepartmentBudgets";
-import { Loader2, Plus, FileText, Wallet } from "lucide-react";
+import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
+import { Loader2, Plus, FileText, Wallet, Building } from "lucide-react";
 
 interface NovaDespesaDepartamentoDialogProps {
   departmentId: string;
@@ -34,6 +35,8 @@ export function NovaDespesaDepartamentoDialog({
 }: NovaDespesaDepartamentoDialogProps) {
   const { createExpense } = useDepartmentExpenses(departmentId);
   const { activeBudgets } = useDepartmentBudgets(departmentId);
+  const { data: userEmpresas = [] } = useUserEmpresas();
+  const { primaryEmpresa } = usePrimaryEmpresa();
 
   const [formData, setFormData] = useState({
     category: "",
@@ -42,7 +45,18 @@ export function NovaDespesaDepartamentoDialog({
     valor_realizado: "",
     expense_date: "",
     budget_id: "",
+    empresa_id: "",
   });
+
+  // Pre-select primary empresa
+  useEffect(() => {
+    if (primaryEmpresa && !formData.empresa_id) {
+      setFormData(prev => ({ 
+        ...prev, 
+        empresa_id: primaryEmpresa.id.toString() 
+      }));
+    }
+  }, [primaryEmpresa]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +64,10 @@ export function NovaDespesaDepartamentoDialog({
     if (!formData.category) {
       return;
     }
+
+    const selectedEmpresa = userEmpresas.find(
+      ue => ue.empresa_id.toString() === formData.empresa_id
+    );
 
     await createExpense.mutateAsync({
       department_id: departmentId,
@@ -59,6 +77,8 @@ export function NovaDespesaDepartamentoDialog({
       valor_realizado: formData.valor_realizado ? parseFloat(formData.valor_realizado) : undefined,
       expense_date: formData.expense_date || undefined,
       budget_id: formData.budget_id || undefined,
+      empresa_id: selectedEmpresa?.empresa_id,
+      empresa_nome: selectedEmpresa?.empresa.nome,
     });
 
     // Reset form
@@ -69,6 +89,7 @@ export function NovaDespesaDepartamentoDialog({
       valor_realizado: "",
       expense_date: "",
       budget_id: "",
+      empresa_id: primaryEmpresa?.id.toString() || "",
     });
     onOpenChange(false);
   };
@@ -178,6 +199,38 @@ export function NovaDespesaDepartamentoDialog({
               </Select>
             </div>
           </div>
+
+          {/* Empresa/Filial selector */}
+          {userEmpresas.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="empresa_id" className="flex items-center gap-2">
+                <Building className="h-4 w-4" />
+                Filial *
+              </Label>
+              <Select
+                value={formData.empresa_id}
+                onValueChange={(value) => setFormData({ ...formData, empresa_id: value })}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a filial" />
+                </SelectTrigger>
+                <SelectContent>
+                  {userEmpresas.map((ue) => (
+                    <SelectItem key={ue.empresa_id} value={ue.empresa_id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <Building className="h-3 w-3" />
+                        {ue.empresa.nome}
+                        {ue.is_primary && (
+                          <span className="text-xs text-muted-foreground">(Principal)</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
