@@ -231,17 +231,9 @@ export const LoginForm = () => {
                 ⚠️ Você está offline. Conecte-se para fazer login.
               </p>
             )}
-            <div className="text-center text-sm">
-              <span className="text-muted-foreground">Não tem uma conta? </span>
-              <Button
-                type="button"
-                variant="link"
-                className="p-0"
-                onClick={() => navigate("/auth/signup")}
-              >
-                Cadastre-se
-              </Button>
-            </div>
+            <p className="text-center text-xs text-muted-foreground">
+              Acesso restrito. Contate o administrador para obter uma conta.
+            </p>
           </form>
         </div>
       </CardContent>

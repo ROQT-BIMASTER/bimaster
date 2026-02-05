@@ -3,12 +3,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { SignupForm } from "@/components/auth/SignupForm";
 
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isSignup = location.pathname === "/auth/signup";
   const [checking, setChecking] = useState(true);
   const isMountedRef = useRef(true);
 
@@ -118,7 +116,7 @@ const Auth = () => {
 
   return (
     <AuthLayout>
-      {isSignup ? <SignupForm /> : <LoginForm />}
+      <LoginForm />
     </AuthLayout>
   );
 };
