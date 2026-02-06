@@ -210,4 +210,4 @@ verify_jwt = false
 
 # OpenCNPJ - Consulta gratuita de CNPJ na Receita Federal
 [functions.opencnpj-consulta]
-verify_jwt = true
+verify_jwt = false
