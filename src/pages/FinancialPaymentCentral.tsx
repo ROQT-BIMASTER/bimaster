@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, CreditCard, ArrowLeft, Download, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RefreshCw, CreditCard, ArrowLeft, Download, Loader2, LayoutDashboard, CalendarDays } from "lucide-react";
 import { PaymentQueueKPIs } from "@/components/financeiro/payments/PaymentQueueKPIs";
 import { PaymentQueueTable } from "@/components/financeiro/payments/PaymentQueueTable";
 import { PaymentReviewDialog } from "@/components/financeiro/payments/PaymentReviewDialog";
@@ -14,11 +16,45 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportPaymentQueueToExcel } from "@/lib/exportExpenses";
 import { toast } from "sonner";
 
+// Consolidated dashboard imports
+import {
+  useFinanceiroConsolidadoDashboard,
+  getDateRangeFromPreset,
+  type DatePreset,
+  type DateRangeFilter,
+} from "@/hooks/useFinanceiroConsolidadoDashboard";
+import { ConsolidadoVerbaCard } from "@/components/financeiro/consolidado/ConsolidadoVerbaCard";
+import { ConsolidadoDespesasCard } from "@/components/financeiro/consolidado/ConsolidadoDespesasCard";
+import { ConsolidadoFluxoCaixaChart } from "@/components/financeiro/consolidado/ConsolidadoFluxoCaixaChart";
+import { ConsolidadoDespesasTable } from "@/components/financeiro/consolidado/ConsolidadoDespesasTable";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
+
+const presetLabels: Record<DatePreset, string> = {
+  this_month: "Este mês",
+  last_30_days: "Últimos 30 dias",
+  last_90_days: "Últimos 90 dias",
+  this_year: "Este ano",
+  custom: "Personalizado",
+};
+
 export default function FinancialPaymentCentral() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState<{
     status: PaymentQueueStatus | 'all';
-    source_type: string; // Can be SourceType, 'all', or 'dept:DepartmentName'
+    source_type: string;
     empresa_id: number | 'all';
     search: string;
   }>({
@@ -31,6 +67,13 @@ export default function FinancialPaymentCentral() {
   const [selectedItem, setSelectedItem] = useState<PaymentQueueItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Consolidated dashboard state
+  const [datePreset, setDatePreset] = useState<DatePreset>("this_year");
+  const [customRange, setCustomRange] = useState<DateRangeFilter | undefined>();
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  const dateRange = getDateRangeFromPreset(datePreset, customRange);
 
   // Fetch departments for the filter
   const { data: departments = [] } = useQuery({
@@ -64,6 +107,9 @@ export default function FinancialPaymentCentral() {
     empresa_id: filters.empresa_id,
     search: filters.search,
   });
+
+  // Consolidated dashboard data
+  const consolidado = useFinanceiroConsolidadoDashboard(dateRange);
 
   const handleReview = (item: PaymentQueueItem) => {
     setSelectedItem(item);
@@ -110,6 +156,29 @@ export default function FinancialPaymentCentral() {
     }
   };
 
+  const handlePresetChange = (value: string) => {
+    const preset = value as DatePreset;
+    setDatePreset(preset);
+    if (preset === "custom") setCalendarOpen(true);
+  };
+
+  const handleCalendarSelect = (range: DateRange | undefined) => {
+    if (range?.from && range?.to) {
+      setCustomRange({ from: range.from, to: range.to });
+      setCalendarOpen(false);
+    } else if (range?.from) {
+      setCustomRange({ from: range.from, to: range.from });
+    }
+  };
+
+  const handleConsolidadoRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["consolidado-trade-budgets"] });
+    queryClient.invalidateQueries({ queryKey: ["consolidado-dept-budgets"] });
+    queryClient.invalidateQueries({ queryKey: ["consolidado-trade-despesas"] });
+    queryClient.invalidateQueries({ queryKey: ["consolidado-eventos-despesas"] });
+    queryClient.invalidateQueries({ queryKey: ["consolidado-dept-despesas"] });
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -133,47 +202,146 @@ export default function FinancialPaymentCentral() {
               </p>
             </div>
           </div>
-          
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleExport}
-              disabled={isExporting || items.length === 0}
-            >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-2" />
-              )}
-              Exportar Excel
-            </Button>
-            <Button variant="outline" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
-            </Button>
-          </div>
         </div>
 
-        {/* KPIs */}
-        <PaymentQueueKPIs kpis={kpis} />
+        {/* Tabs */}
+        <Tabs defaultValue="fila" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="fila" className="gap-2">
+              <CreditCard className="h-4 w-4" />
+              Fila de Pagamentos
+            </TabsTrigger>
+            <TabsTrigger value="consolidado" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard Consolidado
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Solicitações de Pagamento</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PaymentQueueTable
-              items={items}
-              isLoading={isLoading}
-              onReview={handleReview}
-              departments={departments}
-              empresas={empresas}
-              filters={filters}
-              onFiltersChange={setFilters}
-            />
-          </CardContent>
-        </Card>
+          {/* Tab: Fila de Pagamentos */}
+          <TabsContent value="fila" className="space-y-6">
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handleExport}
+                disabled={isExporting || items.length === 0}
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Exportar Excel
+              </Button>
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar
+              </Button>
+            </div>
+
+            {/* KPIs */}
+            <PaymentQueueKPIs kpis={kpis} />
+
+            {/* Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Solicitações de Pagamento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PaymentQueueTable
+                  items={items}
+                  isLoading={isLoading}
+                  onReview={handleReview}
+                  departments={departments}
+                  empresas={empresas}
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab: Dashboard Consolidado */}
+          <TabsContent value="consolidado" className="space-y-6">
+            {/* Filtros e ações do consolidado */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="text-sm text-muted-foreground">
+                Período: {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} até{" "}
+                {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+              </div>
+              <div className="flex flex-wrap gap-2 items-center">
+                <Select value={datePreset} onValueChange={handlePresetChange}>
+                  <SelectTrigger className="w-[180px]">
+                    <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(presetLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {datePreset === "custom" && (
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-xs">
+                        {customRange
+                          ? `${format(customRange.from, "dd/MM", { locale: ptBR })} - ${format(customRange.to, "dd/MM", { locale: ptBR })}`
+                          : "Selecionar"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={customRange?.from}
+                        selected={customRange ? { from: customRange.from, to: customRange.to } : undefined}
+                        onSelect={handleCalendarSelect}
+                        numberOfMonths={2}
+                        locale={ptBR}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+
+                <Button variant="outline" size="sm" onClick={handleConsolidadoRefresh}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Atualizar
+                </Button>
+              </div>
+            </div>
+
+            {/* Cards de KPIs */}
+            {consolidado.isLoading ? (
+              <div className="grid gap-6 md:grid-cols-2">
+                <Skeleton className="h-[350px]" />
+                <Skeleton className="h-[350px]" />
+              </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2">
+                <ConsolidadoVerbaCard metrics={consolidado.verbaMetrics} verbas={consolidado.verbasConsolidadas} />
+                <ConsolidadoDespesasCard metrics={consolidado.despesaMetrics} despesasPorOrigem={consolidado.despesasPorOrigem} />
+              </div>
+            )}
+
+            {/* Gráfico de Fluxo de Caixa */}
+            {consolidado.isLoading ? (
+              <Skeleton className="h-[400px]" />
+            ) : (
+              <ConsolidadoFluxoCaixaChart data={consolidado.fluxoCaixa} />
+            )}
+
+            {/* Tabela de Despesas */}
+            {consolidado.isLoading ? (
+              <Skeleton className="h-[500px]" />
+            ) : (
+              <ConsolidadoDespesasTable despesas={consolidado.despesas} />
+            )}
+          </TabsContent>
+        </Tabs>
 
         {/* Review Dialog */}
         <PaymentReviewDialog
