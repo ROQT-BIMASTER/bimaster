@@ -10,6 +10,7 @@ import {
   Plus,
   ChevronDown,
   Zap,
+  UserX,
   TrendingUp,
   Package,
   Clock,
@@ -84,6 +85,9 @@ const ComercialModule = () => {
   const secondaryModules = {
     "Gestão de Lançamentos": [
       { title: "Calendário de Lançamentos", to: "/dashboard/comercial/lancamentos", icon: Rocket, color: "text-primary" },
+    ],
+    "Gestão de Carteira": [
+      { title: "Painel de Reativação", to: "/dashboard/comercial/reativacao", icon: UserX, color: "text-destructive" },
     ],
     "Prospecção": [
       { title: "Mineração de Leads", to: "/dashboard/comercial/mineracao", icon: Pickaxe, color: "text-primary" },
