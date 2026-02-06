@@ -1,0 +1,57 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Verify caller is admin
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("Não autorizado");
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !caller) throw new Error("Não autorizado");
+
+    // Check if caller is admin
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("id", caller.id)
+      .single();
+
+    if (profile?.role !== "admin") throw new Error("Apenas administradores podem resetar senhas");
+
+    const { userId, newPassword } = await req.json();
+    if (!userId || !newPassword) throw new Error("userId e newPassword são obrigatórios");
+    if (newPassword.length < 6) throw new Error("Senha deve ter no mínimo 6 caracteres");
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      password: newPassword,
+    });
+
+    if (error) throw error;
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+});
