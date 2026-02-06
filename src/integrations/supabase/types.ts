@@ -8815,6 +8815,149 @@ export type Database = {
           },
         ]
       }
+      ibge_estados: {
+        Row: {
+          id: number
+          nome: string
+          pib_mil_reais: number | null
+          populacao: number | null
+          regiao_id: number | null
+          regiao_nome: string | null
+          regiao_sigla: string | null
+          sigla: string
+          updated_at: string | null
+        }
+        Insert: {
+          id: number
+          nome: string
+          pib_mil_reais?: number | null
+          populacao?: number | null
+          regiao_id?: number | null
+          regiao_nome?: string | null
+          regiao_sigla?: string | null
+          sigla: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: number
+          nome?: string
+          pib_mil_reais?: number | null
+          populacao?: number | null
+          regiao_id?: number | null
+          regiao_nome?: string | null
+          regiao_sigla?: string | null
+          sigla?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ibge_microrregioes: {
+        Row: {
+          id: number
+          mesorregiao_id: number | null
+          mesorregiao_nome: string | null
+          nome: string
+          regiao_nome: string | null
+          uf_id: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          id: number
+          mesorregiao_id?: number | null
+          mesorregiao_nome?: string | null
+          nome: string
+          regiao_nome?: string | null
+          uf_id?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: number
+          mesorregiao_id?: number | null
+          mesorregiao_nome?: string | null
+          nome?: string
+          regiao_nome?: string | null
+          uf_id?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ibge_microrregioes_uf_id_fkey"
+            columns: ["uf_id"]
+            isOneToOne: false
+            referencedRelation: "ibge_estados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ibge_municipios: {
+        Row: {
+          ano_pib: number | null
+          ano_populacao: number | null
+          id: number
+          mesorregiao_id: number | null
+          mesorregiao_nome: string | null
+          microrregiao_id: number | null
+          microrregiao_nome: string | null
+          nome: string
+          pib_mil_reais: number | null
+          pib_per_capita: number | null
+          populacao_estimada: number | null
+          regiao_nome: string | null
+          uf_id: number | null
+          uf_sigla: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ano_pib?: number | null
+          ano_populacao?: number | null
+          id: number
+          mesorregiao_id?: number | null
+          mesorregiao_nome?: string | null
+          microrregiao_id?: number | null
+          microrregiao_nome?: string | null
+          nome: string
+          pib_mil_reais?: number | null
+          pib_per_capita?: number | null
+          populacao_estimada?: number | null
+          regiao_nome?: string | null
+          uf_id?: number | null
+          uf_sigla?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ano_pib?: number | null
+          ano_populacao?: number | null
+          id?: number
+          mesorregiao_id?: number | null
+          mesorregiao_nome?: string | null
+          microrregiao_id?: number | null
+          microrregiao_nome?: string | null
+          nome?: string
+          pib_mil_reais?: number | null
+          pib_per_capita?: number | null
+          populacao_estimada?: number | null
+          regiao_nome?: string | null
+          uf_id?: number | null
+          uf_sigla?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ibge_municipios_microrregiao_id_fkey"
+            columns: ["microrregiao_id"]
+            isOneToOne: false
+            referencedRelation: "ibge_microrregioes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ibge_municipios_uf_id_fkey"
+            columns: ["uf_id"]
+            isOneToOne: false
+            referencedRelation: "ibge_estados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ideal_pdv_photos: {
         Row: {
           category: string
