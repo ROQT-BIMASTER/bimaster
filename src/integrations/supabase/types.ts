@@ -1109,6 +1109,7 @@ export type Database = {
           cep_cobranca: string | null
           cidade: string | null
           cidade_cobranca: string | null
+          cidade_normalizada: string | null
           classificacao: number | null
           cnpj: string | null
           codigo: string
@@ -1125,6 +1126,7 @@ export type Database = {
           endereco: string | null
           endereco_cobranca: string | null
           fax: string | null
+          ibge_municipio_id: number | null
           id: string
           inscricao_estadual: string | null
           limite_credito: number | null
@@ -1153,6 +1155,7 @@ export type Database = {
           cep_cobranca?: string | null
           cidade?: string | null
           cidade_cobranca?: string | null
+          cidade_normalizada?: string | null
           classificacao?: number | null
           cnpj?: string | null
           codigo: string
@@ -1169,6 +1172,7 @@ export type Database = {
           endereco?: string | null
           endereco_cobranca?: string | null
           fax?: string | null
+          ibge_municipio_id?: number | null
           id?: string
           inscricao_estadual?: string | null
           limite_credito?: number | null
@@ -1197,6 +1201,7 @@ export type Database = {
           cep_cobranca?: string | null
           cidade?: string | null
           cidade_cobranca?: string | null
+          cidade_normalizada?: string | null
           classificacao?: number | null
           cnpj?: string | null
           codigo?: string
@@ -1213,6 +1218,7 @@ export type Database = {
           endereco?: string | null
           endereco_cobranca?: string | null
           fax?: string | null
+          ibge_municipio_id?: number | null
           id?: string
           inscricao_estadual?: string | null
           limite_credito?: number | null
@@ -17998,6 +18004,8 @@ export type Database = {
         Returns: string
       }
       fn_calcular_cobertura_mercado: { Args: never; Returns: undefined }
+      fn_get_cidades_sem_match: { Args: never; Returns: Json }
+      fn_normalizar_municipios_clientes: { Args: never; Returns: Json }
       gerar_creditos_tributarios: {
         Args: { p_item_nf_id: string }
         Returns: Json
@@ -18431,6 +18439,7 @@ export type Database = {
           fonte: string
         }[]
       }
+      unaccent: { Args: { "": string }; Returns: string }
       update_sync_progress: {
         Args: { p_records_processed: number; p_session_id: string }
         Returns: Json

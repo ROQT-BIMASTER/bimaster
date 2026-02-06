@@ -7,8 +7,10 @@ import { PortfolioHealthCards } from "@/components/comercial/PortfolioHealthCard
 import { GeographicConcentrationChart } from "@/components/comercial/GeographicConcentrationChart";
 import { TicketDistributionChart } from "@/components/comercial/TicketDistributionChart";
 import { UntappedPotentialCard } from "@/components/comercial/UntappedPotentialCard";
+import { NormalizationReportCard } from "@/components/comercial/NormalizationReportCard";
 import { useMarketCoverage } from "@/hooks/useMarketCoverage";
 import { useClienteAnalytics } from "@/hooks/useClienteAnalytics";
+import { useNormalizacao } from "@/hooks/useNormalizacao";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { RefreshCw, ArrowLeft } from "lucide-react";
@@ -17,6 +19,15 @@ import { Link } from "react-router-dom";
 const MarketIntelligence = () => {
   const { coverageData, kpis, isLoading, refresh, isRefreshing } = useMarketCoverage();
   const { data: analytics, isLoading: loadingAnalytics } = useClienteAnalytics();
+  const {
+    resumo,
+    isLoading: loadingNormalizacao,
+    executarNormalizacao,
+    isNormalizando,
+    resultadoNormalizacao,
+    recalcularCobertura,
+    isRecalculando,
+  } = useNormalizacao();
 
   return (
     <DashboardLayout>
@@ -80,9 +91,30 @@ const MarketIntelligence = () => {
 
         {/* Untapped Potential */}
         <UntappedPotentialCard data={analytics?.potencialUF} isLoading={loadingAnalytics} />
+
+        {/* Separator - Normalização */}
+        <div className="flex items-center gap-3 pt-2">
+          <Separator className="flex-1" />
+          <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+            Qualidade dos Dados
+          </span>
+          <Separator className="flex-1" />
+        </div>
+
+        {/* Normalization Report */}
+        <NormalizationReportCard
+          resumo={resumo}
+          isLoading={loadingNormalizacao}
+          onNormalizar={executarNormalizacao}
+          isNormalizando={isNormalizando}
+          resultado={resultadoNormalizacao}
+          onRecalcular={recalcularCobertura}
+          isRecalculando={isRecalculando}
+        />
       </div>
     </DashboardLayout>
   );
 };
 
 export default MarketIntelligence;
+
