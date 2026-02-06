@@ -149,24 +149,21 @@ serve(async (req) => {
 
     const apiData: OpenCNPJResponse = await apiResponse.json();
     console.log(`[OpenCNPJ] Dados recebidos para: ${cnpjLimpo}`);
-    
-    // Log ALL keys to identify phone field names
-    console.log(`[OpenCNPJ] ALL API keys:`, Object.keys(apiData).join(', '));
-    console.log(`[OpenCNPJ] Full response:`, JSON.stringify(apiData).substring(0, 2000));
 
-    // Extrair telefone - tentar todos os formatos possíveis da API
-    const buildPhone = (...parts: (string | undefined | null)[]) => {
-      const cleaned = parts.filter(Boolean).join('');
-      return cleaned || null;
-    };
-    
-    const telefone = buildPhone(apiData.ddd_telefone_1, apiData.telefone_1)
-      || buildPhone(apiData.ddd_telefone_2, apiData.telefone_2)
-      || buildPhone((apiData as any).ddd1, (apiData as any).telefone1)
-      || buildPhone((apiData as any).ddd2, (apiData as any).telefone2)
-      || apiData.telefone
-      || (apiData as any).phone
-      || null;
+    // Extrair telefone do array "telefones" retornado pela API
+    // Formato: telefones: [{ ddd: "11", numero: "46854646", is_fax: false }]
+    let telefone: string | null = null;
+    const telefones = (apiData as any).telefones;
+    if (Array.isArray(telefones) && telefones.length > 0) {
+      // Priorizar telefone que não é fax
+      const tel = telefones.find((t: any) => !t.is_fax) || telefones[0];
+      if (tel?.ddd && tel?.numero) {
+        telefone = `(${tel.ddd}) ${tel.numero}`;
+      } else if (tel?.numero) {
+        telefone = tel.numero;
+      }
+    }
+    console.log(`[OpenCNPJ] Telefone extraído: ${telefone}`);
 
     // Montar resposta padronizada
     const responseData = {
