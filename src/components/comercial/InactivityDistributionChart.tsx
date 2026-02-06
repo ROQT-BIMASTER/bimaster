@@ -4,9 +4,10 @@ import type { ClienteReativacao } from "@/hooks/useClienteReativacao";
 
 interface Props {
   clientes: ClienteReativacao[];
+  onRangeClick?: (min: number, max: number) => void;
 }
 
-export function InactivityDistributionChart({ clientes }: Props) {
+export function InactivityDistributionChart({ clientes, onRangeClick }: Props) {
   // Agrupar clientes em buckets de 15 dias
   const buckets: Record<number, number> = {};
   for (const c of clientes) {
@@ -17,24 +18,33 @@ export function InactivityDistributionChart({ clientes }: Props) {
   const data = Object.entries(buckets)
     .map(([dias, count]) => ({ dias: Number(dias), clientes: count }))
     .sort((a, b) => a.dias - b.dias)
-    .filter((d) => d.dias <= 730); // Limitar a 2 anos
+    .filter((d) => d.dias <= 730);
 
-  const getColor = (dias: number) => {
-    if (dias <= 60) return "#f59e0b";
-    if (dias <= 90) return "#f97316";
-    if (dias <= 180) return "#ef4444";
-    return "#6b7280";
+  const handleClick = (point: { dias: number } | null) => {
+    if (point && onRangeClick) {
+      onRangeClick(point.dias, point.dias + 14);
+    }
   };
 
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base">Distribuição de Inatividade</CardTitle>
+        {onRangeClick && <p className="text-xs text-muted-foreground">Clique em um ponto para filtrar a tabela por faixa de dias</p>}
       </CardHeader>
       <CardContent>
         <div className="h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ left: 0, right: 10, top: 5, bottom: 5 }}>
+            <AreaChart
+              data={data}
+              margin={{ left: 0, right: 10, top: 5, bottom: 5 }}
+              onClick={(e) => {
+                if (e?.activePayload?.[0]?.payload) {
+                  handleClick(e.activePayload[0].payload);
+                }
+              }}
+              style={onRangeClick ? { cursor: "pointer" } : undefined}
+            >
               <defs>
                 <linearGradient id="colorInatividade" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.8} />

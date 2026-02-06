@@ -4,9 +4,11 @@ import type { RiscoPorUF } from "@/hooks/useClienteReativacao";
 
 interface Props {
   data: RiscoPorUF[];
+  onUFClick?: (uf: string) => void;
+  activeUF?: string | null;
 }
 
-export function RiskByStateCard({ data }: Props) {
+export function RiskByStateCard({ data, onUFClick, activeUF }: Props) {
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
 
@@ -20,12 +22,20 @@ export function RiskByStateCard({ data }: Props) {
           <MapPin className="h-4 w-4 text-muted-foreground" />
           Risco por UF
         </CardTitle>
+        {onUFClick && <p className="text-xs text-muted-foreground">Clique para filtrar a tabela</p>}
       </CardHeader>
       <CardContent className="space-y-2">
         {top10.map((item) => {
           const pct = (item.valor_total / maxValor) * 100;
+          const isActive = activeUF === item.uf;
           return (
-            <div key={item.uf} className="space-y-1">
+            <div
+              key={item.uf}
+              className={`space-y-1 rounded-md px-2 py-1 transition-colors ${
+                onUFClick ? "cursor-pointer hover:bg-muted/80" : ""
+              } ${isActive ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
+              onClick={() => onUFClick?.(item.uf)}
+            >
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">{item.uf}</span>
                 <div className="flex items-center gap-2">
