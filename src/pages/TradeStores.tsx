@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Upload, MapPin, Edit, Eye, Trash2, AlertTriangle, Store as StoreIcon } from "lucide-react";
+import { Plus, Upload, MapPin, Edit, Eye, Trash2, AlertTriangle, Store as StoreIcon, Sparkles, X, CheckSquare } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { NovaLojaDialog } from "@/components/trade/NovaLojaDialog";
 import { EditarLojaDialog } from "@/components/trade/EditarLojaDialog";
@@ -20,12 +21,14 @@ import { TourButton, tradeStoresTourSteps, TRADE_STORES_TOUR_ID } from "@/compon
 import { useUserRole } from "@/hooks/useUserRole";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
+import { useCnpjEnrichment } from "@/hooks/useCnpjEnrichment";
 
 interface Store {
   id: string;
   code: string;
   name: string;
   chain: string | null;
+  cnpj: string | null;
   city: string | null;
   state: string | null;
   category: string | null;
@@ -53,6 +56,11 @@ const TradeStores = () => {
   const [editStoreId, setEditStoreId] = useState<string | null>(null);
   const [deleteStoreId, setDeleteStoreId] = useState<string | null>(null);
   const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
+
+  // Selection & enrichment
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const { enrichStores, isEnriching, progress, cancel } = useCnpjEnrichment();
 
   // Determinar se o usuário efetivo é admin/supervisor (para controles de UI apenas)
   const effectiveIsAdminOrSupervisor = isImpersonating && impersonatedPermissions 
@@ -127,6 +135,36 @@ const TradeStores = () => {
   useEffect(() => {
     applyFilters();
   }, [selectedStore, aiCriteria, allStores]);
+
+  // Clear selection when exiting selection mode
+  const toggleSelectionMode = () => {
+    if (selectionMode) {
+      setSelectedIds(new Set());
+    }
+    setSelectionMode(!selectionMode);
+  };
+
+  // Handle enrichment
+  const handleEnrichSelected = async () => {
+    const selected = stores.filter(s => selectedIds.has(s.id));
+    const storesToEnrich = selected.map(s => ({
+      id: s.id,
+      name: s.name,
+      cnpj: s.cnpj,
+    }));
+
+    const results = await enrichStores(storesToEnrich);
+    if (results) {
+      setSelectionMode(false);
+      setSelectedIds(new Set());
+      refetchStores();
+    }
+  };
+
+  const selectedCount = selectedIds.size;
+  const selectedWithCnpj = useMemo(() => {
+    return stores.filter(s => selectedIds.has(s.id) && s.cnpj && s.cnpj.replace(/\D/g, "").length === 14).length;
+  }, [selectedIds, stores]);
 
   if (permissionsLoading || roleLoading) {
     return (
@@ -270,20 +308,22 @@ const TradeStores = () => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-8 w-8"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDetailStoreId(store.id);
-                setShowDetailDialog(true);
-              }}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-          </div>
+          {!selectionMode && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDetailStoreId(store.id);
+                  setShowDetailDialog(true);
+                }}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -346,6 +386,8 @@ const TradeStores = () => {
     </>
   );
 
+  const progressPercent = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
+
   return (
     <DashboardLayout>
       <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-6">
@@ -354,7 +396,28 @@ const TradeStores = () => {
             title="Pontos de Venda"
             description={`${stores.length} PDVs cadastrados`}
             actions={
-              <div data-tour="stores-actions" className="flex gap-2">
+              <div data-tour="stores-actions" className="flex gap-2 flex-wrap">
+                {/* Selection Mode Toggle */}
+                <Button
+                  variant={selectionMode ? "secondary" : "outline"}
+                  size="sm"
+                  className="h-9 text-xs sm:text-sm"
+                  onClick={toggleSelectionMode}
+                  disabled={isEnriching}
+                >
+                  {selectionMode ? (
+                    <>
+                      <X className="mr-1.5 h-4 w-4" />
+                      <span className="hidden sm:inline">Cancelar</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckSquare className="mr-1.5 h-4 w-4" />
+                      <span className="hidden sm:inline">Selecionar</span>
+                    </>
+                  )}
+                </Button>
+
                 {effectiveIsAdminOrSupervisor && (
                   <Button 
                     variant="outline" 
@@ -379,6 +442,57 @@ const TradeStores = () => {
           />
         </div>
 
+        {/* Selection Action Bar */}
+        {selectionMode && selectedCount > 0 && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="text-sm">
+                <span className="font-medium">{selectedCount}</span> loja(s) selecionada(s)
+                {selectedWithCnpj < selectedCount && (
+                  <span className="text-muted-foreground ml-1">
+                    ({selectedWithCnpj} com CNPJ válido)
+                  </span>
+                )}
+              </div>
+              <Button
+                size="sm"
+                className="h-8 text-xs bg-trade hover:bg-trade-dark"
+                onClick={handleEnrichSelected}
+                disabled={isEnriching || selectedWithCnpj === 0}
+              >
+                <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                Enriquecer Dados ({selectedWithCnpj})
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Enrichment Progress Bar */}
+        {isEnriching && (
+          <Card className="border-trade/30">
+            <CardContent className="p-3 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-trade">
+                  Enriquecendo: {progress.current}/{progress.total}
+                </span>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="text-green-600">✓ {progress.succeeded}</span>
+                  {progress.failed > 0 && <span className="text-destructive">✗ {progress.failed}</span>}
+                  <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={cancel}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+              <Progress value={progressPercent} className="h-2" />
+              {progress.currentStore && (
+                <p className="text-xs text-muted-foreground truncate">
+                  Processando: {progress.currentStore}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <div data-tour="stores-filters">
           <TradeFilters
             selectedStore={selectedStore}
@@ -400,11 +514,14 @@ const TradeStores = () => {
             statusConfig={statusConfig}
             accentColor="border-l-trade"
             renderMobileCard={renderMobileCard}
-            onRowClick={(store) => {
+            onRowClick={selectionMode ? undefined : (store) => {
               setDetailStoreId(store.id);
               setShowDetailDialog(true);
             }}
-            actions={renderActions}
+            actions={selectionMode ? undefined : renderActions}
+            selectable={selectionMode}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
           />
         </div>
 
