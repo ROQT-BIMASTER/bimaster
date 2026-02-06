@@ -340,6 +340,7 @@ export function AppSidebar() {
 
   const financeiroSubMenus = [
     { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home, end: true, screenCode: "financeiro_dashboard" },
+    { title: "Dashboard Consolidado", url: "/dashboard/financeiro/consolidado", icon: Layers, screenCode: "financeiro_dashboard" },
     { title: "DRE Analítico", url: "/dashboard/financeiro/dre-analitico", icon: FileText, screenCode: "financeiro_dre" },
     { title: "Visão por Departamento", url: "/dashboard/financeiro/visao-departamentos", icon: Building2, screenCode: "financeiro_departamentos" },
     { title: "Gestão de Verbas", url: "/dashboard/financeiro/trade", icon: Store, screenCode: "financeiro_verbas" },
