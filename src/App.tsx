@@ -128,6 +128,7 @@ const IBGEData = lazy(() => import("./pages/IBGEData"));
 const LeadMining = lazy(() => import("./pages/LeadMining"));
 const MarketIntelligence = lazy(() => import("./pages/MarketIntelligence"));
 const ClientReactivation = lazy(() => import("./pages/ClientReactivation"));
+const ComercialMapa = lazy(() => import("./pages/ComercialMapa"));
 const GerenciamentoAcessoPrecos = lazy(() => import("./pages/GerenciamentoAcessoPrecos"));
 const PrecosMatrizComparativa = lazy(() => import("./pages/PrecosMatrizComparativa"));
 const SimuladorCenariosPrecos = lazy(() => import("./pages/SimuladorCenariosPrecos"));
@@ -354,6 +355,7 @@ function AppContent() {
             <Route path="/dashboard/comercial/mineracao" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><LeadMining /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/comercial/inteligencia" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><MarketIntelligence /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/comercial/reativacao" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ClientReactivation /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/comercial/mapa" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ComercialMapa /></ModuleProtectedRoute></ProtectedRoute>} />
 
             {/* Módulo de Tabelas de Preços */}
             <Route path="/dashboard/precos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="precos"><TabelasPrecosModule /></ModuleProtectedRoute></ProtectedRoute>} />

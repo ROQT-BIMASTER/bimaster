@@ -1129,7 +1129,9 @@ export type Database = {
           ibge_municipio_id: number | null
           id: string
           inscricao_estadual: string | null
+          latitude: number | null
           limite_credito: number | null
+          longitude: number | null
           nome: string
           nome_abreviado: string | null
           observacoes: string | null
@@ -1175,7 +1177,9 @@ export type Database = {
           ibge_municipio_id?: number | null
           id?: string
           inscricao_estadual?: string | null
+          latitude?: number | null
           limite_credito?: number | null
+          longitude?: number | null
           nome: string
           nome_abreviado?: string | null
           observacoes?: string | null
@@ -1221,7 +1225,9 @@ export type Database = {
           ibge_municipio_id?: number | null
           id?: string
           inscricao_estadual?: string | null
+          latitude?: number | null
           limite_credito?: number | null
+          longitude?: number | null
           nome?: string
           nome_abreviado?: string | null
           observacoes?: string | null
@@ -12059,7 +12065,9 @@ export type Database = {
           faixa_score_propensao: string | null
           id: string
           importado_planilha: boolean | null
+          latitude: number | null
           logradouro: string | null
+          longitude: number | null
           municipio: string | null
           municipio_id: string | null
           natureza_juridica: string | null
@@ -12123,7 +12131,9 @@ export type Database = {
           faixa_score_propensao?: string | null
           id: string
           importado_planilha?: boolean | null
+          latitude?: number | null
           logradouro?: string | null
+          longitude?: number | null
           municipio?: string | null
           municipio_id?: string | null
           natureza_juridica?: string | null
@@ -12187,7 +12197,9 @@ export type Database = {
           faixa_score_propensao?: string | null
           id?: string
           importado_planilha?: boolean | null
+          latitude?: number | null
           logradouro?: string | null
+          longitude?: number | null
           municipio?: string | null
           municipio_id?: string | null
           natureza_juridica?: string | null
