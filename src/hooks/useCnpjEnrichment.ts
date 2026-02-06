@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -24,6 +25,7 @@ const DELAY_BETWEEN_CALLS_MS = 1500; // 1.5s between calls to avoid rate limitin
  * Processa sequencialmente com delay para evitar rate limiting
  */
 export function useCnpjEnrichment() {
+  const queryClient = useQueryClient();
   const [isEnriching, setIsEnriching] = useState(false);
   const [progress, setProgress] = useState<EnrichmentProgress>({
     total: 0,
@@ -160,8 +162,11 @@ export function useCnpjEnrichment() {
     setIsEnriching(false);
     setProgress(prev => ({ ...prev, currentStore: null }));
 
+    // Invalidar cache para que a lista de lojas seja atualizada
+    queryClient.invalidateQueries({ queryKey: ['filtered-stores'] });
+
     return results;
-  }, []);
+  }, [queryClient]);
 
   return {
     enrichStores,
