@@ -63,7 +63,7 @@ export const CommercialMap = () => {
   });
 
   const { clientes, prospects, loading: dataLoading, geocodingStatus, triggerGeocoding } = useCommercialMapData(filters);
-  const { hierarchy, ranking, selfProfile, hasFullVisibility, isLoading: teamLoading } = useMapTeamData();
+  const { hierarchy, selfProfile, hasFullVisibility, isLoading: teamLoading } = useMapTeamData();
 
   const [selectedCliente, setSelectedCliente] = useState<MapCliente | null>(null);
   const [selectedProspect, setSelectedProspect] = useState<MapProspect | null>(null);
@@ -148,10 +148,9 @@ export const CommercialMap = () => {
       <div className="flex gap-4 h-[calc(100vh-180px)] min-h-[500px]">
         {/* Left sidebar: Team + Filters */}
         <div className="w-[240px] shrink-0 overflow-y-auto space-y-3">
-          {/* Painel de Equipe e Ranking - PRIMEIRO */}
+          {/* Painel de Equipe - PRIMEIRO */}
           <MapTeamPanel
             hierarchy={hierarchy}
-            ranking={ranking}
             selfProfile={selfProfile}
             hasFullVisibility={hasFullVisibility}
             isLoading={teamLoading}
