@@ -1,128 +1,98 @@
 
+# Painel de Atuacao Imediata - Reativacao Comercial
 
-# Painel de Inteligencia Comercial: Market Share e Penetracao
+## Objetivo
+Criar um painel visual que destaque clientes que precisam de contato urgente, organizados por nivel de risco baseado nos dias sem compra e valor historico, permitindo ao time comercial priorizar acoes de reativacao.
 
-## Contexto Atual
+## Dados Reais Disponiveis
+Com base na tabela `clientes`, temos:
+- **43 clientes** entre 31-60 dias sem compra (Atencao)
+- **57 clientes** entre 61-90 dias (Alerta)
+- **59 clientes** entre 91-180 dias (Critico) - R$ 341 mil em risco
+- **301 clientes** com 180+ dias (Inativo) - R$ 700 mil em risco
 
-Seus dados hoje:
-- **5.571 municipios** catalogados (IBGE)
-- **1.000+ clientes** ativos no ERP (em 405 cidades)
-- **233 prospects** em prospecao (41 municipios)
-- **27 leads minerados** (4 cidades)
-- **Sem tabela de territorios/vendedores por regiao** (lacuna critica)
+## O que sera construido
 
-## O que Grandes Empresas Fazem
+### 1. Nova pagina: Painel de Reativacao (`/dashboard/comercial/reativacao`)
+Uma pagina dedicada acessivel a partir do modulo comercial, com foco total em acao.
 
-Empresas como Ambev, Unilever e P&G usam 3 metricas-chave para medir dominio de mercado:
+### 2. KPIs de Urgencia (topo da pagina)
+Quatro cards com destaque visual por cor de severidade:
+- **Atencao** (amarelo): 31-60 dias sem compra - quantidade + valor total
+- **Alerta** (laranja): 61-90 dias - quantidade + valor total  
+- **Critico** (vermelho): 91-180 dias - quantidade + valor total
+- **Inativo** (cinza escuro): 180+ dias - quantidade + valor total
 
-| Metrica | Formula | O que mede |
-|---------|---------|------------|
-| **Penetracao** | Municipios com clientes / Total de municipios da UF | Em quantos lugares voce esta presente |
-| **Cobertura Numerica** | Clientes ativos / Total de estabelecimentos potenciais (leads) | Quantos clientes voce tem vs. quantos existem |
-| **Pipeline Coverage** | Prospects ativos / Leads minerados na regiao | Quanto do potencial esta sendo trabalhado |
+### 3. Grafico de Funil de Risco
+Um grafico de barras horizontais (Recharts) mostrando a distribuicao de clientes por faixa de inatividade, com o valor monetario em risco em cada faixa. Cores seguem a severidade.
 
-Alem disso, cruzam isso com dados economicos (PIB, populacao) para priorizar regioes de maior retorno.
+### 4. Grafico de Evolucao Temporal
+Um grafico de area mostrando a concentracao de clientes por "dias sem compra" ao longo do tempo, permitindo visualizar onde esta o maior cluster de inatividade.
 
----
+### 5. Top Clientes para Acao Imediata (tabela principal)
+Tabela interativa com os clientes que precisam de atuacao, contendo:
+- Nome do cliente, Cidade, UF
+- Dias sem compra (com badge colorido por severidade)
+- Data da ultima compra
+- Valor da ultima compra
+- Limite de credito
 
-## Plano de Implementacao
+**Filtros da tabela:**
+- Por nivel de risco (Atencao / Alerta / Critico / Inativo)
+- Por UF
+- Busca por nome
 
-### Fase 1 - Tabela de Territorios e Atribuicao de Vendedores
+**Ordenacao padrao:** Valor da ultima compra decrescente dentro de cada faixa, priorizando os clientes de maior valor em risco.
 
-Criar a estrutura que falta: vincular vendedores a regioes geograficas.
+### 6. Resumo por UF
+Card lateral mostrando quais estados tem mais receita em risco, destacando SP (R$ 714k), MG, MT e GO como prioridades geograficas.
 
-**Nova tabela `vendedor_territorios`:**
-- Vincula um vendedor (profile) a UFs e/ou microrregioes IBGE
-- Permite que um vendedor atenda multiplas regioes
-- Base para distribuicao automatica de leads
+## Detalhes Tecnicos
 
-**Nova tabela `market_coverage_snapshot`:**
-- Tabela materializada com metricas pre-calculadas por UF/microrregiao
-- Atualizada por database function (evita queries pesadas em tempo real)
-- Campos: total_municipios, municipios_com_clientes, total_clientes_erp, total_prospects, total_leads, populacao, pib
+### Novo hook: `useClienteReativacao`
+- Consulta direta a tabela `clientes` calculando `CURRENT_DATE - data_ultima_compra::date` como dias sem compra
+- Filtra apenas clientes com `valor_ultima_compra > 0` (que tem historico de compra)
+- Calcula KPIs agregados por faixa de inatividade
+- Agrupa dados por UF para o resumo geografico
+- Usa React Query com cache key `["clientes-reativacao"]`
 
-### Fase 2 - Database Function para Calcular Metricas
+### Novos componentes (em `src/components/comercial/`)
+1. `ReactivationKPICards.tsx` - Cards de severidade no topo
+2. `RiskFunnelChart.tsx` - Grafico de barras horizontais por faixa
+3. `InactivityDistributionChart.tsx` - Grafico de area/histograma
+4. `ReactivationTable.tsx` - Tabela interativa com filtros
+5. `RiskByStateCard.tsx` - Resumo de risco por UF
 
-Uma funcao SQL `fn_calcular_cobertura_mercado()` que cruza automaticamente:
+### Nova pagina
+- `src/pages/ClientReactivation.tsx` - Pagina que orquestra todos os componentes
+- Rota: `/dashboard/comercial/reativacao`
+- Link adicionado no `ComercialModule.tsx`
 
+### Classificacao de risco (logica central)
 ```text
-+------------------+     +----------------+     +-----------------+
-| ibge_municipios  |     |    clientes    |     |    prospects     |
-| (5.571 cidades)  |<--->| (cidade + uf)  |     | (municipio + uf) |
-+------------------+     +----------------+     +-----------------+
-        |                        |                       |
-        v                        v                       v
-+---------------------------------------------------------------+
-|              market_coverage_snapshot                          |
-|  UF | municipios_total | com_clientes | com_prospects |        |
-|     | com_leads | penetracao_% | cobertura_% | pipeline_%     |
-+---------------------------------------------------------------+
+  0-30 dias  -> Ativo (verde) - sem acao necessaria
+ 31-60 dias  -> Atencao (amarelo) - monitorar
+ 61-90 dias  -> Alerta (laranja) - contatar
+91-180 dias  -> Critico (vermelho) - acao urgente
+  180+ dias  -> Inativo (cinza) - campanha de reativacao
 ```
 
-### Fase 3 - Dashboard de Inteligencia Comercial
+### Layout da pagina
+```text
++--------------------------------------------------+
+| <- Voltar   Painel de Reativacao      [Atualizar] |
++--------------------------------------------------+
+| [Atencao:43] [Alerta:57] [Critico:59] [Inativo:301] |
++--------------------------------------------------+
+| Funil de Risco (barras)  |  Risco por UF (ranking)|
++--------------------------------------------------+
+| Distribuicao de Inatividade (area chart)          |
++--------------------------------------------------+
+| Tabela: Top Clientes para Acao Imediata           |
+| [Filtro Risco] [Filtro UF] [Busca]                |
+| Nome | Cidade | UF | Dias | Data | Valor | Limite|
++--------------------------------------------------+
+```
 
-Uma nova pagina `/dashboard/comercial/inteligencia` com:
-
-**Painel Superior - KPIs Globais:**
-- Penetracao Nacional (405 cidades atendidas / 5.571 = 7,3%)
-- Cobertura de Prospecao (41 cidades em prospecao)
-- Pipeline de Mineracao (4 cidades mineradas)
-- Market Size (populacao total das regioes atendidas)
-
-**Tabela Cruzada Principal (o coracao do painel):**
-
-| UF | Municipios | Com Clientes | Penetracao | Prospects | Leads | Cobertura | PIB Regiao | Pop. |
-|----|-----------|-------------|-----------|----------|-------|----------|-----------|------|
-| SP | 645 | 156 | 24,2% | 24 | 24 | 100% | R$ X bi | Y mi |
-| GO | 246 | 47 | 19,1% | 0 | 0 | 0% | R$ X bi | Y mi |
-| PE | 185 | 0 | 0% | 50 | 0 | - | R$ X bi | Y mi |
-
-Colunas da tabela:
-- UF, Total Municipios (IBGE), Municipios com Clientes ERP, % Penetracao
-- Qtde Clientes ERP, Qtde Prospects, Qtde Leads Minerados
-- % Cobertura (prospects+clientes / leads), PIB, Populacao
-- Vendedor(es) responsavel(eis)
-
-**Grafico de Penetracao por UF** (barras horizontais com Recharts)
-
-**Mapa de Calor** (tabela com cores de intensidade por penetracao)
-
-### Fase 4 - Distribuicao Automatica de Leads por Territorio
-
-Ao converter leads em prospects, o sistema:
-1. Identifica a cidade/UF do lead
-2. Busca o vendedor atribuido aquele territorio
-3. Atribui automaticamente o `vendedor_id` no prospect
-
----
-
-## Detalhamento Tecnico
-
-### Migracao SQL
-
-1. Criar tabela `vendedor_territorios` (vendedor_id, uf, microrregiao_id, ativo)
-2. Criar tabela `market_coverage_snapshot` (uf, metricas calculadas, updated_at)
-3. Criar funcao `fn_calcular_cobertura_mercado()` que faz os JOINs e popula o snapshot
-4. Criar funcao `fn_atribuir_vendedor_territorio(cidade, uf)` para auto-atribuicao
-5. RLS policies para ambas as tabelas
-
-### Novos Componentes React
-
-1. `src/pages/MarketIntelligence.tsx` - Pagina principal do painel
-2. `src/components/comercial/MarketCoverageTable.tsx` - Tabela cruzada com filtros
-3. `src/components/comercial/PenetrationChart.tsx` - Grafico de penetracao
-4. `src/components/comercial/MarketKPICards.tsx` - Cards de KPI no topo
-5. `src/components/comercial/VendedorTerritorioManager.tsx` - Gestao de territorios
-6. `src/hooks/useMarketCoverage.ts` - Hook com queries de cobertura
-
-### Rota
-
-- `/dashboard/comercial/inteligencia` - Registrada no App.tsx dentro do modulo comercial
-- Link adicionado ao `ComercialModule.tsx` na secao "Dados de Mercado"
-
-### Integracao com Fluxo Existente
-
-- O hook `useLeadMining` sera atualizado para usar `fn_atribuir_vendedor_territorio` na conversao
-- A pagina de LeadMining ganha um indicador visual de qual vendedor sera atribuido
-- Os filtros de UF/cidade ja existentes no IBGE sao reaproveitados
-
+### Sem alteracoes no banco de dados
+Todos os calculos serao feitos via query direta na tabela `clientes` existente, usando `CURRENT_DATE - data_ultima_compra::date` para calcular os dias sem compra dinamicamente. Nenhuma migration necessaria.
