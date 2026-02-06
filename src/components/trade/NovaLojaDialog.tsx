@@ -61,6 +61,12 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
     manager_phone: "",
     notes: "",
     supervisor_id: "",
+    situacao_cadastral: "",
+    porte_empresa: "",
+    regime_tributario: "",
+    matriz_filial: "",
+    capital_social: "",
+    cnae_principal: "",
   });
 
   // Carregar supervisores e configurar usuário atual
@@ -286,6 +292,12 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
         manager_phone: "",
         notes: "",
         supervisor_id: "",
+        situacao_cadastral: "",
+        porte_empresa: "",
+        regime_tributario: "",
+        matriz_filial: "",
+        capital_social: "",
+        cnae_principal: "",
       });
       setSelectedVendedores([]);
       setPrincipalVendedorId("");
@@ -392,6 +404,12 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
                       state: data.uf || prev.state,
                       phone: data.telefone || prev.phone,
                       email: data.email || prev.email,
+                      situacao_cadastral: data.situacao || prev.situacao_cadastral,
+                      porte_empresa: data.porte || prev.porte_empresa,
+                      regime_tributario: data.regimeTributario || prev.regime_tributario,
+                      matriz_filial: data.matrizFilial || prev.matriz_filial,
+                      capital_social: data.capitalSocial?.toString() || prev.capital_social,
+                      cnae_principal: data.cnae || prev.cnae_principal,
                     }));
                     // Exibir info adicional via toast
                     const infoParts: string[] = [];
@@ -405,6 +423,52 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
                   }}
                 />
               </div>
+              {/* Dados da Receita Federal */}
+              {(formData.situacao_cadastral || formData.porte_empresa || formData.regime_tributario) && (
+                <div className="mt-2 p-3 rounded-md bg-muted/50 border text-sm space-y-1">
+                  <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide mb-1.5">Dados da Receita Federal</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    {formData.situacao_cadastral && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">Situação:</span>
+                        <span className={`font-medium ${formData.situacao_cadastral === 'Ativa' ? 'text-green-600' : 'text-destructive'}`}>
+                          {formData.situacao_cadastral}
+                        </span>
+                      </div>
+                    )}
+                    {formData.matriz_filial && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">Tipo:</span>
+                        <span className="font-medium">{formData.matriz_filial}</span>
+                      </div>
+                    )}
+                    {formData.porte_empresa && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">Porte:</span>
+                        <span className="font-medium">{formData.porte_empresa}</span>
+                      </div>
+                    )}
+                    {formData.regime_tributario && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">Regime:</span>
+                        <span className="font-medium">{formData.regime_tributario}</span>
+                      </div>
+                    )}
+                    {formData.capital_social && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">Capital Social:</span>
+                        <span className="font-medium">R$ {formData.capital_social}</span>
+                      </div>
+                    )}
+                    {formData.cnae_principal && (
+                      <div className="col-span-2 flex items-center gap-1.5">
+                        <span className="text-muted-foreground">CNAE:</span>
+                        <span className="font-medium">{formData.cnae_principal}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
