@@ -14533,6 +14533,82 @@ export type Database = {
         }
         Relationships: []
       }
+      team_member_details: {
+        Row: {
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          data_nascimento: string | null
+          email_pessoal: string | null
+          equipe_comercial: string | null
+          id: string
+          nome_completo: string | null
+          observacoes: string | null
+          rg: string | null
+          supervisor_nome: string | null
+          tamanho_camiseta: string | null
+          updated_at: string
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_nascimento?: string | null
+          email_pessoal?: string | null
+          equipe_comercial?: string | null
+          id?: string
+          nome_completo?: string | null
+          observacoes?: string | null
+          rg?: string | null
+          supervisor_nome?: string | null
+          tamanho_camiseta?: string | null
+          updated_at?: string
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_nascimento?: string | null
+          email_pessoal?: string | null
+          equipe_comercial?: string | null
+          id?: string
+          nome_completo?: string | null
+          observacoes?: string | null
+          rg?: string | null
+          supervisor_nome?: string | null
+          tamanho_camiseta?: string | null
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_member_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_member_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_member_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       telas_sistema: {
         Row: {
           ativo: boolean | null
