@@ -13807,10 +13807,12 @@ export type Database = {
         Row: {
           address: string | null
           branch_count: number | null
+          capital_social: string | null
           category: string | null
           chain: string | null
           city: string | null
           classification: string | null
+          cnae_principal: string | null
           cnpj: string | null
           code: string
           created_at: string | null
@@ -13821,11 +13823,15 @@ export type Database = {
           longitude: number | null
           manager_name: string | null
           manager_phone: string | null
+          matriz_filial: string | null
           monthly_revenue: number | null
           name: string
           notes: string | null
           phone: string | null
+          porte_empresa: string | null
           priority: string | null
+          regime_tributario: string | null
+          situacao_cadastral: string | null
           size: string | null
           state: string | null
           status: string | null
@@ -13838,10 +13844,12 @@ export type Database = {
         Insert: {
           address?: string | null
           branch_count?: number | null
+          capital_social?: string | null
           category?: string | null
           chain?: string | null
           city?: string | null
           classification?: string | null
+          cnae_principal?: string | null
           cnpj?: string | null
           code: string
           created_at?: string | null
@@ -13852,11 +13860,15 @@ export type Database = {
           longitude?: number | null
           manager_name?: string | null
           manager_phone?: string | null
+          matriz_filial?: string | null
           monthly_revenue?: number | null
           name: string
           notes?: string | null
           phone?: string | null
+          porte_empresa?: string | null
           priority?: string | null
+          regime_tributario?: string | null
+          situacao_cadastral?: string | null
           size?: string | null
           state?: string | null
           status?: string | null
@@ -13869,10 +13881,12 @@ export type Database = {
         Update: {
           address?: string | null
           branch_count?: number | null
+          capital_social?: string | null
           category?: string | null
           chain?: string | null
           city?: string | null
           classification?: string | null
+          cnae_principal?: string | null
           cnpj?: string | null
           code?: string
           created_at?: string | null
@@ -13883,11 +13897,15 @@ export type Database = {
           longitude?: number | null
           manager_name?: string | null
           manager_phone?: string | null
+          matriz_filial?: string | null
           monthly_revenue?: number | null
           name?: string
           notes?: string | null
           phone?: string | null
+          porte_empresa?: string | null
           priority?: string | null
+          regime_tributario?: string | null
+          situacao_cadastral?: string | null
           size?: string | null
           state?: string | null
           status?: string | null
