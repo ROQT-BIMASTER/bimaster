@@ -14,8 +14,8 @@ export default defineConfig(({ mode }) => ({
     react(), 
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['favicon.ico', 'robots.txt', '**/*.png'],
       manifest: {
         name: 'Sistema de Gestão Huggs',
@@ -56,27 +56,19 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,json}'],
-        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/],
         cleanupOutdatedCaches: true,
-        skipWaiting: true,
-        clientsClaim: true,
+        // NÃO usar skipWaiting/clientsClaim para evitar trocas involuntárias de versão
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api-cache',
-              networkTimeoutSeconds: 5,
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 5, // 5 minutos - dados sempre frescos
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
+            handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/functions\/.*/i,
+            handler: 'NetworkOnly',
           },
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
@@ -85,7 +77,7 @@ export default defineConfig(({ mode }) => ({
               cacheName: 'supabase-storage-cache',
               expiration: {
                 maxEntries: 300,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
+                maxAgeSeconds: 60 * 60 * 24 * 30
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -99,7 +91,7 @@ export default defineConfig(({ mode }) => ({
               cacheName: 'images-cache',
               expiration: {
                 maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
+                maxAgeSeconds: 60 * 60 * 24 * 30
               },
               cacheableResponse: {
                 statuses: [0, 200]
