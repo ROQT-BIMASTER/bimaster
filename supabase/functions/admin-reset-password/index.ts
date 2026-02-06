@@ -26,14 +26,14 @@ serve(async (req) => {
     const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !caller) throw new Error("Não autorizado");
 
-    // Check if caller is admin
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
+    // Check if caller is admin via user_roles table
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles")
       .select("role")
-      .eq("id", caller.id)
-      .single();
+      .eq("user_id", caller.id)
+      .eq("role", "admin");
 
-    if (profile?.role !== "admin") throw new Error("Apenas administradores podem resetar senhas");
+    if (!roles || roles.length === 0) throw new Error("Apenas administradores podem resetar senhas");
 
     const { userId, newPassword } = await req.json();
     if (!userId || !newPassword) throw new Error("userId e newPassword são obrigatórios");
