@@ -18075,7 +18075,9 @@ export type Database = {
             }[]
           }
       get_atividades_kpis: { Args: never; Returns: Json }
-      get_concentracao_uf: { Args: { p_empresa_id?: number }; Returns: Json }
+      get_concentracao_uf:
+        | { Args: { p_empresa_id?: number }; Returns: Json }
+        | { Args: { p_empresa_id?: number; p_ufs?: string[] }; Returns: Json }
       get_contas_receber_aging: {
         Args: {
           p_ano?: number
@@ -18228,7 +18230,9 @@ export type Database = {
           sku_master: string
         }[]
       }
-      get_faixas_ticket: { Args: { p_empresa_id?: number }; Returns: Json }
+      get_faixas_ticket:
+        | { Args: { p_empresa_id?: number }; Returns: Json }
+        | { Args: { p_empresa_id?: number; p_ufs?: string[] }; Returns: Json }
       get_financial_kpis: {
         Args: { p_ano?: number; p_empresa_ids?: number[] }
         Returns: Json
@@ -18237,8 +18241,12 @@ export type Database = {
         Args: { p_entidade: string; p_tipo?: string }
         Returns: string
       }
-      get_portfolio_kpis: { Args: { p_empresa_id?: number }; Returns: Json }
-      get_potencial_uf: { Args: { p_empresa_id?: number }; Returns: Json }
+      get_portfolio_kpis:
+        | { Args: { p_empresa_id?: number }; Returns: Json }
+        | { Args: { p_empresa_id?: number; p_ufs?: string[] }; Returns: Json }
+      get_potencial_uf:
+        | { Args: { p_empresa_id?: number }; Returns: Json }
+        | { Args: { p_empresa_id?: number; p_ufs?: string[] }; Returns: Json }
       get_reativacao_kpis: { Args: { p_empresa_id?: number }; Returns: Json }
       get_sales_performance: {
         Args: never

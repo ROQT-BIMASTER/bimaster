@@ -16,13 +16,11 @@ export interface ClienteReativacao {
   limite_credito: number | null;
   dias_sem_compra: number;
   nivel_risco: RiskLevel;
-  // Contact fields
   telefone: string | null;
   celular: string | null;
   email: string | null;
   cnpj: string | null;
   comprador: string | null;
-  // Address fields
   endereco: string | null;
   bairro: string | null;
   cep: string | null;
@@ -31,7 +29,6 @@ export interface ClienteReativacao {
   cidade_cobranca: string | null;
   uf_cobranca: string | null;
   cep_cobranca: string | null;
-  // Commercial fields
   valor_maior_compra: number | null;
   data_maior_compra: string | null;
   status_bloqueio: string | null;
@@ -53,7 +50,7 @@ export interface RiscoPorUF {
 }
 
 function classificarRisco(dias: number): RiskLevel | null {
-  if (dias <= 30) return null; // Ativo
+  if (dias <= 30) return null;
   if (dias <= 60) return "atencao";
   if (dias <= 90) return "alerta";
   if (dias <= 180) return "critico";
@@ -72,7 +69,15 @@ export interface Empresa {
   nome: string;
 }
 
-export function useClienteReativacao(empresaId?: number | null) {
+interface ReativacaoFilters {
+  empresaId?: number | null;
+  ufs?: string[] | null;
+}
+
+export function useClienteReativacao(filters?: ReativacaoFilters) {
+  const empresaId = filters?.empresaId ?? null;
+  const ufs = filters?.ufs ?? null;
+
   const empresasQuery = useQuery({
     queryKey: ["empresas-list"],
     queryFn: async () => {
@@ -87,9 +92,8 @@ export function useClienteReativacao(empresaId?: number | null) {
   });
 
   const clientesQuery = useQuery({
-    queryKey: ["clientes-reativacao", empresaId ?? "todas"],
+    queryKey: ["clientes-reativacao", empresaId ?? "todas", ufs ?? "todas"],
     queryFn: async () => {
-      // Filter server-side: only clients with 31+ days since last purchase (reduces 35k to ~relevant subset)
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - 30);
       const cutoffISO = cutoffDate.toISOString().split('T')[0];
@@ -103,9 +107,12 @@ export function useClienteReativacao(empresaId?: number | null) {
             .not("data_ultima_compra", "is", null)
             .lt("data_ultima_compra", cutoffISO)
             .not("cnpj", "is", null)
-            .gte("cnpj", "00000000000000"); // ensures CNPJ has 14+ chars (complete)
+            .gte("cnpj", "00000000000000");
           if (empresaId) {
             q = q.eq("empresa_id", empresaId);
+          }
+          if (ufs && ufs.length > 0) {
+            q = q.in("uf", ufs);
           }
           return q;
         }

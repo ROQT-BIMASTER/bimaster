@@ -2,20 +2,28 @@ import { useState, useRef } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, RefreshCw, Building2, X } from "lucide-react";
+import { ArrowLeft, RefreshCw, X } from "lucide-react";
 import { useClienteReativacao, type RiskLevel } from "@/hooks/useClienteReativacao";
 import { ReactivationKPICards } from "@/components/comercial/ReactivationKPICards";
 import { RiskFunnelChart } from "@/components/comercial/RiskFunnelChart";
 import { InactivityDistributionChart } from "@/components/comercial/InactivityDistributionChart";
 import { ReactivationTable } from "@/components/comercial/ReactivationTable";
 import { RiskByStateCard } from "@/components/comercial/RiskByStateCard";
+import { ComercialFilters } from "@/components/comercial/ComercialFilters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { getUFsByRegiao } from "@/lib/constants/regioes";
 
 const ClientReactivation = () => {
   const [empresaFilter, setEmpresaFilter] = useState<number | null>(null);
-  const { data, isLoading, refetch, isFetching, empresas } = useClienteReativacao(empresaFilter);
+  const [regiaoFilter, setRegiaoFilter] = useState<string | null>(null);
+  const ufs = getUFsByRegiao(regiaoFilter);
+
+  const { data, isLoading, refetch, isFetching, empresas } = useClienteReativacao({
+    empresaId: empresaFilter,
+    ufs,
+  });
+
   const [activeRiskFilter, setActiveRiskFilter] = useState<RiskLevel | null>(null);
   const [activeUFFilter, setActiveUFFilter] = useState<string | null>(null);
   const [activeDiasRange, setActiveDiasRange] = useState<{ min: number; max: number } | null>(null);
@@ -67,7 +75,7 @@ const ClientReactivation = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
               <Link to="/dashboard/comercial">
@@ -81,24 +89,14 @@ const ClientReactivation = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <Select
-                value={empresaFilter?.toString() ?? "todas"}
-                onValueChange={(v) => setEmpresaFilter(v === "todas" ? null : Number(v))}
-              >
-                <SelectTrigger className="h-9 w-[200px]">
-                  <SelectValue placeholder="Todas as filiais" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas as filiais</SelectItem>
-                  {empresas.map((e) => (
-                    <SelectItem key={e.id} value={e.id.toString()}>{e.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <ComercialFilters
+              empresas={empresas}
+              empresaFilter={empresaFilter}
+              onEmpresaChange={setEmpresaFilter}
+              regiaoFilter={regiaoFilter}
+              onRegiaoChange={setRegiaoFilter}
+            />
             <Button
               variant="outline"
               size="sm"
@@ -124,14 +122,12 @@ const ClientReactivation = () => {
           </div>
         ) : data ? (
           <>
-            {/* KPI Cards */}
             <ReactivationKPICards
               kpis={data.kpis}
               onFilterClick={handleFilterClick}
               activeFilter={activeRiskFilter}
             />
 
-            {/* Charts Row */}
             <div className="grid gap-4 grid-cols-1 lg:grid-cols-5">
               <div className="lg:col-span-3">
                 <RiskFunnelChart kpis={data.kpis} onBarClick={handleBarClick} />
@@ -145,13 +141,11 @@ const ClientReactivation = () => {
               </div>
             </div>
 
-            {/* Distribution Chart */}
             <InactivityDistributionChart
               clientes={data.clientes}
               onRangeClick={handleRangeClick}
             />
 
-            {/* Active filter indicator */}
             {hasActiveGraphFilter && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm text-muted-foreground">Filtro ativo:</span>
@@ -173,7 +167,6 @@ const ClientReactivation = () => {
               </div>
             )}
 
-            {/* Table */}
             <ReactivationTable
               ref={tableRef}
               clientes={data.clientes}
