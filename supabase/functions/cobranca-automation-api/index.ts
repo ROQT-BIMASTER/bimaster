@@ -555,7 +555,7 @@ serve(async (req) => {
       });
     }
 
-    // ============ IMPORTAR-CLIENTES - Import clients from ERP ============
+    // ============ IMPORTAR-CLIENTES - Import clients from ERP (optimized for large volumes) ============
     if (path === "importar-clientes" && req.method === "POST") {
       const auth = await authenticateRequest(req, supabase);
       if (!auth.authenticated) {
@@ -575,15 +575,60 @@ serve(async (req) => {
         });
       }
 
-      // Use the database function to import
-      const { data, error } = await supabase.rpc("importar_clientes", {
-        p_clientes: clientes,
-      });
+      console.log(`[Clientes] Recebidos ${clientes.length} registros para importação`);
+      const startTime = Date.now();
 
-      if (error) throw error;
+      // Process internally in batches of 5000 to avoid RPC payload limits
+      const INTERNAL_BATCH_SIZE = 5000;
+      let totalInseridos = 0;
+      let totalAtualizados = 0;
+      let totalErros = 0;
+      const batchErrors: string[] = [];
 
-      console.log(`[Cobrança] Clientes importados:`, data);
-      return new Response(JSON.stringify({ success: true, ...data }), {
+      for (let i = 0; i < clientes.length; i += INTERNAL_BATCH_SIZE) {
+        const batch = clientes.slice(i, i + INTERNAL_BATCH_SIZE);
+        const batchNum = Math.floor(i / INTERNAL_BATCH_SIZE) + 1;
+        
+        try {
+          const { data, error } = await supabase.rpc("importar_clientes", {
+            p_clientes: batch,
+          });
+
+          if (error) {
+            console.error(`[Clientes] Erro batch ${batchNum}:`, error.message);
+            totalErros += batch.length;
+            batchErrors.push(`Batch ${batchNum}: ${error.message}`);
+          } else if (data) {
+            totalInseridos += (data as any).inseridos || 0;
+            totalAtualizados += (data as any).atualizados || 0;
+            console.log(`[Clientes] Batch ${batchNum}: ${batch.length} processados`);
+          }
+        } catch (batchErr) {
+          console.error(`[Clientes] Exceção batch ${batchNum}:`, batchErr);
+          totalErros += batch.length;
+          batchErrors.push(`Batch ${batchNum}: ${String(batchErr)}`);
+        }
+      }
+
+      const durationMs = Date.now() - startTime;
+      const totalBatches = Math.ceil(clientes.length / INTERNAL_BATCH_SIZE);
+      const ratePerSecond = durationMs > 0 ? Math.round((clientes.length / durationMs) * 1000) : 0;
+
+      const result = {
+        success: totalErros === 0,
+        total_recebidos: clientes.length,
+        inseridos: totalInseridos,
+        atualizados: totalAtualizados,
+        erros: totalErros,
+        batches_internos: totalBatches,
+        duration_ms: durationMs,
+        rate_per_second: ratePerSecond,
+        ...(batchErrors.length > 0 ? { batch_errors: batchErrors } : {}),
+      };
+
+      console.log(`[Clientes] Importação concluída em ${durationMs}ms: ${totalInseridos} novos, ${totalAtualizados} atualizados, ${totalErros} erros`);
+      
+      return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
