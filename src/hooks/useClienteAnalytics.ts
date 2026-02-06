@@ -45,16 +45,27 @@ export interface PotencialNaoExplorado {
   limiteDisponivel: number;
 }
 
-export function useClienteAnalytics() {
+interface AnalyticsFilters {
+  empresaId?: number | null;
+  ufs?: string[] | null;
+}
+
+export function useClienteAnalytics(filters?: AnalyticsFilters) {
+  const empresaId = filters?.empresaId ?? null;
+  const ufs = filters?.ufs ?? null;
+
   return useQuery({
-    queryKey: ["clientes-analytics"],
+    queryKey: ["clientes-analytics", empresaId, ufs],
     queryFn: async () => {
-      // Execute all RPCs in parallel instead of fetching 35k+ rows
+      const rpcParams: Record<string, any> = {};
+      if (empresaId) rpcParams.p_empresa_id = empresaId;
+      if (ufs && ufs.length > 0) rpcParams.p_ufs = ufs;
+
       const [kpisRes, ufRes, faixasRes, potencialRes] = await Promise.all([
-        supabase.rpc("get_portfolio_kpis" as any),
-        supabase.rpc("get_concentracao_uf" as any),
-        supabase.rpc("get_faixas_ticket" as any),
-        supabase.rpc("get_potencial_uf" as any),
+        supabase.rpc("get_portfolio_kpis" as any, rpcParams),
+        supabase.rpc("get_concentracao_uf" as any, rpcParams),
+        supabase.rpc("get_faixas_ticket" as any, rpcParams),
+        supabase.rpc("get_potencial_uf" as any, rpcParams),
       ]);
 
       if (kpisRes.error) throw kpisRes.error;

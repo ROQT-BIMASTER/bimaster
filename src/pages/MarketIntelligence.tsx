@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MarketKPICards } from "@/components/comercial/MarketKPICards";
 import { MarketCoverageTable } from "@/components/comercial/MarketCoverageTable";
@@ -8,17 +9,29 @@ import { GeographicConcentrationChart } from "@/components/comercial/GeographicC
 import { TicketDistributionChart } from "@/components/comercial/TicketDistributionChart";
 import { UntappedPotentialCard } from "@/components/comercial/UntappedPotentialCard";
 import { NormalizationReportCard } from "@/components/comercial/NormalizationReportCard";
+import { ComercialFilters } from "@/components/comercial/ComercialFilters";
 import { useMarketCoverage } from "@/hooks/useMarketCoverage";
 import { useClienteAnalytics } from "@/hooks/useClienteAnalytics";
 import { useNormalizacao } from "@/hooks/useNormalizacao";
+import { useAllEmpresas } from "@/hooks/useUserEmpresas";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { RefreshCw, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { getUFsByRegiao } from "@/lib/constants/regioes";
+import { useMemo } from "react";
 
 const MarketIntelligence = () => {
-  const { coverageData, kpis, isLoading, refresh, isRefreshing } = useMarketCoverage();
-  const { data: analytics, isLoading: loadingAnalytics } = useClienteAnalytics();
+  const [empresaFilter, setEmpresaFilter] = useState<number | null>(null);
+  const [regiaoFilter, setRegiaoFilter] = useState<string | null>(null);
+  const ufs = getUFsByRegiao(regiaoFilter);
+
+  const { coverageData: rawCoverageData, kpis: rawKpis, isLoading, refresh, isRefreshing } = useMarketCoverage();
+  const { data: analytics, isLoading: loadingAnalytics } = useClienteAnalytics({
+    empresaId: empresaFilter,
+    ufs,
+  });
+  const { data: empresasData } = useAllEmpresas();
   const {
     resumo,
     isLoading: loadingNormalizacao,
@@ -28,6 +41,36 @@ const MarketIntelligence = () => {
     recalcularCobertura,
     isRecalculando,
   } = useNormalizacao();
+
+  // Filter market coverage data by region (client-side since snapshot doesn't have empresa_id)
+  const coverageData = useMemo(() => {
+    if (!regiaoFilter || !ufs) return rawCoverageData;
+    return rawCoverageData.filter((r) => ufs.includes(r.uf));
+  }, [rawCoverageData, regiaoFilter, ufs]);
+
+  // Recalculate KPIs based on filtered coverage data
+  const kpis = useMemo(() => {
+    if (!coverageData.length) return rawKpis;
+    if (!regiaoFilter) return rawKpis;
+    const totalMunicipios = coverageData.reduce((s, r) => s + r.total_municipios, 0);
+    const municipiosAtendidos = coverageData.reduce((s, r) => s + r.municipios_com_clientes, 0);
+    return {
+      totalMunicipios,
+      municipiosAtendidos,
+      penetracaoNacional: totalMunicipios > 0 ? Number(((municipiosAtendidos / totalMunicipios) * 100).toFixed(2)) : 0,
+      totalClientesERP: coverageData.reduce((s, r) => s + r.total_clientes_erp, 0),
+      totalProspects: coverageData.reduce((s, r) => s + r.total_prospects, 0),
+      totalLeads: coverageData.reduce((s, r) => s + r.total_leads_minerados, 0),
+      municipiosProspectados: coverageData.reduce((s, r) => s + r.municipios_com_prospects, 0),
+      municipiosMinerados: coverageData.reduce((s, r) => s + r.municipios_com_leads, 0),
+      populacaoAtendida: coverageData.filter((r) => r.municipios_com_clientes > 0).reduce((s, r) => s + r.populacao_total, 0),
+      populacaoTotal: coverageData.reduce((s, r) => s + r.populacao_total, 0),
+      ufsAtendidas: coverageData.filter((r) => r.municipios_com_clientes > 0).length,
+      totalUFs: coverageData.length,
+    };
+  }, [coverageData, rawKpis, regiaoFilter]);
+
+  const empresas = (empresasData || []).map((e) => ({ id: e.id, nome: e.nome }));
 
   return (
     <DashboardLayout>
@@ -47,16 +90,25 @@ const MarketIntelligence = () => {
               Market Share, Penetração e Cobertura de Mercado
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refresh()}
-            disabled={isRefreshing}
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-            {isRefreshing ? "Atualizando..." : "Atualizar Dados"}
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <ComercialFilters
+              empresas={empresas}
+              empresaFilter={empresaFilter}
+              onEmpresaChange={setEmpresaFilter}
+              regiaoFilter={regiaoFilter}
+              onRegiaoChange={setRegiaoFilter}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refresh()}
+              disabled={isRefreshing}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              {isRefreshing ? "Atualizando..." : "Atualizar"}
+            </Button>
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -117,4 +169,3 @@ const MarketIntelligence = () => {
 };
 
 export default MarketIntelligence;
-
