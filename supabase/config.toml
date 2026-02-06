@@ -211,3 +211,7 @@ verify_jwt = false
 # OpenCNPJ - Consulta gratuita de CNPJ na Receita Federal
 [functions.opencnpj-consulta]
 verify_jwt = false
+
+# Google Places Search - Mineração de leads via Google Places API
+[functions.google-places-search]
+verify_jwt = false

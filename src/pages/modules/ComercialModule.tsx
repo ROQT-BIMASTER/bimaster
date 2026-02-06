@@ -17,7 +17,9 @@ import {
   AlertTriangle,
   MapPin,
   Globe,
-  Building2
+  Building2,
+  Pickaxe,
+  Search,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,6 +84,9 @@ const ComercialModule = () => {
   const secondaryModules = {
     "Gestão de Lançamentos": [
       { title: "Calendário de Lançamentos", to: "/dashboard/comercial/lancamentos", icon: Rocket, color: "text-primary" },
+    ],
+    "Prospecção": [
+      { title: "Mineração de Leads", to: "/dashboard/comercial/mineracao", icon: Pickaxe, color: "text-primary" },
     ],
     "Dados de Mercado": [
       { title: "Dados IBGE", to: "/dashboard/comercial/ibge", icon: MapPin, color: "text-primary" },

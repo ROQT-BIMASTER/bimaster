@@ -125,6 +125,7 @@ const FabricaLancamentos = lazy(() => import("./pages/FabricaLancamentos"));
 const FabricaExecutiveDashboard = lazy(() => import("./pages/FabricaExecutiveDashboard"));
 const ComercialModule = lazy(() => import("./pages/modules/ComercialModule"));
 const IBGEData = lazy(() => import("./pages/IBGEData"));
+const LeadMining = lazy(() => import("./pages/LeadMining"));
 const GerenciamentoAcessoPrecos = lazy(() => import("./pages/GerenciamentoAcessoPrecos"));
 const PrecosMatrizComparativa = lazy(() => import("./pages/PrecosMatrizComparativa"));
 const SimuladorCenariosPrecos = lazy(() => import("./pages/SimuladorCenariosPrecos"));
@@ -348,6 +349,7 @@ function AppContent() {
             <Route path="/dashboard/comercial" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ComercialModule /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/comercial/lancamentos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="comercial_lancamentos"><FabricaLancamentos /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/comercial/ibge" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><IBGEData /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/comercial/mineracao" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><LeadMining /></ModuleProtectedRoute></ProtectedRoute>} />
 
             {/* Módulo de Tabelas de Preços */}
             <Route path="/dashboard/precos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="precos"><TabelasPrecosModule /></ModuleProtectedRoute></ProtectedRoute>} />
