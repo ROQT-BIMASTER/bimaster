@@ -53,7 +53,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       setState(prev => ({ ...prev, wasUpdated: true }));
     }
 
-    // Progresso simulado mais rápido
+    // Progresso simulado
     if (!intervalRef.current) {
       intervalRef.current = setInterval(() => {
         if (!mountedRef.current) return;
@@ -99,10 +99,10 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         const updateSW = registerSW({
           immediate: true,
           onNeedRefresh() {
-            console.log('[PWA] Nova versão disponível - aplicando automaticamente');
-            // Com autoUpdate, aplicar imediatamente
-            if (updateSWRef) {
-              updateSWRef(true);
+            // NÃO aplicar automaticamente - exigir confirmação do usuário
+            console.log('[PWA] Nova versão disponível - aguardando confirmação do usuário');
+            if (mountedRef.current) {
+              setState(prev => ({ ...prev, needRefresh: true }));
             }
           },
           onOfflineReady() {
@@ -115,11 +115,11 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
             console.log('[PWA] Service Worker registrado:', swUrl);
             
             if (registration) {
-              // Verificar atualizações a cada 1 minuto (era 5 minutos)
+              // Verificar atualizações a cada 5 minutos
               setInterval(() => {
                 console.log('[PWA] Verificando atualizações...');
                 registration.update();
-              }, 60 * 1000);
+              }, 5 * 60 * 1000);
             }
           },
           onRegisterError(error) {
@@ -168,19 +168,12 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // Detectar quando o SW foi atualizado
-    const handleControllerChange = () => {
-      console.log('[PWA] Service Worker atualizado automaticamente');
-      if (mountedRef.current) {
-        setState(prev => ({ ...prev, wasUpdated: true }));
-      }
-    };
+    // NÃO escutar controllerchange para evitar reloads involuntários
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    navigator.serviceWorker?.addEventListener('controllerchange', handleControllerChange);
 
     return () => {
       mountedRef.current = false;
@@ -192,14 +185,16 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('appinstalled', handleAppInstalled);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      navigator.serviceWorker?.removeEventListener('controllerchange', handleControllerChange);
     };
   }, []);
 
+  // Atualizar SOMENTE quando o usuário confirmar
   const updateServiceWorker = useCallback(() => {
+    console.log('[PWA] Usuário autorizou atualização');
     if (updateSWRef) {
       updateSWRef(true);
     }
+    setState(prev => ({ ...prev, needRefresh: false }));
   }, []);
 
   const promptInstall = useCallback(async (): Promise<boolean> => {
@@ -218,11 +213,11 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const dismissUpdateNotice = useCallback(() => {
-    setState(prev => ({ ...prev, wasUpdated: false }));
+    setState(prev => ({ ...prev, wasUpdated: false, needRefresh: false }));
   }, []);
 
   const forceUpdate = useCallback(async () => {
-    console.log('[PWA] Forçando atualização completa...');
+    console.log('[PWA] Forçando atualização completa (autorizado pelo usuário)...');
     await forceCleanReload();
   }, []);
 

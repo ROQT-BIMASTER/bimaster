@@ -1,5 +1,5 @@
 // Versão do app - incrementar a cada deploy significativo
-export const APP_VERSION = '1.1.4';
+export const APP_VERSION = '2.0.0';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
@@ -30,13 +30,13 @@ export function checkAndUpdateVersion(): boolean {
 /**
  * Limpa TODOS os caches do navegador agressivamente
  */
-async function clearAllCaches(): Promise<void> {
+export async function clearAllCaches(): Promise<void> {
+  // Limpar Cache Storage (Service Worker caches)
   if ('caches' in window) {
     try {
       const cacheNames = await caches.keys();
       console.log(`[Version] Limpando ${cacheNames.length} caches...`);
       
-      // Deletar TODOS os caches sem exceção
       for (const cacheName of cacheNames) {
         await caches.delete(cacheName);
         console.log(`[Version] Cache limpo: ${cacheName}`);
@@ -48,7 +48,7 @@ async function clearAllCaches(): Promise<void> {
     }
   }
   
-  // Forçar desregistro do Service Worker antigo
+  // Forçar desregistro de TODOS os Service Workers
   if ('serviceWorker' in navigator) {
     try {
       const registrations = await navigator.serviceWorker.getRegistrations();
@@ -59,6 +59,14 @@ async function clearAllCaches(): Promise<void> {
     } catch (error) {
       console.error('[Version] Erro ao desregistrar SW:', error);
     }
+  }
+
+  // Limpar sessionStorage (dados de sessão)
+  try {
+    sessionStorage.clear();
+    console.log('[Version] sessionStorage limpo');
+  } catch (e) {
+    console.error('[Version] Erro ao limpar sessionStorage:', e);
   }
 }
 
@@ -75,5 +83,6 @@ export function forceReload(): void {
 export async function forceCleanReload(): Promise<void> {
   await clearAllCaches();
   localStorage.setItem(VERSION_KEY, APP_VERSION);
-  window.location.reload();
+  // Forçar reload sem cache do navegador
+  window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
 }
