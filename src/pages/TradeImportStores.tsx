@@ -7,9 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, FileSpreadsheet, Sparkles, Download } from "lucide-react";
+import { Upload, FileSpreadsheet, Sparkles, Download, Database, X } from "lucide-react";
+import { useCnpjEnrichment } from "@/hooks/useCnpjEnrichment";
 import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import ExcelJS from 'exceljs';
@@ -32,6 +35,8 @@ const TradeImportStores = () => {
   const [supervisorSelecionado, setSupervisorSelecionado] = useState<string>("");
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [enriquecerDados, setEnriquecerDados] = useState(false);
+  const { enrichStores, isEnriching, progress, cancel } = useCnpjEnrichment();
 
   useEffect(() => {
     if (!permissionsLoading && hasPermission("trade_import_stores")) {
@@ -249,6 +254,17 @@ const TradeImportStores = () => {
       } else {
         toast.success(`${inserted?.length || 0} lojas importadas com sucesso!`);
         setFile(null);
+
+        // Enriquecer dados via CNPJ se flag ativa
+        if (enriquecerDados && inserted && inserted.length > 0) {
+          const storesToEnrich = inserted.map(s => ({
+            id: s.id,
+            name: s.name,
+            cnpj: s.cnpj,
+          }));
+          // Fire and forget - progress shown via toast
+          enrichStores(storesToEnrich);
+        }
       }
     } catch (error: any) {
       console.error("Erro na importação:", error);
@@ -366,6 +382,16 @@ const TradeImportStores = () => {
       toast.success(`${inserted?.length || 0} lojas importadas com sucesso via IA!`);
       setTextoIA("");
       setPdfIA(null);
+
+      // Enriquecer dados via CNPJ se flag ativa
+      if (enriquecerDados && inserted && inserted.length > 0) {
+        const storesToEnrich = inserted.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          cnpj: s.cnpj,
+        }));
+        enrichStores(storesToEnrich);
+      }
     } catch (error: any) {
       console.error("Erro na importação via IA:", error);
       toast.error("Erro ao processar com IA: " + error.message);
@@ -502,6 +528,24 @@ const TradeImportStores = () => {
                   </div>
                 </div>
 
+                <div className="flex items-center space-x-2 p-3 rounded-lg border bg-muted/30">
+                  <Checkbox
+                    id="enriquecer-trad"
+                    checked={enriquecerDados}
+                    onCheckedChange={(checked) => setEnriquecerDados(checked === true)}
+                    disabled={isEnriching}
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="enriquecer-trad" className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                      <Database className="h-4 w-4 text-primary" />
+                      Enriquecer dados via CNPJ
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Após importar, consulta automaticamente a Receita Federal para preencher dados fiscais (situação, porte, regime tributário, etc.)
+                    </p>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="file">Arquivo Excel (.xlsx, .xls)</Label>
                   <Input
@@ -585,6 +629,24 @@ const TradeImportStores = () => {
                   </div>
                 </div>
 
+                <div className="flex items-center space-x-2 p-3 rounded-lg border bg-muted/30">
+                  <Checkbox
+                    id="enriquecer-ia"
+                    checked={enriquecerDados}
+                    onCheckedChange={(checked) => setEnriquecerDados(checked === true)}
+                    disabled={isEnriching}
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="enriquecer-ia" className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                      <Database className="h-4 w-4 text-primary" />
+                      Enriquecer dados via CNPJ
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Após importar, consulta automaticamente a Receita Federal para preencher dados fiscais
+                    </p>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label>Escolha o método de entrada</Label>
                   <Tabs defaultValue="texto" className="w-full">
@@ -662,6 +724,41 @@ const TradeImportStores = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {isEnriching && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4 text-primary animate-pulse" />
+                  <span className="text-sm font-medium">
+                    Enriquecendo dados via Receita Federal
+                  </span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={cancel} className="h-7 px-2">
+                  <X className="h-3.5 w-3.5 mr-1" />
+                  Cancelar
+                </Button>
+              </div>
+              <Progress 
+                value={progress.total > 0 ? (progress.current / progress.total) * 100 : 0} 
+                className="h-2"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>
+                  {progress.currentStore 
+                    ? `Processando: ${progress.currentStore}` 
+                    : "Aguardando..."}
+                </span>
+                <span>
+                  {progress.current}/{progress.total} 
+                  {progress.succeeded > 0 && ` • ✅ ${progress.succeeded}`}
+                  {progress.failed > 0 && ` • ❌ ${progress.failed}`}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
