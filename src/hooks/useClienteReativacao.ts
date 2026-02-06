@@ -89,13 +89,19 @@ export function useClienteReativacao(empresaId?: number | null) {
   const clientesQuery = useQuery({
     queryKey: ["clientes-reativacao", empresaId ?? "todas"],
     queryFn: async () => {
+      // Filter server-side: only clients with 31+ days since last purchase (reduces 35k to ~relevant subset)
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - 30);
+      const cutoffISO = cutoffDate.toISOString().split('T')[0];
+
       const data = await fetchAllRows<any>(
         "clientes",
         "id, nome, codigo, cidade, uf, empresa_id, data_ultima_compra, valor_ultima_compra, limite_credito, telefone, celular, email, cnpj, comprador, endereco, bairro, cep, endereco_cobranca, bairro_cobranca, cidade_cobranca, uf_cobranca, cep_cobranca, valor_maior_compra, data_maior_compra, status_bloqueio, conceito, observacoes",
         (query) => {
           let q = query
             .gt("valor_ultima_compra", 0)
-            .not("data_ultima_compra", "is", null);
+            .not("data_ultima_compra", "is", null)
+            .lt("data_ultima_compra", cutoffISO);
           if (empresaId) {
             q = q.eq("empresa_id", empresaId);
           }
