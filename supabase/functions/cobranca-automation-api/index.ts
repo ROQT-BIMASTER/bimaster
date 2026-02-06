@@ -9,13 +9,20 @@ const corsHeaders = {
 
 // Authenticate request - supports both JWT and API key
 async function authenticateRequest(req: Request, supabase: any): Promise<{ authenticated: boolean; userId?: string; isN8N?: boolean }> {
-  // Check for N8N API key
+  // Check for N8N API key (supports multiple key sources)
   const apiKey = req.headers.get("x-api-key");
   if (apiKey) {
-    const validKey = Deno.env.get("N8N_API_KEY") || Deno.env.get("COBRANCA_API_KEY");
-    if (apiKey === validKey) {
+    const validKeys = [
+      Deno.env.get("N8N_API_KEY"),
+      Deno.env.get("COBRANCA_API_KEY"),
+      Deno.env.get("POLLO_API_KEY"),
+    ].filter(Boolean);
+    
+    if (validKeys.includes(apiKey)) {
+      console.log(`[Auth] API key autenticada com sucesso`);
       return { authenticated: true, isN8N: true };
     }
+    console.warn(`[Auth] API key inválida fornecida`);
   }
 
   // Check for JWT
