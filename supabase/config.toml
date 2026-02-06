@@ -55,7 +55,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.analisar-planilha-ia]
-verify_jwt = true
+verify_jwt = false
 
 [functions.analyze-shelf-photos]
 verify_jwt = true
