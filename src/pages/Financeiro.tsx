@@ -108,6 +108,26 @@ export default function Financeiro() {
           </Card>
         </div>
 
+        {/* Dashboard Consolidado */}
+        <div className="grid gap-4 md:grid-cols-1">
+          <Link to="/dashboard/financeiro/consolidado">
+            <Card className="hover:border-primary cursor-pointer transition-colors border-primary/30 bg-primary/5">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">📊 Dashboard Consolidado</CardTitle>
+                <BarChart3 className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Visão unificada de verbas, despesas e campanhas de Trade, Eventos e Departamentos
+                </p>
+                <div className="mt-2 flex items-center text-xs text-primary">
+                  Acessar Dashboard <ArrowRight className="h-3 w-3 ml-1" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
         {/* Navegação Rápida - Gestão de Verbas e Investimentos */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Gestão de Verbas e Investimentos</h2>
