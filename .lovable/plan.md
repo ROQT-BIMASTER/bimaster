@@ -1,177 +1,114 @@
 
 
-# Painel Operacional: Do Indicador ao Contato
+## Plano: Normalizar Municípios e Filtrar Clientes sem CNPJ Completo
 
-## Problema Atual
-O painel mostra KPIs e graficos, mas quando o gestor clica e ve a tabela, falta a "ponte para a acao": quem ligar, como contatar, qual o historico desse cliente. O time precisa copiar nomes e ir buscar dados em outro sistema.
+### Contexto do Problema
 
-## Solucao: Drill-Down Operacional Completo
+A base atual possui **35.997 clientes**, dos quais:
+- **27.350** possuem CNPJ completo (14 caracteres)
+- **8.647** possuem CNPJ incompleto ou nulo (serão excluídos das análises)
 
-Transformar o painel de "apenas visualizacao" em uma ferramenta de trabalho diario, onde cada indicador leva diretamente a lista de clientes com todas as informacoes necessarias para agir.
+O cálculo de penetração está distorcido porque o ERP registra variações de nomes de cidades que não correspondem ao padrão IBGE:
+- **DF**: "BRASÍLIA", "BRASILIA", "TAGUATINGA", "VICENTE PIRES" contados como 4 municípios, mas o IBGE reconhece apenas 1 (resultado: 400%)
+- **PR**: 447 variações para 399 municípios IBGE (112%)
+- **RJ**: 100 variações para 92 municípios (108.7%)
+- No total: **821 nomes de cidades** na base não correspondem a nenhum município IBGE
 
----
-
-## O que sera construido
-
-### 1. Ficha do Cliente (Sheet lateral)
-
-Ao clicar em qualquer linha da tabela, abre um painel lateral (Sheet) com todas as informacoes do cliente organizadas para acao imediata:
-
-**Cabecalho:**
-- Nome completo + Codigo + CNPJ
-- Badge de nivel de risco (colorido)
-- Status de bloqueio (ativo/bloqueado)
-
-**Secao "Contato Rapido":**
-- Telefone e celular com botoes clicaveis (tel:)
-- Email com botao clicavel (mailto:)
-- Nome do comprador (quando disponivel)
-- Botao "Copiar WhatsApp" para o celular
-
-**Secao "Dados Comerciais":**
-- Dias sem compra + data da ultima compra
-- Valor da ultima compra vs valor da maior compra (mostra a evolucao)
-- Limite de credito disponivel
-- Conceito do cliente
-
-**Secao "Localizacao":**
-- Endereco completo (rua, bairro, cidade, UF, CEP)
-- Endereco de cobranca (quando diferente)
-
-**Secao "Observacoes":**
-- Campo de observacoes do cadastro
-
-### 2. Graficos Clicaveis (Drill-Down)
-
-Tornar todos os graficos interativos:
-
-- **KPI Cards**: Ja filtra a tabela (existente). Adicionar scroll automatico ate a tabela ao clicar.
-- **Funil de Risco**: Clicar em uma barra filtra a tabela por aquele nivel de risco.
-- **Risco por UF**: Clicar em um estado filtra a tabela por aquela UF.
-- **Distribuicao de Inatividade**: Clicar em uma faixa do grafico de area filtra a tabela por aquele range de dias.
-
-### 3. Acoes em Lote na Tabela
-
-Adicionar funcionalidades operacionais na tabela:
-
-- **Selecao multipla**: Checkboxes para selecionar varios clientes
-- **Exportar selecionados para Excel**: Gera planilha com dados de contato para distribuir ao time de vendas (nome, telefone, celular, email, cidade, UF, dias sem compra, valor)
-- **Copiar lista de emails**: Copia emails dos selecionados para a area de transferencia (para envio de campanha)
-- **Copiar lista de telefones**: Idem para telefones
-
-### 4. Tabela Enriquecida
-
-Adicionar colunas uteis a tabela principal:
-
-- **Telefone/Celular**: Exibido com icone clicavel
-- **Valor Maior Compra**: Para comparar com a ultima (mostra tendencia)
-- **Status**: Badge indicando se esta bloqueado ou ativo
-
-### 5. Resumo Executivo para Acao
-
-Card no topo da tabela com um resumo orientado a acao:
-- "X clientes selecionados" (quando houver selecao)
-- "Total em risco nos selecionados: R$ Y"
-- Botoes de acao em lote (Exportar, Copiar Emails, Copiar Telefones)
+A maioria dos problemas vem de:
+1. Acentos removidos no ERP ("MARINGA" vs "Maringá")
+2. Bairros/regiões administrativas registrados como cidades ("TAGUATINGA" ao invés de "Brasília")
 
 ---
 
-## Detalhes Tecnicos
+### O que será feito
 
-### Alteracao no Hook `useClienteReativacao.ts`
-- Adicionar campos ao SELECT: `telefone, celular, email, cnpj, comprador, endereco, bairro, cep, endereco_cobranca, bairro_cobranca, cidade_cobranca, uf_cobranca, cep_cobranca, valor_maior_compra, data_maior_compra, status_bloqueio, conceito, observacoes`
-- Atualizar interface `ClienteReativacao` com os novos campos
-- Adicionar `valor_maior_compra` e `data_maior_compra` ao mapeamento
+**Etapa 1 -- Preparação do Banco**
 
-### Novo componente: `ClienteDetailSheet.tsx`
-- Usa o componente Sheet (ja existe em `src/components/ui/sheet.tsx`)
-- Recebe um `ClienteReativacao` e exibe a ficha completa
-- Links clicaveis para telefone (`tel:`), email (`mailto:`) e WhatsApp (`https://wa.me/55...`)
-- Comparativo visual entre valor_ultima_compra e valor_maior_compra usando barra de progresso
+- Instalar a extensão `unaccent` no PostgreSQL para comparação sem acentos
+- Adicionar duas novas colunas na tabela `clientes`:
+  - `ibge_municipio_id` (integer, nullable) -- referência ao município IBGE correspondente
+  - `cidade_normalizada` (text, nullable) -- nome oficial IBGE após normalização
+- Criar índice na coluna `ibge_municipio_id` para performance
 
-### Alteracao em `ReactivationTable.tsx`
-- Adicionar estado de `clienteSelecionado` para abrir o Sheet
-- Adicionar checkboxes de selecao multipla com estado `selecionados: Set<string>`
-- Adicionar colunas de Telefone/Celular e Status
-- Barra de acoes no topo quando houver selecao (exportar, copiar)
-- Integrar o `ClienteDetailSheet`
+**Etapa 2 -- Função de Normalização em Lote**
 
-### Novo componente: `BulkActionsBar.tsx`
-- Barra flutuante que aparece quando clientes estao selecionados
-- Mostra contagem e valor total dos selecionados
-- Botoes: Exportar Excel, Copiar Emails, Copiar Telefones
-- Usa a biblioteca `exceljs` (ja instalada) + `file-saver` (ja instalado) para exportacao
+Criar uma RPC `fn_normalizar_municipios_clientes()` que:
+1. Para cada cliente com CNPJ completo (14 dígitos), cidade e UF preenchidos
+2. Tenta fazer match entre `UPPER(unaccent(cidade))` e `UPPER(unaccent(ibge_municipios.nome))` na mesma UF
+3. Se encontrar, atualiza `ibge_municipio_id` e `cidade_normalizada` com o nome oficial
+4. Se não encontrar match direto, tenta match por similaridade (substring) para casos como "TAGUATINGA" que deve apontar para "Brasília" no DF
+5. Registra os casos sem match para revisão posterior
 
-### Alteracao em `ClientReactivation.tsx`
-- Adicionar estado de filtro por UF (vindo dos graficos)
-- Adicionar estado de filtro por range de dias (vindo do grafico de distribuicao)
-- Adicionar ref para a tabela e scroll automatico ao clicar nos KPIs
-- Passar callbacks de drill-down para os graficos
+**Etapa 3 -- Corrigir todas as RPCs de análise**
 
-### Alteracao em `RiskFunnelChart.tsx`
-- Adicionar prop `onBarClick(nivel: RiskLevel)` para drill-down
-- Tornar barras clicaveis com cursor pointer
+Atualizar as seguintes funções para adicionar o filtro de CNPJ completo:
 
-### Alteracao em `RiskByStateCard.tsx`
-- Adicionar prop `onUFClick(uf: string)` para drill-down
-- Tornar itens clicaveis com hover visual
+- `fn_calcular_cobertura_mercado` -- usar `ibge_municipio_id` ao invés de `UPPER(TRIM(cidade))` para contar municípios distintos, e filtrar `LENGTH(TRIM(cnpj)) = 14`
+- `get_portfolio_kpis` -- adicionar `WHERE LENGTH(TRIM(cnpj)) = 14`
+- `get_concentracao_uf` -- adicionar filtro CNPJ
+- `get_faixas_ticket` -- adicionar filtro CNPJ
+- `get_potencial_uf` -- adicionar filtro CNPJ
+- `get_reativacao_kpis` -- adicionar filtro CNPJ
 
-### Alteracao em `InactivityDistributionChart.tsx`
-- Adicionar prop `onRangeClick(minDias: number, maxDias: number)` para drill-down
-- Tornar areas clicaveis
+**Etapa 4 -- Atualizar o hook de Reativação**
 
-### Funcao de exportacao Excel
-- Usar `exceljs` para gerar planilha formatada
-- Colunas: Nome, Codigo, CNPJ, Telefone, Celular, Email, Comprador, Cidade, UF, Dias sem Compra, Ultima Compra (data), Valor Ultima, Valor Maior, Limite Credito, Status
-- Nome do arquivo: `reativacao_clientes_YYYY-MM-DD.xlsx`
-- Formatacao: cabecalho colorido por nivel de risco, valores monetarios formatados
+No `useClienteReativacao.ts`, adicionar o filtro de CNPJ na query do `fetchAllRows` para que apenas clientes com CNPJ completo sejam carregados na lista.
 
-### Sem migracoes de banco de dados
-Todos os dados necessarios ja existem na tabela `clientes`. Apenas ampliamos os campos no SELECT.
+**Etapa 5 -- Criar relatório de divergências**
+
+Criar uma nova aba ou seção no dashboard de Inteligência Comercial que mostre:
+- Total de clientes normalizados com sucesso vs. sem match
+- Lista de cidades que não foram normalizadas (agrupadas por UF)
+- Botão para executar a normalização manualmente
 
 ---
 
-## Layout Atualizado
+### Detalhes Técnicos
+
+**Migração SQL principal:**
+
+```sql
+-- 1. Extensão unaccent
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
+-- 2. Novas colunas
+ALTER TABLE clientes 
+  ADD COLUMN IF NOT EXISTS ibge_municipio_id integer,
+  ADD COLUMN IF NOT EXISTS cidade_normalizada text;
+
+CREATE INDEX idx_clientes_ibge_municipio ON clientes(ibge_municipio_id);
+
+-- 3. Função de normalização em lote
+CREATE OR REPLACE FUNCTION fn_normalizar_municipios_clientes()
+RETURNS jsonb ...
+-- Match por unaccent + UPPER + TRIM
+-- Casos especiais (bairros -> município oficial, ex: DF)
+-- Retorna estatísticas: {normalizados, sem_match, total}
+
+-- 4. Atualizar fn_calcular_cobertura_mercado
+-- Trocar COUNT(DISTINCT UPPER(TRIM(cidade))) 
+-- por COUNT(DISTINCT ibge_municipio_id)
+-- Adicionar WHERE cnpj IS NOT NULL AND LENGTH(TRIM(cnpj)) = 14
+
+-- 5. Atualizar get_portfolio_kpis, get_concentracao_uf, etc.
+-- Adicionar filtro CNPJ em todas
+```
+
+**Fluxo de normalização:**
 
 ```text
-+----------------------------------------------------------+
-| <- Voltar  Painel de Reativacao              [Filial] [R] |
-+----------------------------------------------------------+
-| [Atencao:43] [Alerta:57] [Critico:59] [Inativo:301]      |
-|  (clique filtra + scroll para tabela)                     |
-+----------------------------------------------------------+
-| Funil de Risco (clicavel) | Risco por UF (clicavel)      |
-+----------------------------------------------------------+
-| Distribuicao de Inatividade (clicavel por faixa)          |
-+----------------------------------------------------------+
-| [Barra de Acoes: 5 selecionados | R$ 12k | Excel | Copy] |
-+----------------------------------------------------------+
-| [x] Nome  | Cidade | UF | Dias | Tel | Valor | Status    |
-| [x] Cli A | SP     | SP | 95d  | ... | 5.2k  | Ativo    |  <- clique abre Sheet
-| [ ] Cli B | BH     | MG | 120d | ... | 3.1k  | Ativo    |
-+----------------------------------------------------------+
-
-Sheet Lateral (ao clicar na linha):
-+---------------------------+
-| FICHA: Cliente ABC        |
-| CNPJ: 12.345.678/0001-90 |
-| Status: Ativo             |
-|---------------------------|
-| CONTATO RAPIDO            |
-| Tel: (11) 9999-9999  [L]  |
-| Cel: (11) 8888-8888  [W]  |
-| Email: abc@xyz.com   [E]  |
-| Comprador: Joao Silva     |
-|---------------------------|
-| DADOS COMERCIAIS          |
-| 95 dias sem compra        |
-| Ultima: R$ 5.200          |
-| Maior:  R$ 12.800  [-59%] |
-| Limite: R$ 150.000        |
-|---------------------------|
-| LOCALIZACAO               |
-| Rua ABC, 123 - Centro     |
-| Sao Paulo - SP 01000-000  |
-+---------------------------+
+Cliente ERP               Match Unaccent          Resultado
+-----------------         ---------------         ------------------
+"MARINGA" / PR    --->    "Maringá" / PR    --->  ibge_municipio_id = 4115200
+"BRASILIA" / DF   --->    "Brasília" / DF   --->  ibge_municipio_id = 5300108
+"TAGUATINGA" / DF --->    sem match direto  --->  Match especial DF -> 5300108
+"FOZ DO IGUACU"   --->    "Foz do Iguaçu"  --->  ibge_municipio_id = 4108304
 ```
+
+**Impacto esperado:**
+- DF: de 400% para 100% (1 município)
+- PR: de 112% para valor real (provavelmente ~80-90%)
+- RJ: de 108.7% para valor real
+- 8.647 clientes sem CNPJ completo serão excluídos de todas as métricas
+- Total de clientes nas análises: ~27.350
 
