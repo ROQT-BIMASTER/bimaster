@@ -21,6 +21,7 @@ import {
   Building2,
   Pickaxe,
   Search,
+  Map,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,6 +89,7 @@ const ComercialModule = () => {
     ],
     "Gestão de Carteira": [
       { title: "Painel de Reativação", to: "/dashboard/comercial/reativacao", icon: UserX, color: "text-destructive" },
+      { title: "Mapa Comercial", to: "/dashboard/comercial/mapa", icon: Map, color: "text-primary" },
     ],
     "Prospecção": [
       { title: "Mineração de Leads", to: "/dashboard/comercial/mineracao", icon: Pickaxe, color: "text-primary" },
