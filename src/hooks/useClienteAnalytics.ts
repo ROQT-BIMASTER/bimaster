@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/utils/fetchAllRows";
 
 export interface PortfolioKPIs {
   totalClientes: number;
@@ -58,11 +58,10 @@ export function useClienteAnalytics() {
   return useQuery({
     queryKey: ["clientes-analytics"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clientes")
-        .select("id, nome, uf, cidade, valor_ultima_compra, valor_maior_compra, limite_credito, data_ultima_compra, data_cadastro");
-
-      if (error) throw error;
+      const data = await fetchAllRows<any>(
+        "clientes",
+        "id, nome, uf, cidade, valor_ultima_compra, valor_maior_compra, limite_credito, data_ultima_compra, data_cadastro"
+      );
 
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);

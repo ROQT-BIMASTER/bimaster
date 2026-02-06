@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/utils/fetchAllRows";
 
 export type RiskLevel = "atencao" | "alerta" | "critico" | "inativo";
 
@@ -88,18 +89,19 @@ export function useClienteReativacao(empresaId?: number | null) {
   const clientesQuery = useQuery({
     queryKey: ["clientes-reativacao", empresaId ?? "todas"],
     queryFn: async () => {
-      let query = supabase
-        .from("clientes")
-        .select("id, nome, codigo, cidade, uf, empresa_id, data_ultima_compra, valor_ultima_compra, limite_credito, telefone, celular, email, cnpj, comprador, endereco, bairro, cep, endereco_cobranca, bairro_cobranca, cidade_cobranca, uf_cobranca, cep_cobranca, valor_maior_compra, data_maior_compra, status_bloqueio, conceito, observacoes")
-        .gt("valor_ultima_compra", 0)
-        .not("data_ultima_compra", "is", null);
-
-      if (empresaId) {
-        query = query.eq("empresa_id", empresaId);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
+      const data = await fetchAllRows<any>(
+        "clientes",
+        "id, nome, codigo, cidade, uf, empresa_id, data_ultima_compra, valor_ultima_compra, limite_credito, telefone, celular, email, cnpj, comprador, endereco, bairro, cep, endereco_cobranca, bairro_cobranca, cidade_cobranca, uf_cobranca, cep_cobranca, valor_maior_compra, data_maior_compra, status_bloqueio, conceito, observacoes",
+        (query) => {
+          let q = query
+            .gt("valor_ultima_compra", 0)
+            .not("data_ultima_compra", "is", null);
+          if (empresaId) {
+            q = q.eq("empresa_id", empresaId);
+          }
+          return q;
+        }
+      );
 
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
