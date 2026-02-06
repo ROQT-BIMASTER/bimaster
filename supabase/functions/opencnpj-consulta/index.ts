@@ -16,8 +16,13 @@ interface OpenCNPJResponse {
   municipio?: string;
   uf?: string;
   cep?: string;
+  // Campos de telefone - a API pode usar diferentes formatos
   telefone_1?: string;
   telefone_2?: string;
+  ddd_telefone_1?: string;
+  ddd_telefone_2?: string;
+  ddd_fax?: string;
+  telefone?: string;
   email?: string;
   situacao_cadastral?: string;
   data_situacao_cadastral?: string;
@@ -28,6 +33,7 @@ interface OpenCNPJResponse {
   capital_social?: number;
   porte?: string;
   natureza_juridica?: string;
+  [key: string]: any; // Allow additional fields
 }
 
 serve(async (req) => {
@@ -143,6 +149,24 @@ serve(async (req) => {
 
     const apiData: OpenCNPJResponse = await apiResponse.json();
     console.log(`[OpenCNPJ] Dados recebidos para: ${cnpjLimpo}`);
+    
+    // Log para debug dos campos de telefone
+    console.log(`[OpenCNPJ] Campos telefone raw:`, JSON.stringify({
+      telefone_1: apiData.telefone_1,
+      telefone_2: apiData.telefone_2,
+      ddd_telefone_1: apiData.ddd_telefone_1,
+      ddd_telefone_2: apiData.ddd_telefone_2,
+      ddd_fax: apiData.ddd_fax,
+      telefone: apiData.telefone,
+    }));
+
+    // Extrair telefone - a API pode usar diferentes formatos
+    const telefone = apiData.ddd_telefone_1 
+      || apiData.telefone_1 
+      || apiData.ddd_telefone_2 
+      || apiData.telefone_2 
+      || apiData.telefone 
+      || null;
 
     // Montar resposta padronizada
     const responseData = {
@@ -157,7 +181,7 @@ serve(async (req) => {
       cidade: apiData.municipio || null,
       uf: apiData.uf || null,
       cep: apiData.cep || null,
-      telefone: apiData.telefone_1 || apiData.telefone_2 || null,
+      telefone,
       email: apiData.email || null,
       situacao: apiData.situacao_cadastral || null,
       cnae: apiData.cnae_principal?.descricao || null,
