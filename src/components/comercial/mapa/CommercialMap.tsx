@@ -186,7 +186,7 @@ export const CommercialMap = () => {
           <Map
             defaultCenter={DEFAULT_CENTER}
             defaultZoom={DEFAULT_ZOOM}
-            mapId="commercial-map"
+            mapId="DEMO_MAP_ID"
             gestureHandling="greedy"
             disableDefaultUI={false}
             style={{ width: "100%", height: "100%" }}
