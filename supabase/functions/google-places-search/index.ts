@@ -46,7 +46,7 @@ function extractAddressField(
   type: string
 ): string | null {
   if (!components) return null;
-  const comp = components.find((c) => c.types.includes(type));
+  const comp = components.find((c) => c.types?.includes(type));
   return comp ? comp.longText : null;
 }
 
@@ -55,7 +55,7 @@ function extractShortAddressField(
   type: string
 ): string | null {
   if (!components) return null;
-  const comp = components.find((c) => c.types.includes(type));
+  const comp = components.find((c) => c.types?.includes(type));
   return comp ? comp.shortText : null;
 }
 
