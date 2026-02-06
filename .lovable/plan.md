@@ -1,118 +1,158 @@
 
 
-## Integração com API do IBGE - Dados Geográficos e Demográficos
+## Mineracao de Leads com Google Places API (GRATUITO)
 
-### Objetivo
-Criar uma integração completa com a API do IBGE para carregar e armazenar dados de estados, municipios, microrregioes, populacao e PIB (para calcular renda per capita). Os dados ficarão disponiveis no Modulo Comercial para cruzamento futuro com dados de vendas e análise de share de posicionamento.
+### Custo: ZERO
 
-### APIs do IBGE a serem consumidas
-1. **Localidades** (`servicodados.ibge.gov.br/api/v1/localidades`)
-   - `/estados` - 27 estados com nome, sigla e regiao (Norte, Nordeste, Sudeste, Sul, Centro-Oeste)
-   - `/municipios?view=nivelado` - ~5.570 municipios com hierarquia completa (microrregiao, mesorregiao, UF, regiao)
-   - `/microrregioes` - ~558 microrregioes com mesorregiao e UF
+Desde marco de 2025, o Google substituiu o credito de $200/mes por cotas gratuitas por SKU:
+- **Text Search (Basic)** = categoria **Pro** = **5.000 chamadas gratuitas/mes**
+- Cada busca completa de 200 resultados = ~10 chamadas (10 paginas de 20)
+- **500 buscas completas de 200 resultados por mes = totalmente gratuito**
+- Basta usar apenas campos Basic no fieldMask (nome, endereco, telefone, rating, website)
 
-2. **Agregados/SIDRA** (`servicodados.ibge.gov.br/api/v3/agregados`)
-   - Tabela **6579**, variável **9324** - Populacao estimada (dados até 2025)
-   - Tabela **5938**, variável **37** - PIB municipal em Mil Reais (dados até 2021)
+Campos **Basic** (gratuitos): `displayName`, `formattedAddress`, `internationalPhoneNumber`, `nationalPhoneNumber`, `websiteUri`, `rating`, `userRatingCount`, `types`, `location`, `id`
 
-### O que será criado
+Campos **Pro/Enterprise** (pagos): `reviews`, `regularOpeningHours`, `priceLevel` -- estes NAO serao usados.
 
-#### 1. Tabelas no banco de dados
+---
 
-**ibge_estados** - 27 registros
+### O que sera criado
+
+#### 1. Tabela `leads_minerados`
+
+Armazena leads encontrados pelo Google Places antes de serem convertidos em prospects.
+
 | Campo | Tipo | Descricao |
 |-------|------|-----------|
-| id | integer (PK) | Codigo IBGE do estado |
-| sigla | text | Sigla (SP, RJ, etc.) |
-| nome | text | Nome completo |
-| regiao_id | integer | Codigo da regiao |
-| regiao_sigla | text | Sigla (N, NE, SE, S, CO) |
-| regiao_nome | text | Norte, Nordeste, Sudeste, Sul, Centro-Oeste |
-| populacao | bigint | Populacao estimada |
-| pib_mil_reais | numeric | PIB em Mil Reais |
+| id | uuid (PK) | Identificador unico |
+| google_place_id | text (unique) | ID do Google Places para evitar duplicatas |
+| nome | text | Nome do estabelecimento |
+| telefone | text | Telefone nacional |
+| telefone_internacional | text | Telefone formato internacional |
+| endereco | text | Endereco formatado completo |
+| cidade | text | Cidade extraida do endereco |
+| uf | text | Estado |
+| cep | text | CEP |
+| latitude | numeric | Coordenada |
+| longitude | numeric | Coordenada |
+| website | text | URL do site |
+| rating | numeric | Avaliacao Google (0-5) |
+| total_avaliacoes | integer | Quantidade de avaliacoes |
+| tipos | text[] | Tipos de negocio (array) |
+| status | text | novo, qualificado, descartado, convertido |
+| busca_query | text | Texto usado na busca que encontrou |
+| busca_regiao | text | Regiao/cidade da busca |
+| convertido_prospect_id | uuid | FK para prospects (quando convertido) |
+| cnpj | text | CNPJ (preenchido manualmente ou via enriquecimento) |
+| observacoes | text | Notas do usuario |
+| minerado_por | uuid (FK auth) | Usuario que realizou a mineracao |
+| created_at | timestamptz | Data da mineracao |
+| updated_at | timestamptz | Ultima atualizacao |
 
-**ibge_microrregioes** - ~558 registros
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| id | integer (PK) | Codigo IBGE |
-| nome | text | Nome da microrregiao |
-| mesorregiao_id | integer | Codigo da mesorregiao |
-| mesorregiao_nome | text | Nome da mesorregiao |
-| uf_id | integer (FK) | Codigo do estado |
-| regiao_nome | text | Norte, Nordeste, etc. |
+RLS: leitura e escrita para usuarios autenticados.
 
-**ibge_municipios** - ~5.570 registros
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| id | integer (PK) | Codigo IBGE do municipio |
-| nome | text | Nome do municipio |
-| uf_id | integer (FK) | Codigo do estado |
-| uf_sigla | text | Sigla do estado |
-| microrregiao_id | integer (FK) | Codigo da microrregiao |
-| microrregiao_nome | text | Nome da microrregiao |
-| mesorregiao_id | integer | Codigo da mesorregiao |
-| mesorregiao_nome | text | Nome da mesorregiao |
-| regiao_nome | text | Norte, Nordeste, etc. |
-| populacao_estimada | bigint | Populacao estimada |
-| pib_mil_reais | numeric | PIB em Mil Reais |
-| pib_per_capita | numeric | PIB / Populacao (calculado) |
-| ano_populacao | integer | Ano da estimativa populacional |
-| ano_pib | integer | Ano do dado de PIB |
-| updated_at | timestamptz | Data da ultima atualizacao |
+#### 2. Edge Function `google-places-search`
 
-Todas as tabelas terão RLS habilitado com politica de leitura para usuarios autenticados.
-
-#### 2. Edge Function `ibge-sync`
-
-Uma funcao backend que realiza a sincronizacao em etapas:
+Chama o Google Places API v1 (New) usando **Text Search** com paginacao automatica para carregar ate 200 resultados.
 
 ```text
 Fluxo de execucao:
 +------------------+     +-------------------+     +--------------------+
-| 1. Buscar        | --> | 2. Buscar         | --> | 3. Buscar          |
-| Estados (27)     |     | Microrregioes     |     | Municipios (~5570) |
-|                  |     | (~558)            |     |                    |
+| Frontend envia:  | --> | Edge Function     | --> | Google Places API  |
+| - query          |     | monta POST para   |     | POST /v1/places:   |
+| - cidade/UF      |     | searchText com    |     | searchText         |
+| - maxResults     |     | fieldMask BASIC   |     | (ate 20 por pag)   |
 +------------------+     +-------------------+     +--------------------+
                                                           |
-                          +-------------------+           |
-                          | 5. Buscar PIB     | <---------+
-                          | (Tabela 5938)     |           |
                           +-------------------+     +--------------------+
-                                |                   | 4. Buscar          |
-                                v                   | Populacao          |
-                          +-------------------+     | (Tabela 6579)      |
-                          | 6. Calcular       |     +--------------------+
-                          | PIB per capita    |
-                          | e salvar tudo     |
-                          +-------------------+
+                          | 4. Salvar leads   | <-- | 3. Paginar com     |
+                          | via upsert por    |     | nextPageToken ate  |
+                          | google_place_id   |     | atingir 200 ou fim |
+                          +-------------------+     +--------------------+
 ```
 
-- Utiliza a API SIDRA com `N6[all]` para buscar dados de todos os municipios de uma vez
-- Salva em lotes (upsert) para evitar timeouts
-- Calcula o PIB per capita automaticamente
+**Detalhes tecnicos**:
+- Endpoint: `POST https://places.googleapis.com/v1/places:searchText`
+- Header: `X-Goog-Api-Key` com a API key
+- Header: `X-Goog-FieldMask` apenas com campos Basic (gratuitos):
+  `places.id,places.displayName,places.formattedAddress,places.internationalPhoneNumber,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types,places.location,places.addressComponents`
+- Body: `textQuery`, `regionCode: "BR"`, `languageCode: "pt-BR"`, `maxResultCount: 20`
+- Paginacao: usa `pageToken` do response para buscar proxima pagina
+- Repete ate atingir o limite solicitado (max 200) ou nao ter mais pageToken
+- Salva no banco via upsert usando `google_place_id` como chave unica
+- Extrai cidade/UF dos `addressComponents` retornados pelo Google
 
-#### 3. Nova página "Dados IBGE" no Módulo Comercial
+#### 3. Nova pagina "Mineracao de Leads" em `/dashboard/comercial/mineracao`
 
-Página acessível em `/dashboard/comercial/ibge` com:
+**Area de busca (topo)**:
+- Campo de texto para query livre (ex: "supermercados", "distribuidora de alimentos")
+- Select de Estado (usando dados `ibge_estados` ja carregados)
+- Select de Cidade (filtrado por estado, usando `ibge_municipios`)
+- Slider ou select de quantidade maxima (20, 60, 100, 200)
+- Botao "Minerar Leads" com indicador de progresso
 
-- **Cards resumo**: Total de estados, municipios, populacao total do Brasil, distribuicao por regiao
-- **Filtros**: Por regiao (Norte, Nordeste, etc.), estado, microrregiao, busca por nome
-- **Tabela de municipios**: Nome, UF, Regiao, Microrregiao, Populacao, PIB, PIB per capita
-- **Botão "Sincronizar IBGE"**: Dispara a Edge Function para carregar/atualizar os dados
-- **Indicador de progresso**: Mostra o andamento da sincronizacao
+**Cards de resumo**:
+- Total minerados (todos os tempos)
+- Novos (nao triados)
+- Qualificados
+- Convertidos em prospects
 
-#### 4. Alterações em arquivos existentes
+**Tabela de leads minerados**:
+- Colunas: Nome, Telefone, Cidade/UF, Rating (estrelas), Avaliacoes, Website, Status, Acoes
+- Filtros: por status (novo/qualificado/descartado/convertido), por cidade, por rating minimo
+- Selecao multipla com checkbox
+- Acoes por lead:
+  - Ver detalhes (dialog completo)
+  - Qualificar / Descartar
+  - Converter em Prospect (cria registro na tabela `prospects` com dados mapeados)
+  - Copiar telefone
+- Acoes em lote:
+  - Converter selecionados em Prospects
+  - Qualificar selecionados
+  - Descartar selecionados
 
-- **App.tsx**: Nova rota `/dashboard/comercial/ibge`
-- **AppSidebar.tsx**: Novo item "Dados IBGE" no menu do modulo Comercial (com icone MapPin)
-- **ComercialModule.tsx**: Novo card com metricas de municipios e link para a pagina
+**Conversao para Prospect**: ao converter, mapeia os campos assim:
 
-### Detalhes técnicos
+| Lead minerado | Prospect |
+|---------------|----------|
+| nome | nome_empresa / nome_fantasia |
+| telefone | telefone |
+| endereco | endereco |
+| cidade | municipio |
+| uf | uf |
+| cep | cep |
+| website | url_company_page |
+| cnpj | cnpj |
+| tipos | segmento (primeiro tipo traduzido) |
 
-- A API do IBGE é **publica** e **gratuita**, não requer API key
-- Os dados de populacao são estimativas anuais (disponivel até 2025)
-- Os dados de PIB municipal são publicados com atraso de ~2 anos (disponivel até 2021)
-- O PIB per capita será calculado dividindo PIB (em mil reais) pela populacao e multiplicando por 1000
-- A sincronizacao completa pode levar 30-60 segundos devido ao volume de dados
-- Os dados serão salvos via upsert, permitindo re-sincronizacoes sem duplicacao
+O lead recebe status "convertido" e o `convertido_prospect_id` aponta para o novo prospect.
+
+#### 4. Alteracoes em arquivos existentes
+
+- **App.tsx**: Nova rota `/dashboard/comercial/mineracao` com lazy load
+- **AppSidebar.tsx**: Novo item "Mineracao de Leads" no menu Comercial (icone Search ou Pickaxe)
+- **ComercialModule.tsx**: Novo card de acesso rapido e link na categoria "Prospecao" nos modulos secundarios
+- **supabase/config.toml**: Registro da nova edge function `google-places-search` com `verify_jwt = true`
+
+#### 5. Pre-requisito: API Key
+
+Sera solicitada a configuracao da secret **GOOGLE_PLACES_API_KEY** antes de prosseguir com o codigo. Para obter:
+1. Acessar console.cloud.google.com
+2. Ativar "Places API (New)"
+3. Criar uma API Key
+
+A cota gratuita de 5.000 chamadas/mes (Pro tier) cobre amplamente o uso previsto sem nenhum custo.
+
+### Arquivos a criar/modificar
+
+| Arquivo | Acao |
+|---------|------|
+| `supabase/functions/google-places-search/index.ts` | Criar (edge function) |
+| `src/pages/LeadMining.tsx` | Criar (pagina de mineracao) |
+| `src/hooks/useLeadMining.ts` | Criar (hook de dados e logica) |
+| `src/App.tsx` | Editar (nova rota) |
+| `src/components/dashboard/AppSidebar.tsx` | Editar (novo item menu) |
+| `src/pages/modules/ComercialModule.tsx` | Editar (card de acesso) |
+| `supabase/config.toml` | Editar (registrar edge function) |
+| Migracao SQL | Criar tabela `leads_minerados` |
 
