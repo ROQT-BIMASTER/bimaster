@@ -382,14 +382,73 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                        store.priority === "low" ? "Baixa" : "Normal"}
                     </Badge>
                   </div>
-                  <div className="col-span-2">
+                  <div>
                     <p className="text-sm font-medium text-muted-foreground">Status</p>
                     <Badge variant={store.status === "active" ? "default" : "secondary"}>
                       {store.status === "active" ? "Ativo" : "Inativo"}
                     </Badge>
                   </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Email</p>
+                    <p className="text-base">{store.email || "-"}</p>
+                  </div>
                 </CardContent>
               </Card>
+
+              {/* Dados da Receita Federal */}
+              {(store.situacao_cadastral || store.porte_empresa || store.regime_tributario || store.capital_social || store.matriz_filial || store.cnae_principal) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Dados da Receita Federal
+                    </CardTitle>
+                    <CardDescription>Informações obtidas via consulta de CNPJ</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {store.situacao_cadastral && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Situação</p>
+                        <Badge variant={store.situacao_cadastral === "ATIVA" ? "default" : "destructive"}>
+                          {store.situacao_cadastral}
+                        </Badge>
+                      </div>
+                    )}
+                    {store.matriz_filial && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Tipo</p>
+                        <p className="text-base">{store.matriz_filial}</p>
+                      </div>
+                    )}
+                    {store.porte_empresa && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Porte</p>
+                        <p className="text-base">{store.porte_empresa}</p>
+                      </div>
+                    )}
+                    {store.regime_tributario && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Regime</p>
+                        <p className="text-base">{store.regime_tributario}</p>
+                      </div>
+                    )}
+                    {store.capital_social != null && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Capital Social</p>
+                        <p className="text-base font-medium">
+                          R$ {Number(store.capital_social).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    )}
+                    {store.cnae_principal && (
+                      <div className="col-span-2 md:col-span-3">
+                        <p className="text-sm font-medium text-muted-foreground">CNAE Principal</p>
+                        <p className="text-base">{store.cnae_principal}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {store.notes && (
                 <Card>
