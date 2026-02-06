@@ -9865,6 +9865,66 @@ export type Database = {
           },
         ]
       }
+      market_coverage_snapshot: {
+        Row: {
+          cobertura_percentual: number
+          id: string
+          municipios_com_clientes: number
+          municipios_com_leads: number
+          municipios_com_prospects: number
+          penetracao_percentual: number
+          pib_total_mil_reais: number
+          pipeline_percentual: number
+          populacao_total: number
+          regiao_nome: string | null
+          total_clientes_erp: number
+          total_leads_minerados: number
+          total_municipios: number
+          total_prospects: number
+          uf: string
+          updated_at: string
+          vendedores_atribuidos: string[] | null
+        }
+        Insert: {
+          cobertura_percentual?: number
+          id?: string
+          municipios_com_clientes?: number
+          municipios_com_leads?: number
+          municipios_com_prospects?: number
+          penetracao_percentual?: number
+          pib_total_mil_reais?: number
+          pipeline_percentual?: number
+          populacao_total?: number
+          regiao_nome?: string | null
+          total_clientes_erp?: number
+          total_leads_minerados?: number
+          total_municipios?: number
+          total_prospects?: number
+          uf: string
+          updated_at?: string
+          vendedores_atribuidos?: string[] | null
+        }
+        Update: {
+          cobertura_percentual?: number
+          id?: string
+          municipios_com_clientes?: number
+          municipios_com_leads?: number
+          municipios_com_prospects?: number
+          penetracao_percentual?: number
+          pib_total_mil_reais?: number
+          pipeline_percentual?: number
+          populacao_total?: number
+          regiao_nome?: string | null
+          total_clientes_erp?: number
+          total_leads_minerados?: number
+          total_municipios?: number
+          total_prospects?: number
+          uf?: string
+          updated_at?: string
+          vendedores_atribuidos?: string[] | null
+        }
+        Relationships: []
+      }
       marketing_alertas: {
         Row: {
           acao_url: string | null
@@ -16931,6 +16991,61 @@ export type Database = {
           },
         ]
       }
+      vendedor_territorios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          microrregiao_id: number | null
+          microrregiao_nome: string | null
+          uf: string
+          updated_at: string
+          vendedor_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          microrregiao_id?: number | null
+          microrregiao_nome?: string | null
+          uf: string
+          updated_at?: string
+          vendedor_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          microrregiao_id?: number | null
+          microrregiao_nome?: string | null
+          uf?: string
+          updated_at?: string
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedor_territorios_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedor_territorios_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedor_territorios_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       vendor_availability: {
         Row: {
           created_at: string | null
@@ -17878,6 +17993,11 @@ export type Database = {
       }
       enfileirar_cobrancas_automaticas: { Args: never; Returns: number }
       exec_sql: { Args: { sql_query: string }; Returns: undefined }
+      fn_atribuir_vendedor_territorio: {
+        Args: { p_cidade: string; p_uf: string }
+        Returns: string
+      }
+      fn_calcular_cobertura_mercado: { Args: never; Returns: undefined }
       gerar_creditos_tributarios: {
         Args: { p_item_nf_id: string }
         Returns: Json
