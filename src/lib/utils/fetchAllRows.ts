@@ -24,6 +24,7 @@ export async function fetchAllRows<T = any>(
     let query = supabase
       .from(tableName as any)
       .select(select)
+      .order('id', { ascending: true })
       .range(offset, offset + batchSize - 1);
 
     // Apply custom filters/ordering
