@@ -1,157 +1,108 @@
 
-## Mapa Comercial de Ultima Geracno com Google Maps API
 
-### Contexto dos Dados
+# Dashboard Financeiro Consolidado - Contas a Pagar
 
-O sistema possui uma base rica para visualizacao geografica:
-- **27.350 clientes** com CNPJ valido, distribuidos em **2.489+ municipios** de todos os estados
-- **233 prospects** em pipeline de vendas
-- **27 leads minerados** (ja com coordenadas do Google Places)
-- Dados de **risco de inatividade** (10.052 inativos >180 dias, representando R$43M+ em potencial)
-- **Dados IBGE** cruzados: populacao, PIB, microrregioes
+## Objetivo
+Criar um Dashboard Financeiro Consolidado acessivel a partir do modulo Contas a Pagar (e do modulo Financeiro), que unifica a visao de verbas, despesas e campanhas de **todas as origens** (Trade Marketing, Eventos Corporativos e Departamentos) em um unico painel, seguindo o mesmo layout visual do Dashboard Financeiro de Eventos (imagem de referencia).
 
-### Estrategia: "War Room Geografico"
+## O que sera criado
 
-O mapa nao sera apenas uma visualizacao -- sera um **centro de comando territorial** que revela oportunidades ocultas nos dados. A ideia e que um diretor comercial abra o mapa e em segundos enxergue:
+### 1. Hook de Dados Consolidados
+**Arquivo:** `src/hooks/useFinanceiroConsolidadoDashboard.ts`
 
-1. **Onde estamos perdendo clientes** (manchas vermelhas de inatividade)
-2. **Onde temos forca** (clusters azuis de clientes ativos)
-3. **Onde deveríamos estar** (vazios geograficos com potencial IBGE)
-4. **Pipeline em andamento** (prospects/leads sobrepondo o territorio)
+Busca e consolida dados de 3 fontes:
+- **Trade Marketing:** `trade_budgets` + `trade_campaign_expenses` + `trade_campaigns`
+- **Eventos Corporativos:** `trade_budgets` (vinculadas a eventos) + `corporate_event_expenses` + `corporate_events`
+- **Departamentos:** `department_budgets` + `department_expenses`
 
-### O que sera implementado
+Calcula:
+- **Verbas Consolidadas:** Total orcado, utilizado e disponivel de todas as fontes
+- **Despesas Consolidadas:** Quantidade, pendentes, pagos com percentual
+- **Fluxo de Caixa:** Entradas (verbas liberadas) vs Saidas (despesas pagas) dos ultimos 6 meses
+- **Despesas por Origem:** Agrupamento por Trade / Eventos / Departamentos com valores pendentes e pagos
 
-**1. Migracao Mapbox para Google Maps**
+Filtro por periodo com presets (Este mes, Ultimos 30 dias, Ultimos 90 dias, Este ano, Personalizado).
 
-- Substituir `mapbox-gl` pela biblioteca `@vis.gl/react-google-maps` (wrapper React oficial do Google)
-- Reutilizar a `GOOGLE_PLACES_API_KEY` ja configurada (mesmo secret, basta habilitar "Maps JavaScript API" e "Visualization" no Google Cloud Console)
-- Criar uma Edge Function `get-google-maps-key` para servir a chave de forma segura
-- Remover dependencia do Mapbox (`mapbox-gl`, `get-mapbox-token`, `geocode-address`)
+### 2. Componentes do Dashboard
+Seguindo a mesma arquitetura visual dos dashboards de Trade e Eventos:
 
-**2. Geocodificacao em Lote (Persistente)**
+**a) Card de Verbas Consolidadas** (`src/components/financeiro/consolidado/ConsolidadoVerbaCard.tsx`)
+- 3 KPIs: Total Orcado | Utilizado | Disponivel
+- Barra de progresso com percentual de utilizacao
+- Lista das verbas de todas as origens com icone indicando a fonte (Trade/Eventos/Departamento)
 
-- Adicionar colunas `latitude` e `longitude` nas tabelas `clientes` e `prospects`
-- Criar Edge Function `geocode-batch` que usa a API de Geocoding do Google (incluida no plano gratuito do Places) para processar ~200 registros por execucao
-- A geocodificacao acontece **uma vez** por registro (quando latitude e null) -- nao toda vez que o mapa abre
-- Trigger automatico: quando um cliente novo chega via importacao diaria e a trigger de normalizacao preenche `ibge_municipio_id`, o sistema ja prepara o registro para geocodificacao
+**b) Card de Despesas Consolidadas** (`src/components/financeiro/consolidado/ConsolidadoDespesasCard.tsx`)
+- 4 KPIs: Total Origens | Itens Ativos | Pendente | Pago
+- Barra de progresso de pagamentos realizados
+- Lista de despesas agrupadas por origem com badges de status
 
-**3. Camadas do Mapa (Multi-Layer)**
+**c) Grafico de Fluxo de Caixa** (`src/components/financeiro/consolidado/ConsolidadoFluxoCaixaChart.tsx`)
+- Grafico composto (barras + linha) com Entradas, Saidas e Saldo Acumulado
+- Totais no cabecalho: Entradas, Saidas, Saldo
+- Ultimos 6 meses
 
-| Camada | Dados | Visual | Insight |
-|--------|-------|--------|---------|
-| **Clientes Ativos** | Compraram nos ultimos 60 dias | Clusters azuis/verdes | Forca comercial |
-| **Clientes em Risco** | 60-180 dias sem compra | Clusters amarelos/laranjas | Urgencia de reativacao |
-| **Clientes Inativos** | >180 dias | Clusters vermelhos | Territorio perdido |
-| **Prospects** | Pipeline de vendas | Marcadores por status (cores do funil) | Expansao em andamento |
-| **Leads Minerados** | Google Places | Marcadores roxos | Oportunidades descobertas |
-| **Heatmap de Densidade** | Todos os clientes | Gradiente de calor | Concentracao geografica |
-| **Vazios de Mercado** | Municipios IBGE sem clientes com populacao >50k | Circulos cinza tracejados | Potencial inexplorado |
+**d) Tabela de Despesas** (`src/components/financeiro/consolidado/ConsolidadoDespesasTable.tsx`)
+- Todas as despesas de todas as origens
+- Colunas: Origem | Campanha/Evento/Departamento | Descricao | Valor Realizado | Status | Data
+- Filtro por busca e status
+- Exportacao Excel
+- Badge colorida indicando a origem (Trade = roxo, Eventos = azul, Departamentos = verde)
 
-**4. Painel Lateral Dinamico (Viewport Analytics)**
+### 3. Pagina do Dashboard
+**Arquivo:** `src/pages/FinanceiroConsolidadoDashboard.tsx`
 
-Ao navegar/zoomear o mapa, um painel lateral atualiza em tempo real:
-- Total de clientes visiveis na area
-- Faturamento potencial (soma de `valor_ultima_compra`)
-- Distribuicao por nivel de risco (barra empilhada)
-- Top 5 clientes por valor na viewport
-- Botao "Exportar Lista" da area visivel
+Layout identico ao `CorporateEventsDashboard.tsx`:
+- Breadcrumb: Financeiro > Dashboard Consolidado
+- Cabecalho com titulo, filtro de periodo, botoes de acao
+- Indicador do periodo selecionado
+- Grid 2 colunas com cards de Verbas e Despesas
+- Grafico de Fluxo de Caixa abaixo
+- Tabela de despesas ao final
 
-**5. Filtros Avancados**
+### 4. Rota e Navegacao
 
-- Filial (empresa_id)
-- Regiao (Norte, Nordeste, Sudeste, Sul, Centro-Oeste)
-- UF especifica
-- Nivel de Risco (Ativo, Atencao, Alerta, Critico, Inativo)
-- Faixa de Ticket (ate R$1k, R$1k-5k, R$5k-20k, >R$20k)
-- Toggles para ligar/desligar cada camada
+- Nova rota: `/dashboard/financeiro/consolidado`
+- Adicionar link no sidebar do financeiro
+- Adicionar card de navegacao na landing page do Financeiro (`src/pages/Financeiro.tsx`)
 
-**6. Popup Rico (Customer 360 no Mapa)**
+## Detalhes Tecnicos
 
-Ao clicar num ponto/cluster:
-- Nome, CNPJ, codigo ERP
-- Telefone/WhatsApp/Email clicaveis
-- Dias sem compra + Badge de risco
-- Valor ultima compra + Valor maior compra
-- Momentum de gasto (barra visual)
-- Comprador responsavel
-- Botao "Ver Detalhes" que abre o ClienteDetailSheet existente
+### Fontes de Dados por Modulo
 
-**7. Normalizacao Automatica (Trigger)**
+```text
+TRADE MARKETING
+  Verbas:    trade_budgets (status=active, inactivated_at IS NULL)
+  Despesas:  trade_campaign_expenses (join trade_campaigns para nome)
+  Campanhas: trade_campaigns
 
-- Trigger `BEFORE INSERT OR UPDATE` na tabela `clientes` para normalizar automaticamente `ibge_municipio_id` e `cidade_normalizada` em cada registro novo ou alterado
-- Isso garante que a carga diaria do n8n ja chega normalizada sem intervencao manual
+EVENTOS CORPORATIVOS
+  Verbas:    trade_budgets (via corporate_events.budget_id)
+  Despesas:  corporate_event_expenses (join corporate_events para nome)
+  Eventos:   corporate_events
 
-### Detalhes Tecnicos
-
-**Migracao SQL:**
-
-```sql
--- Colunas de coordenadas
-ALTER TABLE clientes 
-  ADD COLUMN IF NOT EXISTS latitude double precision,
-  ADD COLUMN IF NOT EXISTS longitude double precision;
-
-ALTER TABLE prospects
-  ADD COLUMN IF NOT EXISTS latitude double precision,
-  ADD COLUMN IF NOT EXISTS longitude double precision;
-
-CREATE INDEX idx_clientes_coords 
-  ON clientes(latitude, longitude) WHERE latitude IS NOT NULL;
-CREATE INDEX idx_prospects_coords 
-  ON prospects(latitude, longitude) WHERE latitude IS NOT NULL;
-
--- Trigger de normalizacao automatica
-CREATE OR REPLACE FUNCTION fn_normalizar_cliente_individual()
-RETURNS trigger AS $$ ... $$;
-
-CREATE TRIGGER tr_normalizar_municipio_cliente
-  BEFORE INSERT OR UPDATE ON clientes
-  FOR EACH ROW
-  EXECUTE FUNCTION fn_normalizar_cliente_individual();
+DEPARTAMENTOS
+  Verbas:    department_budgets (status=active, approval_status=approved)
+  Despesas:  department_expenses (join departamentos para nome)
 ```
 
-**Edge Functions novas:**
-- `get-google-maps-key/index.ts` -- serve a chave do Google Maps (reutiliza `GOOGLE_PLACES_API_KEY`)
-- `geocode-batch/index.ts` -- geocodifica em lote clientes/prospects sem coordenadas via Google Geocoding API
+### Mapeamento de Status (PT/EN)
+Seguindo o padrao existente do projeto:
+- Aprovado/Pago: `['approved', 'aprovado', 'completed', 'pago']`
+- Pendente: `['pending', 'pendente']`
 
-**Componentes React novos:**
+### Arquivos Novos (5)
+1. `src/hooks/useFinanceiroConsolidadoDashboard.ts`
+2. `src/components/financeiro/consolidado/ConsolidadoVerbaCard.tsx`
+3. `src/components/financeiro/consolidado/ConsolidadoDespesasCard.tsx`
+4. `src/components/financeiro/consolidado/ConsolidadoFluxoCaixaChart.tsx`
+5. `src/components/financeiro/consolidado/ConsolidadoDespesasTable.tsx`
+6. `src/pages/FinanceiroConsolidadoDashboard.tsx`
 
-| Componente | Funcao |
-|------------|--------|
-| `src/components/comercial/mapa/CommercialMap.tsx` | Componente principal do mapa com Google Maps |
-| `src/components/comercial/mapa/MapFilters.tsx` | Barra de filtros e toggles de camada |
-| `src/components/comercial/mapa/MapSidebar.tsx` | Painel lateral com KPIs da viewport |
-| `src/components/comercial/mapa/MapLegend.tsx` | Legenda interativa das camadas |
-| `src/components/comercial/mapa/MapMarkerPopup.tsx` | Popup rico com dados do cliente |
-| `src/hooks/useCommercialMapData.ts` | Hook para carregar dados geolocalizados |
-| `src/pages/ComercialMapa.tsx` | Nova pagina do mapa no modulo comercial |
+### Arquivos Modificados (3)
+1. `src/App.tsx` - Adicionar rota
+2. `src/pages/Financeiro.tsx` - Adicionar card de navegacao
+3. `src/components/dashboard/AppSidebar.tsx` - Adicionar item no menu
 
-**Rota nova:**
-- `/dashboard/comercial/mapa` -- Mapa Comercial (dentro do modulo comercial, nao no modulo de prospects)
+### Sem alteracoes no banco de dados
+Todas as tabelas necessarias ja existem. Apenas leitura de dados existentes.
 
-**Dependencia nova:**
-- `@vis.gl/react-google-maps` -- Wrapper React oficial do Google Maps
-
-**Requisito no Google Cloud Console (acao do usuario):**
-A `GOOGLE_PLACES_API_KEY` ja esta configurada. O usuario precisa habilitar dois servicos adicionais no Google Cloud Console:
-- "Maps JavaScript API"
-- "Geocoding API"
-
-### Sequencia de Implementacao
-
-1. Migracao SQL (colunas lat/lng + trigger de normalizacao)
-2. Edge Function `get-google-maps-key`
-3. Edge Function `geocode-batch`
-4. Hook `useCommercialMapData` para buscar dados
-5. Componentes do mapa (CommercialMap, MapFilters, MapSidebar, MapLegend, MapMarkerPopup)
-6. Pagina `ComercialMapa` + rota no App.tsx + link no ComercialModule
-7. Testar geocodificacao batch e visualizacao
-
-### Resultado Esperado
-
-O diretor comercial abre o mapa e ve imediatamente:
-- Um mapa do Brasil com **clusters coloridos** indicando saude da carteira
-- **Manchas de calor** mostrando concentracao de negocios
-- **Circulos vazios** em cidades grandes onde nao ha presenca
-- Ao clicar numa regiao, o painel lateral mostra os numeros daquela area
-- Filtrar por "Critico" e ver apenas clientes que precisam de atencao urgente, com WhatsApp a um clique
