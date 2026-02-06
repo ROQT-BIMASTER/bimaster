@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { fetchAllRows } from "@/lib/utils/fetchAllRows";
 
 export type PaymentQueueStatus = 'pending' | 'accepted' | 'rejected' | 'paid' | 'cancelled';
 export type SourceType = 'trade_entry' | 'trade_investment' | 'trade_campaign' | 'event_expense' | 'department_expense';
@@ -91,49 +92,48 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
   const { data: items = [], isLoading, refetch } = useQuery({
     queryKey: ['financial-payment-queue', filters],
     queryFn: async () => {
-      let query = supabase
-        .from('financial_payment_queue')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const data = await fetchAllRows<any>(
+        'financial_payment_queue',
+        '*',
+        (query) => {
+          let q = query.order('created_at', { ascending: false });
 
-      if (filters?.status && filters.status !== 'all') {
-        query = query.eq('financial_status', filters.status);
-      }
+          if (filters?.status && filters.status !== 'all') {
+            q = q.eq('financial_status', filters.status);
+          }
 
-      // Handle unified origin filter with dept: prefix for departments
-      if (filters?.source_type && filters.source_type !== 'all') {
-        if (filters.source_type.startsWith('dept:')) {
-          const deptName = filters.source_type.replace('dept:', '');
-          query = query.eq('source_type', 'department_expense');
-          query = query.eq('department_name', deptName);
-        } else {
-          query = query.eq('source_type', filters.source_type);
+          if (filters?.source_type && filters.source_type !== 'all') {
+            if (filters.source_type.startsWith('dept:')) {
+              const deptName = filters.source_type.replace('dept:', '');
+              q = q.eq('source_type', 'department_expense');
+              q = q.eq('department_name', deptName);
+            } else {
+              q = q.eq('source_type', filters.source_type);
+            }
+          }
+
+          if (filters?.empresa_id && filters.empresa_id !== 'all') {
+            q = q.eq('empresa_id', filters.empresa_id);
+          }
+
+          if (filters?.search) {
+            q = q.or(`supplier_name.ilike.%${filters.search}%,code.ilike.%${filters.search}%,source_code.ilike.%${filters.search}%`);
+          }
+
+          if (filters?.startDate) {
+            q = q.gte('created_at', filters.startDate.toISOString());
+          }
+
+          if (filters?.endDate) {
+            q = q.lte('created_at', filters.endDate.toISOString());
+          }
+
+          return q;
         }
-      }
-
-      // Filter by empresa
-      if (filters?.empresa_id && filters.empresa_id !== 'all') {
-        query = query.eq('empresa_id', filters.empresa_id);
-      }
-
-      if (filters?.search) {
-        query = query.or(`supplier_name.ilike.%${filters.search}%,code.ilike.%${filters.search}%,source_code.ilike.%${filters.search}%`);
-      }
-
-      if (filters?.startDate) {
-        query = query.gte('created_at', filters.startDate.toISOString());
-      }
-
-      if (filters?.endDate) {
-        query = query.lte('created_at', filters.endDate.toISOString());
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
+      );
       
       // Parse attachments from JSONB
-      return (data || []).map(item => ({
+      return data.map(item => ({
         ...item,
         attachments: (item.attachments as unknown as PaymentAttachment[]) || [],
       })) as PaymentQueueItem[];
@@ -144,25 +144,25 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
   const { data: kpis } = useQuery({
     queryKey: ['financial-payment-queue-kpis', filters?.startDate, filters?.endDate],
     queryFn: async () => {
-      let query = supabase
-        .from('financial_payment_queue')
-        .select('financial_status, amount');
+      const data = await fetchAllRows<{ financial_status: string; amount: number }>(
+        'financial_payment_queue',
+        'financial_status, amount',
+        (query) => {
+          let q = query;
+          if (filters?.startDate) {
+            q = q.gte('created_at', filters.startDate.toISOString());
+          }
+          if (filters?.endDate) {
+            q = q.lte('created_at', filters.endDate.toISOString());
+          }
+          return q;
+        }
+      );
 
-      if (filters?.startDate) {
-        query = query.gte('created_at', filters.startDate.toISOString());
-      }
-
-      if (filters?.endDate) {
-        query = query.lte('created_at', filters.endDate.toISOString());
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      const pending = data?.filter(i => i.financial_status === 'pending') || [];
-      const accepted = data?.filter(i => i.financial_status === 'accepted') || [];
-      const rejected = data?.filter(i => i.financial_status === 'rejected') || [];
-      const paid = data?.filter(i => i.financial_status === 'paid') || [];
+      const pending = data.filter(i => i.financial_status === 'pending');
+      const accepted = data.filter(i => i.financial_status === 'accepted');
+      const rejected = data.filter(i => i.financial_status === 'rejected');
+      const paid = data.filter(i => i.financial_status === 'paid');
 
       return {
         pendingCount: pending.length,
@@ -172,8 +172,8 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         rejectedCount: rejected.length,
         paidCount: paid.length,
         paidAmount: paid.reduce((sum, i) => sum + Number(i.amount), 0),
-        totalAmount: data?.reduce((sum, i) => sum + Number(i.amount), 0) || 0,
-        totalCount: data?.length || 0,
+        totalAmount: data.reduce((sum, i) => sum + Number(i.amount), 0),
+        totalCount: data.length,
       };
     },
   });
