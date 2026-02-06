@@ -680,6 +680,12 @@ export function AppSidebar() {
                         colorKey="comercial"
                       />
                     )}
+                    <MenuItemLink 
+                      to="/dashboard/comercial/ibge" 
+                      icon={MapPin} 
+                      title="Dados IBGE" 
+                      colorKey="comercial"
+                    />
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
