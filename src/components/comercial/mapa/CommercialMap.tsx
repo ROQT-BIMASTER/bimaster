@@ -13,8 +13,10 @@ import type { Marker } from "@googlemaps/markerclusterer";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCommercialMapData, type MapFilters, type MapCliente, type MapProspect } from "@/hooks/useCommercialMapData";
+import { useMapTeamData } from "@/hooks/useMapTeamData";
 import { MapFilters as MapFiltersComponent } from "./MapFilters";
 import { MapSidebar } from "./MapSidebar";
+import { MapTeamPanel } from "./MapTeamPanel";
 import { ClientePopup, ProspectPopup } from "./MapMarkerPopup";
 import { Loader2, MapPin, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,6 +63,7 @@ export const CommercialMap = () => {
   });
 
   const { clientes, prospects, loading: dataLoading, geocodingStatus, triggerGeocoding } = useCommercialMapData(filters);
+  const { hierarchy, ranking, selfProfile, hasFullVisibility, isLoading: teamLoading } = useMapTeamData();
 
   const [selectedCliente, setSelectedCliente] = useState<MapCliente | null>(null);
   const [selectedProspect, setSelectedProspect] = useState<MapProspect | null>(null);
@@ -143,12 +146,22 @@ export const CommercialMap = () => {
   return (
     <APIProvider apiKey={apiKey}>
       <div className="flex gap-4 h-[calc(100vh-180px)] min-h-[500px]">
-        {/* Left sidebar: Filters */}
-        <div className="w-[220px] shrink-0 overflow-y-auto">
+        {/* Left sidebar: Team + Filters */}
+        <div className="w-[240px] shrink-0 overflow-y-auto space-y-3">
+          {/* Painel de Equipe e Ranking - PRIMEIRO */}
+          <MapTeamPanel
+            hierarchy={hierarchy}
+            ranking={ranking}
+            selfProfile={selfProfile}
+            hasFullVisibility={hasFullVisibility}
+            isLoading={teamLoading}
+          />
+
+          {/* Filtros do mapa */}
           <MapFiltersComponent filters={filters} onFiltersChange={setFilters} empresas={empresas} />
           
           {/* Geocoding button */}
-          <div className="mt-3 space-y-2">
+          <div className="space-y-2">
             <Button
               variant="outline"
               size="sm"
