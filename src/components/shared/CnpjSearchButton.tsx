@@ -18,6 +18,8 @@ export interface CnpjData {
   cnae?: string;
   porte?: string;
   capitalSocial?: number;
+  regimeTributario?: string;
+  matrizFilial?: string;
 }
 
 interface CnpjSearchButtonProps {

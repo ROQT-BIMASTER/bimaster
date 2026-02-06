@@ -393,6 +393,15 @@ export const NovaLojaDialog = ({ open, onOpenChange, onSuccess }: NovaLojaDialog
                       phone: data.telefone || prev.phone,
                       email: data.email || prev.email,
                     }));
+                    // Exibir info adicional via toast
+                    const infoParts: string[] = [];
+                    if (data.situacao) infoParts.push(`Situação: ${data.situacao}`);
+                    if (data.porte) infoParts.push(`Porte: ${data.porte}`);
+                    if (data.regimeTributario) infoParts.push(`Regime: ${data.regimeTributario}`);
+                    if (data.matrizFilial) infoParts.push(`Tipo: ${data.matrizFilial}`);
+                    if (infoParts.length > 0) {
+                      toast.info(infoParts.join(' • '), { duration: 8000 });
+                    }
                   }}
                 />
               </div>

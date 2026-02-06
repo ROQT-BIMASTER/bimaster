@@ -165,6 +165,18 @@ serve(async (req) => {
     }
     console.log(`[OpenCNPJ] Telefone extraído: ${telefone}`);
 
+    // Mapear regime tributário
+    const opcaoSimples = (apiData as any).opcao_simples;
+    const opcaoMEI = (apiData as any).opcao_mei;
+    let regimeTributario: string | null = null;
+    if (opcaoMEI === 'S') {
+      regimeTributario = 'MEI';
+    } else if (opcaoSimples === 'S') {
+      regimeTributario = 'Simples Nacional';
+    } else if (opcaoSimples === 'N') {
+      regimeTributario = 'Lucro Presumido/Real';
+    }
+
     // Montar resposta padronizada
     const responseData = {
       razaoSocial: apiData.razao_social || null,
@@ -182,8 +194,10 @@ serve(async (req) => {
       email: apiData.email || null,
       situacao: apiData.situacao_cadastral || null,
       cnae: apiData.cnae_principal?.descricao || null,
-      porte: apiData.porte || null,
+      porte: (apiData as any).porte_empresa || apiData.porte || null,
       capitalSocial: apiData.capital_social || null,
+      regimeTributario,
+      matrizFilial: (apiData as any).matriz_filial || null,
     };
 
     // Salvar no cache (upsert)
