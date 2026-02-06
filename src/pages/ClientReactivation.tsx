@@ -2,7 +2,8 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, RefreshCw, Building2 } from "lucide-react";
 import { useClienteReativacao, type RiskLevel } from "@/hooks/useClienteReativacao";
 import { ReactivationKPICards } from "@/components/comercial/ReactivationKPICards";
 import { RiskFunnelChart } from "@/components/comercial/RiskFunnelChart";
@@ -12,7 +13,8 @@ import { RiskByStateCard } from "@/components/comercial/RiskByStateCard";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const ClientReactivation = () => {
-  const { data, isLoading, refetch, isFetching } = useClienteReativacao();
+  const [empresaFilter, setEmpresaFilter] = useState<number | null>(null);
+  const { data, isLoading, refetch, isFetching, empresas } = useClienteReativacao(empresaFilter);
   const [activeRiskFilter, setActiveRiskFilter] = useState<RiskLevel | null>(null);
 
   const handleFilterClick = (nivel: RiskLevel) => {
@@ -37,16 +39,35 @@ const ClientReactivation = () => {
               </p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <Select
+                value={empresaFilter?.toString() ?? "todas"}
+                onValueChange={(v) => setEmpresaFilter(v === "todas" ? null : Number(v))}
+              >
+                <SelectTrigger className="h-9 w-[200px]">
+                  <SelectValue placeholder="Todas as filiais" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas as filiais</SelectItem>
+                  {empresas.map((e) => (
+                    <SelectItem key={e.id} value={e.id.toString()}>{e.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
