@@ -1,108 +1,104 @@
 
-
-# Dashboard Financeiro Consolidado - Contas a Pagar
+# Cadastro de Equipe Comercial no Trade Marketing
 
 ## Objetivo
-Criar um Dashboard Financeiro Consolidado acessivel a partir do modulo Contas a Pagar (e do modulo Financeiro), que unifica a visao de verbas, despesas e campanhas de **todas as origens** (Trade Marketing, Eventos Corporativos e Departamentos) em um unico painel, seguindo o mesmo layout visual do Dashboard Financeiro de Eventos (imagem de referencia).
+Criar um formulario de cadastro completo para vendedores e supervisores dentro do modulo Trade Marketing, permitindo coletar dados pessoais como CPF, RG, data de nascimento, WhatsApp e tamanho de camiseta. Esses dados ficarao disponiveis para consulta na tela "Minha Equipe".
 
-## O que sera criado
+## O que sera feito
 
-### 1. Hook de Dados Consolidados
-**Arquivo:** `src/hooks/useFinanceiroConsolidadoDashboard.ts`
+### 1. Nova tabela no banco de dados: `team_member_details`
 
-Busca e consolida dados de 3 fontes:
-- **Trade Marketing:** `trade_budgets` + `trade_campaign_expenses` + `trade_campaigns`
-- **Eventos Corporativos:** `trade_budgets` (vinculadas a eventos) + `corporate_event_expenses` + `corporate_events`
-- **Departamentos:** `department_budgets` + `department_expenses`
+Tabela complementar a `profiles` para armazenar dados pessoais dos membros da equipe comercial:
 
-Calcula:
-- **Verbas Consolidadas:** Total orcado, utilizado e disponivel de todas as fontes
-- **Despesas Consolidadas:** Quantidade, pendentes, pagos com percentual
-- **Fluxo de Caixa:** Entradas (verbas liberadas) vs Saidas (despesas pagas) dos ultimos 6 meses
-- **Despesas por Origem:** Agrupamento por Trade / Eventos / Departamentos com valores pendentes e pagos
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | uuid (PK) | Identificador unico |
+| user_id | uuid (FK profiles.id, UNIQUE) | Vinculo com o perfil do usuario |
+| nome_completo | text | Nome completo |
+| cpf | text | CPF (criptografado/mascarado na exibicao) |
+| rg | text | RG |
+| data_nascimento | date | Data de nascimento |
+| email_pessoal | text | Email pessoal (pode diferir do login) |
+| whatsapp | text | Numero WhatsApp |
+| tamanho_camiseta | text | P, M, G, GG, XGG |
+| equipe_comercial | text | Nome/numero da equipe comercial |
+| supervisor_nome | text | Nome do supervisor (referencia) |
+| observacoes | text | Campo livre para anotacoes |
+| created_at | timestamptz | Data de criacao |
+| updated_at | timestamptz | Data de atualizacao |
+| created_by | uuid | Quem cadastrou |
 
-Filtro por periodo com presets (Este mes, Ultimos 30 dias, Ultimos 90 dias, Este ano, Personalizado).
+**Politicas RLS:**
+- Admin/Gerente: leitura e escrita de todos os registros
+- Supervisor: leitura e escrita dos membros da sua equipe (subordinados)
+- Vendedor/Promotor: leitura e edicao apenas do proprio registro
 
-### 2. Componentes do Dashboard
-Seguindo a mesma arquitetura visual dos dashboards de Trade e Eventos:
+### 2. Nova tela: Cadastro da Equipe (dentro de "Minha Equipe")
 
-**a) Card de Verbas Consolidadas** (`src/components/financeiro/consolidado/ConsolidadoVerbaCard.tsx`)
-- 3 KPIs: Total Orcado | Utilizado | Disponivel
-- Barra de progresso com percentual de utilizacao
-- Lista das verbas de todas as origens com icone indicando a fonte (Trade/Eventos/Departamento)
+Sera adicionada uma nova aba ou secao na pagina `TradeSupervisorDashboard` com:
 
-**b) Card de Despesas Consolidadas** (`src/components/financeiro/consolidado/ConsolidadoDespesasCard.tsx`)
-- 4 KPIs: Total Origens | Itens Ativos | Pendente | Pago
-- Barra de progresso de pagamentos realizados
-- Lista de despesas agrupadas por origem com badges de status
+**a) Tabela de membros com dados completos**
+- Nome, CPF (mascarado), WhatsApp, Tamanho Camiseta, Equipe
+- Filtro por nome e equipe
+- Badge indicando se o cadastro esta completo ou pendente
+- Botao de editar para cada membro
 
-**c) Grafico de Fluxo de Caixa** (`src/components/financeiro/consolidado/ConsolidadoFluxoCaixaChart.tsx`)
-- Grafico composto (barras + linha) com Entradas, Saidas e Saldo Acumulado
-- Totais no cabecalho: Entradas, Saidas, Saldo
-- Ultimos 6 meses
+**b) Dialog de cadastro/edicao**
+- Formulario com todos os campos da imagem de referencia:
+  1. Equipe Comercial (numero/nome) + Supervisor(a) responsavel
+  2. Nome Completo
+  3. Data de Nascimento
+  4. CPF
+  5. RG
+  6. E-mail
+  7. Contato WhatsApp
+  8. Tamanho Camiseta (opcoes: P, M, G, GG, XGG)
+- Validacao com Zod (CPF valido, formato de telefone, etc.)
+- Uso das funcoes `formatCPF` e `formatPhone` ja existentes no projeto
 
-**d) Tabela de Despesas** (`src/components/financeiro/consolidado/ConsolidadoDespesasTable.tsx`)
-- Todas as despesas de todas as origens
-- Colunas: Origem | Campanha/Evento/Departamento | Descricao | Valor Realizado | Status | Data
-- Filtro por busca e status
-- Exportacao Excel
-- Badge colorida indicando a origem (Trade = roxo, Eventos = azul, Departamentos = verde)
+**c) Exportacao Excel**
+- Botao para exportar todos os dados da equipe em planilha
 
-### 3. Pagina do Dashboard
-**Arquivo:** `src/pages/FinanceiroConsolidadoDashboard.tsx`
+### 3. Auto-preenchimento pelo proprio vendedor
 
-Layout identico ao `CorporateEventsDashboard.tsx`:
-- Breadcrumb: Financeiro > Dashboard Consolidado
-- Cabecalho com titulo, filtro de periodo, botoes de acao
-- Indicador do periodo selecionado
-- Grid 2 colunas com cards de Verbas e Despesas
-- Grafico de Fluxo de Caixa abaixo
-- Tabela de despesas ao final
+Vendedores e promotores poderao acessar e preencher seus proprios dados atraves de um card na pagina principal do Trade ou na pagina de perfil, garantindo que a coleta de dados nao dependa apenas do supervisor.
 
-### 4. Rota e Navegacao
+### 4. Integracao com upload de foto
 
-- Nova rota: `/dashboard/financeiro/consolidado`
-- Adicionar link no sidebar do financeiro
-- Adicionar card de navegacao na landing page do Financeiro (`src/pages/Financeiro.tsx`)
+O componente `ProfileAvatarUpload` ja existente sera integrado ao formulario, permitindo que cada membro inclua sua foto junto com os dados cadastrais.
 
-## Detalhes Tecnicos
+## Arquivos a criar
 
-### Fontes de Dados por Modulo
+1. **`src/components/trade/supervisor/TeamMemberRegistration.tsx`** - Tabela com lista dos membros e status de cadastro
+2. **`src/components/trade/supervisor/TeamMemberFormDialog.tsx`** - Dialog com formulario de cadastro/edicao
+3. **`src/hooks/useTeamMemberDetails.ts`** - Hook para CRUD dos dados dos membros
+4. **`src/lib/validations/teamMember.ts`** - Schema Zod de validacao
 
+## Arquivos a editar
+
+1. **`src/pages/TradeSupervisorDashboard.tsx`** - Adicionar aba "Cadastro Equipe" com o componente de registro
+2. **`src/components/dashboard/AppSidebar.tsx`** - Nenhuma alteracao necessaria (ja existe a rota "Minha Equipe")
+
+## Detalhes tecnicos
+
+### Validacao (Zod)
 ```text
-TRADE MARKETING
-  Verbas:    trade_budgets (status=active, inactivated_at IS NULL)
-  Despesas:  trade_campaign_expenses (join trade_campaigns para nome)
-  Campanhas: trade_campaigns
-
-EVENTOS CORPORATIVOS
-  Verbas:    trade_budgets (via corporate_events.budget_id)
-  Despesas:  corporate_event_expenses (join corporate_events para nome)
-  Eventos:   corporate_events
-
-DEPARTAMENTOS
-  Verbas:    department_budgets (status=active, approval_status=approved)
-  Despesas:  department_expenses (join departamentos para nome)
+- CPF: 11 digitos, validacao de digito verificador
+- RG: 5-15 caracteres alfanumericos
+- WhatsApp: formato (00) 00000-0000
+- Email: formato email valido
+- Data nascimento: data valida, pessoa deve ter > 16 anos
+- Tamanho camiseta: enum ['P', 'M', 'G', 'GG', 'XGG']
 ```
 
-### Mapeamento de Status (PT/EN)
-Seguindo o padrao existente do projeto:
-- Aprovado/Pago: `['approved', 'aprovado', 'completed', 'pago']`
-- Pendente: `['pending', 'pendente']`
+### Fluxo de visibilidade
+```text
+Admin/Gerente  -> Ve e edita todos os membros
+Supervisor     -> Ve e edita membros da sua equipe (via get_subordinados)
+Vendedor       -> Ve e edita apenas o proprio cadastro
+```
 
-### Arquivos Novos (5)
-1. `src/hooks/useFinanceiroConsolidadoDashboard.ts`
-2. `src/components/financeiro/consolidado/ConsolidadoVerbaCard.tsx`
-3. `src/components/financeiro/consolidado/ConsolidadoDespesasCard.tsx`
-4. `src/components/financeiro/consolidado/ConsolidadoFluxoCaixaChart.tsx`
-5. `src/components/financeiro/consolidado/ConsolidadoDespesasTable.tsx`
-6. `src/pages/FinanceiroConsolidadoDashboard.tsx`
-
-### Arquivos Modificados (3)
-1. `src/App.tsx` - Adicionar rota
-2. `src/pages/Financeiro.tsx` - Adicionar card de navegacao
-3. `src/components/dashboard/AppSidebar.tsx` - Adicionar item no menu
-
-### Sem alteracoes no banco de dados
-Todas as tabelas necessarias ja existem. Apenas leitura de dados existentes.
-
+### Migracao SQL
+- Criar tabela `team_member_details`
+- RLS com politicas baseadas em hierarquia
+- Trigger para atualizar `updated_at` automaticamente
