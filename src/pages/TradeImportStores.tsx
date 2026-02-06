@@ -296,16 +296,11 @@ const TradeImportStores = () => {
       if (pdfIA) {
         toast.info("Extraindo texto do PDF...");
         
-        // Ler o PDF como ArrayBuffer
         const arrayBuffer = await pdfIA.arrayBuffer();
-        
-        // Usar pdf.js para extrair texto
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
         
         let fullText = '';
-        
-        // Extrair texto de todas as páginas
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const textContent = await page.getTextContent();
@@ -320,23 +315,14 @@ const TradeImportStores = () => {
         }
         
         textoParaAnalise = fullText;
-        toast.success("Texto extraído com sucesso! Analisando com IA...");
+        toast.success("Texto extraído com sucesso! Analisando...");
       }
 
-      const { data: functionData, error: functionError } = await supabase.functions.invoke(
-        "analisar-planilha-ia",
-        {
-          body: { texto: textoParaAnalise, tipo: "stores" },
-        }
-      );
-
-      if (functionError) {
-        throw functionError;
-      }
-
-      if (!functionData?.stores || !Array.isArray(functionData.stores)) {
-        throw new Error("Formato de resposta inválido da IA");
-      }
+      // Detectar se o texto contém APENAS CNPJs (sem outros dados relevantes)
+      const cnpjRegex = /\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g;
+      const cnpjsEncontrados = textoParaAnalise.match(cnpjRegex) || [];
+      const textoSemCnpjs = textoParaAnalise.replace(cnpjRegex, '').replace(/[\s,;|\n\r\t]/g, '');
+      const isOnlyCnpjs = cnpjsEncontrados.length > 0 && textoSemCnpjs.length < 10;
 
       // Buscar supervisor_id do vendedor se não foi informado
       let supervisorId = supervisorSelecionado || null;
@@ -346,49 +332,140 @@ const TradeImportStores = () => {
           .select("supervisor_id")
           .eq("id", vendedorSelecionado)
           .single();
-        
         supervisorId = vendedorProfile?.supervisor_id || null;
       }
 
-      const stores = functionData.stores.map((store: any, idx: number) => ({
-        code: store.code || `STORE-${Date.now()}-${idx}`,
-        name: store.name,
-        chain: store.chain || null,
-        cnpj: store.cnpj || null,
-        address: store.address || null,
-        city: store.city || null,
-        state: store.state || null,
-        phone: store.phone || null,
-        email: store.email || null,
-        category: store.category || null,
-        priority: store.priority || null,
-        status: "active",
-        vendedor_id: vendedorSelecionado,
-        supervisor_id: supervisorId,
-      }));
-
       const { data: userData } = await supabase.auth.getUser();
-      const storesWithUser = stores.map(s => ({
-        ...s,
-        created_by: userData.user?.id
-      }));
+      let inserted: any[] = [];
 
-      const { data: inserted, error: insertError } = await supabase
-        .from("stores")
-        .insert(storesWithUser)
-        .select();
+      if (isOnlyCnpjs) {
+        // ===== FLUXO DIRETO VIA API OpenCNPJ (sem IA) =====
+        toast.info(`Consultando ${cnpjsEncontrados.length} CNPJ(s) na Receita Federal...`);
+        
+        const storesParaInserir: any[] = [];
 
-      if (insertError) {
-        throw insertError;
+        for (let i = 0; i < cnpjsEncontrados.length; i++) {
+          const cnpjRaw = cnpjsEncontrados[i];
+          const cnpjLimpo = cnpjRaw.replace(/\D/g, "");
+
+          toast.loading(
+            `Consultando CNPJ ${i + 1}/${cnpjsEncontrados.length}: ${cnpjRaw}`,
+            { id: "cnpj-import-progress" }
+          );
+
+          try {
+            const { data: cnpjData, error: cnpjError } = await supabase.functions.invoke(
+              "opencnpj-consulta",
+              { body: { cnpj: cnpjLimpo } }
+            );
+
+            if (cnpjError || cnpjData?.error) {
+              console.error(`Erro ao consultar CNPJ ${cnpjRaw}:`, cnpjError || cnpjData?.error);
+              toast.warning(`CNPJ ${cnpjRaw}: ${cnpjData?.error || 'Erro na consulta'}`);
+              continue;
+            }
+
+            storesParaInserir.push({
+              code: `STORE-${Date.now()}-${i}`,
+              name: cnpjData.razaoSocial || `CNPJ ${cnpjRaw}`,
+              chain: cnpjData.nomeFantasia || null,
+              cnpj: cnpjRaw,
+              address: cnpjData.endereco || null,
+              city: cnpjData.cidade || null,
+              state: cnpjData.uf || null,
+              zip_code: cnpjData.cep || null,
+              phone: cnpjData.telefone || null,
+              email: cnpjData.email || null,
+              status: "active",
+              vendedor_id: vendedorSelecionado,
+              supervisor_id: supervisorId,
+              created_by: userData.user?.id,
+              situacao_cadastral: cnpjData.situacao || null,
+              porte_empresa: cnpjData.porte || null,
+              regime_tributario: cnpjData.regimeTributario || null,
+              matriz_filial: cnpjData.matrizFilial || null,
+              capital_social: cnpjData.capitalSocial || null,
+              cnae_principal: cnpjData.cnae || null,
+            });
+          } catch (err: any) {
+            console.error(`Erro ao consultar CNPJ ${cnpjRaw}:`, err);
+            toast.warning(`CNPJ ${cnpjRaw}: falha na consulta`);
+          }
+
+          // Delay entre chamadas para evitar rate limiting
+          if (i < cnpjsEncontrados.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
+        }
+
+        toast.dismiss("cnpj-import-progress");
+
+        if (storesParaInserir.length === 0) {
+          toast.error("Nenhum CNPJ válido encontrado na Receita Federal");
+          setLoadingIA(false);
+          return;
+        }
+
+        const { data: insertedData, error: insertError } = await supabase
+          .from("stores")
+          .insert(storesParaInserir)
+          .select();
+
+        if (insertError) throw insertError;
+        inserted = insertedData || [];
+
+        toast.success(
+          `${inserted.length} loja(s) cadastrada(s) com dados reais da Receita Federal!`,
+          { id: "cnpj-import-progress" }
+        );
+
+      } else {
+        // ===== FLUXO VIA IA (texto com dados variados) =====
+        const { data: functionData, error: functionError } = await supabase.functions.invoke(
+          "analisar-planilha-ia",
+          { body: { texto: textoParaAnalise, tipo: "stores" } }
+        );
+
+        if (functionError) throw functionError;
+        if (!functionData?.stores || !Array.isArray(functionData.stores)) {
+          throw new Error("Formato de resposta inválido da IA");
+        }
+
+        const stores = functionData.stores.map((store: any, idx: number) => ({
+          code: store.code || `STORE-${Date.now()}-${idx}`,
+          name: store.name,
+          chain: store.chain || null,
+          cnpj: store.cnpj || null,
+          address: store.address || null,
+          city: store.city || null,
+          state: store.state || null,
+          phone: store.phone || null,
+          email: store.email || null,
+          category: store.category || null,
+          priority: store.priority || null,
+          status: "active",
+          vendedor_id: vendedorSelecionado,
+          supervisor_id: supervisorId,
+          created_by: userData.user?.id,
+        }));
+
+        const { data: insertedData, error: insertError } = await supabase
+          .from("stores")
+          .insert(stores)
+          .select();
+
+        if (insertError) throw insertError;
+        inserted = insertedData || [];
+
+        toast.success(`${inserted.length} lojas importadas com sucesso via IA!`);
       }
 
-      toast.success(`${inserted?.length || 0} lojas importadas com sucesso via IA!`);
       setTextoIA("");
       setPdfIA(null);
       queryClient.invalidateQueries({ queryKey: ['filtered-stores'] });
 
-      // Enriquecer dados via CNPJ se flag ativa
-      if (enriquecerDados && inserted && inserted.length > 0) {
+      // Enriquecer dados via CNPJ se flag ativa (apenas para fluxo IA, pois o direto já enriquece)
+      if (!isOnlyCnpjs && enriquecerDados && inserted.length > 0) {
         const storesToEnrich = inserted.map((s: any) => ({
           id: s.id,
           name: s.name,
