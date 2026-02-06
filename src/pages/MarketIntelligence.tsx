@@ -3,13 +3,20 @@ import { MarketKPICards } from "@/components/comercial/MarketKPICards";
 import { MarketCoverageTable } from "@/components/comercial/MarketCoverageTable";
 import { PenetrationChart } from "@/components/comercial/PenetrationChart";
 import { RegionHeatmap } from "@/components/comercial/RegionHeatmap";
+import { PortfolioHealthCards } from "@/components/comercial/PortfolioHealthCards";
+import { GeographicConcentrationChart } from "@/components/comercial/GeographicConcentrationChart";
+import { TicketDistributionChart } from "@/components/comercial/TicketDistributionChart";
+import { UntappedPotentialCard } from "@/components/comercial/UntappedPotentialCard";
 import { useMarketCoverage } from "@/hooks/useMarketCoverage";
+import { useClienteAnalytics } from "@/hooks/useClienteAnalytics";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { RefreshCw, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const MarketIntelligence = () => {
   const { coverageData, kpis, isLoading, refresh, isRefreshing } = useMarketCoverage();
+  const { data: analytics, isLoading: loadingAnalytics } = useClienteAnalytics();
 
   return (
     <DashboardLayout>
@@ -52,6 +59,27 @@ const MarketIntelligence = () => {
 
         {/* Coverage Table */}
         <MarketCoverageTable data={coverageData} isLoading={isLoading} />
+
+        {/* Separator */}
+        <div className="flex items-center gap-3 pt-2">
+          <Separator className="flex-1" />
+          <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+            Análise de Carteira de Clientes
+          </span>
+          <Separator className="flex-1" />
+        </div>
+
+        {/* Portfolio Health KPIs */}
+        <PortfolioHealthCards kpis={analytics?.portfolioKPIs} isLoading={loadingAnalytics} />
+
+        {/* Geographic Concentration + Ticket Distribution */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <GeographicConcentrationChart data={analytics?.concentracaoUF} isLoading={loadingAnalytics} />
+          <TicketDistributionChart data={analytics?.faixasTicket} isLoading={loadingAnalytics} />
+        </div>
+
+        {/* Untapped Potential */}
+        <UntappedPotentialCard data={analytics?.potencialUF} isLoading={loadingAnalytics} />
       </div>
     </DashboardLayout>
   );
