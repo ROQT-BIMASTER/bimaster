@@ -157,7 +157,14 @@ const TradeStores = () => {
     if (results) {
       setSelectionMode(false);
       setSelectedIds(new Set());
-      refetchStores();
+      // enrichStores already invalidates the 'filtered-stores' query cache,
+      // so we just need to wait for data to propagate and refetch store details
+      // without setting loading=true (which could get stuck)
+      try {
+        await refetchFilteredStores();
+      } catch {
+        // silent - cache invalidation from hook already handled it
+      }
     }
   };
 
