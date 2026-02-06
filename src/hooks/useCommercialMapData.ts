@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/utils/fetchAllRows";
 import { useToast } from "@/hooks/use-toast";
 
 export interface MapCliente {
@@ -69,22 +70,24 @@ export function useCommercialMapData(filters: MapFilters) {
     try {
       setLoading(true);
 
-      // Fetch clients with coordinates
-      let clienteQuery = supabase
-        .from("clientes")
-        .select("id, nome, codigo, cnpj, latitude, longitude, cidade, uf, telefone, celular, email, data_ultima_compra, valor_ultima_compra, valor_maior_compra, comprador, empresa_id")
-        .not("latitude", "is", null)
-        .not("longitude", "is", null);
+      // Fetch ALL clients with coordinates using pagination utility
+      const clientesRaw = await fetchAllRows<any>(
+        "clientes",
+        "id, nome, codigo, cnpj, latitude, longitude, cidade, uf, telefone, celular, email, data_ultima_compra, valor_ultima_compra, valor_maior_compra, comprador, empresa_id",
+        (query) => {
+          let q = query
+            .not("latitude", "is", null)
+            .not("longitude", "is", null);
 
-      if (filters.empresaId) {
-        clienteQuery = clienteQuery.eq("empresa_id", filters.empresaId);
-      }
-      if (filters.ufs.length > 0) {
-        clienteQuery = clienteQuery.in("uf", filters.ufs);
-      }
-
-      const { data: clientesRaw, error: clientesError } = await clienteQuery.limit(5000);
-      if (clientesError) throw clientesError;
+          if (filters.empresaId) {
+            q = q.eq("empresa_id", filters.empresaId);
+          }
+          if (filters.ufs.length > 0) {
+            q = q.in("uf", filters.ufs);
+          }
+          return q;
+        }
+      );
 
       const now = new Date();
       let processedClientes = (clientesRaw || []).map((c) => {
@@ -116,20 +119,22 @@ export function useCommercialMapData(filters: MapFilters) {
 
       setClientes(processedClientes);
 
-      // Fetch prospects with coordinates
+      // Fetch ALL prospects with coordinates using pagination utility
       if (filters.layers.prospects) {
-        let prospectQuery = supabase
-          .from("prospects")
-          .select("id, nome_empresa, latitude, longitude, municipio, uf, status, telefone, email, vendedor_id")
-          .not("latitude", "is", null)
-          .not("longitude", "is", null);
+        const prospectsRaw = await fetchAllRows<any>(
+          "prospects",
+          "id, nome_empresa, latitude, longitude, municipio, uf, status, telefone, email, vendedor_id",
+          (query) => {
+            let q = query
+              .not("latitude", "is", null)
+              .not("longitude", "is", null);
 
-        if (filters.ufs.length > 0) {
-          prospectQuery = prospectQuery.in("uf", filters.ufs);
-        }
-
-        const { data: prospectsRaw, error: prospectsError } = await prospectQuery.limit(1000);
-        if (prospectsError) throw prospectsError;
+            if (filters.ufs.length > 0) {
+              q = q.in("uf", filters.ufs);
+            }
+            return q;
+          }
+        );
 
         // Fetch vendedor names for prospects
         const vendedorIds = [...new Set((prospectsRaw || []).map(p => p.vendedor_id).filter(Boolean))];
