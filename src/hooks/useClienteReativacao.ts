@@ -9,6 +9,7 @@ export interface ClienteReativacao {
   codigo: string;
   cidade: string | null;
   uf: string | null;
+  empresa_id: number | null;
   data_ultima_compra: string | null;
   valor_ultima_compra: number | null;
   limite_credito: number | null;
@@ -44,16 +45,40 @@ const RISK_LABELS: Record<RiskLevel, string> = {
   inativo: "Inativo",
 };
 
-export function useClienteReativacao() {
-  return useQuery({
-    queryKey: ["clientes-reativacao"],
+export interface Empresa {
+  id: number;
+  nome: string;
+}
+
+export function useClienteReativacao(empresaId?: number | null) {
+  // Fetch empresas list
+  const empresasQuery = useQuery({
+    queryKey: ["empresas-list"],
     queryFn: async () => {
       const { data, error } = await supabase
+        .from("empresas")
+        .select("id, nome")
+        .order("nome");
+      if (error) throw error;
+      return (data || []) as Empresa[];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const clientesQuery = useQuery({
+    queryKey: ["clientes-reativacao", empresaId ?? "todas"],
+    queryFn: async () => {
+      let query = supabase
         .from("clientes")
-        .select("id, nome, codigo, cidade, uf, data_ultima_compra, valor_ultima_compra, limite_credito")
+        .select("id, nome, codigo, cidade, uf, empresa_id, data_ultima_compra, valor_ultima_compra, limite_credito")
         .gt("valor_ultima_compra", 0)
         .not("data_ultima_compra", "is", null);
 
+      if (empresaId) {
+        query = query.eq("empresa_id", empresaId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       const hoje = new Date();
@@ -82,6 +107,7 @@ export function useClienteReativacao() {
           codigo: c.codigo,
           cidade: c.cidade,
           uf: c.uf,
+          empresa_id: c.empresa_id,
           data_ultima_compra: c.data_ultima_compra,
           valor_ultima_compra: c.valor_ultima_compra,
           limite_credito: c.limite_credito,
@@ -124,4 +150,10 @@ export function useClienteReativacao() {
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  return {
+    ...clientesQuery,
+    empresas: empresasQuery.data || [],
+    isLoadingEmpresas: empresasQuery.isLoading,
+  };
 }
