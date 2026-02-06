@@ -9776,6 +9776,95 @@ export type Database = {
           },
         ]
       }
+      leads_minerados: {
+        Row: {
+          busca_query: string | null
+          busca_regiao: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          convertido_prospect_id: string | null
+          created_at: string
+          endereco: string | null
+          google_place_id: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          minerado_por: string | null
+          nome: string
+          observacoes: string | null
+          rating: number | null
+          status: string
+          telefone: string | null
+          telefone_internacional: string | null
+          tipos: string[] | null
+          total_avaliacoes: number | null
+          uf: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          busca_query?: string | null
+          busca_regiao?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          convertido_prospect_id?: string | null
+          created_at?: string
+          endereco?: string | null
+          google_place_id: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          minerado_por?: string | null
+          nome: string
+          observacoes?: string | null
+          rating?: number | null
+          status?: string
+          telefone?: string | null
+          telefone_internacional?: string | null
+          tipos?: string[] | null
+          total_avaliacoes?: number | null
+          uf?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          busca_query?: string | null
+          busca_regiao?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          convertido_prospect_id?: string | null
+          created_at?: string
+          endereco?: string | null
+          google_place_id?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          minerado_por?: string | null
+          nome?: string
+          observacoes?: string | null
+          rating?: number | null
+          status?: string
+          telefone?: string | null
+          telefone_internacional?: string | null
+          tipos?: string[] | null
+          total_avaliacoes?: number | null
+          uf?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_minerados_convertido_prospect_id_fkey"
+            columns: ["convertido_prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_alertas: {
         Row: {
           acao_url: string | null
