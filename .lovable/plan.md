@@ -1,158 +1,128 @@
 
 
-## Mineracao de Leads com Google Places API (GRATUITO)
+# Painel de Inteligencia Comercial: Market Share e Penetracao
 
-### Custo: ZERO
+## Contexto Atual
 
-Desde marco de 2025, o Google substituiu o credito de $200/mes por cotas gratuitas por SKU:
-- **Text Search (Basic)** = categoria **Pro** = **5.000 chamadas gratuitas/mes**
-- Cada busca completa de 200 resultados = ~10 chamadas (10 paginas de 20)
-- **500 buscas completas de 200 resultados por mes = totalmente gratuito**
-- Basta usar apenas campos Basic no fieldMask (nome, endereco, telefone, rating, website)
+Seus dados hoje:
+- **5.571 municipios** catalogados (IBGE)
+- **1.000+ clientes** ativos no ERP (em 405 cidades)
+- **233 prospects** em prospecao (41 municipios)
+- **27 leads minerados** (4 cidades)
+- **Sem tabela de territorios/vendedores por regiao** (lacuna critica)
 
-Campos **Basic** (gratuitos): `displayName`, `formattedAddress`, `internationalPhoneNumber`, `nationalPhoneNumber`, `websiteUri`, `rating`, `userRatingCount`, `types`, `location`, `id`
+## O que Grandes Empresas Fazem
 
-Campos **Pro/Enterprise** (pagos): `reviews`, `regularOpeningHours`, `priceLevel` -- estes NAO serao usados.
+Empresas como Ambev, Unilever e P&G usam 3 metricas-chave para medir dominio de mercado:
+
+| Metrica | Formula | O que mede |
+|---------|---------|------------|
+| **Penetracao** | Municipios com clientes / Total de municipios da UF | Em quantos lugares voce esta presente |
+| **Cobertura Numerica** | Clientes ativos / Total de estabelecimentos potenciais (leads) | Quantos clientes voce tem vs. quantos existem |
+| **Pipeline Coverage** | Prospects ativos / Leads minerados na regiao | Quanto do potencial esta sendo trabalhado |
+
+Alem disso, cruzam isso com dados economicos (PIB, populacao) para priorizar regioes de maior retorno.
 
 ---
 
-### O que sera criado
+## Plano de Implementacao
 
-#### 1. Tabela `leads_minerados`
+### Fase 1 - Tabela de Territorios e Atribuicao de Vendedores
 
-Armazena leads encontrados pelo Google Places antes de serem convertidos em prospects.
+Criar a estrutura que falta: vincular vendedores a regioes geograficas.
 
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| id | uuid (PK) | Identificador unico |
-| google_place_id | text (unique) | ID do Google Places para evitar duplicatas |
-| nome | text | Nome do estabelecimento |
-| telefone | text | Telefone nacional |
-| telefone_internacional | text | Telefone formato internacional |
-| endereco | text | Endereco formatado completo |
-| cidade | text | Cidade extraida do endereco |
-| uf | text | Estado |
-| cep | text | CEP |
-| latitude | numeric | Coordenada |
-| longitude | numeric | Coordenada |
-| website | text | URL do site |
-| rating | numeric | Avaliacao Google (0-5) |
-| total_avaliacoes | integer | Quantidade de avaliacoes |
-| tipos | text[] | Tipos de negocio (array) |
-| status | text | novo, qualificado, descartado, convertido |
-| busca_query | text | Texto usado na busca que encontrou |
-| busca_regiao | text | Regiao/cidade da busca |
-| convertido_prospect_id | uuid | FK para prospects (quando convertido) |
-| cnpj | text | CNPJ (preenchido manualmente ou via enriquecimento) |
-| observacoes | text | Notas do usuario |
-| minerado_por | uuid (FK auth) | Usuario que realizou a mineracao |
-| created_at | timestamptz | Data da mineracao |
-| updated_at | timestamptz | Ultima atualizacao |
+**Nova tabela `vendedor_territorios`:**
+- Vincula um vendedor (profile) a UFs e/ou microrregioes IBGE
+- Permite que um vendedor atenda multiplas regioes
+- Base para distribuicao automatica de leads
 
-RLS: leitura e escrita para usuarios autenticados.
+**Nova tabela `market_coverage_snapshot`:**
+- Tabela materializada com metricas pre-calculadas por UF/microrregiao
+- Atualizada por database function (evita queries pesadas em tempo real)
+- Campos: total_municipios, municipios_com_clientes, total_clientes_erp, total_prospects, total_leads, populacao, pib
 
-#### 2. Edge Function `google-places-search`
+### Fase 2 - Database Function para Calcular Metricas
 
-Chama o Google Places API v1 (New) usando **Text Search** com paginacao automatica para carregar ate 200 resultados.
+Uma funcao SQL `fn_calcular_cobertura_mercado()` que cruza automaticamente:
 
 ```text
-Fluxo de execucao:
-+------------------+     +-------------------+     +--------------------+
-| Frontend envia:  | --> | Edge Function     | --> | Google Places API  |
-| - query          |     | monta POST para   |     | POST /v1/places:   |
-| - cidade/UF      |     | searchText com    |     | searchText         |
-| - maxResults     |     | fieldMask BASIC   |     | (ate 20 por pag)   |
-+------------------+     +-------------------+     +--------------------+
-                                                          |
-                          +-------------------+     +--------------------+
-                          | 4. Salvar leads   | <-- | 3. Paginar com     |
-                          | via upsert por    |     | nextPageToken ate  |
-                          | google_place_id   |     | atingir 200 ou fim |
-                          +-------------------+     +--------------------+
++------------------+     +----------------+     +-----------------+
+| ibge_municipios  |     |    clientes    |     |    prospects     |
+| (5.571 cidades)  |<--->| (cidade + uf)  |     | (municipio + uf) |
++------------------+     +----------------+     +-----------------+
+        |                        |                       |
+        v                        v                       v
++---------------------------------------------------------------+
+|              market_coverage_snapshot                          |
+|  UF | municipios_total | com_clientes | com_prospects |        |
+|     | com_leads | penetracao_% | cobertura_% | pipeline_%     |
++---------------------------------------------------------------+
 ```
 
-**Detalhes tecnicos**:
-- Endpoint: `POST https://places.googleapis.com/v1/places:searchText`
-- Header: `X-Goog-Api-Key` com a API key
-- Header: `X-Goog-FieldMask` apenas com campos Basic (gratuitos):
-  `places.id,places.displayName,places.formattedAddress,places.internationalPhoneNumber,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types,places.location,places.addressComponents`
-- Body: `textQuery`, `regionCode: "BR"`, `languageCode: "pt-BR"`, `maxResultCount: 20`
-- Paginacao: usa `pageToken` do response para buscar proxima pagina
-- Repete ate atingir o limite solicitado (max 200) ou nao ter mais pageToken
-- Salva no banco via upsert usando `google_place_id` como chave unica
-- Extrai cidade/UF dos `addressComponents` retornados pelo Google
+### Fase 3 - Dashboard de Inteligencia Comercial
 
-#### 3. Nova pagina "Mineracao de Leads" em `/dashboard/comercial/mineracao`
+Uma nova pagina `/dashboard/comercial/inteligencia` com:
 
-**Area de busca (topo)**:
-- Campo de texto para query livre (ex: "supermercados", "distribuidora de alimentos")
-- Select de Estado (usando dados `ibge_estados` ja carregados)
-- Select de Cidade (filtrado por estado, usando `ibge_municipios`)
-- Slider ou select de quantidade maxima (20, 60, 100, 200)
-- Botao "Minerar Leads" com indicador de progresso
+**Painel Superior - KPIs Globais:**
+- Penetracao Nacional (405 cidades atendidas / 5.571 = 7,3%)
+- Cobertura de Prospecao (41 cidades em prospecao)
+- Pipeline de Mineracao (4 cidades mineradas)
+- Market Size (populacao total das regioes atendidas)
 
-**Cards de resumo**:
-- Total minerados (todos os tempos)
-- Novos (nao triados)
-- Qualificados
-- Convertidos em prospects
+**Tabela Cruzada Principal (o coracao do painel):**
 
-**Tabela de leads minerados**:
-- Colunas: Nome, Telefone, Cidade/UF, Rating (estrelas), Avaliacoes, Website, Status, Acoes
-- Filtros: por status (novo/qualificado/descartado/convertido), por cidade, por rating minimo
-- Selecao multipla com checkbox
-- Acoes por lead:
-  - Ver detalhes (dialog completo)
-  - Qualificar / Descartar
-  - Converter em Prospect (cria registro na tabela `prospects` com dados mapeados)
-  - Copiar telefone
-- Acoes em lote:
-  - Converter selecionados em Prospects
-  - Qualificar selecionados
-  - Descartar selecionados
+| UF | Municipios | Com Clientes | Penetracao | Prospects | Leads | Cobertura | PIB Regiao | Pop. |
+|----|-----------|-------------|-----------|----------|-------|----------|-----------|------|
+| SP | 645 | 156 | 24,2% | 24 | 24 | 100% | R$ X bi | Y mi |
+| GO | 246 | 47 | 19,1% | 0 | 0 | 0% | R$ X bi | Y mi |
+| PE | 185 | 0 | 0% | 50 | 0 | - | R$ X bi | Y mi |
 
-**Conversao para Prospect**: ao converter, mapeia os campos assim:
+Colunas da tabela:
+- UF, Total Municipios (IBGE), Municipios com Clientes ERP, % Penetracao
+- Qtde Clientes ERP, Qtde Prospects, Qtde Leads Minerados
+- % Cobertura (prospects+clientes / leads), PIB, Populacao
+- Vendedor(es) responsavel(eis)
 
-| Lead minerado | Prospect |
-|---------------|----------|
-| nome | nome_empresa / nome_fantasia |
-| telefone | telefone |
-| endereco | endereco |
-| cidade | municipio |
-| uf | uf |
-| cep | cep |
-| website | url_company_page |
-| cnpj | cnpj |
-| tipos | segmento (primeiro tipo traduzido) |
+**Grafico de Penetracao por UF** (barras horizontais com Recharts)
 
-O lead recebe status "convertido" e o `convertido_prospect_id` aponta para o novo prospect.
+**Mapa de Calor** (tabela com cores de intensidade por penetracao)
 
-#### 4. Alteracoes em arquivos existentes
+### Fase 4 - Distribuicao Automatica de Leads por Territorio
 
-- **App.tsx**: Nova rota `/dashboard/comercial/mineracao` com lazy load
-- **AppSidebar.tsx**: Novo item "Mineracao de Leads" no menu Comercial (icone Search ou Pickaxe)
-- **ComercialModule.tsx**: Novo card de acesso rapido e link na categoria "Prospecao" nos modulos secundarios
-- **supabase/config.toml**: Registro da nova edge function `google-places-search` com `verify_jwt = true`
+Ao converter leads em prospects, o sistema:
+1. Identifica a cidade/UF do lead
+2. Busca o vendedor atribuido aquele territorio
+3. Atribui automaticamente o `vendedor_id` no prospect
 
-#### 5. Pre-requisito: API Key
+---
 
-Sera solicitada a configuracao da secret **GOOGLE_PLACES_API_KEY** antes de prosseguir com o codigo. Para obter:
-1. Acessar console.cloud.google.com
-2. Ativar "Places API (New)"
-3. Criar uma API Key
+## Detalhamento Tecnico
 
-A cota gratuita de 5.000 chamadas/mes (Pro tier) cobre amplamente o uso previsto sem nenhum custo.
+### Migracao SQL
 
-### Arquivos a criar/modificar
+1. Criar tabela `vendedor_territorios` (vendedor_id, uf, microrregiao_id, ativo)
+2. Criar tabela `market_coverage_snapshot` (uf, metricas calculadas, updated_at)
+3. Criar funcao `fn_calcular_cobertura_mercado()` que faz os JOINs e popula o snapshot
+4. Criar funcao `fn_atribuir_vendedor_territorio(cidade, uf)` para auto-atribuicao
+5. RLS policies para ambas as tabelas
 
-| Arquivo | Acao |
-|---------|------|
-| `supabase/functions/google-places-search/index.ts` | Criar (edge function) |
-| `src/pages/LeadMining.tsx` | Criar (pagina de mineracao) |
-| `src/hooks/useLeadMining.ts` | Criar (hook de dados e logica) |
-| `src/App.tsx` | Editar (nova rota) |
-| `src/components/dashboard/AppSidebar.tsx` | Editar (novo item menu) |
-| `src/pages/modules/ComercialModule.tsx` | Editar (card de acesso) |
-| `supabase/config.toml` | Editar (registrar edge function) |
-| Migracao SQL | Criar tabela `leads_minerados` |
+### Novos Componentes React
+
+1. `src/pages/MarketIntelligence.tsx` - Pagina principal do painel
+2. `src/components/comercial/MarketCoverageTable.tsx` - Tabela cruzada com filtros
+3. `src/components/comercial/PenetrationChart.tsx` - Grafico de penetracao
+4. `src/components/comercial/MarketKPICards.tsx` - Cards de KPI no topo
+5. `src/components/comercial/VendedorTerritorioManager.tsx` - Gestao de territorios
+6. `src/hooks/useMarketCoverage.ts` - Hook com queries de cobertura
+
+### Rota
+
+- `/dashboard/comercial/inteligencia` - Registrada no App.tsx dentro do modulo comercial
+- Link adicionado ao `ComercialModule.tsx` na secao "Dados de Mercado"
+
+### Integracao com Fluxo Existente
+
+- O hook `useLeadMining` sera atualizado para usar `fn_atribuir_vendedor_territorio` na conversao
+- A pagina de LeadMining ganha um indicador visual de qual vendedor sera atribuido
+- Os filtros de UF/cidade ja existentes no IBGE sao reaproveitados
 
