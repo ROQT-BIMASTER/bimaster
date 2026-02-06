@@ -101,7 +101,9 @@ export function useClienteReativacao(empresaId?: number | null) {
           let q = query
             .gt("valor_ultima_compra", 0)
             .not("data_ultima_compra", "is", null)
-            .lt("data_ultima_compra", cutoffISO);
+            .lt("data_ultima_compra", cutoffISO)
+            .not("cnpj", "is", null)
+            .gte("cnpj", "00000000000000"); // ensures CNPJ has 14+ chars (complete)
           if (empresaId) {
             q = q.eq("empresa_id", empresaId);
           }
