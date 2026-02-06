@@ -1,114 +1,157 @@
 
+## Mapa Comercial de Ultima Geracno com Google Maps API
 
-## Plano: Normalizar Municípios e Filtrar Clientes sem CNPJ Completo
+### Contexto dos Dados
 
-### Contexto do Problema
+O sistema possui uma base rica para visualizacao geografica:
+- **27.350 clientes** com CNPJ valido, distribuidos em **2.489+ municipios** de todos os estados
+- **233 prospects** em pipeline de vendas
+- **27 leads minerados** (ja com coordenadas do Google Places)
+- Dados de **risco de inatividade** (10.052 inativos >180 dias, representando R$43M+ em potencial)
+- **Dados IBGE** cruzados: populacao, PIB, microrregioes
 
-A base atual possui **35.997 clientes**, dos quais:
-- **27.350** possuem CNPJ completo (14 caracteres)
-- **8.647** possuem CNPJ incompleto ou nulo (serão excluídos das análises)
+### Estrategia: "War Room Geografico"
 
-O cálculo de penetração está distorcido porque o ERP registra variações de nomes de cidades que não correspondem ao padrão IBGE:
-- **DF**: "BRASÍLIA", "BRASILIA", "TAGUATINGA", "VICENTE PIRES" contados como 4 municípios, mas o IBGE reconhece apenas 1 (resultado: 400%)
-- **PR**: 447 variações para 399 municípios IBGE (112%)
-- **RJ**: 100 variações para 92 municípios (108.7%)
-- No total: **821 nomes de cidades** na base não correspondem a nenhum município IBGE
+O mapa nao sera apenas uma visualizacao -- sera um **centro de comando territorial** que revela oportunidades ocultas nos dados. A ideia e que um diretor comercial abra o mapa e em segundos enxergue:
 
-A maioria dos problemas vem de:
-1. Acentos removidos no ERP ("MARINGA" vs "Maringá")
-2. Bairros/regiões administrativas registrados como cidades ("TAGUATINGA" ao invés de "Brasília")
+1. **Onde estamos perdendo clientes** (manchas vermelhas de inatividade)
+2. **Onde temos forca** (clusters azuis de clientes ativos)
+3. **Onde deveríamos estar** (vazios geograficos com potencial IBGE)
+4. **Pipeline em andamento** (prospects/leads sobrepondo o territorio)
 
----
+### O que sera implementado
 
-### O que será feito
+**1. Migracao Mapbox para Google Maps**
 
-**Etapa 1 -- Preparação do Banco**
+- Substituir `mapbox-gl` pela biblioteca `@vis.gl/react-google-maps` (wrapper React oficial do Google)
+- Reutilizar a `GOOGLE_PLACES_API_KEY` ja configurada (mesmo secret, basta habilitar "Maps JavaScript API" e "Visualization" no Google Cloud Console)
+- Criar uma Edge Function `get-google-maps-key` para servir a chave de forma segura
+- Remover dependencia do Mapbox (`mapbox-gl`, `get-mapbox-token`, `geocode-address`)
 
-- Instalar a extensão `unaccent` no PostgreSQL para comparação sem acentos
-- Adicionar duas novas colunas na tabela `clientes`:
-  - `ibge_municipio_id` (integer, nullable) -- referência ao município IBGE correspondente
-  - `cidade_normalizada` (text, nullable) -- nome oficial IBGE após normalização
-- Criar índice na coluna `ibge_municipio_id` para performance
+**2. Geocodificacao em Lote (Persistente)**
 
-**Etapa 2 -- Função de Normalização em Lote**
+- Adicionar colunas `latitude` e `longitude` nas tabelas `clientes` e `prospects`
+- Criar Edge Function `geocode-batch` que usa a API de Geocoding do Google (incluida no plano gratuito do Places) para processar ~200 registros por execucao
+- A geocodificacao acontece **uma vez** por registro (quando latitude e null) -- nao toda vez que o mapa abre
+- Trigger automatico: quando um cliente novo chega via importacao diaria e a trigger de normalizacao preenche `ibge_municipio_id`, o sistema ja prepara o registro para geocodificacao
 
-Criar uma RPC `fn_normalizar_municipios_clientes()` que:
-1. Para cada cliente com CNPJ completo (14 dígitos), cidade e UF preenchidos
-2. Tenta fazer match entre `UPPER(unaccent(cidade))` e `UPPER(unaccent(ibge_municipios.nome))` na mesma UF
-3. Se encontrar, atualiza `ibge_municipio_id` e `cidade_normalizada` com o nome oficial
-4. Se não encontrar match direto, tenta match por similaridade (substring) para casos como "TAGUATINGA" que deve apontar para "Brasília" no DF
-5. Registra os casos sem match para revisão posterior
+**3. Camadas do Mapa (Multi-Layer)**
 
-**Etapa 3 -- Corrigir todas as RPCs de análise**
+| Camada | Dados | Visual | Insight |
+|--------|-------|--------|---------|
+| **Clientes Ativos** | Compraram nos ultimos 60 dias | Clusters azuis/verdes | Forca comercial |
+| **Clientes em Risco** | 60-180 dias sem compra | Clusters amarelos/laranjas | Urgencia de reativacao |
+| **Clientes Inativos** | >180 dias | Clusters vermelhos | Territorio perdido |
+| **Prospects** | Pipeline de vendas | Marcadores por status (cores do funil) | Expansao em andamento |
+| **Leads Minerados** | Google Places | Marcadores roxos | Oportunidades descobertas |
+| **Heatmap de Densidade** | Todos os clientes | Gradiente de calor | Concentracao geografica |
+| **Vazios de Mercado** | Municipios IBGE sem clientes com populacao >50k | Circulos cinza tracejados | Potencial inexplorado |
 
-Atualizar as seguintes funções para adicionar o filtro de CNPJ completo:
+**4. Painel Lateral Dinamico (Viewport Analytics)**
 
-- `fn_calcular_cobertura_mercado` -- usar `ibge_municipio_id` ao invés de `UPPER(TRIM(cidade))` para contar municípios distintos, e filtrar `LENGTH(TRIM(cnpj)) = 14`
-- `get_portfolio_kpis` -- adicionar `WHERE LENGTH(TRIM(cnpj)) = 14`
-- `get_concentracao_uf` -- adicionar filtro CNPJ
-- `get_faixas_ticket` -- adicionar filtro CNPJ
-- `get_potencial_uf` -- adicionar filtro CNPJ
-- `get_reativacao_kpis` -- adicionar filtro CNPJ
+Ao navegar/zoomear o mapa, um painel lateral atualiza em tempo real:
+- Total de clientes visiveis na area
+- Faturamento potencial (soma de `valor_ultima_compra`)
+- Distribuicao por nivel de risco (barra empilhada)
+- Top 5 clientes por valor na viewport
+- Botao "Exportar Lista" da area visivel
 
-**Etapa 4 -- Atualizar o hook de Reativação**
+**5. Filtros Avancados**
 
-No `useClienteReativacao.ts`, adicionar o filtro de CNPJ na query do `fetchAllRows` para que apenas clientes com CNPJ completo sejam carregados na lista.
+- Filial (empresa_id)
+- Regiao (Norte, Nordeste, Sudeste, Sul, Centro-Oeste)
+- UF especifica
+- Nivel de Risco (Ativo, Atencao, Alerta, Critico, Inativo)
+- Faixa de Ticket (ate R$1k, R$1k-5k, R$5k-20k, >R$20k)
+- Toggles para ligar/desligar cada camada
 
-**Etapa 5 -- Criar relatório de divergências**
+**6. Popup Rico (Customer 360 no Mapa)**
 
-Criar uma nova aba ou seção no dashboard de Inteligência Comercial que mostre:
-- Total de clientes normalizados com sucesso vs. sem match
-- Lista de cidades que não foram normalizadas (agrupadas por UF)
-- Botão para executar a normalização manualmente
+Ao clicar num ponto/cluster:
+- Nome, CNPJ, codigo ERP
+- Telefone/WhatsApp/Email clicaveis
+- Dias sem compra + Badge de risco
+- Valor ultima compra + Valor maior compra
+- Momentum de gasto (barra visual)
+- Comprador responsavel
+- Botao "Ver Detalhes" que abre o ClienteDetailSheet existente
 
----
+**7. Normalizacao Automatica (Trigger)**
 
-### Detalhes Técnicos
+- Trigger `BEFORE INSERT OR UPDATE` na tabela `clientes` para normalizar automaticamente `ibge_municipio_id` e `cidade_normalizada` em cada registro novo ou alterado
+- Isso garante que a carga diaria do n8n ja chega normalizada sem intervencao manual
 
-**Migração SQL principal:**
+### Detalhes Tecnicos
+
+**Migracao SQL:**
 
 ```sql
--- 1. Extensão unaccent
-CREATE EXTENSION IF NOT EXISTS unaccent;
-
--- 2. Novas colunas
+-- Colunas de coordenadas
 ALTER TABLE clientes 
-  ADD COLUMN IF NOT EXISTS ibge_municipio_id integer,
-  ADD COLUMN IF NOT EXISTS cidade_normalizada text;
+  ADD COLUMN IF NOT EXISTS latitude double precision,
+  ADD COLUMN IF NOT EXISTS longitude double precision;
 
-CREATE INDEX idx_clientes_ibge_municipio ON clientes(ibge_municipio_id);
+ALTER TABLE prospects
+  ADD COLUMN IF NOT EXISTS latitude double precision,
+  ADD COLUMN IF NOT EXISTS longitude double precision;
 
--- 3. Função de normalização em lote
-CREATE OR REPLACE FUNCTION fn_normalizar_municipios_clientes()
-RETURNS jsonb ...
--- Match por unaccent + UPPER + TRIM
--- Casos especiais (bairros -> município oficial, ex: DF)
--- Retorna estatísticas: {normalizados, sem_match, total}
+CREATE INDEX idx_clientes_coords 
+  ON clientes(latitude, longitude) WHERE latitude IS NOT NULL;
+CREATE INDEX idx_prospects_coords 
+  ON prospects(latitude, longitude) WHERE latitude IS NOT NULL;
 
--- 4. Atualizar fn_calcular_cobertura_mercado
--- Trocar COUNT(DISTINCT UPPER(TRIM(cidade))) 
--- por COUNT(DISTINCT ibge_municipio_id)
--- Adicionar WHERE cnpj IS NOT NULL AND LENGTH(TRIM(cnpj)) = 14
+-- Trigger de normalizacao automatica
+CREATE OR REPLACE FUNCTION fn_normalizar_cliente_individual()
+RETURNS trigger AS $$ ... $$;
 
--- 5. Atualizar get_portfolio_kpis, get_concentracao_uf, etc.
--- Adicionar filtro CNPJ em todas
+CREATE TRIGGER tr_normalizar_municipio_cliente
+  BEFORE INSERT OR UPDATE ON clientes
+  FOR EACH ROW
+  EXECUTE FUNCTION fn_normalizar_cliente_individual();
 ```
 
-**Fluxo de normalização:**
+**Edge Functions novas:**
+- `get-google-maps-key/index.ts` -- serve a chave do Google Maps (reutiliza `GOOGLE_PLACES_API_KEY`)
+- `geocode-batch/index.ts` -- geocodifica em lote clientes/prospects sem coordenadas via Google Geocoding API
 
-```text
-Cliente ERP               Match Unaccent          Resultado
------------------         ---------------         ------------------
-"MARINGA" / PR    --->    "Maringá" / PR    --->  ibge_municipio_id = 4115200
-"BRASILIA" / DF   --->    "Brasília" / DF   --->  ibge_municipio_id = 5300108
-"TAGUATINGA" / DF --->    sem match direto  --->  Match especial DF -> 5300108
-"FOZ DO IGUACU"   --->    "Foz do Iguaçu"  --->  ibge_municipio_id = 4108304
-```
+**Componentes React novos:**
 
-**Impacto esperado:**
-- DF: de 400% para 100% (1 município)
-- PR: de 112% para valor real (provavelmente ~80-90%)
-- RJ: de 108.7% para valor real
-- 8.647 clientes sem CNPJ completo serão excluídos de todas as métricas
-- Total de clientes nas análises: ~27.350
+| Componente | Funcao |
+|------------|--------|
+| `src/components/comercial/mapa/CommercialMap.tsx` | Componente principal do mapa com Google Maps |
+| `src/components/comercial/mapa/MapFilters.tsx` | Barra de filtros e toggles de camada |
+| `src/components/comercial/mapa/MapSidebar.tsx` | Painel lateral com KPIs da viewport |
+| `src/components/comercial/mapa/MapLegend.tsx` | Legenda interativa das camadas |
+| `src/components/comercial/mapa/MapMarkerPopup.tsx` | Popup rico com dados do cliente |
+| `src/hooks/useCommercialMapData.ts` | Hook para carregar dados geolocalizados |
+| `src/pages/ComercialMapa.tsx` | Nova pagina do mapa no modulo comercial |
 
+**Rota nova:**
+- `/dashboard/comercial/mapa` -- Mapa Comercial (dentro do modulo comercial, nao no modulo de prospects)
+
+**Dependencia nova:**
+- `@vis.gl/react-google-maps` -- Wrapper React oficial do Google Maps
+
+**Requisito no Google Cloud Console (acao do usuario):**
+A `GOOGLE_PLACES_API_KEY` ja esta configurada. O usuario precisa habilitar dois servicos adicionais no Google Cloud Console:
+- "Maps JavaScript API"
+- "Geocoding API"
+
+### Sequencia de Implementacao
+
+1. Migracao SQL (colunas lat/lng + trigger de normalizacao)
+2. Edge Function `get-google-maps-key`
+3. Edge Function `geocode-batch`
+4. Hook `useCommercialMapData` para buscar dados
+5. Componentes do mapa (CommercialMap, MapFilters, MapSidebar, MapLegend, MapMarkerPopup)
+6. Pagina `ComercialMapa` + rota no App.tsx + link no ComercialModule
+7. Testar geocodificacao batch e visualizacao
+
+### Resultado Esperado
+
+O diretor comercial abre o mapa e ve imediatamente:
+- Um mapa do Brasil com **clusters coloridos** indicando saude da carteira
+- **Manchas de calor** mostrando concentracao de negocios
+- **Circulos vazios** em cidades grandes onde nao ha presenca
+- Ao clicar numa regiao, o painel lateral mostra os numeros daquela area
+- Filtrar por "Critico" e ver apenas clientes que precisam de atencao urgente, com WhatsApp a um clique
