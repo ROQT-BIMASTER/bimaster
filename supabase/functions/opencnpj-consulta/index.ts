@@ -150,22 +150,22 @@ serve(async (req) => {
     const apiData: OpenCNPJResponse = await apiResponse.json();
     console.log(`[OpenCNPJ] Dados recebidos para: ${cnpjLimpo}`);
     
-    // Log para debug dos campos de telefone
-    console.log(`[OpenCNPJ] Campos telefone raw:`, JSON.stringify({
-      telefone_1: apiData.telefone_1,
-      telefone_2: apiData.telefone_2,
-      ddd_telefone_1: apiData.ddd_telefone_1,
-      ddd_telefone_2: apiData.ddd_telefone_2,
-      ddd_fax: apiData.ddd_fax,
-      telefone: apiData.telefone,
-    }));
+    // Log ALL keys to identify phone field names
+    console.log(`[OpenCNPJ] ALL API keys:`, Object.keys(apiData).join(', '));
+    console.log(`[OpenCNPJ] Full response:`, JSON.stringify(apiData).substring(0, 2000));
 
-    // Extrair telefone - a API pode usar diferentes formatos
-    const telefone = apiData.ddd_telefone_1 
-      || apiData.telefone_1 
-      || apiData.ddd_telefone_2 
-      || apiData.telefone_2 
-      || apiData.telefone 
+    // Extrair telefone - tentar todos os formatos possíveis da API
+    const buildPhone = (...parts: (string | undefined | null)[]) => {
+      const cleaned = parts.filter(Boolean).join('');
+      return cleaned || null;
+    };
+    
+    const telefone = buildPhone(apiData.ddd_telefone_1, apiData.telefone_1)
+      || buildPhone(apiData.ddd_telefone_2, apiData.telefone_2)
+      || buildPhone((apiData as any).ddd1, (apiData as any).telefone1)
+      || buildPhone((apiData as any).ddd2, (apiData as any).telefone2)
+      || apiData.telefone
+      || (apiData as any).phone
       || null;
 
     // Montar resposta padronizada
