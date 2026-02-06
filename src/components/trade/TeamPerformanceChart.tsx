@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
-import { TrendingUp, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { TrendingUp, Trophy, Medal } from "lucide-react";
 import { toast } from "sonner";
+import { ProfileAvatarUpload } from "@/components/shared/ProfileAvatarUpload";
 
 interface TeamMemberStats {
   id: string;
   nome: string;
+  email: string;
   role: string;
+  avatar_url: string | null;
   total_visitas: number;
   concluidas: number;
   em_andamento: number;
@@ -20,6 +24,7 @@ interface TeamMemberStats {
 export const TeamPerformanceChart = () => {
   const [stats, setStats] = useState<TeamMemberStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTeamPerformance();
@@ -29,8 +34,8 @@ export const TeamPerformanceChart = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setCurrentUserId(user.id);
 
-      // Buscar role do usuário
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
@@ -39,23 +44,18 @@ export const TeamPerformanceChart = () => {
 
       let teamMemberIds: string[] = [];
 
-      // Se for admin, busca todos os usuários
-      if (roleData?.role === 'admin') {
-        const { data: profiles } = await supabase
+      if (roleData?.role === 'admin' || roleData?.role === 'gerente') {
+        const { data: profiles } = await (supabase
           .from("profiles")
-          .select("id")
-          .eq("aprovado", true);
-        
-        teamMemberIds = profiles?.map(p => p.id) || [];
+          .select("id") as any)
+          .eq("status", "ativo");
+        teamMemberIds = profiles?.map((p: any) => p.id) || [];
       } else if (roleData?.role === 'supervisor') {
-        // Se for supervisor, busca subordinados
         const { data: subordinados } = await supabase
           .rpc('get_subordinados', { _user_id: user.id });
-
         if (subordinados) {
           teamMemberIds = subordinados.map((s: any) => s.subordinado_id);
         }
-        // Adicionar o próprio supervisor
         teamMemberIds.push(user.id);
       }
 
@@ -65,77 +65,58 @@ export const TeamPerformanceChart = () => {
         return;
       }
 
-      // Buscar visitas de cada membro
+      // Buscar visitas
       const { data: visits, error: visitsError } = await supabase
         .from("visits")
         .select("user_id, status")
         .in("user_id", teamMemberIds);
-
       if (visitsError) throw visitsError;
 
-      // Buscar informações dos usuários
-      const { data: profiles, error: profilesError } = await supabase
+      // Buscar profiles com avatar_url
+      const { data: profiles, error: profilesError } = await (supabase
         .from("profiles")
-        .select("id, nome")
-        .in("id", teamMemberIds) as { data: any[] | null; error: any };
-      
-      // Buscar roles separadamente para evitar tipos muito profundos
+        .select("id, nome, email, avatar_url") as any)
+        .in("id", teamMemberIds);
+      if (profilesError) throw profilesError;
+
+      // Buscar roles
       const { data: userRoles } = await supabase
         .from("user_roles")
         .select("user_id, role")
         .in("user_id", teamMemberIds);
 
-      if (profilesError) throw profilesError;
-
-      // Calcular estatísticas por usuário
-      const memberStats: TeamMemberStats[] = profiles?.map(profile => {
+      const memberStats: TeamMemberStats[] = (profiles || []).map((profile: any) => {
         const userVisits = visits?.filter(v => v.user_id === profile.id) || [];
         const concluidas = userVisits.filter(v => v.status === 'completed').length;
         const total = userVisits.length;
         const em_andamento = userVisits.filter(v => v.status === 'in_progress').length;
         const agendadas = userVisits.filter(v => v.status === 'scheduled').length;
         const canceladas = userVisits.filter(v => v.status === 'cancelled').length;
-        
-        // Buscar role do usuário
         const userRole = userRoles?.find(r => r.user_id === profile.id);
 
         return {
           id: profile.id,
           nome: profile.nome,
+          email: profile.email || '',
           role: userRole?.role || 'vendedor',
+          avatar_url: profile.avatar_url,
           total_visitas: total,
           concluidas,
           em_andamento,
           agendadas,
           canceladas,
-          taxa_conclusao: total > 0 ? Math.round((concluidas / total) * 100) : 0
+          taxa_conclusao: total > 0 ? Math.round((concluidas / total) * 100) : 0,
         };
-      }) || [];
+      });
 
-      // Ordenar por taxa de conclusão (decrescente)
+      // Ordenar por taxa de conclusão
       memberStats.sort((a, b) => b.taxa_conclusao - a.taxa_conclusao);
-
       setStats(memberStats);
     } catch (error) {
       console.error("Erro ao buscar performance:", error);
       toast.error("Erro ao carregar dados de performance");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'hsl(var(--chart-1))';
-      case 'supervisor':
-        return 'hsl(var(--chart-2))';
-      case 'vendedor':
-        return 'hsl(var(--chart-3))';
-      case 'promotor':
-        return 'hsl(var(--chart-4))';
-      default:
-        return 'hsl(var(--chart-5))';
     }
   };
 
@@ -165,19 +146,116 @@ export const TeamPerformanceChart = () => {
     );
   }
 
-  // Dados para o gráfico de barras (visitas por status)
   const chartData = stats.map(member => ({
-    nome: member.nome.split(' ')[0], // Apenas primeiro nome
+    nome: member.nome.split(' ')[0],
     Concluídas: member.concluidas,
     'Em Andamento': member.em_andamento,
     Agendadas: member.agendadas,
     total: member.total_visitas,
-    taxa: member.taxa_conclusao
+    taxa: member.taxa_conclusao,
   }));
 
+  const getRankMedal = (position: number) => {
+    if (position === 1) return "🥇";
+    if (position === 2) return "🥈";
+    if (position === 3) return "🥉";
+    return `${position}º`;
+  };
+
+  const getRoleLabel = (role: string) => {
+    const labels: Record<string, string> = {
+      admin: "Admin",
+      gerente: "Gerente",
+      supervisor: "Supervisor",
+      vendedor: "Vendedor",
+      promotor: "Promotor",
+    };
+    return labels[role] || role;
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Gráfico de Barras - Visitas por Status */}
+    <div className="space-y-6">
+      {/* Ranking da Equipe */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-amber-500" />
+            Ranking da Equipe
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {stats.map((member, idx) => {
+              const isCurrentUser = member.id === currentUserId;
+              return (
+                <div
+                  key={member.id}
+                  className={`flex items-center gap-4 p-3 rounded-lg border transition-colors ${
+                    idx === 0 ? "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800" :
+                    idx === 1 ? "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700" :
+                    idx === 2 ? "bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800" :
+                    isCurrentUser ? "bg-primary/5 border-primary/20" :
+                    "bg-card border-border"
+                  }`}
+                >
+                  {/* Posição */}
+                  <div className="w-10 text-center shrink-0">
+                    <span className={`text-lg font-bold ${idx < 3 ? "" : "text-muted-foreground"}`}>
+                      {getRankMedal(idx + 1)}
+                    </span>
+                  </div>
+
+                  {/* Avatar */}
+                  <ProfileAvatarUpload
+                    userId={member.id}
+                    currentAvatarUrl={member.avatar_url}
+                    userName={member.nome}
+                    size="md"
+                    editable={isCurrentUser}
+                    onUploadComplete={() => fetchTeamPerformance()}
+                  />
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold truncate">{member.nome}</span>
+                      {isCurrentUser && (
+                        <Badge variant="secondary" className="text-[10px] px-1 py-0">Você</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                      <Badge variant="outline" className="text-[10px] px-1 py-0">
+                        {getRoleLabel(member.role)}
+                      </Badge>
+                      <span>{member.total_visitas} visitas</span>
+                      <span>•</span>
+                      <span className="text-green-600">{member.concluidas} concluídas</span>
+                    </div>
+                  </div>
+
+                  {/* Taxa de conclusão */}
+                  <div className="text-right shrink-0">
+                    <div className="text-2xl font-bold">{member.taxa_conclusao}%</div>
+                    <div className="text-[10px] text-muted-foreground">conclusão</div>
+                  </div>
+
+                  {/* Barra de progresso */}
+                  <div className="w-20 shrink-0">
+                    <div className="w-full bg-secondary rounded-full h-2">
+                      <div
+                        className="bg-primary h-2 rounded-full transition-all"
+                        style={{ width: `${member.taxa_conclusao}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Gráfico de Barras */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -189,27 +267,27 @@ export const TeamPerformanceChart = () => {
           <ResponsiveContainer width="100%" height={400}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis 
-                dataKey="nome" 
+              <XAxis
+                dataKey="nome"
                 className="text-xs"
                 tick={{ fill: 'hsl(var(--foreground))' }}
               />
-              <YAxis 
+              <YAxis
                 className="text-xs"
                 tick={{ fill: 'hsl(var(--foreground))' }}
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{
                   backgroundColor: 'hsl(var(--background))',
                   border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px'
+                  borderRadius: '8px',
                 }}
                 labelStyle={{ color: 'hsl(var(--foreground))' }}
               />
-              <Legend 
-                wrapperStyle={{ 
+              <Legend
+                wrapperStyle={{
                   paddingTop: '20px',
-                  color: 'hsl(var(--foreground))'
+                  color: 'hsl(var(--foreground))',
                 }}
               />
               <Bar dataKey="Concluídas" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
@@ -220,17 +298,27 @@ export const TeamPerformanceChart = () => {
         </CardContent>
       </Card>
 
-      {/* Cards de Performance Individual */}
+      {/* Cards Individuais */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {stats.map((member) => (
+        {stats.map((member, idx) => (
           <Card key={member.id}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center justify-between">
-                <span className="truncate">{member.nome}</span>
-                <div 
-                  className="w-3 h-3 rounded-full" 
-                  style={{ backgroundColor: getRoleColor(member.role) }}
+              <CardTitle className="text-sm font-medium flex items-center gap-3">
+                <ProfileAvatarUpload
+                  userId={member.id}
+                  currentAvatarUrl={member.avatar_url}
+                  userName={member.nome}
+                  size="sm"
+                  editable={member.id === currentUserId}
+                  onUploadComplete={() => fetchTeamPerformance()}
                 />
+                <div className="flex-1 min-w-0">
+                  <span className="truncate block">{member.nome}</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">
+                    {getRoleLabel(member.role)}
+                  </span>
+                </div>
+                <span className="text-lg shrink-0">{getRankMedal(idx + 1)}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -256,7 +344,7 @@ export const TeamPerformanceChart = () => {
                   <span className="text-lg font-bold">{member.taxa_conclusao}%</span>
                 </div>
                 <div className="mt-2 w-full bg-secondary rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-primary h-2 rounded-full transition-all"
                     style={{ width: `${member.taxa_conclusao}%` }}
                   />

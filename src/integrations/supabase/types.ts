@@ -11722,6 +11722,7 @@ export type Database = {
       profiles: {
         Row: {
           aprovado: boolean
+          avatar_url: string | null
           created_at: string | null
           departamento_id: string | null
           email: string
@@ -11734,6 +11735,7 @@ export type Database = {
         }
         Insert: {
           aprovado?: boolean
+          avatar_url?: string | null
           created_at?: string | null
           departamento_id?: string | null
           email: string
@@ -11746,6 +11748,7 @@ export type Database = {
         }
         Update: {
           aprovado?: boolean
+          avatar_url?: string | null
           created_at?: string | null
           departamento_id?: string | null
           email?: string

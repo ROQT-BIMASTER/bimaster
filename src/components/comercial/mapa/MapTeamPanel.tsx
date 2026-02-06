@@ -5,7 +5,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Users,
-  Trophy,
   ChevronDown,
   ChevronRight,
   MapPin,
@@ -20,7 +19,6 @@ import type { MapTeamMember, MapTeamGroup } from "@/hooks/useMapTeamData";
 
 interface MapTeamPanelProps {
   hierarchy: MapTeamGroup[];
-  ranking: MapTeamMember[];
   selfProfile: MapTeamMember | null;
   hasFullVisibility: boolean;
   isLoading: boolean;
@@ -48,23 +46,12 @@ const getRoleLabel = (role: string) => {
   return labels[role] || role;
 };
 
-const getRankBadge = (position: number) => {
-  if (position === 1) return <span className="text-sm">🥇</span>;
-  if (position === 2) return <span className="text-sm">🥈</span>;
-  if (position === 3) return <span className="text-sm">🥉</span>;
-  return <span className="text-xs font-mono text-muted-foreground w-4 text-center">{position}</span>;
-};
-
 export function MapTeamPanel({
   hierarchy,
-  ranking,
   selfProfile,
   hasFullVisibility,
   isLoading,
 }: MapTeamPanelProps) {
-  const [showHierarchy, setShowHierarchy] = useState(true);
-  const [showRanking, setShowRanking] = useState(true);
-
   if (isLoading) {
     return (
       <Card>
@@ -106,70 +93,27 @@ export function MapTeamPanel({
 
       {/* Hierarquia */}
       <Card>
-        <Collapsible open={showHierarchy} onOpenChange={setShowHierarchy}>
-          <CollapsibleTrigger className="w-full">
-            <CardHeader className="p-3 pb-1 cursor-pointer hover:bg-muted/50 rounded-t-lg transition-colors">
-              <CardTitle className="text-xs flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5 text-blue-500" />
-                Hierarquia
-                {showHierarchy ? (
-                  <ChevronDown className="h-3 w-3 ml-auto text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground" />
-                )}
-              </CardTitle>
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="p-2 pt-0">
-              <ScrollArea className="max-h-[200px]">
-                <div className="space-y-2">
-                  {hierarchy.length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-2">
-                      Nenhum membro na equipe
-                    </p>
-                  )}
-                  {hierarchy.map((group, idx) => (
-                    <HierarchyGroup key={group.supervisor?.id || `group-${idx}`} group={group} />
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
+        <CardHeader className="p-3 pb-1">
+          <CardTitle className="text-xs flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5 text-blue-500" />
+            Hierarquia
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-2 pt-0">
+          <ScrollArea className="max-h-[300px]">
+            <div className="space-y-2">
+              {hierarchy.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  Nenhum membro na equipe
+                </p>
+              )}
+              {hierarchy.map((group, idx) => (
+                <HierarchyGroup key={group.supervisor?.id || `group-${idx}`} group={group} />
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
       </Card>
-
-      {/* Ranking */}
-      {ranking.length > 0 && (
-        <Card>
-          <Collapsible open={showRanking} onOpenChange={setShowRanking}>
-            <CollapsibleTrigger className="w-full">
-              <CardHeader className="p-3 pb-1 cursor-pointer hover:bg-muted/50 rounded-t-lg transition-colors">
-                <CardTitle className="text-xs flex items-center gap-1.5">
-                  <Trophy className="h-3.5 w-3.5 text-amber-500" />
-                  Ranking (90 dias)
-                  {showRanking ? (
-                    <ChevronDown className="h-3 w-3 ml-auto text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground" />
-                  )}
-                </CardTitle>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="p-2 pt-0">
-                <ScrollArea className="max-h-[220px]">
-                  <div className="space-y-1">
-                    {ranking.map((member, idx) => (
-                      <RankingRow key={member.id} member={member} position={idx + 1} />
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </Card>
-      )}
     </div>
   );
 }
@@ -211,46 +155,10 @@ function HierarchyGroup({ group }: { group: MapTeamGroup }) {
             >
               {getRoleIcon(member.role)}
               <span className="truncate flex-1">{member.nome}</span>
-              {member.total_visitas > 0 && (
-                <span className="text-[10px] text-muted-foreground shrink-0" title="Visitas (90d)">
-                  {member.total_visitas}v
-                </span>
-              )}
             </div>
           ))}
         </div>
       </CollapsibleContent>
     </Collapsible>
-  );
-}
-
-function RankingRow({ member, position }: { member: MapTeamMember; position: number }) {
-  const score = member.total_visitas * 3 + member.total_prospects * 2 + member.total_clientes_territorio;
-
-  return (
-    <div className="flex items-center gap-1.5 px-1 py-1 rounded hover:bg-muted/30 transition-colors">
-      <div className="w-5 flex justify-center shrink-0">
-        {getRankBadge(position)}
-      </div>
-      {getRoleIcon(member.role)}
-      <div className="flex-1 min-w-0">
-        <span className="text-xs font-medium truncate block">{member.nome}</span>
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0 text-[10px]">
-        {member.total_visitas > 0 && (
-          <span className="text-green-600" title="Visitas">
-            {member.total_visitas}v
-          </span>
-        )}
-        {member.total_prospects > 0 && (
-          <span className="text-blue-600" title="Prospects">
-            {member.total_prospects}p
-          </span>
-        )}
-        {score === 0 && (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </div>
-    </div>
   );
 }
