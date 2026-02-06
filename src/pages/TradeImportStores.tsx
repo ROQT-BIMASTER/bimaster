@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const TradeImportStores = () => {
+  const queryClient = useQueryClient();
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -254,6 +256,7 @@ const TradeImportStores = () => {
       } else {
         toast.success(`${inserted?.length || 0} lojas importadas com sucesso!`);
         setFile(null);
+        queryClient.invalidateQueries({ queryKey: ['filtered-stores'] });
 
         // Enriquecer dados via CNPJ se flag ativa
         if (enriquecerDados && inserted && inserted.length > 0) {
@@ -382,6 +385,7 @@ const TradeImportStores = () => {
       toast.success(`${inserted?.length || 0} lojas importadas com sucesso via IA!`);
       setTextoIA("");
       setPdfIA(null);
+      queryClient.invalidateQueries({ queryKey: ['filtered-stores'] });
 
       // Enriquecer dados via CNPJ se flag ativa
       if (enriquecerDados && inserted && inserted.length > 0) {
