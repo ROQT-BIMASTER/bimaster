@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import type { PaymentQueueItem, SourceType, PaymentQueueStatus } from "@/hooks/useFinancialPaymentQueue";
 import { AttachmentAcknowledgement } from "./AttachmentAcknowledgement";
 import { SupplierDetailsCard } from "./SupplierDetailsCard";
+import { SupplierPaymentHistory } from "./SupplierPaymentHistory";
 
 interface PaymentReviewDialogProps {
   open: boolean;
@@ -199,6 +200,13 @@ export function PaymentReviewDialog({
               </div>
             </CardContent>
           </Card>
+
+          {/* Histórico de pagamentos do fornecedor */}
+          <SupplierPaymentHistory
+            supplierName={item.supplier_name}
+            supplierDocument={item.supplier_document}
+            currentItemId={item.id}
+          />
 
           {/* Rastreabilidade */}
           <Card>
