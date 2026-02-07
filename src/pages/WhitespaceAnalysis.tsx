@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link } from "react-router-dom";
 import { ChevronRight, Compass } from "lucide-react";
@@ -10,14 +11,19 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { REGIOES, REGIOES_UFS } from "@/lib/constants/regioes";
-import { useWhitespaceAnalysis } from "@/hooks/useWhitespaceAnalysis";
+import { useWhitespaceAnalysis, type WhitespaceRow } from "@/hooks/useWhitespaceAnalysis";
 import { WhitespaceKPICards } from "@/components/comercial/whitespace/WhitespaceKPICards";
 import { WhitespaceMicroChart } from "@/components/comercial/whitespace/WhitespaceMicroChart";
 import { WhitespaceTable } from "@/components/comercial/whitespace/WhitespaceTable";
+import { WhitespaceMunicipioSheet } from "@/components/comercial/whitespace/WhitespaceMunicipioSheet";
+import Cliente360Drawer from "@/components/financeiro/cliente360/Cliente360Drawer";
 
 const ALL_UFS = Object.values(REGIOES_UFS).flat().sort();
 
 const WhitespaceAnalysis = () => {
+  const [selectedRow, setSelectedRow] = useState<WhitespaceRow | null>(null);
+  const [cliente360Codigo, setCliente360Codigo] = useState<string | null>(null);
+
   const {
     filters,
     sort,
@@ -143,6 +149,21 @@ const WhitespaceAnalysis = () => {
           filters={filters}
           onSort={updateSort}
           onPageChange={setPage}
+          onRowClick={setSelectedRow}
+        />
+
+        {/* Drill-down sheets */}
+        <WhitespaceMunicipioSheet
+          row={selectedRow}
+          open={!!selectedRow}
+          onClose={() => setSelectedRow(null)}
+          onOpenCliente360={(codigo) => setCliente360Codigo(codigo)}
+        />
+
+        <Cliente360Drawer
+          clienteCodigo={cliente360Codigo}
+          open={!!cliente360Codigo}
+          onClose={() => setCliente360Codigo(null)}
         />
       </div>
     </DashboardLayout>

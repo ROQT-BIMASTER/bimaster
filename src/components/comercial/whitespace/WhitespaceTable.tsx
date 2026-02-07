@@ -27,6 +27,7 @@ interface Props {
   filters: { uf: string | null; regiao: string | null; minPenetracao: number };
   onSort: (column: string) => void;
   onPageChange: (page: number) => void;
+  onRowClick: (row: WhitespaceRow) => void;
 }
 
 const formatNumber = (n: number) => new Intl.NumberFormat("pt-BR").format(n);
@@ -68,6 +69,7 @@ export function WhitespaceTable({
   filters,
   onSort,
   onPageChange,
+  onRowClick,
 }: Props) {
 
   const handleExport = useCallback(async () => {
@@ -189,7 +191,11 @@ export function WhitespaceTable({
               </TableRow>
             ) : (
               data.map((row, i) => (
-                <TableRow key={row.municipio_id}>
+                <TableRow
+                  key={row.municipio_id}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => onRowClick(row)}
+                >
                   <TableCell className="text-xs font-mono text-muted-foreground">
                     {page * pageSize + i + 1}
                   </TableCell>
