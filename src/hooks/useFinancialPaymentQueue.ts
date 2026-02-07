@@ -133,10 +133,38 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
       );
       
       // Parse attachments from JSONB
-      return data.map(item => ({
+      const items = data.map(item => ({
         ...item,
         attachments: (item.attachments as unknown as PaymentAttachment[]) || [],
       })) as PaymentQueueItem[];
+
+      // Resolve user names from profiles
+      const userIds = new Set<string>();
+      items.forEach(item => {
+        if (item.requested_by) userIds.add(item.requested_by);
+        if (item.reviewed_by) userIds.add(item.reviewed_by);
+      });
+
+      if (userIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, nome')
+          .in('id', Array.from(userIds));
+
+        if (profiles) {
+          const nameMap = new Map(profiles.map(p => [p.id, p.nome]));
+          items.forEach(item => {
+            if (item.requested_by) {
+              item.requester_name = nameMap.get(item.requested_by) || undefined;
+            }
+            if (item.reviewed_by) {
+              item.reviewer_name = nameMap.get(item.reviewed_by) || undefined;
+            }
+          });
+        }
+      }
+
+      return items;
     },
   });
 

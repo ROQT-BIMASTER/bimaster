@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip } from "lucide-react";
+import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -196,6 +196,60 @@ export function PaymentReviewDialog({
                     {format(new Date(item.requested_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Rastreabilidade */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <span className="font-medium">Rastreabilidade</span>
+              </div>
+              <div className="space-y-3">
+                {/* Solicitante */}
+                <div className="flex items-start gap-3">
+                  <UserCircle className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">
+                      Solicitado por: {item.requester_name || 'Usuário não identificado'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(item.requested_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Revisor */}
+                {item.reviewed_by && (
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        Revisado por: {item.reviewer_name || 'Usuário não identificado'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          {item.reviewed_at && format(new Date(item.reviewed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                        <Badge variant="outline" className="text-xs">
+                          {statusConfig[item.financial_status]?.label}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Empresa/Filial */}
+                {item.empresa_nome && (
+                  <div className="flex items-start gap-3">
+                    <Building2 className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Empresa: {item.empresa_nome}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
