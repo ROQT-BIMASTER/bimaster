@@ -1,47 +1,36 @@
 import { useMemo } from "react";
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MunicipioIntelligence } from "@/hooks/useMunicipiosIntelligence";
+import { MunicipiosKPIs } from "@/hooks/useMunicipiosIntelligence";
+import { SmartValue } from "@/components/ui/smart-value";
+import { MapPin, Users, TrendingUp, Globe } from "lucide-react";
 
-interface MunicipiosScatterChartProps {
-  data: MunicipioIntelligence[];
+interface MunicipiosCoberturaChartProps {
+  kpis: MunicipiosKPIs | undefined;
   loading: boolean;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  Ativo: '#22c55e',
-  Prospect: '#eab308',
-  Lead: '#3b82f6',
-  Virgem: '#9ca3af',
-};
+const STATUS_CONFIG = [
+  { key: 'Ativo', label: 'Ativos', color: '#22c55e', icon: TrendingUp },
+  { key: 'Prospect', label: 'Prospects', color: '#eab308', icon: Users },
+  { key: 'Lead', label: 'Leads', color: '#3b82f6', icon: MapPin },
+  { key: 'Virgem', label: 'Inexplorados', color: '#9ca3af', icon: Globe },
+] as const;
 
-function formatAxisValue(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(0)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K`;
-  return value.toString();
-}
-
-export function MunicipiosScatterChart({ data, loading }: MunicipiosScatterChartProps) {
+export function MunicipiosScatterChart({ kpis, loading }: MunicipiosCoberturaChartProps) {
   const chartData = useMemo(() => {
-    // Only show municipalities with PIB data, sample for performance
-    const filtered = data.filter(d => d.pib_per_capita > 0);
-    // If too many points, sample
-    if (filtered.length > 300) {
-      const sampled: MunicipioIntelligence[] = [];
-      // Always include active ones
-      const ativos = filtered.filter(d => d.status_comercial === 'Ativo');
-      const prospects = filtered.filter(d => d.status_comercial === 'Prospect');
-      const others = filtered.filter(d => d.status_comercial !== 'Ativo' && d.status_comercial !== 'Prospect');
-      sampled.push(...ativos);
-      sampled.push(...prospects);
-      // Sample virgens by PIB (top ones)
-      const sorted = others.sort((a, b) => b.pib_per_capita - a.pib_per_capita);
-      sampled.push(...sorted.slice(0, 300 - ativos.length - prospects.length));
-      return sampled;
-    }
-    return filtered;
-  }, [data]);
+    if (!kpis) return [];
+    return [
+      { name: 'Ativos', value: kpis.municipios_atendidos, color: '#22c55e' },
+      { name: 'Prospects', value: kpis.municipios_prospect, color: '#eab308' },
+      { name: 'Leads', value: kpis.municipios_lead, color: '#3b82f6' },
+      { name: 'Inexplorados', value: kpis.municipios_virgem, color: '#9ca3af' },
+    ].filter(d => d.value > 0);
+  }, [kpis]);
+
+  const totalMunicipios = kpis?.total_municipios || 0;
+  const taxaPenetracao = kpis?.taxa_penetracao || 0;
 
   if (loading) {
     return (
@@ -59,66 +48,111 @@ export function MunicipiosScatterChart({ data, loading }: MunicipiosScatterChart
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">PIB per Capita vs Receita</CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">Cobertura Comercial Municipal</CardTitle>
         <CardDescription>
-          Identifique municípios ricos onde a empresa ainda não atua. Tamanho = População. Cor = Status.
+          Distribuição de status entre todos os municípios filtrados
         </CardDescription>
-        <div className="flex gap-4 mt-2">
-          {Object.entries(STATUS_COLORS).map(([status, color]) => (
-            <div key={status} className="flex items-center gap-1.5 text-xs">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-muted-foreground">{status}</span>
-            </div>
-          ))}
-        </div>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
-          <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-            <XAxis
-              type="number"
-              dataKey="pib_per_capita"
-              name="PIB per Capita"
-              tickFormatter={formatAxisValue}
-              label={{ value: 'PIB per Capita (R$)', position: 'bottom', offset: 0, style: { fontSize: 11 } }}
-            />
-            <YAxis
-              type="number"
-              dataKey="receita_total"
-              name="Receita"
-              tickFormatter={formatAxisValue}
-              label={{ value: 'Receita (R$)', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }}
-            />
-            <Tooltip
-              content={({ payload }) => {
-                if (!payload?.[0]) return null;
-                const d = payload[0].payload as MunicipioIntelligence;
+        <div className="flex flex-col md:flex-row items-center gap-6">
+          {/* Donut Chart */}
+          <div className="relative w-[220px] h-[220px] flex-shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={65}
+                  outerRadius={100}
+                  paddingAngle={2}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {chartData.map((entry, idx) => (
+                    <Cell key={idx} fill={entry.color} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            {/* Center label */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-3xl font-bold text-foreground">{taxaPenetracao.toFixed(1)}%</span>
+              <span className="text-xs text-muted-foreground">penetração</span>
+              <span className="text-xs text-muted-foreground mt-0.5">
+                {totalMunicipios.toLocaleString('pt-BR')} mun.
+              </span>
+            </div>
+          </div>
+
+          {/* Right side: Legend + Metrics */}
+          <div className="flex-1 space-y-5 min-w-0">
+            {/* Legend */}
+            <div className="grid grid-cols-2 gap-2.5">
+              {STATUS_CONFIG.map((status) => {
+                const value = status.key === 'Ativo'
+                  ? kpis?.municipios_atendidos || 0
+                  : status.key === 'Prospect'
+                  ? kpis?.municipios_prospect || 0
+                  : status.key === 'Lead'
+                  ? kpis?.municipios_lead || 0
+                  : kpis?.municipios_virgem || 0;
+                
+                const pct = totalMunicipios > 0 ? ((value / totalMunicipios) * 100).toFixed(1) : '0';
+
                 return (
-                  <div className="bg-popover border rounded-lg p-3 shadow-lg text-sm">
-                    <p className="font-semibold">{d.municipio_nome} - {d.uf_sigla}</p>
-                    <p>PIB/Capita: R$ {d.pib_per_capita.toLocaleString('pt-BR')}</p>
-                    <p>Receita: R$ {d.receita_total.toLocaleString('pt-BR')}</p>
-                    <p>População: {d.populacao.toLocaleString('pt-BR')}</p>
-                    <p>Clientes: {d.total_clientes}</p>
-                    <p>Status: {d.status_comercial}</p>
+                  <div key={status.key} className="flex items-center gap-2 text-sm">
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: status.color }}
+                    />
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-medium text-foreground truncate">
+                        {value.toLocaleString('pt-BR')} {status.label}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{pct}%</span>
+                    </div>
                   </div>
                 );
-              }}
-            />
-            <Scatter data={chartData} fill="#8884d8">
-              {chartData.map((entry, idx) => (
-                <Cell
-                  key={idx}
-                  fill={STATUS_COLORS[entry.status_comercial] || '#9ca3af'}
-                  fillOpacity={0.7}
-                  r={Math.max(3, Math.min(15, Math.sqrt(entry.populacao / 10000)))}
-                />
-              ))}
-            </Scatter>
-          </ScatterChart>
-        </ResponsiveContainer>
+              })}
+            </div>
+
+            {/* Separator */}
+            <div className="border-t border-border" />
+
+            {/* Opportunity Metrics */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Potencial Inexplorado
+              </p>
+              <div className="grid grid-cols-1 gap-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Pop. sem cobertura</span>
+                  <SmartValue
+                    value={(kpis?.populacao_total || 0) * ((kpis?.municipios_virgem || 0) / Math.max(totalMunicipios, 1))}
+                    className="font-semibold text-foreground"
+                    showTooltip={false}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">PIB não explorado</span>
+                  <SmartValue
+                    value={(kpis?.pib_total || 0) * ((kpis?.municipios_virgem || 0) / Math.max(totalMunicipios, 1))}
+                    className="font-semibold text-foreground"
+                    showTooltip={false}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Municípios por ativar</span>
+                  <span className="font-semibold text-foreground">
+                    {((kpis?.municipios_virgem || 0) + (kpis?.municipios_lead || 0) + (kpis?.municipios_prospect || 0)).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
