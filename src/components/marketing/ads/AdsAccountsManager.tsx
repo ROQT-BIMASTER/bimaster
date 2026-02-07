@@ -70,7 +70,7 @@ export function AdsAccountsManager({ onUpdate }: AdsAccountsManagerProps) {
     queryKey: ['ads-accounts-all'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('ads_accounts')
+        .from('ads_accounts_safe')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;

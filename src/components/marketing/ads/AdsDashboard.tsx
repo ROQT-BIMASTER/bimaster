@@ -44,7 +44,7 @@ export function AdsDashboard() {
     queryKey: ['ads-accounts'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('ads_accounts')
+        .from('ads_accounts_safe')
         .select('*')
         .eq('is_active', true)
         .order('platform');
