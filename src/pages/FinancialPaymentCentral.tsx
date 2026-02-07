@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, CreditCard, ArrowLeft, Download, Loader2, LayoutDashboard, CalendarDays } from "lucide-react";
+import { RefreshCw, CreditCard, ArrowLeft, Download, Loader2, LayoutDashboard, CalendarDays, Settings2 } from "lucide-react";
+import { PaymentPolicyConfigDialog } from "@/components/financeiro/payments/PaymentPolicyConfigDialog";
+import { PaymentPolicyBanner } from "@/components/financeiro/payments/PaymentPolicyBanner";
 import { PaymentQueueKPIs } from "@/components/financeiro/payments/PaymentQueueKPIs";
 import { PaymentQueueTable } from "@/components/financeiro/payments/PaymentQueueTable";
 import { PaymentReviewDialog } from "@/components/financeiro/payments/PaymentReviewDialog";
@@ -67,6 +69,7 @@ export default function FinancialPaymentCentral() {
   const [selectedItem, setSelectedItem] = useState<PaymentQueueItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [policyConfigOpen, setPolicyConfigOpen] = useState(false);
 
   // Consolidated dashboard state
   const [datePreset, setDatePreset] = useState<DatePreset>("this_year");
@@ -219,7 +222,17 @@ export default function FinancialPaymentCentral() {
 
           {/* Tab: Fila de Pagamentos */}
           <TabsContent value="fila" className="space-y-6">
-            <div className="flex justify-end gap-2">
+          {/* Payment Policy Banner */}
+          <PaymentPolicyBanner />
+
+          <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => setPolicyConfigOpen(true)}
+              >
+                <Settings2 className="h-4 w-4 mr-2" />
+                Política de Pagamento
+              </Button>
               <Button 
                 variant="outline" 
                 onClick={handleExport}
@@ -353,6 +366,11 @@ export default function FinancialPaymentCentral() {
           onMarkPaid={handleMarkPaid}
           isProcessing={isAccepting || isUpdating}
           onRefresh={refetch}
+        />
+        {/* Policy Config Dialog */}
+        <PaymentPolicyConfigDialog
+          open={policyConfigOpen}
+          onOpenChange={setPolicyConfigOpen}
         />
       </div>
     </DashboardLayout>
