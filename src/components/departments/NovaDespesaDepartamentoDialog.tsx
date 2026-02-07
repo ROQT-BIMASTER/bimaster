@@ -20,6 +20,8 @@ import {
 import { useDepartmentExpenses, DEPARTMENT_EXPENSE_CATEGORIES } from "@/hooks/useDepartmentExpenses";
 import { useDepartmentBudgets } from "@/hooks/useDepartmentBudgets";
 import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
+import { ExpenseReceiptScanner } from "@/components/ai/ExpenseReceiptScanner";
+import { Separator } from "@/components/ui/separator";
 import { Loader2, Plus, FileText, Wallet, Building } from "lucide-react";
 
 interface NovaDespesaDepartamentoDialogProps {
@@ -107,6 +109,20 @@ export function NovaDespesaDepartamentoDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Scanner IA */}
+          <ExpenseReceiptScanner
+            onFieldsExtracted={(fields) => {
+              setFormData((prev) => ({
+                ...prev,
+                category: fields.suggested_category || prev.category,
+                description: fields.description || prev.description,
+                valor_realizado: fields.total_value?.toString() || prev.valor_realizado,
+                expense_date: fields.emission_date || prev.expense_date,
+              }));
+            }}
+          />
+          <Separator />
+
           <div className="space-y-2">
             <Label htmlFor="category">Categoria *</Label>
             <Select

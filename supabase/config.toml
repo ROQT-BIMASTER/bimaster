@@ -208,3 +208,7 @@ verify_jwt = false
 # Geocodificação em lote via Google Geocoding API
 [functions.geocode-batch]
 verify_jwt = false
+
+# Assistente IA para despesas corporativas
+[functions.expense-ai-assistant]
+verify_jwt = false

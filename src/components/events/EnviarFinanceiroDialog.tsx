@@ -34,6 +34,7 @@ import { useEventExpenses, DOCUMENT_TYPES, usePortadores } from "@/hooks/useEven
 import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
+import { FinancialFieldsSuggestion } from "@/components/ai/FinancialFieldsSuggestion";
 import { cn } from "@/lib/utils";
 
 interface Fornecedor {
@@ -167,6 +168,19 @@ export function EnviarFinanceiroDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Sugestões IA */}
+          <FinancialFieldsSuggestion
+            expenseId={expenseId}
+            onApplySuggestions={(fields) => {
+              setFormData((prev) => ({
+                ...prev,
+                document_type: fields.document_type || prev.document_type,
+                portador: fields.portador || prev.portador,
+                due_date: fields.due_date || prev.due_date,
+              }));
+            }}
+          />
+
           {/* Dados do Fornecedor */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
