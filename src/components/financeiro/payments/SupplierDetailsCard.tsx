@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Building2,
   Phone,
@@ -398,7 +399,7 @@ export function SupplierDetailsCard({
         )}
 
         {/* Dados bancários do cadastro local */}
-        {hasBankData && (
+        {hasBankData ? (
           <>
             <Separator />
             <div>
@@ -443,7 +444,28 @@ export function SupplierDetailsCard({
               </div>
             </div>
           </>
-        )}
+        ) : localSupplier && !isLoadingInitial ? (
+          <>
+            <Separator />
+            <Alert variant="destructive" className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 [&>svg]:text-amber-600">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between gap-2">
+                <span className="text-sm">
+                  Fornecedor cadastrado, mas <strong>sem dados bancários</strong>. Atualize o cadastro antes de prosseguir com o pagamento.
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 text-xs gap-1"
+                  onClick={() => window.open(`/dashboard/fabrica/materias-primas`, "_blank")}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Cadastrar
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </>
+        ) : null}
 
         {/* Contato local (se não veio da API) */}
         {localSupplier?.contato && !enrichedData && (
