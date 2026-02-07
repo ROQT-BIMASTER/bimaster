@@ -14,8 +14,8 @@ export function useSupabaseQuery<T>(
     queryKey,
     queryFn: () => withRetry(queryFn, queryKey[0] as string),
     retry: false, // Desabilitar retry do React Query, pois já temos nosso próprio
-    staleTime: 5000, // 5 segundos - dados ficam frescos por menos tempo
-    gcTime: 2 * 60 * 1000, // 2 minutos - cache limpo mais rápido
+    staleTime: 5 * 60 * 1000, // 5 minutos - alinhado com QueryClient global
+    gcTime: 10 * 60 * 1000, // 10 minutos - alinhado com QueryClient global
     refetchOnWindowFocus: true, // Recarrega ao focar na janela
     refetchOnReconnect: true, // Refetch quando reconectar
     refetchInterval: false, // Desabilitar polling automático

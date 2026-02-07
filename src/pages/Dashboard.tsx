@@ -19,6 +19,7 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PushNotificationPrompt } from "@/components/pwa/PushNotificationPrompt";
+import { usePhotoQueueProcessor } from "@/hooks/usePhotoQueueProcessor";
 
 interface PipelineData {
   stage: string;
@@ -50,6 +51,9 @@ const Dashboard = () => {
   const [activityData, setActivityData] = useState<ActivityData[]>([]);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+
+  // Processar fila de fotos apenas para usuários com acesso ao Trade
+  usePhotoQueueProcessor();
 
   // Memoizar verificação de permissões para evitar recálculos
   const hasProspectsPermission = useMemo(() => 

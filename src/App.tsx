@@ -244,7 +244,6 @@ function AppContent() {
             <Route path="/dashboard/qa-agent" element={<ProtectedRoute><QAAgent /></ProtectedRoute>} />
             <Route path="/dashboard/agente-huggs" element={<ProtectedRoute><AgenteHuggs /></ProtectedRoute>} />
             <Route path="/dashboard/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
-            <Route path="/dashboard/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             
             {/* Módulo de Marketing */}
             <Route path="/dashboard/marketing" element={<ProtectedRoute><MarketingModule /></ProtectedRoute>} />
@@ -340,7 +339,6 @@ function AppContent() {
             <Route path="/dashboard/fabrica/fiscal" element={<ProtectedRoute><FabricaFiscal /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/tabela-impostos" element={<ProtectedRoute><FabricaTabelaImpostos /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/ordens-producao" element={<ProtectedRoute><FabricaOrdensProducao /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/ordens-producao" element={<ProtectedRoute><FabricaOrdensProducao /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/apontamentos" element={<ProtectedRoute><FabricaApontamentos /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/qualidade" element={<ProtectedRoute><FabricaQualidade /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/paradas" element={<ProtectedRoute><FabricaParadas /></ProtectedRoute>} />
@@ -432,14 +430,14 @@ const App = () => {
     // Iniciar monitoramento de memória
     memoryMonitor.startMonitoring();
     
-    // Limpar cache antigo a cada 5 minutos
+    // Limpar apenas queries inativas a cada 5 minutos (preserva queries ativas na tela)
     const cacheCleanupInterval = setInterval(() => {
-      queryClient.clear(); // Limpa queries inativas
+      queryClient.removeQueries({ type: 'inactive' });
     }, 5 * 60 * 1000);
     
     // Listener para forçar limpeza quando necessário
     const handleForceCleanup = () => {
-      queryClient.clear();
+      queryClient.removeQueries({ type: 'inactive' });
       memoryManager.forceCleanup();
     };
     

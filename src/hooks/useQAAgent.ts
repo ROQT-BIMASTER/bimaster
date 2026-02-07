@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getAuthHeaders } from "@/lib/utils/auth-headers";
 
 export interface QAMessage {
   id: string;
@@ -63,14 +63,12 @@ export function useQAAgent() {
       }));
       apiMessages.push({ role: "user", content: content.trim() });
 
+      const authHeaders = await getAuthHeaders();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qa-agent`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
-          },
+          headers: authHeaders,
           body: JSON.stringify({ messages: apiMessages }),
           signal: abortControllerRef.current.signal
         }
