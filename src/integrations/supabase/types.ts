@@ -8157,6 +8157,8 @@ export type Database = {
           notes: string | null
           paid_at: string | null
           portador: string | null
+          receipt_sent_at: string | null
+          receipt_url: string | null
           requested_at: string
           requested_by: string | null
           reviewed_at: string | null
@@ -8188,6 +8190,8 @@ export type Database = {
           notes?: string | null
           paid_at?: string | null
           portador?: string | null
+          receipt_sent_at?: string | null
+          receipt_url?: string | null
           requested_at?: string
           requested_by?: string | null
           reviewed_at?: string | null
@@ -8219,6 +8223,8 @@ export type Database = {
           notes?: string | null
           paid_at?: string | null
           portador?: string | null
+          receipt_sent_at?: string | null
+          receipt_url?: string | null
           requested_at?: string
           requested_by?: string | null
           reviewed_at?: string | null

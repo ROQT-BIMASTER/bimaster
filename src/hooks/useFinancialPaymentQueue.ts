@@ -40,6 +40,8 @@ export interface PaymentQueueItem {
   reviewed_at: string | null;
   paid_at: string | null;
   contas_pagar_id: string | null;
+  receipt_url: string | null;
+  receipt_sent_at: string | null;
   created_at: string;
   updated_at: string;
   // Multi-filial fields

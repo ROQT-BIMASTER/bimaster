@@ -95,15 +95,43 @@ export function NovaDespesaEventoDialog({
         empresa_nome: selectedEmpresa?.empresa.nome,
       });
 
-      // If we have attachments, update the expense with them
+      // If we have attachments, move files in storage and update the expense
       if (attachments.length > 0 && expenseData?.id) {
-        // Move files from temp folder to actual expense folder
         const movedAttachments: Attachment[] = [];
         
         for (const attachment of attachments) {
-          // Update the attachment URL to reflect the actual expense ID
-          const newUrl = attachment.url.replace(tempExpenseId, expenseData.id);
-          movedAttachments.push({ ...attachment, url: newUrl });
+          try {
+            // Extract file path from the URL
+            const urlObj = new URL(attachment.url);
+            const pathMatch = urlObj.pathname.match(
+              /\/storage\/v1\/object\/public\/([^/]+)\/(.+)/
+            );
+            
+            if (pathMatch) {
+              const bucket = pathMatch[1];
+              const oldPath = decodeURIComponent(pathMatch[2]);
+              const newPath = oldPath.replace(tempExpenseId, expenseData.id);
+              
+              // Actually move the file in storage
+              const { error: moveError } = await supabase.storage
+                .from(bucket)
+                .move(oldPath, newPath);
+              
+              if (moveError) {
+                console.warn(`[NovaDespesa] Failed to move file ${oldPath}:`, moveError.message);
+                // Keep original URL if move fails
+                movedAttachments.push(attachment);
+              } else {
+                const newUrl = attachment.url.replace(tempExpenseId, expenseData.id);
+                movedAttachments.push({ ...attachment, url: newUrl });
+              }
+            } else {
+              movedAttachments.push(attachment);
+            }
+          } catch (err) {
+            console.warn('[NovaDespesa] Error moving attachment:', err);
+            movedAttachments.push(attachment);
+          }
         }
 
         await supabase

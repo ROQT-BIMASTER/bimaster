@@ -15,6 +15,7 @@ import type { PaymentQueueItem, SourceType, PaymentQueueStatus } from "@/hooks/u
 import { AttachmentAcknowledgement } from "./AttachmentAcknowledgement";
 import { SupplierDetailsCard } from "./SupplierDetailsCard";
 import { SupplierPaymentHistory } from "./SupplierPaymentHistory";
+import { ReceiptUploadSection } from "./ReceiptUploadSection";
 
 interface PaymentReviewDialogProps {
   open: boolean;
@@ -24,6 +25,7 @@ interface PaymentReviewDialogProps {
   onReject: (id: string, notes: string) => void;
   onMarkPaid: (id: string, notes?: string) => void;
   isProcessing: boolean;
+  onRefresh?: () => void;
 }
 
 const formatCurrency = (value: number) => {
@@ -57,6 +59,7 @@ export function PaymentReviewDialog({
   onReject,
   onMarkPaid,
   isProcessing,
+  onRefresh,
 }: PaymentReviewDialogProps) {
   const [notes, setNotes] = useState("");
   const [action, setAction] = useState<'accept' | 'reject' | 'paid' | null>(null);
@@ -91,9 +94,11 @@ export function PaymentReviewDialog({
   const isOverdue = new Date(item.due_date) < new Date();
   const isPending = item.financial_status === 'pending';
   const isAccepted = item.financial_status === 'accepted';
+  const isPaid = item.financial_status === 'paid';
   const status = statusConfig[item.financial_status];
   const hasAttachments = item.attachments && item.attachments.length > 0;
   const canAccept = !hasAttachments || allAttachmentsAcknowledged;
+  const showReceiptSection = isAccepted || isPaid;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -306,6 +311,21 @@ export function PaymentReviewDialog({
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {/* Receipt Upload Section - for accepted/paid payments */}
+          {showReceiptSection && (
+            <ReceiptUploadSection
+              paymentId={item.id}
+              receiptUrl={(item as any).receipt_url || null}
+              receiptSentAt={(item as any).receipt_sent_at || null}
+              requestedBy={item.requested_by}
+              requesterName={item.requester_name || null}
+              supplierName={item.supplier_name}
+              amount={item.amount}
+              code={item.code}
+              onReceiptUploaded={() => onRefresh?.()}
+            />
           )}
 
           {/* Financial Review Notes */}
