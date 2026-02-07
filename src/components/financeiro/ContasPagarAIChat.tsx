@@ -10,7 +10,7 @@ import {
   MessageCircle, Sparkles, AlertCircle, Calendar, DollarSign
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthHeaders } from "@/lib/utils/auth-headers";
 
 interface ChatMessage {
   id: string;
@@ -152,14 +152,12 @@ export function ContasPagarAIChat() {
         content: m.content,
       }));
 
+      const authHeaders = await getAuthHeaders();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/contas-pagar-ai-chat`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: authHeaders,
           body: JSON.stringify({
             message: text,
             history,

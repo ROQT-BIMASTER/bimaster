@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Send, Sparkles, BarChart3, TrendingUp, FileText, PanelRightOpen, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getAuthHeaders } from "@/lib/utils/auth-headers";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import ReactMarkdown from "react-markdown";
 import { AICanvas } from "./AICanvas";
@@ -73,20 +74,18 @@ export const AIAnalyticsPanel = () => {
     }, 45000); // 45s timeout - mais rápido!
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Usuário não autenticado");
 
+      const authHeaders = await getAuthHeaders();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-analytics`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: authHeaders,
           body: JSON.stringify({
             messages: newMessages,
-            userId: user.id,
+            userId: session.user.id,
           }),
           signal: controller.signal,
         }
@@ -144,8 +143,8 @@ export const AIAnalyticsPanel = () => {
                 { role: "assistant", content: assistantMessage }
               ]);
             }
-          } catch (e) {
-            console.error("Error parsing SSE:", e);
+          } catch {
+            // SSE chunk incompleto, ignorar
           }
         }
       }
@@ -196,20 +195,18 @@ export const AIAnalyticsPanel = () => {
       // Call the API
       (async () => {
         try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error("Usuário não autenticado");
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.user) throw new Error("Usuário não autenticado");
 
+          const authHeaders = await getAuthHeaders();
           const response = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-analytics`,
             {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-              },
+              headers: authHeaders,
               body: JSON.stringify({
                 messages: newMessages,
-                userId: user.id,
+                userId: session.user.id,
               }),
             }
           );
@@ -251,7 +248,7 @@ export const AIAnalyticsPanel = () => {
                     { role: "assistant", content: assistantMessage }
                   ]);
                 }
-              } catch (e) {}
+              } catch { /* SSE chunk incompleto */ }
             }
           }
 
@@ -276,25 +273,23 @@ export const AIAnalyticsPanel = () => {
     
     setIsLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Usuário não autenticado");
 
       const refineMessages = [
         ...messages,
         { role: "user" as const, content: `Refine o relatório anterior com estas instruções: ${instructions}` }
       ];
 
+      const authHeaders = await getAuthHeaders();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-analytics`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: authHeaders,
           body: JSON.stringify({
             messages: refineMessages,
-            userId: user.id,
+            userId: session.user.id,
           }),
         }
       );
@@ -327,7 +322,7 @@ export const AIAnalyticsPanel = () => {
             const parsed = JSON.parse(data);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) assistantMessage += content;
-          } catch (e) {}
+          } catch { /* SSE chunk incompleto */ }
         }
       }
 

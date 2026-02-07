@@ -49,7 +49,9 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
   const fetchPermissions = useCallback(async (forceRefresh = false) => {
     try {
       console.log("[PermissionsContext] Iniciando fetchPermissions");
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      // Usar getSession (memória) em vez de getUser (rede)
+      const { data: { session }, error: userError } = await supabase.auth.getSession();
+      const user = session?.user;
       
       if (userError) {
         console.error("[PermissionsContext] Erro ao obter usuário:", userError);
@@ -205,15 +207,14 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     window.addEventListener("modules-updated", handlePermissionsUpdate);
 
     // Realtime listeners para mudanças nas tabelas de permissões
-    const getCurrentUserId = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user?.id;
-    };
+    let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 
-    getCurrentUserId().then(userId => {
+    const setupRealtimeChannel = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
       if (!userId || !isMountedRef.current) return;
 
-      const channel = supabase
+      realtimeChannel = supabase
         .channel('permissions-changes')
         .on(
           'postgres_changes',
@@ -232,17 +233,18 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
           }
         )
         .subscribe();
+    };
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    });
+    setupRealtimeChannel();
 
     return () => {
       isMountedRef.current = false;
       subscription.unsubscribe();
       window.removeEventListener("permissions-updated", handlePermissionsUpdate);
       window.removeEventListener("modules-updated", handlePermissionsUpdate);
+      if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+      }
     };
   }, [fetchPermissions]);
 

@@ -14,8 +14,8 @@ import {
   FileText, Music, Sparkles, RefreshCw, StopCircle,
   Upload, Image as ImageIcon
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getAuthHeaders } from "@/lib/utils/auth-headers";
 
 // Vozes disponíveis do ElevenLabs
 const VOICES = [
@@ -67,15 +67,12 @@ export function ElevenLabsStudio() {
 
     setTtsLoading(true);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: authHeaders,
           body: JSON.stringify({
             text: ttsText,
             voiceId: selectedVoice,
@@ -115,15 +112,12 @@ export function ElevenLabsStudio() {
 
     setSfxLoading(true);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-sfx`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: authHeaders,
           body: JSON.stringify({
             prompt: sfxPrompt,
             duration: sfxDuration,
@@ -156,15 +150,12 @@ export function ElevenLabsStudio() {
 
     setMusicLoading(true);
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-music`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: authHeaders,
           body: JSON.stringify({
             prompt: musicPrompt,
             duration: musicDuration,
