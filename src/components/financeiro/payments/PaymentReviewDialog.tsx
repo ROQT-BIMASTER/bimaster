@@ -13,6 +13,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { PaymentQueueItem, SourceType, PaymentQueueStatus } from "@/hooks/useFinancialPaymentQueue";
 import { AttachmentAcknowledgement } from "./AttachmentAcknowledgement";
+import { SupplierDetailsCard } from "./SupplierDetailsCard";
 
 interface PaymentReviewDialogProps {
   open: boolean;
@@ -110,17 +111,16 @@ export function PaymentReviewDialog({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Main Info Card */}
+          {/* Supplier Details with enrichment */}
+          <SupplierDetailsCard
+            supplierName={item.supplier_name}
+            supplierDocument={item.supplier_document}
+          />
+
+          {/* Payment Info Card */}
           <Card>
             <CardContent className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground text-xs">Fornecedor</Label>
-                  <p className="font-medium">{item.supplier_name}</p>
-                  {item.supplier_document && (
-                    <p className="text-sm text-muted-foreground">{item.supplier_document}</p>
-                  )}
-                </div>
+              <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-muted-foreground text-xs">Valor</Label>
                   <p className="text-2xl font-bold text-primary">{formatCurrency(item.amount)}</p>
@@ -132,7 +132,7 @@ export function PaymentReviewDialog({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <Label className="text-muted-foreground text-xs">Vencimento</Label>
-                  <p className={cn("font-medium", isOverdue && isPending && "text-red-600")}>
+                  <p className={cn("font-medium", isOverdue && isPending && "text-destructive")}>
                     {format(new Date(item.due_date), "dd/MM/yyyy", { locale: ptBR })}
                     {isOverdue && isPending && <span className="text-xs block">Vencido</span>}
                   </p>
