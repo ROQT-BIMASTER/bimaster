@@ -61,7 +61,7 @@ const MunicipiosIntelligence = () => {
 
         {/* Charts Row */}
         <div className="grid gap-6 lg:grid-cols-2">
-          <MunicipiosScatterChart data={municipios} loading={dataLoading} />
+          <MunicipiosScatterChart kpis={kpis} loading={kpisLoading} />
           <MunicipiosOpportunityCard data={municipios} loading={dataLoading} />
         </div>
 
