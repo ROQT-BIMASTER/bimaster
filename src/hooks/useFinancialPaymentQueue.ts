@@ -310,7 +310,11 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
       if (fetchError) throw fetchError;
 
       // Create contas_pagar entry using correct column names
+      // Generate a unique erp_id since it's required (NOT NULL)
+      const erpId = `FPQ-${item.code}-${Date.now()}`;
+      
       const contaPagarData = {
+        erp_id: erpId,
         fornecedor_nome: item.supplier_name,
         fornecedor_codigo: item.supplier_document,
         tipo_documento: item.document_type,
