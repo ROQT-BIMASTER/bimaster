@@ -1,121 +1,66 @@
 
-# Whitespace Analysis - Analise de Espaco em Branco
+# Drill-Down Interativo na Tabela Whitespace
 
-## Objetivo
-Criar uma nova pagina dedicada que identifica **municipios sem presenca comercial** que ficam **na mesma microrregiao** de municipios onde a empresa ja atua. A logica e simples: se a empresa ja vende em 8 dos 10 municipios de uma microrregiao, os 2 restantes sao os alvos de expansao mais eficientes (logistica proxima, vendedor ja atribuido, mercado conhecido).
+## O que vai mudar
 
-## Como Funciona o Score de Expansao
+Ao clicar em uma linha da tabela de municipios, abre um painel lateral (Sheet) com 3 niveis de exploracao progressiva:
 
-Cada municipio sem presenca recebe um **Score de Expansao** calculado assim:
+### Nivel 1 - Detalhe do Municipio (abre ao clicar na linha)
+Painel lateral mostrando:
+- **Cabecalho**: Nome do municipio, UF, populacao, PIB per capita
+- **Contexto da Microrregiao**: Card com nome da microrregiao, penetracao atual (barra visual), total de municipios vs ativos
+- **Score de Expansao**: Destaque visual grande com o score e explicacao dos fatores
+- **Lista de Clientes Vizinhos**: Tabela com os clientes ativos na mesma microrregiao (nome, cidade, telefone, email, ultima compra, valor). Cada cliente e clicavel
+
+### Nivel 2 - Clicou em um cliente vizinho
+Abre o **Cliente 360** (componente que ja existe no projeto), reutilizando o `Cliente360Drawer` existente. Mostra perfil de credito, historico de pagamentos, score e alertas do cliente selecionado.
+
+### Fluxo visual
 
 ```text
-Score = PIB per Capita x (Municipios Ativos na Microrregiao / Total de Municipios na Microrregiao)
+Tabela Whitespace
+  |
+  |--> [clica linha] --> Sheet: Detalhe do Municipio
+                            |
+                            |--> Dados do municipio + score
+                            |--> Lista clientes vizinhos (microrregiao)
+                                   |
+                                   |--> [clica cliente] --> Sheet: Cliente 360
 ```
-
-Isso prioriza municipios que sao:
-1. **Ricos** (alto PIB per capita = potencial de compra)
-2. **Proximos de onde ja atuamos** (alta penetracao na microrregiao = logistica facil)
-
-Dados reais do banco confirmam: 477 microrregioes mistas com 2.252 municipios whitespace representando R$ 609 bilhoes de PIB inexplorado.
-
-## Arquitetura
-
-### 1. Nova RPC no Banco de Dados
-**Funcao:** `fn_get_whitespace_analysis`
-
-Parametros:
-- `p_uf` (text) - Filtro por estado
-- `p_regiao` (text) - Filtro por regiao
-- `p_min_penetracao` (numeric) - Penetracao minima da microrregiao (ex: 30% = so mostra territorios onde ja temos boa base)
-- `p_sort_column` (text) - Coluna de ordenacao
-- `p_sort_direction` (text) - Direcao
-- `p_limit` / `p_offset` - Paginacao
-
-Retorna para cada municipio whitespace:
-- Dados do municipio: nome, UF, populacao, PIB, PIB per capita
-- Dados da microrregiao: nome, total de municipios, municipios ativos, penetracao %
-- Receita total da microrregiao (demonstra que o territorio ja e produtivo)
-- Vendedor atribuido ao territorio
-- Score de expansao calculado
-
-**Funcao auxiliar:** `fn_get_whitespace_kpis`
-
-Retorna KPIs agregados:
-- Total de municipios whitespace
-- PIB total inexplorado
-- Populacao total inexplorada
-- Microrregioes com oportunidade
-- Score medio de expansao
-
-### 2. Hook de Dados
-**Arquivo:** `src/hooks/useWhitespaceAnalysis.ts`
-
-- Chama as RPCs com filtros e paginacao
-- Gerencia estado de filtros (UF, regiao, penetracao minima)
-- Cache de 5 minutos via React Query
-- Funcao de exportacao Excel
-
-### 3. Pagina Principal
-**Arquivo:** `src/pages/WhitespaceAnalysis.tsx`
-**Rota:** `/dashboard/comercial/whitespace`
-
-Layout em secoes:
-
-**Cabecalho:**
-- Breadcrumb: Comercial > Inteligencia Comercial > Whitespace
-- Titulo "Analise de Espaco em Branco" com subtitulo explicativo
-- Filtros: UF, Regiao, Penetracao Minima da Microrregiao (slider 0-100%)
-
-**KPIs Estrategicos (5 cards):**
-- Municipios Whitespace (total de alvos)
-- PIB Inexplorado (R$ bi)
-- Populacao Descoberta
-- Microrregioes com Oportunidade
-- Score Medio de Expansao
-
-**Grafico de Barras Horizontais - Top 15 Microrregioes:**
-- Cada barra mostra a microrregiao
-- Barra dividida em 2 cores: municipios ativos (verde) vs municipios whitespace (cinza)
-- Ordenadas por score agregado da microrregiao
-- Ao lado de cada barra: receita atual + PIB inexplorado
-
-**Tabela Operacional:**
-- Paginacao server-side (50 por pagina)
-- Colunas: Rank | Municipio | UF | Microrregiao | Populacao | PIB/Capita | Penetracao Micro | Clientes Vizinhos | Receita Micro | Vendedor | Score
-- Ordenavel por qualquer coluna
-- Badge de penetracao da microrregiao (verde >70%, amarelo >40%, vermelho <40%)
-- Exportacao Excel completa
-
-### 4. Componentes
-
-**a) `WhitespaceKPICards.tsx`** - 5 KPIs estrategicos
-**b) `WhitespaceMicroChart.tsx`** - Grafico de barras das top microrregioes
-**c) `WhitespaceTable.tsx`** - Tabela paginada com score e exportacao
-**d) `WhitespaceFilters.tsx`** - Barra de filtros com slider de penetracao
 
 ## Detalhes Tecnicos
 
-### Migracao SQL
-Duas funcoes RPC novas:
+### 1. Novo componente: `WhitespaceMunicipioSheet.tsx`
+- Recebe o `WhitespaceRow` selecionado
+- Usa `Sheet` (side panel) com `ScrollArea`
+- Faz query para buscar clientes da mesma microrregiao:
+  ```
+  SELECT codigo, nome, cidade, uf, telefone, celular, email,
+         data_ultima_compra, valor_ultima_compra, status_bloqueio
+  FROM clientes
+  JOIN ibge_municipios ON clientes.ibge_municipio_id = ibge_municipios.id
+  WHERE ibge_municipios.microrregiao_id = [microrregiao_id do municipio]
+  ORDER BY data_ultima_compra DESC
+  ```
+- Cada cliente na lista mostra: nome, cidade, telefone clicavel (tel:), email clicavel (mailto:), data/valor da ultima compra
+- Botao "Ver 360" em cada cliente que abre o Cliente360Drawer
 
-1. `fn_get_whitespace_analysis` - Cruzamento de ibge_municipios com clientes (via ibge_municipio_id), agrupamento por microrregiao para calcular penetracao, filtragem apenas de municipios SEM presenca em microrregioes COM presenca, calculo do score de expansao
-2. `fn_get_whitespace_kpis` - Agregacao dos KPIs de whitespace com os mesmos filtros
+### 2. Modificar `WhitespaceTable.tsx`
+- Adicionar estado `selectedRow` e handler `onClick` nas linhas
+- Linhas ganham `cursor-pointer` e hover highlight
+- Ao clicar, abre o `WhitespaceMunicipioSheet`
 
-### Navegacao
-- Nova rota: `/dashboard/comercial/whitespace`
-- Adicionar no AppSidebar sob Comercial: "Whitespace" com icone Compass
-- Adicionar no ComercialModule em "Dados de Mercado"
-- Link cruzado na pagina de Inteligencia Municipal
+### 3. Integrar `Cliente360Drawer`
+- Reutilizar o componente existente (`src/components/financeiro/cliente360/Cliente360Drawer.tsx`)
+- Gerenciar estado de qual cliente esta aberto no nivel da pagina
 
-### Arquivos Novos (6)
-1. Migracao SQL com as 2 RPCs
-2. `src/hooks/useWhitespaceAnalysis.ts`
-3. `src/pages/WhitespaceAnalysis.tsx`
-4. `src/components/comercial/whitespace/WhitespaceKPICards.tsx`
-5. `src/components/comercial/whitespace/WhitespaceMicroChart.tsx`
-6. `src/components/comercial/whitespace/WhitespaceTable.tsx`
+### 4. Modificar `WhitespaceAnalysis.tsx`
+- Adicionar estados para municipio selecionado e cliente 360
+- Passar callbacks para a tabela e o sheet
 
-### Arquivos Modificados (3)
-1. `src/App.tsx` - Nova rota
-2. `src/components/dashboard/AppSidebar.tsx` - Item no menu
-3. `src/pages/modules/ComercialModule.tsx` - Link em Dados de Mercado
+### Arquivos novos (1)
+- `src/components/comercial/whitespace/WhitespaceMunicipioSheet.tsx`
+
+### Arquivos modificados (2)
+- `src/components/comercial/whitespace/WhitespaceTable.tsx` - Adicionar clique nas linhas
+- `src/pages/WhitespaceAnalysis.tsx` - Gerenciar estados dos paineis e integrar os componentes Sheet + Cliente360
