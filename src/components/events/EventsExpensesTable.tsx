@@ -36,6 +36,7 @@ import {
   FileText,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
+import { PaymentPolicyBanner } from "@/components/financeiro/payments/PaymentPolicyBanner";
 
 interface EventsExpensesTableProps {
   expenses: EventExpense[];
@@ -111,7 +112,8 @@ export function EventsExpensesTable({ expenses, isLoading, eventStatus }: Events
 
   return (
     <>
-      <div className="border rounded-lg overflow-x-auto">
+      <PaymentPolicyBanner />
+      <div className="border rounded-lg overflow-x-auto mt-4">
         <Table>
           <TableHeader>
             <TableRow>

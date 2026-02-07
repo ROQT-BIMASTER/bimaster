@@ -8136,6 +8136,51 @@ export type Database = {
           },
         ]
       }
+      financial_payment_policies: {
+        Row: {
+          allows_exceptions: boolean
+          created_at: string
+          created_by: string | null
+          cutoff_day_of_week: number
+          cutoff_time: string
+          description: string | null
+          exception_requires_approval: boolean
+          id: string
+          is_active: boolean
+          name: string
+          payment_day_of_week: number
+          updated_at: string
+        }
+        Insert: {
+          allows_exceptions?: boolean
+          created_at?: string
+          created_by?: string | null
+          cutoff_day_of_week: number
+          cutoff_time?: string
+          description?: string | null
+          exception_requires_approval?: boolean
+          id?: string
+          is_active?: boolean
+          name: string
+          payment_day_of_week: number
+          updated_at?: string
+        }
+        Update: {
+          allows_exceptions?: boolean
+          created_at?: string
+          created_by?: string | null
+          cutoff_day_of_week?: number
+          cutoff_time?: string
+          description?: string | null
+          exception_requires_approval?: boolean
+          id?: string
+          is_active?: boolean
+          name?: string
+          payment_day_of_week?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       financial_payment_queue: {
         Row: {
           amount: number

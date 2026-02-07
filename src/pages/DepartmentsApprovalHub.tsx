@@ -16,6 +16,8 @@ import { AprovarVerbaDepartamentoDialog } from "@/components/departments/Aprovar
 import { DepartmentExpense, DEPARTMENT_EXPENSE_CATEGORIES } from "@/hooks/useDepartmentExpenses";
 import { exportDepartmentExpensesToExcel } from "@/lib/exportExpenses";
 import { toast } from "sonner";
+import { DespesasFocoModeDialog } from "@/components/departments/DespesasFocoModeDialog";
+import { PaymentPolicyBanner } from "@/components/financeiro/payments/PaymentPolicyBanner";
 import { 
   Clock, 
   Building2, 
@@ -32,6 +34,7 @@ import {
   Calendar,
   User,
   Paperclip,
+  Maximize2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -47,6 +50,7 @@ export default function DepartmentsApprovalHub() {
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
+  const [focoModeOpen, setFocoModeOpen] = useState(false);
 
   const expenses = data?.expenses || [];
   const departments = data?.departments || [];
@@ -178,6 +182,9 @@ export default function DepartmentsApprovalHub() {
             </Button>
           </div>
         </div>
+
+        {/* Payment Policy Banner */}
+        <PaymentPolicyBanner />
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -338,11 +345,24 @@ export default function DepartmentsApprovalHub() {
                   Despesas individuais criadas pelos colaboradores, aguardando aprovação
                 </CardDescription>
               </div>
-              {metrics.totalPending > 0 && (
-                <Badge className="ml-auto" variant="destructive">
-                  {metrics.totalPending} pendente{metrics.totalPending > 1 ? "s" : ""}
-                </Badge>
-              )}
+              <div className="ml-auto flex items-center gap-2">
+                {metrics.totalPending > 0 && (
+                  <Badge variant="destructive">
+                    {metrics.totalPending} pendente{metrics.totalPending > 1 ? "s" : ""}
+                  </Badge>
+                )}
+                {expenses.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFocoModeOpen(true)}
+                    className="gap-1.5"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                    Modo Foco
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
 
@@ -506,6 +526,14 @@ export default function DepartmentsApprovalHub() {
             budget={selectedBudget}
           />
         )}
+
+        {/* Focus Mode Dialog */}
+        <DespesasFocoModeDialog
+          open={focoModeOpen}
+          onOpenChange={setFocoModeOpen}
+          expenses={expenses}
+          departments={departments}
+        />
       </div>
     </DashboardLayout>
   );
