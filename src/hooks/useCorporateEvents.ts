@@ -36,6 +36,13 @@ export interface CorporateEvent {
     id: string;
     nome: string;
   } | null;
+  // Expense summary (enriched after query)
+  expense_summary?: {
+    total: number;
+    paid: number;
+    all_paid: boolean;
+    has_paid: boolean;
+  };
 }
 
 export interface CreateEventInput {
@@ -77,7 +84,40 @@ export function useCorporateEvents() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as CorporateEvent[];
+
+      // Fetch expense summaries for all events
+      const eventIds = (data || []).map(e => e.id);
+      let expenseSummaryMap = new Map<string, { total: number; paid: number }>();
+      
+      if (eventIds.length > 0) {
+        const { data: expenses } = await supabase
+          .from("corporate_event_expenses")
+          .select("event_id, status")
+          .in("event_id", eventIds);
+
+        if (expenses) {
+          for (const exp of expenses) {
+            const current = expenseSummaryMap.get(exp.event_id) || { total: 0, paid: 0 };
+            current.total++;
+            if (exp.status === 'paid') current.paid++;
+            expenseSummaryMap.set(exp.event_id, current);
+          }
+        }
+      }
+
+      return (data || []).map(event => ({
+        ...event,
+        expense_summary: (() => {
+          const summary = expenseSummaryMap.get(event.id);
+          if (!summary || summary.total === 0) return undefined;
+          return {
+            total: summary.total,
+            paid: summary.paid,
+            all_paid: summary.paid === summary.total,
+            has_paid: summary.paid > 0,
+          };
+        })(),
+      })) as CorporateEvent[];
     },
   });
 
