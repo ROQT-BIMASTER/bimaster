@@ -14281,6 +14281,62 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_payment_exceptions: {
+        Row: {
+          allows_exceptions: boolean
+          created_at: string
+          created_by: string | null
+          cutoff_day_of_week: number
+          cutoff_time: string
+          description: string | null
+          exception_requires_approval: boolean
+          id: string
+          is_active: boolean
+          name: string
+          payment_day_of_week: number
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          allows_exceptions?: boolean
+          created_at?: string
+          created_by?: string | null
+          cutoff_day_of_week: number
+          cutoff_time?: string
+          description?: string | null
+          exception_requires_approval?: boolean
+          id?: string
+          is_active?: boolean
+          name: string
+          payment_day_of_week: number
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          allows_exceptions?: boolean
+          created_at?: string
+          created_by?: string | null
+          cutoff_day_of_week?: number
+          cutoff_time?: string
+          description?: string | null
+          exception_requires_approval?: boolean
+          id?: string
+          is_active?: boolean
+          name?: string
+          payment_day_of_week?: number
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_payment_exceptions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_chunks_log: {
         Row: {
           chunk_id: number
