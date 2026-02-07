@@ -86,6 +86,54 @@ interface PaymentQueueFilters {
   endDate?: Date;
 }
 
+// Helper to sync financial status back to the original source expense
+async function syncStatusToSource(item: { source_type: string; source_id: string; financial_status: string }) {
+  const now = new Date().toISOString();
+  try {
+    if (item.source_type === 'event_expense') {
+      const statusMap: Record<string, string> = {
+        accepted: 'approved',
+        paid: 'paid',
+        rejected: 'rejected',
+        cancelled: 'cancelled',
+      };
+      const newStatus = statusMap[item.financial_status];
+      if (!newStatus) return;
+
+      const updateData: Record<string, unknown> = { status: newStatus };
+      if (item.financial_status === 'paid') {
+        updateData.paid_at = now;
+      }
+
+      await supabase
+        .from('corporate_event_expenses')
+        .update(updateData)
+        .eq('id', item.source_id);
+    } else if (item.source_type === 'department_expense') {
+      const statusMap: Record<string, string> = {
+        accepted: 'approved',
+        paid: 'paid',
+        rejected: 'rejected',
+        cancelled: 'cancelled',
+      };
+      const newStatus = statusMap[item.financial_status];
+      if (!newStatus) return;
+
+      const updateData: Record<string, unknown> = { status: newStatus };
+      if (item.financial_status === 'paid') {
+        updateData.paid_at = now;
+      }
+
+      await supabase
+        .from('department_expenses')
+        .update(updateData)
+        .eq('id', item.source_id);
+    }
+  } catch (err) {
+    console.error('Error syncing status to source:', err);
+  }
+}
+
 export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -267,6 +315,14 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         .single();
 
       if (error) throw error;
+
+      // Sync status back to the original source expense
+      await syncStatusToSource({
+        source_type: data.source_type,
+        source_id: data.source_id,
+        financial_status: data.financial_status,
+      });
+
       return data;
     },
     onSuccess: (_, variables) => {
@@ -353,6 +409,14 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         .single();
 
       if (error) throw error;
+
+      // Sync status back to the original source expense
+      await syncStatusToSource({
+        source_type: item.source_type,
+        source_id: item.source_id,
+        financial_status: 'accepted',
+      });
+
       return data;
     },
     onSuccess: () => {
