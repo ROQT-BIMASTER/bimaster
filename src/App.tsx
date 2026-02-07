@@ -124,6 +124,7 @@ const FabricaAprovacaoPrecos = lazy(() => import("./pages/FabricaAprovacaoPrecos
 const FabricaLancamentos = lazy(() => import("./pages/FabricaLancamentos"));
 const FabricaExecutiveDashboard = lazy(() => import("./pages/FabricaExecutiveDashboard"));
 const ComercialModule = lazy(() => import("./pages/modules/ComercialModule"));
+const WhitespaceAnalysis = lazy(() => import("./pages/WhitespaceAnalysis"));
 const MunicipiosIntelligence = lazy(() => import("./pages/MunicipiosIntelligence"));
 const IBGEData = lazy(() => import("./pages/IBGEData"));
 const LeadMining = lazy(() => import("./pages/LeadMining"));
@@ -359,6 +360,7 @@ function AppContent() {
             <Route path="/dashboard/comercial/reativacao" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ClientReactivation /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/comercial/mapa" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ComercialMapa /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/comercial/municipios-inteligencia" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><MunicipiosIntelligence /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/comercial/whitespace" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><WhitespaceAnalysis /></ModuleProtectedRoute></ProtectedRoute>} />
 
             {/* Módulo de Tabelas de Preços */}
             <Route path="/dashboard/precos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="precos"><TabelasPrecosModule /></ModuleProtectedRoute></ProtectedRoute>} />
