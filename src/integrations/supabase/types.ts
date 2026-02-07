@@ -18153,6 +18153,66 @@ export type Database = {
           total_municipios: number
         }[]
       }
+      fn_get_whitespace_analysis: {
+        Args: {
+          p_limit?: number
+          p_min_penetracao?: number
+          p_offset?: number
+          p_regiao?: string
+          p_sort_column?: string
+          p_sort_direction?: string
+          p_uf?: string
+        }
+        Returns: {
+          clientes_vizinhos: number
+          microrregiao_id: number
+          microrregiao_nome: string
+          municipio_id: number
+          municipio_nome: string
+          municipios_ativos_micro: number
+          penetracao_micro: number
+          pib_mil_reais: number
+          pib_per_capita: number
+          populacao: number
+          receita_micro: number
+          regiao: string
+          score_expansao: number
+          total_count: number
+          total_municipios_micro: number
+          uf: string
+          vendedor_nome: string
+        }[]
+      }
+      fn_get_whitespace_kpis: {
+        Args: { p_min_penetracao?: number; p_regiao?: string; p_uf?: string }
+        Returns: {
+          microrregioes_com_oportunidade: number
+          pib_total_inexplorado: number
+          populacao_total_inexplorada: number
+          score_medio_expansao: number
+          total_municipios_whitespace: number
+        }[]
+      }
+      fn_get_whitespace_top_microrregioes: {
+        Args: {
+          p_limit?: number
+          p_min_penetracao?: number
+          p_regiao?: string
+          p_uf?: string
+        }
+        Returns: {
+          microrregiao_id: number
+          microrregiao_nome: string
+          municipios_ativos: number
+          municipios_whitespace: number
+          penetracao: number
+          pib_inexplorado: number
+          receita_atual: number
+          score_agregado: number
+          total_municipios: number
+          uf: string
+        }[]
+      }
       fn_normalizar_municipios_clientes: { Args: never; Returns: Json }
       gerar_creditos_tributarios: {
         Args: { p_item_nf_id: string }

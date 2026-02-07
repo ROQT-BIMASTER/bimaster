@@ -22,6 +22,7 @@ import {
   Pickaxe,
   Search,
   Map,
+  Compass,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,6 +99,7 @@ const ComercialModule = () => {
       { title: "Dados IBGE", to: "/dashboard/comercial/ibge", icon: MapPin, color: "text-primary" },
       { title: "Inteligência Comercial", to: "/dashboard/comercial/inteligencia", icon: Globe, color: "text-primary" },
       { title: "Inteligência Municipal", to: "/dashboard/comercial/municipios-inteligencia", icon: Building2, color: "text-primary" },
+      { title: "Whitespace", to: "/dashboard/comercial/whitespace", icon: Compass, color: "text-primary" },
     ],
   };
 
