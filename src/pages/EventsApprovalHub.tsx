@@ -17,6 +17,7 @@ import { usePendingEvents } from "@/hooks/usePendingEvents";
 import { usePendingEventExpenses, type EventWithPendingExpenses } from "@/hooks/usePendingEventExpenses";
 import { AprovarEventoDialog } from "@/components/events/AprovarEventoDialog";
 import { AprovarDespesasEventoDialog } from "@/components/events/AprovarDespesasEventoDialog";
+import { ApprovalAISummaryCard } from "@/components/ai/ApprovalAISummaryCard";
 import { CorporateEvent } from "@/hooks/useCorporateEvents";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -88,6 +89,14 @@ export default function EventsApprovalHub() {
           </p>
         </div>
 
+        {/* Resumo IA para Eventos */}
+        {pendingExpenseGroups && pendingExpenseGroups.length > 0 && (
+          <ApprovalAISummaryCard
+            entityType="event"
+            entityId={pendingExpenseGroups[0]?.event_id || ""}
+          />
+        )}
+
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
@@ -146,17 +155,13 @@ export default function EventsApprovalHub() {
           <CardContent>
             {loadingEvents ? (
               <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
+                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
               </div>
             ) : totalPendingEvents === 0 ? (
               <div className="text-center py-8">
                 <FileCheck className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                 <h3 className="text-sm font-medium">Nenhum evento pendente de aprovação</h3>
-                <p className="text-xs text-muted-foreground">
-                  Todos os eventos foram processados
-                </p>
+                <p className="text-xs text-muted-foreground">Todos os eventos foram processados</p>
               </div>
             ) : (
               <Table>
@@ -176,9 +181,7 @@ export default function EventsApprovalHub() {
                     <TableRow key={event.id}>
                       <TableCell className="font-mono text-sm">
                         <div className="flex items-center gap-2">
-                          {event.confidential && (
-                            <Lock className="h-3 w-3 text-destructive" />
-                          )}
+                          {event.confidential && <Lock className="h-3 w-3 text-destructive" />}
                           {event.code}
                         </div>
                       </TableCell>
@@ -187,9 +190,7 @@ export default function EventsApprovalHub() {
                           <Building className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <div className="font-medium">{event.name}</div>
-                            {event.location && (
-                              <div className="text-xs text-muted-foreground">{event.location}</div>
-                            )}
+                            {event.location && <div className="text-xs text-muted-foreground">{event.location}</div>}
                           </div>
                         </div>
                       </TableCell>
@@ -199,9 +200,7 @@ export default function EventsApprovalHub() {
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm">
                           <Calendar className="h-3 w-3 text-muted-foreground" />
-                          {event.event_date 
-                            ? format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR })
-                            : "-"}
+                          {event.event_date ? format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR }) : "-"}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -216,9 +215,7 @@ export default function EventsApprovalHub() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" onClick={() => handleReviewEvent(event)}>
-                          Revisar
-                        </Button>
+                        <Button size="sm" onClick={() => handleReviewEvent(event)}>Revisar</Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -239,17 +236,13 @@ export default function EventsApprovalHub() {
           <CardContent>
             {loadingExpenses ? (
               <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
+                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
               </div>
             ) : !pendingExpenseGroups || pendingExpenseGroups.length === 0 ? (
               <div className="text-center py-8">
                 <Receipt className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                 <h3 className="text-sm font-medium">Nenhuma despesa pendente</h3>
-                <p className="text-xs text-muted-foreground">
-                  Todas as despesas dos eventos foram revisadas
-                </p>
+                <p className="text-xs text-muted-foreground">Todas as despesas dos eventos foram revisadas</p>
               </div>
             ) : (
               <Table>
@@ -265,9 +258,7 @@ export default function EventsApprovalHub() {
                 <TableBody>
                   {pendingExpenseGroups.map((group) => (
                     <TableRow key={group.event_id}>
-                      <TableCell className="font-mono text-sm">
-                        {group.event_code}
-                      </TableCell>
+                      <TableCell className="font-mono text-sm">{group.event_code}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Building className="h-4 w-4 text-muted-foreground" />
@@ -275,9 +266,7 @@ export default function EventsApprovalHub() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">
-                          {group.total_pending} despesa(s)
-                        </Badge>
+                        <Badge variant="secondary">{group.total_pending} despesa(s)</Badge>
                       </TableCell>
                       <TableCell>
                         <span className="font-medium">
@@ -285,9 +274,7 @@ export default function EventsApprovalHub() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" onClick={() => handleReviewExpenses(group)}>
-                          Revisar Despesas
-                        </Button>
+                        <Button size="sm" onClick={() => handleReviewExpenses(group)}>Revisar Despesas</Button>
                       </TableCell>
                     </TableRow>
                   ))}

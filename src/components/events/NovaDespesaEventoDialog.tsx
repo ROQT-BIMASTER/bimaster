@@ -17,10 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { useEventExpenses, EXPENSE_CATEGORIES } from "@/hooks/useEventExpenses";
 import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
 import { Loader2, Building } from "lucide-react";
 import { ExpenseAttachments } from "./ExpenseAttachments";
+import { ExpenseReceiptScanner } from "@/components/ai/ExpenseReceiptScanner";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -164,6 +166,22 @@ export function NovaDespesaEventoDialog({
           <DialogTitle>Nova Despesa do Evento</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Scanner IA de Comprovante */}
+          <div className="space-y-2">
+            <ExpenseReceiptScanner
+              onFieldsExtracted={(fields) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  category: fields.suggested_category || prev.category,
+                  description: fields.description || prev.description,
+                  valor_realizado: fields.total_value?.toString() || prev.valor_realizado,
+                  expense_date: fields.emission_date || prev.expense_date,
+                }));
+              }}
+            />
+            <Separator />
+          </div>
+
           {/* Seletor de Filial */}
           <div className="space-y-2">
             <Label htmlFor="empresa_id" className="flex items-center gap-2">
