@@ -101,7 +101,7 @@ export function useMunicipiosIntelligence() {
     queryFn: async (): Promise<MunicipioIntelligence[]> => {
       const { data, error } = await supabase.rpc('fn_get_municipios_intelligence', {
         ...rpcParams,
-        p_status: 'Virgem',
+        p_status: 'virgem',
         p_sort_column: 'pib_per_capita',
         p_sort_direction: 'desc',
         p_limit: 10,
