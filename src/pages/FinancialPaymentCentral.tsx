@@ -352,6 +352,7 @@ export default function FinancialPaymentCentral() {
           onReject={handleReject}
           onMarkPaid={handleMarkPaid}
           isProcessing={isAccepting || isUpdating}
+          onRefresh={refetch}
         />
       </div>
     </DashboardLayout>
