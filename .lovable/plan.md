@@ -1,139 +1,111 @@
 
+# Correcao da Queda de Conexao na API de Clientes
 
-# Otimizacao Massiva de Performance - Reducao de Custos Cloud
+## Diagnostico
 
-## Diagnostico Resumido
-
-| Problema | Impacto | Numeros |
-|----------|---------|---------|
-| user_roles scans | CRITICO | 2,68 bilhoes de seq_scans em 18 linhas |
-| Policies duplicadas | CRITICO | 974 policies no total, dezenas de tabelas com 4-17 policies |
-| Cascata de funcoes | ALTO | Uma query pode gerar 18+ lookups no user_roles |
-| audit_logs crescendo | MEDIO | 679K linhas em 2 dias, retencao de 30 dias muito alta |
-| contas_receber writes | MEDIO | 121M updates em 394K linhas |
+A API de importacao de clientes (`/importar-clientes`) esta com 35.997 registros. O N8N envia chunks de 8.000-9.500 registros cada.
 
 ### A Causa Raiz
 
-Cada policy RLS permissiva e avaliada para toda linha retornada. No caso da tabela `contas_pagar`:
-- 6 policies SELECT, cada uma chamando `has_role()` 2-3 vezes
-- Total: ~18 lookups no `user_roles` POR LINHA POR QUERY
-- Com 44K linhas, uma simples listagem gera ~792K lookups ao `user_roles`
-
-Isso explica os 2,68 bilhoes de scans.
-
-## Plano de Correcao em 4 Etapas
-
-### Etapa 1: Funcao de Acesso Unificada (Maior Impacto)
-
-Criar uma funcao que faz UMA UNICA query e retorna tudo que precisa saber sobre o usuario:
+Quando o chunk tem mais de 5.000 registros, a funcao usa `EdgeRuntime.waitUntil()` para processar em background e retorna imediatamente (674ms). O problema:
 
 ```text
-check_user_access(user_id, module_code) -> boolean
+N8N envia Chunk 1 (8500 registros)
+  --> Edge Function retorna OK em 674ms (background rodando: ~12s)
+N8N envia Chunk 2 (8500 registros)  
+  --> Edge Function retorna OK (background 1 AINDA rodando + background 2 inicia)
+N8N envia Chunk 3 (8500 registros)
+  --> 3 processos background competindo por recursos
+N8N envia Chunk 4 (8500 registros)
+  --> 4 processos concorrentes, instancia sobrecarregada
+N8N envia Chunk 5 (~2000 registros)
+  --> Instancia reciclada ou timeout = CONEXAO CAI
 ```
 
-Internamente, faz um unico SELECT que busca:
-- O role do usuario
-- Se tem permissao individual no modulo
-- Se tem permissao por departamento
-- Se tem permissao por role
+Alem disso, a funcao RPC `importar_clientes` processa registro por registro em loop PL/pgSQL (FOR loop com INSERT individual), o que e lento (~700 registros/segundo).
 
-Resultado: em vez de 3-5 funcoes encadeadas (has_role -> is_admin_or_supervisor -> usuario_tem_acesso_modulo -> has_role novamente), uma unica chamada resolve.
+### Numeros dos Logs
 
-### Etapa 2: Consolidar Policies Duplicadas (30+ tabelas)
+- Chunks processando em 10-28 segundos cada
+- Taxa: 334-816 registros/segundo
+- Todos retornam 200, mas o background pode ser interrompido silenciosamente
 
-Para cada tabela com duplicatas, reduzir para exatamente 1 policy por operacao (SELECT, INSERT, UPDATE, DELETE).
+## Solucao
 
-Tabelas prioritarias (pior para melhor):
+### 1. Eliminar o processamento em background
 
-| Tabela | Policies Atuais | Policies Depois |
-|--------|----------------|-----------------|
-| fabrica_materias_primas | 17 | 4 |
-| contas_pagar | 16 | 5 |
-| trade_budgets | 15 | 4 |
-| prospects | 15 | 4 |
-| sales | 11 | 4 |
-| trade_investments | 10 | 4 |
-| competitor_intelligence | 10 | 4 |
-| departamento_permissoes_modulos | 8 | 2 |
-| departamento_permissoes_telas | 8 | 2 |
-| contas_receber | 7 | 4 |
-| cobrancas | 7 | 4 |
-| ai_calls | 7 | 3 |
-| photos | 7 | 4 |
-| visits | 4 -> 1 SELECT | 1 |
+Remover completamente o `EdgeRuntime.waitUntil()`. Processar TUDO de forma sincrona com batches menores. Assim o N8N so recebe a resposta quando o processamento realmente terminou e nao envia o proximo chunk antes da hora.
 
-**Exemplo contas_pagar** (de 16 para 5):
-- Manter 1 SELECT: `check_user_access(auth.uid(), 'financeiro')` + deny anon
-- Manter 1 INSERT: mesma logica
-- Manter 1 UPDATE: mesma logica
-- Manter 1 DELETE: apenas admin
-- Remover o ALL e todas as demais 11 policies redundantes
+### 2. Reduzir batch interno de 5.000 para 2.000
 
-### Etapa 3: Limpeza Agressiva de audit_logs
+Batches menores = RPCs mais rapidos = menos risco de timeout. Com 2.000 registros por RPC, cada chamada leva ~3 segundos.
 
-- Executar DELETE imediato de registros mais antigos que 7 dias
-- Alterar a funcao `cleanup_audit_logs_daily` de 30 dias para 7 dias de retencao
-- Isso reduzira de 679K para menos de 50K linhas imediatamente
+### 3. Adicionar progresso incremental e logs detalhados
 
-### Etapa 4: Eliminar Funcoes Redundantes
+Registrar cada batch processado com estatisticas para facilitar debug.
 
-Atualmente existem funcoes que fazem a mesma coisa de formas diferentes:
-- `usuario_tem_acesso_modulo` (plpgsql, chama has_role internamente)
-- `usuario_tem_permissao_modulo` (sql, chama has_role internamente)
-- `has_finance_access` (plpgsql, query direta no user_roles)
-- `can_access_cliente` (plpgsql, chama usuario_tem_acesso_modulo que chama has_role)
-- `can_access_fabrica` (sql, chama is_admin_or_supervisor)
-- `is_admin_or_supervisor` (sql, query direta no user_roles)
-
-Substituir todas por versoes que nao se encadeiam:
-- `check_user_access(user_id, module_code)` - verificacao unificada
-- `is_admin_or_supervisor` - manter (ja e leve)
-- Remover `usuario_tem_permissao_modulo` (duplicata de `usuario_tem_acesso_modulo`)
-
-## Detalhes Tecnicos da Implementacao
-
-### Migracao SQL Unica
-
-Uma migracao SQL que executa na seguinte ordem:
-
-1. Criar a funcao `check_user_access(uuid, text)` SECURITY DEFINER que faz uma unica query com JOINs
-2. Dropar todas as policies duplicadas (listar cada DROP POLICY explicitamente)
-3. Criar as policies consolidadas usando `check_user_access`
-4. Atualizar `cleanup_audit_logs_daily` para retencao de 7 dias
-5. Executar limpeza imediata dos audit_logs
-6. Atualizar funcoes auxiliares para eliminar chamadas encadeadas
-
-### Funcao check_user_access - Logica
+### Fluxo Corrigido
 
 ```text
-1. Se role = 'admin' -> retorna TRUE imediatamente
-2. Se module_code = NULL -> retorna is_admin_or_supervisor
-3. Verifica permissao individual do usuario no modulo
-4. Verifica permissao do departamento no modulo
-5. Verifica permissao do role no modulo
+N8N envia Chunk 1 (8500 registros)
+  --> Edge Function processa sincrono:
+      Batch 1/5: 2000 registros (3s)
+      Batch 2/5: 2000 registros (3s)
+      Batch 3/5: 2000 registros (3s)
+      Batch 4/5: 2000 registros (3s)
+      Batch 5/5: 500 registros (1s)
+  --> Retorna resultado completo em ~13s
+N8N recebe OK, envia Chunk 2 (8500 registros)
+  --> Mesmo processo, sem concorrencia
+  ...
+N8N envia ultimo Chunk (~2000 registros)
+  --> Batch unico de 2000 registros (3s)
+  --> Retorna OK = SUCESSO GARANTIDO
 ```
 
-Tudo em um unico SELECT com LEFT JOINs, sem chamar outras funcoes.
+## Detalhes Tecnicos
 
-### Tabelas Afetadas pela Consolidacao
+### Arquivo modificado: `supabase/functions/cobranca-automation-api/index.ts`
 
-Todas as tabelas com 3+ policies duplicadas por operacao serao consolidadas. Isso inclui aproximadamente 30 tabelas. A migracao vai:
-- DROP POLICY de cada policy redundante (por nome exato)
-- CREATE POLICY com a versao consolidada
+Mudancas no endpoint `/importar-clientes` (linhas 565-668):
 
-### Impacto Esperado
+1. **Remover** o bloco `if (clientes.length > 5000)` com `EdgeRuntime.waitUntil()`
+2. **Unificar** para um unico caminho sincrono que processa em batches de 2.000
+3. **Adicionar** tratamento de erro por batch com continuacao (se um batch falha, os proximos continuam)
+4. **Adicionar** logging progressivo para monitoramento
 
-- **Reducao de ~60% das policies** (de 974 para ~400)
-- **Reducao de ~90% dos lookups no user_roles** por query
-- **audit_logs** de 679K para ~50K linhas
-- **Custo de cloud estimado**: reducao de 70-80% em operacoes de banco
+### Logica do novo endpoint
 
-### Nenhuma Alteracao no Frontend
+```text
+1. Recebe array de clientes (qualquer tamanho)
+2. Define BATCH_SIZE = 2000
+3. Para cada batch de 2000:
+   a. Chama supabase.rpc("importar_clientes", { p_clientes: batch })
+   b. Acumula estatisticas (inseridos, atualizados, erros)
+   c. Loga progresso: "Batch 3/5: 2000 processados"
+   d. Se erro, loga e continua para proximo batch
+4. Retorna resultado consolidado com todas as estatisticas
+5. N8N recebe resposta APENAS quando tudo terminou
+```
 
-Todas as mudancas sao no banco de dados (SQL). Nenhum arquivo do frontend precisa ser modificado. As funcoes RPC existentes continuam funcionando normalmente.
+### Configuracao recomendada no N8N
+
+Como a funcao agora e sincrona e pode levar ate 30 segundos por chunk de 8000 registros, o N8N deve ter:
+- **Timeout**: 120 segundos (suficiente para chunks de ate 20.000)
+- **Chunk size no N8N**: Pode manter 8.000-10.000 (funciona bem com a nova logica)
+
+### Impacto esperado
+
+| Antes | Depois |
+|-------|--------|
+| Background concorrente | Sincrono sequencial |
+| Ultimo chunk perde conexao | Todos os chunks completam |
+| Sem visibilidade do resultado real | Resultado detalhado por batch |
+| 5.000 registros por RPC | 2.000 registros por RPC |
+| Instancia sobrecarregada | Uma operacao por vez |
 
 ### Risco
 
-- BAIXO: policies sao equivalentes (consolidacao, nao mudanca de logica)
-- Teste recomendado: acessar cada modulo apos a migracao para validar que os acessos continuam funcionando
-
+- **Baixo**: A logica de processamento (RPC `importar_clientes`) nao muda
+- **Unica diferenca**: O N8N vai esperar mais pela resposta de cada chunk (~13s em vez de 674ms), mas isso e o comportamento correto
+- **Nenhuma alteracao no frontend**: Apenas o endpoint da edge function muda
