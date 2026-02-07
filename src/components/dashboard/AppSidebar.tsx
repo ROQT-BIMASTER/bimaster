@@ -699,6 +699,12 @@ export function AppSidebar() {
                       title="Reativação" 
                       colorKey="comercial"
                     />
+                    <MenuItemLink 
+                      to="/dashboard/comercial/municipios-inteligencia" 
+                      icon={Building2} 
+                      title="Municípios" 
+                      colorKey="comercial"
+                    />
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>

@@ -97,6 +97,7 @@ const ComercialModule = () => {
     "Dados de Mercado": [
       { title: "Dados IBGE", to: "/dashboard/comercial/ibge", icon: MapPin, color: "text-primary" },
       { title: "Inteligência Comercial", to: "/dashboard/comercial/inteligencia", icon: Globe, color: "text-primary" },
+      { title: "Inteligência Municipal", to: "/dashboard/comercial/municipios-inteligencia", icon: Building2, color: "text-primary" },
     ],
   };
 
