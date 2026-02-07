@@ -1,96 +1,89 @@
 
-# Correcao do Erro 404 nos Anexos + Comprovante de Pagamento
 
-## Problema 1: Erro 404 ao abrir arquivo anexo (causa raiz identificada)
+# Adicionar Despesas de Eventos na Central de Aprovacoes
 
-A investigacao no banco revelou a causa exata do erro:
+## Situacao Atual
 
-- **Arquivo no storage esta em**: `6055d5a4-.../1770306048759-cjhjy.pdf`
-- **URL armazenada no banco aponta para**: `a23aa106-.../1770306048759-cjhjy.pdf`
+A Central de Aprovacoes de Eventos (`EventsApprovalHub`) atualmente **so mostra eventos pendentes de aprovacao de verba** (status `pending_approval`). Nao existe nenhuma visao para o gestor aprovar **despesas individuais** lancadas apos a aprovacao da verba.
 
-O problema esta no `NovaDespesaEventoDialog.tsx`:
-1. Ao abrir o formulario, um UUID temporario e gerado: `tempExpenseId = crypto.randomUUID()` (ex: `6055d5a4...`)
-2. O arquivo e enviado ao storage usando esse UUID temporario como diretorio
-3. Apos salvar a despesa, o sistema recebe o ID real da despesa (ex: `a23aa106...`)
-4. O codigo **substitui o UUID na URL** (`attachment.url.replace(tempExpenseId, expenseData.id)`) mas **nao move o arquivo no storage**
-5. Resultado: a URL salva aponta para um caminho que nao existe
+O fluxo desejado e:
+1. Usuario cria o evento (status `draft`)
+2. Envia para aprovacao (status `pending_approval`)
+3. Gestor aprova a verba (status `approved`)
+4. Usuario lanca despesas (status `pending`)
+5. **Despesas voltam para o gestor aprovar na Central de Aprovacoes**
+6. Apos aprovacao da despesa, usuario envia ao financeiro
 
-**Solucao em duas partes:**
+## O que sera feito
 
-**Parte A - Corrigir o fluxo de upload (novos envios):**
-- Usar `supabase.storage.from('event-expense-docs').move(oldPath, newPath)` para realmente mover o arquivo no storage apos criar a despesa
-- Assim a URL substituida vai apontar para o caminho correto
+### 1. Novo hook: buscar despesas de eventos pendentes de aprovacao
 
-**Parte B - Corrigir a leitura de arquivos existentes (dados ja quebrados):**
-- Melhorar o `resolveStorageUrl` com um fallback: se a signed URL falhar no caminho original, extrair apenas o nome do arquivo e tentar listar/buscar no bucket
-- Isso garante que arquivos ja salvos com caminhos incorretos ainda possam ser abertos
+Criar um hook `usePendingEventExpenses` que busca todas as despesas de eventos com status `pending`, agrupando por evento. Isso permitira que o gestor veja, na Central de Aprovacoes, quais eventos tem despesas aguardando revisao.
 
----
+### 2. Expandir a Central de Aprovacoes de Eventos
 
-## Problema 2: Anexar comprovante de pagamento e enviar ao solicitante
+A pagina `EventsApprovalHub` sera ampliada com **duas secoes**:
 
-Apos o financeiro realizar o pagamento no banco, ele precisa:
-1. Anexar o comprovante de pagamento no sistema
-2. Enviar esse comprovante ao solicitante original
+- **Secao 1** (ja existente): Eventos aguardando aprovacao de verba (`pending_approval`)
+- **Secao 2** (nova): Eventos com despesas pendentes de aprovacao
 
-**Solucao:**
+A nova secao mostrara:
+- Nome do evento, codigo, quantidade de despesas pendentes e valor total
+- Botao "Revisar Despesas" que abre um dialog com a lista de despesas pendentes do evento
+- No dialog, o gestor pode aprovar ou rejeitar cada despesa individualmente (reaproveitando a logica ja existente em `useEventExpenses`: `approveExpense` e `rejectExpense`)
 
-1. **Nova coluna no banco**: Adicionar `receipt_url` (text) e `receipt_sent_at` (timestamp) na tabela `financial_payment_queue`
-2. **Upload de comprovante**: Na tela do dialog, quando o status for "aceito" ou "pago", mostrar uma area de upload para o comprovante
-3. **Botao "Enviar ao Solicitante"**: Apos anexar o comprovante, exibir um botao que cria uma notificacao na tabela `notifications` para o usuario que solicitou (`requested_by`), com link para visualizar o comprovante
+### 3. Novo componente: Dialog de aprovacao de despesas de evento
 
----
+Criar `AprovarDespesasEventoDialog` -- um dialog que:
+- Recebe o ID do evento
+- Lista todas as despesas pendentes desse evento
+- Permite aprovar/rejeitar cada uma, com campo de motivo obrigatorio para rejeicao
+- Mostra informacoes da despesa (categoria, valor, descricao, comprovantes)
 
 ## Secao Tecnica
 
-### Migracao de banco de dados
+### Arquivos a criar
 
-Adicionar duas colunas a tabela `financial_payment_queue`:
+1. **`src/hooks/usePendingEventExpenses.ts`**
+   - Query que busca `corporate_event_expenses` com `status = 'pending'`
+   - Faz join com `corporate_events` para trazer nome/codigo do evento
+   - Agrupa por `event_id` para exibir por evento
+   - So mostra eventos com status `approved` ou `in_progress`
 
-```text
-ALTER TABLE financial_payment_queue
-  ADD COLUMN receipt_url TEXT,
-  ADD COLUMN receipt_sent_at TIMESTAMPTZ;
-```
+2. **`src/components/events/AprovarDespesasEventoDialog.tsx`**
+   - Dialog que lista despesas pendentes de um evento
+   - Botoes de aprovar/rejeitar por despesa
+   - Campo de motivo obrigatorio ao rejeitar
+   - Reutiliza `approveExpense` e `rejectExpense` de `useEventExpenses`
 
 ### Arquivos a modificar
 
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/components/events/NovaDespesaEventoDialog.tsx` | Usar `storage.move()` para mover arquivos do diretorio temporario para o diretorio real apos criar a despesa |
-| `src/lib/utils/storage-url.ts` | Adicionar fallback que busca o arquivo pelo nome se o caminho direto falhar, usando `storage.list()` |
-| `src/components/financeiro/payments/PaymentReviewDialog.tsx` | Adicionar secao de upload de comprovante (para status "aceito"/"pago") e botao "Enviar Comprovante ao Solicitante" |
-| `src/hooks/useFinancialPaymentQueue.ts` | Adicionar campos `receipt_url`/`receipt_sent_at` na interface e mutation para atualizar comprovante e enviar notificacao |
+1. **`src/pages/EventsApprovalHub.tsx`**
+   - Importar `usePendingEventExpenses`
+   - Adicionar KPI "Despesas Pendentes" no grid de metricas
+   - Adicionar nova secao/tabela "Eventos com Despesas Pendentes"
+   - Integrar o novo `AprovarDespesasEventoDialog`
 
-### Detalhes da implementacao
+### Fluxo visual na tela
 
-**1. Correcao do move de arquivos (`NovaDespesaEventoDialog.tsx`):**
-- Apos `createExpense.mutateAsync()`, para cada attachment, chamar `supabase.storage.from('event-expense-docs').move(tempPath, realPath)` onde:
-  - `tempPath` = `{tempExpenseId}/{filename}`
-  - `realPath` = `{expenseData.id}/{filename}`
-- Manter a substituicao de URL atual (que ja funciona se o arquivo for movido)
-- Tratar erros silenciosamente (se o move falhar, manter a URL original sem substituir)
+```text
+Central de Aprovacoes de Eventos
+================================
 
-**2. Fallback na resolucao de URLs (`storage-url.ts`):**
-- Se `createSignedUrl` falhar para o caminho original, extrair o nome do arquivo (parte apos o ultimo `/`)
-- Listar os objetos do bucket com prefix parcial para encontrar o arquivo
-- Se encontrar, gerar a signed URL com o caminho correto
-- Isso resolve arquivos ja salvos com caminho incorreto
+[KPI: Eventos Pendentes]  [KPI: Despesas Pendentes]  [KPI: Valor Total]
 
-**3. Upload de comprovante (`PaymentReviewDialog.tsx`):**
-- Nova secao visivel quando status e "aceito" ou "pago"
-- Input file para PDF/imagens (max 10MB)
-- Upload para bucket `event-expense-docs` com path `receipts/{paymentQueueId}/{filename}`
-- Salvar `receipt_url` na tabela `financial_payment_queue`
-- Botao "Enviar Comprovante ao Solicitante" que:
-  - Gera signed URL do comprovante
-  - Insere registro na tabela `notifications` com `user_id = requested_by`, titulo e link
-  - Atualiza `receipt_sent_at` no registro da fila
-  - Mostra confirmacao visual de que o comprovante foi enviado
+--- Eventos Aguardando Aprovacao de Verba ---
+(tabela existente com botao "Revisar")
 
-### O que NAO sera alterado
+--- Eventos com Despesas Pendentes ---
+| Codigo | Evento       | Despesas Pendentes | Valor Total | Acoes          |
+| EV-001 | Evento TNT   | 3 despesas         | R$ 5.000    | [Revisar]      |
+| EV-002 | Workshop ABC | 1 despesa          | R$ 800      | [Revisar]      |
 
-- Nenhum fluxo de aprovacao/rejeicao existente
-- Dashboard e Calendario de Contas a Pagar
-- Componentes de upload de outros modulos (departamentos, trade)
-- Estrutura geral do dialog de revisao
+Ao clicar "Revisar" -> abre dialog com lista de despesas para aprovar/rejeitar
+```
+
+### Nenhuma mudanca no banco de dados
+
+O fluxo de dados ja existe -- despesas de eventos ja nascem com status `pending` e ja existem as mutations `approveExpense` e `rejectExpense` no hook `useEventExpenses`. So falta a **visao na Central de Aprovacoes** para o gestor.
+
