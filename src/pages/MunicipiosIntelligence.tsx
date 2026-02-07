@@ -19,6 +19,8 @@ const MunicipiosIntelligence = () => {
     totalCount,
     totalPages,
     dataLoading,
+    topOpportunities,
+    topOpportunitiesLoading,
     fetchAllForExport,
     pageSize,
   } = useMunicipiosIntelligence();
@@ -62,7 +64,7 @@ const MunicipiosIntelligence = () => {
         {/* Charts Row */}
         <div className="grid gap-6 lg:grid-cols-2">
           <MunicipiosScatterChart kpis={kpis} loading={kpisLoading} />
-          <MunicipiosOpportunityCard data={municipios} loading={dataLoading} />
+          <MunicipiosOpportunityCard data={topOpportunities} loading={topOpportunitiesLoading} />
         </div>
 
         {/* Full Table */}

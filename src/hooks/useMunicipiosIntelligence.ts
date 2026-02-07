@@ -95,6 +95,39 @@ export function useMunicipiosIntelligence() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Top 10 opportunities query (Virgem municipalities sorted by PIB desc)
+  const topOpportunitiesQuery = useQuery({
+    queryKey: ['municipios-top-opportunities', filters.uf, filters.regiao, filters.microrregiao_id, filters.search],
+    queryFn: async (): Promise<MunicipioIntelligence[]> => {
+      const { data, error } = await supabase.rpc('fn_get_municipios_intelligence', {
+        ...rpcParams,
+        p_status: 'Virgem',
+        p_sort_column: 'pib_per_capita',
+        p_sort_direction: 'desc',
+        p_limit: 10,
+        p_offset: 0,
+      } as any);
+      if (error) throw error;
+      return ((data as any[]) || []).map(r => ({
+        ...r,
+        populacao: Number(r.populacao),
+        pib_mil_reais: Number(r.pib_mil_reais),
+        pib_per_capita: Number(r.pib_per_capita),
+        total_clientes: Number(r.total_clientes),
+        clientes_com_compra: Number(r.clientes_com_compra),
+        receita_total: Number(r.receita_total),
+        receita_maior: Number(r.receita_maior),
+        ticket_medio: Number(r.ticket_medio),
+        total_prospects: Number(r.total_prospects),
+        total_leads: Number(r.total_leads),
+        densidade_comercial: Number(r.densidade_comercial),
+        intensidade_comercial: Number(r.intensidade_comercial),
+        total_count: Number(r.total_count),
+      }));
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Data query (paginated)
   const dataQuery = useQuery({
     queryKey: ['municipios-intelligence', filters],
@@ -199,6 +232,8 @@ export function useMunicipiosIntelligence() {
     totalCount: dataQuery.data?.totalCount || 0,
     totalPages,
     dataLoading: dataQuery.isLoading,
+    topOpportunities: topOpportunitiesQuery.data || [],
+    topOpportunitiesLoading: topOpportunitiesQuery.isLoading,
     fetchAllForExport,
     pageSize: PAGE_SIZE,
   };
