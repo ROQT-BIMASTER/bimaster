@@ -1,89 +1,117 @@
 
+# Central de Aprovacoes: Modo Foco + Politica de Pagamento Financeiro
 
-# Adicionar Despesas de Eventos na Central de Aprovacoes
+## Parte 1: Modo Foco para Despesas Lancadas
 
-## Situacao Atual
+### Problema
+Quando ha muitas despesas pendentes na Central de Aprovacoes, a lista fica longa e o espaco da tela fica pequeno, dificultando a revisao pelo gestor.
 
-A Central de Aprovacoes de Eventos (`EventsApprovalHub`) atualmente **so mostra eventos pendentes de aprovacao de verba** (status `pending_approval`). Nao existe nenhuma visao para o gestor aprovar **despesas individuais** lancadas apos a aprovacao da verba.
+### Solucao
+Adicionar um botao "Modo Foco" na secao de Despesas Lancadas que abre todas as despesas em tela cheia (full-screen dialog), com melhor aproveitamento do espaco e filtros acessiveis.
 
-O fluxo desejado e:
-1. Usuario cria o evento (status `draft`)
-2. Envia para aprovacao (status `pending_approval`)
-3. Gestor aprova a verba (status `approved`)
-4. Usuario lanca despesas (status `pending`)
-5. **Despesas voltam para o gestor aprovar na Central de Aprovacoes**
-6. Apos aprovacao da despesa, usuario envia ao financeiro
+### O que sera feito
+- Botao "Modo Foco" (icone Expand/Maximize) no header da secao de Despesas Lancadas
+- Ao clicar, abre um Dialog em tela cheia com:
+  - Filtros (busca, departamento, categoria) na barra superior
+  - Lista completa de despesas em layout otimizado (mais compacto, tipo tabela)
+  - Acoes rapidas de aprovar/rejeitar diretamente na lista
+  - Contadores e totalizadores visiveis
+  - Botao para fechar e voltar a visualizacao normal
 
-## O que sera feito
+### Arquivo a criar
+- `src/components/departments/DespesasFocoModeDialog.tsx` -- Dialog full-screen com a listagem completa
 
-### 1. Novo hook: buscar despesas de eventos pendentes de aprovacao
+### Arquivo a modificar
+- `src/pages/DepartmentsApprovalHub.tsx` -- Adicionar botao "Modo Foco" na secao de despesas
 
-Criar um hook `usePendingEventExpenses` que busca todas as despesas de eventos com status `pending`, agrupando por evento. Isso permitira que o gestor veja, na Central de Aprovacoes, quais eventos tem despesas aguardando revisao.
+---
 
-### 2. Expandir a Central de Aprovacoes de Eventos
+## Parte 2: Politica de Calendario de Pagamento do Financeiro
 
-A pagina `EventsApprovalHub` sera ampliada com **duas secoes**:
+### Problema
+O financeiro precisa controlar quando os usuarios podem lancar despesas para pagamento e quando os pagamentos serao processados. Atualmente nao existe nenhuma configuracao de politica de pagamento no sistema.
 
-- **Secao 1** (ja existente): Eventos aguardando aprovacao de verba (`pending_approval`)
-- **Secao 2** (nova): Eventos com despesas pendentes de aprovacao
+### Regras de negocio
+1. O financeiro configura uma politica com:
+   - **Dia de corte**: dia da semana ate quando as despesas podem ser lancadas (ex: quinta-feira)
+   - **Horario de corte**: horario limite no dia de corte (ex: 18:00)
+   - **Dia de pagamento**: dia da semana em que os pagamentos sao processados (ex: segunda-feira)
+   - **Aceita excecoes**: se o financeiro aceita pagamentos fora da politica (requer aprovacao adicional)
 
-A nova secao mostrara:
-- Nome do evento, codigo, quantidade de despesas pendentes e valor total
-- Botao "Revisar Despesas" que abre um dialog com a lista de despesas pendentes do evento
-- No dialog, o gestor pode aprovar ou rejeitar cada despesa individualmente (reaproveitando a logica ja existente em `useEventExpenses`: `approveExpense` e `rejectExpense`)
+2. Se o usuario lanca uma despesa apos o corte:
+   - A despesa e automaticamente agendada para o proximo ciclo de pagamento
+   - O sistema mostra claramente qual sera a data de pagamento
 
-### 3. Novo componente: Dialog de aprovacao de despesas de evento
+3. Se excecoes estao habilitadas:
+   - O usuario pode solicitar pagamento fora da politica
+   - Essa excecao precisa de aprovacao do financeiro
 
-Criar `AprovarDespesasEventoDialog` -- um dialog que:
-- Recebe o ID do evento
-- Lista todas as despesas pendentes desse evento
-- Permite aprovar/rejeitar cada uma, com campo de motivo obrigatorio para rejeicao
-- Mostra informacoes da despesa (categoria, valor, descricao, comprovantes)
+4. A politica fica visivel para todos os usuarios em um banner/botao no topo das telas de despesas
 
-## Secao Tecnica
+### Mudancas no banco de dados
+Nova tabela `financial_payment_policies`:
+
+```text
+| Coluna                  | Tipo      | Descricao                                    |
+|-------------------------|-----------|----------------------------------------------|
+| id                      | uuid (PK) | Identificador                                |
+| name                    | text      | Nome da politica (ex: "Politica Semanal")    |
+| cutoff_day_of_week      | int       | Dia de corte (0=Dom, 1=Seg ... 4=Qui)        |
+| cutoff_time             | time      | Horario de corte (ex: 18:00)                 |
+| payment_day_of_week     | int       | Dia de pagamento (0=Dom, 1=Seg)              |
+| allows_exceptions       | boolean   | Aceita excecoes de pagamento                 |
+| exception_requires_approval | boolean | Excecao precisa de aprovacao             |
+| description             | text      | Descricao da politica para os usuarios       |
+| is_active               | boolean   | Se esta ativa                                |
+| created_by              | uuid      | Quem criou                                   |
+| created_at              | timestamp | Quando foi criada                            |
+| updated_at              | timestamp | Ultima atualizacao                           |
+```
 
 ### Arquivos a criar
 
-1. **`src/hooks/usePendingEventExpenses.ts`**
-   - Query que busca `corporate_event_expenses` com `status = 'pending'`
-   - Faz join com `corporate_events` para trazer nome/codigo do evento
-   - Agrupa por `event_id` para exibir por evento
-   - So mostra eventos com status `approved` ou `in_progress`
+1. **`src/hooks/useFinancialPaymentPolicies.ts`**
+   - Hook com CRUD para politicas de pagamento
+   - Funcoes utilitarias para calcular:
+     - Proxima data de pagamento baseada na politica
+     - Se uma despesa esta dentro ou fora do prazo de corte
+     - Proximo ciclo de pagamento
 
-2. **`src/components/events/AprovarDespesasEventoDialog.tsx`**
-   - Dialog que lista despesas pendentes de um evento
-   - Botoes de aprovar/rejeitar por despesa
-   - Campo de motivo obrigatorio ao rejeitar
-   - Reutiliza `approveExpense` e `rejectExpense` de `useEventExpenses`
+2. **`src/components/financeiro/payments/PaymentPolicyConfigDialog.tsx`**
+   - Dialog para o financeiro configurar a politica
+   - Selecao de dia da semana para corte e pagamento
+   - Campo de horario de corte
+   - Toggle para aceitar excecoes
+   - Campo de descricao da politica
+
+3. **`src/components/financeiro/payments/PaymentPolicyBanner.tsx`**
+   - Banner/botao que aparece no topo das telas de despesas
+   - Mostra resumo da politica vigente (ex: "Lancamentos ate quinta 18h -- Pagamento na segunda")
+   - Ao clicar, abre um dialog com os detalhes completos da politica
+   - Mostra a proxima data de pagamento calculada
+   - Se excecoes sao aceitas, indica isso claramente
 
 ### Arquivos a modificar
 
-1. **`src/pages/EventsApprovalHub.tsx`**
-   - Importar `usePendingEventExpenses`
-   - Adicionar KPI "Despesas Pendentes" no grid de metricas
-   - Adicionar nova secao/tabela "Eventos com Despesas Pendentes"
-   - Integrar o novo `AprovarDespesasEventoDialog`
+1. **`src/pages/FinancialPaymentCentral.tsx`**
+   - Adicionar botao "Configurar Politica" no header da Central de Pagamentos
+   - Integrar o dialog de configuracao
 
-### Fluxo visual na tela
+2. **`src/pages/DepartmentsApprovalHub.tsx`**
+   - Adicionar o `PaymentPolicyBanner` no topo da pagina
 
-```text
-Central de Aprovacoes de Eventos
-================================
+3. **`src/components/events/EventsExpensesTable.tsx`** (ou tela equivalente de lancamento)
+   - Adicionar o `PaymentPolicyBanner` para que o usuario veja as regras ao lancar despesas
 
-[KPI: Eventos Pendentes]  [KPI: Despesas Pendentes]  [KPI: Valor Total]
+---
 
---- Eventos Aguardando Aprovacao de Verba ---
-(tabela existente com botao "Revisar")
+## Resumo das entregas
 
---- Eventos com Despesas Pendentes ---
-| Codigo | Evento       | Despesas Pendentes | Valor Total | Acoes          |
-| EV-001 | Evento TNT   | 3 despesas         | R$ 5.000    | [Revisar]      |
-| EV-002 | Workshop ABC | 1 despesa          | R$ 800      | [Revisar]      |
-
-Ao clicar "Revisar" -> abre dialog com lista de despesas para aprovar/rejeitar
-```
-
-### Nenhuma mudanca no banco de dados
-
-O fluxo de dados ja existe -- despesas de eventos ja nascem com status `pending` e ja existem as mutations `approveExpense` e `rejectExpense` no hook `useEventExpenses`. So falta a **visao na Central de Aprovacoes** para o gestor.
-
+| Item | Tipo | Descricao |
+|------|------|-----------|
+| Modo Foco | Novo componente | Dialog fullscreen para revisao de despesas em massa |
+| Tabela `financial_payment_policies` | Banco de dados | Armazena configuracoes de politica de pagamento |
+| Hook de politicas | Novo hook | CRUD + calculos de datas de pagamento |
+| Config da politica | Novo componente | Dialog para o financeiro definir regras |
+| Banner de politica | Novo componente | Visivel para todos os usuarios nas telas de despesas |
+| Integracao | Modificacoes | Central de Pagamentos, Central de Aprovacoes, e telas de lancamento |
