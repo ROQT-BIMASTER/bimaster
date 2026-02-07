@@ -111,7 +111,7 @@ export function EventsExpensesTable({ expenses, isLoading, eventStatus }: Events
 
   return (
     <>
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
