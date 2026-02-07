@@ -1,162 +1,84 @@
 
 
-# Auditoria Completa: Seguranca e Performance
+# Correcao: Detalhes de Envio/Aprovacao e Erro 404 nos Anexos
 
-## Problemas Encontrados
+## Problema 1: Falta de detalhes sobre quem enviou e quem aprovou
 
-Apos analise exaustiva do codigo, banco de dados e logs, identifiquei **12 problemas** que precisam de correcao para passar numa auditoria, organizados por severidade.
+Atualmente, o dialog de "Revisao de Pagamento" mostra dados do fornecedor, valor, vencimento e origem, mas **nao mostra quem solicitou o pagamento nem quem aprovou/revisou**. Os campos `requested_by` e `reviewed_by` existem na tabela `financial_payment_queue` como UUIDs, mas nao sao resolvidos para nomes de perfis.
 
----
-
-## CRITICO - Seguranca
-
-### 1. Edge Functions chamadas com chave anonima em vez de JWT do usuario
-
-**Arquivos afetados:** `ContasPagarAIChat.tsx`, `SofiaFloatingChat.tsx`, `AIAnalyticsPanel.tsx`, `ElevenLabsStudio.tsx`, `useQAAgent.ts`
-
-Estes componentes chamam edge functions usando `Authorization: Bearer VITE_SUPABASE_PUBLISHABLE_KEY` (chave publica anonima) em vez do token JWT do usuario autenticado. Isso significa que:
-- As edge functions nao conseguem identificar quem esta fazendo a requisicao
-- Qualquer pessoa com a chave publica pode chamar essas funcoes
-- Logs de auditoria nao registram o usuario correto
-
-**Correcao:** Obter o token da sessao do usuario via `supabase.auth.getSession()` e usar como Authorization bearer.
-
-### 2. SignupForm.tsx ainda contem Google OAuth ativo
-
-Segundo a politica do sistema, o signup publico foi desabilitado e Google OAuth foi removido. Porem o `SignupForm.tsx` ainda contem:
-- `handleGoogleSignup()` com `supabase.auth.signInWithOAuth({ provider: 'google' })`
-- Formulario completo de cadastro publico
-- Botao "Continuar com Google"
-
-Embora a rota `/auth/signup` redirecione para login, o componente ainda e importavel e poderia ser usado se alguem revertesse o redirect.
-
-**Correcao:** Limpar o SignupForm removendo Google OAuth e o formulario publico, mantendo apenas um aviso de "Acesso restrito".
-
-### 3. Findings de seguranca pendentes no scan
-
-O scan mostra 2 findings nao resolvidos:
-- `contas_pagar_financial_exposure` (error) - A tabela `contas_pagar` usa `check_user_access` que pode ser amplo demais
-- `financial_payment_queue_exposure` (warn) - Ja foi corrigido na migracao anterior, precisa ser deletado/atualizado no scanner
-
-**Correcao:** Verificar e atualizar o status dos findings no scan de seguranca.
+**Solucao:**
+- Modificar o hook `useFinancialPaymentQueue` para fazer uma consulta adicional e resolver os nomes dos usuarios (`requested_by` -> nome, `reviewed_by` -> nome) a partir da tabela `profiles`
+- Como nao existe foreign key entre `financial_payment_queue` e `profiles`, faremos a resolucao manualmente: apos buscar os itens, coletamos os IDs unicos de `requested_by` e `reviewed_by`, consultamos a tabela `profiles` uma unica vez, e mapeamos os nomes de volta
+- Adicionar uma nova secao no `PaymentReviewDialog` chamada "Rastreabilidade" com:
+  - Nome do solicitante e data da solicitacao
+  - Nome do revisor, data da revisao e status dado (quando aplicavel)
+  - Empresa/filial de origem
 
 ---
 
-## ALTO - Performance
+## Problema 2: Erro 404 ao visualizar arquivo anexo
 
-### 4. queryClient.clear() a cada 5 minutos destroi todo o cache
+O erro `{"statusCode":"404","error":"not_found","message":"Object not found"}` ocorre porque a URL publica armazenada no campo `attachments` aponta para um caminho que nao existe no storage.
 
-Em `App.tsx` (linha 437), um `setInterval` executa `queryClient.clear()` a cada 5 minutos. Isso remove **TODAS** as queries do cache, incluindo queries ativas que estao sendo exibidas na tela. Consequencias:
-- Componentes perdem dados e fazem refetch desnecessario
-- Flash de loading state a cada 5 minutos
-- Perda total do beneficio do staleTime de 5 minutos configurado
-- Experiencia do usuario degradada
+Investigacao no banco:
+- A URL salva aponta para: `.../event-expense-docs/a23aa106-.../arquivo.pdf`
+- O arquivo real no storage esta em: `.../event-expense-docs/6055d5a4-.../arquivo.pdf`
+- A URL e o caminho nao coincidem
 
-**Correcao:** Substituir por `queryClient.removeQueries({ type: 'inactive' })` que remove apenas queries que nao estao sendo usadas ativamente.
+Isso pode ter ocorrido quando a despesa foi editada ou recriada, mas os metadados do anexo mantiveram a URL antiga/incorreta.
 
-### 5. Photo Queue Processor roda incondicionalmente
+**Solucao:**
+Em vez de abrir diretamente a URL publica armazenada (que pode estar incorreta ou expirada), o sistema passara a:
 
-Em `main.tsx`, `startPhotoQueueProcessor()` inicia imediatamente ao carregar a pagina e chama a edge function `trigger-photo-queue` a cada 2 minutos, mesmo quando:
-- O usuario nao esta autenticado
-- O usuario nao tem acesso ao modulo de Trade
-- Nao ha fotos na fila
+1. Extrair o **caminho de storage** a partir da URL armazenada (ex: `a23aa106-.../arquivo.pdf`)
+2. Tentar gerar uma **signed URL** usando `supabase.storage.createSignedUrl()` (valida se o arquivo existe)
+3. Se falhar (arquivo nao encontrado no caminho), exibir uma mensagem clara ao usuario: "Arquivo nao encontrado no armazenamento"
+4. Se funcionar, abrir a signed URL (que e temporaria e mais segura que URLs publicas)
 
-**Correcao:** Mover o processador para dentro do contexto autenticado, iniciando apenas apos login e apenas para usuarios com permissao ao modulo trade.
-
-### 6. PermissionsContext chama supabase.auth.getUser() (requisicao de rede)
-
-O `PermissionsContext` chama `supabase.auth.getUser()` que faz uma requisicao HTTP ao servidor de auth. Poderia usar o `session.user` ja disponivel no `AuthContext` que esta em memoria.
-
-**Correcao:** Receber o userId do AuthContext em vez de fazer chamada de rede adicional.
+Essa abordagem sera aplicada no `AttachmentAcknowledgement.tsx` (Central de Pagamentos) e tambem poderia ser aplicada nos componentes de anexos de despesas.
 
 ---
 
-## MEDIO - Qualidade de Codigo
+## Secao Tecnica
 
-### 7. Rotas duplicadas em App.tsx
+### Arquivos a criar
 
-Existem 2 rotas duplicadas:
-- Linha 246 e 247: `/dashboard/relatorios` (duplicada)
-- Linha 342 e 343: `/dashboard/fabrica/ordens-producao` (duplicada)
-
-Rotas duplicadas podem causar comportamento imprevisivel no React Router.
-
-**Correcao:** Remover as linhas duplicadas (247 e 343).
-
-### 8. 1024+ console.log em producao
-
-O sistema tem um Logger estruturado (`logger.ts`) mas 56 arquivos ainda usam `console.log` diretamente, resultando em 1024+ chamadas que:
-- Vazam informacoes de debug em producao
-- Poluem o console do navegador
-- Podem expor dados sensiveis (IDs de usuario, dados de sessao)
-
-**Correcao:** Substituir os console.log mais criticos (em componentes de auth e dados financeiros) pelo logger estruturado. Os demais podem ser tratados progressivamente.
-
-### 9. Catch blocks vazios
-
-Em `AIAnalyticsPanel.tsx`, existem `catch (e) {}` vazios que engolem erros silenciosamente, dificultando debug em producao.
-
-**Correcao:** Adicionar tratamento minimo (log ou ignorar explicitamente com comentario).
-
----
-
-## BAIXO - Melhorias
-
-### 10. MemoryMonitor e MemoryManager com funcionalidade sobreposta
-
-O sistema tem dois sistemas separados fazendo a mesma coisa:
-- `memory-monitor.ts` - verifica memoria a cada 30s
-- `memory-manager.ts` - limpa cache a cada 3 min + limpeza no visibility change
-- `App.tsx` - limpa queryClient a cada 5 min
-
-Tres sistemas de limpeza competindo entre si.
-
-**Correcao:** Consolidar em um unico sistema, removendo a limpeza agressiva do `queryClient.clear()`.
-
-### 11. Realtime channel no PermissionsContext nao faz cleanup adequado
-
-O canal realtime criado dentro do `.then()` retorna uma funcao de cleanup, mas essa funcao nao e capturada pelo useEffect cleanup. O canal pode ficar aberto apos o componente desmontar.
-
-**Correcao:** Capturar a referencia do canal e fazer cleanup no return do useEffect.
-
-### 12. useSupabaseQuery com configuracoes conflitantes
-
-O hook `useSupabaseQuery.ts` define `staleTime: 5000` (5 segundos) mas o QueryClient global define `staleTime: 5 * 60 * 1000` (5 minutos). Isso cria inconsistencia: queries usando o hook customizado refetcham muito mais frequentemente.
-
-**Correcao:** Alinhar o staleTime do hook com o global ou documentar a diferenca intencional.
-
----
-
-## Secao Tecnica - Implementacao
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/lib/utils/storage-url.ts` | Utilitario para extrair path de storage de URLs e gerar signed URLs |
 
 ### Arquivos a modificar
 
-| Arquivo | Correcao |
-|---------|----------|
-| `src/components/financeiro/ContasPagarAIChat.tsx` | Usar JWT do usuario |
-| `src/components/financeiro/SofiaFloatingChat.tsx` | Usar JWT do usuario |
-| `src/components/ai/AIAnalyticsPanel.tsx` | Usar JWT do usuario |
-| `src/components/marketing/ElevenLabsStudio.tsx` | Usar JWT do usuario |
-| `src/hooks/useQAAgent.ts` | Usar JWT do usuario |
-| `src/components/auth/SignupForm.tsx` | Remover Google OAuth |
-| `src/App.tsx` | Remover rotas duplicadas + fix queryClient.clear |
-| `src/main.tsx` | Condicionar photo processor a auth |
-| `src/hooks/useSupabaseQuery.ts` | Alinhar staleTime |
-| `src/contexts/PermissionsContext.tsx` | Fix channel cleanup + usar session |
+| Arquivo | Mudanca |
+|---------|---------|
+| `src/hooks/useFinancialPaymentQueue.ts` | Adicionar resolucao de nomes via `profiles` para `requested_by` e `reviewed_by` |
+| `src/components/financeiro/payments/PaymentReviewDialog.tsx` | Adicionar secao "Rastreabilidade" com nomes do solicitante e revisor |
+| `src/components/financeiro/payments/AttachmentAcknowledgement.tsx` | Usar signed URL em vez de URL publica direta, com tratamento de erro |
 
-### Migracao SQL
+### Detalhes da implementacao
 
-Nenhuma migracao de banco necessaria - as correcoes sao todas no frontend.
+**Hook - resolucao de nomes:**
+Apos buscar os itens da fila, coletar todos os IDs unicos de `requested_by` e `reviewed_by`, fazer uma consulta `SELECT id, nome FROM profiles WHERE id IN (...)` e mapear os nomes para `requester_name` e `reviewer_name` em cada item. Isso usa apenas 1 consulta extra independente do numero de itens.
 
-### Atualizacao dos findings de seguranca
+**Dialog - secao de Rastreabilidade:**
+Nova Card no dialog mostrando:
+- Icone de usuario + "Solicitado por: [Nome]" + data/hora
+- Icone de revisao + "Revisado por: [Nome]" + data/hora + status dado
+- Informacao da empresa/filial quando disponivel
 
-Apos as correcoes, atualizar o scan para refletir os problemas resolvidos.
+**Anexos - signed URL com fallback:**
+Funcao utilitaria que:
+1. Recebe uma URL publica de storage
+2. Identifica o bucket (ex: `event-expense-docs`, `department-expense-docs`)
+3. Extrai o path relativo
+4. Chama `supabase.storage.from(bucket).createSignedUrl(path, 3600)`
+5. Retorna a signed URL ou erro
 
 ### O que NAO sera alterado
 
-- Nenhuma funcionalidade existente sera modificada
-- Nenhuma tela ou fluxo visual sera alterado
+- Nenhuma funcionalidade existente do Dashboard ou Calendario de Contas a Pagar
 - Nenhuma tabela de banco sera modificada
-- Nenhuma edge function sera modificada
-- As permissoes e RLS policies permanecem inalteradas
+- Nenhum fluxo de aprovacao/rejeicao sera alterado
+- As queries do `ContasAPagar.tsx` (dashboard, calendario, tabela) permanecem identicas
+- Os componentes de upload de anexos permanecem inalterados
 
