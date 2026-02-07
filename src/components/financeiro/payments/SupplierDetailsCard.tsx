@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -11,7 +10,6 @@ import {
   MapPin,
   Search,
   Loader2,
-  Globe,
   Landmark,
   BadgeCheck,
   AlertTriangle,
@@ -22,9 +20,11 @@ import {
   QrCode,
   User,
   Banknote,
+  Save,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface CnpjEnrichedData {
   razaoSocial?: string;
@@ -95,17 +95,18 @@ export function SupplierDetailsCard({
   const [localSupplier, setLocalSupplier] = useState<LocalSupplierData | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingLocal, setLoadingLocal] = useState(false);
-  const { toast } = useToast();
+  const [loadingCache, setLoadingCache] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const isCnpj =
-    supplierDocument && supplierDocument.replace(/\D/g, "").length === 14;
+  const cnpjClean = supplierDocument?.replace(/\D/g, "") || "";
+  const isCnpj = cnpjClean.length === 14;
 
-  // Fetch local supplier data on mount
+  // Auto-load: fetch from opencnpj_cache + local supplier on mount
   useEffect(() => {
     if (!supplierDocument) return;
-    const cnpjClean = supplierDocument.replace(/\D/g, "");
     if (cnpjClean.length < 11) return;
 
+    // Load local supplier data
     setLoadingLocal(true);
     supabase
       .from("fabrica_fornecedores")
@@ -117,11 +118,26 @@ export function SupplierDetailsCard({
         if (data) setLocalSupplier(data as unknown as LocalSupplierData);
         setLoadingLocal(false);
       });
-  }, [supplierDocument]);
+
+    // Load cached enrichment data (always show if available)
+    if (isCnpj) {
+      setLoadingCache(true);
+      supabase
+        .from("opencnpj_cache")
+        .select("data")
+        .eq("cnpj", cnpjClean)
+        .maybeSingle()
+        .then(({ data: cacheRow }) => {
+          if (cacheRow?.data) {
+            setEnrichedData(cacheRow.data as unknown as CnpjEnrichedData);
+          }
+          setLoadingCache(false);
+        });
+    }
+  }, [supplierDocument, cnpjClean, isCnpj]);
 
   const handleEnrich = async () => {
-    if (!supplierDocument) return;
-    const cnpjClean = supplierDocument.replace(/\D/g, "");
+    if (!isCnpj) return;
 
     setLoading(true);
     try {
@@ -134,26 +150,79 @@ export function SupplierDetailsCard({
       if (data.error) throw new Error(data.error);
 
       setEnrichedData(data);
-      toast({
-        title: "Dados carregados",
-        description: "Informações da Receita Federal atualizadas.",
-      });
+      toast.success("Dados da Receita Federal atualizados!");
     } catch (err: any) {
       console.error("Erro ao enriquecer fornecedor:", err);
-      toast({
-        title: "Erro na consulta",
-        description:
-          err.message || "Não foi possível consultar a Receita Federal.",
-        variant: "destructive",
-      });
+      toast.error(err.message || "Não foi possível consultar a Receita Federal.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveToSupplier = async () => {
+    if (!enrichedData || !isCnpj) return;
+
+    setSaving(true);
+    try {
+      const updatePayload: Record<string, any> = {};
+      if (enrichedData.razaoSocial) updatePayload.razao_social = enrichedData.razaoSocial;
+      if (enrichedData.nomeFantasia) updatePayload.nome_fantasia = enrichedData.nomeFantasia;
+      if (enrichedData.telefone) updatePayload.telefone = enrichedData.telefone;
+      if (enrichedData.email) updatePayload.email = enrichedData.email;
+
+      // Build full address
+      const addressParts = [enrichedData.endereco, enrichedData.bairro, enrichedData.cidade, enrichedData.uf].filter(Boolean);
+      if (addressParts.length > 0) {
+        updatePayload.endereco = addressParts.join(", ");
+        if (enrichedData.cep) updatePayload.endereco += ` - CEP ${enrichedData.cep}`;
+      }
+
+      if (localSupplier) {
+        // Update existing supplier
+        const { error } = await supabase
+          .from("fabrica_fornecedores")
+          .update({ ...updatePayload, updated_at: new Date().toISOString() })
+          .eq("id", localSupplier.id);
+
+        if (error) throw error;
+
+        // Refresh local data
+        setLocalSupplier(prev => prev ? { ...prev, ...updatePayload } : prev);
+        toast.success("Cadastro do fornecedor atualizado!");
+      } else {
+        // Create new supplier entry
+        const { data: newSupplier, error } = await supabase
+          .from("fabrica_fornecedores")
+          .insert({
+            cnpj: cnpjClean,
+            razao_social: enrichedData.razaoSocial || supplierName,
+            nome_fantasia: enrichedData.nomeFantasia || null,
+            telefone: enrichedData.telefone || null,
+            email: enrichedData.email || null,
+            endereco: updatePayload.endereco || null,
+            ativo: true,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setLocalSupplier(newSupplier as unknown as LocalSupplierData);
+        toast.success("Fornecedor cadastrado com dados da Receita!");
+      }
+    } catch (err: any) {
+      console.error("Erro ao salvar fornecedor:", err);
+      toast.error(err.message || "Erro ao salvar dados do fornecedor.");
+    } finally {
+      setSaving(false);
     }
   };
 
   const hasBankData = localSupplier && (
     localSupplier.banco || localSupplier.pix_chave || localSupplier.linha_digitavel
   );
+
+  const isLoadingInitial = loadingLocal || loadingCache;
 
   return (
     <Card>
@@ -179,8 +248,7 @@ export function SupplierDetailsCard({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Enrich button */}
+          <div className="flex items-center gap-1.5 shrink-0">
             {isCnpj && (
               <Button
                 variant="outline"
@@ -191,6 +259,8 @@ export function SupplierDetailsCard({
               >
                 {loading ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : enrichedData ? (
+                  <RefreshCw className="h-3.5 w-3.5" />
                 ) : (
                   <Search className="h-3.5 w-3.5" />
                 )}
@@ -201,10 +271,40 @@ export function SupplierDetailsCard({
                   : "Consultar Receita"}
               </Button>
             )}
+
+            {/* Save button - only when there's enriched data */}
+            {enrichedData && isCnpj && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleSaveToSupplier}
+                disabled={saving}
+                className="gap-1.5"
+              >
+                {saving ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Save className="h-3.5 w-3.5" />
+                )}
+                {saving
+                  ? "Salvando..."
+                  : localSupplier
+                  ? "Atualizar Cadastro"
+                  : "Salvar no Cadastro"}
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Enriched Data from Receita Federal */}
+        {/* Loading initial data */}
+        {isLoadingInitial && !enrichedData && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Carregando dados do fornecedor...
+          </div>
+        )}
+
+        {/* Enriched Data from Receita Federal - ALWAYS shown when available */}
         {enrichedData && (
           <>
             <Separator />
@@ -219,12 +319,12 @@ export function SupplierDetailsCard({
                   <BadgeCheck className="h-3 w-3" />
                   Ativa
                 </Badge>
-              ) : (
+              ) : enrichedData.situacao ? (
                 <Badge variant="destructive" className="gap-1">
                   <AlertTriangle className="h-3 w-3" />
-                  {enrichedData.situacao || "Desconhecida"}
+                  {enrichedData.situacao}
                 </Badge>
-              )}
+              ) : null}
               {enrichedData.matrizFilial && (
                 <Badge variant="secondary" className="text-xs">
                   {enrichedData.matrizFilial}
@@ -372,33 +472,23 @@ export function SupplierDetailsCard({
           </>
         )}
 
-        {/* Footer: link para cadastro + loading */}
+        {/* Footer: link para cadastro + status */}
         <div className="flex items-center justify-between pt-1">
           <div>
-            {loadingLocal && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Buscando cadastro...
-              </span>
-            )}
-            {!loadingLocal && !localSupplier && supplierDocument && (
+            {!isLoadingInitial && !localSupplier && supplierDocument && (
               <span className="text-xs text-muted-foreground">
                 Fornecedor não encontrado no cadastro local
               </span>
             )}
           </div>
-          
+
           {localSupplier && (
             <Button
               variant="ghost"
               size="sm"
               className="text-xs gap-1"
               onClick={() => {
-                // Open supplier in a new context - navigate to factory suppliers
-                window.open(
-                  `/dashboard/fabrica/materias-primas`,
-                  "_blank"
-                );
+                window.open(`/dashboard/fabrica/materias-primas`, "_blank");
               }}
             >
               <ExternalLink className="h-3 w-3" />
