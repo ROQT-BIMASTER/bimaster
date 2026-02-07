@@ -60,7 +60,8 @@ export default function CorporateEvents() {
     event.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (event: typeof filteredEvents[0]) => {
+    const status = event.status;
     const config: Record<string, { variant: any; label: string; icon: any }> = {
       draft: { variant: "outline", label: "Rascunho", icon: Clock },
       pending_approval: { variant: "secondary", label: "Aguardando Aprovação", icon: Clock },
@@ -72,11 +73,24 @@ export default function CorporateEvents() {
 
     const { variant, label, icon: Icon } = config[status] || config.draft;
 
+    // Show "all paid" indicator when event is in_progress and all expenses are paid
+    const showPaidIndicator = (status === 'in_progress' || status === 'approved') 
+      && event.expense_summary?.all_paid 
+      && event.expense_summary.total > 0;
+
     return (
-      <Badge variant={variant} className="gap-1">
-        <Icon className="h-3 w-3" />
-        {label}
-      </Badge>
+      <div className="flex flex-col gap-1 items-start">
+        <Badge variant={variant} className="gap-1">
+          <Icon className="h-3 w-3" />
+          {label}
+        </Badge>
+        {showPaidIndicator && (
+          <Badge variant="outline" className="gap-1 text-[10px] border-emerald-500 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30">
+            <DollarSign className="h-2.5 w-2.5" />
+            Pago — Finalizar
+          </Badge>
+        )}
+      </div>
     );
   };
 
@@ -289,7 +303,7 @@ export default function CorporateEvents() {
                           R$ {(event.actual_cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </span>
                       </TableCell>
-                      <TableCell>{getStatusBadge(event.status)}</TableCell>
+                      <TableCell>{getStatusBadge(event)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
