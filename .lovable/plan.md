@@ -1,145 +1,162 @@
 
 
-# Correcao de Falhas de Seguranca
+# Auditoria Completa: Seguranca e Performance
 
-## Resumo dos Problemas Detectados
+## Problemas Encontrados
 
-O scan de seguranca identificou **2 Errors**, **2 Warnings** e **4 Infos**. Apos analise detalhada, os problemas reais que precisam de correcao sao:
-
----
-
-## Problema 1: Credenciais de Ads Expostas (Error)
-
-**O que acontece:** A tabela `ads_accounts` tem duas policies SELECT conflitantes:
-- `ads_accounts_no_direct_select` com `USING(false)` -- bloqueia tudo
-- `ads_accounts_select_strict` com `can_access_ads_account()` -- permite acesso
-
-No PostgreSQL, multiplas policies SELECT sao combinadas com logica **OR**, entao a policy de bloqueio e completamente anulada pela outra. Isso significa que quando o codigo faz `SELECT *` na tabela `ads_accounts`, o campo `credentials_encrypted` e retornado, expondo credenciais.
-
-**Agravante:** O codigo em `AdsAccountsManager.tsx` e `AdsDashboard.tsx` faz `SELECT *` diretamente na tabela `ads_accounts` em vez de usar a view segura `ads_accounts_safe`.
-
-**Correcao:**
-1. Remover a policy `ads_accounts_select_strict` (que anula a de bloqueio)
-2. Manter apenas `ads_accounts_no_direct_select` com `USING(false)` para forcar uso da view
-3. Criar policy SELECT na view `ads_accounts_safe` com a mesma logica de `can_access_ads_account()`
-4. Alterar o codigo frontend para usar `ads_accounts_safe` em vez de `ads_accounts` nas queries de leitura (INSERT/UPDATE/DELETE continuam na tabela base)
+Apos analise exaustiva do codigo, banco de dados e logs, identifiquei **12 problemas** que precisam de correcao para passar numa auditoria, organizados por severidade.
 
 ---
 
-## Problema 2: Fila de Pagamento com Acesso Amplo (Warning)
+## CRITICO - Seguranca
 
-**O que acontece:** A policy `fpq_select_policy` da tabela `financial_payment_queue` permite acesso a:
-- `can_access_payment_queue()` -- Financeiro/Tesouraria/Controladoria (correto)
-- `requested_by = auth.uid()` -- quem solicitou (correto)
-- `is_admin_or_supervisor()` -- inclui **gerente** e **supervisor** (amplo demais)
-- `user_has_empresa_access()` -- qualquer usuario vinculado a empresa (amplo demais)
+### 1. Edge Functions chamadas com chave anonima em vez de JWT do usuario
 
-O problema e que `is_admin_or_supervisor` da acesso a supervisores e gerentes que nao sao do financeiro, e `user_has_empresa_access` pode dar acesso a qualquer usuario vinculado a empresa.
+**Arquivos afetados:** `ContasPagarAIChat.tsx`, `SofiaFloatingChat.tsx`, `AIAnalyticsPanel.tsx`, `ElevenLabsStudio.tsx`, `useQAAgent.ts`
 
-**Correcao:**
-1. Substituir a policy `fpq_select_policy` por uma versao mais restritiva:
-   - Admins veem tudo
-   - Financeiro/Tesouraria/Controladoria veem tudo (via `can_access_payment_queue`)
-   - Usuarios veem apenas itens que **eles mesmos solicitaram** (`requested_by = auth.uid()`)
-   - Remover `is_admin_or_supervisor` e `user_has_empresa_access` da policy
+Estes componentes chamam edge functions usando `Authorization: Bearer VITE_SUPABASE_PUBLISHABLE_KEY` (chave publica anonima) em vez do token JWT do usuario autenticado. Isso significa que:
+- As edge functions nao conseguem identificar quem esta fazendo a requisicao
+- Qualquer pessoa com a chave publica pode chamar essas funcoes
+- Logs de auditoria nao registram o usuario correto
 
----
+**Correcao:** Obter o token da sessao do usuario via `supabase.auth.getSession()` e usar como Authorization bearer.
 
-## Problema 3: Extensoes no Schema Public (Warning)
+### 2. SignupForm.tsx ainda contem Google OAuth ativo
 
-**O que acontece:** As extensoes `unaccent` e `pg_net` estao instaladas no schema `public` em vez de `extensions`.
+Segundo a politica do sistema, o signup publico foi desabilitado e Google OAuth foi removido. Porem o `SignupForm.tsx` ainda contem:
+- `handleGoogleSignup()` com `supabase.auth.signInWithOAuth({ provider: 'google' })`
+- Formulario completo de cadastro publico
+- Botao "Continuar com Google"
 
-**Correcao:**
-1. Mover a extensao `unaccent` para o schema `extensions`
-2. Atualizar as funcoes que dependem dela (`fn_calcular_cobertura_mercado`, `fn_normalizar_municipios_clientes`, `fn_normalizar_cliente_individual`, `fn_get_municipios_intelligence`, `fn_get_municipios_kpis`) para referenciar `extensions.unaccent()` em vez de `unaccent()`
-3. A extensao `pg_net` e gerenciada pelo Supabase e nao pode ser movida (sera marcada como ignorada)
+Embora a rota `/auth/signup` redirecione para login, o componente ainda e importavel e poderia ser usado se alguem revertesse o redirect.
 
----
+**Correcao:** Limpar o SignupForm removendo Google OAuth e o formulario publico, mantendo apenas um aviso de "Acesso restrito".
 
-## Problema 4: Audit Logs devem ser Append-Only (Info)
+### 3. Findings de seguranca pendentes no scan
 
-**O que acontece:** A policy `audit_logs_insert` permite que qualquer usuario insira seus proprios logs (correto), mas nao ha protecao contra DELETE/UPDATE por usuarios nao-admin.
+O scan mostra 2 findings nao resolvidos:
+- `contas_pagar_financial_exposure` (error) - A tabela `contas_pagar` usa `check_user_access` que pode ser amplo demais
+- `financial_payment_queue_exposure` (warn) - Ja foi corrigido na migracao anterior, precisa ser deletado/atualizado no scanner
 
-**Correcao:**
-1. Adicionar policy explicita que bloqueia DELETE para nao-admins
-2. Adicionar policy que bloqueia UPDATE para nao-admins
-3. Aplicar a mesma logica para `sensitive_data_access_log`
+**Correcao:** Verificar e atualizar o status dos findings no scan de seguranca.
 
 ---
 
-## Itens ja Revisados (sem acao necessaria)
+## ALTO - Performance
 
-Os seguintes itens ja foram analisados e estao corretamente configurados:
-- **SECURITY DEFINER functions** -- Todas com `SET search_path` (ignored)
-- **Edge Functions sem JWT** -- Todas com autenticacao alternativa (ignored)
-- **Marketing Assets Bucket** -- Intencionalmente publico (ignored)
-- **Clientes Table** -- RLS correto com `can_access_cliente` (ignored)
-- **Profiles Table** -- `can_view_profile` restringe corretamente (ignored)
+### 4. queryClient.clear() a cada 5 minutos destroi todo o cache
+
+Em `App.tsx` (linha 437), um `setInterval` executa `queryClient.clear()` a cada 5 minutos. Isso remove **TODAS** as queries do cache, incluindo queries ativas que estao sendo exibidas na tela. Consequencias:
+- Componentes perdem dados e fazem refetch desnecessario
+- Flash de loading state a cada 5 minutos
+- Perda total do beneficio do staleTime de 5 minutos configurado
+- Experiencia do usuario degradada
+
+**Correcao:** Substituir por `queryClient.removeQueries({ type: 'inactive' })` que remove apenas queries que nao estao sendo usadas ativamente.
+
+### 5. Photo Queue Processor roda incondicionalmente
+
+Em `main.tsx`, `startPhotoQueueProcessor()` inicia imediatamente ao carregar a pagina e chama a edge function `trigger-photo-queue` a cada 2 minutos, mesmo quando:
+- O usuario nao esta autenticado
+- O usuario nao tem acesso ao modulo de Trade
+- Nao ha fotos na fila
+
+**Correcao:** Mover o processador para dentro do contexto autenticado, iniciando apenas apos login e apenas para usuarios com permissao ao modulo trade.
+
+### 6. PermissionsContext chama supabase.auth.getUser() (requisicao de rede)
+
+O `PermissionsContext` chama `supabase.auth.getUser()` que faz uma requisicao HTTP ao servidor de auth. Poderia usar o `session.user` ja disponivel no `AuthContext` que esta em memoria.
+
+**Correcao:** Receber o userId do AuthContext em vez de fazer chamada de rede adicional.
 
 ---
 
-## Secao Tecnica
+## MEDIO - Qualidade de Codigo
 
-### Migracoes SQL necessarias
+### 7. Rotas duplicadas em App.tsx
 
-**Migracao 1 - Ads Accounts:**
-```text
--- Remover policy que conflita com a de bloqueio
-DROP POLICY IF EXISTS ads_accounts_select_strict ON ads_accounts;
+Existem 2 rotas duplicadas:
+- Linha 246 e 247: `/dashboard/relatorios` (duplicada)
+- Linha 342 e 343: `/dashboard/fabrica/ordens-producao` (duplicada)
 
--- Garantir que a view ads_accounts_safe tem security_invoker
--- (ja tem, confirmado na analise)
-```
+Rotas duplicadas podem causar comportamento imprevisivel no React Router.
 
-**Migracao 2 - Financial Payment Queue:**
-```text
--- Substituir a policy SELECT ampla por uma restritiva
-DROP POLICY IF EXISTS fpq_select_policy ON financial_payment_queue;
-CREATE POLICY fpq_select_policy ON financial_payment_queue
-  FOR SELECT TO authenticated
-  USING (
-    has_role(auth.uid(), 'admin') OR
-    can_access_payment_queue(auth.uid()) OR
-    requested_by = auth.uid()
-  );
-```
+**Correcao:** Remover as linhas duplicadas (247 e 343).
 
-**Migracao 3 - Unaccent Extension:**
-```text
--- Mover unaccent para schema extensions
-ALTER EXTENSION unaccent SET SCHEMA extensions;
+### 8. 1024+ console.log em producao
 
--- Atualizar funcoes dependentes para usar extensions.unaccent()
-```
+O sistema tem um Logger estruturado (`logger.ts`) mas 56 arquivos ainda usam `console.log` diretamente, resultando em 1024+ chamadas que:
+- Vazam informacoes de debug em producao
+- Poluem o console do navegador
+- Podem expor dados sensiveis (IDs de usuario, dados de sessao)
 
-**Migracao 4 - Audit Logs Append-Only:**
-```text
--- Bloquear UPDATE em audit_logs para nao-admins
-CREATE POLICY audit_logs_no_update ON audit_logs
-  FOR UPDATE TO authenticated USING (has_role(auth.uid(), 'admin'));
+**Correcao:** Substituir os console.log mais criticos (em componentes de auth e dados financeiros) pelo logger estruturado. Os demais podem ser tratados progressivamente.
 
--- Bloquear DELETE em audit_logs para nao-admins
-CREATE POLICY audit_logs_no_delete ON audit_logs
-  FOR DELETE TO authenticated USING (has_role(auth.uid(), 'admin'));
+### 9. Catch blocks vazios
 
--- Mesmo para sensitive_data_access_log
-CREATE POLICY sensitive_log_no_update ON sensitive_data_access_log
-  FOR UPDATE TO authenticated USING (has_role(auth.uid(), 'admin'));
+Em `AIAnalyticsPanel.tsx`, existem `catch (e) {}` vazios que engolem erros silenciosamente, dificultando debug em producao.
 
-CREATE POLICY sensitive_log_no_delete ON sensitive_data_access_log
-  FOR DELETE TO authenticated USING (has_role(auth.uid(), 'admin'));
-```
+**Correcao:** Adicionar tratamento minimo (log ou ignorar explicitamente com comentario).
 
-### Arquivos frontend a alterar
+---
 
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/components/marketing/ads/AdsAccountsManager.tsx` | SELECT de `ads_accounts` para `ads_accounts_safe` |
-| `src/components/marketing/ads/AdsDashboard.tsx` | SELECT de `ads_accounts` para `ads_accounts_safe` |
+## BAIXO - Melhorias
 
-As queries de INSERT, UPDATE e DELETE continuam operando na tabela `ads_accounts` diretamente, pois nao expoem credenciais e precisam da tabela base.
+### 10. MemoryMonitor e MemoryManager com funcionalidade sobreposta
+
+O sistema tem dois sistemas separados fazendo a mesma coisa:
+- `memory-monitor.ts` - verifica memoria a cada 30s
+- `memory-manager.ts` - limpa cache a cada 3 min + limpeza no visibility change
+- `App.tsx` - limpa queryClient a cada 5 min
+
+Tres sistemas de limpeza competindo entre si.
+
+**Correcao:** Consolidar em um unico sistema, removendo a limpeza agressiva do `queryClient.clear()`.
+
+### 11. Realtime channel no PermissionsContext nao faz cleanup adequado
+
+O canal realtime criado dentro do `.then()` retorna uma funcao de cleanup, mas essa funcao nao e capturada pelo useEffect cleanup. O canal pode ficar aberto apos o componente desmontar.
+
+**Correcao:** Capturar a referencia do canal e fazer cleanup no return do useEffect.
+
+### 12. useSupabaseQuery com configuracoes conflitantes
+
+O hook `useSupabaseQuery.ts` define `staleTime: 5000` (5 segundos) mas o QueryClient global define `staleTime: 5 * 60 * 1000` (5 minutos). Isso cria inconsistencia: queries usando o hook customizado refetcham muito mais frequentemente.
+
+**Correcao:** Alinhar o staleTime do hook com o global ou documentar a diferenca intencional.
+
+---
+
+## Secao Tecnica - Implementacao
+
+### Arquivos a modificar
+
+| Arquivo | Correcao |
+|---------|----------|
+| `src/components/financeiro/ContasPagarAIChat.tsx` | Usar JWT do usuario |
+| `src/components/financeiro/SofiaFloatingChat.tsx` | Usar JWT do usuario |
+| `src/components/ai/AIAnalyticsPanel.tsx` | Usar JWT do usuario |
+| `src/components/marketing/ElevenLabsStudio.tsx` | Usar JWT do usuario |
+| `src/hooks/useQAAgent.ts` | Usar JWT do usuario |
+| `src/components/auth/SignupForm.tsx` | Remover Google OAuth |
+| `src/App.tsx` | Remover rotas duplicadas + fix queryClient.clear |
+| `src/main.tsx` | Condicionar photo processor a auth |
+| `src/hooks/useSupabaseQuery.ts` | Alinhar staleTime |
+| `src/contexts/PermissionsContext.tsx` | Fix channel cleanup + usar session |
+
+### Migracao SQL
+
+Nenhuma migracao de banco necessaria - as correcoes sao todas no frontend.
 
 ### Atualizacao dos findings de seguranca
 
-Apos as correcoes, os findings resolvidos serao deletados e os que nao podem ser corrigidos (como `pg_net` no public schema) serao marcados como ignorados com justificativa.
+Apos as correcoes, atualizar o scan para refletir os problemas resolvidos.
+
+### O que NAO sera alterado
+
+- Nenhuma funcionalidade existente sera modificada
+- Nenhuma tela ou fluxo visual sera alterado
+- Nenhuma tabela de banco sera modificada
+- Nenhuma edge function sera modificada
+- As permissoes e RLS policies permanecem inalteradas
 
