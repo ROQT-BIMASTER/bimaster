@@ -16149,6 +16149,7 @@ export type Database = {
           bank_account_id: string | null
           budget_id: string | null
           campaign_id: string | null
+          cliente_id: string | null
           created_at: string | null
           created_by: string | null
           description: string
@@ -16158,8 +16159,10 @@ export type Database = {
           due_date: string | null
           empresa_id: number | null
           empresa_nome: string | null
+          entity_type: string | null
           entry_date: string
           entry_type: string
+          fornecedor_id: string | null
           id: string
           investment_id: string | null
           notes: string | null
@@ -16183,6 +16186,7 @@ export type Database = {
           bank_account_id?: string | null
           budget_id?: string | null
           campaign_id?: string | null
+          cliente_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description: string
@@ -16192,8 +16196,10 @@ export type Database = {
           due_date?: string | null
           empresa_id?: number | null
           empresa_nome?: string | null
+          entity_type?: string | null
           entry_date: string
           entry_type: string
+          fornecedor_id?: string | null
           id?: string
           investment_id?: string | null
           notes?: string | null
@@ -16217,6 +16223,7 @@ export type Database = {
           bank_account_id?: string | null
           budget_id?: string | null
           campaign_id?: string | null
+          cliente_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string
@@ -16226,8 +16233,10 @@ export type Database = {
           due_date?: string | null
           empresa_id?: number | null
           empresa_nome?: string | null
+          entity_type?: string | null
           entry_date?: string
           entry_type?: string
+          fornecedor_id?: string | null
           id?: string
           investment_id?: string | null
           notes?: string | null
@@ -16272,10 +16281,38 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "trade_financial_entries_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_financial_entries_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_financial_entries_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clientes_cobranca"
+            referencedColumns: ["cliente_id"]
+          },
+          {
             foreignKeyName: "trade_financial_entries_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_financial_entries_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_fornecedores"
             referencedColumns: ["id"]
           },
           {
