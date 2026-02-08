@@ -28,6 +28,8 @@ import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { AdicionarEvidenciaDialog } from "@/components/trade/AdicionarEvidenciaDialog";
 import { NovoLancamentoDialog } from "@/components/trade/NovoLancamentoDialog";
 import { EditarLancamentoDialog } from "@/components/trade/EditarLancamentoDialog";
+import { PaymentPolicyBanner } from "@/components/financeiro/payments/PaymentPolicyBanner";
+import { ExpenseAIChatFloat } from "@/components/ai/ExpenseAIChatFloat";
 
 export default function TradeLancamentos() {
   const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
@@ -184,6 +186,8 @@ export default function TradeLancamentos() {
           </div>
         </div>
 
+        <PaymentPolicyBanner />
+
         <Card>
           {loading ? (
             <div className="p-8 text-center text-muted-foreground">
@@ -292,6 +296,10 @@ export default function TradeLancamentos() {
           />
         </>
       )}
+      <ExpenseAIChatFloat
+        context={{ screen: "trade_lancamentos", totalEntries: entries.length }}
+        contextLabel="Lançamentos Trade"
+      />
     </DashboardLayout>
   );
 }

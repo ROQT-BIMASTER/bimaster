@@ -26,6 +26,7 @@ import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { NovaLojaDialog } from "./NovaLojaDialog";
 import { useQuery } from "@tanstack/react-query";
 import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
+import { ExpenseReceiptScanner } from "@/components/ai/ExpenseReceiptScanner";
 
 interface NovoLancamentoDialogProps {
   onSuccess: () => void;
@@ -53,7 +54,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [documentUrl, setDocumentUrl] = useState("");
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [campaignId, setCampaignId] = useState("");
+  const [campaignId, setCampaignId] = useState("none");
   const [empresaId, setEmpresaId] = useState("");
   
   const [isNovaLojaOpen, setIsNovaLojaOpen] = useState(false);
@@ -194,7 +195,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         reference_number: referenceNumber.trim() || null,
         store_id: storeId || null,
         budget_id: budgetId || null,
-        campaign_id: campaignId || null,
+        campaign_id: campaignId && campaignId !== "none" ? campaignId : null,
         notes: finalNotes,
         document_url: documentUrl.trim() || null,
         status: "pending",
@@ -215,7 +216,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       setReferenceNumber("");
       setStoreId("");
       setBudgetId("");
-      setCampaignId("");
+      setCampaignId("none");
       setNotes("");
       setDocumentUrl("");
       setUploadedPhotos([]);
@@ -223,7 +224,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       setOpen(false);
       onSuccess();
       setBudgetId("");
-      setCampaignId("");
+      setCampaignId("none");
       setNotes("");
       setDocumentUrl("");
       setUploadedPhotos([]);
@@ -253,6 +254,15 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Scanner IA de Comprovantes */}
+          <ExpenseReceiptScanner
+            onFieldsExtracted={(fields) => {
+              if (fields.description) setDescription(fields.description);
+              if (fields.total_value) setAmount(fields.total_value.toString());
+              if (fields.emission_date) setEntryDate(fields.emission_date);
+            }}
+          />
+
           {/* Seletor de Filial */}
           <div className="space-y-2">
             <Label htmlFor="empresa_id" className="flex items-center gap-2">
@@ -437,7 +447,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
                 <SelectValue placeholder="Selecione uma campanha (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma campanha</SelectItem>
+                <SelectItem value="none">Nenhuma campanha</SelectItem>
                 {campaigns.map((campaign: any) => (
                   <SelectItem key={campaign.id} value={campaign.id}>
                     {campaign.code} - {campaign.name}
