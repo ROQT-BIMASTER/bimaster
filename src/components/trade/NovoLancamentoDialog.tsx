@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,12 +21,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Upload, X, Target, Building } from "lucide-react";
+import { Plus, Upload, X, Target, Building, Users, Truck, Search } from "lucide-react";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { NovaLojaDialog } from "./NovaLojaDialog";
 import { useQuery } from "@tanstack/react-query";
 import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
 import { ExpenseReceiptScanner } from "@/components/ai/ExpenseReceiptScanner";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface NovoLancamentoDialogProps {
   onSuccess: () => void;
@@ -57,6 +58,12 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [campaignId, setCampaignId] = useState("none");
   const [empresaId, setEmpresaId] = useState("");
   
+  // Entity type: cliente or fornecedor
+  const [entityType, setEntityType] = useState<"none" | "cliente" | "fornecedor">("none");
+  const [clienteId, setClienteId] = useState("");
+  const [fornecedorId, setFornecedorId] = useState("");
+  const [entitySearch, setEntitySearch] = useState("");
+  
   const [isNovaLojaOpen, setIsNovaLojaOpen] = useState(false);
   const [isNovaContaOpen, setIsNovaContaOpen] = useState(false);
   const [isNovaVerbaOpen, setIsNovaVerbaOpen] = useState(false);
@@ -85,6 +92,60 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     staleTime: 5 * 60 * 1000,
     enabled: open,
   });
+
+  // Buscar clientes para seleção
+  const { data: clientes = [] } = useQuery({
+    queryKey: ['lancamento-clientes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, codigo, cnpj")
+        .order("nome")
+        .limit(500);
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: open && entityType === "cliente",
+  });
+
+  // Buscar fornecedores para seleção
+  const { data: fornecedores = [] } = useQuery({
+    queryKey: ['lancamento-fornecedores'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fabrica_fornecedores")
+        .select("id, razao_social, nome_fantasia, cnpj")
+        .eq("ativo", true)
+        .order("razao_social")
+        .limit(500);
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: open && entityType === "fornecedor",
+  });
+
+  // Filtrar entidades por busca
+  const filteredClientes = useMemo(() => {
+    if (!entitySearch.trim()) return clientes.slice(0, 50);
+    const term = entitySearch.toLowerCase();
+    return clientes.filter(c =>
+      c.nome?.toLowerCase().includes(term) ||
+      c.codigo?.toLowerCase().includes(term) ||
+      c.cnpj?.includes(term)
+    ).slice(0, 50);
+  }, [clientes, entitySearch]);
+
+  const filteredFornecedores = useMemo(() => {
+    if (!entitySearch.trim()) return fornecedores.slice(0, 50);
+    const term = entitySearch.toLowerCase();
+    return fornecedores.filter(f =>
+      f.razao_social?.toLowerCase().includes(term) ||
+      f.nome_fantasia?.toLowerCase().includes(term) ||
+      f.cnpj?.includes(term)
+    ).slice(0, 50);
+  }, [fornecedores, entitySearch]);
 
   useEffect(() => {
     if (open) {
@@ -186,6 +247,20 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         ue => ue.empresa_id.toString() === empresaId
       );
 
+      // Resolver dados da entidade selecionada
+      let supplierName: string | null = null;
+      let supplierDocument: string | null = null;
+
+      if (entityType === "fornecedor" && fornecedorId) {
+        const forn = fornecedores.find(f => f.id === fornecedorId);
+        supplierName = forn?.nome_fantasia || forn?.razao_social || null;
+        supplierDocument = forn?.cnpj || null;
+      } else if (entityType === "cliente" && clienteId) {
+        const cli = clientes.find(c => c.id === clienteId);
+        supplierName = cli?.nome || null;
+        supplierDocument = cli?.cnpj || null;
+      }
+
       const { error } = await supabase.from("trade_financial_entries").insert({
         entry_date: entryDate,
         account_id: accountId,
@@ -203,11 +278,17 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         created_by: user.id,
         empresa_id: selectedEmpresa?.empresa_id || null,
         empresa_nome: selectedEmpresa?.empresa.nome || null,
+        entity_type: entityType !== "none" ? entityType : null,
+        cliente_id: entityType === "cliente" && clienteId ? clienteId : null,
+        fornecedor_id: entityType === "fornecedor" && fornecedorId ? fornecedorId : null,
+        supplier_name: supplierName,
+        supplier_document: supplierDocument,
       });
 
       if (error) throw error;
 
       toast.success("Lançamento criado! Aguardando aprovação.");
+      // Reset form
       setEntryDate(new Date().toISOString().split("T")[0]);
       setEntryType("expense");
       setAccountId("");
@@ -217,19 +298,10 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       setStoreId("");
       setBudgetId("");
       setCampaignId("none");
-      setNotes("");
-      setDocumentUrl("");
-      setUploadedPhotos([]);
-      setEmpresaId(primaryEmpresa?.id.toString() || "");
-      setOpen(false);
-      onSuccess();
-      setBudgetId("");
-      setCampaignId("none");
-      setNotes("");
-      setDocumentUrl("");
-      setUploadedPhotos([]);
-      setOpen(false);
-      onSuccess();
+      setEntityType("none");
+      setClienteId("");
+      setFornecedorId("");
+      setEntitySearch("");
     } catch (error) {
       toast.error(getSafeErrorMessage(error));
     } finally {
@@ -434,6 +506,94 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
                 </Button>
               </div>
             </div>
+          </div>
+
+          {/* Seletor de Cliente / Fornecedor */}
+          <div className="space-y-3 rounded-lg border p-3">
+            <Label className="flex items-center gap-2 text-sm font-medium">
+              <Users className="h-4 w-4 text-primary" />
+              Cliente ou Fornecedor
+            </Label>
+            
+            <RadioGroup
+              value={entityType}
+              onValueChange={(val) => {
+                setEntityType(val as "none" | "cliente" | "fornecedor");
+                setClienteId("");
+                setFornecedorId("");
+                setEntitySearch("");
+              }}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="none" id="entity-none" />
+                <Label htmlFor="entity-none" className="text-sm font-normal cursor-pointer">Nenhum</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="cliente" id="entity-cliente" />
+                <Label htmlFor="entity-cliente" className="text-sm font-normal cursor-pointer flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5" /> Cliente
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="fornecedor" id="entity-fornecedor" />
+                <Label htmlFor="entity-fornecedor" className="text-sm font-normal cursor-pointer flex items-center gap-1">
+                  <Truck className="h-3.5 w-3.5" /> Fornecedor
+                </Label>
+              </div>
+            </RadioGroup>
+
+            {entityType !== "none" && (
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={entityType === "cliente" ? "Buscar cliente por nome, código ou CNPJ..." : "Buscar fornecedor por nome ou CNPJ..."}
+                    value={entitySearch}
+                    onChange={(e) => setEntitySearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                {entityType === "cliente" && (
+                  <Select value={clienteId || "none"} onValueChange={(v) => setClienteId(v === "none" ? "" : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum cliente</SelectItem>
+                      {filteredClientes.map((cli) => (
+                        <SelectItem key={cli.id} value={cli.id}>
+                          {cli.codigo} - {cli.nome} {cli.cnpj ? `(${cli.cnpj})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {entityType === "fornecedor" && (
+                  <Select value={fornecedorId || "none"} onValueChange={(v) => setFornecedorId(v === "none" ? "" : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o fornecedor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum fornecedor</SelectItem>
+                      {filteredFornecedores.map((forn) => (
+                        <SelectItem key={forn.id} value={forn.id}>
+                          {forn.nome_fantasia || forn.razao_social} {forn.cnpj ? `(${forn.cnpj})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                <p className="text-xs text-muted-foreground">
+                  {entityType === "cliente" 
+                    ? "Vincule este lançamento a um cliente de trade" 
+                    : "Vincule este lançamento a um fornecedor"}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Vincular a uma Campanha */}
