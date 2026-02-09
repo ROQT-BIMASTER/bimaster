@@ -191,13 +191,18 @@ export default function TradeLancamentos() {
   };
 
   const handleEvidenceClick = (entry: any) => {
-    setSelectedEntry(entry);
-    setEvidenceDialogOpen(true);
+    // Delay to avoid DropdownMenu/Dialog portal collision
+    setTimeout(() => {
+      setSelectedEntry(entry);
+      setEvidenceDialogOpen(true);
+    }, 0);
   };
 
   const handleEditClick = (entry: any) => {
-    setSelectedEntry(entry);
-    setEditDialogOpen(true);
+    setTimeout(() => {
+      setSelectedEntry(entry);
+      setEditDialogOpen(true);
+    }, 0);
   };
 
   const canSendToFinancial = (entry: any) => {
@@ -210,8 +215,10 @@ export default function TradeLancamentos() {
   };
 
   const handleSendFinancialClick = (entry: any) => {
-    setSelectedEntry(entry);
-    setSendFinancialDialogOpen(true);
+    setTimeout(() => {
+      setSelectedEntry(entry);
+      setSendFinancialDialogOpen(true);
+    }, 0);
   };
 
   return (
