@@ -1,90 +1,77 @@
 
+## Correcao de Mensagens e Modulo de Requisitos Obrigatorios na Revisao
 
-## Caixa de Comunicacao com Historico entre Usuario e Diretoria
+### Problema 1: Mensagens nao aparecem na tela de aprovacao
 
-### Objetivo
+**Causa raiz identificada:** Quando o usuario resubmete a ficha apos revisao, o sistema cria uma NOVA revisao (v2 com ID diferente). As mensagens enviadas estavam vinculadas a revisao anterior (v1). Como o chat filtra por `revisao_id`, as mensagens "desaparecem".
 
-Adicionar um painel de comunicacao (chat) na Ficha de Custos, vinculado a revisao ativa, onde o usuario responsavel e a Diretoria podem trocar mensagens com historico completo. Isso permite que o usuario justifique a manutencao de valores reprovados e que a Diretoria responda, tudo registrado com data, hora e nome do remetente.
+**Solucao:** Alterar o `RevisaoChatPanel` para buscar mensagens de TODAS as revisoes do mesmo `config_id`, nao apenas da revisao atual. Assim, todo o historico de comunicacao e preservado entre versoes.
 
----
+- Adicionar prop `configId` ao `RevisaoChatPanel`
+- Buscar mensagens com query: todas as revisoes que pertencem ao mesmo `config_id`, ordenadas por data
+- Exibir um separador visual entre versoes (ex: "--- Revisao v1 ---")
+- Novas mensagens continuam sendo inseridas com o `revisao_id` atual
+- Atualizar os dois pontos de integracao (editor do usuario e tela da diretoria)
 
-### 1. Nova tabela no banco de dados
+### Problema 2: Opcoes de requisitos obrigatorios na revisao
 
-**Tabela:** `fabrica_revisao_mensagens`
+Permitir que a Diretoria, ao solicitar revisao, defina requisitos obrigatorios que o usuario precisa cumprir antes de resubmeter.
+
+#### 2a. Nova tabela no banco
+
+**Tabela:** `fabrica_revisao_requisitos`
 
 | Campo | Tipo | Descricao |
 |-------|------|-----------|
 | id | uuid | PK |
 | revisao_id | uuid | FK para fabrica_ficha_custo_revisoes |
-| usuario_id | uuid | Quem enviou |
-| usuario_nome | text | Nome do remetente |
-| conteudo | text | Texto da mensagem |
-| tipo | text | "usuario" ou "diretoria" |
-| insumo_id | uuid (nullable) | Referencia a um insumo especifico, se aplicavel |
+| descricao | text | Ex: "Subir 3 orcamentos para o insumo X" |
+| tipo | text | "orcamentos", "evidencia", "justificativa", "outro" |
+| quantidade_minima | integer | Ex: 3 (para orcamentos) |
+| insumo_id | uuid (nullable) | Insumo especifico, se aplicavel |
+| cumprido | boolean | Default false |
+| cumprido_em | timestamptz | |
 | created_at | timestamptz | |
 
-- RLS: usuarios autenticados podem SELECT e INSERT
-- Indice em `revisao_id`
-- Realtime habilitado para atualizacoes em tempo real
+- RLS: usuarios autenticados podem SELECT; INSERT/UPDATE para autenticados
 
-### 2. Novo componente de chat
+#### 2b. UI na tela da Diretoria
 
-**Novo arquivo:** `src/components/fabrica/RevisaoChatPanel.tsx`
+Na secao de "Solicitar Revisao" do `FichaRevisaoDiretoria.tsx`:
 
-- Card com titulo "Comunicacao - Revisao" e icone de mensagem
-- Area de scroll com historico de mensagens (bolhas estilo chat)
-  - Mensagens do usuario alinhadas a direita (azul)
-  - Mensagens da diretoria alinhadas a esquerda (cinza)
-  - Cada mensagem mostra: nome, data/hora, conteudo
-  - Se a mensagem referencia um insumo, exibe o nome do insumo como badge
-- Campo de texto na parte inferior para digitar nova mensagem
-- Dropdown opcional para selecionar um insumo ao qual a mensagem se refere (para contextualizar a justificativa)
-- Botao de enviar
-- Subscription em tempo real para novas mensagens
+- Adicionar secao "Requisitos Obrigatorios" abaixo dos apontamentos
+- Opcoes pre-definidas via checkboxes/cards:
+  - "Subir orcamentos" (com campo de quantidade minima, ex: 3)
+  - "Anexar evidencia/NF" (com campo de quantidade)
+  - "Justificar manutencao de valores"
+  - "Outro" (campo de texto livre)
+- Opcao de vincular a um insumo especifico via dropdown
+- Ao clicar "Enviar Revisao", salvar os requisitos na tabela junto com os apontamentos
 
-### 3. Integracao na Ficha de Custos
+#### 2c. UI na tela do usuario (FichaCustoProdutoEditor)
 
-**Arquivo:** `src/components/fabrica/FichaCustoProdutoEditor.tsx`
-
-- Exibir o `RevisaoChatPanel` quando houver revisao ativa (status `revisao_solicitada` ou `em_revisao`)
-- Posicionar logo abaixo do banner de apontamentos, antes da tabela de insumos
-- Passar `revisao_id` e lista de insumos como props
-
-### 4. Integracao na tela da Diretoria
-
-**Arquivo que gerencia a revisao da diretoria** (tela de revisao de fichas)
-
-- Exibir o mesmo `RevisaoChatPanel` na tela de revisao da Diretoria
-- Permitir que o revisor tambem envie mensagens
-- As mensagens da diretoria aparecem com tipo "diretoria"
-
-### 5. Fluxo do usuario
-
-1. Diretoria solicita revisao com apontamentos
-2. Usuario abre a ficha e ve os apontamentos em vermelho
-3. Abaixo dos apontamentos, aparece a caixa de comunicacao com todo o historico
-4. Usuario pode:
-   - Digitar uma justificativa explicando por que deseja manter os valores
-   - Selecionar o insumo especifico para contextualizar
-   - Enviar a mensagem
-5. Diretoria ve a mensagem na tela de revisao e pode responder
-6. Todo o historico fica registrado e visivel para ambas as partes
-7. Ao submeter novamente, as mensagens continuam vinculadas a revisao
+- Exibir os requisitos pendentes em um card de alerta abaixo do banner de revisao
+- Cada requisito mostra:
+  - Descricao e tipo
+  - Status (cumprido/pendente) com icone
+  - Progresso (ex: "1/3 orcamentos subidos")
+- Verificacao automatica de cumprimento:
+  - Para tipo "orcamentos": contar cotacoes em `fabrica_mp_cotacoes` para o insumo
+  - Para tipo "evidencia": contar arquivos em evidencias
+- Bloquear a resubmissao ate todos os requisitos estarem cumpridos
 
 ---
 
 ### Detalhes tecnicos
 
 **Arquivos a criar:**
-- `src/components/fabrica/RevisaoChatPanel.tsx` - Componente de chat com historico
+- Nenhum componente novo (tudo integrado nos existentes)
 
 **Arquivos a modificar:**
-- `src/components/fabrica/FichaCustoProdutoEditor.tsx` - Integrar o painel de chat
-- `src/pages/FichaCustoProduto.tsx` - Passar revisao_id como prop
+- `src/components/fabrica/RevisaoChatPanel.tsx` — buscar mensagens por config_id em vez de apenas revisao_id
+- `src/components/fabrica/FichaCustoProdutoEditor.tsx` — passar configId ao chat; exibir card de requisitos pendentes; bloquear resubmissao
+- `src/pages/FichaRevisaoDiretoria.tsx` — adicionar secao de requisitos obrigatorios no modo revisao
+- `src/hooks/useFichaRevisao.ts` — salvar requisitos junto com a revisao; buscar requisitos ativos
 
 **Migration SQL:**
-- Tabela `fabrica_revisao_mensagens`
-- RLS (SELECT e INSERT para autenticados)
-- Indice em revisao_id
-- Habilitar realtime na tabela
-
+- Tabela `fabrica_revisao_requisitos` com RLS e indice em `revisao_id`
