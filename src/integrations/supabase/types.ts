@@ -6383,6 +6383,75 @@ export type Database = {
           },
         ]
       }
+      fabrica_mp_cotacoes: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_url: string | null
+          condicao_pagamento: string | null
+          created_at: string
+          fornecedor_nome: string
+          id: string
+          mp_id: string | null
+          observacoes: string | null
+          produto_custo_id: string
+          produto_id: string
+          selecionada: boolean
+          usuario_id: string | null
+          usuario_nome: string | null
+          validade: string | null
+          valor_unitario: number
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          condicao_pagamento?: string | null
+          created_at?: string
+          fornecedor_nome: string
+          id?: string
+          mp_id?: string | null
+          observacoes?: string | null
+          produto_custo_id: string
+          produto_id: string
+          selecionada?: boolean
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          validade?: string | null
+          valor_unitario?: number
+        }
+        Update: {
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          condicao_pagamento?: string | null
+          created_at?: string
+          fornecedor_nome?: string
+          id?: string
+          mp_id?: string | null
+          observacoes?: string | null
+          produto_custo_id?: string
+          produto_id?: string
+          selecionada?: boolean
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          validade?: string | null
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_mp_cotacoes_produto_custo_id_fkey"
+            columns: ["produto_custo_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produto_custos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_mp_cotacoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_nao_conformidades: {
         Row: {
           causa_raiz: string | null
