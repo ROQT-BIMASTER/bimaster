@@ -17,8 +17,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { calcularPrecosProdutos, formatarMoeda, buscarCustoFichaProduto, CustoComposicao } from "@/lib/fabrica/pricing-calculator";
-import { Loader2, CheckCircle2, Factory, Ship, AlertTriangle, Check, FileText } from "lucide-react";
+import { Loader2, CheckCircle2, Factory, Ship, AlertTriangle, Check, FileText, Lock, LockOpen } from "lucide-react";
 import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
+import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
 
 interface ProdutoData {
   id: string;
@@ -38,6 +39,7 @@ interface Props {
 export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: Props) {
   const queryClient = useQueryClient();
   const { filterProductsByAccess, hasFullAccess } = useUserPriceTableAccess();
+  const { isProductBlocked, isLineBlocked, getBlockForProduct, getBlockForLine, blockProduct, blockLine, unblock, isBlocking, isUnblocking } = useVisibilityBlocks();
   const [fonteCusto, setFonteCusto] = useState<"ordem_producao" | "custo_medio" | "manual" | "tabela_anterior" | "custo_origem" | "ficha_custo">("ordem_producao");
   const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
   const [produtosNaTabelaBase, setProdutosNaTabelaBase] = useState<string[]>([]);
@@ -408,17 +410,46 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                   className="w-48"
                 />
                 {linhasDisponiveis.length > 0 && (
-                  <Select value={linhaFiltro} onValueChange={setLinhaFiltro}>
-                    <SelectTrigger className="w-44">
-                      <SelectValue placeholder="Linha" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todas">Todas as linhas</SelectItem>
-                      {linhasDisponiveis.map((linha) => (
-                        <SelectItem key={linha} value={linha}>{linha}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    <Select value={linhaFiltro} onValueChange={setLinhaFiltro}>
+                      <SelectTrigger className="w-44">
+                        <SelectValue placeholder="Linha" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todas">Todas as linhas</SelectItem>
+                        {linhasDisponiveis.map((linha) => (
+                          <SelectItem key={linha} value={linha}>
+                            <span className="flex items-center gap-1">
+                              {linha}
+                              {isLineBlocked(linha) && <Lock className="h-3 w-3 text-red-500" />}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {hasFullAccess && linhaFiltro !== "todas" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 whitespace-nowrap"
+                        disabled={isBlocking || isUnblocking}
+                        onClick={() => {
+                          const block = getBlockForLine(linhaFiltro);
+                          if (block) {
+                            unblock(block.id);
+                          } else {
+                            blockLine(linhaFiltro);
+                          }
+                        }}
+                      >
+                        {getBlockForLine(linhaFiltro) ? (
+                          <><LockOpen className="h-3.5 w-3.5 mr-1 text-green-600" /> Desbloquear Linha</>
+                        ) : (
+                          <><Lock className="h-3.5 w-3.5 mr-1 text-red-500" /> Bloquear Linha</>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 )}
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -457,8 +488,14 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                     </tr>
                   </thead>
                   <tbody>
-                    {produtosFiltrados.map((produto) => (
-                      <tr key={produto.id} className="border-t">
+                    {produtosFiltrados.map((produto) => {
+                      const blocked = isProductBlocked(produto.linha, produto.id);
+                      const productBlock = getBlockForProduct(produto.id);
+                      const lineBlock = produto.linha ? getBlockForLine(produto.linha) : undefined;
+                      const activeBlock = productBlock || lineBlock;
+
+                      return (
+                      <tr key={produto.id} className={`border-t ${blocked ? 'bg-red-50 dark:bg-red-950/20' : ''}`}>
                         <td className="p-2">
                           <Checkbox
                             checked={produtosSelecionados.includes(produto.id)}
@@ -471,6 +508,12 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                               <div className="font-medium">{produto.nome}</div>
                               <div className="text-sm text-muted-foreground">{produto.codigo}</div>
                             </div>
+                            {blocked && (
+                              <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                                <Lock className="h-3 w-3 mr-0.5" />
+                                Bloqueado{lineBlock ? ' (Linha)' : ''}
+                              </Badge>
+                            )}
                             {produto.origem && (
                               <Badge variant="outline" className={`flex items-center gap-1 ${
                                 produto.origem === 'nacional' ? 'border-green-300 text-green-700' : 'border-blue-300 text-blue-700'
@@ -484,6 +527,29 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                                 <CheckCircle2 className="h-3 w-3" />
                                 Na tabela base
                               </Badge>
+                            )}
+                            {hasFullAccess && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                disabled={isBlocking || isUnblocking}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (productBlock) {
+                                    unblock(productBlock.id);
+                                  } else if (!lineBlock) {
+                                    blockProduct(produto.id);
+                                  }
+                                }}
+                                title={productBlock ? "Desbloquear produto" : "Bloquear produto"}
+                              >
+                                {productBlock ? (
+                                  <LockOpen className="h-3.5 w-3.5 text-green-600" />
+                                ) : !lineBlock ? (
+                                  <Lock className="h-3.5 w-3.5 text-red-500" />
+                                ) : null}
+                              </Button>
                             )}
                           </div>
                         </td>
@@ -502,7 +568,8 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                           </td>
                         )}
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

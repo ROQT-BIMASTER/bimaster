@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useState, useEffect } from "react";
+import { useVisibilityBlocks } from "./useVisibilityBlocks";
 
 interface AccessRecord {
   tabela_id: string;
@@ -21,6 +22,7 @@ interface AccessRecord {
 export function useUserPriceTableAccess() {
   const { isAdmin, role, loading: permLoading } = usePermissions();
   const { isImpersonating, impersonatedUser, impersonatedPermissions } = useImpersonation();
+  const { isProductBlocked: checkBlocked, isLoading: blocksLoading } = useVisibilityBlocks();
   const [realUserId, setRealUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -136,8 +138,14 @@ export function useUserPriceTableAccess() {
     tabelaId: string,
     produtos: T[]
   ): T[] => {
+    // For non-admins, also filter out blocked products/lines
+    const applyBlocks = (list: T[]): T[] => {
+      if (hasFullAccess) return list;
+      return list.filter(p => !checkBlocked(p.linha ?? null, p.id));
+    };
+
     if (hasFullAccess) return produtos;
-    if (!hasTableRestrictions) return produtos;
+    if (!hasTableRestrictions) return applyBlocks(produtos);
 
     const rules = getRulesForTable(tabelaId);
     if (rules.length === 0) return [];
@@ -145,14 +153,14 @@ export function useUserPriceTableAccess() {
     // If user has table-wide rule with can_view and no granular rules, return all
     if (hasTableWideRule(tabelaId) && !hasGranularRules(tabelaId)) {
       const tableRule = rules.find(r => r.linha === null && r.produto_id === null);
-      return tableRule?.can_view ? produtos : [];
+      return tableRule?.can_view ? applyBlocks(produtos) : [];
     }
 
-    return produtos.filter(p => canViewProduct(tabelaId, p.linha ?? null, p.id));
+    return applyBlocks(produtos.filter(p => canViewProduct(tabelaId, p.linha ?? null, p.id)));
   };
 
   return {
-    loading: permLoading || accessLoading || !userId,
+    loading: permLoading || accessLoading || blocksLoading || !userId,
     hasFullAccess,
     hasTableRestrictions,
     allowedTableIds,

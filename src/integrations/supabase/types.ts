@@ -6982,6 +6982,44 @@ export type Database = {
           },
         ]
       }
+      fabrica_produto_visibility_blocks: {
+        Row: {
+          blocked_by: string
+          created_at: string
+          id: string
+          linha: string | null
+          motivo: string | null
+          produto_id: string | null
+          tipo: string
+        }
+        Insert: {
+          blocked_by: string
+          created_at?: string
+          id?: string
+          linha?: string | null
+          motivo?: string | null
+          produto_id?: string | null
+          tipo: string
+        }
+        Update: {
+          blocked_by?: string
+          created_at?: string
+          id?: string
+          linha?: string | null
+          motivo?: string | null
+          produto_id?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_produto_visibility_blocks_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_produtos: {
         Row: {
           ativo: boolean | null

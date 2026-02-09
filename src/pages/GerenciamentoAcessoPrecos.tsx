@@ -43,11 +43,14 @@ import {
   Tag,
   Info,
   Package,
-  Layers
+  Layers,
+  Lock,
+  LockOpen
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
 import {
   Tooltip,
   TooltipContent,
@@ -97,6 +100,7 @@ type ScopeType = "tabela" | "linha" | "produto";
 export default function GerenciamentoAcessoPrecos() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { blocks, unblock, isUnblocking } = useVisibilityBlocks();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [priceTables, setPriceTables] = useState<PriceTable[]>([]);
@@ -788,6 +792,85 @@ export default function GerenciamentoAcessoPrecos() {
                     </TableCell>
                   </TableRow>
                 ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Bloqueios Ativos */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Lock className="h-5 w-5 text-destructive" />
+            Bloqueios de Visibilidade Ativos
+          </CardTitle>
+          <CardDescription>
+            Linhas ou produtos bloqueados ficam invisíveis para usuários não-admin em todas as tabelas
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {blocks.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <LockOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum bloqueio ativo</p>
+              <p className="text-sm">Use o Gerador de Preços para bloquear linhas ou produtos</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Item Bloqueado</TableHead>
+                  <TableHead>Motivo</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {blocks.map(block => {
+                  const produtoInfo = block.produto_id 
+                    ? produtos.find(p => p.id === block.produto_id)
+                    : null;
+                  return (
+                    <TableRow key={block.id}>
+                      <TableCell>
+                        {block.tipo === "linha" ? (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            <Layers className="h-3 w-3 mr-1" />
+                            Linha
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                            <Package className="h-3 w-3 mr-1" />
+                            Produto
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {block.tipo === "linha" ? block.linha : (produtoInfo?.nome || block.produto_id)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {block.motivo || "—"}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(block.created_at).toLocaleDateString("pt-BR")}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-green-600 hover:text-green-700"
+                          disabled={isUnblocking}
+                          onClick={() => unblock(block.id)}
+                          title="Desbloquear"
+                        >
+                          <LockOpen className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
