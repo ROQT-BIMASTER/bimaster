@@ -438,6 +438,7 @@ export function FichaCustoProdutoEditor({
           revisaoId={revisaoAtiva.id}
           insumos={insumos.map((i) => ({ id: i.id, nome: i.nome, codigo: i.codigo }))}
           tipoRemetente="usuario"
+          insumosComApontamento={new Set(apontamentos.filter(a => a.insumo_id).map(a => a.insumo_id!))}
         />
       )}
 
