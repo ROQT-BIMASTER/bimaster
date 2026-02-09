@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,7 @@ interface ProdutoData {
   codigo: string | null;
   nome: string;
   origem: string | null;
+  linha: string | null;
 }
 
 interface Props {
@@ -45,6 +47,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const [loadingProdutos, setLoadingProdutos] = useState(false);
   const [buscaProduto, setBuscaProduto] = useState("");
   const [origemSelecionada, setOrigemSelecionada] = useState<'nacional' | 'importado' | null>(null);
+  const [linhaFiltro, setLinhaFiltro] = useState<string>("todas");
 
   useEffect(() => {
     if (open && tabela) {
@@ -76,7 +79,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       // Buscar apenas produtos acabados finalizados
       let query = supabase
         .from("fabrica_produtos")
-        .select("id, codigo, nome, origem")
+        .select("id, codigo, nome, origem, linha")
         .eq("tipo", "ACABADO")
         .eq("ativo", true);
 
@@ -300,13 +303,16 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     }
   };
 
+  const linhasDisponiveis = [...new Set(produtos.map(p => p.linha).filter(Boolean) as string[])].sort();
+
   const produtosFiltrados = produtos?.filter(produto => {
-    if (!buscaProduto) return true;
-    const busca = buscaProduto.toLowerCase();
-    return (
-      produto.nome.toLowerCase().includes(busca) ||
-      produto.codigo?.toLowerCase().includes(busca)
-    );
+    const matchBusca = !buscaProduto || 
+      produto.nome.toLowerCase().includes(buscaProduto.toLowerCase()) ||
+      produto.codigo?.toLowerCase().includes(buscaProduto.toLowerCase());
+    
+    const matchLinha = linhaFiltro === "todas" || produto.linha === linhaFiltro;
+    
+    return matchBusca && matchLinha;
   }) || [];
 
   if (!tabela) return null;
@@ -392,8 +398,21 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                   placeholder="Buscar produto..."
                   value={buscaProduto}
                   onChange={(e) => setBuscaProduto(e.target.value)}
-                  className="w-64"
+                  className="w-48"
                 />
+                {linhasDisponiveis.length > 0 && (
+                  <Select value={linhaFiltro} onValueChange={setLinhaFiltro}>
+                    <SelectTrigger className="w-44">
+                      <SelectValue placeholder="Linha" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas as linhas</SelectItem>
+                      {linhasDisponiveis.map((linha) => (
+                        <SelectItem key={linha} value={linha}>{linha}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="selecionar_todos"
