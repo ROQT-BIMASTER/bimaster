@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, FileText, ExternalLink, Store, CreditCard, Calendar, User, DollarSign } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, ExternalLink, Store, CreditCard, Calendar, User, DollarSign, Send } from "lucide-react";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ interface AprovarLancamentoDialogProps {
   onOpenChange: (open: boolean) => void;
   entry: any;
   onSuccess: () => void;
+  onApproveAndSend?: (entry: any) => void;
   type?: "entry" | "investment";
 }
 
@@ -32,6 +33,7 @@ export function AprovarLancamentoDialog({
   onOpenChange,
   entry,
   onSuccess,
+  onApproveAndSend,
   type = "entry",
 }: AprovarLancamentoDialogProps) {
   const [loading, setLoading] = useState(false);
@@ -432,6 +434,20 @@ export function AprovarLancamentoDialog({
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 Aprovar
               </Button>
+              {type === "entry" && onApproveAndSend && (
+                <Button 
+                  onClick={async () => {
+                    await handleApprove();
+                    onApproveAndSend(entry);
+                  }} 
+                  disabled={loading}
+                  variant="default"
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Aprovar e Enviar
+                </Button>
+              )}
             </>
           ) : action === "reject" ? (
             <>

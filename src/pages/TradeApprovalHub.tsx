@@ -9,6 +9,7 @@ import { ArrowLeft, RefreshCw, Target, FileText, Shield } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AprovacaoCampanhaDialog } from "@/components/trade/campaigns/AprovacaoCampanhaDialog";
 import { AprovarLancamentoDialog } from "@/components/trade/AprovarLancamentoDialog";
+import { EnviarFinanceiroTradeDialog } from "@/components/trade/EnviarFinanceiroTradeDialog";
 import { usePendingCampaigns, usePendingFinancialEntries, usePendingInvestments } from "@/hooks/useTradeData";
 import { useQueryClient } from "@tanstack/react-query";
 import { ApprovalKPICards } from "@/components/trade/approvals/ApprovalKPICards";
@@ -22,6 +23,8 @@ export default function TradeApprovalHub() {
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [selectedEntryType, setSelectedEntryType] = useState<"entry" | "investment">("entry");
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
+  const [sendFinancialEntry, setSendFinancialEntry] = useState<any>(null);
+  const [sendFinancialDialogOpen, setSendFinancialDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("campanhas");
   
   const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
@@ -210,6 +213,19 @@ export default function TradeApprovalHub() {
           onOpenChange={setEntryDialogOpen}
           entry={selectedEntry}
           type={selectedEntryType}
+          onSuccess={handleRefetch}
+          onApproveAndSend={(entry) => {
+            setSendFinancialEntry(entry);
+            setSendFinancialDialogOpen(true);
+          }}
+        />
+      )}
+
+      {sendFinancialEntry && (
+        <EnviarFinanceiroTradeDialog
+          entry={sendFinancialEntry}
+          open={sendFinancialDialogOpen}
+          onOpenChange={setSendFinancialDialogOpen}
           onSuccess={handleRefetch}
         />
       )}
