@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
@@ -115,13 +116,16 @@ export default function GerenciamentoAcessoPrecos() {
     can_approve: false,
     notes: "",
     scope: "tabela" as ScopeType,
-    linha: "",
-    produto_id: "",
   });
+
+  // Multi-select state
+  const [selectedLinhas, setSelectedLinhas] = useState<string[]>([]);
+  const [selectedProdutoIds, setSelectedProdutoIds] = useState<string[]>([]);
+  const [buscaLinha, setBuscaLinha] = useState("");
+  const [buscaProduto, setBuscaProduto] = useState("");
 
   // Available lines from products
   const [linhasDisponiveis, setLinhasDisponiveis] = useState<string[]>([]);
-  const [buscaProduto, setBuscaProduto] = useState("");
 
   useEffect(() => {
     loadData();
@@ -180,9 +184,10 @@ export default function GerenciamentoAcessoPrecos() {
       can_approve: false,
       notes: "",
       scope: "tabela",
-      linha: "",
-      produto_id: "",
     });
+    setSelectedLinhas([]);
+    setSelectedProdutoIds([]);
+    setBuscaLinha("");
     setBuscaProduto("");
   };
 
@@ -192,19 +197,19 @@ export default function GerenciamentoAcessoPrecos() {
       return;
     }
 
-    if (newAccess.scope === "linha" && !newAccess.linha) {
-      toast({ title: "Campo obrigatório", description: "Selecione uma linha de produto", variant: "destructive" });
+    if (newAccess.scope === "linha" && selectedLinhas.length === 0) {
+      toast({ title: "Campo obrigatório", description: "Selecione pelo menos uma linha de produto", variant: "destructive" });
       return;
     }
 
-    if (newAccess.scope === "produto" && !newAccess.produto_id) {
-      toast({ title: "Campo obrigatório", description: "Selecione um produto", variant: "destructive" });
+    if (newAccess.scope === "produto" && selectedProdutoIds.length === 0) {
+      toast({ title: "Campo obrigatório", description: "Selecione pelo menos um produto", variant: "destructive" });
       return;
     }
 
     setSaving(true);
     try {
-      const insertData: any = {
+      const baseData = {
         user_id: newAccess.user_id,
         tabela_id: newAccess.tabela_id,
         can_view: newAccess.can_view,
@@ -212,17 +217,26 @@ export default function GerenciamentoAcessoPrecos() {
         can_approve: newAccess.can_approve,
         notes: newAccess.notes || null,
         granted_by: user?.id,
-        linha: newAccess.scope === "linha" ? newAccess.linha : null,
-        produto_id: newAccess.scope === "produto" ? newAccess.produto_id : null,
       };
+
+      let insertRows: any[] = [];
+
+      if (newAccess.scope === "tabela") {
+        insertRows = [{ ...baseData, linha: null, produto_id: null }];
+      } else if (newAccess.scope === "linha") {
+        insertRows = selectedLinhas.map(linha => ({ ...baseData, linha, produto_id: null }));
+      } else {
+        insertRows = selectedProdutoIds.map(produto_id => ({ ...baseData, linha: null, produto_id }));
+      }
 
       const { error } = await supabase
         .from("user_price_table_access")
-        .insert(insertData);
+        .insert(insertRows);
 
       if (error) throw error;
 
-      toast({ title: "Acesso configurado", description: "Permissões salvas com sucesso" });
+      const count = insertRows.length;
+      toast({ title: "Acesso configurado", description: `${count} regra${count > 1 ? 's' : ''} salva${count > 1 ? 's' : ''} com sucesso` });
       setDialogOpen(false);
       resetForm();
       loadData();
@@ -321,7 +335,24 @@ export default function GerenciamentoAcessoPrecos() {
     if (!buscaProduto) return true;
     return p.nome.toLowerCase().includes(buscaProduto.toLowerCase()) ||
       p.codigo?.toLowerCase().includes(buscaProduto.toLowerCase());
-  }).slice(0, 20);
+  }).slice(0, 50);
+
+  const linhasFiltradas = linhasDisponiveis.filter(l => {
+    if (!buscaLinha) return true;
+    return l.toLowerCase().includes(buscaLinha.toLowerCase());
+  });
+
+  const toggleLinha = (linha: string) => {
+    setSelectedLinhas(prev => 
+      prev.includes(linha) ? prev.filter(l => l !== linha) : [...prev, linha]
+    );
+  };
+
+  const toggleProduto = (id: string) => {
+    setSelectedProdutoIds(prev => 
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    );
+  };
 
   if (loading) {
     return (
@@ -414,7 +445,7 @@ export default function GerenciamentoAcessoPrecos() {
                 <Label>Escopo do Acesso</Label>
                 <Select
                   value={newAccess.scope}
-                  onValueChange={(v: ScopeType) => setNewAccess(prev => ({ ...prev, scope: v, linha: "", produto_id: "" }))}
+                  onValueChange={(v: ScopeType) => { setNewAccess(prev => ({ ...prev, scope: v })); setSelectedLinhas([]); setSelectedProdutoIds([]); setBuscaLinha(""); setBuscaProduto(""); }}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -439,57 +470,82 @@ export default function GerenciamentoAcessoPrecos() {
                 </Select>
               </div>
 
-              {/* Line selector */}
+              {/* Line multi-selector */}
               {newAccess.scope === "linha" && (
                 <div className="space-y-2">
-                  <Label>Linha de Produto</Label>
-                  <Select
-                    value={newAccess.linha}
-                    onValueChange={(v) => setNewAccess(prev => ({ ...prev, linha: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma linha" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {linhasDisponiveis.map(l => (
-                        <SelectItem key={l} value={l}>{l}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Linhas de Produto</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar linha..."
+                      value={buscaLinha}
+                      onChange={(e) => setBuscaLinha(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <div className="border rounded-md max-h-48 overflow-y-auto bg-background">
+                    {linhasFiltradas.length === 0 ? (
+                      <p className="p-3 text-sm text-muted-foreground text-center">Nenhuma linha encontrada</p>
+                    ) : (
+                      linhasFiltradas.map(l => (
+                        <label
+                          key={l}
+                          className="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/50 text-sm border-b last:border-b-0"
+                        >
+                          <Checkbox
+                            checked={selectedLinhas.includes(l)}
+                            onCheckedChange={() => toggleLinha(l)}
+                          />
+                          <Layers className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                          <span>{l}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  {selectedLinhas.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {selectedLinhas.length} linha{selectedLinhas.length > 1 ? 's' : ''} selecionada{selectedLinhas.length > 1 ? 's' : ''}: <strong>{selectedLinhas.join(', ')}</strong>
+                    </p>
+                  )}
                 </div>
               )}
 
-              {/* Product selector */}
+              {/* Product multi-selector */}
               {newAccess.scope === "produto" && (
                 <div className="space-y-2">
-                  <Label>Produto</Label>
-                  <Input
-                    placeholder="Buscar produto..."
-                    value={buscaProduto}
-                    onChange={(e) => setBuscaProduto(e.target.value)}
-                    className="mb-2"
-                  />
-                  <div className="border rounded-md max-h-40 overflow-y-auto">
+                  <Label>Produtos</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar produto por nome ou código..."
+                      value={buscaProduto}
+                      onChange={(e) => setBuscaProduto(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <div className="border rounded-md max-h-48 overflow-y-auto bg-background">
                     {produtosFiltradosBusca.length === 0 ? (
                       <p className="p-3 text-sm text-muted-foreground text-center">Nenhum produto encontrado</p>
                     ) : (
                       produtosFiltradosBusca.map(p => (
-                        <div
+                        <label
                           key={p.id}
-                          className={`p-2 cursor-pointer hover:bg-muted/50 text-sm flex items-center justify-between ${
-                            newAccess.produto_id === p.id ? "bg-primary/10 font-medium" : ""
-                          }`}
-                          onClick={() => setNewAccess(prev => ({ ...prev, produto_id: p.id }))}
+                          className="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/50 text-sm border-b last:border-b-0"
                         >
-                          <span>{p.nome}</span>
-                          <span className="text-xs text-muted-foreground">{p.linha || "—"}</span>
-                        </div>
+                          <Checkbox
+                            checked={selectedProdutoIds.includes(p.id)}
+                            onCheckedChange={() => toggleProduto(p.id)}
+                          />
+                          <Package className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+                          <span className="flex-1">{p.nome}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">{p.linha || "—"}</span>
+                        </label>
                       ))
                     )}
                   </div>
-                  {newAccess.produto_id && (
+                  {selectedProdutoIds.length > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      Selecionado: <strong>{produtos.find(p => p.id === newAccess.produto_id)?.nome}</strong>
+                      {selectedProdutoIds.length} produto{selectedProdutoIds.length > 1 ? 's' : ''} selecionado{selectedProdutoIds.length > 1 ? 's' : ''}
                     </p>
                   )}
                 </div>
