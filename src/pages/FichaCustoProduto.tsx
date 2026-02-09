@@ -56,7 +56,7 @@ export default function FichaCustoProduto() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/dashboard/fabrica/produtos")}
+            onClick={() => navigate("/dashboard/fabrica/produtos-acabados")}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
