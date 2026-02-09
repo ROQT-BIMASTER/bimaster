@@ -29,7 +29,7 @@ import { NovaLojaDialog } from "./NovaLojaDialog";
 import { NovaContaContabilDialog } from "./NovaContaContabilDialog";
 import { NovaVerbaDialog } from "./NovaVerbaDialog";
 import { useQuery } from "@tanstack/react-query";
-import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
+import { useUserEmpresas, usePrimaryEmpresa, useAllEmpresas } from "@/hooks/useUserEmpresas";
 import { ExpenseReceiptScanner } from "@/components/ai/ExpenseReceiptScanner";
 import { Separator } from "@/components/ui/separator";
 import { ExpenseAttachments } from "@/components/events/ExpenseAttachments";
@@ -46,8 +46,15 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [stores, setStores] = useState<any[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
   
-  const { data: userEmpresas = [], isLoading: loadingEmpresas } = useUserEmpresas();
+  const { data: userEmpresas = [], isLoading: loadingUserEmpresas } = useUserEmpresas();
+  const { data: allEmpresas = [], isLoading: loadingAllEmpresas } = useAllEmpresas();
   const { primaryEmpresa } = usePrimaryEmpresa();
+
+  // Fallback: se user_empresas estiver vazio, usar todas as empresas ativas
+  const empresasDisponiveis = userEmpresas.length > 0
+    ? userEmpresas.map(ue => ({ id: ue.empresa_id, nome: ue.empresa.nome, is_primary: ue.is_primary }))
+    : allEmpresas.map(e => ({ id: e.id, nome: e.nome, is_primary: false }));
+  const loadingEmpresas = loadingUserEmpresas || (userEmpresas.length === 0 && loadingAllEmpresas);
   
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split("T")[0]);
   const [entryType, setEntryType] = useState("expense");
@@ -72,12 +79,13 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [isNovaContaOpen, setIsNovaContaOpen] = useState(false);
   const [isNovaVerbaOpen, setIsNovaVerbaOpen] = useState(false);
 
-  // Pre-selecionar filial principal
+  // Pre-selecionar filial principal ou primeira disponível
   useEffect(() => {
-    if (primaryEmpresa && !empresaId) {
-      setEmpresaId(primaryEmpresa.id.toString());
+    if (!empresaId && empresasDisponiveis.length > 0) {
+      const primary = empresasDisponiveis.find(e => e.is_primary);
+      setEmpresaId((primary || empresasDisponiveis[0]).id.toString());
     }
-  }, [primaryEmpresa]);
+  }, [empresasDisponiveis, empresaId]);
 
   // Buscar campanhas ativas
   const { data: campaigns = [] } = useQuery({
@@ -178,8 +186,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      const selectedEmpresa = userEmpresas.find(
-        ue => ue.empresa_id.toString() === empresaId
+      const selectedEmpresa = empresasDisponiveis.find(
+        e => e.id.toString() === empresaId
       );
 
       // Resolver fornecedor - fetch fresh data if selected
@@ -215,8 +223,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         status: "pending",
         approval_status: "pending",
         created_by: user.id,
-        empresa_id: selectedEmpresa?.empresa_id || null,
-        empresa_nome: selectedEmpresa?.empresa.nome || null,
+        empresa_id: selectedEmpresa?.id || null,
+        empresa_nome: selectedEmpresa?.nome || null,
         entity_type: hasFornecedor ? "fornecedor" : null,
         fornecedor_id: hasFornecedor ? fornecedorId : null,
         supplier_name: supplierName,
@@ -282,10 +290,10 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
                 <SelectValue placeholder={loadingEmpresas ? "Carregando filiais..." : "Selecione a filial"} />
               </SelectTrigger>
               <SelectContent>
-                {userEmpresas.map((ue) => (
-                  <SelectItem key={ue.empresa_id} value={ue.empresa_id.toString()}>
-                    {ue.empresa.nome}
-                    {ue.is_primary ? " (Principal)" : ""}
+                {empresasDisponiveis.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.id.toString()}>
+                    {emp.nome}
+                    {emp.is_primary ? " (Principal)" : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
