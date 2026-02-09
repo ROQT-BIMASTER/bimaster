@@ -55,6 +55,7 @@ import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { AdicionarEvidenciaDialog } from "@/components/trade/AdicionarEvidenciaDialog";
 import { NovoLancamentoDialog } from "@/components/trade/NovoLancamentoDialog";
 import { EditarLancamentoDialog } from "@/components/trade/EditarLancamentoDialog";
+import { EnviarFinanceiroTradeDialog } from "@/components/trade/EnviarFinanceiroTradeDialog";
 import { PaymentPolicyBanner } from "@/components/financeiro/payments/PaymentPolicyBanner";
 import { ExpenseAIChatFloat } from "@/components/ai/ExpenseAIChatFloat";
 
@@ -68,6 +69,7 @@ export default function TradeLancamentos() {
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [sendFinancialDialogOpen, setSendFinancialDialogOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -102,7 +104,11 @@ export default function TradeLancamentos() {
       }
 
       if (statusFilter !== "all") {
-        query = query.eq("approval_status", statusFilter);
+        if (statusFilter === "pending_financial") {
+          query = query.eq("status", "pending_financial");
+        } else {
+          query = query.eq("approval_status", statusFilter);
+        }
       }
 
       const { data, error } = await query.order("entry_date", { ascending: false });
@@ -156,6 +162,7 @@ export default function TradeLancamentos() {
       approved: { variant: "default", label: "Aprovado", icon: CheckCircle },
       rejected: { variant: "destructive", label: "Rejeitado", icon: XCircle },
       completed: { variant: "secondary", label: "Concluído", icon: CheckCircle },
+      pending_financial: { variant: "warning", label: "No Financeiro", icon: DollarSign },
     };
 
     const { variant, label, icon: Icon } = config[status] || config.pending;
@@ -191,6 +198,20 @@ export default function TradeLancamentos() {
   const handleEditClick = (entry: any) => {
     setSelectedEntry(entry);
     setEditDialogOpen(true);
+  };
+
+  const canSendToFinancial = (entry: any) => {
+    return (
+      entry.approval_status === "approved" &&
+      !entry.send_to_financial &&
+      entry.status !== "pending_financial" &&
+      entry.status !== "paid"
+    );
+  };
+
+  const handleSendFinancialClick = (entry: any) => {
+    setSelectedEntry(entry);
+    setSendFinancialDialogOpen(true);
   };
 
   return (
@@ -318,6 +339,7 @@ export default function TradeLancamentos() {
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="pending">Pendentes</SelectItem>
                     <SelectItem value="approved">Aprovados</SelectItem>
+                    <SelectItem value="pending_financial">No Financeiro</SelectItem>
                     <SelectItem value="completed">Concluídos</SelectItem>
                     <SelectItem value="rejected">Rejeitados</SelectItem>
                   </SelectContent>
@@ -398,7 +420,7 @@ export default function TradeLancamentos() {
                           maximumFractionDigits: 2,
                         })}
                       </TableCell>
-                      <TableCell>{getStatusBadge(entry.approval_status)}</TableCell>
+                      <TableCell>{getStatusBadge(entry.status === "pending_financial" ? "pending_financial" : entry.approval_status)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -422,7 +444,16 @@ export default function TradeLancamentos() {
                                 Adicionar Evidência
                               </DropdownMenuItem>
                             )}
-                            {!canEdit(entry) && !canAddEvidence(entry) && (
+                            {canSendToFinancial(entry) && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleSendFinancialClick(entry)}>
+                                  <DollarSign className="mr-2 h-4 w-4" />
+                                  Enviar ao Financeiro
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {!canEdit(entry) && !canAddEvidence(entry) && !canSendToFinancial(entry) && (
                               <DropdownMenuItem disabled>
                                 <Eye className="mr-2 h-4 w-4" />
                                 Sem ações disponíveis
@@ -452,6 +483,12 @@ export default function TradeLancamentos() {
             open={editDialogOpen}
             onOpenChange={setEditDialogOpen}
             entryId={selectedEntry.id}
+            onSuccess={fetchData}
+          />
+          <EnviarFinanceiroTradeDialog
+            entry={selectedEntry}
+            open={sendFinancialDialogOpen}
+            onOpenChange={setSendFinancialDialogOpen}
             onSuccess={fetchData}
           />
         </>

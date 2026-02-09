@@ -128,6 +128,25 @@ async function syncStatusToSource(item: { source_type: string; source_id: string
         .from('department_expenses')
         .update(updateData)
         .eq('id', item.source_id);
+    } else if (item.source_type === 'trade_entry') {
+      const statusMap: Record<string, string> = {
+        accepted: 'pending_financial',
+        paid: 'paid',
+        rejected: 'rejected',
+        cancelled: 'cancelled',
+      };
+      const newStatus = statusMap[item.financial_status];
+      if (!newStatus) return;
+
+      const updateData: Record<string, unknown> = { status: newStatus };
+      if (item.financial_status === 'paid') {
+        updateData.paid_at = now;
+      }
+
+      await supabase
+        .from('trade_financial_entries')
+        .update(updateData)
+        .eq('id', item.source_id);
     }
   } catch (err) {
     console.error('Error syncing status to source:', err);

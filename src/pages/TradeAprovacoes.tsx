@@ -18,6 +18,7 @@ import { ArrowLeft, CheckCircle2, FileText, AlertCircle, RefreshCw, Target, Cale
 import { format } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AprovarLancamentoDialog } from "@/components/trade/AprovarLancamentoDialog";
+import { EnviarFinanceiroTradeDialog } from "@/components/trade/EnviarFinanceiroTradeDialog";
 import { AprovacaoCampanhaDialog } from "@/components/trade/campaigns/AprovacaoCampanhaDialog";
 import { usePendingFinancialEntries, usePendingInvestments, usePendingCampaigns } from "@/hooks/useTradeData";
 import { useQueryClient } from "@tanstack/react-query";
@@ -27,6 +28,8 @@ export default function TradeAprovacoes() {
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [selectedType, setSelectedType] = useState<"entry" | "investment">("entry");
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [sendFinancialEntry, setSendFinancialEntry] = useState<any>(null);
+  const [sendFinancialDialogOpen, setSendFinancialDialogOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
   const { isAdminOrSupervisor, loading: roleLoading } = useUserRole();
@@ -515,6 +518,19 @@ export default function TradeAprovacoes() {
           onOpenChange={setApprovalDialogOpen}
           entry={selectedEntry}
           type={selectedType}
+          onSuccess={handleRefetch}
+          onApproveAndSend={(entry) => {
+            setSendFinancialEntry(entry);
+            setSendFinancialDialogOpen(true);
+          }}
+        />
+      )}
+
+      {sendFinancialEntry && (
+        <EnviarFinanceiroTradeDialog
+          entry={sendFinancialEntry}
+          open={sendFinancialDialogOpen}
+          onOpenChange={setSendFinancialDialogOpen}
           onSuccess={handleRefetch}
         />
       )}
