@@ -1,48 +1,23 @@
 
-# Hierarquia em Lotes por Data e Estado na tela de Leads Minerados
+## Exibir Regra Aplicada Abaixo do Custo Total
 
-## O Que Sera Feito
+### O que sera feito
+Adicionar uma linha informativa logo abaixo do card "Custo Total" (na seção Totais) mostrando a regra de markup aplicada de forma clara e visivel.
 
-Adicionar um modo de visualizacao hierarquico na tela de Leads Minerados (tanto na pagina principal quanto no ResultsView do Modo Foco), agrupando os leads por **data de mineracao** e **estado (UF)**, usando componentes Accordion/Collapsible.
+### Detalhes da implementacao
 
-### Estrutura da Hierarquia
+**Arquivo**: `src/components/fabrica/FichaCustoProdutoEditor.tsx`
 
-```text
-07/02/2025 (32 leads)
-  ES - Espirito Santo (25 leads)
-    Distribuidora da Doda - (28) 99921-2131 - Rating 4.7  [Acoes]
-    Atacado Mix Capixaba - (98) 4227-4443 - Rating 4.0    [Acoes]
-    ...
-  MG - Minas Gerais (5 leads)
-    Cosmeticos do Vale - (31) 3846-7980 - Rating 4.6      [Acoes]
-    ...
-  AC - Acre (2 leads)
-    ...
-05/02/2025 (26 leads)
-  RJ - Rio de Janeiro (26 leads)
-    ...
-```
+Abaixo do grid de totais (depois do card "Custo Total"), sera inserido um texto descritivo com a regra aplicada, por exemplo:
 
-### Funcionalidades
+- Se base = `total`: "Markup de 10% aplicado sobre NF + Servico + Condicao"
+- Se base = `nf_servico`: "Markup de 10% aplicado sobre NF + Servico"
+- Se base = `nf`: "Markup de 10% aplicado somente sobre NF"
+- Se base = `servico`: "Markup de 10% aplicado somente sobre Servico"
+- Se markup = 0: nenhuma mensagem exibida
 
-1. **Toggle de visualizacao**: Botao para alternar entre "Lista" (tabela flat atual) e "Lotes" (hierarquia agrupada por data/UF)
-2. **Agrupamento por data**: Usa o campo `created_at` dos leads, formatando por dia (ex: "07/02/2025"). Cada grupo mostra a contagem de leads daquele lote
-3. **Sub-agrupamento por UF**: Dentro de cada data, leads agrupados por estado com contagem
-4. **Checkbox em todos os niveis**: Selecionar lote inteiro (data), estado inteiro, ou leads individuais
-5. **Mesmas acoes**: Qualificar, Descartar, Converter em Prospect continuam disponiveis tanto individualmente quanto em lote
-6. **Ordenacao**: Datas mais recentes primeiro, UFs em ordem alfabetica
+A mensagem aparecera como um badge/tag sutil abaixo do grid de totais, dentro do mesmo Card, com icone informativo e estilo `text-muted-foreground` para nao poluir visualmente.
 
-## Arquivos Afetados
-
-| Arquivo | Alteracao |
-|---------|-----------|
-| `src/components/comercial/municipios/ModoFocoDialog.tsx` | Adicionar toggle de view mode e logica de agrupamento no `ResultsView`, com Accordion por data e Collapsible por UF |
-
-## Detalhes Tecnicos
-
-- O agrupamento sera feito no frontend com `useMemo`, usando `date-fns/format` para agrupar `created_at` por dia
-- Estrutura: `Record<string, Record<string, LeadMinerado[]>>` onde a chave externa e a data formatada e a interna e a UF
-- Toggle entre modo "lista" (tabela atual) e modo "lotes" (hierarquia) usando um estado local `listMode: "table" | "batches"`
-- Accordion do radix para niveis de data, Collapsible para niveis de UF
-- Checkboxes em cada nivel propagam selecao para os filhos
-- KPIs e barra de acoes em lote permanecem inalterados no topo
+### Escopo
+- Alteracao apenas no arquivo `FichaCustoProdutoEditor.tsx`
+- Nenhuma mudanca de logica ou banco de dados
