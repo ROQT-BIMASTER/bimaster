@@ -17,7 +17,7 @@ export interface CustoInsumo {
   ordem: number;
 }
 
-export type BaseCalculoMarkup = 'total' | 'nf' | 'servico';
+export type BaseCalculoMarkup = 'total' | 'nf' | 'servico' | 'nf_servico';
 
 export interface CustoConfig {
   id: string;
@@ -163,9 +163,9 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
     const percentualMarkup = Number(config?.percentual_markup) || 0;
     const baseMarkup = config?.base_calculo_markup || 'total';
     
-    const markupNF = (baseMarkup === 'total' || baseMarkup === 'nf') 
+    const markupNF = (baseMarkup === 'total' || baseMarkup === 'nf' || baseMarkup === 'nf_servico') 
       ? totalNF * (percentualMarkup / 100) : 0;
-    const markupServico = (baseMarkup === 'total' || baseMarkup === 'servico') 
+    const markupServico = (baseMarkup === 'total' || baseMarkup === 'servico' || baseMarkup === 'nf_servico') 
       ? totalServico * (percentualMarkup / 100) : 0;
     const markupCondicao = baseMarkup === 'total' 
       ? totalCondicao * (percentualMarkup / 100) : 0;

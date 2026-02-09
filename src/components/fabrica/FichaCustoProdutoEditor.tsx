@@ -170,6 +170,7 @@ export function FichaCustoProdutoEditor({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="total">Totais (NF+Serv+Cond)</SelectItem>
+                  <SelectItem value="nf_servico">NF + Serviço</SelectItem>
                   <SelectItem value="nf">Somente NF</SelectItem>
                   <SelectItem value="servico">Somente Serviço</SelectItem>
                 </SelectContent>
@@ -381,7 +382,7 @@ export function FichaCustoProdutoEditor({
               <span className="font-medium">
                 Markup {config.percentual_markup}%
                 <span className="text-muted-foreground ml-2 text-xs font-normal">
-                  ({config.base_calculo_markup === 'nf' ? 'sobre NF' : config.base_calculo_markup === 'servico' ? 'sobre Serviço' : 'sobre Totais'})
+                  ({config.base_calculo_markup === 'nf' ? 'sobre NF' : config.base_calculo_markup === 'servico' ? 'sobre Serviço' : config.base_calculo_markup === 'nf_servico' ? 'sobre NF+Serviço' : 'sobre Totais'})
                 </span>
               </span>
               <div className="flex gap-6">
