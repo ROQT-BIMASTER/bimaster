@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, ChevronsUpDown, Truck, Loader2, AlertTriangle, Building2, Key } from "lucide-react";
+import { Check, ChevronsUpDown, Truck, Loader2, AlertTriangle, Building2, Key, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -30,10 +30,11 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
+import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface FornecedorComboboxProps {
-  value: string; // "none" or fornecedor id
+  value: string;
   onChange: (value: string) => void;
   enabled?: boolean;
 }
@@ -84,10 +85,8 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
   });
 
   const selectedFornecedor = value !== "none" ? fornecedores.find(f => f.id === value) : null;
-
   const hasBankData = bankData && (bankData.banco || bankData.pix_chave);
 
-  // Fetch bank data when fornecedor changes
   useEffect(() => {
     if (value === "none" || !value) {
       setBankData(null);
@@ -95,7 +94,6 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
       setSkipBank(false);
       return;
     }
-
     const fetchBank = async () => {
       setLoadingBank(true);
       setShowBankForm(false);
@@ -160,6 +158,25 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
     }
   };
 
+  const handleCnpjEnrich = async (data: CnpjData) => {
+    if (!value || value === "none") return;
+    // Update fornecedor with enriched data
+    const updateFields: Record<string, any> = {};
+    if (data.razaoSocial) updateFields.razao_social = data.razaoSocial;
+    if (data.nomeFantasia) updateFields.nome_fantasia = data.nomeFantasia;
+    if (data.telefone) updateFields.telefone = data.telefone;
+    if (data.email) updateFields.email = data.email;
+    if (data.situacao) updateFields.situacao_cadastral = data.situacao;
+    if (data.porte) updateFields.porte = data.porte;
+    if (data.capitalSocial) updateFields.capital_social = data.capitalSocial;
+    if (data.regimeTributario) updateFields.regime_tributario = data.regimeTributario;
+
+    if (Object.keys(updateFields).length > 0) {
+      await supabase.from("fabrica_fornecedores").update(updateFields).eq("id", value);
+      queryClient.invalidateQueries({ queryKey: ['trade-fornecedores-combobox'] });
+    }
+  };
+
   return (
     <div className="space-y-2">
       <Label className="flex items-center gap-2">
@@ -217,6 +234,17 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
             </Command>
           </PopoverContent>
         </Popover>
+
+        {/* CNPJ enrichment button */}
+        {selectedFornecedor?.cnpj && (
+          <CnpjSearchButton
+            cnpj={selectedFornecedor.cnpj}
+            onDataFound={handleCnpjEnrich}
+            size="icon"
+            variant="outline"
+          />
+        )}
+
         <FornecedorQuickAdd
           onFornecedorCriado={(f) => {
             queryClient.invalidateQueries({ queryKey: ['trade-fornecedores-combobox'] });

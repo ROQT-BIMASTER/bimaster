@@ -96,7 +96,7 @@ export function EditarLancamentoDialog({
     try {
       const [acRes, stRes, bgRes] = await Promise.all([
         supabase.from("trade_chart_of_accounts").select("id, code, name").eq("is_active", true),
-        supabase.from("stores").select("id, name, code").eq("status", "active"),
+        supabase.from("stores").select("id, name, code, cnpj").eq("status", "active"),
         supabase.from("trade_budgets").select("id, name, code").eq("status", "active"),
       ]);
       if (acRes.data) setAccounts(acRes.data);
@@ -360,28 +360,29 @@ export function EditarLancamentoDialog({
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <LojaCombobox
-                value={storeId}
-                onChange={setStoreId}
-                stores={stores}
-              />
-              <div className="space-y-2">
-                <Label>Verba</Label>
-                <Select value={budgetId} onValueChange={setBudgetId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Opcional" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhuma verba</SelectItem>
-                    {budgets.map((budget) => (
-                      <SelectItem key={budget.id} value={budget.id}>
-                        {budget.code} - {budget.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Loja/PDV */}
+            <LojaCombobox
+              value={storeId}
+              onChange={setStoreId}
+              stores={stores}
+            />
+
+            {/* Verba */}
+            <div className="space-y-2">
+              <Label>Verba</Label>
+              <Select value={budgetId} onValueChange={setBudgetId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Opcional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma verba</SelectItem>
+                  {budgets.map((budget) => (
+                    <SelectItem key={budget.id} value={budget.id}>
+                      {budget.code} - {budget.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Campanha */}
