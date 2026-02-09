@@ -14,7 +14,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileText, FileX } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X } from "lucide-react";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
 import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
 import { Link, useNavigate } from "react-router-dom";
@@ -28,6 +37,10 @@ export default function FabricaProdutosAcabados() {
   const [dialogNovo, setDialogNovo] = useState(false);
   const [produtoEdit, setProdutoEdit] = useState<any>(null);
   const [busca, setBusca] = useState("");
+  const [filtroMarca, setFiltroMarca] = useState("none");
+  const [filtroLinha, setFiltroLinha] = useState("none");
+  const [agrupamentoAtivo, setAgrupamentoAtivo] = useState(false);
+  const [agruparPor, setAgruparPor] = useState("marca");
 
   const { data: produtos, isLoading, refetch } = useSupabaseQuery(
     ["fabrica-produtos-acabados"],
@@ -50,7 +63,6 @@ export default function FabricaProdutosAcabados() {
     }
   );
 
-  // Buscar quais produtos possuem ficha de custos e seus status
   const { data: fichasConfig } = useSupabaseQuery(
     ["fabrica-produtos-fichas-config"],
     async () => {
@@ -62,6 +74,57 @@ export default function FabricaProdutosAcabados() {
     },
     { staleTime: 0, refetchOnMount: "always" }
   );
+
+  const marcasUnicas = useMemo(() => {
+    if (!produtos) return [];
+    const marcas = [...new Set(produtos.map((p) => p.marca).filter(Boolean))].sort();
+    return marcas as string[];
+  }, [produtos]);
+
+  const linhasUnicas = useMemo(() => {
+    if (!produtos) return [];
+    const linhas = [...new Set(produtos.map((p) => p.linha).filter(Boolean))].sort();
+    return linhas as string[];
+  }, [produtos]);
+
+  const temFiltrosAtivos = filtroMarca !== "none" || filtroLinha !== "none";
+
+  const limparFiltros = () => {
+    setFiltroMarca("none");
+    setFiltroLinha("none");
+  };
+
+  const fichasMap = useMemo(() => {
+    const map = new Map<string, string>();
+    fichasConfig?.forEach((f) => map.set(f.produto_id, f.status_aprovacao || "rascunho"));
+    return map;
+  }, [fichasConfig]);
+
+  const produtosFiltrados = useMemo(() => {
+    return produtos?.filter((p) => {
+      const matchBusca =
+        p.nome.toLowerCase().includes(busca.toLowerCase()) ||
+        p.codigo.toLowerCase().includes(busca.toLowerCase());
+      const matchMarca = filtroMarca === "none" || p.marca === filtroMarca;
+      const matchLinha = filtroLinha === "none" || p.linha === filtroLinha;
+      return matchBusca && matchMarca && matchLinha;
+    });
+  }, [produtos, busca, filtroMarca, filtroLinha]);
+
+  const dadosAgrupados = useMemo(() => {
+    if (!produtosFiltrados) return new Map<string, any[]>();
+    if (!agrupamentoAtivo) {
+      return new Map([["Todos", produtosFiltrados]]);
+    }
+    const campo = agruparPor === "marca" ? "marca" : "linha";
+    const grouped = new Map<string, any[]>();
+    produtosFiltrados.forEach((p) => {
+      const key = (p[campo] as string) || "Sem Categoria";
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(p);
+    });
+    return new Map([...grouped.entries()].sort(([a], [b]) => a.localeCompare(b)));
+  }, [produtosFiltrados, agrupamentoAtivo, agruparPor]);
 
   if (permLoading) {
     return (
@@ -85,15 +148,6 @@ export default function FabricaProdutosAcabados() {
     );
   }
 
-  const fichasMap = new Map<string, string>();
-  fichasConfig?.forEach((f) => fichasMap.set(f.produto_id, f.status_aprovacao || "rascunho"));
-
-  const produtosFiltrados = produtos?.filter(
-    (p) =>
-      p.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      p.codigo.toLowerCase().includes(busca.toLowerCase())
-  );
-
   const handleEditar = (produto: any) => {
     setProdutoEdit(produto);
     setDialogNovo(true);
@@ -103,15 +157,12 @@ export default function FabricaProdutosAcabados() {
     if (!confirm(`Tem certeza que deseja excluir o produto "${produto.nome}"?`)) {
       return;
     }
-
     try {
       const { error } = await supabase
         .from("fabrica_produtos")
         .delete()
         .eq("id", produto.id);
-
       if (error) throw error;
-
       toast.success("Produto excluído com sucesso!");
       refetch();
     } catch (error: any) {
@@ -125,6 +176,77 @@ export default function FabricaProdutosAcabados() {
     INTER: "Intermediário",
     MP: "Matéria-Prima",
   };
+
+  const renderProdutoRow = (produto: any) => (
+    <TableRow key={produto.id}>
+      <TableCell className="font-mono">{produto.codigo}</TableCell>
+      <TableCell className="font-medium">{produto.nome}</TableCell>
+      <TableCell>
+        <Badge variant="outline">
+          {tipoLabels[produto.tipo as keyof typeof tipoLabels]}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <Badge variant={produto.origem === 'importado' ? 'destructive' : 'secondary'}>
+          {produto.origem === 'importado' ? 'Importado' : 'Nacional'}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        {fichasMap.has(produto.id) ? (
+          <StatusAprovacaoBadge status={fichasMap.get(produto.id) as StatusAprovacao} />
+        ) : (
+          <Badge variant="outline" className="gap-1 text-muted-foreground">
+            <FileX className="h-3 w-3" />
+            Sem Ficha
+          </Badge>
+        )}
+      </TableCell>
+      <TableCell>
+        {produto.formula_id ? (
+          <Badge variant="secondary">Fórmula vinculada</Badge>
+        ) : (
+          <span className="text-muted-foreground text-sm">-</span>
+        )}
+      </TableCell>
+      <TableCell>
+        {produto.unidade?.sigla || "-"}
+      </TableCell>
+      <TableCell>
+        <Badge variant={produto.ativo ? "default" : "secondary"}>
+          {produto.ativo ? "Ativo" : "Inativo"}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex gap-1 justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(`/dashboard/fabrica/produtos/${produto.id}/custos`)}
+            title="Ficha de Custos"
+          >
+            <DollarSign className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleEditar(produto)}
+            title="Editar"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleExcluir(produto)}
+            className="text-destructive hover:text-destructive"
+            title="Excluir"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
 
   return (
     <DashboardLayout>
@@ -220,22 +342,98 @@ export default function FabricaProdutosAcabados() {
           </Card>
         </div>
 
-        {/* Busca */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
+        {/* Barra de Filtros */}
+        <div className="bg-muted/30 rounded-lg border p-4 space-y-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Filter className="h-4 w-4" />
+            Filtros
+          </div>
+          <div className="flex flex-wrap items-end gap-4">
+            {/* Busca */}
+            <div className="flex-1 min-w-[200px]">
+              <Label className="text-xs text-muted-foreground mb-1 block">Buscar</Label>
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por código ou nome..."
+                  placeholder="Código ou nome..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
+
+            {/* Filtro Marca */}
+            <div className="min-w-[180px]">
+              <Label className="text-xs text-muted-foreground mb-1 block">Marca</Label>
+              <Select value={filtroMarca} onValueChange={setFiltroMarca}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Todas</SelectItem>
+                  {marcasUnicas.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro Linha */}
+            <div className="min-w-[180px]">
+              <Label className="text-xs text-muted-foreground mb-1 block">Linha</Label>
+              <Select value={filtroLinha} onValueChange={setFiltroLinha}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Todas</SelectItem>
+                  {linhasUnicas.map((l) => (
+                    <SelectItem key={l} value={l}>{l}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Agrupamento */}
+            <div className="flex items-center gap-3 border-l pl-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="agrupamento"
+                  checked={agrupamentoAtivo}
+                  onCheckedChange={setAgrupamentoAtivo}
+                />
+                <Label htmlFor="agrupamento" className="text-sm cursor-pointer flex items-center gap-1">
+                  <Layers className="h-4 w-4" />
+                  Agrupar
+                </Label>
+              </div>
+              {agrupamentoAtivo && (
+                <Select value={agruparPor} onValueChange={setAgruparPor}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="marca">Marca</SelectItem>
+                    <SelectItem value="linha">Linha</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Limpar */}
+            {temFiltrosAtivos && (
+              <Button variant="ghost" size="sm" onClick={limparFiltros} className="text-muted-foreground">
+                <X className="h-4 w-4 mr-1" />
+                Limpar
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Tabela */}
+        <Card>
+          <CardContent className="pt-6">
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">
                 Carregando produtos...
@@ -260,76 +458,24 @@ export default function FabricaProdutosAcabados() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {produtosFiltrados?.map((produto) => (
-                    <TableRow key={produto.id}>
-                      <TableCell className="font-mono">{produto.codigo}</TableCell>
-                      <TableCell className="font-medium">{produto.nome}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {tipoLabels[produto.tipo as keyof typeof tipoLabels]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={produto.origem === 'importado' ? 'destructive' : 'secondary'}>
-                          {produto.origem === 'importado' ? 'Importado' : 'Nacional'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {fichasMap.has(produto.id) ? (
-                          <StatusAprovacaoBadge status={fichasMap.get(produto.id) as StatusAprovacao} />
-                        ) : (
-                          <Badge variant="outline" className="gap-1 text-muted-foreground">
-                            <FileX className="h-3 w-3" />
-                            Sem Ficha
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {produto.formula_id ? (
-                          <Badge variant="secondary">Fórmula vinculada</Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {produto.unidade?.sigla || "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={produto.ativo ? "default" : "secondary"}>
-                          {produto.ativo ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-1 justify-end">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/dashboard/fabrica/produtos/${produto.id}/custos`)}
-                            title="Ficha de Custos"
-                          >
-                            <DollarSign className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditar(produto)}
-                            title="Editar"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleExcluir(produto)}
-                            className="text-destructive hover:text-destructive"
-                            title="Excluir"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {agrupamentoAtivo
+                    ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
+                        <>
+                          <TableRow key={`group-${grupo}`} className="bg-muted/50 hover:bg-muted/50">
+                            <TableCell colSpan={9} className="font-semibold text-sm py-2">
+                              <div className="flex items-center gap-2">
+                                <Layers className="h-4 w-4 text-muted-foreground" />
+                                {grupo}
+                                <Badge variant="secondary" className="ml-1 text-xs">
+                                  {items.length}
+                                </Badge>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          {items.map(renderProdutoRow)}
+                        </>
+                      ))
+                    : produtosFiltrados?.map(renderProdutoRow)}
                 </TableBody>
               </Table>
             )}
