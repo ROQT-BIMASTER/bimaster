@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp } from "lucide-react";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
 import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
 import { Link, useNavigate } from "react-router-dom";
@@ -74,6 +74,63 @@ export default function FabricaProdutosAcabados() {
     },
     { staleTime: 0, refetchOnMount: "always" }
   );
+
+  // Buscar snapshots de revisão para obter custo total
+  const { data: revisoes } = useSupabaseQuery(
+    ["fabrica-produtos-revisoes-custos"],
+    async () => {
+      const { data, error } = await supabase
+        .from("fabrica_ficha_revisoes" as any)
+        .select("produto_id, snapshot_totais, status")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    { staleTime: 0, refetchOnMount: "always" }
+  );
+
+  // Buscar alertas de aumento de custo recente
+  const { data: alertasAumento } = useSupabaseQuery(
+    ["fabrica-produtos-alertas-aumento"],
+    async () => {
+      const { data, error } = await supabase
+        .from("fabrica_insumo_custo_historico" as any)
+        .select("produto_id, valor_anterior, valor_novo, created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return data as any[];
+    },
+    { staleTime: 30000 }
+  );
+
+  // Map de custo total por produto (da última revisão)
+  const custoTotalMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!revisoes) return map;
+    // Pegar a primeira revisão de cada produto (já está ordenada por created_at desc)
+    revisoes.forEach((r: any) => {
+      if (!map.has(r.produto_id) && r.snapshot_totais) {
+        const totais = typeof r.snapshot_totais === 'string' ? JSON.parse(r.snapshot_totais) : r.snapshot_totais;
+        if (totais?.custoTotal) map.set(r.produto_id, Number(totais.custoTotal));
+      }
+    });
+    return map;
+  }, [revisoes]);
+
+  // Set de produtos com aumento recente (últimos 30 dias)
+  const produtosComAumento = useMemo(() => {
+    const set = new Set<string>();
+    if (!alertasAumento) return set;
+    const trintaDiasAtras = new Date();
+    trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+    alertasAumento.forEach((a: any) => {
+      if (Number(a.valor_novo) > Number(a.valor_anterior) && new Date(a.created_at) >= trintaDiasAtras) {
+        set.add(a.produto_id);
+      }
+    });
+    return set;
+  }, [alertasAumento]);
 
   const marcasUnicas = useMemo(() => {
     if (!produtos) return [];
@@ -177,76 +234,102 @@ export default function FabricaProdutosAcabados() {
     MP: "Matéria-Prima",
   };
 
-  const renderProdutoRow = (produto: any) => (
-    <TableRow key={produto.id}>
-      <TableCell className="font-mono">{produto.codigo}</TableCell>
-      <TableCell className="font-medium">{produto.nome}</TableCell>
-      <TableCell>
-        <Badge variant="outline">
-          {tipoLabels[produto.tipo as keyof typeof tipoLabels]}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        <Badge variant={produto.origem === 'importado' ? 'destructive' : 'secondary'}>
-          {produto.origem === 'importado' ? 'Importado' : 'Nacional'}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        {fichasMap.has(produto.id) ? (
-          <StatusAprovacaoBadge status={fichasMap.get(produto.id) as StatusAprovacao} />
-        ) : (
-          <Badge variant="outline" className="gap-1 text-muted-foreground">
-            <FileX className="h-3 w-3" />
-            Sem Ficha
+  const formatarMoeda = (valor: number) =>
+    valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const renderProdutoRow = (produto: any) => {
+    const statusFicha = fichasMap.get(produto.id);
+    const isRevisaoSolicitada = statusFicha === "revisao_solicitada";
+    const custoTotal = custoTotalMap.get(produto.id);
+    const temAumento = produtosComAumento.has(produto.id);
+
+    return (
+      <TableRow key={produto.id} className={isRevisaoSolicitada ? "bg-red-50 dark:bg-red-950/20" : ""}>
+        <TableCell className="font-mono">{produto.codigo}</TableCell>
+        <TableCell className="font-medium">{produto.nome}</TableCell>
+        <TableCell>
+          <Badge variant="outline">
+            {tipoLabels[produto.tipo as keyof typeof tipoLabels]}
           </Badge>
-        )}
-      </TableCell>
-      <TableCell>
-        {produto.formula_id ? (
-          <Badge variant="secondary">Fórmula vinculada</Badge>
-        ) : (
-          <span className="text-muted-foreground text-sm">-</span>
-        )}
-      </TableCell>
-      <TableCell>
-        {produto.unidade?.sigla || "-"}
-      </TableCell>
-      <TableCell>
-        <Badge variant={produto.ativo ? "default" : "secondary"}>
-          {produto.ativo ? "Ativo" : "Inativo"}
-        </Badge>
-      </TableCell>
-      <TableCell className="text-right">
-        <div className="flex gap-1 justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(`/dashboard/fabrica/produtos/${produto.id}/custos`)}
-            title="Ficha de Custos"
-          >
-            <DollarSign className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleEditar(produto)}
-            title="Editar"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleExcluir(produto)}
-            className="text-destructive hover:text-destructive"
-            title="Excluir"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </TableCell>
-    </TableRow>
-  );
+        </TableCell>
+        <TableCell>
+          <Badge variant={produto.origem === 'importado' ? 'destructive' : 'secondary'}>
+            {produto.origem === 'importado' ? 'Importado' : 'Nacional'}
+          </Badge>
+        </TableCell>
+        <TableCell>
+          {fichasMap.has(produto.id) ? (
+            <StatusAprovacaoBadge status={statusFicha as StatusAprovacao} />
+          ) : (
+            <Badge variant="outline" className="gap-1 text-muted-foreground">
+              <FileX className="h-3 w-3" />
+              Sem Ficha
+            </Badge>
+          )}
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-1">
+            {custoTotal != null ? (
+              <>
+                <span className="font-mono text-sm font-medium">{formatarMoeda(custoTotal)}</span>
+                {temAumento && (
+                  <Badge variant="destructive" className="gap-0.5 text-[10px] px-1 py-0">
+                    <TrendingUp className="h-3 w-3" />
+                  </Badge>
+                )}
+              </>
+            ) : (
+              <span className="text-muted-foreground text-sm">—</span>
+            )}
+          </div>
+        </TableCell>
+        <TableCell>
+          {produto.formula_id ? (
+            <Badge variant="secondary">Fórmula vinculada</Badge>
+          ) : (
+            <span className="text-muted-foreground text-sm">-</span>
+          )}
+        </TableCell>
+        <TableCell>
+          {produto.unidade?.sigla || "-"}
+        </TableCell>
+        <TableCell>
+          <Badge variant={produto.ativo ? "default" : "secondary"}>
+            {produto.ativo ? "Ativo" : "Inativo"}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="flex gap-1 justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(`/dashboard/fabrica/produtos/${produto.id}/custos`)}
+              title="Ficha de Custos"
+            >
+              <DollarSign className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEditar(produto)}
+              title="Editar"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleExcluir(produto)}
+              className="text-destructive hover:text-destructive"
+              title="Excluir"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  };
 
   return (
     <DashboardLayout>
@@ -451,6 +534,7 @@ export default function FabricaProdutosAcabados() {
                     <TableHead>Tipo</TableHead>
                     <TableHead>Origem</TableHead>
                     <TableHead>Ficha</TableHead>
+                    <TableHead>Custo Total</TableHead>
                     <TableHead>Fórmula</TableHead>
                     <TableHead>Unidade</TableHead>
                     <TableHead>Status</TableHead>
@@ -462,7 +546,7 @@ export default function FabricaProdutosAcabados() {
                     ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
                         <>
                           <TableRow key={`group-${grupo}`} className="bg-muted/50 hover:bg-muted/50">
-                            <TableCell colSpan={9} className="font-semibold text-sm py-2">
+                            <TableCell colSpan={10} className="font-semibold text-sm py-2">
                               <div className="flex items-center gap-2">
                                 <Layers className="h-4 w-4 text-muted-foreground" />
                                 {grupo}

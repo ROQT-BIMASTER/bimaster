@@ -5558,6 +5558,59 @@ export type Database = {
           },
         ]
       }
+      fabrica_insumo_custo_historico: {
+        Row: {
+          campo: string
+          created_at: string
+          id: string
+          insumo_nome: string | null
+          motivo: string | null
+          mp_id: string | null
+          produto_custo_id: string | null
+          produto_id: string
+          usuario_id: string | null
+          usuario_nome: string | null
+          valor_anterior: number
+          valor_novo: number
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          id?: string
+          insumo_nome?: string | null
+          motivo?: string | null
+          mp_id?: string | null
+          produto_custo_id?: string | null
+          produto_id: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          valor_anterior?: number
+          valor_novo?: number
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          id?: string
+          insumo_nome?: string | null
+          motivo?: string | null
+          mp_id?: string | null
+          produto_custo_id?: string | null
+          produto_id?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          valor_anterior?: number
+          valor_novo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_insumo_custo_historico_produto_custo_id_fkey"
+            columns: ["produto_custo_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produto_custos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_itens_nf: {
         Row: {
           aliquota_icms_st: number | null
