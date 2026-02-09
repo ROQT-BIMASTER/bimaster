@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, MapPin, Users } from "lucide-react";
+import { TrendingUp, MapPin, Users, Crosshair } from "lucide-react";
 import { MunicipioIntelligence } from "@/hooks/useMunicipiosIntelligence";
+import { ModoFocoDialog } from "./ModoFocoDialog";
 
 interface MunicipiosOpportunityCardProps {
   data: MunicipioIntelligence[];
@@ -10,6 +13,8 @@ interface MunicipiosOpportunityCardProps {
 }
 
 export function MunicipiosOpportunityCard({ data, loading }: MunicipiosOpportunityCardProps) {
+  const [modoFocoOpen, setModoFocoOpen] = useState(false);
+
   // Top 10 municipalities with highest PIB where company has NO clients
   const opportunities = data
     .filter(d => d.total_clientes === 0 && d.pib_mil_reais > 0)
@@ -18,6 +23,7 @@ export function MunicipiosOpportunityCard({ data, loading }: MunicipiosOpportuni
 
   if (loading) {
     return (
+      <>
       <Card className="border-l-4 border-l-amber-500">
         <CardHeader>
           <Skeleton className="h-6 w-56" />
@@ -29,11 +35,14 @@ export function MunicipiosOpportunityCard({ data, loading }: MunicipiosOpportuni
           ))}
         </CardContent>
       </Card>
+      <ModoFocoDialog open={modoFocoOpen} onOpenChange={setModoFocoOpen} />
+      </>
     );
   }
 
   if (opportunities.length === 0) {
     return (
+      <>
       <Card className="border-l-4 border-l-amber-500">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -45,16 +54,30 @@ export function MunicipiosOpportunityCard({ data, loading }: MunicipiosOpportuni
           </CardDescription>
         </CardHeader>
       </Card>
+      <ModoFocoDialog open={modoFocoOpen} onOpenChange={setModoFocoOpen} />
+      </>
     );
   }
 
   return (
+    <>
     <Card className="border-l-4 border-l-amber-500">
       <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-amber-500" />
-          Top 10 Oportunidades Inexploradas
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-amber-500" />
+            Top 10 Oportunidades Inexploradas
+          </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={() => setModoFocoOpen(true)}
+          >
+            <Crosshair className="h-3.5 w-3.5" />
+            Modo Foco
+          </Button>
+        </div>
         <CardDescription>
           Municípios com maior PIB onde a empresa ainda não possui clientes
         </CardDescription>
@@ -99,5 +122,7 @@ export function MunicipiosOpportunityCard({ data, loading }: MunicipiosOpportuni
         </div>
       </CardContent>
     </Card>
+    <ModoFocoDialog open={modoFocoOpen} onOpenChange={setModoFocoOpen} />
+    </>
   );
 }
