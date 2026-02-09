@@ -59,7 +59,8 @@ export default function FabricaProdutosAcabados() {
         .select("produto_id, status_aprovacao");
       if (error) throw error;
       return data;
-    }
+    },
+    { staleTime: 0, refetchOnMount: "always" }
   );
 
   if (permLoading) {
