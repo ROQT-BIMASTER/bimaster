@@ -3,7 +3,9 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useFichaCustoProduto } from "@/hooks/useFichaCustoProduto";
+import { useFichaRevisao } from "@/hooks/useFichaRevisao";
 import { FichaCustoProdutoEditor } from "@/components/fabrica/FichaCustoProdutoEditor";
+import { useCallback } from "react";
 
 export default function FichaCustoProduto() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +25,21 @@ export default function FichaCustoProduto() {
     salvarFicha,
     TIPOS_INSUMO,
   } = useFichaCustoProduto(id);
+
+  const {
+    statusAprovacao,
+    revisaoAtiva,
+    apontamentos,
+    submitting,
+    submeterParaAprovacao,
+  } = useFichaRevisao(id, config?.id || undefined);
+
+  const handleSubmeter = useCallback(async () => {
+    if (!config || !config.id) return;
+    // Salvar primeiro para garantir dados atualizados
+    await salvarFicha();
+    await submeterParaAprovacao(insumos, config, totais);
+  }, [config, insumos, totais, salvarFicha, submeterParaAprovacao]);
 
   if (loading) {
     return (
@@ -51,7 +68,6 @@ export default function FichaCustoProduto() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header com botão voltar */}
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -68,7 +84,6 @@ export default function FichaCustoProduto() {
           </div>
         </div>
 
-        {/* Editor */}
         <FichaCustoProdutoEditor
           produto={produto}
           insumos={insumos}
@@ -81,6 +96,11 @@ export default function FichaCustoProduto() {
           onRemoverInsumo={removerInsumo}
           onAtualizarConfig={atualizarConfig}
           onSalvar={salvarFicha}
+          statusAprovacao={statusAprovacao}
+          revisaoAtiva={revisaoAtiva}
+          apontamentos={apontamentos}
+          submitting={submitting}
+          onSubmeterAprovacao={handleSubmeter}
         />
       </div>
     </DashboardLayout>

@@ -15,6 +15,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileText, FileX } from "lucide-react";
+import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
+import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
 import { Link, useNavigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovoProdutoAcabadoDialog } from "@/components/fabrica/NovoProdutoAcabadoDialog";
@@ -48,13 +50,13 @@ export default function FabricaProdutosAcabados() {
     }
   );
 
-  // Buscar quais produtos possuem ficha de custos
+  // Buscar quais produtos possuem ficha de custos e seus status
   const { data: fichasConfig } = useSupabaseQuery(
     ["fabrica-produtos-fichas-config"],
     async () => {
       const { data, error } = await supabase
         .from("fabrica_produto_custos_config")
-        .select("produto_id");
+        .select("produto_id, status_aprovacao");
       if (error) throw error;
       return data;
     }
@@ -82,8 +84,8 @@ export default function FabricaProdutosAcabados() {
     );
   }
 
-  const produtosComFichaSet = new Set<string>();
-  fichasConfig?.forEach((f) => produtosComFichaSet.add(f.produto_id));
+  const fichasMap = new Map<string, string>();
+  fichasConfig?.forEach((f) => fichasMap.set(f.produto_id, f.status_aprovacao || "rascunho"));
 
   const produtosFiltrados = produtos?.filter(
     (p) =>
@@ -272,15 +274,12 @@ export default function FabricaProdutosAcabados() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {produtosComFichaSet.has(produto.id) ? (
-                          <Badge variant="default" className="gap-1">
-                            <FileText className="h-3 w-3" />
-                            Sim
-                          </Badge>
+                        {fichasMap.has(produto.id) ? (
+                          <StatusAprovacaoBadge status={fichasMap.get(produto.id) as StatusAprovacao} />
                         ) : (
                           <Badge variant="outline" className="gap-1 text-muted-foreground">
                             <FileX className="h-3 w-3" />
-                            Não
+                            Sem Ficha
                           </Badge>
                         )}
                       </TableCell>

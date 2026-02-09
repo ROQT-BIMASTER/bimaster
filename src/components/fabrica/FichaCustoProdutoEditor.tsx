@@ -26,6 +26,11 @@ import { ImportarInsumosIA } from "./ImportarInsumosIA";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
+import { FichaAprovacaoBanner } from "./FichaAprovacaoBanner";
+import { FichaApontamentosPanel } from "./FichaApontamentosPanel";
+import type { StatusAprovacao, RevisaoItem, Revisao } from "@/hooks/useFichaRevisao";
+import { SendHorizonal } from "lucide-react";
+
 interface Props {
   produto: any;
   insumos: CustoInsumo[];
@@ -38,6 +43,11 @@ interface Props {
   onRemoverInsumo: (id: string) => void;
   onAtualizarConfig: (campo: keyof CustoConfig, valor: any) => void;
   onSalvar: () => void;
+  statusAprovacao?: StatusAprovacao;
+  revisaoAtiva?: Revisao | null;
+  apontamentos?: RevisaoItem[];
+  submitting?: boolean;
+  onSubmeterAprovacao?: () => void;
 }
 
 function DecimalInput({
@@ -84,8 +94,14 @@ export function FichaCustoProdutoEditor({
   onRemoverInsumo,
   onAtualizarConfig,
   onSalvar,
+  statusAprovacao = "rascunho",
+  revisaoAtiva,
+  apontamentos = [],
+  submitting = false,
+  onSubmeterAprovacao,
 }: Props) {
   const [dialogAberto, setDialogAberto] = useState(false);
+  const isLocked = statusAprovacao === "em_revisao" || statusAprovacao === "aprovada";
 
   const formatarValor = (valor: number) => {
     return valor.toLocaleString("pt-BR", {
@@ -235,6 +251,19 @@ export function FichaCustoProdutoEditor({
 
   return (
     <div className="space-y-6">
+      {/* Banner de status de aprovação */}
+      {config?.id && (
+        <FichaAprovacaoBanner
+          status={statusAprovacao}
+          parecer={revisaoAtiva?.parecer}
+        />
+      )}
+
+      {/* Apontamentos da diretoria */}
+      {statusAprovacao === "revisao_solicitada" && apontamentos.length > 0 && (
+        <FichaApontamentosPanel apontamentos={apontamentos} insumos={insumos} />
+      )}
+
       {/* Header do produto */}
       <Card>
         <CardHeader>
@@ -274,6 +303,7 @@ export function FichaCustoProdutoEditor({
                   onAtualizarConfig("fornecedor_mao_obra", e.target.value)
                 }
                 placeholder="Ex: Rodrigues"
+                disabled={isLocked}
               />
             </div>
             <div className="space-y-1.5">
@@ -310,6 +340,7 @@ export function FichaCustoProdutoEditor({
                 onValueChange={(value) =>
                   onAtualizarConfig("base_calculo_markup", value as BaseCalculoMarkup)
                 }
+                disabled={isLocked}
               >
                 <SelectTrigger id="base_markup">
                   <SelectValue />
@@ -538,10 +569,20 @@ export function FichaCustoProdutoEditor({
             Exportar Excel
           </Button>
         </div>
-        <Button onClick={onSalvar} disabled={saving}>
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? "Salvando..." : "Salvar Ficha"}
-        </Button>
+        <div className="flex gap-2">
+          {!isLocked && (
+            <Button onClick={onSalvar} disabled={saving} variant="outline">
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? "Salvando..." : "Salvar Ficha"}
+            </Button>
+          )}
+          {(statusAprovacao === "rascunho" || statusAprovacao === "revisao_solicitada") && onSubmeterAprovacao && config?.id && (
+            <Button onClick={onSubmeterAprovacao} disabled={submitting}>
+              <SendHorizonal className="h-4 w-4 mr-2" />
+              {submitting ? "Submetendo..." : "Submeter para Aprovação"}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Dialog de adicionar */}

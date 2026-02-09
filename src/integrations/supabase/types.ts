@@ -4828,6 +4828,123 @@ export type Database = {
           },
         ]
       }
+      fabrica_ficha_custo_revisao_itens: {
+        Row: {
+          atendido: boolean | null
+          campo: string
+          comentario: string | null
+          created_at: string
+          id: string
+          insumo_id: string | null
+          revisao_id: string
+          valor_atual: number
+          valor_sugerido: number
+        }
+        Insert: {
+          atendido?: boolean | null
+          campo: string
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          insumo_id?: string | null
+          revisao_id: string
+          valor_atual?: number
+          valor_sugerido?: number
+        }
+        Update: {
+          atendido?: boolean | null
+          campo?: string
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          insumo_id?: string | null
+          revisao_id?: string
+          valor_atual?: number
+          valor_sugerido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_ficha_custo_revisao_itens_insumo_id_fkey"
+            columns: ["insumo_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produto_custos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_ficha_custo_revisao_itens_revisao_id_fkey"
+            columns: ["revisao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ficha_custo_revisoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_ficha_custo_revisoes: {
+        Row: {
+          config_id: string
+          created_at: string
+          id: string
+          parecer: string | null
+          produto_id: string
+          revisado_em: string | null
+          revisado_por: string | null
+          snapshot_config: Json | null
+          snapshot_insumos: Json | null
+          snapshot_totais: Json | null
+          status: string
+          submetido_em: string
+          submetido_por: string | null
+          versao: number
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          id?: string
+          parecer?: string | null
+          produto_id: string
+          revisado_em?: string | null
+          revisado_por?: string | null
+          snapshot_config?: Json | null
+          snapshot_insumos?: Json | null
+          snapshot_totais?: Json | null
+          status?: string
+          submetido_em?: string
+          submetido_por?: string | null
+          versao?: number
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          id?: string
+          parecer?: string | null
+          produto_id?: string
+          revisado_em?: string | null
+          revisado_por?: string | null
+          snapshot_config?: Json | null
+          snapshot_insumos?: Json | null
+          snapshot_totais?: Json | null
+          status?: string
+          submetido_em?: string
+          submetido_por?: string | null
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_ficha_custo_revisoes_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produto_custos_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_ficha_custo_revisoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_formula_alteracoes: {
         Row: {
           data_alteracao: string | null
@@ -6947,6 +7064,8 @@ export type Database = {
           observacoes: string | null
           percentual_markup: number | null
           produto_id: string
+          revisao_ativa_id: string | null
+          status_aprovacao: string
           updated_at: string | null
         }
         Insert: {
@@ -6960,6 +7079,8 @@ export type Database = {
           observacoes?: string | null
           percentual_markup?: number | null
           produto_id: string
+          revisao_ativa_id?: string | null
+          status_aprovacao?: string
           updated_at?: string | null
         }
         Update: {
@@ -6973,6 +7094,8 @@ export type Database = {
           observacoes?: string | null
           percentual_markup?: number | null
           produto_id?: string
+          revisao_ativa_id?: string | null
+          status_aprovacao?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -6981,6 +7104,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: true
             referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_revisao_ativa"
+            columns: ["revisao_ativa_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ficha_custo_revisoes"
             referencedColumns: ["id"]
           },
         ]
