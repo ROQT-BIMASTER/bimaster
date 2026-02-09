@@ -17,6 +17,8 @@ export interface CustoInsumo {
   ordem: number;
 }
 
+export type BaseCalculoMarkup = 'total' | 'nf' | 'servico';
+
 export interface CustoConfig {
   id: string;
   produto_id: string;
@@ -24,6 +26,7 @@ export interface CustoConfig {
   custo_mao_obra_nf: number;
   custo_mao_obra_servico: number;
   percentual_markup: number;
+  base_calculo_markup: BaseCalculoMarkup;
   observacoes: string | null;
 }
 
@@ -108,8 +111,10 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
     }
 
     if (data) {
-      setConfig(data);
-    } else {
+      setConfig({
+        ...data,
+        base_calculo_markup: (data.base_calculo_markup as BaseCalculoMarkup) || 'total',
+      });
       // Criar config padrão
       setConfig({
         id: "",
@@ -118,6 +123,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         custo_mao_obra_nf: 0,
         custo_mao_obra_servico: 0,
         percentual_markup: 10,
+        base_calculo_markup: "total",
         observacoes: null,
       });
     }
@@ -153,11 +159,16 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
 
     const subtotal = totalNF + totalServico + totalCondicao;
 
-    // Markup
+    // Markup - baseado na opção selecionada
     const percentualMarkup = Number(config?.percentual_markup) || 0;
-    const markupNF = totalNF * (percentualMarkup / 100);
-    const markupServico = totalServico * (percentualMarkup / 100);
-    const markupCondicao = totalCondicao * (percentualMarkup / 100);
+    const baseMarkup = config?.base_calculo_markup || 'total';
+    
+    const markupNF = (baseMarkup === 'total' || baseMarkup === 'nf') 
+      ? totalNF * (percentualMarkup / 100) : 0;
+    const markupServico = (baseMarkup === 'total' || baseMarkup === 'servico') 
+      ? totalServico * (percentualMarkup / 100) : 0;
+    const markupCondicao = baseMarkup === 'total' 
+      ? totalCondicao * (percentualMarkup / 100) : 0;
     const markupTotal = markupNF + markupServico + markupCondicao;
 
     const custoTotal = subtotal + markupTotal;
@@ -275,6 +286,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
             custo_mao_obra_nf: config.custo_mao_obra_nf,
             custo_mao_obra_servico: config.custo_mao_obra_servico,
             percentual_markup: config.percentual_markup,
+            base_calculo_markup: config.base_calculo_markup,
             observacoes: config.observacoes,
           })
           .eq("id", config.id);
@@ -289,13 +301,14 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
             custo_mao_obra_nf: config.custo_mao_obra_nf,
             custo_mao_obra_servico: config.custo_mao_obra_servico,
             percentual_markup: config.percentual_markup,
+            base_calculo_markup: config.base_calculo_markup,
             observacoes: config.observacoes,
           })
           .select()
           .single();
 
         if (error) throw error;
-        setConfig(data);
+        setConfig({ ...data, base_calculo_markup: (data.base_calculo_markup as BaseCalculoMarkup) || 'total' });
       }
 
       toast.success("Ficha de custos salva com sucesso!");

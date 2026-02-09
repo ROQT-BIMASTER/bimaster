@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, GripVertical, Save, FileText } from "lucide-react";
-import { CustoInsumo, CustoConfig, Totais } from "@/hooks/useFichaCustoProduto";
+import { CustoInsumo, CustoConfig, Totais, BaseCalculoMarkup } from "@/hooks/useFichaCustoProduto";
 import { AdicionarInsumoCustoDialog } from "./AdicionarInsumoCustoDialog";
 import { ImportarInsumosIA } from "./ImportarInsumosIA";
 
@@ -106,7 +106,7 @@ export function FichaCustoProdutoEditor({
           <CardTitle className="text-base">Configuração</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div>
               <Label htmlFor="fornecedor_mo">Fornecedor M.O.</Label>
               <Input
@@ -156,6 +156,24 @@ export function FichaCustoProdutoEditor({
                 }
                 placeholder="10"
               />
+            </div>
+            <div>
+              <Label htmlFor="base_markup">Base do Markup</Label>
+              <Select
+                value={config?.base_calculo_markup || "total"}
+                onValueChange={(value) =>
+                  onAtualizarConfig("base_calculo_markup", value as BaseCalculoMarkup)
+                }
+              >
+                <SelectTrigger id="base_markup">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="total">Totais (NF+Serv+Cond)</SelectItem>
+                  <SelectItem value="nf">Somente NF</SelectItem>
+                  <SelectItem value="servico">Somente Serviço</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -362,6 +380,9 @@ export function FichaCustoProdutoEditor({
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">
                 Markup {config.percentual_markup}%
+                <span className="text-muted-foreground ml-2 text-xs font-normal">
+                  ({config.base_calculo_markup === 'nf' ? 'sobre NF' : config.base_calculo_markup === 'servico' ? 'sobre Serviço' : 'sobre Totais'})
+                </span>
               </span>
               <div className="flex gap-6">
                 <span>
