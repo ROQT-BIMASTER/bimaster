@@ -14170,6 +14170,8 @@ export type Database = {
       stores: {
         Row: {
           address: string | null
+          agencia: string | null
+          banco: string | null
           branch_count: number | null
           capital_social: string | null
           category: string | null
@@ -14179,11 +14181,14 @@ export type Database = {
           cnae_principal: string | null
           cnpj: string | null
           code: string
+          conta: string | null
           created_at: string | null
           created_by: string | null
           email: string | null
+          favorecido: string | null
           id: string
           latitude: number | null
+          linha_digitavel: string | null
           longitude: number | null
           manager_name: string | null
           manager_phone: string | null
@@ -14192,6 +14197,8 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          pix_chave: string | null
+          pix_tipo: string | null
           porte_empresa: string | null
           priority: string | null
           regime_tributario: string | null
@@ -14200,6 +14207,7 @@ export type Database = {
           state: string | null
           status: string | null
           supervisor_id: string | null
+          tipo_conta: string | null
           updated_at: string | null
           vendedor_id: string | null
           visit_frequency: string | null
@@ -14207,6 +14215,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          agencia?: string | null
+          banco?: string | null
           branch_count?: number | null
           capital_social?: string | null
           category?: string | null
@@ -14216,11 +14226,14 @@ export type Database = {
           cnae_principal?: string | null
           cnpj?: string | null
           code: string
+          conta?: string | null
           created_at?: string | null
           created_by?: string | null
           email?: string | null
+          favorecido?: string | null
           id?: string
           latitude?: number | null
+          linha_digitavel?: string | null
           longitude?: number | null
           manager_name?: string | null
           manager_phone?: string | null
@@ -14229,6 +14242,8 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
           porte_empresa?: string | null
           priority?: string | null
           regime_tributario?: string | null
@@ -14237,6 +14252,7 @@ export type Database = {
           state?: string | null
           status?: string | null
           supervisor_id?: string | null
+          tipo_conta?: string | null
           updated_at?: string | null
           vendedor_id?: string | null
           visit_frequency?: string | null
@@ -14244,6 +14260,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          agencia?: string | null
+          banco?: string | null
           branch_count?: number | null
           capital_social?: string | null
           category?: string | null
@@ -14253,11 +14271,14 @@ export type Database = {
           cnae_principal?: string | null
           cnpj?: string | null
           code?: string
+          conta?: string | null
           created_at?: string | null
           created_by?: string | null
           email?: string | null
+          favorecido?: string | null
           id?: string
           latitude?: number | null
+          linha_digitavel?: string | null
           longitude?: number | null
           manager_name?: string | null
           manager_phone?: string | null
@@ -14266,6 +14287,8 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
           porte_empresa?: string | null
           priority?: string | null
           regime_tributario?: string | null
@@ -14274,6 +14297,7 @@ export type Database = {
           state?: string | null
           status?: string | null
           supervisor_id?: string | null
+          tipo_conta?: string | null
           updated_at?: string | null
           vendedor_id?: string | null
           visit_frequency?: string | null

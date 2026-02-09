@@ -108,7 +108,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     try {
       const [acRes, stRes, bgRes] = await Promise.all([
         supabase.from("trade_chart_of_accounts").select("id, code, name").eq("is_active", true),
-        supabase.from("stores").select("id, name, code").eq("status", "active"),
+        supabase.from("stores").select("id, name, code, cnpj").eq("status", "active"),
         supabase.from("trade_budgets").select("id, name, code").eq("status", "active"),
       ]);
       if (acRes.data) setAccounts(acRes.data);
@@ -396,36 +396,34 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Loja/PDV */}
-            <LojaCombobox
-              value={storeId}
-              onChange={setStoreId}
-              stores={stores}
-              onAddNew={() => setIsNovaLojaOpen(true)}
-            />
+          {/* Loja/PDV */}
+          <LojaCombobox
+            value={storeId}
+            onChange={setStoreId}
+            stores={stores}
+            onAddNew={() => setIsNovaLojaOpen(true)}
+          />
 
-            {/* Verba */}
-            <div className="space-y-2">
-              <Label>Verba</Label>
-              <div className="flex gap-2">
-                <Select value={budgetId} onValueChange={setBudgetId}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Opcional" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhuma verba</SelectItem>
-                    {budgets.map((budget) => (
-                      <SelectItem key={budget.id} value={budget.id}>
-                        {budget.code} - {budget.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" size="icon" onClick={() => setIsNovaVerbaOpen(true)}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+          {/* Verba */}
+          <div className="space-y-2">
+            <Label>Verba</Label>
+            <div className="flex gap-2">
+              <Select value={budgetId} onValueChange={setBudgetId}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Opcional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma verba</SelectItem>
+                  {budgets.map((budget) => (
+                    <SelectItem key={budget.id} value={budget.id}>
+                      {budget.code} - {budget.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button type="button" variant="outline" size="icon" onClick={() => setIsNovaVerbaOpen(true)}>
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
