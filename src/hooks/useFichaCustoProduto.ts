@@ -115,6 +115,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         ...data,
         base_calculo_markup: (data.base_calculo_markup as BaseCalculoMarkup) || 'total',
       });
+    } else {
       // Criar config padrão
       setConfig({
         id: "",
