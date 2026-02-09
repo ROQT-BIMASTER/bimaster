@@ -19,10 +19,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, GripVertical, Save, FileText, Info } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, FileText, Info, Printer, Download } from "lucide-react";
 import { CustoInsumo, CustoConfig, Totais, BaseCalculoMarkup } from "@/hooks/useFichaCustoProduto";
 import { AdicionarInsumoCustoDialog } from "./AdicionarInsumoCustoDialog";
 import { ImportarInsumosIA } from "./ImportarInsumosIA";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 interface Props {
   produto: any;
@@ -99,6 +101,136 @@ export function FichaCustoProdutoEditor({
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
+  };
+
+  const getTipoLabel = (value: string) => {
+    const found = tiposInsumo.find(t => t.value === value);
+    return found?.label || value;
+  };
+
+  const handlePrintPDF = () => {
+    const baseMarkupLabel = config?.base_calculo_markup === 'nf' ? 'sobre NF' 
+      : config?.base_calculo_markup === 'servico' ? 'sobre Serviço' 
+      : config?.base_calculo_markup === 'nf_servico' ? 'sobre NF+Serviço' 
+      : 'sobre Totais';
+
+    const html = `
+      <html>
+      <head>
+        <title>Ficha de Custos - ${produto?.nome || ''}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; color: #333; }
+          h1 { font-size: 18px; margin-bottom: 4px; }
+          .subtitle { color: #666; margin-bottom: 16px; }
+          table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+          th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+          th { background: #f5f5f5; font-weight: 600; }
+          .text-right { text-align: right; }
+          .config { display: flex; gap: 24px; margin: 12px 0; flex-wrap: wrap; }
+          .config-item label { font-weight: 600; display: block; font-size: 11px; color: #666; }
+          .totais { display: flex; gap: 16px; margin: 16px 0; }
+          .total-box { flex: 1; border: 1px solid #ddd; border-radius: 6px; padding: 12px; text-align: center; }
+          .total-box.destaque { border: 2px solid #3b82f6; background: #eff6ff; }
+          .total-box .label { font-size: 11px; color: #666; }
+          .total-box .valor { font-size: 18px; font-weight: 700; }
+          .markup-info { background: #f9fafb; padding: 8px 12px; border-radius: 4px; margin: 8px 0; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <h1>Ficha de Custos - ${produto?.nome || ''}</h1>
+        <div class="subtitle">Código: ${produto?.codigo || ''} | Origem: ${produto?.origem === 'importado' ? 'Importado' : 'Nacional'}</div>
+        <div class="config">
+          <div class="config-item"><label>Fornecedor M.O.</label>${config?.fornecedor_mao_obra || '-'}</div>
+          <div class="config-item"><label>M.O. NF</label>R$ ${formatarValor(Number(config?.custo_mao_obra_nf) || 0)}</div>
+          <div class="config-item"><label>M.O. Serviço</label>R$ ${formatarValor(Number(config?.custo_mao_obra_servico) || 0)}</div>
+          <div class="config-item"><label>Markup</label>${config?.percentual_markup || 0}% (${baseMarkupLabel})</div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Código</th><th>Insumo</th><th>Tipo</th><th>Fornecedor</th>
+            <th class="text-right">NF (R$)</th><th class="text-right">Serviço (R$)</th><th class="text-right">Condição (R$)</th><th>NF Ref.</th>
+          </tr></thead>
+          <tbody>
+            ${insumos.map(i => `<tr>
+              <td>${i.codigo}</td><td>${i.nome}</td><td>${getTipoLabel(i.tipo_insumo)}</td><td>${i.fornecedor || '-'}</td>
+              <td class="text-right">${formatarValor(Number(i.custo_nf) || 0)}</td>
+              <td class="text-right">${formatarValor(Number(i.custo_servico) || 0)}</td>
+              <td class="text-right">${formatarValor(Number(i.custo_condicao) || 0)}</td>
+              <td>${i.nf_referencia || '-'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        ${Number(config?.percentual_markup) > 0 ? `<div class="markup-info">Markup ${config?.percentual_markup}% (${baseMarkupLabel}) — NF: ${formatarMoeda(totais.markupNF)} | Serviço: ${formatarMoeda(totais.markupServico)} | Condição: ${formatarMoeda(totais.markupCondicao)}</div>` : ''}
+        <div class="totais">
+          <div class="total-box"><div class="label">NF</div><div class="valor">${formatarMoeda(totais.totalNF + totais.markupNF)}</div></div>
+          <div class="total-box"><div class="label">Serviço</div><div class="valor">${formatarMoeda(totais.totalServico + totais.markupServico)}</div></div>
+          <div class="total-box"><div class="label">Condição</div><div class="valor">${formatarMoeda(totais.totalCondicao + totais.markupCondicao)}</div></div>
+          <div class="total-box destaque"><div class="label">Custo Total</div><div class="valor">${formatarMoeda(totais.custoTotal)}</div></div>
+        </div>
+      </body></html>`;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.onload = () => printWindow.print();
+    }
+  };
+
+  const handleExportExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'BiMaster';
+    const ws = workbook.addWorksheet('Ficha de Custos');
+
+    ws.mergeCells('A1:H1');
+    const titleCell = ws.getCell('A1');
+    titleCell.value = `Ficha de Custos - ${produto?.nome || ''}`;
+    titleCell.font = { bold: true, size: 14 };
+    
+    ws.mergeCells('A2:H2');
+    ws.getCell('A2').value = `Código: ${produto?.codigo || ''} | Origem: ${produto?.origem === 'importado' ? 'Importado' : 'Nacional'}`;
+    ws.getCell('A2').font = { color: { argb: 'FF666666' } };
+
+    ws.getCell('A4').value = 'Fornecedor M.O.';
+    ws.getCell('B4').value = config?.fornecedor_mao_obra || '-';
+    ws.getCell('C4').value = 'M.O. NF';
+    ws.getCell('D4').value = Number(config?.custo_mao_obra_nf) || 0;
+    ws.getCell('E4').value = 'M.O. Serviço';
+    ws.getCell('F4').value = Number(config?.custo_mao_obra_servico) || 0;
+    ws.getCell('G4').value = 'Markup';
+    ws.getCell('H4').value = `${config?.percentual_markup || 0}%`;
+    ['A4','C4','E4','G4'].forEach(c => { ws.getCell(c).font = { bold: true }; });
+
+    const headers = ['Código', 'Insumo', 'Tipo', 'Fornecedor', 'NF (R$)', 'Serviço (R$)', 'Condição (R$)', 'NF Ref.'];
+    ws.addRow([]);
+    ws.addRow(headers);
+    const hRow = ws.getRow(ws.rowCount);
+    hRow.font = { bold: true };
+    hRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+
+    insumos.forEach(i => {
+      ws.addRow([
+        i.codigo, i.nome, getTipoLabel(i.tipo_insumo), i.fornecedor || '',
+        Number(i.custo_nf) || 0, Number(i.custo_servico) || 0, Number(i.custo_condicao) || 0,
+        i.nf_referencia || '',
+      ]);
+    });
+
+    ws.addRow([]);
+    const totRow = ws.addRow(['', '', '', 'TOTAIS', totais.totalNF + totais.markupNF, totais.totalServico + totais.markupServico, totais.totalCondicao + totais.markupCondicao, '']);
+    totRow.font = { bold: true };
+    ws.addRow(['', '', '', 'CUSTO TOTAL', totais.custoTotal]);
+    ws.getRow(ws.rowCount).font = { bold: true, size: 12 };
+
+    ws.columns = [
+      { width: 12 }, { width: 30 }, { width: 18 }, { width: 18 },
+      { width: 14 }, { width: 14 }, { width: 14 }, { width: 14 },
+    ];
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `ficha-custos-${produto?.codigo || 'produto'}.xlsx`);
   };
 
   return (
@@ -396,10 +528,16 @@ export function FichaCustoProdutoEditor({
 
       {/* Ações */}
       <div className="flex justify-between">
-        <Button variant="outline" disabled>
-          <FileText className="h-4 w-4 mr-2" />
-          Exportar PDF
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePrintPDF}>
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimir / PDF
+          </Button>
+          <Button variant="outline" onClick={handleExportExcel}>
+            <Download className="h-4 w-4 mr-2" />
+            Exportar Excel
+          </Button>
+        </div>
         <Button onClick={onSalvar} disabled={saving}>
           <Save className="h-4 w-4 mr-2" />
           {saving ? "Salvando..." : "Salvar Ficha"}
