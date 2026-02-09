@@ -4,6 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -141,7 +149,7 @@ export function FichaCustoProdutoEditor({
               <DecimalInput
                 id="mo_nf"
                 value={config?.custo_mao_obra_nf ?? 0}
-                onChange={(val) => onAtualizarConfig("custo_mao_obra_nf", typeof val === "string" ? val : val)}
+                onChange={(val) => onAtualizarConfig("custo_mao_obra_nf", val)}
                 placeholder="0.000"
               />
             </div>
@@ -150,7 +158,7 @@ export function FichaCustoProdutoEditor({
               <DecimalInput
                 id="mo_servico"
                 value={config?.custo_mao_obra_servico ?? 0}
-                onChange={(val) => onAtualizarConfig("custo_mao_obra_servico", typeof val === "string" ? val : val)}
+                onChange={(val) => onAtualizarConfig("custo_mao_obra_servico", val)}
                 placeholder="0.000"
               />
             </div>
@@ -159,7 +167,7 @@ export function FichaCustoProdutoEditor({
               <DecimalInput
                 id="markup"
                 value={config?.percentual_markup ?? 0}
-                onChange={(val) => onAtualizarConfig("percentual_markup", typeof val === "string" ? val : val)}
+                onChange={(val) => onAtualizarConfig("percentual_markup", val)}
                 placeholder="10"
               />
             </div>
@@ -186,7 +194,7 @@ export function FichaCustoProdutoEditor({
         </CardContent>
       </Card>
 
-      {/* Insumos como Cards */}
+      {/* Tabela de Insumos */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -210,108 +218,108 @@ export function FichaCustoProdutoEditor({
               Nenhum insumo adicionado. Clique em "Adicionar" para começar.
             </div>
           ) : (
-            <div className="space-y-3">
-              {insumos.map((insumo) => (
-                <div
-                  key={insumo.id}
-                  className="border border-border rounded-lg p-4 bg-background hover:shadow-sm transition-shadow"
-                >
-                  {/* Header do card: grip + código/nome + delete */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab flex-shrink-0" />
-                      <span className="font-mono text-sm text-muted-foreground flex-shrink-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40px]"></TableHead>
+                    <TableHead className="min-w-[80px]">Código</TableHead>
+                    <TableHead className="min-w-[180px]">Insumo</TableHead>
+                    <TableHead className="min-w-[140px]">Tipo</TableHead>
+                    <TableHead className="min-w-[140px]">Fornecedor</TableHead>
+                    <TableHead className="min-w-[110px] text-right">NF (R$)</TableHead>
+                    <TableHead className="min-w-[110px] text-right">Serviço (R$)</TableHead>
+                    <TableHead className="min-w-[110px] text-right">Condição (R$)</TableHead>
+                    <TableHead className="min-w-[120px]">NF Ref.</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {insumos.map((insumo) => (
+                    <TableRow key={insumo.id}>
+                      <TableCell className="px-2">
+                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
                         {insumo.codigo}
-                      </span>
-                      <span className="font-medium truncate">
+                      </TableCell>
+                      <TableCell className="font-medium">
                         {insumo.nome}
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive flex-shrink-0"
-                      onClick={() => onRemoverInsumo(insumo.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* Tipo + Fornecedor */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Tipo</Label>
-                      <Select
-                        value={insumo.tipo_insumo}
-                        onValueChange={(value) =>
-                          onAtualizarInsumo(insumo.id, "tipo_insumo", value)
-                        }
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {tiposInsumo.map((tipo) => (
-                            <SelectItem key={tipo.value} value={tipo.value}>
-                              {tipo.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Fornecedor</Label>
-                      <Input
-                        value={insumo.fornecedor || ""}
-                        onChange={(e) =>
-                          onAtualizarInsumo(insumo.id, "fornecedor", e.target.value)
-                        }
-                        className="h-9"
-                        placeholder="Fornecedor"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Custos + NF Ref */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">NF (R$)</Label>
-                      <DecimalInput
-                        value={insumo.custo_nf}
-                        onChange={(val) => onAtualizarInsumo(insumo.id, "custo_nf", val)}
-                        className="text-right"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Serviço (R$)</Label>
-                      <DecimalInput
-                        value={insumo.custo_servico}
-                        onChange={(val) => onAtualizarInsumo(insumo.id, "custo_servico", val)}
-                        className="text-right"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Condição (R$)</Label>
-                      <DecimalInput
-                        value={insumo.custo_condicao}
-                        onChange={(val) => onAtualizarInsumo(insumo.id, "custo_condicao", val)}
-                        className="text-right"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">NF Ref.</Label>
-                      <Input
-                        value={insumo.nf_referencia || ""}
-                        onChange={(e) =>
-                          onAtualizarInsumo(insumo.id, "nf_referencia", e.target.value)
-                        }
-                        className="h-10"
-                        placeholder="NF12345"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={insumo.tipo_insumo}
+                          onValueChange={(value) =>
+                            onAtualizarInsumo(insumo.id, "tipo_insumo", value)
+                          }
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {tiposInsumo.map((tipo) => (
+                              <SelectItem key={tipo.value} value={tipo.value}>
+                                {tipo.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          value={insumo.fornecedor || ""}
+                          onChange={(e) =>
+                            onAtualizarInsumo(insumo.id, "fornecedor", e.target.value)
+                          }
+                          className="h-9"
+                          placeholder="Fornecedor"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <DecimalInput
+                          value={insumo.custo_nf}
+                          onChange={(val) => onAtualizarInsumo(insumo.id, "custo_nf", val)}
+                          className="h-9 text-right"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <DecimalInput
+                          value={insumo.custo_servico}
+                          onChange={(val) => onAtualizarInsumo(insumo.id, "custo_servico", val)}
+                          className="h-9 text-right"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <DecimalInput
+                          value={insumo.custo_condicao}
+                          onChange={(val) => onAtualizarInsumo(insumo.id, "custo_condicao", val)}
+                          className="h-9 text-right"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          value={insumo.nf_referencia || ""}
+                          onChange={(e) =>
+                            onAtualizarInsumo(insumo.id, "nf_referencia", e.target.value)
+                          }
+                          className="h-9"
+                          placeholder="NF12345"
+                        />
+                      </TableCell>
+                      <TableCell className="px-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => onRemoverInsumo(insumo.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
