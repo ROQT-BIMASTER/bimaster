@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { calcularPrecosProdutos, formatarMoeda, buscarCustoFichaProduto, CustoComposicao } from "@/lib/fabrica/pricing-calculator";
 import { Loader2, CheckCircle2, Factory, Ship, AlertTriangle, Check, FileText } from "lucide-react";
+import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 
 interface ProdutoData {
   id: string;
@@ -36,6 +37,7 @@ interface Props {
 
 export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: Props) {
   const queryClient = useQueryClient();
+  const { filterProductsByAccess, hasFullAccess } = useUserPriceTableAccess();
   const [fonteCusto, setFonteCusto] = useState<"ordem_producao" | "custo_medio" | "manual" | "tabela_anterior" | "custo_origem" | "ficha_custo">("ordem_producao");
   const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
   const [produtosNaTabelaBase, setProdutosNaTabelaBase] = useState<string[]>([]);
@@ -305,7 +307,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
 
   const linhasDisponiveis = [...new Set(produtos.map(p => p.linha).filter(Boolean) as string[])].sort();
 
-  const produtosFiltrados = produtos?.filter(produto => {
+  const produtosFiltradosPorBusca = produtos?.filter(produto => {
     const matchBusca = !buscaProduto || 
       produto.nome.toLowerCase().includes(buscaProduto.toLowerCase()) ||
       produto.codigo?.toLowerCase().includes(buscaProduto.toLowerCase());
@@ -314,6 +316,11 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     
     return matchBusca && matchLinha;
   }) || [];
+
+  // Apply granular access filtering
+  const produtosFiltrados = tabela?.id 
+    ? filterProductsByAccess(tabela.id, produtosFiltradosPorBusca) 
+    : produtosFiltradosPorBusca;
 
   if (!tabela) return null;
 

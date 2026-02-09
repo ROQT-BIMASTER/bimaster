@@ -17047,7 +17047,9 @@ export type Database = {
           granted_at: string | null
           granted_by: string | null
           id: string
+          linha: string | null
           notes: string | null
+          produto_id: string | null
           tabela_id: string
           user_id: string
         }
@@ -17058,7 +17060,9 @@ export type Database = {
           granted_at?: string | null
           granted_by?: string | null
           id?: string
+          linha?: string | null
           notes?: string | null
+          produto_id?: string | null
           tabela_id: string
           user_id: string
         }
@@ -17069,11 +17073,20 @@ export type Database = {
           granted_at?: string | null
           granted_by?: string | null
           id?: string
+          linha?: string | null
           notes?: string | null
+          produto_id?: string | null
           tabela_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_price_table_access_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_price_table_access_tabela_id_fkey"
             columns: ["tabela_id"]
