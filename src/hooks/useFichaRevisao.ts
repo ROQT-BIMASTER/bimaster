@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { CustoInsumo, CustoConfig, Totais } from "./useFichaCustoProduto";
 
@@ -207,6 +208,7 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
 // Hook for the Diretoria review page
 export function useFichaRevisaoDiretoria() {
   const [processando, setProcessando] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: fichasPendentes, isLoading, refetch } = useSupabaseQuery(
     ["fichas-pendentes-diretoria"],
@@ -221,8 +223,25 @@ export function useFichaRevisaoDiretoria() {
         .order("submetido_em", { ascending: false });
       if (error) throw error;
       return data || [];
-    }
+    },
+    { refetchInterval: 30000 }
   );
+
+  // Realtime: auto-refresh when revisoes change
+  useEffect(() => {
+    const channel = supabase
+      .channel('revisoes-diretoria')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'fabrica_ficha_custo_revisoes' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["fichas-pendentes-diretoria"] });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const aprovarFicha = useCallback(async (revisaoId: string, configId: string, parecer: string) => {
     setProcessando(true);
