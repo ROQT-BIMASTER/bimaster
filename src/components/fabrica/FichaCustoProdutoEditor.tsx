@@ -266,18 +266,21 @@ export function FichaCustoProdutoEditor({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Input
-                                type="number"
-                                step="0.000001"
-                                value={insumo.custo_nf || ""}
-                                onChange={(e) =>
-                                  onAtualizarInsumo(
-                                    insumo.id,
-                                    "custo_nf",
-                                    parseFloat(e.target.value) || 0
-                                  )
-                                }
-                                className="h-8 text-sm text-right"
-                                placeholder="0,000"
+                                type="text"
+                                inputMode="decimal"
+                                value={insumo.custo_nf === 0 ? "0" : (insumo.custo_nf || "")}
+                                onChange={(e) => {
+                                  const raw = e.target.value.replace(",", ".");
+                                  if (raw === "" || raw === "0" || /^\d*\.?\d*$/.test(raw)) {
+                                    onAtualizarInsumo(
+                                      insumo.id,
+                                      "custo_nf",
+                                      raw === "" ? 0 : (raw.endsWith(".") ? raw : parseFloat(raw) || 0)
+                                    );
+                                  }
+                                }}
+                                className="h-8 text-sm text-right min-w-[80px]"
+                                placeholder="0.000"
                               />
                             </TooltipTrigger>
                             <TooltipContent side="top" className="font-mono">
@@ -294,18 +297,21 @@ export function FichaCustoProdutoEditor({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Input
-                                type="number"
-                                step="0.000001"
-                                value={insumo.custo_servico || ""}
-                                onChange={(e) =>
-                                  onAtualizarInsumo(
-                                    insumo.id,
-                                    "custo_servico",
-                                    parseFloat(e.target.value) || 0
-                                  )
-                                }
-                                className="h-8 text-sm text-right"
-                                placeholder="0,000"
+                                type="text"
+                                inputMode="decimal"
+                                value={insumo.custo_servico === 0 ? "0" : (insumo.custo_servico || "")}
+                                onChange={(e) => {
+                                  const raw = e.target.value.replace(",", ".");
+                                  if (raw === "" || raw === "0" || /^\d*\.?\d*$/.test(raw)) {
+                                    onAtualizarInsumo(
+                                      insumo.id,
+                                      "custo_servico",
+                                      raw === "" ? 0 : (raw.endsWith(".") ? raw : parseFloat(raw) || 0)
+                                    );
+                                  }
+                                }}
+                                className="h-8 text-sm text-right min-w-[80px]"
+                                placeholder="0.000"
                               />
                             </TooltipTrigger>
                             <TooltipContent side="top" className="font-mono">
@@ -322,18 +328,21 @@ export function FichaCustoProdutoEditor({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Input
-                                type="number"
-                                step="0.000001"
-                                value={insumo.custo_condicao || ""}
-                                onChange={(e) =>
-                                  onAtualizarInsumo(
-                                    insumo.id,
-                                    "custo_condicao",
-                                    parseFloat(e.target.value) || 0
-                                  )
-                                }
-                                className="h-8 text-sm text-right"
-                                placeholder="0,000"
+                                type="text"
+                                inputMode="decimal"
+                                value={insumo.custo_condicao === 0 ? "0" : (insumo.custo_condicao || "")}
+                                onChange={(e) => {
+                                  const raw = e.target.value.replace(",", ".");
+                                  if (raw === "" || raw === "0" || /^\d*\.?\d*$/.test(raw)) {
+                                    onAtualizarInsumo(
+                                      insumo.id,
+                                      "custo_condicao",
+                                      raw === "" ? 0 : (raw.endsWith(".") ? raw : parseFloat(raw) || 0)
+                                    );
+                                  }
+                                }}
+                                className="h-8 text-sm text-right min-w-[80px]"
+                                placeholder="0.000"
                               />
                             </TooltipTrigger>
                             <TooltipContent side="top" className="font-mono">

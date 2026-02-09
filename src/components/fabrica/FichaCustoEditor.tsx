@@ -336,29 +336,44 @@ export function FichaCustoEditor({
                     </TableCell>
                     <TableCell>
                       <Input
-                        type="number"
-                        step="0.000001"
-                        className="h-8 text-right text-sm"
-                        value={custosItens[item.id]?.custo_nf || ""}
-                        onChange={(e) => atualizarCustoItem(item.id, "custo_nf", Number(e.target.value))}
+                        type="text"
+                        inputMode="decimal"
+                        className="h-8 text-right text-sm min-w-[80px]"
+                        value={custosItens[item.id]?.custo_nf === 0 ? "0" : (custosItens[item.id]?.custo_nf || "")}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(",", ".");
+                          if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
+                            atualizarCustoItem(item.id, "custo_nf", raw === "" ? 0 : (raw.endsWith(".") ? raw : parseFloat(raw) || 0));
+                          }
+                        }}
                       />
                     </TableCell>
                     <TableCell>
                       <Input
-                        type="number"
-                        step="0.000001"
-                        className="h-8 text-right text-sm"
-                        value={custosItens[item.id]?.custo_servico || ""}
-                        onChange={(e) => atualizarCustoItem(item.id, "custo_servico", Number(e.target.value))}
+                        type="text"
+                        inputMode="decimal"
+                        className="h-8 text-right text-sm min-w-[80px]"
+                        value={custosItens[item.id]?.custo_servico === 0 ? "0" : (custosItens[item.id]?.custo_servico || "")}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(",", ".");
+                          if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
+                            atualizarCustoItem(item.id, "custo_servico", raw === "" ? 0 : (raw.endsWith(".") ? raw : parseFloat(raw) || 0));
+                          }
+                        }}
                       />
                     </TableCell>
                     <TableCell>
                       <Input
-                        type="number"
-                        step="0.000001"
-                        className="h-8 text-right text-sm"
-                        value={custosItens[item.id]?.custo_condicao || ""}
-                        onChange={(e) => atualizarCustoItem(item.id, "custo_condicao", Number(e.target.value))}
+                        type="text"
+                        inputMode="decimal"
+                        className="h-8 text-right text-sm min-w-[80px]"
+                        value={custosItens[item.id]?.custo_condicao === 0 ? "0" : (custosItens[item.id]?.custo_condicao || "")}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(",", ".");
+                          if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
+                            atualizarCustoItem(item.id, "custo_condicao", raw === "" ? 0 : (raw.endsWith(".") ? raw : parseFloat(raw) || 0));
+                          }
+                        }}
                       />
                     </TableCell>
                     <TableCell>
