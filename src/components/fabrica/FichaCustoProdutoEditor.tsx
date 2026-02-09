@@ -25,7 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, GripVertical, Save, FileText } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, FileText, Info } from "lucide-react";
 import { CustoInsumo, CustoConfig, Totais, BaseCalculoMarkup } from "@/hooks/useFichaCustoProduto";
 import { AdicionarInsumoCustoDialog } from "./AdicionarInsumoCustoDialog";
 import { ImportarInsumosIA } from "./ImportarInsumosIA";
@@ -427,6 +427,19 @@ export function FichaCustoProdutoEditor({
               </p>
             </div>
           </div>
+
+          {/* Regra aplicada */}
+          {config && Number(config.percentual_markup) > 0 && (
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+              <Info className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-sm text-muted-foreground">
+                {config.base_calculo_markup === 'total' && `Markup de ${config.percentual_markup}% aplicado sobre NF + Serviço + Condição`}
+                {config.base_calculo_markup === 'nf_servico' && `Markup de ${config.percentual_markup}% aplicado sobre NF + Serviço`}
+                {config.base_calculo_markup === 'nf' && `Markup de ${config.percentual_markup}% aplicado somente sobre NF`}
+                {config.base_calculo_markup === 'servico' && `Markup de ${config.percentual_markup}% aplicado somente sobre Serviço`}
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
