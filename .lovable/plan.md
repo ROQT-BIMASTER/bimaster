@@ -1,108 +1,106 @@
 
 
-## Melhorias na Tela de Produtos Acabados e Ficha de Custos
+## Melhorias na Ficha de Custos: Edicao Livre, Registro de Alteracoes e Modulo de Cotacoes de Materia-Prima
 
-### Resumo das 4 demandas
+### Resumo
 
-1. **Linha vermelha** para produtos com status "Revisao Solicitada" na listagem principal
-2. **Destacar materia-prima** com apontamento dentro da ficha de custos (linha vermelha no insumo)
-3. **Exibir custo total** na tabela principal de produtos acabados
-4. **Historico de alteracoes de precos** de materias-primas com comparativo, log e exigencia de novo lancamento para eventos futuros
+Tres grandes blocos de trabalho:
 
----
-
-### 1. Linha vermelha na listagem principal
-
-**Arquivo:** `src/pages/FabricaProdutosAcabados.tsx`
-
-- No `renderProdutoRow`, verificar se `fichasMap.get(produto.id) === "revisao_solicitada"`
-- Se sim, aplicar classe `bg-red-50 dark:bg-red-950/20` no `TableRow`
-
-### 2. Destacar insumos com apontamento na Ficha de Custos
-
-**Arquivo:** `src/components/fabrica/FichaCustoProdutoEditor.tsx`
-
-- Os apontamentos ja sao passados como prop (`apontamentos: RevisaoItem[]`)
-- Na tabela de insumos, verificar se existe algum `apontamento` cujo `insumo_id` corresponde ao insumo da linha
-- Se sim, aplicar `bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500` no `TableRow`
-- Exibir tooltip ou icone de alerta indicando qual campo foi apontado e o valor sugerido
-
-### 3. Custo total na tabela principal
-
-**Arquivo:** `src/pages/FabricaProdutosAcabados.tsx`
-
-- Alterar a query de `fichasConfig` para tambem buscar os campos de custos ou usar os snapshots de revisoes
-- Opcao mais simples: buscar da `fabrica_produto_custos_config` os dados necessarios para calcular o custo total, ou buscar o `snapshot_totais` da ultima revisao aprovada
-- Alternativa pratica: criar uma query separada que calcula o custo total por produto somando `fabrica_produto_custos` (NF + servico + condicao) + config de markup
-- Adicionar coluna "Custo Total" na tabela com o valor formatado em R$
-
-**Abordagem escolhida:** Buscar os totais a partir do snapshot da ultima revisao (ja contem `custoTotal` calculado) para produtos que tem ficha. Isso garante que o valor exibido e o mesmo da ficha aprovada/submetida.
-
-### 4. Historico de alteracoes de precos de materias-primas
-
-Esta e a funcionalidade mais complexa. Sera dividida em:
-
-#### 4a. Nova tabela de log de alteracoes de custo de insumos
-
-**Migration SQL:**
-- Criar tabela `fabrica_insumo_custo_historico` com:
-  - `id`, `produto_custo_id` (FK para fabrica_produto_custos), `produto_id`, `mp_id`
-  - `campo` (custo_nf, custo_servico, custo_condicao)
-  - `valor_anterior`, `valor_novo`
-  - `motivo` (text)
-  - `usuario_id`, `usuario_nome`
-  - `created_at`
-- RLS: usuarios autenticados podem SELECT e INSERT (append-only)
-- Trigger na tabela `fabrica_produto_custos` para registrar automaticamente alteracoes nos campos de custo
-
-#### 4b. Exigir novo lancamento para alteracoes
-
-**Arquivo:** `src/hooks/useFichaCustoProduto.ts`
-
-- Modificar `atualizarInsumo` para que, quando o campo alterado for `custo_nf`, `custo_servico` ou `custo_condicao`, abrir um fluxo de confirmacao com motivo obrigatorio
-- Registrar o historico automaticamente via trigger no banco
-
-**Arquivo:** `src/components/fabrica/FichaCustoProdutoEditor.tsx`
-
-- Ao alterar um campo de custo, exibir um dialog pedindo justificativa/motivo da alteracao
-- Campos como "Reajuste de fornecedor", "Nova negociacao", etc.
-
-#### 4c. Comparativo de custos
-
-**Novo componente:** `src/components/fabrica/HistoricoCustosInsumoDialog.tsx`
-
-- Dialog que mostra o historico de todas as alteracoes de custo de um insumo especifico
-- Tabela com: Data, Campo, Valor Anterior, Valor Novo, Variacao (%), Usuario, Motivo
-- Indicador visual de aumento (vermelho) ou reducao (verde)
-
-#### 4d. Alerta de aumento em produto ja cadastrado
-
-- Ao registrar uma alteracao de custo, comparar com o valor anterior
-- Se houve aumento, exibir um alerta/badge na listagem de produtos acabados
-- Badge "Custo Aumentou" com icone de seta para cima
-
-#### 4e. Botao de historico na tabela de insumos
-
-**Arquivo:** `src/components/fabrica/FichaCustoProdutoEditor.tsx`
-
-- Adicionar um icone de "historico" (relogio) ao lado de cada insumo na tabela
-- Ao clicar, abre o `HistoricoCustosInsumoDialog` com todas as alteracoes daquele insumo
+1. **Expandir para todos os insumos** (nao apenas os com apontamento da diretoria) - permitir edicao de valores com registro de alteracao
+2. **Registro de alteracoes visivel na submissao** - ao submeter para aprovacao, incluir log das mudancas feitas
+3. **Modulo administrativo de cotacoes/orcamentos** - subir orcamentos de fornecedores, comparar precos e escolher a melhor opcao
 
 ---
+
+### 1. Linha expandivel para todos os insumos
+
+**Arquivo:** `src/components/fabrica/FichaCustoProdutoEditor.tsx`
+
+Atualmente, apenas insumos com apontamento (`temApontamento`) mostram o chevron de expandir. Vamos:
+
+- Permitir expandir qualquer insumo (chevron sempre visivel ao lado do grip)
+- A area expandida mostra:
+  - Secao "Solicitacoes da Diretoria" (se houver apontamentos)
+  - Secao "Historico de Alteracoes Recentes" - ultimas alteracoes de custo desse insumo (vindas de `fabrica_insumo_custo_historico`)
+  - Secao "Cotacoes / Orcamentos" - lista de cotacoes recebidas de fornecedores para essa materia-prima
+  - Secao "Evidencias / Arquivos" - upload de NFs, orcamentos, etc.
+- Manter a linha vermelha apenas para insumos COM apontamento
+
+### 2. Registro de alteracoes na submissao para aprovacao
+
+**Arquivo:** `src/components/fabrica/FichaCustoProdutoEditor.tsx` e `src/hooks/useFichaRevisao.ts` (se existir)
+
+- Ao clicar "Submeter para Aprovacao", buscar as alteracoes recentes de `fabrica_insumo_custo_historico` para os insumos deste produto
+- Incluir no snapshot da revisao um campo `alteracoes_pendentes` com o resumo das mudancas (quais insumos mudaram, valores anteriores/novos, motivos)
+- Na tela de revisao da diretoria, exibir essas alteracoes de forma clara
+
+### 3. Modulo de Cotacoes de Materia-Prima
+
+#### 3a. Nova tabela no banco
+
+**Migration SQL:** Criar tabela `fabrica_mp_cotacoes`
+
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| id | uuid | PK |
+| produto_custo_id | uuid | FK para fabrica_produto_custos (insumo) |
+| produto_id | uuid | FK para fabrica_produtos |
+| mp_id | uuid | FK para fabrica_materias_primas (nullable) |
+| fornecedor_nome | text | Nome do fornecedor |
+| valor_unitario | numeric | Preco cotado |
+| condicao_pagamento | text | Ex: "30/60/90 dias" |
+| validade | date | Ate quando vale |
+| observacoes | text | |
+| arquivo_url | text | Link do orcamento em PDF |
+| arquivo_nome | text | Nome do arquivo |
+| selecionada | boolean | Se essa cotacao foi a escolhida |
+| usuario_id | uuid | Quem cadastrou |
+| usuario_nome | text | |
+| created_at | timestamptz | |
+
+- RLS: usuarios autenticados podem SELECT, INSERT, UPDATE
+
+#### 3b. Novo componente de cotacoes
+
+**Novo arquivo:** `src/components/fabrica/CotacoesInsumoPanel.tsx`
+
+- Exibido dentro da area expandida de cada insumo
+- Lista as cotacoes existentes em cards comparativos:
+  - Fornecedor, Valor, Condicao, Validade
+  - Indicador visual da melhor opcao (menor preco)
+  - Badge "Selecionada" para a cotacao escolhida
+  - Variacao percentual em relacao ao custo atual do insumo
+- Botao "Nova Cotacao" que abre formulario inline ou dialog com:
+  - Fornecedor, Valor, Condicao de pagamento, Validade, Observacoes
+  - Upload de arquivo (orcamento PDF)
+- Botao "Aplicar Cotacao" na cotacao escolhida que atualiza automaticamente o campo de custo do insumo (passando pelo fluxo de justificativa ja existente com motivo "Cotacao aprovada - [Fornecedor]")
+
+#### 3c. Comparativo automatico
+
+- Ao listar cotacoes, destacar em verde a opcao mais barata
+- Exibir um resumo tipo:
+  - "3 cotacoes recebidas | Menor: R$ 0,0295 (Lukmar) | Maior: R$ 0,0450 (XYZ)"
+  - "Economia potencial: R$ 0,0155 por unidade (-34%)"
 
 ### Detalhes tecnicos
 
 **Arquivos a criar:**
-- `src/components/fabrica/HistoricoCustosInsumoDialog.tsx` - Dialog de historico por insumo
-- `src/components/fabrica/AlterarCustoDialog.tsx` - Dialog para justificar alteracao de custo
+- `src/components/fabrica/CotacoesInsumoPanel.tsx` - painel de cotacoes dentro da linha expandida
 
 **Arquivos a modificar:**
-- `src/pages/FabricaProdutosAcabados.tsx` - Linha vermelha + coluna custo total
-- `src/components/fabrica/FichaCustoProdutoEditor.tsx` - Linha vermelha no insumo + botao historico + fluxo de alteracao com justificativa
-- `src/hooks/useFichaCustoProduto.ts` - Logica de registro de alteracao com motivo
+- `src/components/fabrica/FichaCustoProdutoEditor.tsx` - expandir para todos os insumos, integrar painel de cotacoes e historico recente
+- `src/components/fabrica/AlterarCustoDialog.tsx` - adicionar motivo pre-definido "Cotacao aprovada"
 
 **Migration SQL:**
-- Tabela `fabrica_insumo_custo_historico`
-- Trigger para log automatico de alteracoes de custo
-- Politicas RLS (append-only para usuarios autenticados)
+- Tabela `fabrica_mp_cotacoes` com RLS
+- Indice em `produto_custo_id` para performance
+
+**Fluxo do usuario:**
+1. Abre a ficha de custos de um produto
+2. Clica no chevron de um insumo para expandir
+3. Ve as cotacoes existentes e pode adicionar novas (upload de PDF de orcamento)
+4. Sistema destaca a melhor opcao
+5. Clica "Aplicar Cotacao" na opcao escolhida
+6. Sistema pede justificativa (pre-preenchida) e atualiza o custo
+7. Ao submeter para aprovacao, o historico de alteracoes acompanha a revisao
 
