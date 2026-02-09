@@ -24,6 +24,9 @@ import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { Separator } from "@/components/ui/separator";
 import { ExpenseAttachments } from "@/components/events/ExpenseAttachments";
 import { TRADE_EXPENSE_CATEGORIES } from "./tradeExpenseCategories";
+import { useQuery } from "@tanstack/react-query";
+import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
+import { Building, Truck, Target, Loader2 } from "lucide-react";
 
 interface EditarLancamentoDialogProps {
   open: boolean;
@@ -44,6 +47,8 @@ export function EditarLancamentoDialog({
   const [stores, setStores] = useState<any[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
   
+  const { data: userEmpresas = [], isLoading: loadingEmpresas } = useUserEmpresas();
+  
   const [entryDate, setEntryDate] = useState("");
   const [entryType, setEntryType] = useState("expense");
   const [accountId, setAccountId] = useState("");
@@ -51,12 +56,47 @@ export function EditarLancamentoDialog({
   const [valorPrevisto, setValorPrevisto] = useState("");
   const [category, setCategory] = useState("none");
   const [description, setDescription] = useState("");
-  const [referenceNumber, setReferenceNumber] = useState("");
-  const [storeId, setStoreId] = useState("");
-  const [budgetId, setBudgetId] = useState("");
+  const [storeId, setStoreId] = useState("none");
+  const [budgetId, setBudgetId] = useState("none");
+  const [campaignId, setCampaignId] = useState("none");
+  const [fornecedorId, setFornecedorId] = useState("none");
+  const [empresaId, setEmpresaId] = useState("");
   const [notes, setNotes] = useState("");
-  const [documentUrl, setDocumentUrl] = useState("");
   const [attachments, setAttachments] = useState<any[]>([]);
+
+  // Buscar campanhas
+  const { data: campaigns = [] } = useQuery({
+    queryKey: ['edit-lancamento-campaigns'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_campaigns")
+        .select("id, name, code, status")
+        .or("status.in.(active,approved)")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  });
+
+  // Buscar fornecedores
+  const { data: fornecedores = [] } = useQuery({
+    queryKey: ['edit-lancamento-fornecedores'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fabrica_fornecedores")
+        .select("id, razao_social, nome_fantasia, cnpj")
+        .eq("ativo", true)
+        .order("razao_social")
+        .limit(500);
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  });
 
   useEffect(() => {
     if (open && entryId) {
@@ -67,22 +107,13 @@ export function EditarLancamentoDialog({
 
   const loadData = async () => {
     try {
-      const acRes = await supabase
-        .from("trade_chart_of_accounts")
-        .select("id, code, name")
-        .eq("is_active", true);
+      const [acRes, stRes, bgRes] = await Promise.all([
+        supabase.from("trade_chart_of_accounts").select("id, code, name").eq("is_active", true),
+        supabase.from("stores").select("id, name, code").eq("status", "active"),
+        supabase.from("trade_budgets").select("id, name, code").eq("status", "active"),
+      ]);
       if (acRes.data) setAccounts(acRes.data);
-
-      const stRes = await supabase
-        .from("stores")
-        .select("id, name, code")
-        .eq("status", "active");
       if (stRes.data) setStores(stRes.data);
-
-      const bgRes = await supabase
-        .from("trade_budgets")
-        .select("id, name, code")
-        .eq("status", "active");
       if (bgRes.data) setBudgets(bgRes.data);
     } catch (error) {
       toast.error(getSafeErrorMessage(error));
@@ -108,25 +139,20 @@ export function EditarLancamentoDialog({
       setValorPrevisto(data.valor_previsto ? data.valor_previsto.toString() : "");
       setCategory(data.category || "none");
       setDescription(data.description || "");
-      setReferenceNumber(data.reference_number || "");
-      setStoreId(data.store_id || "");
-      setBudgetId(data.budget_id || "");
-      setDocumentUrl(data.document_url || "");
+      setStoreId(data.store_id || "none");
+      setBudgetId(data.budget_id || "none");
+      setCampaignId(data.campaign_id || "none");
+      setFornecedorId(data.fornecedor_id || "none");
+      setEmpresaId(data.empresa_id?.toString() || "");
       
-      // Load structured attachments
       const savedAttachments = data.attachments;
       if (Array.isArray(savedAttachments) && savedAttachments.length > 0) {
         setAttachments(savedAttachments as any[]);
         setNotes(data.notes || "");
       } else {
-        // Legacy: extract photos from notes
         const notesText = data.notes || "";
         const photoSection = notesText.split("Fotos/Evidências:")[1];
-        if (photoSection) {
-          setNotes(notesText.split("Fotos/Evidências:")[0].trim());
-        } else {
-          setNotes(notesText);
-        }
+        setNotes(photoSection ? notesText.split("Fotos/Evidências:")[0].trim() : notesText);
         setAttachments([]);
       }
     } catch (error) {
@@ -151,6 +177,22 @@ export function EditarLancamentoDialog({
 
     setLoading(true);
     try {
+      const selectedEmpresa = userEmpresas.find(
+        ue => ue.empresa_id.toString() === empresaId
+      );
+
+      // Resolver fornecedor
+      let supplierName: string | null = null;
+      let supplierDocument: string | null = null;
+      const selectedFornecedor = fornecedorId !== "none"
+        ? fornecedores.find(f => f.id === fornecedorId)
+        : null;
+
+      if (selectedFornecedor) {
+        supplierName = selectedFornecedor.nome_fantasia || selectedFornecedor.razao_social || null;
+        supplierDocument = selectedFornecedor.cnpj || null;
+      }
+
       const { error } = await supabase
         .from("trade_financial_entries")
         .update({
@@ -161,11 +203,16 @@ export function EditarLancamentoDialog({
           valor_previsto: valorPrevisto ? parseFloat(valorPrevisto) : null,
           category: category !== "none" ? category : null,
           description: description.trim(),
-          reference_number: referenceNumber.trim() || null,
-          store_id: storeId || null,
-          budget_id: budgetId || null,
+          store_id: storeId !== "none" ? storeId : null,
+          budget_id: budgetId !== "none" ? budgetId : null,
+          campaign_id: campaignId !== "none" ? campaignId : null,
+          fornecedor_id: selectedFornecedor ? fornecedorId : null,
+          entity_type: selectedFornecedor ? "fornecedor" : null,
+          supplier_name: supplierName,
+          supplier_document: supplierDocument,
+          empresa_id: selectedEmpresa?.empresa_id || null,
+          empresa_nome: selectedEmpresa?.empresa.nome || null,
           notes: notes.trim() || null,
-          document_url: documentUrl.trim() || null,
           attachments: attachments,
           approval_status: "pending",
           rejected_reason: null,
@@ -186,60 +233,144 @@ export function EditarLancamentoDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Lançamento Financeiro</DialogTitle>
           <DialogDescription>
-            Edite os dados do lançamento pendente
+            Edite os dados e resubmeta para aprovação
           </DialogDescription>
         </DialogHeader>
 
         {loadingData ? (
           <div className="py-8 text-center text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
             Carregando dados...
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* ===== SEÇÃO: Dados Gerais ===== */}
-            <div className="space-y-1">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados Gerais</h4>
-              <Separator />
+            {/* Filial */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Building className="h-4 w-4" />
+                Filial *
+              </Label>
+              <Select value={empresaId} onValueChange={setEmpresaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a filial" />
+                </SelectTrigger>
+                <SelectContent>
+                  {userEmpresas.map((ue) => (
+                    <SelectItem key={ue.empresa_id} value={ue.empresa_id.toString()}>
+                      {ue.empresa.nome}
+                      {ue.is_primary ? " (Principal)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
+            {/* Categoria */}
+            <div className="space-y-2">
+              <Label>Categoria *</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Selecione a categoria</SelectItem>
+                  {TRADE_EXPENSE_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Descrição */}
+            <div className="space-y-2">
+              <Label>Descrição *</Label>
+              <Textarea
+                placeholder="Descreva o lançamento..."
+                className="min-h-[60px]"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Valores */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="entry_date">Data *</Label>
+                <Label>Valor Previsto (R$)</Label>
                 <Input
-                  id="entry_date"
-                  type="date"
-                  value={entryDate}
-                  onChange={(e) => setEntryDate(e.target.value)}
-                  max={new Date().toISOString().split("T")[0]}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0,00"
+                  value={valorPrevisto}
+                  onChange={(e) => setValorPrevisto(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor Realizado (R$) *</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0,00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
                   required
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="entry_type">Tipo *</Label>
-                <Select value={entryType} onValueChange={setEntryType}>
-                  <SelectTrigger id="entry_type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="budget_allocation">Alocação de Verba</SelectItem>
-                    <SelectItem value="investment">Investimento</SelectItem>
-                    <SelectItem value="expense">Despesa</SelectItem>
-                    <SelectItem value="revenue">Receita</SelectItem>
-                    <SelectItem value="adjustment">Ajuste</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
+            {/* Data */}
             <div className="space-y-2">
-              <Label htmlFor="account_id">Conta Contábil *</Label>
+              <Label>Data da Despesa *</Label>
+              <Input
+                type="date"
+                value={entryDate}
+                onChange={(e) => setEntryDate(e.target.value)}
+                max={new Date().toISOString().split("T")[0]}
+                required
+              />
+            </div>
+
+            {/* Fornecedor */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Truck className="h-4 w-4" />
+                Fornecedor
+              </Label>
+              <Select value={fornecedorId} onValueChange={setFornecedorId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o fornecedor (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum fornecedor</SelectItem>
+                  {fornecedores.map((forn: any) => (
+                    <SelectItem key={forn.id} value={forn.id}>
+                      {forn.nome_fantasia || forn.razao_social}
+                      {forn.cnpj ? ` (${forn.cnpj})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Vinculações */}
+            <div className="space-y-1 pt-2">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Vinculações</h4>
+              <Separator />
+            </div>
+
+            {/* Conta Contábil */}
+            <div className="space-y-2">
+              <Label>Conta Contábil *</Label>
               <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger id="account_id">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecione a conta" />
                 </SelectTrigger>
                 <SelectContent>
@@ -252,89 +383,15 @@ export function EditarLancamentoDialog({
               </Select>
             </div>
 
-            {/* Categoria */}
-            <div className="space-y-2">
-              <Label htmlFor="category">Categoria</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="Selecione a categoria (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhuma categoria</SelectItem>
-                  {TRADE_EXPENSE_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição *</Label>
-              <Textarea
-                id="description"
-                placeholder="Descreva o lançamento..."
-                className="min-h-[80px]"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* ===== SEÇÃO: Financeiro ===== */}
-            <div className="space-y-1">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Financeiro</h4>
-              <Separator />
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="valor_previsto">Valor Previsto (R$)</Label>
-                <Input
-                  id="valor_previsto"
-                  type="number"
-                  step="0.01"
-                  placeholder="0,00"
-                  value={valorPrevisto}
-                  onChange={(e) => setValorPrevisto(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="amount">Valor Realizado (R$) *</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  placeholder="0,00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="reference_number">Nº Referência</Label>
-                <Input
-                  id="reference_number"
-                  placeholder="DOC-2024-001"
-                  value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="store_id">Loja</Label>
+                <Label>Loja/PDV</Label>
                 <Select value={storeId} onValueChange={setStoreId}>
-                  <SelectTrigger id="store_id">
-                    <SelectValue placeholder="Selecione (opcional)" />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Opcional" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">Nenhuma loja</SelectItem>
                     {stores.map((store) => (
                       <SelectItem key={store.id} value={store.id}>
                         {store.code} - {store.name}
@@ -343,14 +400,14 @@ export function EditarLancamentoDialog({
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="budget_id">Verba</Label>
+                <Label>Verba</Label>
                 <Select value={budgetId} onValueChange={setBudgetId}>
-                  <SelectTrigger id="budget_id">
-                    <SelectValue placeholder="Selecione (opcional)" />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Opcional" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">Nenhuma verba</SelectItem>
                     {budgets.map((budget) => (
                       <SelectItem key={budget.id} value={budget.id}>
                         {budget.code} - {budget.name}
@@ -361,53 +418,60 @@ export function EditarLancamentoDialog({
               </div>
             </div>
 
-            {/* ===== SEÇÃO: Observações e Anexos ===== */}
-            <div className="space-y-1">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Observações e Anexos</h4>
+            {/* Campanha */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                Campanha
+              </Label>
+              <Select value={campaignId} onValueChange={setCampaignId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Vincular a uma campanha (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma campanha</SelectItem>
+                  {campaigns.map((campaign: any) => (
+                    <SelectItem key={campaign.id} value={campaign.id}>
+                      {campaign.code} - {campaign.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Anexos */}
+            <div className="space-y-1 pt-2">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Documentos Anexos</h4>
               <Separator />
             </div>
 
+            <ExpenseAttachments
+              expenseId={entryId}
+              attachments={attachments}
+              onAttachmentsChange={setAttachments}
+              bucket="trade-expense-docs"
+            />
+
+            {/* Observações */}
             <div className="space-y-2">
-              <Label htmlFor="notes">Observações</Label>
+              <Label>Observações</Label>
               <Textarea
-                id="notes"
                 placeholder="Informações adicionais..."
-                className="min-h-[60px]"
+                className="min-h-[50px]"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="document_url">URL do Comprovante/Documento</Label>
-              <Input
-                id="document_url"
-                type="url"
-                placeholder="https://..."
-                value={documentUrl}
-                onChange={(e) => setDocumentUrl(e.target.value)}
-              />
-            </div>
-
-            {/* Anexos estruturados */}
-            <div className="space-y-2">
-              <Label>Documentos / Evidências</Label>
-              <ExpenseAttachments
-                expenseId={entryId}
-                attachments={attachments}
-                onAttachmentsChange={setAttachments}
-                bucket="trade-expense-docs"
-              />
-            </div>
-
-            <DialogFooter>
+            <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading || loadingData}>
+              <Button type="submit" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {loading ? "Salvando..." : "Salvar Alterações"}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         )}
       </DialogContent>
