@@ -72,6 +72,21 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
     { enabled: !!revisaoAtiva?.id }
   );
 
+  // Buscar requisitos obrigatórios da revisão ativa
+  const { data: requisitos, refetch: refetchRequisitos } = useSupabaseQuery(
+    ["ficha-revisao-requisitos", revisaoAtiva?.id],
+    async () => {
+      if (!revisaoAtiva?.id) return [];
+      const { data, error } = await supabase
+        .from("fabrica_revisao_requisitos" as any)
+        .select("*")
+        .eq("revisao_id", revisaoAtiva.id);
+      if (error) { console.error(error); return []; }
+      return (data || []) as any[];
+    },
+    { enabled: !!revisaoAtiva?.id }
+  );
+
   // Buscar status_aprovacao da config
   const { data: statusAprovacao, refetch: refetchStatus } = useSupabaseQuery(
     ["ficha-status-aprovacao", configId],
@@ -174,13 +189,15 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
   const refetchAll = useCallback(() => {
     refetchRevisao();
     refetchApontamentos();
+    refetchRequisitos();
     refetchStatus();
-  }, [refetchRevisao, refetchApontamentos, refetchStatus]);
+  }, [refetchRevisao, refetchApontamentos, refetchRequisitos, refetchStatus]);
 
   return {
     statusAprovacao: statusAprovacao || "rascunho" as StatusAprovacao,
     revisaoAtiva,
     apontamentos: apontamentos || [],
+    requisitos: requisitos || [],
     submitting,
     submeterParaAprovacao,
     refetchAll,
@@ -243,7 +260,8 @@ export function useFichaRevisaoDiretoria() {
     revisaoId: string,
     configId: string,
     parecer: string,
-    itens: { insumo_id: string; campo: string; valor_atual: number; valor_sugerido: number; comentario: string }[]
+    itens: { insumo_id: string; campo: string; valor_atual: number; valor_sugerido: number; comentario: string }[],
+    requisitos: { tipo: string; descricao: string; quantidade_minima: number; insumo_id: string | null }[] = []
   ) => {
     setProcessando(true);
     try {
@@ -271,6 +289,18 @@ export function useFichaRevisaoDiretoria() {
           comentario: item.comentario,
         }));
         await supabase.from("fabrica_ficha_custo_revisao_itens").insert(rows);
+      }
+
+      // Inserir requisitos obrigatórios
+      if (requisitos.length > 0) {
+        const reqRows = requisitos.map(r => ({
+          revisao_id: revisaoId,
+          tipo: r.tipo,
+          descricao: r.descricao,
+          quantidade_minima: r.quantidade_minima,
+          insumo_id: r.insumo_id || null,
+        }));
+        await supabase.from("fabrica_revisao_requisitos" as any).insert(reqRows as any);
       }
 
       // Atualizar config

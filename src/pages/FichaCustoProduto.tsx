@@ -30,6 +30,7 @@ export default function FichaCustoProduto() {
     statusAprovacao,
     revisaoAtiva,
     apontamentos,
+    requisitos,
     submitting,
     submeterParaAprovacao,
   } = useFichaRevisao(id, config?.id || undefined);
@@ -99,6 +100,7 @@ export default function FichaCustoProduto() {
           statusAprovacao={statusAprovacao}
           revisaoAtiva={revisaoAtiva}
           apontamentos={apontamentos}
+          requisitos={requisitos}
           submitting={submitting}
           onSubmeterAprovacao={handleSubmeter}
         />

@@ -36,14 +36,19 @@ interface InsumoRef {
 
 interface Props {
   revisaoId: string;
+  configId?: string;
   insumos?: InsumoRef[];
   tipoRemetente?: "usuario" | "diretoria";
   insumosComApontamento?: Set<string>;
   onNavigateToInsumo?: (insumoId: string) => void;
 }
 
-export function RevisaoChatPanel({ revisaoId, insumos = [], tipoRemetente = "usuario", insumosComApontamento = new Set(), onNavigateToInsumo }: Props) {
-  const [mensagens, setMensagens] = useState<Mensagem[]>([]);
+interface MensagemComVersao extends Mensagem {
+  versao?: number;
+}
+
+export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemetente = "usuario", insumosComApontamento = new Set(), onNavigateToInsumo }: Props) {
+  const [mensagens, setMensagens] = useState<MensagemComVersao[]>([]);
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [texto, setTexto] = useState("");
@@ -51,17 +56,42 @@ export function RevisaoChatPanel({ revisaoId, insumos = [], tipoRemetente = "usu
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const carregarMensagens = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("fabrica_revisao_mensagens" as any)
-      .select("*")
-      .eq("revisao_id", revisaoId)
-      .order("created_at", { ascending: true });
+    if (configId) {
+      // Buscar todas as revisões deste config para pegar mensagens de todas as versões
+      const { data: revisoes } = await supabase
+        .from("fabrica_ficha_custo_revisoes")
+        .select("id, versao")
+        .eq("config_id", configId)
+        .order("versao", { ascending: true });
 
-    if (!error && data) {
-      setMensagens(data as any as Mensagem[]);
+      if (revisoes && revisoes.length > 0) {
+        const revisaoIds = revisoes.map((r: any) => r.id);
+        const versaoMap = new Map(revisoes.map((r: any) => [r.id, r.versao]));
+
+        const { data, error } = await supabase
+          .from("fabrica_revisao_mensagens" as any)
+          .select("*")
+          .in("revisao_id", revisaoIds)
+          .order("created_at", { ascending: true });
+
+        if (!error && data) {
+          setMensagens((data as any[]).map((m: any) => ({ ...m, versao: versaoMap.get(m.revisao_id) || 1 })));
+        }
+      }
+    } else {
+      // Fallback: buscar apenas da revisão atual
+      const { data, error } = await supabase
+        .from("fabrica_revisao_mensagens" as any)
+        .select("*")
+        .eq("revisao_id", revisaoId)
+        .order("created_at", { ascending: true });
+
+      if (!error && data) {
+        setMensagens(data as any as MensagemComVersao[]);
+      }
     }
     setLoading(false);
-  }, [revisaoId]);
+  }, [revisaoId, configId]);
 
   useEffect(() => {
     carregarMensagens();
@@ -82,7 +112,7 @@ export function RevisaoChatPanel({ revisaoId, insumos = [], tipoRemetente = "usu
         (payload) => {
           setMensagens((prev) => {
             if (prev.some((m) => m.id === (payload.new as any).id)) return prev;
-            return [...prev, payload.new as any as Mensagem];
+            return [...prev, payload.new as any as MensagemComVersao];
           });
         }
       )
@@ -166,12 +196,21 @@ export function RevisaoChatPanel({ revisaoId, insumos = [], tipoRemetente = "usu
               Nenhuma mensagem ainda. Inicie a comunicação abaixo.
             </div>
           ) : (
-            mensagens.map((msg) => {
+            mensagens.map((msg, idx) => {
               const isUsuario = msg.tipo === "usuario";
               const insumoNome = getInsumoNome(msg.insumo_id);
+              const prevMsg = idx > 0 ? mensagens[idx - 1] : null;
+              const showVersionSep = msg.versao && prevMsg && (prevMsg as MensagemComVersao).versao !== msg.versao;
               return (
+                <React.Fragment key={msg.id}>
+                  {showVersionSep && (
+                    <div className="flex items-center gap-2 my-2">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-[10px] text-muted-foreground font-medium">Revisão v{msg.versao}</span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+                  )}
                 <div
-                  key={msg.id}
                   className={`flex ${isUsuario ? "justify-end" : "justify-start"}`}
                 >
                   <div
@@ -207,6 +246,7 @@ export function RevisaoChatPanel({ revisaoId, insumos = [], tipoRemetente = "usu
                     <p className="text-sm whitespace-pre-wrap">{msg.conteudo}</p>
                   </div>
                 </div>
+                </React.Fragment>
               );
             })
           )}
