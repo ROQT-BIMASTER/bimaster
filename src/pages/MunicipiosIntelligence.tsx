@@ -5,8 +5,10 @@ import { MunicipiosKPICards } from "@/components/comercial/municipios/Municipios
 import { MunicipiosScatterChart } from "@/components/comercial/municipios/MunicipiosScatterChart";
 import { MunicipiosOpportunityCard } from "@/components/comercial/municipios/MunicipiosOpportunityCard";
 import { MunicipiosTable } from "@/components/comercial/municipios/MunicipiosTable";
+import { Progress } from "@/components/ui/progress";
 import { Building2, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 const MunicipiosIntelligence = () => {
   const {
@@ -25,9 +27,49 @@ const MunicipiosIntelligence = () => {
     pageSize,
   } = useMunicipiosIntelligence();
 
+  const isInitialLoading = kpisLoading && dataLoading && topOpportunitiesLoading;
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (!isInitialLoading) {
+      setProgress(100);
+      return;
+    }
+    setProgress(0);
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 12;
+      });
+    }, 400);
+    return () => clearInterval(interval);
+  }, [isInitialLoading]);
+
+  if (isInitialLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+          <div className="p-3 bg-primary/10 rounded-xl">
+            <Building2 className="h-8 w-8 text-primary animate-pulse" />
+          </div>
+          <div className="text-center space-y-2">
+            <h2 className="text-lg font-semibold">Carregando Inteligência Municipal</h2>
+            <p className="text-sm text-muted-foreground">
+              Processando dados de 5.571 municípios...
+            </p>
+          </div>
+          <div className="w-64">
+            <Progress value={progress} className="h-2" />
+          </div>
+          <p className="text-xs text-muted-foreground">{Math.round(progress)}%</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Breadcrumb + Header */}
         <div>
           <nav className="flex items-center gap-1.5 text-sm text-muted-foreground mb-3">
@@ -62,7 +104,7 @@ const MunicipiosIntelligence = () => {
         <MunicipiosKPICards kpis={kpis} loading={kpisLoading} />
 
         {/* Charts Row */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           <MunicipiosScatterChart kpis={kpis} loading={kpisLoading} />
           <MunicipiosOpportunityCard data={topOpportunities} loading={topOpportunitiesLoading} />
         </div>
