@@ -14,7 +14,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
-import { History } from "lucide-react";
+import { History, Lock, LockOpen } from "lucide-react";
+import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
+import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 
 interface Props {
   open: boolean;
@@ -26,6 +28,8 @@ interface Props {
 export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuccess }: Props) {
   const queryClient = useQueryClient();
   const [precosEditados, setPrecosEditados] = useState<Record<string, string>>({});
+  const { isProductBlocked, getBlockForProduct, getBlockForLine, blockProduct, unblock, isBlocking, isUnblocking } = useVisibilityBlocks();
+  const { hasFullAccess } = useUserPriceTableAccess();
 
   const { data: produto } = useQuery({
     queryKey: ["produto", produtoId],
@@ -180,14 +184,50 @@ export function EditarPrecosProdutoDialog({ open, onOpenChange, produtoId, onSuc
     atualizarPrecosMutation.mutate();
   };
 
+  const blocked = produto ? isProductBlocked(produto.linha, produto.id) : false;
+  const productBlock = produto ? getBlockForProduct(produto.id) : undefined;
+  const lineBlock = produto?.linha ? getBlockForLine(produto.linha) : undefined;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Preços - {produto?.nome}</DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            Código: {produto?.codigo}
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <DialogTitle>Preços - {produto?.nome}</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Código: {produto?.codigo}
+              </p>
+            </div>
+            {blocked && (
+              <Badge variant="destructive" className="flex items-center gap-1">
+                <Lock className="h-3 w-3" />
+                Bloqueado{lineBlock ? ' (Linha)' : ''}
+              </Badge>
+            )}
+            {hasFullAccess && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isBlocking || isUnblocking}
+                onClick={() => {
+                  if (productBlock) {
+                    unblock(productBlock.id);
+                  } else if (!lineBlock) {
+                    blockProduct(produtoId);
+                  }
+                }}
+              >
+                {productBlock ? (
+                  <><LockOpen className="h-3.5 w-3.5 mr-1 text-green-600" /> Desbloquear</>
+                ) : !lineBlock ? (
+                  <><Lock className="h-3.5 w-3.5 mr-1 text-red-500" /> Bloquear</>
+                ) : (
+                  <><Lock className="h-3.5 w-3.5 mr-1 text-muted-foreground" /> Bloqueio via Linha</>
+                )}
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
