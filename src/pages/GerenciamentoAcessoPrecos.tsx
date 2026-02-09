@@ -40,7 +40,9 @@ import {
   Search,
   Users,
   Tag,
-  Info
+  Info,
+  Package,
+  Layers
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -66,6 +68,13 @@ interface UserProfile {
   email: string | null;
 }
 
+interface ProdutoSimples {
+  id: string;
+  nome: string;
+  codigo: string | null;
+  linha: string | null;
+}
+
 interface AccessRecord {
   id: string;
   user_id: string;
@@ -75,9 +84,14 @@ interface AccessRecord {
   can_approve: boolean;
   granted_at: string;
   notes: string | null;
+  linha: string | null;
+  produto_id: string | null;
   user?: UserProfile;
   tabela?: PriceTable;
+  produto?: ProdutoSimples;
 }
+
+type ScopeType = "tabela" | "linha" | "produto";
 
 export default function GerenciamentoAcessoPrecos() {
   const { user } = useAuth();
@@ -86,6 +100,7 @@ export default function GerenciamentoAcessoPrecos() {
   const [saving, setSaving] = useState(false);
   const [priceTables, setPriceTables] = useState<PriceTable[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [produtos, setProdutos] = useState<ProdutoSimples[]>([]);
   const [accessRecords, setAccessRecords] = useState<AccessRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTable, setSelectedTable] = useState<string>("all");
@@ -99,7 +114,14 @@ export default function GerenciamentoAcessoPrecos() {
     can_edit: false,
     can_approve: false,
     notes: "",
+    scope: "tabela" as ScopeType,
+    linha: "",
+    produto_id: "",
   });
+
+  // Available lines from products
+  const [linhasDisponiveis, setLinhasDisponiveis] = useState<string[]>([]);
+  const [buscaProduto, setBuscaProduto] = useState("");
 
   useEffect(() => {
     loadData();
@@ -108,37 +130,32 @@ export default function GerenciamentoAcessoPrecos() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load price tables
-      const { data: tablesData, error: tablesError } = await supabase
-        .from("fabrica_tabelas_preco")
-        .select("id, codigo, nome, status")
-        .order("codigo");
+      const [tablesRes, usersRes, accessRes, produtosRes] = await Promise.all([
+        supabase.from("fabrica_tabelas_preco").select("id, codigo, nome, status").order("codigo"),
+        supabase.from("profiles").select("id, nome, email").order("nome"),
+        supabase.from("user_price_table_access").select("*").order("granted_at", { ascending: false }),
+        supabase.from("fabrica_produtos").select("id, nome, codigo, linha").eq("tipo", "ACABADO").eq("ativo", true).order("nome"),
+      ]);
 
-      if (tablesError) throw tablesError;
-      setPriceTables(tablesData || []);
+      if (tablesRes.error) throw tablesRes.error;
+      if (usersRes.error) throw usersRes.error;
+      if (accessRes.error) throw accessRes.error;
+      if (produtosRes.error) throw produtosRes.error;
 
-      // Load users
-      const { data: usersData, error: usersError } = await supabase
-        .from("profiles")
-        .select("id, nome, email")
-        .order("nome");
+      setPriceTables(tablesRes.data || []);
+      setUsers(usersRes.data || []);
+      setProdutos(produtosRes.data || []);
 
-      if (usersError) throw usersError;
-      setUsers(usersData || []);
+      // Extract unique lines
+      const linhas = [...new Set((produtosRes.data || []).map(p => p.linha).filter(Boolean) as string[])].sort();
+      setLinhasDisponiveis(linhas);
 
-      // Load access records
-      const { data: accessData, error: accessError } = await supabase
-        .from("user_price_table_access")
-        .select("*")
-        .order("granted_at", { ascending: false });
-
-      if (accessError) throw accessError;
-      
-      // Enrich with user and table info
-      const enrichedAccess = (accessData || []).map(record => ({
+      // Enrich access records
+      const enrichedAccess = (accessRes.data || []).map(record => ({
         ...record,
-        user: usersData?.find(u => u.id === record.user_id),
-        tabela: tablesData?.find(t => t.id === record.tabela_id),
+        user: usersRes.data?.find(u => u.id === record.user_id),
+        tabela: tablesRes.data?.find(t => t.id === record.tabela_id),
+        produto: record.produto_id ? produtosRes.data?.find(p => p.id === record.produto_id) : undefined,
       }));
       
       setAccessRecords(enrichedAccess);
@@ -154,56 +171,64 @@ export default function GerenciamentoAcessoPrecos() {
     }
   };
 
+  const resetForm = () => {
+    setNewAccess({
+      user_id: "",
+      tabela_id: "",
+      can_view: true,
+      can_edit: false,
+      can_approve: false,
+      notes: "",
+      scope: "tabela",
+      linha: "",
+      produto_id: "",
+    });
+    setBuscaProduto("");
+  };
+
   const handleAddAccess = async () => {
     if (!newAccess.user_id || !newAccess.tabela_id) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Selecione um usuário e uma tabela de preço",
-        variant: "destructive",
-      });
+      toast({ title: "Campos obrigatórios", description: "Selecione um usuário e uma tabela de preço", variant: "destructive" });
+      return;
+    }
+
+    if (newAccess.scope === "linha" && !newAccess.linha) {
+      toast({ title: "Campo obrigatório", description: "Selecione uma linha de produto", variant: "destructive" });
+      return;
+    }
+
+    if (newAccess.scope === "produto" && !newAccess.produto_id) {
+      toast({ title: "Campo obrigatório", description: "Selecione um produto", variant: "destructive" });
       return;
     }
 
     setSaving(true);
     try {
+      const insertData: any = {
+        user_id: newAccess.user_id,
+        tabela_id: newAccess.tabela_id,
+        can_view: newAccess.can_view,
+        can_edit: newAccess.can_edit,
+        can_approve: newAccess.can_approve,
+        notes: newAccess.notes || null,
+        granted_by: user?.id,
+        linha: newAccess.scope === "linha" ? newAccess.linha : null,
+        produto_id: newAccess.scope === "produto" ? newAccess.produto_id : null,
+      };
+
       const { error } = await supabase
         .from("user_price_table_access")
-        .upsert({
-          user_id: newAccess.user_id,
-          tabela_id: newAccess.tabela_id,
-          can_view: newAccess.can_view,
-          can_edit: newAccess.can_edit,
-          can_approve: newAccess.can_approve,
-          notes: newAccess.notes || null,
-          granted_by: user?.id,
-        }, {
-          onConflict: "user_id,tabela_id",
-        });
+        .insert(insertData);
 
       if (error) throw error;
 
-      toast({
-        title: "Acesso configurado",
-        description: "Permissões salvas com sucesso",
-      });
-      
+      toast({ title: "Acesso configurado", description: "Permissões salvas com sucesso" });
       setDialogOpen(false);
-      setNewAccess({
-        user_id: "",
-        tabela_id: "",
-        can_view: true,
-        can_edit: false,
-        can_approve: false,
-        notes: "",
-      });
+      resetForm();
       loadData();
     } catch (error: any) {
       console.error("Error saving access:", error);
-      toast({
-        title: "Erro ao salvar",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -226,16 +251,9 @@ export default function GerenciamentoAcessoPrecos() {
         prev.map(r => r.id === recordId ? { ...r, [field]: value } : r)
       );
 
-      toast({
-        title: "Permissão atualizada",
-        description: "Alteração salva com sucesso",
-      });
+      toast({ title: "Permissão atualizada", description: "Alteração salva com sucesso" });
     } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
     }
   };
 
@@ -249,17 +267,9 @@ export default function GerenciamentoAcessoPrecos() {
       if (error) throw error;
 
       setAccessRecords(prev => prev.filter(r => r.id !== recordId));
-
-      toast({
-        title: "Acesso removido",
-        description: "Permissão excluída com sucesso",
-      });
+      toast({ title: "Acesso removido", description: "Permissão excluída com sucesso" });
     } catch (error: any) {
-      toast({
-        title: "Erro ao excluir",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
     }
   };
 
@@ -267,14 +277,15 @@ export default function GerenciamentoAcessoPrecos() {
     const matchesSearch = 
       record.user?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       record.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.tabela?.nome?.toLowerCase().includes(searchTerm.toLowerCase());
+      record.tabela?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.linha?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.produto?.nome?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesTable = selectedTable === "all" || record.tabela_id === selectedTable;
     
     return matchesSearch && matchesTable;
   });
 
-  // Group records by table for summary view
   const tableStats = priceTables.map(table => ({
     ...table,
     usersWithAccess: accessRecords.filter(r => r.tabela_id === table.id).length,
@@ -282,14 +293,42 @@ export default function GerenciamentoAcessoPrecos() {
     usersCanApprove: accessRecords.filter(r => r.tabela_id === table.id && r.can_approve).length,
   }));
 
+  const getScopeBadge = (record: AccessRecord) => {
+    if (record.produto_id && record.produto) {
+      return (
+        <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+          <Package className="h-3 w-3 mr-1" />
+          {record.produto.nome}
+        </Badge>
+      );
+    }
+    if (record.linha) {
+      return (
+        <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+          <Layers className="h-3 w-3 mr-1" />
+          {record.linha}
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="text-muted-foreground">
+        Tabela Inteira
+      </Badge>
+    );
+  };
+
+  const produtosFiltradosBusca = produtos.filter(p => {
+    if (!buscaProduto) return true;
+    return p.nome.toLowerCase().includes(buscaProduto.toLowerCase()) ||
+      p.codigo?.toLowerCase().includes(buscaProduto.toLowerCase());
+  }).slice(0, 20);
+
   if (loading) {
     return (
       <div className="container mx-auto py-6 space-y-6">
         <Skeleton className="h-10 w-64" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-32" />
-          ))}
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-32" />)}
         </div>
         <Skeleton className="h-96" />
       </div>
@@ -316,18 +355,18 @@ export default function GerenciamentoAcessoPrecos() {
           </p>
         </div>
         
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Acesso
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Configurar Acesso</DialogTitle>
               <DialogDescription>
-                Defina as permissões de um usuário para uma tabela de preço específica
+                Defina as permissões de um usuário para uma tabela de preço
               </DialogDescription>
             </DialogHeader>
             
@@ -369,6 +408,92 @@ export default function GerenciamentoAcessoPrecos() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Scope Selection */}
+              <div className="space-y-2">
+                <Label>Escopo do Acesso</Label>
+                <Select
+                  value={newAccess.scope}
+                  onValueChange={(v: ScopeType) => setNewAccess(prev => ({ ...prev, scope: v, linha: "", produto_id: "" }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tabela">
+                      <span className="flex items-center gap-2">
+                        <Tag className="h-4 w-4" /> Tabela Inteira
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="linha">
+                      <span className="flex items-center gap-2">
+                        <Layers className="h-4 w-4" /> Por Linha
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="produto">
+                      <span className="flex items-center gap-2">
+                        <Package className="h-4 w-4" /> Por Produto
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Line selector */}
+              {newAccess.scope === "linha" && (
+                <div className="space-y-2">
+                  <Label>Linha de Produto</Label>
+                  <Select
+                    value={newAccess.linha}
+                    onValueChange={(v) => setNewAccess(prev => ({ ...prev, linha: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma linha" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {linhasDisponiveis.map(l => (
+                        <SelectItem key={l} value={l}>{l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Product selector */}
+              {newAccess.scope === "produto" && (
+                <div className="space-y-2">
+                  <Label>Produto</Label>
+                  <Input
+                    placeholder="Buscar produto..."
+                    value={buscaProduto}
+                    onChange={(e) => setBuscaProduto(e.target.value)}
+                    className="mb-2"
+                  />
+                  <div className="border rounded-md max-h-40 overflow-y-auto">
+                    {produtosFiltradosBusca.length === 0 ? (
+                      <p className="p-3 text-sm text-muted-foreground text-center">Nenhum produto encontrado</p>
+                    ) : (
+                      produtosFiltradosBusca.map(p => (
+                        <div
+                          key={p.id}
+                          className={`p-2 cursor-pointer hover:bg-muted/50 text-sm flex items-center justify-between ${
+                            newAccess.produto_id === p.id ? "bg-primary/10 font-medium" : ""
+                          }`}
+                          onClick={() => setNewAccess(prev => ({ ...prev, produto_id: p.id }))}
+                        >
+                          <span>{p.nome}</span>
+                          <span className="text-xs text-muted-foreground">{p.linha || "—"}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {newAccess.produto_id && (
+                    <p className="text-xs text-muted-foreground">
+                      Selecionado: <strong>{produtos.find(p => p.id === newAccess.produto_id)?.nome}</strong>
+                    </p>
+                  )}
+                </div>
+              )}
               
               <div className="space-y-4 pt-4 border-t">
                 <Label className="text-sm font-medium">Permissões</Label>
@@ -418,7 +543,7 @@ export default function GerenciamentoAcessoPrecos() {
             </div>
             
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
                 Cancelar
               </Button>
               <Button onClick={handleAddAccess} disabled={saving}>
@@ -435,9 +560,7 @@ export default function GerenciamentoAcessoPrecos() {
           <Card 
             key={table.id} 
             className={`cursor-pointer transition-all ${
-              selectedTable === table.id 
-                ? "ring-2 ring-primary" 
-                : "hover:shadow-md"
+              selectedTable === table.id ? "ring-2 ring-primary" : "hover:shadow-md"
             }`}
             onClick={() => setSelectedTable(selectedTable === table.id ? "all" : table.id)}
           >
@@ -453,7 +576,7 @@ export default function GerenciamentoAcessoPrecos() {
             <CardContent>
               <div className="flex items-center gap-2 text-xs">
                 <Users className="h-3 w-3" />
-                <span>{table.usersWithAccess} usuários</span>
+                <span>{table.usersWithAccess} regras</span>
               </div>
               <div className="flex gap-2 mt-2">
                 {table.usersCanEdit > 0 && (
@@ -482,10 +605,11 @@ export default function GerenciamentoAcessoPrecos() {
             <div className="text-sm text-muted-foreground">
               <p className="font-medium">Como funciona o controle de acesso:</p>
               <ul className="list-disc list-inside mt-1 space-y-1">
-                <li><strong>Visualizar:</strong> Pode ver os preços da tabela</li>
-                <li><strong>Editar:</strong> Pode alterar valores na tabela (ex: pessoa da Fábrica)</li>
-                <li><strong>Aprovar:</strong> Pode validar e aprovar a tabela (ex: gerente ou responsável MUDE)</li>
-                <li>Administradores têm acesso total a todas as tabelas automaticamente</li>
+                <li><strong>Tabela Inteira:</strong> Acesso a todos os produtos da tabela</li>
+                <li><strong>Por Linha:</strong> Acesso apenas aos produtos de uma linha específica (ex: Banana, MELU)</li>
+                <li><strong>Por Produto:</strong> Acesso a um produto individual dentro da tabela</li>
+                <li>Regras mais específicas (produto) têm prioridade sobre regras gerais (linha/tabela)</li>
+                <li>Administradores e supervisores têm acesso total automaticamente</li>
               </ul>
             </div>
           </div>
@@ -501,8 +625,8 @@ export default function GerenciamentoAcessoPrecos() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por usuário ou tabela..."
-                  className="pl-9 w-64"
+                  placeholder="Buscar por usuário, tabela, linha..."
+                  className="pl-9 w-72"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -523,6 +647,7 @@ export default function GerenciamentoAcessoPrecos() {
                 <TableRow>
                   <TableHead>Usuário</TableHead>
                   <TableHead>Tabela de Preço</TableHead>
+                  <TableHead>Escopo</TableHead>
                   <TableHead className="text-center">Visualizar</TableHead>
                   <TableHead className="text-center">Editar</TableHead>
                   <TableHead className="text-center">Aprovar</TableHead>
@@ -543,6 +668,9 @@ export default function GerenciamentoAcessoPrecos() {
                       <Badge variant="outline">
                         {record.tabela?.codigo} - {record.tabela?.nome}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {getScopeBadge(record)}
                     </TableCell>
                     <TableCell className="text-center">
                       <TooltipProvider>
