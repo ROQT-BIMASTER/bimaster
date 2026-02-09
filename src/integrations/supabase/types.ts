@@ -7894,6 +7894,50 @@ export type Database = {
           },
         ]
       }
+      fabrica_revisao_requisitos: {
+        Row: {
+          created_at: string
+          cumprido: boolean
+          cumprido_em: string | null
+          descricao: string
+          id: string
+          insumo_id: string | null
+          quantidade_minima: number | null
+          revisao_id: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          cumprido?: boolean
+          cumprido_em?: string | null
+          descricao: string
+          id?: string
+          insumo_id?: string | null
+          quantidade_minima?: number | null
+          revisao_id: string
+          tipo?: string
+        }
+        Update: {
+          created_at?: string
+          cumprido?: boolean
+          cumprido_em?: string | null
+          descricao?: string
+          id?: string
+          insumo_id?: string | null
+          quantidade_minima?: number | null
+          revisao_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_revisao_requisitos_revisao_id_fkey"
+            columns: ["revisao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ficha_custo_revisoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_roteiros_producao: {
         Row: {
           ativo: boolean | null

@@ -53,6 +53,7 @@ interface Props {
   statusAprovacao?: StatusAprovacao;
   revisaoAtiva?: Revisao | null;
   apontamentos?: RevisaoItem[];
+  requisitos?: any[];
   submitting?: boolean;
   onSubmeterAprovacao?: () => void;
 }
@@ -104,6 +105,7 @@ export function FichaCustoProdutoEditor({
   statusAprovacao = "rascunho",
   revisaoAtiva,
   apontamentos = [],
+  requisitos = [],
   submitting = false,
   onSubmeterAprovacao,
 }: Props) {
@@ -432,10 +434,44 @@ export function FichaCustoProdutoEditor({
         <FichaApontamentosPanel apontamentos={apontamentos} insumos={insumos} />
       )}
 
-      {/* Chat de comunicação com a Diretoria */}
+      {/* Requisitos obrigatórios da diretoria */}
+      {statusAprovacao === "revisao_solicitada" && requisitos.length > 0 && (
+        <Card className="border-purple-500/50 bg-purple-50/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-purple-600" />
+              Requisitos Obrigatórios para Resubmissão
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {requisitos.map((req: any) => {
+              const insumoNome = req.insumo_id ? insumos.find(i => i.id === req.insumo_id) : null;
+              return (
+                <div key={req.id} className={`flex items-center gap-3 p-2 rounded-lg border ${req.cumprido ? "bg-green-50 border-green-200" : "bg-orange-50 border-orange-200"}`}>
+                  <Badge variant={req.cumprido ? "default" : "destructive"} className="text-xs">
+                    {req.cumprido ? "✓ Cumprido" : "Pendente"}
+                  </Badge>
+                  <span className="text-sm flex-1">
+                    {req.descricao}
+                    {req.quantidade_minima > 1 && ` (mín. ${req.quantidade_minima})`}
+                    {insumoNome && <span className="text-muted-foreground"> — {insumoNome.codigo} {insumoNome.nome}</span>}
+                  </span>
+                </div>
+              );
+            })}
+            {requisitos.some((r: any) => !r.cumprido) && (
+              <p className="text-xs text-destructive font-medium mt-1">
+                ⚠ Cumpra todos os requisitos antes de resubmeter a ficha.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {revisaoAtiva?.id && (statusAprovacao === "revisao_solicitada" || statusAprovacao === "em_revisao") && (
         <RevisaoChatPanel
           revisaoId={revisaoAtiva.id}
+          configId={revisaoAtiva.config_id}
           insumos={insumos.map((i) => ({ id: i.id, nome: i.nome, codigo: i.codigo }))}
           tipoRemetente="usuario"
           insumosComApontamento={new Set(apontamentos.filter(a => a.insumo_id).map(a => a.insumo_id!))}
@@ -965,7 +1001,11 @@ export function FichaCustoProdutoEditor({
             </Button>
           )}
           {(statusAprovacao === "rascunho" || statusAprovacao === "revisao_solicitada") && onSubmeterAprovacao && config?.id && (
-            <Button onClick={onSubmeterAprovacao} disabled={submitting}>
+            <Button
+              onClick={onSubmeterAprovacao}
+              disabled={submitting || (statusAprovacao === "revisao_solicitada" && requisitos.length > 0 && requisitos.some((r: any) => !r.cumprido))}
+              title={statusAprovacao === "revisao_solicitada" && requisitos.some((r: any) => !r.cumprido) ? "Cumpra todos os requisitos obrigatórios antes de resubmeter" : undefined}
+            >
               <SendHorizonal className="h-4 w-4 mr-2" />
               {submitting ? "Submetendo..." : "Submeter para Aprovação"}
             </Button>

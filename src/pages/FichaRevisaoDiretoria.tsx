@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -15,7 +16,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle2, AlertTriangle, Eye, Loader2, ClipboardList, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Eye, Loader2, ClipboardList, Plus, Trash2, FileText, Receipt, MessageSquare } from "lucide-react";
 import { useFichaRevisaoDiretoria } from "@/hooks/useFichaRevisao";
 import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
 
@@ -27,12 +28,26 @@ interface ApontamentoForm {
   comentario: string;
 }
 
+interface RequisitoForm {
+  tipo: string;
+  descricao: string;
+  quantidade_minima: number;
+  insumo_id: string;
+  ativo: boolean;
+}
+
 export default function FichaRevisaoDiretoria() {
   const { fichasPendentes, isLoading, processando, aprovarFicha, solicitarRevisao } = useFichaRevisaoDiretoria();
   const [fichaAberta, setFichaAberta] = useState<any | null>(null);
   const [parecer, setParecer] = useState("");
   const [apontamentos, setApontamentos] = useState<ApontamentoForm[]>([]);
   const [modoRevisao, setModoRevisao] = useState(false);
+  const [requisitos, setRequisitos] = useState<RequisitoForm[]>([
+    { tipo: "orcamentos", descricao: "Subir orçamentos", quantidade_minima: 3, insumo_id: "", ativo: false },
+    { tipo: "evidencia", descricao: "Anexar evidência/NF", quantidade_minima: 1, insumo_id: "", ativo: false },
+    { tipo: "justificativa", descricao: "Justificar manutenção de valores", quantidade_minima: 1, insumo_id: "", ativo: false },
+  ]);
+  const [requisitoCustom, setRequisitoCustom] = useState("");
 
   const formatarMoeda = (valor: number) =>
     valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
@@ -42,6 +57,12 @@ export default function FichaRevisaoDiretoria() {
     setParecer("");
     setApontamentos([]);
     setModoRevisao(false);
+    setRequisitos([
+      { tipo: "orcamentos", descricao: "Subir orçamentos", quantidade_minima: 3, insumo_id: "", ativo: false },
+      { tipo: "evidencia", descricao: "Anexar evidência/NF", quantidade_minima: 1, insumo_id: "", ativo: false },
+      { tipo: "justificativa", descricao: "Justificar manutenção de valores", quantidade_minima: 1, insumo_id: "", ativo: false },
+    ]);
+    setRequisitoCustom("");
   };
 
   const handleAprovar = async () => {
@@ -52,7 +73,15 @@ export default function FichaRevisaoDiretoria() {
 
   const handleSolicitarRevisao = async () => {
     if (!fichaAberta) return;
-    await solicitarRevisao(fichaAberta.id, fichaAberta.config_id, parecer, apontamentos);
+    const requisitosAtivos = requisitos
+      .filter(r => r.ativo)
+      .map(r => ({ tipo: r.tipo, descricao: r.descricao, quantidade_minima: r.quantidade_minima, insumo_id: r.insumo_id || null }));
+    
+    if (requisitoCustom.trim()) {
+      requisitosAtivos.push({ tipo: "outro", descricao: requisitoCustom.trim(), quantidade_minima: 1, insumo_id: null });
+    }
+
+    await solicitarRevisao(fichaAberta.id, fichaAberta.config_id, parecer, apontamentos, requisitosAtivos);
     setFichaAberta(null);
   };
 
@@ -287,10 +316,75 @@ export default function FichaRevisaoDiretoria() {
             </Card>
           )}
 
+          {/* Requisitos obrigatórios */}
+          {modoRevisao && (
+            <Card className="border-purple-500/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Requisitos Obrigatórios para Resubmissão
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {requisitos.map((req, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-2 border rounded-lg">
+                    <Checkbox
+                      checked={req.ativo}
+                      onCheckedChange={(checked) => {
+                        setRequisitos(prev => prev.map((r, i) => i === idx ? { ...r, ativo: !!checked } : r));
+                      }}
+                    />
+                    <div className="flex-1 flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs whitespace-nowrap">
+                        {req.tipo === "orcamentos" && <Receipt className="h-3 w-3 mr-1" />}
+                        {req.tipo === "evidencia" && <FileText className="h-3 w-3 mr-1" />}
+                        {req.tipo === "justificativa" && <MessageSquare className="h-3 w-3 mr-1" />}
+                        {req.descricao}
+                      </Badge>
+                      {(req.tipo === "orcamentos" || req.tipo === "evidencia") && req.ativo && (
+                        <div className="flex items-center gap-1">
+                          <Label className="text-xs text-muted-foreground">Qtd mín:</Label>
+                          <Input
+                            type="number" min={1} className="h-7 w-16 text-xs"
+                            value={req.quantidade_minima}
+                            onChange={(e) => setRequisitos(prev => prev.map((r, i) => i === idx ? { ...r, quantidade_minima: parseInt(e.target.value) || 1 } : r))}
+                          />
+                        </div>
+                      )}
+                      {req.ativo && (
+                        <div className="flex items-center gap-1">
+                          <Label className="text-xs text-muted-foreground">Insumo:</Label>
+                          <Select value={req.insumo_id || "all"} onValueChange={(v) => setRequisitos(prev => prev.map((r, i) => i === idx ? { ...r, insumo_id: v === "all" ? "" : v } : r))}>
+                            <SelectTrigger className="h-7 text-xs w-40"><SelectValue placeholder="Todos" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos</SelectItem>
+                              {snapshotInsumos.map((i: any) => (
+                                <SelectItem key={i.id} value={i.id}>{i.codigo} - {i.nome}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <div className="flex gap-2 items-center">
+                  <Input
+                    placeholder="Outro requisito personalizado..."
+                    value={requisitoCustom}
+                    onChange={(e) => setRequisitoCustom(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Chat de comunicação */}
           {fichaAberta?.id && (
             <RevisaoChatPanel
               revisaoId={fichaAberta.id}
+              configId={fichaAberta.config_id}
               insumos={snapshotInsumos.map((i: any) => ({ id: i.id, nome: i.nome, codigo: i.codigo }))}
               tipoRemetente="diretoria"
             />
@@ -316,7 +410,7 @@ export default function FichaRevisaoDiretoria() {
             ) : (
               <>
                 <Button variant="outline" onClick={() => setModoRevisao(false)}>Cancelar</Button>
-                <Button variant="destructive" onClick={handleSolicitarRevisao} disabled={processando || apontamentos.length === 0}>
+                <Button variant="destructive" onClick={handleSolicitarRevisao} disabled={processando}>
                   <AlertTriangle className="h-4 w-4 mr-1" /> Enviar Revisão ({apontamentos.length} apontamentos)
                 </Button>
               </>
