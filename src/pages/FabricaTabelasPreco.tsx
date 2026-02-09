@@ -49,6 +49,7 @@ export default function FabricaTabelasPreco() {
   const [dialogManual, setDialogManual] = useState(false);
   const [dialogLimites, setDialogLimites] = useState(false);
   const [dialogOverrides, setDialogOverrides] = useState(false);
+  const [tabelaOverrides, setTabelaOverrides] = useState<any>(null);
   const [tabelaSelecionada, setTabelaSelecionada] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("lista");
 
@@ -402,7 +403,7 @@ export default function FabricaTabelasPreco() {
                               <Button variant="ghost" size="sm" onClick={() => handleGerarPrecos(tabela)}>
                                 <DollarSign className="h-4 w-4 mr-1" />Gerar
                               </Button>
-                              <Button variant="ghost" size="sm" onClick={() => { setTabelaSelecionada(tabela); setDialogOverrides(true); }}>
+                              <Button variant="ghost" size="sm" onClick={() => { setTabelaOverrides(tabela); setDialogOverrides(true); }}>
                                 <Layers className="h-4 w-4 mr-1" />Overrides
                               </Button>
                               <Button variant="ghost" size="sm" onClick={() => handleEditarTabela(tabela)}>
@@ -513,15 +514,15 @@ export default function FabricaTabelasPreco() {
         onOpenChange={setDialogLimites}
       />
       
-      {tabelaSelecionada && (
+      {tabelaOverrides && (
         <MarkupOverridesManager
           open={dialogOverrides}
           onOpenChange={(open) => {
             setDialogOverrides(open);
-            if (!open) setTabelaSelecionada(null);
+            if (!open) setTabelaOverrides(null);
           }}
-          tabelaId={tabelaSelecionada?.id}
-          tabelaNome={tabelaSelecionada?.nome}
+          tabelaId={tabelaOverrides.id}
+          tabelaNome={tabelaOverrides.nome}
         />
       )}
       <TourButton 
