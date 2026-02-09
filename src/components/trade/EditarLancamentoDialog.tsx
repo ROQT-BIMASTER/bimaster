@@ -26,7 +26,9 @@ import { ExpenseAttachments } from "@/components/events/ExpenseAttachments";
 import { TRADE_EXPENSE_CATEGORIES } from "./tradeExpenseCategories";
 import { useQuery } from "@tanstack/react-query";
 import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
-import { Building, Truck, Target, Loader2 } from "lucide-react";
+import { Building, Target, Loader2 } from "lucide-react";
+import { FornecedorCombobox } from "./FornecedorCombobox";
+import { LojaCombobox } from "./LojaCombobox";
 
 interface EditarLancamentoDialogProps {
   open: boolean;
@@ -81,22 +83,7 @@ export function EditarLancamentoDialog({
     enabled: open,
   });
 
-  // Buscar fornecedores
-  const { data: fornecedores = [] } = useQuery({
-    queryKey: ['edit-lancamento-fornecedores'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("fabrica_fornecedores")
-        .select("id, razao_social, nome_fantasia, cnpj")
-        .eq("ativo", true)
-        .order("razao_social")
-        .limit(500);
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 5 * 60 * 1000,
-    enabled: open,
-  });
+  // fornecedores query removed - handled by FornecedorCombobox
 
   useEffect(() => {
     if (open && entryId) {
@@ -184,13 +171,18 @@ export function EditarLancamentoDialog({
       // Resolver fornecedor
       let supplierName: string | null = null;
       let supplierDocument: string | null = null;
-      const selectedFornecedor = fornecedorId !== "none"
-        ? fornecedores.find(f => f.id === fornecedorId)
-        : null;
+      const hasFornecedor = fornecedorId !== "none";
 
-      if (selectedFornecedor) {
-        supplierName = selectedFornecedor.nome_fantasia || selectedFornecedor.razao_social || null;
-        supplierDocument = selectedFornecedor.cnpj || null;
+      if (hasFornecedor) {
+        const { data: fornData } = await supabase
+          .from("fabrica_fornecedores")
+          .select("razao_social, nome_fantasia, cnpj")
+          .eq("id", fornecedorId)
+          .single();
+        if (fornData) {
+          supplierName = fornData.nome_fantasia || fornData.razao_social || null;
+          supplierDocument = fornData.cnpj || null;
+        }
       }
 
       const { error } = await supabase
@@ -206,8 +198,8 @@ export function EditarLancamentoDialog({
           store_id: storeId !== "none" ? storeId : null,
           budget_id: budgetId !== "none" ? budgetId : null,
           campaign_id: campaignId !== "none" ? campaignId : null,
-          fornecedor_id: selectedFornecedor ? fornecedorId : null,
-          entity_type: selectedFornecedor ? "fornecedor" : null,
+          fornecedor_id: hasFornecedor ? fornecedorId : null,
+          entity_type: hasFornecedor ? "fornecedor" : null,
           supplier_name: supplierName,
           supplier_document: supplierDocument,
           empresa_id: selectedEmpresa?.empresa_id || null,
@@ -339,26 +331,11 @@ export function EditarLancamentoDialog({
             </div>
 
             {/* Fornecedor */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Truck className="h-4 w-4" />
-                Fornecedor
-              </Label>
-              <Select value={fornecedorId} onValueChange={setFornecedorId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o fornecedor (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum fornecedor</SelectItem>
-                  {fornecedores.map((forn: any) => (
-                    <SelectItem key={forn.id} value={forn.id}>
-                      {forn.nome_fantasia || forn.razao_social}
-                      {forn.cnpj ? ` (${forn.cnpj})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <FornecedorCombobox
+              value={fornecedorId}
+              onChange={setFornecedorId}
+              enabled={open}
+            />
 
             {/* Vinculações */}
             <div className="space-y-1 pt-2">
@@ -384,22 +361,11 @@ export function EditarLancamentoDialog({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Loja/PDV</Label>
-                <Select value={storeId} onValueChange={setStoreId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Opcional" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhuma loja</SelectItem>
-                    {stores.map((store) => (
-                      <SelectItem key={store.id} value={store.id}>
-                        {store.code} - {store.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <LojaCombobox
+                value={storeId}
+                onChange={setStoreId}
+                stores={stores}
+              />
               <div className="space-y-2">
                 <Label>Verba</Label>
                 <Select value={budgetId} onValueChange={setBudgetId}>
