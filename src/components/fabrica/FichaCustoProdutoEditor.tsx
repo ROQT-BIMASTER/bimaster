@@ -34,6 +34,7 @@ import { toast } from "sonner";
 
 import { FichaAprovacaoBanner } from "./FichaAprovacaoBanner";
 import { FichaApontamentosPanel } from "./FichaApontamentosPanel";
+import { RevisaoChatPanel } from "./RevisaoChatPanel";
 import type { StatusAprovacao, RevisaoItem, Revisao } from "@/hooks/useFichaRevisao";
 import { SendHorizonal } from "lucide-react";
 
@@ -429,6 +430,15 @@ export function FichaCustoProdutoEditor({
       {/* Apontamentos da diretoria */}
       {statusAprovacao === "revisao_solicitada" && apontamentos.length > 0 && (
         <FichaApontamentosPanel apontamentos={apontamentos} insumos={insumos} />
+      )}
+
+      {/* Chat de comunicação com a Diretoria */}
+      {revisaoAtiva?.id && (statusAprovacao === "revisao_solicitada" || statusAprovacao === "em_revisao") && (
+        <RevisaoChatPanel
+          revisaoId={revisaoAtiva.id}
+          insumos={insumos.map((i) => ({ id: i.id, nome: i.nome, codigo: i.codigo }))}
+          tipoRemetente="usuario"
+        />
       )}
 
       {/* Header do produto */}

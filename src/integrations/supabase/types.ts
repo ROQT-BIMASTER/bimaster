@@ -7853,6 +7853,47 @@ export type Database = {
           },
         ]
       }
+      fabrica_revisao_mensagens: {
+        Row: {
+          conteudo: string
+          created_at: string
+          id: string
+          insumo_id: string | null
+          revisao_id: string
+          tipo: string
+          usuario_id: string | null
+          usuario_nome: string
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          id?: string
+          insumo_id?: string | null
+          revisao_id: string
+          tipo?: string
+          usuario_id?: string | null
+          usuario_nome: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          insumo_id?: string | null
+          revisao_id?: string
+          tipo?: string
+          usuario_id?: string | null
+          usuario_nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_revisao_mensagens_revisao_id_fkey"
+            columns: ["revisao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ficha_custo_revisoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_roteiros_producao: {
         Row: {
           ativo: boolean | null
