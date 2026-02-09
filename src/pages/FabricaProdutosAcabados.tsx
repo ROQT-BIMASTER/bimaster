@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -23,17 +23,20 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle } from "lucide-react";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
 import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
 import { Link, useNavigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovoProdutoAcabadoDialog } from "@/components/fabrica/NovoProdutoAcabadoDialog";
 import { toast } from "sonner";
+import { useTour } from "@/components/tour/TourProvider";
+import { FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps } from "@/components/tour/tours/fabricaProdutosAcabadosTour";
 
 export default function FabricaProdutosAcabados() {
   const { hasPermission, loading: permLoading } = useScreenPermissions();
   const navigate = useNavigate();
+  const { startTour, hasSeenTour } = useTour();
   const [dialogNovo, setDialogNovo] = useState(false);
   const [produtoEdit, setProdutoEdit] = useState<any>(null);
   const [busca, setBusca] = useState("");
@@ -41,6 +44,15 @@ export default function FabricaProdutosAcabados() {
   const [filtroLinha, setFiltroLinha] = useState("none");
   const [agrupamentoAtivo, setAgrupamentoAtivo] = useState(false);
   const [agruparPor, setAgruparPor] = useState("marca");
+
+  useEffect(() => {
+    if (!permLoading && hasPermission && !hasSeenTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID)) {
+      const timer = setTimeout(() => {
+        startTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [permLoading, hasPermission]);
 
   const { data: produtos, isLoading, refetch } = useSupabaseQuery(
     ["fabrica-produtos-acabados"],
@@ -257,7 +269,7 @@ export default function FabricaProdutosAcabados() {
             {produto.origem === 'importado' ? 'Importado' : 'Nacional'}
           </Badge>
         </TableCell>
-        <TableCell>
+        <TableCell data-tour="pa-status-ficha">
           {fichasMap.has(produto.id) ? (
             <StatusAprovacaoBadge status={statusFicha as StatusAprovacao} />
           ) : (
@@ -335,7 +347,7 @@ export default function FabricaProdutosAcabados() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" data-tour="pa-header">
           <div>
             <h1 className="text-3xl font-bold">Produtos Acabados</h1>
             <p className="text-muted-foreground">
@@ -343,6 +355,20 @@ export default function FabricaProdutosAcabados() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => startTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps)}
+              title="Tour guiado"
+            >
+              <HelpCircle className="h-5 w-5" />
+            </Button>
+            <Button variant="outline" asChild data-tour="pa-revisao-btn">
+              <Link to="/dashboard/fabrica/revisao-fichas">
+                <ClipboardList className="h-4 w-4 mr-2" />
+                Revisões Solicitadas
+              </Link>
+            </Button>
             <Button variant="outline" asChild>
               <Link to="/dashboard/fabrica/produtos/importar">
                 <Upload className="h-4 w-4 mr-2" />
@@ -362,7 +388,7 @@ export default function FabricaProdutosAcabados() {
         </div>
 
         {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-5" data-tour="pa-kpis">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
@@ -426,7 +452,7 @@ export default function FabricaProdutosAcabados() {
         </div>
 
         {/* Barra de Filtros */}
-        <div className="bg-muted/30 rounded-lg border p-4 space-y-4">
+        <div className="bg-muted/30 rounded-lg border p-4 space-y-4" data-tour="pa-filtros">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Filter className="h-4 w-4" />
             Filtros
@@ -515,7 +541,7 @@ export default function FabricaProdutosAcabados() {
         </div>
 
         {/* Tabela */}
-        <Card>
+        <Card data-tour="pa-tabela">
           <CardContent className="pt-6">
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">
