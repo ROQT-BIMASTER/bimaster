@@ -1,60 +1,48 @@
 
-# Modo Foco: Municipios Inexplorados com Hierarquia e Mineracao
+# Hierarquia em Lotes por Data e Estado na tela de Leads Minerados
 
 ## O Que Sera Feito
 
-### 1. Botao "Modo Foco" no card Top 10 Oportunidades
+Adicionar um modo de visualizacao hierarquico na tela de Leads Minerados (tanto na pagina principal quanto no ResultsView do Modo Foco), agrupando os leads por **data de mineracao** e **estado (UF)**, usando componentes Accordion/Collapsible.
 
-Adicionar um botao no header do `MunicipiosOpportunityCard` que, ao clicar, abre um dialog/drawer em tela cheia (ou quase cheia) com todos os municipios inexplorados (status "virgem"), organizados em hierarquia de regioes.
-
-### 2. Dialog "Modo Foco" com hierarquia de regioes
-
-O dialog exibira todos os municipios inexplorados organizados em uma arvore colapsavel:
+### Estrutura da Hierarquia
 
 ```text
-Regiao Norte
-  AC - Acre
-    Municipio 1 (Pop: X | PIB/Capita: Y)  [Minerar]
-    Municipio 2 ...                         [Minerar]
-  AM - Amazonas
+07/02/2025 (32 leads)
+  ES - Espirito Santo (25 leads)
+    Distribuidora da Doda - (28) 99921-2131 - Rating 4.7  [Acoes]
+    Atacado Mix Capixaba - (98) 4227-4443 - Rating 4.0    [Acoes]
     ...
-Regiao Nordeste
-  BA - Bahia
+  MG - Minas Gerais (5 leads)
+    Cosmeticos do Vale - (31) 3846-7980 - Rating 4.6      [Acoes]
+    ...
+  AC - Acre (2 leads)
+    ...
+05/02/2025 (26 leads)
+  RJ - Rio de Janeiro (26 leads)
     ...
 ```
 
-- Cada regiao e um Accordion/Collapsible com contagem de municipios inexplorados
-- Dentro de cada regiao, agrupamento por UF (tambem colapsavel)
-- Cada municipio mostra: nome, populacao, PIB/Capita, microrregiao
-- Barra de busca no topo do dialog para filtrar municipios
-- KPIs resumidos no topo: total inexplorados, por regiao
+### Funcionalidades
 
-### 3. Botao "Minerar" por municipio
-
-Ao lado de cada municipio inexplorado, um botao "Minerar" que:
-- Abre um mini-dialog de confirmacao com campo de query pre-preenchido (ex: "distribuidora alimentos {cidade} {UF}")
-- Chama a Edge Function `google-places-search` existente, passando a cidade e UF
-- Mostra feedback de progresso e resultado (quantos leads encontrados)
-- Opcao de "Minerar em lote" selecionando multiplos municipios
-
-### 4. Busca de todos os municipios inexplorados
-
-Nova query no hook (ou query dedicada no dialog) que busca TODOS os municipios virgem sem limite de paginacao, agrupados por regiao e UF, usando a RPC existente `fn_get_municipios_intelligence` com `p_status: 'virgem'` e limite alto (5000+).
+1. **Toggle de visualizacao**: Botao para alternar entre "Lista" (tabela flat atual) e "Lotes" (hierarquia agrupada por data/UF)
+2. **Agrupamento por data**: Usa o campo `created_at` dos leads, formatando por dia (ex: "07/02/2025"). Cada grupo mostra a contagem de leads daquele lote
+3. **Sub-agrupamento por UF**: Dentro de cada data, leads agrupados por estado com contagem
+4. **Checkbox em todos os niveis**: Selecionar lote inteiro (data), estado inteiro, ou leads individuais
+5. **Mesmas acoes**: Qualificar, Descartar, Converter em Prospect continuam disponiveis tanto individualmente quanto em lote
+6. **Ordenacao**: Datas mais recentes primeiro, UFs em ordem alfabetica
 
 ## Arquivos Afetados
 
 | Arquivo | Alteracao |
 |---------|-----------|
-| `src/components/comercial/municipios/MunicipiosOpportunityCard.tsx` | Adicionar botao "Modo Foco" no header |
-| Novo: `src/components/comercial/municipios/ModoFocoDialog.tsx` | Dialog principal com hierarquia de regioes, busca, e botoes de mineracao |
-| `src/hooks/useMunicipiosIntelligence.ts` | Adicionar query para buscar todos os municipios virgem (sem limite de 10) |
-| `src/lib/constants/regioes.ts` | Reutilizar constantes de regioes/UFs existentes |
+| `src/components/comercial/municipios/ModoFocoDialog.tsx` | Adicionar toggle de view mode e logica de agrupamento no `ResultsView`, com Accordion por data e Collapsible por UF |
 
 ## Detalhes Tecnicos
 
-- O dialog usara `Dialog` do radix em tela grande (`max-w-5xl`)
-- A hierarquia sera construida com `Accordion` (regioes) e `Collapsible` (UFs) do radix
-- A busca de todos os municipios virgem usara a mesma RPC existente mas com `p_limit: 5000` e `p_offset: 0`
-- Os dados serao agrupados no frontend por `regiao_nome` e `uf_sigla` usando `REGIOES_UFS`
-- O botao "Minerar" reutiliza a logica de `useLeadMining` (chamada a `google-places-search`) passando `cidade` e `uf` como parametros
-- Mineracao em lote: selecionar varios municipios com checkboxes e disparar mineracao sequencial com barra de progresso
+- O agrupamento sera feito no frontend com `useMemo`, usando `date-fns/format` para agrupar `created_at` por dia
+- Estrutura: `Record<string, Record<string, LeadMinerado[]>>` onde a chave externa e a data formatada e a interna e a UF
+- Toggle entre modo "lista" (tabela atual) e modo "lotes" (hierarquia) usando um estado local `listMode: "table" | "batches"`
+- Accordion do radix para niveis de data, Collapsible para niveis de UF
+- Checkboxes em cada nivel propagam selecao para os filhos
+- KPIs e barra de acoes em lote permanecem inalterados no topo
