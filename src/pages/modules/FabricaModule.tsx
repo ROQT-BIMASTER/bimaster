@@ -87,8 +87,8 @@ const FabricaModule = () => {
       { title: "Fiscal NCM", to: "/dashboard/fabrica/fiscal", icon: Shield, color: "text-gray-600" },
     ],
     "Precificação": [
-      { title: "Tabelas de Preço", to: "/dashboard/fabrica/tabelas-preco", icon: DollarSign, color: "text-green-600" },
-      { title: "Aprovação de Preços", to: "/dashboard/fabrica/aprovacao-precos", icon: CheckCircle, color: "text-orange-600" },
+      { title: "Tabelas de Preço", to: "/dashboard/precos/tabelas", icon: DollarSign, color: "text-green-600" },
+      { title: "Aprovação de Preços", to: "/dashboard/precos/aprovacao", icon: CheckCircle, color: "text-orange-600" },
       { title: "Tabela de Impostos", to: "/dashboard/fabrica/tabela-impostos", icon: Calculator, color: "text-red-600" },
       { title: "Relatórios", to: "/dashboard/relatorios/competitivo", icon: BarChart3, color: "text-purple-600" },
     ],
