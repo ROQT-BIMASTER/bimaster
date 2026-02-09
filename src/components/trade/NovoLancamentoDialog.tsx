@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Target, Building, Truck, Loader2 } from "lucide-react";
+import { Plus, Target, Building, Loader2 } from "lucide-react";
+import { FornecedorCombobox } from "./FornecedorCombobox";
+import { LojaCombobox } from "./LojaCombobox";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { NovaLojaDialog } from "./NovaLojaDialog";
 import { NovaContaContabilDialog } from "./NovaContaContabilDialog";
@@ -94,22 +96,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     enabled: open,
   });
 
-  // Buscar fornecedores
-  const { data: fornecedores = [] } = useQuery({
-    queryKey: ['lancamento-fornecedores'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("fabrica_fornecedores")
-        .select("id, razao_social, nome_fantasia, cnpj")
-        .eq("ativo", true)
-        .order("razao_social")
-        .limit(500);
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 5 * 60 * 1000,
-    enabled: open,
-  });
+  // fornecedores query removed - handled by FornecedorCombobox
 
   useEffect(() => {
     if (open) {
@@ -195,16 +182,21 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         ue => ue.empresa_id.toString() === empresaId
       );
 
-      // Resolver fornecedor
+      // Resolver fornecedor - fetch fresh data if selected
       let supplierName: string | null = null;
       let supplierDocument: string | null = null;
-      const selectedFornecedor = fornecedorId !== "none" 
-        ? fornecedores.find(f => f.id === fornecedorId) 
-        : null;
+      const hasFornecedor = fornecedorId !== "none";
 
-      if (selectedFornecedor) {
-        supplierName = selectedFornecedor.nome_fantasia || selectedFornecedor.razao_social || null;
-        supplierDocument = selectedFornecedor.cnpj || null;
+      if (hasFornecedor) {
+        const { data: fornData } = await supabase
+          .from("fabrica_fornecedores")
+          .select("razao_social, nome_fantasia, cnpj")
+          .eq("id", fornecedorId)
+          .single();
+        if (fornData) {
+          supplierName = fornData.nome_fantasia || fornData.razao_social || null;
+          supplierDocument = fornData.cnpj || null;
+        }
       }
 
       const { data: inserted, error } = await supabase.from("trade_financial_entries").insert({
@@ -225,8 +217,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         created_by: user.id,
         empresa_id: selectedEmpresa?.empresa_id || null,
         empresa_nome: selectedEmpresa?.empresa.nome || null,
-        entity_type: selectedFornecedor ? "fornecedor" : null,
-        fornecedor_id: selectedFornecedor ? fornecedorId : null,
+        entity_type: hasFornecedor ? "fornecedor" : null,
+        fornecedor_id: hasFornecedor ? fornecedorId : null,
         supplier_name: supplierName,
         supplier_document: supplierDocument,
         attachments: attachments,
@@ -370,26 +362,11 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
           </div>
 
           {/* Fornecedor */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Truck className="h-4 w-4" />
-              Fornecedor
-            </Label>
-            <Select value={fornecedorId} onValueChange={setFornecedorId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o fornecedor (opcional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhum fornecedor</SelectItem>
-                {fornecedores.map((forn: any) => (
-                  <SelectItem key={forn.id} value={forn.id}>
-                    {forn.nome_fantasia || forn.razao_social}
-                    {forn.cnpj ? ` (${forn.cnpj})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <FornecedorCombobox
+            value={fornecedorId}
+            onChange={setFornecedorId}
+            enabled={open}
+          />
 
           {/* Seção: Vinculações */}
           <div className="space-y-1 pt-2">
@@ -421,27 +398,12 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
 
           <div className="grid grid-cols-2 gap-4">
             {/* Loja/PDV */}
-            <div className="space-y-2">
-              <Label>Loja/PDV</Label>
-              <div className="flex gap-2">
-                <Select value={storeId} onValueChange={setStoreId}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Opcional" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhuma loja</SelectItem>
-                    {stores.map((store) => (
-                      <SelectItem key={store.id} value={store.id}>
-                        {store.code} - {store.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" size="icon" onClick={() => setIsNovaLojaOpen(true)}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            <LojaCombobox
+              value={storeId}
+              onChange={setStoreId}
+              stores={stores}
+              onAddNew={() => setIsNovaLojaOpen(true)}
+            />
 
             {/* Verba */}
             <div className="space-y-2">
