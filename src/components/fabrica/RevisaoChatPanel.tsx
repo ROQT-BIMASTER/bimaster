@@ -38,9 +38,10 @@ interface Props {
   revisaoId: string;
   insumos?: InsumoRef[];
   tipoRemetente?: "usuario" | "diretoria";
+  insumosComApontamento?: Set<string>;
 }
 
-export function RevisaoChatPanel({ revisaoId, insumos = [], tipoRemetente = "usuario" }: Props) {
+export function RevisaoChatPanel({ revisaoId, insumos = [], tipoRemetente = "usuario", insumosComApontamento = new Set() }: Props) {
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
@@ -214,11 +215,17 @@ export function RevisaoChatPanel({ revisaoId, insumos = [], tipoRemetente = "usu
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Sem referência a insumo</SelectItem>
-                {insumos.map((i) => (
-                  <SelectItem key={i.id} value={i.id}>
-                    {i.codigo} - {i.nome}
-                  </SelectItem>
-                ))}
+                {insumos.map((i) => {
+                  const deveRevisar = insumosComApontamento.has(i.id);
+                  return (
+                    <SelectItem key={i.id} value={i.id}>
+                      <span className={deveRevisar ? "text-destructive font-semibold" : ""}>
+                        {i.codigo} - {i.nome}
+                        {deveRevisar && " — Revisar"}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           )}
