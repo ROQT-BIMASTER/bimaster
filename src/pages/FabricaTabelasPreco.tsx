@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3, HelpCircle, Shield, ListTodo } from "lucide-react";
+import { Plus, DollarSign, Package, TrendingUp, Edit, Eye, Trash2, BarChart3, List, Percent, Bell, Grid3X3, HelpCircle, Shield, ListTodo, Layers } from "lucide-react";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 import { NovaTabelaPrecoDialog } from "@/components/fabrica/NovaTabelaPrecoDialog";
@@ -29,6 +29,7 @@ import { AlertasPrecos } from "@/components/fabrica/AlertasPrecos";
 import { MatrizPrecosComparativa } from "@/components/fabrica/MatrizPrecosComparativa";
 import { ManualTabelasPrecoDialog } from "@/components/fabrica/ManualTabelasPrecoDialog";
 import { GerenciarLimitesPrecoDialog } from "@/components/fabrica/GerenciarLimitesPrecoDialog";
+import { MarkupOverridesManager } from "@/components/fabrica/MarkupOverridesManager";
 import { TarefasAjustePrecoPanel } from "@/components/fabrica/TarefasAjustePrecoPanel";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import { format } from "date-fns";
@@ -47,6 +48,7 @@ export default function FabricaTabelasPreco() {
   const [dialogReajuste, setDialogReajuste] = useState(false);
   const [dialogManual, setDialogManual] = useState(false);
   const [dialogLimites, setDialogLimites] = useState(false);
+  const [dialogOverrides, setDialogOverrides] = useState(false);
   const [tabelaSelecionada, setTabelaSelecionada] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("lista");
 
@@ -400,6 +402,9 @@ export default function FabricaTabelasPreco() {
                               <Button variant="ghost" size="sm" onClick={() => handleGerarPrecos(tabela)}>
                                 <DollarSign className="h-4 w-4 mr-1" />Gerar
                               </Button>
+                              <Button variant="ghost" size="sm" onClick={() => { setTabelaSelecionada(tabela); setDialogOverrides(true); }}>
+                                <Layers className="h-4 w-4 mr-1" />Overrides
+                              </Button>
                               <Button variant="ghost" size="sm" onClick={() => handleEditarTabela(tabela)}>
                                 <Edit className="h-4 w-4 mr-1" />Editar
                               </Button>
@@ -508,6 +513,17 @@ export default function FabricaTabelasPreco() {
         onOpenChange={setDialogLimites}
       />
       
+      {tabelaSelecionada && (
+        <MarkupOverridesManager
+          open={dialogOverrides}
+          onOpenChange={(open) => {
+            setDialogOverrides(open);
+            if (!open) setTabelaSelecionada(null);
+          }}
+          tabelaId={tabelaSelecionada?.id}
+          tabelaNome={tabelaSelecionada?.nome}
+        />
+      )}
       <TourButton 
         tourId={FABRICA_TABELAS_PRECO_TOUR_ID}
         tourSteps={fabricaTabelasPrecoTourSteps}

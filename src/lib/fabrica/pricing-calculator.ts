@@ -39,6 +39,17 @@ export interface PrecoProduto {
   preco_limitado?: boolean;
   preco_original_calculado?: number;
   motivo_limite?: string;
+  override_tipo?: 'linha' | 'produto' | null;
+}
+
+export interface MarkupOverride {
+  id: string;
+  tabela_id: string;
+  linha: string | null;
+  produto_id: string | null;
+  tipo_markup: string;
+  valor_markup: number;
+  ativo: boolean;
 }
 
 /**
@@ -399,8 +410,33 @@ export async function calcularPrecosProdutos(
           }
         });
       }
-    }
+   }
   }
+
+  // Buscar overrides de markup para esta tabela
+  const { data: overrides } = await supabase
+    .from('fabrica_markup_overrides')
+    .select('*')
+    .eq('tabela_id', tabelaId)
+    .eq('ativo', true);
+
+  // Buscar linhas dos produtos para matching de overrides por linha
+  const { data: produtosInfo } = await supabase
+    .from('fabrica_produtos')
+    .select('id, linha')
+    .in('id', produtosIds);
+
+  const produtoLinhaMap: Record<string, string | null> = {};
+  produtosInfo?.forEach(p => { produtoLinhaMap[p.id] = p.linha; });
+
+  // Indexar overrides
+  const overridesPorProduto: Record<string, MarkupOverride> = {};
+  const overridesPorLinha: Record<string, MarkupOverride> = {};
+  overrides?.forEach(o => {
+    const ov = o as unknown as MarkupOverride;
+    if (ov.produto_id) overridesPorProduto[ov.produto_id] = ov;
+    if (ov.linha && !ov.produto_id) overridesPorLinha[ov.linha] = ov;
+  });
 
   const resultados: PrecoProduto[] = [];
 
@@ -425,11 +461,28 @@ export async function calcularPrecosProdutos(
       custoBase = (await buscarPrecoTabelaBase(produtoId, tabela.tabela_base_id, opcoes.origem)) || 0;
     }
 
-    // Calcular preço com markup
-    const precoCalculado = calcularPrecoComMarkup(custoBase, {
+    // Determinar markup: override por produto > override por linha > markup da tabela
+    let markupConfig: MarkupConfig = {
       tipo: tabela.tipo_markup as MarkupConfig['tipo'],
       valor: tabela.valor_markup,
-    });
+    };
+    let overrideTipo: 'linha' | 'produto' | null = null;
+
+    if (overridesPorProduto[produtoId]) {
+      const ov = overridesPorProduto[produtoId];
+      markupConfig = { tipo: ov.tipo_markup as MarkupConfig['tipo'], valor: ov.valor_markup };
+      overrideTipo = 'produto';
+    } else {
+      const linha = produtoLinhaMap[produtoId];
+      if (linha && overridesPorLinha[linha]) {
+        const ov = overridesPorLinha[linha];
+        markupConfig = { tipo: ov.tipo_markup as MarkupConfig['tipo'], valor: ov.valor_markup };
+        overrideTipo = 'linha';
+      }
+    }
+
+    // Calcular preço com markup (override ou padrão)
+    const precoCalculado = calcularPrecoComMarkup(custoBase, markupConfig);
 
     // Aplicar limites de preço se configurados
     const limites = limitesMap[produtoId] || null;
@@ -446,6 +499,7 @@ export async function calcularPrecosProdutos(
       preco_limitado: resultadoLimite.limitado,
       preco_original_calculado: resultadoLimite.precoOriginal,
       motivo_limite: resultadoLimite.motivo,
+      override_tipo: overrideTipo,
     });
   }
 
