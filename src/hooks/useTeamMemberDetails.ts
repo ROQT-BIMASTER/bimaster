@@ -86,14 +86,30 @@ export function useTeamMemberDetails(teamMemberIds: string[]) {
     enabled: teamMemberIds.length > 0,
   });
 
-  // Combinar perfis + detalhes
+  // Buscar roles dos membros
+  const rolesQuery = useQuery({
+    queryKey: ["team-member-roles", teamMemberIds],
+    queryFn: async () => {
+      if (!teamMemberIds.length) return [];
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", teamMemberIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: teamMemberIds.length > 0,
+  });
+
+  // Combinar perfis + detalhes + roles
   const members: TeamMemberWithProfile[] = (profilesQuery.data || []).map((profile) => {
     const details = (detailsQuery.data || []).find((d) => d.user_id === profile.id) || null;
+    const roleEntry = (rolesQuery.data || []).find((r) => r.user_id === profile.id);
     return {
       user_id: profile.id,
       profile_nome: profile.nome || profile.email || "Sem nome",
       profile_email: profile.email || "",
-      profile_role: null,
+      profile_role: roleEntry?.role || null,
       profile_avatar_url: profile.avatar_url,
       details,
       cadastro_completo: isCadastroCompleto(details),
@@ -146,8 +162,8 @@ export function useTeamMemberDetails(teamMemberIds: string[]) {
 
   return {
     members,
-    isLoading: profilesQuery.isLoading || detailsQuery.isLoading,
-    isError: profilesQuery.isError || detailsQuery.isError,
+    isLoading: profilesQuery.isLoading || detailsQuery.isLoading || rolesQuery.isLoading,
+    isError: profilesQuery.isError || detailsQuery.isError || rolesQuery.isError,
     upsertMember: upsertMutation.mutate,
     isUpserting: upsertMutation.isPending,
     refetch: () => {

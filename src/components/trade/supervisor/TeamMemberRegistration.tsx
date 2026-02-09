@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Download, Edit, CheckCircle2, AlertCircle, Users } from "lucide-react";
+import { Search, Download, Edit, CheckCircle2, AlertCircle, Users, Crown, Star, UserCheck, Target, User } from "lucide-react";
 import { formatCPF, formatPhone } from "@/lib/formatters";
 import { exportArrayToExcel } from "@/lib/excel-utils";
 import { format } from "date-fns";
@@ -25,6 +25,24 @@ import {
 } from "@/hooks/useTeamMemberDetails";
 import type { TeamMemberFormData } from "@/lib/validations/teamMember";
 
+const ROLE_ORDER: Record<string, number> = {
+  admin: 0,
+  gerente: 1,
+  supervisor: 2,
+  coordenador: 3,
+  vendedor: 4,
+  promotor: 5,
+};
+
+const ROLE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  admin: { label: "Administrador", icon: <Crown className="h-4 w-4" />, color: "text-amber-500" },
+  gerente: { label: "Gerente", icon: <Star className="h-4 w-4" />, color: "text-purple-500" },
+  supervisor: { label: "Supervisor", icon: <UserCheck className="h-4 w-4" />, color: "text-blue-500" },
+  coordenador: { label: "Coordenador", icon: <Users className="h-4 w-4" />, color: "text-cyan-500" },
+  vendedor: { label: "Vendedor", icon: <Target className="h-4 w-4" />, color: "text-green-500" },
+  promotor: { label: "Promotor", icon: <User className="h-4 w-4" />, color: "text-orange-500" },
+};
+
 interface TeamMemberRegistrationProps {
   teamMemberIds: string[];
   isLoadingTeam: boolean;
@@ -32,9 +50,16 @@ interface TeamMemberRegistrationProps {
 
 function maskCPF(cpf: string): string {
   const formatted = formatCPF(cpf);
-  // 000.***.**0-00 → mostra primeiro 3, último 2 antes do dígito
   return formatted.replace(/(\d{3})\.(\d{3})\.(\d{3})-(\d{2})/, "$1.***.***-$4");
 }
+
+type RoleGroup = {
+  role: string;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+  members: TeamMemberWithProfile[];
+};
 
 export function TeamMemberRegistration({
   teamMemberIds,
@@ -57,6 +82,32 @@ export function TeamMemberRegistration({
         m.details?.nome_completo?.toLowerCase().includes(term)
     );
   }, [members, searchTerm]);
+
+  const roleGroups = useMemo(() => {
+    const groups = new Map<string, TeamMemberWithProfile[]>();
+    filteredMembers.forEach((m) => {
+      const role = m.profile_role || "vendedor";
+      if (!groups.has(role)) groups.set(role, []);
+      groups.get(role)!.push(m);
+    });
+
+    const result: RoleGroup[] = [];
+    const sortedRoles = Array.from(groups.keys()).sort(
+      (a, b) => (ROLE_ORDER[a] ?? 99) - (ROLE_ORDER[b] ?? 99)
+    );
+
+    for (const role of sortedRoles) {
+      const config = ROLE_CONFIG[role] || { label: role, icon: <User className="h-4 w-4" />, color: "text-muted-foreground" };
+      result.push({
+        role,
+        label: config.label,
+        icon: config.icon,
+        color: config.color,
+        members: groups.get(role)!.sort((a, b) => a.profile_nome.localeCompare(b.profile_nome)),
+      });
+    }
+    return result;
+  }, [filteredMembers]);
 
   const totalCompletos = members.filter((m) => m.cadastro_completo).length;
   const totalPendentes = members.length - totalCompletos;
@@ -151,8 +202,8 @@ export function TeamMemberRegistration({
             />
           </div>
 
-          {/* Table */}
-          {filteredMembers.length === 0 ? (
+          {/* Table grouped by role */}
+          {roleGroups.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               {searchTerm ? "Nenhum membro encontrado para esta busca." : "Nenhum membro na equipe."}
             </div>
@@ -171,67 +222,84 @@ export function TeamMemberRegistration({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMembers.map((member) => (
-                    <TableRow key={member.user_id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={member.profile_avatar_url || undefined} />
-                            <AvatarFallback className="text-xs">
-                              {(member.details?.nome_completo || member.profile_nome || "?")
-                                .split(" ")
-                                .map((n) => n[0])
-                                .slice(0, 2)
-                                .join("")
-                                .toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium text-sm">
-                              {member.details?.nome_completo || member.profile_nome}
-                            </p>
-                            <p className="text-xs text-muted-foreground hidden sm:block">
-                              {member.profile_email}
-                            </p>
+                  {roleGroups.map((group) => (
+                    <>
+                      {/* Role group header */}
+                      <TableRow key={`header-${group.role}`} className="bg-muted/40 hover:bg-muted/40">
+                        <TableCell colSpan={7} className="py-2">
+                          <div className="flex items-center gap-2">
+                            <span className={group.color}>{group.icon}</span>
+                            <span className="font-semibold text-sm">{group.label}</span>
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                              {group.members.length}
+                            </Badge>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">
-                        {member.details?.equipe_comercial || "—"}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-sm font-mono">
-                        {member.details?.cpf ? maskCPF(member.details.cpf) : "—"}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">
-                        {member.details?.whatsapp ? formatPhone(member.details.whatsapp) : "—"}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">
-                        {member.details?.tamanho_camiseta || "—"}
-                      </TableCell>
-                      <TableCell>
-                        {member.cadastro_completo ? (
-                          <Badge variant="default" className="text-xs">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Completo
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Pendente
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(member)}
-                          title="Editar cadastro"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                        </TableCell>
+                      </TableRow>
+                      {/* Members in this group */}
+                      {group.members.map((member) => (
+                        <TableRow key={member.user_id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3 pl-4">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={member.profile_avatar_url || undefined} />
+                                <AvatarFallback className="text-xs">
+                                  {(member.details?.nome_completo || member.profile_nome || "?")
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .slice(0, 2)
+                                    .join("")
+                                    .toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium text-sm">
+                                  {member.details?.nome_completo || member.profile_nome}
+                                </p>
+                                <p className="text-xs text-muted-foreground hidden sm:block">
+                                  {member.profile_email}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell text-sm">
+                            {member.details?.equipe_comercial || "—"}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell text-sm font-mono">
+                            {member.details?.cpf ? maskCPF(member.details.cpf) : "—"}
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell text-sm">
+                            {member.details?.whatsapp ? formatPhone(member.details.whatsapp) : "—"}
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell text-sm">
+                            {member.details?.tamanho_camiseta || "—"}
+                          </TableCell>
+                          <TableCell>
+                            {member.cadastro_completo ? (
+                              <Badge variant="default" className="text-xs">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Completo
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Pendente
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(member)}
+                              title="Editar cadastro"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </>
                   ))}
                 </TableBody>
               </Table>
