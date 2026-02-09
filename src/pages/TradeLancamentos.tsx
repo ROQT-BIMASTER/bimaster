@@ -23,6 +23,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, FileText, CheckCircle2, FileUp } from "lucide-react";
+import { TRADE_EXPENSE_CATEGORIES } from "@/components/trade/tradeExpenseCategories";
 import { format } from "date-fns";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { AdicionarEvidenciaDialog } from "@/components/trade/AdicionarEvidenciaDialog";
@@ -206,8 +207,9 @@ export default function TradeLancamentos() {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Conta</TableHead>
-                  <TableHead>Loja</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead className="text-right">Valor Previsto</TableHead>
+                  <TableHead className="text-right">Valor Realizado</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -234,13 +236,20 @@ export default function TradeLancamentos() {
                       )}
                     </TableCell>
                     <TableCell className="text-sm">
-                      {entry.store ? (
-                        <span>
-                          {entry.store.code} - {entry.store.name}
-                        </span>
+                      {entry.category ? (
+                        <Badge variant="outline" className="text-xs">
+                          {TRADE_EXPENSE_CATEGORIES.find(c => c.value === entry.category)?.label || entry.category}
+                        </Badge>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right text-sm text-muted-foreground">
+                      {entry.valor_previsto ? (
+                        <>R$ {parseFloat(entry.valor_previsto).toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2, maximumFractionDigits: 2,
+                        })}</>
+                      ) : "-"}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       R$ {parseFloat(entry.amount).toLocaleString("pt-BR", {

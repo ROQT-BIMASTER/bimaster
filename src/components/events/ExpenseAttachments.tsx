@@ -18,6 +18,7 @@ interface ExpenseAttachmentsProps {
   attachments: Attachment[];
   onAttachmentsChange: (attachments: Attachment[]) => void;
   readOnly?: boolean;
+  bucket?: string;
 }
 
 export function ExpenseAttachments({
@@ -25,6 +26,7 @@ export function ExpenseAttachments({
   attachments,
   onAttachmentsChange,
   readOnly = false,
+  bucket = "event-expense-docs",
 }: ExpenseAttachmentsProps) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +50,7 @@ export function ExpenseAttachments({
         const fileName = `${expenseId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
-          .from("event-expense-docs")
+          .from(bucket)
           .upload(fileName, file);
 
         if (uploadError) {
@@ -58,7 +60,7 @@ export function ExpenseAttachments({
         }
 
         const { data: urlData } = supabase.storage
-          .from("event-expense-docs")
+          .from(bucket)
           .getPublicUrl(fileName);
 
         newAttachments.push({
@@ -91,10 +93,10 @@ export function ExpenseAttachments({
     
     try {
       // Extract path from URL
-      const urlParts = attachment.url.split("/event-expense-docs/");
+      const urlParts = attachment.url.split(`/${bucket}/`);
       if (urlParts.length > 1) {
         const path = urlParts[1];
-        await supabase.storage.from("event-expense-docs").remove([path]);
+        await supabase.storage.from(bucket).remove([path]);
       }
       
       const updatedAttachments = attachments.filter((_, i) => i !== index);

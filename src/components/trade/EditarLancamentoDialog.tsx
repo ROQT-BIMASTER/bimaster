@@ -20,8 +20,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, X } from "lucide-react";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
+import { Separator } from "@/components/ui/separator";
+import { ExpenseAttachments } from "@/components/events/ExpenseAttachments";
+import { TRADE_EXPENSE_CATEGORIES } from "./tradeExpenseCategories";
 
 interface EditarLancamentoDialogProps {
   open: boolean;
@@ -46,14 +48,15 @@ export function EditarLancamentoDialog({
   const [entryType, setEntryType] = useState("expense");
   const [accountId, setAccountId] = useState("");
   const [amount, setAmount] = useState("");
+  const [valorPrevisto, setValorPrevisto] = useState("");
+  const [category, setCategory] = useState("none");
   const [description, setDescription] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [storeId, setStoreId] = useState("");
   const [budgetId, setBudgetId] = useState("");
   const [notes, setNotes] = useState("");
   const [documentUrl, setDocumentUrl] = useState("");
-  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [attachments, setAttachments] = useState<any[]>([]);
 
   useEffect(() => {
     if (open && entryId) {
@@ -102,68 +105,35 @@ export function EditarLancamentoDialog({
       setEntryType(data.entry_type);
       setAccountId(data.account_id || "");
       setAmount(data.amount.toString());
+      setValorPrevisto(data.valor_previsto ? data.valor_previsto.toString() : "");
+      setCategory(data.category || "none");
       setDescription(data.description || "");
       setReferenceNumber(data.reference_number || "");
       setStoreId(data.store_id || "");
       setBudgetId(data.budget_id || "");
       setDocumentUrl(data.document_url || "");
       
-      // Extrair fotos das observações se existirem
-      const notesText = data.notes || "";
-      const photoSection = notesText.split("Fotos/Evidências:")[1];
-      if (photoSection) {
-        const urls = photoSection
-          .split("\n")
-          .filter(line => line.trim().match(/^\d+\.\s+https?:\/\//))
-          .map(line => line.replace(/^\d+\.\s+/, "").trim());
-        setUploadedPhotos(urls);
-        setNotes(notesText.split("Fotos/Evidências:")[0].trim());
+      // Load structured attachments
+      const savedAttachments = data.attachments;
+      if (Array.isArray(savedAttachments) && savedAttachments.length > 0) {
+        setAttachments(savedAttachments as any[]);
+        setNotes(data.notes || "");
       } else {
-        setNotes(notesText);
-        setUploadedPhotos([]);
+        // Legacy: extract photos from notes
+        const notesText = data.notes || "";
+        const photoSection = notesText.split("Fotos/Evidências:")[1];
+        if (photoSection) {
+          setNotes(notesText.split("Fotos/Evidências:")[0].trim());
+        } else {
+          setNotes(notesText);
+        }
+        setAttachments([]);
       }
     } catch (error) {
       toast.error(getSafeErrorMessage(error));
     } finally {
       setLoadingData(false);
     }
-  };
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    setUploading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from("trade-photos")
-          .upload(fileName, file);
-
-        if (uploadError) throw uploadError;
-
-        // Retornar apenas o caminho (path) por segurança
-        return fileName;
-      });
-
-      const urls = await Promise.all(uploadPromises);
-      setUploadedPhotos([...uploadedPhotos, ...urls]);
-      toast.success(`${urls.length} foto(s) enviada(s) com sucesso`);
-    } catch (error) {
-      toast.error(getSafeErrorMessage(error));
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const removePhoto = (urlToRemove: string) => {
-    setUploadedPhotos(uploadedPhotos.filter(url => url !== urlToRemove));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -181,12 +151,6 @@ export function EditarLancamentoDialog({
 
     setLoading(true);
     try {
-      let finalNotes = notes.trim();
-      if (uploadedPhotos.length > 0) {
-        const photosSection = `\n\nFotos/Evidências:\n${uploadedPhotos.map((url, i) => `${i + 1}. ${url}`).join('\n')}`;
-        finalNotes = finalNotes ? finalNotes + photosSection : photosSection.trim();
-      }
-
       const { error } = await supabase
         .from("trade_financial_entries")
         .update({
@@ -194,12 +158,15 @@ export function EditarLancamentoDialog({
           account_id: accountId,
           entry_type: entryType,
           amount: parseFloat(amount),
+          valor_previsto: valorPrevisto ? parseFloat(valorPrevisto) : null,
+          category: category !== "none" ? category : null,
           description: description.trim(),
           reference_number: referenceNumber.trim() || null,
           store_id: storeId || null,
           budget_id: budgetId || null,
-          notes: finalNotes,
+          notes: notes.trim() || null,
           document_url: documentUrl.trim() || null,
+          attachments: attachments,
           approval_status: "pending",
           rejected_reason: null,
         })
@@ -233,6 +200,12 @@ export function EditarLancamentoDialog({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* ===== SEÇÃO: Dados Gerais ===== */}
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados Gerais</h4>
+              <Separator />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="entry_date">Data *</Label>
@@ -279,29 +252,22 @@ export function EditarLancamentoDialog({
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">Valor (R$) *</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  placeholder="0,00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="reference_number">Nº Referência</Label>
-                <Input
-                  id="reference_number"
-                  placeholder="DOC-2024-001"
-                  value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value)}
-                />
-              </div>
+            {/* Categoria */}
+            <div className="space-y-2">
+              <Label htmlFor="category">Categoria</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Selecione a categoria (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma categoria</SelectItem>
+                  {TRADE_EXPENSE_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -314,6 +280,51 @@ export function EditarLancamentoDialog({
                 onChange={(e) => setDescription(e.target.value)}
                 required
               />
+            </div>
+
+            {/* ===== SEÇÃO: Financeiro ===== */}
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Financeiro</h4>
+              <Separator />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="valor_previsto">Valor Previsto (R$)</Label>
+                <Input
+                  id="valor_previsto"
+                  type="number"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={valorPrevisto}
+                  onChange={(e) => setValorPrevisto(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="amount">Valor Realizado (R$) *</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="reference_number">Nº Referência</Label>
+                <Input
+                  id="reference_number"
+                  placeholder="DOC-2024-001"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -350,6 +361,12 @@ export function EditarLancamentoDialog({
               </div>
             </div>
 
+            {/* ===== SEÇÃO: Observações e Anexos ===== */}
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Observações e Anexos</h4>
+              <Separator />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="notes">Observações</Label>
               <Textarea
@@ -372,51 +389,15 @@ export function EditarLancamentoDialog({
               />
             </div>
 
+            {/* Anexos estruturados */}
             <div className="space-y-2">
-              <Label>Fotos/Evidências</Label>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={uploading}
-                  onClick={() => document.getElementById("photo-upload-edit")?.click()}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {uploading ? "Enviando..." : "Adicionar Fotos"}
-                </Button>
-                <input
-                  id="photo-upload-edit"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                />
-                <span className="text-sm text-muted-foreground">
-                  {uploadedPhotos.length} foto(s)
-                </span>
-              </div>
-              
-              {uploadedPhotos.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {uploadedPhotos.map((url, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={url}
-                        alt={`Evidência ${index + 1}`}
-                        className="w-full h-20 object-cover rounded border"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(url)}
-                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <Label>Documentos / Evidências</Label>
+              <ExpenseAttachments
+                expenseId={entryId}
+                attachments={attachments}
+                onAttachmentsChange={setAttachments}
+                bucket="trade-expense-docs"
+              />
             </div>
 
             <DialogFooter>

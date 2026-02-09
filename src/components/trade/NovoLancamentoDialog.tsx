@@ -21,13 +21,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Upload, X, Target, Building, Users, Truck, Search } from "lucide-react";
+import { Plus, Target, Building, Users, Truck, Search } from "lucide-react";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { NovaLojaDialog } from "./NovaLojaDialog";
 import { useQuery } from "@tanstack/react-query";
 import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
 import { ExpenseReceiptScanner } from "@/components/ai/ExpenseReceiptScanner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
+import { ExpenseAttachments } from "@/components/events/ExpenseAttachments";
+import { TRADE_EXPENSE_CATEGORIES } from "./tradeExpenseCategories";
 
 interface NovoLancamentoDialogProps {
   onSuccess: () => void;
@@ -47,16 +50,20 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [entryType, setEntryType] = useState("expense");
   const [accountId, setAccountId] = useState("");
   const [amount, setAmount] = useState("");
+  const [valorPrevisto, setValorPrevisto] = useState("");
+  const [category, setCategory] = useState("none");
   const [description, setDescription] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [storeId, setStoreId] = useState("");
   const [budgetId, setBudgetId] = useState("");
   const [notes, setNotes] = useState("");
   const [documentUrl, setDocumentUrl] = useState("");
-  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [campaignId, setCampaignId] = useState("none");
   const [empresaId, setEmpresaId] = useState("");
+  
+  // Attachments (structured)
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [tempEntryId] = useState(() => crypto.randomUUID());
   
   // Entity type: cliente or fornecedor
   const [entityType, setEntityType] = useState<"none" | "cliente" | "fornecedor">("none");
@@ -180,41 +187,31 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const moveAttachmentsToFinalPath = async (finalEntryId: string) => {
+    if (attachments.length === 0) return attachments;
 
-    setUploading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+    const movedAttachments = [];
+    for (const att of attachments) {
+      // Extract the temp path from URL
+      const urlParts = att.url.split("/trade-expense-docs/");
+      if (urlParts.length > 1) {
+        const oldPath = urlParts[1];
+        const fileName = oldPath.split("/").pop();
+        const newPath = `${finalEntryId}/${fileName}`;
 
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
-        const { error: uploadError, data } = await supabase.storage
-          .from("trade-photos")
-          .upload(fileName, file);
-
-        if (uploadError) throw uploadError;
-
-        // Retornar apenas o caminho (path) por segurança
-        return fileName;
-      });
-
-      const urls = await Promise.all(uploadPromises);
-      setUploadedPhotos([...uploadedPhotos, ...urls]);
-      toast.success(`${urls.length} foto(s) enviada(s) com sucesso`);
-    } catch (error) {
-      toast.error(getSafeErrorMessage(error));
-    } finally {
-      setUploading(false);
+        try {
+          await supabase.storage.from("trade-expense-docs").move(oldPath, newPath);
+          const { data: urlData } = supabase.storage.from("trade-expense-docs").getPublicUrl(newPath);
+          movedAttachments.push({ ...att, url: urlData.publicUrl });
+        } catch {
+          // If move fails, keep original
+          movedAttachments.push(att);
+        }
+      } else {
+        movedAttachments.push(att);
+      }
     }
-  };
-
-  const removePhoto = (urlToRemove: string) => {
-    setUploadedPhotos(uploadedPhotos.filter(url => url !== urlToRemove));
+    return movedAttachments;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -235,13 +232,6 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Combinar URLs de fotos com observações se houver fotos
-      let finalNotes = notes.trim();
-      if (uploadedPhotos.length > 0) {
-        const photosSection = `\n\nFotos/Evidências:\n${uploadedPhotos.map((url, i) => `${i + 1}. ${url}`).join('\n')}`;
-        finalNotes = finalNotes ? finalNotes + photosSection : photosSection.trim();
-      }
-
       // Obter empresa selecionada
       const selectedEmpresa = userEmpresas.find(
         ue => ue.empresa_id.toString() === empresaId
@@ -261,17 +251,19 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         supplierDocument = cli?.cnpj || null;
       }
 
-      const { error } = await supabase.from("trade_financial_entries").insert({
+      const { data: inserted, error } = await supabase.from("trade_financial_entries").insert({
         entry_date: entryDate,
         account_id: accountId,
         entry_type: entryType,
         amount: parseFloat(amount),
+        valor_previsto: valorPrevisto ? parseFloat(valorPrevisto) : null,
+        category: category !== "none" ? category : null,
         description: description.trim(),
         reference_number: referenceNumber.trim() || null,
         store_id: storeId || null,
         budget_id: budgetId || null,
         campaign_id: campaignId && campaignId !== "none" ? campaignId : null,
-        notes: finalNotes,
+        notes: notes.trim() || null,
         document_url: documentUrl.trim() || null,
         status: "pending",
         approval_status: "pending",
@@ -283,9 +275,18 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         fornecedor_id: entityType === "fornecedor" && fornecedorId ? fornecedorId : null,
         supplier_name: supplierName,
         supplier_document: supplierDocument,
-      });
+        attachments: attachments,
+      }).select("id").single();
 
       if (error) throw error;
+
+      // Move attachments to final path
+      if (inserted && attachments.length > 0) {
+        const finalAttachments = await moveAttachmentsToFinalPath(inserted.id);
+        await supabase.from("trade_financial_entries")
+          .update({ attachments: finalAttachments })
+          .eq("id", inserted.id);
+      }
 
       toast.success("Lançamento criado! Aguardando aprovação.");
       // Reset form
@@ -293,6 +294,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       setEntryType("expense");
       setAccountId("");
       setAmount("");
+      setValorPrevisto("");
+      setCategory("none");
       setDescription("");
       setReferenceNumber("");
       setStoreId("");
@@ -302,6 +305,11 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       setClienteId("");
       setFornecedorId("");
       setEntitySearch("");
+      setNotes("");
+      setDocumentUrl("");
+      setAttachments([]);
+      setOpen(false);
+      onSuccess();
     } catch (error) {
       toast.error(getSafeErrorMessage(error));
     } finally {
@@ -334,6 +342,12 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
               if (fields.emission_date) setEntryDate(fields.emission_date);
             }}
           />
+
+          {/* ===== SEÇÃO: Dados Gerais ===== */}
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados Gerais</h4>
+            <Separator />
+          </div>
 
           {/* Seletor de Filial */}
           <div className="space-y-2">
@@ -417,29 +431,22 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount">Valor (R$) *</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                placeholder="0,00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="reference_number">Nº Referência</Label>
-              <Input
-                id="reference_number"
-                placeholder="DOC-2024-001"
-                value={referenceNumber}
-                onChange={(e) => setReferenceNumber(e.target.value)}
-              />
-            </div>
+          {/* Categoria */}
+          <div className="space-y-2">
+            <Label htmlFor="category">Categoria</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger id="category">
+                <SelectValue placeholder="Selecione a categoria (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhuma categoria</SelectItem>
+                {TRADE_EXPENSE_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -451,6 +458,49 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
+            />
+          </div>
+
+          {/* ===== SEÇÃO: Financeiro ===== */}
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Financeiro</h4>
+            <Separator />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="valor_previsto">Valor Previsto (R$)</Label>
+              <Input
+                id="valor_previsto"
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={valorPrevisto}
+                onChange={(e) => setValorPrevisto(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="amount">Valor Realizado (R$) *</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reference_number">Nº Referência</Label>
+            <Input
+              id="reference_number"
+              placeholder="DOC-2024-001"
+              value={referenceNumber}
+              onChange={(e) => setReferenceNumber(e.target.value)}
             />
           </div>
 
@@ -506,6 +556,12 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
                 </Button>
               </div>
             </div>
+          </div>
+
+          {/* ===== SEÇÃO: Entidade ===== */}
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Entidade</h4>
+            <Separator />
           </div>
 
           {/* Seletor de Cliente / Fornecedor */}
@@ -620,6 +676,12 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
             </p>
           </div>
 
+          {/* ===== SEÇÃO: Observações e Anexos ===== */}
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Observações e Anexos</h4>
+            <Separator />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="notes">Observações</Label>
             <Textarea
@@ -645,51 +707,15 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
             </p>
           </div>
 
+          {/* Anexos estruturados */}
           <div className="space-y-2">
-            <Label>Fotos/Evidências</Label>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={uploading}
-                onClick={() => document.getElementById("photo-upload")?.click()}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploading ? "Enviando..." : "Adicionar Fotos"}
-              </Button>
-              <input
-                id="photo-upload"
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handlePhotoUpload}
-              />
-              <span className="text-sm text-muted-foreground">
-                {uploadedPhotos.length} foto(s)
-              </span>
-            </div>
-            
-            {uploadedPhotos.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 mt-2">
-                {uploadedPhotos.map((url, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={url}
-                      alt={`Evidência ${index + 1}`}
-                      className="w-full h-20 object-cover rounded border"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(url)}
-                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Label>Documentos / Evidências</Label>
+            <ExpenseAttachments
+              expenseId={tempEntryId}
+              attachments={attachments}
+              onAttachmentsChange={setAttachments}
+              bucket="trade-expense-docs"
+            />
           </div>
 
           <DialogFooter>
@@ -697,7 +723,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              Criar Lançamento
+              {loading ? "Criando..." : "Criar Lançamento"}
             </Button>
           </DialogFooter>
         </form>
@@ -977,9 +1003,9 @@ function NovaVerbaDialog({ open, onOpenChange, onSuccess }: NovaVerbaDialogProps
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="budget_amount">Valor Total (R$) *</Label>
+              <Label htmlFor="budget_total">Valor Total (R$) *</Label>
               <Input
-                id="budget_amount"
+                id="budget_total"
                 type="number"
                 step="0.01"
                 value={formData.total_amount}
@@ -996,7 +1022,7 @@ function NovaVerbaDialog({ open, onOpenChange, onSuccess }: NovaVerbaDialogProps
               id="budget_name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Ex: Verba Marketing Q1"
+              placeholder="Ex: Verba Trade Q1 2024"
               required
             />
           </div>
@@ -1032,7 +1058,7 @@ function NovaVerbaDialog({ open, onOpenChange, onSuccess }: NovaVerbaDialogProps
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Informações adicionais..."
-              rows={2}
+              rows={3}
             />
           </div>
 

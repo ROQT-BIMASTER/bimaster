@@ -16146,9 +16146,11 @@ export type Database = {
           approval_status: string | null
           approved_at: string | null
           approved_by: string | null
+          attachments: Json | null
           bank_account_id: string | null
           budget_id: string | null
           campaign_id: string | null
+          category: string | null
           cliente_id: string | null
           created_at: string | null
           created_by: string | null
@@ -16176,6 +16178,7 @@ export type Database = {
           supplier_document: string | null
           supplier_name: string | null
           updated_at: string | null
+          valor_previsto: number | null
         }
         Insert: {
           account_id: string
@@ -16183,9 +16186,11 @@ export type Database = {
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          attachments?: Json | null
           bank_account_id?: string | null
           budget_id?: string | null
           campaign_id?: string | null
+          category?: string | null
           cliente_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -16213,6 +16218,7 @@ export type Database = {
           supplier_document?: string | null
           supplier_name?: string | null
           updated_at?: string | null
+          valor_previsto?: number | null
         }
         Update: {
           account_id?: string
@@ -16220,9 +16226,11 @@ export type Database = {
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          attachments?: Json | null
           bank_account_id?: string | null
           budget_id?: string | null
           campaign_id?: string | null
+          category?: string | null
           cliente_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -16250,6 +16258,7 @@ export type Database = {
           supplier_document?: string | null
           supplier_name?: string | null
           updated_at?: string | null
+          valor_previsto?: number | null
         }
         Relationships: [
           {
