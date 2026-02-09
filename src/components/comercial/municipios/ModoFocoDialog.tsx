@@ -20,11 +20,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useLeadMining, LeadMinerado } from "@/hooks/useLeadMining";
 import { REGIOES_UFS } from "@/lib/constants/regioes";
+import { formatLocalDate, getDateKey } from "@/utils/dateUtils";
 import {
   Search, Pickaxe, ChevronRight, Users, MapPin,
   Globe, Loader2, CheckCircle2, Star, Phone, Copy,
   ExternalLink, MoreHorizontal, Eye, UserPlus, CheckCircle,
-  Ban, Sparkles, XCircle, ArrowLeft,
+  Ban, Sparkles, XCircle, ArrowLeft, List, Layers, Calendar,
 } from "lucide-react";
 import type { MunicipioIntelligence } from "@/hooks/useMunicipiosIntelligence";
 
@@ -480,6 +481,10 @@ function HierarchyView({
 }
 
 // ─── Results View (leads table) ────────────────────────────────────
+type ListMode = "table" | "batches";
+
+type GroupedByDateUF = Record<string, Record<string, LeadMinerado[]>>;
+
 interface ResultsViewProps {
   leads: LeadMinerado[];
   leadsLoading: boolean;
@@ -503,6 +508,52 @@ function ResultsView({
   updateStatus, convertToProspect, renderStars, copyPhone,
   detailLead, setDetailLead,
 }: ResultsViewProps) {
+  const [listMode, setListMode] = useState<ListMode>("table");
+
+  // Group leads by date then UF
+  const groupedByDateUF = useMemo<GroupedByDateUF>(() => {
+    const g: GroupedByDateUF = {};
+    for (const lead of leads) {
+      const dateKey = getDateKey(lead.created_at) || "sem-data";
+      const uf = lead.uf || "N/A";
+      if (!g[dateKey]) g[dateKey] = {};
+      if (!g[dateKey][uf]) g[dateKey][uf] = [];
+      g[dateKey][uf].push(lead);
+    }
+    return g;
+  }, [leads]);
+
+  // Sorted date keys (most recent first)
+  const sortedDates = useMemo(
+    () => Object.keys(groupedByDateUF).sort((a, b) => b.localeCompare(a)),
+    [groupedByDateUF]
+  );
+
+  // Selection helpers for batch view
+  const selectDateGroup = (dateKey: string, checked: boolean) => {
+    const dateLeads = Object.values(groupedByDateUF[dateKey] || {}).flat();
+    for (const lead of dateLeads) {
+      onSelectLead(lead.id, checked);
+    }
+  };
+
+  const selectUFGroup = (dateKey: string, uf: string, checked: boolean) => {
+    const ufLeads = groupedByDateUF[dateKey]?.[uf] || [];
+    for (const lead of ufLeads) {
+      onSelectLead(lead.id, checked);
+    }
+  };
+
+  const isDateFullySelected = (dateKey: string) => {
+    const dateLeads = Object.values(groupedByDateUF[dateKey] || {}).flat();
+    return dateLeads.length > 0 && dateLeads.every((l) => selectedLeads.has(l.id));
+  };
+
+  const isUFFullySelected = (dateKey: string, uf: string) => {
+    const ufLeads = groupedByDateUF[dateKey]?.[uf] || [];
+    return ufLeads.length > 0 && ufLeads.every((l) => selectedLeads.has(l.id));
+  };
+
   return (
     <>
       {/* Stats bar */}
@@ -522,166 +573,157 @@ function ResultsView({
             ))}
           </div>
 
-          {selectedLeads.size > 0 && (
-            <div className="flex items-center gap-2 ml-auto">
-              <Badge variant="secondary">{selectedLeads.size} selecionado(s)</Badge>
-              <Button size="sm" variant="outline" onClick={() => onBulkAction("qualificado")}>
-                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Qualificar
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => onBulkAction("descartado")}>
-                <Ban className="h-3.5 w-3.5 mr-1" /> Descartar
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => onBulkAction("converter")}
-                disabled={isConverting}
-              >
-                {isConverting ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                ) : (
-                  <UserPlus className="h-3.5 w-3.5 mr-1" />
-                )}
-                Converter em Prospect
-              </Button>
-            </div>
-          )}
+          {/* Toggle Lista/Lotes */}
+          <div className="flex items-center gap-1 ml-auto border rounded-md p-0.5">
+            <Button
+              size="sm"
+              variant={listMode === "table" ? "default" : "ghost"}
+              className="h-7 px-2 text-xs gap-1"
+              onClick={() => setListMode("table")}
+            >
+              <List className="h-3.5 w-3.5" /> Lista
+            </Button>
+            <Button
+              size="sm"
+              variant={listMode === "batches" ? "default" : "ghost"}
+              className="h-7 px-2 text-xs gap-1"
+              onClick={() => setListMode("batches")}
+            >
+              <Layers className="h-3.5 w-3.5" /> Lotes
+            </Button>
+          </div>
         </div>
+
+        {selectedLeads.size > 0 && (
+          <div className="flex items-center gap-2 mt-2">
+            <Badge variant="secondary">{selectedLeads.size} selecionado(s)</Badge>
+            <Button size="sm" variant="outline" onClick={() => onBulkAction("qualificado")}>
+              <CheckCircle className="h-3.5 w-3.5 mr-1" /> Qualificar
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onBulkAction("descartado")}>
+              <Ban className="h-3.5 w-3.5 mr-1" /> Descartar
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => onBulkAction("converter")}
+              disabled={isConverting}
+            >
+              {isConverting ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+              ) : (
+                <UserPlus className="h-3.5 w-3.5 mr-1" />
+              )}
+              Converter em Prospect
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Leads table */}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-10">
-                <Checkbox
-                  checked={leads.length > 0 && selectedLeads.size === leads.length}
-                  onCheckedChange={onSelectAll}
+        {leadsLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : leads.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+            <Pickaxe className="h-10 w-10 mx-auto mb-2 opacity-30" />
+            <p>Nenhum lead encontrado para esta cidade.</p>
+          </div>
+        ) : listMode === "table" ? (
+          /* ── Flat table view ── */
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={leads.length > 0 && selectedLeads.size === leads.length}
+                    onCheckedChange={onSelectAll}
+                  />
+                </TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Cidade/UF</TableHead>
+                <TableHead>Rating</TableHead>
+                <TableHead>Website</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {leads.map((lead) => (
+                <LeadTableRow
+                  key={lead.id}
+                  lead={lead}
+                  selected={selectedLeads.has(lead.id)}
+                  onSelect={(c) => onSelectLead(lead.id, c)}
+                  renderStars={renderStars}
+                  copyPhone={copyPhone}
+                  setDetailLead={setDetailLead}
+                  updateStatus={updateStatus}
+                  convertToProspect={convertToProspect}
                 />
-              </TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>Cidade/UF</TableHead>
-              <TableHead>Rating</TableHead>
-              <TableHead>Website</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-10"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {leadsLoading ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                </TableCell>
-              </TableRow>
-            ) : leads.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                  <Pickaxe className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p>Nenhum lead encontrado para esta cidade.</p>
-                </TableCell>
-              </TableRow>
-            ) : (
-              leads.map((lead) => {
-                const sc = statusConfig[lead.status] || statusConfig.novo;
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          /* ── Batch/hierarchy view ── */
+          <div className="px-4 py-2">
+            <Accordion type="multiple" className="w-full">
+              {sortedDates.map((dateKey) => {
+                const dateLeads = Object.values(groupedByDateUF[dateKey]).flat();
+                const ufs = Object.keys(groupedByDateUF[dateKey]).sort();
+                const dateSelected = isDateFullySelected(dateKey);
+
                 return (
-                  <TableRow key={lead.id} className="group">
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedLeads.has(lead.id)}
-                        onCheckedChange={(c) => onSelectLead(lead.id, !!c)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium max-w-[200px] truncate">
-                      {lead.nome}
-                    </TableCell>
-                    <TableCell>
-                      {lead.telefone ? (
-                        <button
-                          onClick={() => copyPhone(lead.telefone!)}
-                          className="flex items-center gap-1 text-sm hover:text-primary transition-colors"
-                          title="Copiar telefone"
-                        >
-                          <Phone className="h-3.5 w-3.5" />
-                          {lead.telefone}
-                        </button>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {lead.cidade && lead.uf ? (
-                        <span className="text-sm">{lead.cidade}/{lead.uf}</span>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>{renderStars(lead.rating)}</TableCell>
-                    <TableCell>
-                      {lead.website ? (
-                        <a
-                          href={lead.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-sm text-primary hover:underline"
-                        >
-                          <Globe className="h-3.5 w-3.5" />
-                          Site
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`${sc.color} text-xs`} variant="secondary">
-                        {sc.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setDetailLead(lead)}>
-                            <Eye className="h-4 w-4 mr-2" /> Ver detalhes
-                          </DropdownMenuItem>
-                          {lead.telefone && (
-                            <DropdownMenuItem onClick={() => copyPhone(lead.telefone!)}>
-                              <Copy className="h-4 w-4 mr-2" /> Copiar telefone
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          {lead.status !== "qualificado" && (
-                            <DropdownMenuItem onClick={() => updateStatus({ ids: [lead.id], status: "qualificado" })}>
-                              <CheckCircle className="h-4 w-4 mr-2" /> Qualificar
-                            </DropdownMenuItem>
-                          )}
-                          {lead.status !== "descartado" && (
-                            <DropdownMenuItem onClick={() => updateStatus({ ids: [lead.id], status: "descartado" })}>
-                              <Ban className="h-4 w-4 mr-2" /> Descartar
-                            </DropdownMenuItem>
-                          )}
-                          {lead.status !== "convertido" && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => convertToProspect([lead.id])}>
-                                <UserPlus className="h-4 w-4 mr-2" /> Converter em Prospect
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                  <AccordionItem key={dateKey} value={dateKey}>
+                    <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
+                      <div className="flex items-center gap-2 flex-1">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={dateSelected}
+                            onCheckedChange={(c) => selectDateGroup(dateKey, !!c)}
+                            className="h-4 w-4"
+                          />
+                        </div>
+                        <Calendar className="h-4 w-4 text-primary" />
+                        <span>{formatLocalDate(dateKey, "dd/MM/yyyy")}</span>
+                        <Badge variant="secondary" className="text-[10px]">
+                          {dateLeads.length} leads
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-2">
+                      <div className="space-y-1 pl-2">
+                        {ufs.map((uf) => {
+                          const ufLeads = groupedByDateUF[dateKey][uf];
+                          if (ufLeads.length === 0) return null;
+                          return (
+                            <BatchUFGroup
+                              key={`${dateKey}-${uf}`}
+                              dateKey={dateKey}
+                              uf={uf}
+                              leads={ufLeads}
+                              selectedLeads={selectedLeads}
+                              onSelectLead={onSelectLead}
+                              isFullySelected={isUFFullySelected(dateKey, uf)}
+                              onSelectAll={(c) => selectUFGroup(dateKey, uf, c)}
+                              renderStars={renderStars}
+                              copyPhone={copyPhone}
+                              setDetailLead={setDetailLead}
+                              updateStatus={updateStatus}
+                              convertToProspect={convertToProspect}
+                            />
+                          );
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
                 );
-              })
-            )}
-          </TableBody>
-        </Table>
+              })}
+            </Accordion>
+          </div>
+        )}
       </div>
 
       {/* Detail Dialog */}
@@ -792,6 +834,217 @@ function ResultsView({
         </Dialog>
       )}
     </>
+  );
+}
+
+// ─── Lead Table Row (extracted for reuse) ──────────────────────────
+function LeadTableRow({
+  lead, selected, onSelect, renderStars, copyPhone,
+  setDetailLead, updateStatus, convertToProspect,
+}: {
+  lead: LeadMinerado;
+  selected: boolean;
+  onSelect: (checked: boolean) => void;
+  renderStars: (rating: number | null) => React.ReactNode;
+  copyPhone: (phone: string) => void;
+  setDetailLead: (lead: LeadMinerado | null) => void;
+  updateStatus: (params: { ids: string[]; status: string }) => Promise<void>;
+  convertToProspect: (ids: string[]) => Promise<string[]>;
+}) {
+  const sc = statusConfig[lead.status] || statusConfig.novo;
+  return (
+    <TableRow className="group">
+      <TableCell>
+        <Checkbox checked={selected} onCheckedChange={(c) => onSelect(!!c)} />
+      </TableCell>
+      <TableCell className="font-medium max-w-[200px] truncate">{lead.nome}</TableCell>
+      <TableCell>
+        {lead.telefone ? (
+          <button
+            onClick={() => copyPhone(lead.telefone!)}
+            className="flex items-center gap-1 text-sm hover:text-primary transition-colors"
+            title="Copiar telefone"
+          >
+            <Phone className="h-3.5 w-3.5" />
+            {lead.telefone}
+          </button>
+        ) : (
+          <span className="text-muted-foreground text-xs">—</span>
+        )}
+      </TableCell>
+      <TableCell>
+        {lead.cidade && lead.uf ? (
+          <span className="text-sm">{lead.cidade}/{lead.uf}</span>
+        ) : (
+          <span className="text-muted-foreground text-xs">—</span>
+        )}
+      </TableCell>
+      <TableCell>{renderStars(lead.rating)}</TableCell>
+      <TableCell>
+        {lead.website ? (
+          <a href={lead.website} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1 text-sm text-primary hover:underline">
+            <Globe className="h-3.5 w-3.5" /> Site
+          </a>
+        ) : (
+          <span className="text-muted-foreground text-xs">—</span>
+        )}
+      </TableCell>
+      <TableCell>
+        <Badge className={`${sc.color} text-xs`} variant="secondary">{sc.label}</Badge>
+      </TableCell>
+      <TableCell>
+        <LeadActions
+          lead={lead}
+          copyPhone={copyPhone}
+          setDetailLead={setDetailLead}
+          updateStatus={updateStatus}
+          convertToProspect={convertToProspect}
+        />
+      </TableCell>
+    </TableRow>
+  );
+}
+
+// ─── Lead Actions Dropdown ─────────────────────────────────────────
+function LeadActions({
+  lead, copyPhone, setDetailLead, updateStatus, convertToProspect,
+}: {
+  lead: LeadMinerado;
+  copyPhone: (phone: string) => void;
+  setDetailLead: (lead: LeadMinerado | null) => void;
+  updateStatus: (params: { ids: string[]; status: string }) => Promise<void>;
+  convertToProspect: (ids: string[]) => Promise<string[]>;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setDetailLead(lead)}>
+          <Eye className="h-4 w-4 mr-2" /> Ver detalhes
+        </DropdownMenuItem>
+        {lead.telefone && (
+          <DropdownMenuItem onClick={() => copyPhone(lead.telefone!)}>
+            <Copy className="h-4 w-4 mr-2" /> Copiar telefone
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        {lead.status !== "qualificado" && (
+          <DropdownMenuItem onClick={() => updateStatus({ ids: [lead.id], status: "qualificado" })}>
+            <CheckCircle className="h-4 w-4 mr-2" /> Qualificar
+          </DropdownMenuItem>
+        )}
+        {lead.status !== "descartado" && (
+          <DropdownMenuItem onClick={() => updateStatus({ ids: [lead.id], status: "descartado" })}>
+            <Ban className="h-4 w-4 mr-2" /> Descartar
+          </DropdownMenuItem>
+        )}
+        {lead.status !== "convertido" && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => convertToProspect([lead.id])}>
+              <UserPlus className="h-4 w-4 mr-2" /> Converter em Prospect
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// ─── Batch UF Group (collapsible inside date accordion) ────────────
+interface BatchUFGroupProps {
+  dateKey: string;
+  uf: string;
+  leads: LeadMinerado[];
+  selectedLeads: Set<string>;
+  onSelectLead: (id: string, checked: boolean) => void;
+  isFullySelected: boolean;
+  onSelectAll: (checked: boolean) => void;
+  renderStars: (rating: number | null) => React.ReactNode;
+  copyPhone: (phone: string) => void;
+  setDetailLead: (lead: LeadMinerado | null) => void;
+  updateStatus: (params: { ids: string[]; status: string }) => Promise<void>;
+  convertToProspect: (ids: string[]) => Promise<string[]>;
+}
+
+const UF_NAMES: Record<string, string> = {
+  AC: "Acre", AL: "Alagoas", AM: "Amazonas", AP: "Amapá", BA: "Bahia",
+  CE: "Ceará", DF: "Distrito Federal", ES: "Espírito Santo", GO: "Goiás",
+  MA: "Maranhão", MG: "Minas Gerais", MS: "Mato Grosso do Sul", MT: "Mato Grosso",
+  PA: "Pará", PB: "Paraíba", PE: "Pernambuco", PI: "Piauí", PR: "Paraná",
+  RJ: "Rio de Janeiro", RN: "Rio Grande do Norte", RO: "Rondônia", RR: "Roraima",
+  RS: "Rio Grande do Sul", SC: "Santa Catarina", SE: "Sergipe", SP: "São Paulo", TO: "Tocantins",
+};
+
+function BatchUFGroup({
+  uf, leads: ufLeads, selectedLeads, onSelectLead,
+  isFullySelected, onSelectAll, renderStars, copyPhone,
+  setDetailLead, updateStatus, convertToProspect,
+}: BatchUFGroupProps) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger className="flex items-center gap-2 w-full px-2 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors">
+        <div onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={isFullySelected}
+            onCheckedChange={(c) => onSelectAll(!!c)}
+            className="h-3.5 w-3.5"
+          />
+        </div>
+        <ChevronRight className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-90" : ""}`} />
+        <MapPin className="h-3.5 w-3.5 text-primary" />
+        <span className="font-medium">{uf} - {UF_NAMES[uf] || uf}</span>
+        <Badge variant="outline" className="text-[10px] ml-1">
+          {ufLeads.length} leads
+        </Badge>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="ml-8 space-y-0.5 mt-1 mb-2">
+          {ufLeads.map((lead) => {
+            const sc = statusConfig[lead.status] || statusConfig.novo;
+            return (
+              <div
+                key={lead.id}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/30 text-xs transition-colors group"
+              >
+                <Checkbox
+                  checked={selectedLeads.has(lead.id)}
+                  onCheckedChange={(c) => onSelectLead(lead.id, !!c)}
+                  className="h-3.5 w-3.5"
+                />
+                <span className="font-medium truncate min-w-0 flex-1">{lead.nome}</span>
+                {lead.telefone && (
+                  <button
+                    onClick={() => copyPhone(lead.telefone!)}
+                    className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors shrink-0"
+                    title="Copiar telefone"
+                  >
+                    <Phone className="h-3 w-3" />
+                    {lead.telefone}
+                  </button>
+                )}
+                <span className="shrink-0">{renderStars(lead.rating)}</span>
+                <Badge className={`${sc.color} text-[10px]`} variant="secondary">{sc.label}</Badge>
+                <LeadActions
+                  lead={lead}
+                  copyPhone={copyPhone}
+                  setDetailLead={setDetailLead}
+                  updateStatus={updateStatus}
+                  convertToProspect={convertToProspect}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
