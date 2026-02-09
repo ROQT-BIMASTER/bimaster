@@ -1,47 +1,73 @@
 
-# Busca de Fornecedor/Loja + Dados Bancarios no Lancamento Trade
+# Conectar Lancamentos Trade a Central de Pagamentos
 
-## Problema Atual
-1. O seletor de Fornecedor usa um `Select` simples sem busca -- com muitos fornecedores fica impossivel encontrar
-2. O seletor de Loja/PDV tambem nao tem busca
-3. Ao selecionar um fornecedor, o sistema nao verifica nem solicita dados bancarios (banco, agencia, conta, PIX) necessarios para o financeiro processar o pagamento
+## Resumo
+O fluxo atual do Trade Marketing esta incompleto: apos a aprovacao do gestor, nao existe o passo "Enviar ao Financeiro" que insere o registro na `financial_payment_queue`. Os modulos de Eventos e Departamentos ja possuem esse mecanismo. Vamos replicar o mesmo padrao para o Trade.
 
 ## O que sera feito
 
-### 1. Seletor de Fornecedor com busca (Combobox)
-Substituir o `Select` atual por um Combobox com busca (Popover + Command), identico ao padrao ja usado em `EnviarFinanceiroDialog.tsx` de Eventos:
-- Campo de busca por nome ou CNPJ
-- Exibicao do CNPJ abaixo do nome
-- Icone de check no item selecionado
-- Botao de adicionar fornecedor rapido (`FornecedorQuickAdd`)
+### 1. Criar `EnviarFinanceiroTradeDialog.tsx`
+Novo dialog seguindo o padrao exato do `EnviarFinanceiroDialog.tsx` (Eventos). Campos:
+- **Fornecedor** (Combobox com busca, pre-preenchido se ja informado no lancamento)
+- **CNPJ/CPF** (auto-preenchido ao selecionar fornecedor)
+- **Tipo de Documento** (NF, Boleto, Recibo, etc.)
+- **Numero do Documento**
+- **Data de Vencimento**
+- **Portador/Forma de Pagamento** (usando `usePortadores`)
+- **Observacoes para Pagamento**
 
-### 2. Seletor de Loja/PDV com busca (Combobox)
-Substituir o `Select` de Loja por um Combobox com busca similar, permitindo filtrar por codigo ou nome da loja.
+Ao submeter:
+1. Atualiza `trade_financial_entries` com `send_to_financial: true`, `status: 'pending_financial'`, e os dados do documento
+2. Insere registro na `financial_payment_queue` com `source_type: 'trade_entry'`, `source_id`, valor, fornecedor, anexos e empresa
+3. Salva o `payment_queue_id` de volta no lancamento para rastreabilidade
 
-### 3. Verificacao de dados bancarios do fornecedor
-Apos selecionar um fornecedor, o sistema consultara os campos bancarios na tabela `fabrica_fornecedores` (banco, agencia, conta, tipo_conta, pix_chave, pix_tipo, favorecido). Dois cenarios:
+### 2. Atualizar `TradeLancamentos.tsx`
+- Adicionar acao "Enviar ao Financeiro" no `DropdownMenu` para lancamentos com `approval_status === 'approved'` e `send_to_financial !== true`
+- Adicionar estado e renderizacao do `EnviarFinanceiroTradeDialog`
+- Adicionar status `pending_financial` no badge e no filtro de status
+- Adicionar KPI ou badge visual para lancamentos ja enviados ao financeiro
 
-**a) Fornecedor COM dados bancarios:** Exibir um card resumo com os dados bancarios (banco, agencia/conta, chave PIX) em formato read-only abaixo do seletor de fornecedor.
-
-**b) Fornecedor SEM dados bancarios:** Exibir um alerta informando que os dados bancarios nao foram cadastrados, com duas opcoes:
-- **"Preencher agora"**: Expande um formulario inline para o usuario informar banco, agencia, conta, tipo de conta, chave PIX, tipo PIX e favorecido. Ao salvar, os dados sao gravados na tabela `fabrica_fornecedores`.
-- **"Seguir sem dados bancarios"**: O usuario confirma que deseja prosseguir sem dados, e o lancamento e criado normalmente (o financeiro tera que solicitar depois).
-
-### 4. Aplicar as mesmas mudancas no EditarLancamentoDialog
-Garantir consistencia entre criacao e edicao.
+### 3. Atualizar `AprovarLancamentoDialog.tsx` (opcional mas recomendado)
+Adicionar botao "Aprovar e Enviar ao Financeiro" como atalho para o gestor que deseja fazer as duas acoes de uma vez, reduzindo cliques.
 
 ## Detalhes Tecnicos
 
-### Componentes reutilizados
-- `Popover` + `Command` (cmdk) de `@/components/ui/command` -- ja existem no projeto
-- `FornecedorQuickAdd` de `@/components/fabrica/FornecedorQuickAdd`
+### Nenhuma migracao necessaria
+A tabela `trade_financial_entries` ja possui todos os campos necessarios: `send_to_financial`, `payment_queue_id`, `document_type`, `document_number`, `due_date`, `portador`, `supplier_name`, `supplier_document`. A tabela `financial_payment_queue` ja suporta `source_type: 'trade_entry'`.
+
+### Arquivos criados
+- `src/components/trade/EnviarFinanceiroTradeDialog.tsx` -- Dialog com formulario de envio, reutilizando `usePortadores`, `DOCUMENT_TYPES`, Combobox de fornecedor e `FornecedorQuickAdd`
 
 ### Arquivos modificados
-- `src/components/trade/NovoLancamentoDialog.tsx`: Substituir Select de Fornecedor por Combobox com busca; Substituir Select de Loja por Combobox com busca; Adicionar fetch de dados bancarios ao selecionar fornecedor; Adicionar card de dados bancarios ou alerta com opcao de preenchimento inline
-- `src/components/trade/EditarLancamentoDialog.tsx`: Mesmas mudancas para consistencia
+- `src/pages/TradeLancamentos.tsx` -- Adicionar acao no dropdown, estado do dialog, status `pending_financial` no badge/filtro
+- `src/components/trade/AprovarLancamentoDialog.tsx` -- Botao opcional "Aprovar e Enviar"
 
-### Query de dados bancarios
-Ao selecionar fornecedor, buscar campos adicionais: `banco, agencia, conta, tipo_conta, pix_chave, pix_tipo, favorecido` da tabela `fabrica_fornecedores`.
+### Fluxo completo apos implementacao
 
-### Sem migracao necessaria
-Os campos bancarios ja existem na tabela `fabrica_fornecedores`. Nenhuma alteracao de schema e necessaria.
+```text
+Lancamento criado (pending)
+    |
+    v
+Gestor aprova na Central de Aprovacoes (approved)
+    |
+    v
+Usuario clica "Enviar ao Financeiro" no dropdown (pending_financial)
+    |
+    v
+Registro inserido na financial_payment_queue
+    |
+    v
+Financeiro processa na Central de Pagamentos (paid)
+```
+
+### Insert na financial_payment_queue
+Seguira exatamente o padrao de Eventos:
+- `source_type: 'trade_entry'`
+- `source_id: entry.id`
+- `amount: entry.amount` (valor realizado)
+- `supplier_name`, `supplier_document` do formulario
+- `document_type`, `document_number`, `due_date`, `portador` do formulario
+- `attachments: entry.attachments`
+- `empresa_id`, `empresa_nome` do lancamento
+- `department_name: 'Trade Marketing'`
+- `requested_by: user.id`
