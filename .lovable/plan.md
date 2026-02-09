@@ -1,89 +1,105 @@
 
 
-# Garantir que Envios ao Financeiro Respeitem as Politicas
+# Estrategia de Calculo por Linha ou Produto Individual
 
-## Problema
-O dialog de envio ao financeiro do Trade Marketing (`EnviarFinanceiroTradeDialog`) nao aplica as mesmas regras e validacoes que os modulos de Eventos e Departamentos ja implementam. Isso permite envios que violam politicas do financeiro.
+## Situacao Atual
 
-## Lacunas Identificadas
+Hoje, o markup (tipo e valor) e definido **por tabela** na `fabrica_tabelas_preco`. Quando os precos sao gerados, todos os produtos da tabela recebem o mesmo calculo:
 
-| Regra | Departamentos | Eventos | Trade |
-|-------|:---:|:---:|:---:|
-| Exigir anexos | Sim | Sim | **NAO** |
-| Sugestoes IA de campos | Nao | Sim | **NAO** |
-| Validar status aprovado antes do envio | Sim | Sim | **PARCIAL** (so no dropdown) |
-| Banner de politica de pagamento no dialog | Nao | Nao | Nao |
+```text
+Tabela Distribuidor: +35% sobre todos os produtos
+Tabela E-commerce: x1.8 sobre todos os produtos
+```
 
-## O que sera feito
+Isso funciona bem para o cenario atual, mas nao permite diferenciar estrategias por familia de produto ou produto especifico.
 
-### 1. Exigir Anexos Obrigatorios (Trade)
-Adicionar a mesma validacao que o modulo de Departamentos possui:
-- Verificar se `entry.attachments` possui pelo menos 1 item
-- Exibir alerta destrutivo se nao houver anexos
-- Desabilitar o botao "Enviar ao Financeiro" quando nao houver anexos
-- Bloquear a submissao no `handleSubmit`
+## O Que Sera Feito
 
-### 2. Validar Status de Aprovacao no Submit
-Adicionar verificacao dupla no `handleSubmit` para garantir que `entry.approval_status === 'approved'`, impedindo envios de lancamentos nao aprovados mesmo que o dialog seja aberto indevidamente.
+Criar uma tabela de **overrides de markup** que permite definir regras de calculo especificas por linha de produto ou por produto individual, sem alterar o funcionamento atual.
 
-### 3. Adicionar Sugestoes IA de Campos Financeiros
-Integrar o componente `FinancialFieldsSuggestion` (ja usado no dialog de Eventos) para sugerir automaticamente tipo de documento, portador e data de vencimento com base no historico.
+### Hierarquia de Prioridade (mais especifico vence)
 
-### 4. Adicionar Banner de Politica de Pagamento dentro do Dialog
-Exibir um aviso compacto dentro do dialog informando se o envio esta dentro ou fora da janela de corte, para que o usuario saiba quando o pagamento sera processado.
+```text
+1. Override por PRODUTO individual (maior prioridade)
+2. Override por LINHA de produto
+3. Markup da TABELA (comportamento atual - fallback padrao)
+```
 
 ## Detalhes Tecnicos
 
-### Arquivo modificado
-- `src/components/trade/EnviarFinanceiroTradeDialog.tsx`
+### 1. Nova Tabela: `fabrica_markup_overrides`
 
-### Alteracoes especificas
-
-**Imports adicionais:**
-- `Alert, AlertDescription` de `@/components/ui/alert`
-- `AlertTriangle` de `lucide-react`
-- `FinancialFieldsSuggestion` de `@/components/ai/FinancialFieldsSuggestion`
-- `useActivePaymentPolicy, isWithinCutoff, getPolicySummary` de `@/hooks/useFinancialPaymentPolicies`
-
-**Logica de anexos (seguindo padrao do EnviarFinanceiroDepDialog):**
 ```text
-const hasAttachments = entry?.attachments && entry.attachments.length > 0;
+Colunas:
+- id (uuid, PK)
+- tabela_id (FK -> fabrica_tabelas_preco) -- para qual tabela se aplica
+- linha (text, nullable) -- ex: "Banana", "Melu" (se aplicar por linha)
+- produto_id (FK -> fabrica_produtos, nullable) -- se aplicar por produto individual
+- tipo_markup (text) -- 'percentual', 'multiplicador', 'valor_fixo'
+- valor_markup (numeric)
+- ativo (boolean, default true)
+- created_at, updated_at
+- created_by (FK -> profiles)
 
-// No JSX: Alert destrutivo se !hasAttachments
-// No botao: disabled={... || !hasAttachments}
-// No handleSubmit: if (!hasAttachments) return;
+Constraint: CHECK (linha IS NOT NULL OR produto_id IS NOT NULL)
+Unique: (tabela_id, linha, produto_id) -- evita duplicatas
 ```
 
-**Validacao de status no submit:**
+RLS: Acesso restrito a usuarios autenticados com role admin ou acesso ao modulo fabrica.
+
+### 2. Alteracao no `pricing-calculator.ts`
+
+Na funcao `calcularPrecosProdutos`, antes de aplicar o markup da tabela, buscar overrides:
+
 ```text
-if (entry?.approval_status !== 'approved') {
-  toast.error("Lancamento precisa estar aprovado");
-  return;
-}
+Para cada produto:
+  1. Buscar override por produto_id + tabela_id
+  2. Se nao encontrar, buscar override por linha + tabela_id
+  3. Se nao encontrar, usar markup da tabela (comportamento atual)
 ```
 
-**Banner de corte compacto:**
-```text
-// Dentro do dialog, antes do formulario:
-// Se fora do corte: Alert amarelo informando que pagamento ira para proxima semana
-// Se dentro do corte: Info discreta com data prevista de pagamento
-```
+A mudanca e cirurgica -- apenas no trecho entre as linhas 428-432 onde o markup e aplicado. O restante (limites, margens, cadeia) continua identico.
 
-**Sugestoes IA:**
-```text
-<FinancialFieldsSuggestion
-  expenseId={entry.id}
-  onApplySuggestions={(fields) => {
-    setFormData(prev => ({
-      ...prev,
-      document_type: fields.document_type || prev.document_type,
-      portador: fields.portador || prev.portador,
-      due_date: fields.due_date || prev.due_date,
-    }));
-  }}
-/>
-```
+### 3. Interface de Gerenciamento (nova aba no modulo de Tabelas de Preco)
 
-### Nenhuma migracao de banco necessaria
-Todas as alteracoes sao puramente de frontend, aplicando validacoes que ja existem nas tabelas e politicas do backend.
+Um dialog ou painel dentro da tabela de precos onde o admin pode:
+
+- Ver a lista de overrides ativos para aquela tabela
+- Adicionar override por Linha (dropdown com linhas existentes)
+- Adicionar override por Produto (busca de produto)
+- Definir tipo e valor do markup para cada override
+- Ativar/desativar overrides individualmente
+
+### 4. Indicadores Visuais
+
+Na tabela de precos gerados, produtos com override terao um badge indicando que usam markup diferenciado:
+
+- Badge "Linha" (azul) -- quando usa override de linha
+- Badge "Individual" (roxo) -- quando usa override de produto
+
+## Compatibilidade
+
+- **Zero impacto** no funcionamento atual: se nao existirem overrides, tudo funciona exatamente como hoje
+- A cadeia de recalculo (`recalcularCadeiaPrecos`) automaticamente respeita os overrides
+- O Simulador de Cenarios pode ser estendido futuramente para simular com overrides
+- Os limites de preco (`fabrica_limites_preco_tabela`) continuam sendo aplicados normalmente sobre o preco calculado com override
+
+## Arquivos Afetados
+
+| Arquivo | Alteracao |
+|---------|-----------|
+| Nova migracao SQL | Criar tabela `fabrica_markup_overrides` com RLS |
+| `src/lib/fabrica/pricing-calculator.ts` | Buscar overrides antes de aplicar markup (linhas 428-432) |
+| Novo componente `MarkupOverridesManager.tsx` | UI para gerenciar overrides por tabela |
+| `src/components/fabrica/GeradorPrecosDialog.tsx` | Badge visual nos produtos com override |
+| `src/integrations/supabase/types.ts` | Atualizado automaticamente |
+
+## Resultado
+
+Com essa estrutura voce podera, por exemplo:
+
+- Tabela Distribuidor: +35% geral, mas Linha "Banana" com +28% e produto "Pistache Premium" com +42%
+- Tabela E-commerce: x1.8 geral, mas Linha "Clear" com x2.0
+
+Tudo retrocompativel e sem afetar o que ja funciona.
 
