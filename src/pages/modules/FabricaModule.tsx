@@ -89,6 +89,7 @@ const FabricaModule = () => {
     "Precificação": [
       { title: "Tabelas de Preço", to: "/dashboard/precos/tabelas", icon: DollarSign, color: "text-green-600" },
       { title: "Aprovação de Preços", to: "/dashboard/precos/aprovacao", icon: CheckCircle, color: "text-orange-600" },
+      { title: "Revisão de Fichas", to: "/dashboard/fabrica/revisao-fichas", icon: FileText, color: "text-amber-600" },
       { title: "Tabela de Impostos", to: "/dashboard/fabrica/tabela-impostos", icon: Calculator, color: "text-red-600" },
       { title: "Relatórios", to: "/dashboard/relatorios/competitivo", icon: BarChart3, color: "text-purple-600" },
     ],
