@@ -25,7 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { ExpenseAttachments } from "@/components/events/ExpenseAttachments";
 import { TRADE_EXPENSE_CATEGORIES } from "./tradeExpenseCategories";
 import { useQuery } from "@tanstack/react-query";
-import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
+import { useUserEmpresas, useAllEmpresas } from "@/hooks/useUserEmpresas";
 import { Building, Target, Loader2 } from "lucide-react";
 import { FornecedorCombobox } from "./FornecedorCombobox";
 import { LojaCombobox } from "./LojaCombobox";
@@ -49,7 +49,14 @@ export function EditarLancamentoDialog({
   const [stores, setStores] = useState<any[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
   
-  const { data: userEmpresas = [], isLoading: loadingEmpresas } = useUserEmpresas();
+  const { data: userEmpresas = [], isLoading: loadingUserEmpresas } = useUserEmpresas();
+  const { data: allEmpresas = [], isLoading: loadingAllEmpresas } = useAllEmpresas();
+
+  // Fallback: se user_empresas estiver vazio, usar todas as empresas ativas
+  const empresasDisponiveis = userEmpresas.length > 0
+    ? userEmpresas.map(ue => ({ id: ue.empresa_id, nome: ue.empresa.nome, is_primary: ue.is_primary }))
+    : allEmpresas.map(e => ({ id: e.id, nome: e.nome, is_primary: false }));
+  const loadingEmpresas = loadingUserEmpresas || (userEmpresas.length === 0 && loadingAllEmpresas);
   
   const [entryDate, setEntryDate] = useState("");
   const [entryType, setEntryType] = useState("expense");
@@ -164,8 +171,8 @@ export function EditarLancamentoDialog({
 
     setLoading(true);
     try {
-      const selectedEmpresa = userEmpresas.find(
-        ue => ue.empresa_id.toString() === empresaId
+      const selectedEmpresa = empresasDisponiveis.find(
+        e => e.id.toString() === empresaId
       );
 
       // Resolver fornecedor
@@ -202,8 +209,8 @@ export function EditarLancamentoDialog({
           entity_type: hasFornecedor ? "fornecedor" : null,
           supplier_name: supplierName,
           supplier_document: supplierDocument,
-          empresa_id: selectedEmpresa?.empresa_id || null,
-          empresa_nome: selectedEmpresa?.empresa.nome || null,
+          empresa_id: selectedEmpresa?.id || null,
+          empresa_nome: selectedEmpresa?.nome || null,
           notes: notes.trim() || null,
           attachments: attachments,
           approval_status: "pending",
@@ -248,13 +255,13 @@ export function EditarLancamentoDialog({
               </Label>
               <Select value={empresaId} onValueChange={setEmpresaId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione a filial" />
+                  <SelectValue placeholder={loadingEmpresas ? "Carregando filiais..." : "Selecione a filial"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {userEmpresas.map((ue) => (
-                    <SelectItem key={ue.empresa_id} value={ue.empresa_id.toString()}>
-                      {ue.empresa.nome}
-                      {ue.is_primary ? " (Principal)" : ""}
+                  {empresasDisponiveis.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id.toString()}>
+                      {emp.nome}
+                      {emp.is_primary ? " (Principal)" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
