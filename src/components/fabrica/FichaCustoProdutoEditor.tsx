@@ -439,6 +439,25 @@ export function FichaCustoProdutoEditor({
           insumos={insumos.map((i) => ({ id: i.id, nome: i.nome, codigo: i.codigo }))}
           tipoRemetente="usuario"
           insumosComApontamento={new Set(apontamentos.filter(a => a.insumo_id).map(a => a.insumo_id!))}
+          onNavigateToInsumo={(insumoId) => {
+            // Expand the row first
+            setExpandedInsumos((prev) => {
+              const next = new Set(prev);
+              next.add(insumoId);
+              return next;
+            });
+            carregarEvidencias(insumoId);
+            carregarHistoricoRecente(insumoId);
+            // Scroll to the row
+            setTimeout(() => {
+              const el = document.getElementById(`insumo-row-${insumoId}`);
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                el.classList.add("ring-2", "ring-primary", "ring-offset-1");
+                setTimeout(() => el.classList.remove("ring-2", "ring-primary", "ring-offset-1"), 2500);
+              }
+            }, 100);
+          }}
         />
       )}
 
@@ -585,7 +604,7 @@ export function FichaCustoProdutoEditor({
 
                     return (
                       <React.Fragment key={insumo.id}>
-                        <TableRow className={temApontamento ? "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500" : ""}>
+                        <TableRow id={`insumo-row-${insumo.id}`} className={temApontamento ? "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500" : ""}>
                           <TableCell className="px-2">
                             <div className="flex items-center gap-0.5">
                               <Button
