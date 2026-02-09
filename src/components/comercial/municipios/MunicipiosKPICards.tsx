@@ -50,15 +50,6 @@ const cards = [
     format: (v: number) => `${v.toFixed(1)}%`,
   },
   {
-    key: 'receita_total_municipios',
-    title: 'Receita Total',
-    icon: DollarSign,
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bgColor: 'bg-emerald-100 dark:bg-emerald-900/50',
-    borderColor: 'border-l-emerald-500',
-    format: (v: number) => formatCurrency(v),
-  },
-  {
     key: 'densidade_media',
     title: 'Densidade Comercial Média',
     icon: BarChart3,
@@ -83,8 +74,8 @@ const cards = [
 export function MunicipiosKPICards({ kpis, loading }: MunicipiosKPICardsProps) {
   if (loading) {
     return (
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
           <Card key={i} className="border-l-4">
             <CardContent className="p-4">
               <Skeleton className="h-4 w-20 mb-3" />
@@ -98,7 +89,7 @@ export function MunicipiosKPICards({ kpis, loading }: MunicipiosKPICardsProps) {
   }
 
   return (
-    <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       {cards.map(card => {
         const value = kpis ? (kpis as any)[card.key] : 0;
         const Icon = card.icon;
