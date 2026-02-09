@@ -6937,6 +6937,7 @@ export type Database = {
       }
       fabrica_produto_custos_config: {
         Row: {
+          base_calculo_markup: string
           created_at: string | null
           created_by: string | null
           custo_mao_obra_nf: number | null
@@ -6949,6 +6950,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          base_calculo_markup?: string
           created_at?: string | null
           created_by?: string | null
           custo_mao_obra_nf?: number | null
@@ -6961,6 +6963,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          base_calculo_markup?: string
           created_at?: string | null
           created_by?: string | null
           custo_mao_obra_nf?: number | null
