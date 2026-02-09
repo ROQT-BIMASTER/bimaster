@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileText, FileX } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { NovoProdutoAcabadoDialog } from "@/components/fabrica/NovoProdutoAcabadoDialog";
@@ -30,8 +30,6 @@ export default function FabricaProdutosAcabados() {
   const { data: produtos, isLoading, refetch } = useSupabaseQuery(
     ["fabrica-produtos-acabados"],
     async () => {
-      console.log("🔍 Carregando produtos acabados...");
-      
       const { data, error } = await supabase
         .from("fabrica_produtos")
         .select(`
@@ -41,17 +39,24 @@ export default function FabricaProdutosAcabados() {
         .in("tipo", ["ACABADO", "INTER"])
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("❌ Erro ao carregar produtos:", error);
-        throw error;
-      }
-      
-      console.log("✅ Produtos carregados:", data?.length || 0, data);
+      if (error) throw error;
       return data;
     },
     {
       refetchOnMount: true,
       refetchOnWindowFocus: false,
+    }
+  );
+
+  // Buscar quais produtos possuem ficha de custos
+  const { data: fichasConfig } = useSupabaseQuery(
+    ["fabrica-produtos-fichas-config"],
+    async () => {
+      const { data, error } = await supabase
+        .from("fabrica_produto_custos_config")
+        .select("produto_id");
+      if (error) throw error;
+      return data;
     }
   );
 
@@ -76,6 +81,9 @@ export default function FabricaProdutosAcabados() {
       </DashboardLayout>
     );
   }
+
+  const produtosComFichaSet = new Set<string>();
+  fichasConfig?.forEach((f) => produtosComFichaSet.add(f.produto_id));
 
   const produtosFiltrados = produtos?.filter(
     (p) =>
@@ -241,6 +249,7 @@ export default function FabricaProdutosAcabados() {
                     <TableHead>Nome</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Origem</TableHead>
+                    <TableHead>Ficha</TableHead>
                     <TableHead>Fórmula</TableHead>
                     <TableHead>Unidade</TableHead>
                     <TableHead>Status</TableHead>
@@ -261,6 +270,19 @@ export default function FabricaProdutosAcabados() {
                         <Badge variant={produto.origem === 'importado' ? 'destructive' : 'secondary'}>
                           {produto.origem === 'importado' ? 'Importado' : 'Nacional'}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {produtosComFichaSet.has(produto.id) ? (
+                          <Badge variant="default" className="gap-1">
+                            <FileText className="h-3 w-3" />
+                            Sim
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="gap-1 text-muted-foreground">
+                            <FileX className="h-3 w-3" />
+                            Não
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         {produto.formula_id ? (
