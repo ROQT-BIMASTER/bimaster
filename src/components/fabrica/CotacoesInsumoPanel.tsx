@@ -13,7 +13,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Check, TrendingDown, TrendingUp, Upload, FileText, Eye, Trash2, Star } from "lucide-react";
+import { Plus, Check, TrendingDown, TrendingUp, Upload, FileText, Trash2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -25,6 +25,9 @@ interface Cotacao {
   mp_id: string | null;
   fornecedor_nome: string;
   valor_unitario: number;
+  custo_nf: number;
+  custo_servico: number;
+  custo_condicao: number;
   condicao_pagamento: string | null;
   validade: string | null;
   observacoes: string | null;
@@ -39,12 +42,16 @@ interface Props {
   produtoCustoId: string;
   produtoId: string;
   mpId: string | null;
-  custoAtual: number;
+  custoAtualNF: number;
+  custoAtualServico: number;
+  custoAtualCondicao: number;
   insumoNome: string;
-  onAplicarCotacao?: (fornecedorNome: string, valor: number) => void;
+  onAplicarCotacao?: (fornecedorNome: string, custoNF: number, custoServico: number, custoCondicao: number) => void;
 }
 
-export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtual, insumoNome, onAplicarCotacao }: Props) {
+const calcTotal = (c: Cotacao) => Number(c.custo_nf) + Number(c.custo_servico) + Number(c.custo_condicao);
+
+export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtualNF, custoAtualServico, custoAtualCondicao, insumoNome, onAplicarCotacao }: Props) {
   const [cotacoes, setCotacoes] = useState<Cotacao[]>([]);
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -52,11 +59,16 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
 
   // Form state
   const [fornecedor, setFornecedor] = useState("");
-  const [valor, setValor] = useState("");
+  const [formNF, setFormNF] = useState("");
+  const [formServico, setFormServico] = useState("");
+  const [formCondicao, setFormCondicao] = useState("");
   const [condicao, setCondicao] = useState("");
   const [validade, setValidade] = useState("");
   const [obs, setObs] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [nfRef, setNfRef] = useState("");
+
+  const custoAtualTotal = custoAtualNF + custoAtualServico + custoAtualCondicao;
 
   const carregarCotacoes = useCallback(async () => {
     setLoading(true);
@@ -76,14 +88,22 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
   const formatarMoeda = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
-  const menorValor = cotacoes.length > 0 ? Math.min(...cotacoes.map(c => Number(c.valor_unitario))) : 0;
-  const maiorValor = cotacoes.length > 0 ? Math.max(...cotacoes.map(c => Number(c.valor_unitario))) : 0;
-  const cotacaoMenor = cotacoes.find(c => Number(c.valor_unitario) === menorValor);
-  const economiaUnidade = custoAtual > 0 && menorValor > 0 ? custoAtual - menorValor : 0;
-  const economiaPct = custoAtual > 0 && menorValor > 0 ? ((custoAtual - menorValor) / custoAtual) * 100 : 0;
+  const totais = cotacoes.map(c => ({ ...c, total: calcTotal(c) }));
+  const menorTotal = totais.length > 0 ? Math.min(...totais.map(c => c.total)) : 0;
+  const maiorTotal = totais.length > 0 ? Math.max(...totais.map(c => c.total)) : 0;
+  const cotacaoMenor = totais.find(c => c.total === menorTotal);
+  const economiaUnidade = custoAtualTotal > 0 && menorTotal > 0 ? custoAtualTotal - menorTotal : 0;
+  const economiaPct = custoAtualTotal > 0 && menorTotal > 0 ? ((custoAtualTotal - menorTotal) / custoAtualTotal) * 100 : 0;
 
   const handleSalvar = async () => {
-    if (!fornecedor.trim() || !valor.trim()) return;
+    if (!fornecedor.trim()) return;
+    const nf = parseFloat((formNF || "0").replace(",", ".")) || 0;
+    const serv = parseFloat((formServico || "0").replace(",", ".")) || 0;
+    const cond = parseFloat((formCondicao || "0").replace(",", ".")) || 0;
+    if (nf === 0 && serv === 0 && cond === 0) {
+      toast.error("Informe ao menos um valor de custo");
+      return;
+    }
     setSaving(true);
     try {
       let arquivoUrl: string | null = null;
@@ -105,7 +125,10 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
         produto_id: produtoId,
         mp_id: mpId,
         fornecedor_nome: fornecedor,
-        valor_unitario: parseFloat(valor.replace(",", ".")) || 0,
+        valor_unitario: nf + serv + cond,
+        custo_nf: nf,
+        custo_servico: serv,
+        custo_condicao: cond,
         condicao_pagamento: condicao || null,
         validade: validade || null,
         observacoes: obs || null,
@@ -128,15 +151,17 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
 
   const resetForm = () => {
     setFornecedor("");
-    setValor("");
+    setFormNF("");
+    setFormServico("");
+    setFormCondicao("");
     setCondicao("");
     setValidade("");
     setObs("");
     setArquivo(null);
+    setNfRef("");
   };
 
   const handleSelecionar = async (cotacaoId: string) => {
-    // Desmarcar todas, marcar a selecionada
     await supabase.from("fabrica_mp_cotacoes").update({ selecionada: false } as any).eq("produto_custo_id", produtoCustoId);
     await supabase.from("fabrica_mp_cotacoes").update({ selecionada: true } as any).eq("id", cotacaoId);
     carregarCotacoes();
@@ -151,7 +176,7 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
 
   const handleAplicar = (cotacao: Cotacao) => {
     if (onAplicarCotacao) {
-      onAplicarCotacao(cotacao.fornecedor_nome, Number(cotacao.valor_unitario));
+      onAplicarCotacao(cotacao.fornecedor_nome, Number(cotacao.custo_nf), Number(cotacao.custo_servico), Number(cotacao.custo_condicao));
     }
   };
 
@@ -177,9 +202,9 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
           {/* Resumo comparativo */}
           <div className="bg-muted/50 rounded-lg p-3 mb-3 text-sm">
             <div className="flex flex-wrap gap-4">
-              <span>{cotacoes.length} cotação(ões) recebida(s)</span>
-              <span>Menor: <strong className="text-green-700">{formatarMoeda(menorValor)}</strong> ({cotacaoMenor?.fornecedor_nome})</span>
-              <span>Maior: <strong className="text-red-600">{formatarMoeda(maiorValor)}</strong></span>
+              <span>{cotacoes.length} cotação(ões)</span>
+              <span>Menor total: <strong className="text-green-700">{formatarMoeda(menorTotal)}</strong> ({cotacaoMenor?.fornecedor_nome})</span>
+              <span>Maior: <strong className="text-destructive">{formatarMoeda(maiorTotal)}</strong></span>
               {economiaPct > 0 && (
                 <span className="text-green-700 font-medium flex items-center gap-1">
                   <TrendingDown className="h-3.5 w-3.5" />
@@ -191,9 +216,9 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
 
           {/* Cards de cotações */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-            {cotacoes.map((c) => {
-              const isMenor = Number(c.valor_unitario) === menorValor && cotacoes.length > 1;
-              const varPct = custoAtual > 0 ? ((Number(c.valor_unitario) - custoAtual) / custoAtual) * 100 : 0;
+            {totais.map((c) => {
+              const isMenor = c.total === menorTotal && cotacoes.length > 1;
+              const varPct = custoAtualTotal > 0 ? ((c.total - custoAtualTotal) / custoAtualTotal) * 100 : 0;
               return (
                 <div
                   key={c.id}
@@ -208,16 +233,33 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
                       {isMenor && !c.selecionada && <Badge className="bg-green-100 text-green-800 text-[10px]">Melhor Preço</Badge>}
                     </div>
                   </div>
+
+                  {/* Breakdown NF / Serviço / Condição */}
+                  <div className="grid grid-cols-3 gap-1 text-xs">
+                    <div className="bg-muted/50 rounded p-1.5 text-center">
+                      <span className="text-muted-foreground block">NF</span>
+                      <span className="font-mono font-medium">{formatarMoeda(Number(c.custo_nf))}</span>
+                    </div>
+                    <div className="bg-muted/50 rounded p-1.5 text-center">
+                      <span className="text-muted-foreground block">Serviço</span>
+                      <span className="font-mono font-medium">{formatarMoeda(Number(c.custo_servico))}</span>
+                    </div>
+                    <div className="bg-muted/50 rounded p-1.5 text-center">
+                      <span className="text-muted-foreground block">Condição</span>
+                      <span className="font-mono font-medium">{formatarMoeda(Number(c.custo_condicao))}</span>
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold">{formatarMoeda(Number(c.valor_unitario))}</span>
-                    {custoAtual > 0 && (
-                      <span className={`text-xs font-medium flex items-center gap-0.5 ${varPct > 0 ? "text-red-600" : varPct < 0 ? "text-green-600" : "text-muted-foreground"}`}>
+                    <span className="font-bold">Total: {formatarMoeda(c.total)}</span>
+                    {custoAtualTotal > 0 && (
+                      <span className={`text-xs font-medium flex items-center gap-0.5 ${varPct > 0 ? "text-destructive" : varPct < 0 ? "text-green-600" : "text-muted-foreground"}`}>
                         {varPct > 0 ? <TrendingUp className="h-3 w-3" /> : varPct < 0 ? <TrendingDown className="h-3 w-3" /> : null}
                         {varPct > 0 ? "+" : ""}{varPct.toFixed(1)}%
                       </span>
                     )}
                   </div>
-                  {c.condicao_pagamento && <p className="text-xs text-muted-foreground">Condição: {c.condicao_pagamento}</p>}
+                  {c.condicao_pagamento && <p className="text-xs text-muted-foreground">Pagamento: {c.condicao_pagamento}</p>}
                   {c.validade && <p className="text-xs text-muted-foreground">Validade: {format(new Date(c.validade), "dd/MM/yyyy", { locale: ptBR })}</p>}
                   {c.observacoes && <p className="text-xs text-muted-foreground italic">{c.observacoes}</p>}
                   {c.arquivo_url && (
@@ -249,28 +291,60 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
 
       {/* Dialog Nova Cotação */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Nova Cotação — {insumoNome}</DialogTitle>
-            <DialogDescription>Registre o orçamento recebido de um fornecedor.</DialogDescription>
+            <DialogDescription>Registre o orçamento recebido de um fornecedor com os custos detalhados.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
               <Label>Fornecedor *</Label>
               <Input value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} placeholder="Nome do fornecedor" />
             </div>
-            <div className="space-y-1">
-              <Label>Valor Unitário (R$) *</Label>
-              <Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0.0000" inputMode="decimal" />
+
+            {/* Campos de custo iguais à tabela de insumos */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label>NF (R$) *</Label>
+                <Input value={formNF} onChange={(e) => setFormNF(e.target.value)} placeholder="0.0000" inputMode="decimal" />
+              </div>
+              <div className="space-y-1">
+                <Label>Serviço (R$)</Label>
+                <Input value={formServico} onChange={(e) => setFormServico(e.target.value)} placeholder="0.0000" inputMode="decimal" />
+              </div>
+              <div className="space-y-1">
+                <Label>Condição (R$)</Label>
+                <Input value={formCondicao} onChange={(e) => setFormCondicao(e.target.value)} placeholder="0.0000" inputMode="decimal" />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label>Condição de Pagamento</Label>
-              <Input value={condicao} onChange={(e) => setCondicao(e.target.value)} placeholder="Ex: 30/60/90 dias" />
+
+            {/* Total calculado */}
+            {(formNF || formServico || formCondicao) && (
+              <div className="bg-muted/50 rounded p-2 text-sm text-center">
+                Total: <strong>{formatarMoeda(
+                  (parseFloat((formNF || "0").replace(",", ".")) || 0) +
+                  (parseFloat((formServico || "0").replace(",", ".")) || 0) +
+                  (parseFloat((formCondicao || "0").replace(",", ".")) || 0)
+                )}</strong>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Condição de Pagamento</Label>
+                <Input value={condicao} onChange={(e) => setCondicao(e.target.value)} placeholder="Ex: 30/60/90 dias" />
+              </div>
+              <div className="space-y-1">
+                <Label>Validade</Label>
+                <Input type="date" value={validade} onChange={(e) => setValidade(e.target.value)} />
+              </div>
             </div>
+
             <div className="space-y-1">
-              <Label>Validade</Label>
-              <Input type="date" value={validade} onChange={(e) => setValidade(e.target.value)} />
+              <Label>NF Referência</Label>
+              <Input value={nfRef} onChange={(e) => setNfRef(e.target.value)} placeholder="NF12345" />
             </div>
+
             <div className="space-y-1">
               <Label>Observações</Label>
               <Textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2} placeholder="Observações adicionais..." />
@@ -293,7 +367,7 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
-            <Button onClick={handleSalvar} disabled={saving || !fornecedor.trim() || !valor.trim()}>
+            <Button onClick={handleSalvar} disabled={saving || !fornecedor.trim()}>
               {saving ? "Salvando..." : "Salvar Cotação"}
             </Button>
           </DialogFooter>
