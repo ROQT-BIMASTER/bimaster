@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { CheckCircle2, AlertTriangle, Eye, Loader2, ClipboardList, Plus, Trash2 } from "lucide-react";
 import { useFichaRevisaoDiretoria } from "@/hooks/useFichaRevisao";
+import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
 
 interface ApontamentoForm {
   insumo_id: string;
@@ -284,6 +285,15 @@ export default function FichaRevisaoDiretoria() {
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {/* Chat de comunicação */}
+          {fichaAberta?.id && (
+            <RevisaoChatPanel
+              revisaoId={fichaAberta.id}
+              insumos={snapshotInsumos.map((i: any) => ({ id: i.id, nome: i.nome, codigo: i.codigo }))}
+              tipoRemetente="diretoria"
+            />
           )}
 
           {/* Parecer */}
