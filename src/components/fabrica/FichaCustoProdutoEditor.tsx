@@ -26,6 +26,7 @@ import { AdicionarInsumoCustoDialog } from "./AdicionarInsumoCustoDialog";
 import { ImportarInsumosIA } from "./ImportarInsumosIA";
 import { HistoricoCustosInsumoDialog } from "./HistoricoCustosInsumoDialog";
 import { AlterarCustoDialog } from "./AlterarCustoDialog";
+import { CotacoesInsumoPanel } from "./CotacoesInsumoPanel";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,6 +110,7 @@ export function FichaCustoProdutoEditor({
   const [historicoInsumo, setHistoricoInsumo] = useState<{ id: string; nome: string } | null>(null);
   const [expandedInsumos, setExpandedInsumos] = useState<Set<string>>(new Set());
   const [evidencias, setEvidencias] = useState<Record<string, any[]>>({});
+  const [historicoRecente, setHistoricoRecente] = useState<Record<string, any[]>>({});
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [alteracaoCusto, setAlteracaoCusto] = useState<{
     insumoId: string;
@@ -191,11 +193,25 @@ export function FichaCustoProdutoEditor({
       else next.add(insumoId);
       return next;
     });
-    // Carregar evidências quando expande
+    // Carregar evidências e histórico quando expande
     if (!expandedInsumos.has(insumoId)) {
       carregarEvidencias(insumoId);
+      carregarHistoricoRecente(insumoId);
     }
   };
+
+  // Carregar histórico recente de um insumo
+  const carregarHistoricoRecente = useCallback(async (produtoCustoId: string) => {
+    const { data } = await supabase
+      .from("fabrica_insumo_custo_historico" as any)
+      .select("*")
+      .eq("produto_custo_id", produtoCustoId)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    if (data) {
+      setHistoricoRecente((prev) => ({ ...prev, [produtoCustoId]: data as any[] }));
+    }
+  }, []);
 
   // Carregar evidências de um insumo
   const carregarEvidencias = useCallback(async (produtoCustoId: string) => {
@@ -560,7 +576,7 @@ export function FichaCustoProdutoEditor({
                       <React.Fragment key={insumo.id}>
                         <TableRow className={temApontamento ? "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500" : ""}>
                           <TableCell className="px-2">
-                            {temApontamento ? (
+                            <div className="flex items-center gap-0.5">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -569,9 +585,8 @@ export function FichaCustoProdutoEditor({
                               >
                                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               </Button>
-                            ) : (
-                              <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                            )}
+                              {!isExpanded && <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />}
+                            </div>
                           </TableCell>
                           <TableCell className="font-mono text-sm">
                             <div className="flex items-center gap-1">
@@ -667,36 +682,100 @@ export function FichaCustoProdutoEditor({
                           </TableCell>
                         </TableRow>
 
-                        {/* Linha expandida com apontamentos e evidências */}
-                        {temApontamento && isExpanded && (
-                          <TableRow className="bg-red-50/50 dark:bg-red-950/10">
+                        {/* Linha expandida com detalhes do insumo */}
+                        {isExpanded && (
+                          <TableRow className={temApontamento ? "bg-red-50/50 dark:bg-red-950/10" : "bg-muted/30"}>
                             <TableCell colSpan={10} className="p-0">
                               <div className="p-4 space-y-4">
-                                {/* Apontamentos da diretoria */}
-                                <div>
-                                  <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                                    Solicitações da Diretoria
-                                  </h4>
-                                  <div className="space-y-2">
-                                    {apts.map((a) => (
-                                      <div key={a.id} className="p-3 bg-background rounded-lg border space-y-1">
-                                        <div className="flex items-center justify-between">
-                                          <Badge variant="outline" className="text-xs">{campoLabels[a.campo] || a.campo}</Badge>
-                                          {a.atendido && <Badge className="bg-green-100 text-green-800 text-xs">Atendido</Badge>}
+                                {/* Apontamentos da diretoria (se houver) */}
+                                {temApontamento && (
+                                  <div>
+                                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                                      Solicitações da Diretoria
+                                    </h4>
+                                    <div className="space-y-2">
+                                      {apts.map((a) => (
+                                        <div key={a.id} className="p-3 bg-background rounded-lg border space-y-1">
+                                          <div className="flex items-center justify-between">
+                                            <Badge variant="outline" className="text-xs">{campoLabels[a.campo] || a.campo}</Badge>
+                                            {a.atendido && <Badge className="bg-green-100 text-green-800 text-xs">Atendido</Badge>}
+                                          </div>
+                                          <div className="flex items-center gap-2 text-sm">
+                                            <span className="text-muted-foreground">Atual: {formatarMoeda(Number(a.valor_atual))}</span>
+                                            <ArrowRight className="h-3 w-3 text-destructive" />
+                                            <span className="font-semibold text-destructive">{formatarMoeda(Number(a.valor_sugerido))}</span>
+                                          </div>
+                                          {a.comentario && (
+                                            <p className="text-xs text-muted-foreground italic">"{a.comentario}"</p>
+                                          )}
                                         </div>
-                                        <div className="flex items-center gap-2 text-sm">
-                                          <span className="text-muted-foreground">Atual: {formatarMoeda(Number(a.valor_atual))}</span>
-                                          <ArrowRight className="h-3 w-3 text-destructive" />
-                                          <span className="font-semibold text-destructive">{formatarMoeda(Number(a.valor_sugerido))}</span>
-                                        </div>
-                                        {a.comentario && (
-                                          <p className="text-xs text-muted-foreground italic">"{a.comentario}"</p>
-                                        )}
-                                      </div>
-                                    ))}
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
+                                )}
+
+                                {/* Histórico de alterações recentes */}
+                                {(historicoRecente[insumo.id] || []).length > 0 && (
+                                  <div>
+                                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                                      <History className="h-4 w-4" />
+                                      Alterações Recentes
+                                    </h4>
+                                    <div className="space-y-1">
+                                      {(historicoRecente[insumo.id] || []).map((h: any) => {
+                                        const variacao = Number(h.valor_anterior) > 0
+                                          ? ((Number(h.valor_novo) - Number(h.valor_anterior)) / Number(h.valor_anterior)) * 100
+                                          : 0;
+                                        const aumentou = variacao > 0;
+                                        return (
+                                          <div key={h.id} className="flex items-center gap-3 p-2 bg-background rounded border text-xs">
+                                            <span className="text-muted-foreground whitespace-nowrap">
+                                              {new Date(h.created_at).toLocaleDateString("pt-BR")}
+                                            </span>
+                                            <Badge variant="outline" className="text-[10px]">
+                                              {campoLabels[h.campo] || h.campo}
+                                            </Badge>
+                                            <span className="font-mono">
+                                              {formatarMoeda(Number(h.valor_anterior))} → {formatarMoeda(Number(h.valor_novo))}
+                                            </span>
+                                            <span className={`font-medium ${aumentou ? "text-red-600" : "text-green-600"}`}>
+                                              {aumentou ? "+" : ""}{variacao.toFixed(1)}%
+                                            </span>
+                                            {h.motivo && <span className="text-muted-foreground truncate max-w-[150px]">{h.motivo}</span>}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                    <Button
+                                      variant="link"
+                                      size="sm"
+                                      className="h-6 px-0 text-xs mt-1"
+                                      onClick={() => setHistoricoInsumo({ id: insumo.id, nome: insumo.nome })}
+                                    >
+                                      Ver histórico completo →
+                                    </Button>
+                                  </div>
+                                )}
+
+                                {/* Cotações / Orçamentos */}
+                                <CotacoesInsumoPanel
+                                  produtoCustoId={insumo.id}
+                                  produtoId={produto?.id || ""}
+                                  mpId={insumo.mp_id}
+                                  custoAtual={Number(insumo.custo_nf) || 0}
+                                  insumoNome={insumo.nome}
+                                  onAplicarCotacao={(fornecedorNome, valor) => {
+                                    // Trigger the cost change dialog with pre-filled justification
+                                    setAlteracaoCusto({
+                                      insumoId: insumo.id,
+                                      insumoNome: insumo.nome,
+                                      campo: "custo_nf",
+                                      valorAnterior: Number(insumo.custo_nf) || 0,
+                                      valorNovo: valor,
+                                    });
+                                  }}
+                                />
 
                                 {/* Upload de evidências */}
                                 <div>
@@ -705,7 +784,6 @@ export function FichaCustoProdutoEditor({
                                     Evidências / Arquivos
                                   </h4>
 
-                                  {/* Lista de evidências existentes */}
                                   {insumoEvidencias.length > 0 && (
                                     <div className="space-y-1 mb-3">
                                       {insumoEvidencias.map((ev: any) => (
@@ -716,22 +794,10 @@ export function FichaCustoProdutoEditor({
                                             {ev.tamanho_bytes ? `${(ev.tamanho_bytes / 1024).toFixed(0)} KB` : ""}
                                           </span>
                                           <span className="text-xs text-muted-foreground">{ev.usuario_nome}</span>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7"
-                                            onClick={() => window.open(ev.url_arquivo, "_blank")}
-                                            title="Visualizar"
-                                          >
+                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(ev.url_arquivo, "_blank")} title="Visualizar">
                                             <Eye className="h-3.5 w-3.5" />
                                           </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7 text-destructive hover:text-destructive"
-                                            onClick={() => handleRemoverEvidencia(ev.id, insumo.id)}
-                                            title="Remover"
-                                          >
+                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleRemoverEvidencia(ev.id, insumo.id)} title="Remover">
                                             <X className="h-3.5 w-3.5" />
                                           </Button>
                                         </div>
@@ -739,7 +805,6 @@ export function FichaCustoProdutoEditor({
                                     </div>
                                   )}
 
-                                  {/* Botão de upload */}
                                   <label className="inline-flex items-center gap-2 cursor-pointer">
                                     <input
                                       type="file"
@@ -747,9 +812,7 @@ export function FichaCustoProdutoEditor({
                                       multiple
                                       onChange={(e) => {
                                         const files = e.target.files;
-                                        if (files) {
-                                          Array.from(files).forEach((f) => handleUploadEvidencia(insumo.id, f));
-                                        }
+                                        if (files) Array.from(files).forEach((f) => handleUploadEvidencia(insumo.id, f));
                                         e.target.value = "";
                                       }}
                                     />

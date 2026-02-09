@@ -110,6 +110,30 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
 
       const { data: user } = await supabase.auth.getUser();
 
+      // Buscar alterações recentes de custo dos insumos deste produto
+      const insumoIds = insumos.map(i => i.id);
+      let alteracoesPendentes: any[] = [];
+      if (insumoIds.length > 0) {
+        const { data: alteracoes } = await supabase
+          .from("fabrica_insumo_custo_historico" as any)
+          .select("*")
+          .in("produto_custo_id", insumoIds)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (alteracoes) {
+          alteracoesPendentes = (alteracoes as any[]).map((a: any) => ({
+            insumo_id: a.produto_custo_id,
+            insumo_nome: insumos.find(i => i.id === a.produto_custo_id)?.nome || "",
+            campo: a.campo,
+            valor_anterior: a.valor_anterior,
+            valor_novo: a.valor_novo,
+            motivo: a.motivo,
+            usuario_nome: a.usuario_nome,
+            data: a.created_at,
+          }));
+        }
+      }
+
       const { data: revisao, error } = await supabase
         .from("fabrica_ficha_custo_revisoes")
         .insert({
@@ -118,7 +142,7 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
           status: "pendente",
           snapshot_insumos: insumos as any,
           snapshot_config: config as any,
-          snapshot_totais: totais as any,
+          snapshot_totais: { ...totais, alteracoes_pendentes: alteracoesPendentes } as any,
           submetido_por: user?.user?.id || null,
           versao: novaVersao,
         })

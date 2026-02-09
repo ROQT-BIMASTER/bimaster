@@ -38,6 +38,7 @@ const campoLabels: Record<string, string> = {
 const motivosPredefinidos = [
   "Reajuste de fornecedor",
   "Nova negociação comercial",
+  "Cotação aprovada",
   "Alteração cambial",
   "Correção de lançamento",
   "Atualização de tabela",
