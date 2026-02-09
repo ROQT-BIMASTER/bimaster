@@ -4,26 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, GripVertical, Save, FileText, Info } from "lucide-react";
 import { CustoInsumo, CustoConfig, Totais, BaseCalculoMarkup } from "@/hooks/useFichaCustoProduto";
@@ -42,6 +28,38 @@ interface Props {
   onRemoverInsumo: (id: string) => void;
   onAtualizarConfig: (campo: keyof CustoConfig, valor: any) => void;
   onSalvar: () => void;
+}
+
+function DecimalInput({
+  value,
+  onChange,
+  placeholder = "0.000",
+  className = "",
+  id,
+}: {
+  value: number | string;
+  onChange: (val: number | string) => void;
+  placeholder?: string;
+  className?: string;
+  id?: string;
+}) {
+  const displayValue = value === 0 ? "0" : (value || "");
+  return (
+    <Input
+      id={id}
+      type="text"
+      inputMode="decimal"
+      value={displayValue}
+      onChange={(e) => {
+        const raw = e.target.value.replace(",", ".");
+        if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
+          onChange(raw === "" ? 0 : raw.endsWith(".") ? raw : parseFloat(raw) || 0);
+        }
+      }}
+      className={className}
+      placeholder={placeholder}
+    />
+  );
 }
 
 export function FichaCustoProdutoEditor({
@@ -79,7 +97,7 @@ export function FichaCustoProdutoEditor({
     <div className="space-y-6">
       {/* Header do produto */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-xl">
@@ -102,12 +120,12 @@ export function FichaCustoProdutoEditor({
 
       {/* Configuração M.O. e Markup */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader>
           <CardTitle className="text-base">Configuração</CardTitle>
         </CardHeader>
-        <CardContent>
-           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div>
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="space-y-1.5">
               <Label htmlFor="fornecedor_mo">Fornecedor M.O.</Label>
               <Input
                 id="fornecedor_mo"
@@ -118,46 +136,34 @@ export function FichaCustoProdutoEditor({
                 placeholder="Ex: Rodrigues"
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="mo_nf">M.O. NF (R$)</Label>
-              <Input
+              <DecimalInput
                 id="mo_nf"
-                type="number"
-                step="0.000001"
-                value={config?.custo_mao_obra_nf || ""}
-                onChange={(e) =>
-                  onAtualizarConfig("custo_mao_obra_nf", parseFloat(e.target.value) || 0)
-                }
-                placeholder="0,000"
+                value={config?.custo_mao_obra_nf ?? 0}
+                onChange={(val) => onAtualizarConfig("custo_mao_obra_nf", typeof val === "string" ? val : val)}
+                placeholder="0.000"
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="mo_servico">M.O. Serviço (R$)</Label>
-              <Input
+              <DecimalInput
                 id="mo_servico"
-                type="number"
-                step="0.000001"
-                value={config?.custo_mao_obra_servico || ""}
-                onChange={(e) =>
-                  onAtualizarConfig("custo_mao_obra_servico", parseFloat(e.target.value) || 0)
-                }
-                placeholder="0,000"
+                value={config?.custo_mao_obra_servico ?? 0}
+                onChange={(val) => onAtualizarConfig("custo_mao_obra_servico", typeof val === "string" ? val : val)}
+                placeholder="0.000"
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="markup">Markup (%)</Label>
-              <Input
+              <DecimalInput
                 id="markup"
-                type="number"
-                step="0.01"
-                value={config?.percentual_markup || ""}
-                onChange={(e) =>
-                  onAtualizarConfig("percentual_markup", parseFloat(e.target.value) || 0)
-                }
+                value={config?.percentual_markup ?? 0}
+                onChange={(val) => onAtualizarConfig("percentual_markup", typeof val === "string" ? val : val)}
                 placeholder="10"
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="base_markup">Base do Markup</Label>
               <Select
                 value={config?.base_calculo_markup || "total"}
@@ -180,9 +186,9 @@ export function FichaCustoProdutoEditor({
         </CardContent>
       </Card>
 
-      {/* Tabela de Insumos */}
+      {/* Insumos como Cards */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Insumos</CardTitle>
             <div className="flex gap-2">
@@ -198,186 +204,114 @@ export function FichaCustoProdutoEditor({
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {insumos.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Nenhum insumo adicionado. Clique em "Adicionar" para começar.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10"></TableHead>
-                    <TableHead className="w-24">Código</TableHead>
-                    <TableHead>Insumo</TableHead>
-                    <TableHead className="w-32">Fornecedor</TableHead>
-                    <TableHead className="w-32">Tipo</TableHead>
-                    <TableHead className="w-24 text-right">NF</TableHead>
-                    <TableHead className="w-24 text-right">Serviço</TableHead>
-                    <TableHead className="w-24 text-right">Condição</TableHead>
-                    <TableHead className="w-28">NF Ref.</TableHead>
-                    <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {insumos.map((insumo) => (
-                    <TableRow key={insumo.id}>
-                      <TableCell>
-                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
+            <div className="space-y-3">
+              {insumos.map((insumo) => (
+                <div
+                  key={insumo.id}
+                  className="border border-border rounded-lg p-4 bg-background hover:shadow-sm transition-shadow"
+                >
+                  {/* Header do card: grip + código/nome + delete */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab flex-shrink-0" />
+                      <span className="font-mono text-sm text-muted-foreground flex-shrink-0">
                         {insumo.codigo}
-                      </TableCell>
-                      <TableCell className="font-medium">
+                      </span>
+                      <span className="font-medium truncate">
                         {insumo.nome}
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          value={insumo.fornecedor || ""}
-                          onChange={(e) =>
-                            onAtualizarInsumo(insumo.id, "fornecedor", e.target.value)
-                          }
-                          className="h-8 text-sm"
-                          placeholder="Fornecedor"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={insumo.tipo_insumo}
-                          onValueChange={(value) =>
-                            onAtualizarInsumo(insumo.id, "tipo_insumo", value)
-                          }
-                        >
-                          <SelectTrigger className="h-8 text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {tiposInsumo.map((tipo) => (
-                              <SelectItem key={tipo.value} value={tipo.value}>
-                                {tipo.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input
-                                type="text"
-                                inputMode="decimal"
-                                value={insumo.custo_nf === 0 ? "0" : (insumo.custo_nf || "")}
-                                onChange={(e) => {
-                                  const raw = e.target.value.replace(",", ".");
-                                  if (raw === "" || raw === "0" || /^\d*\.?\d*$/.test(raw)) {
-                                    onAtualizarInsumo(
-                                      insumo.id,
-                                      "custo_nf",
-                                      raw === "" ? 0 : (raw.endsWith(".") ? raw : parseFloat(raw) || 0)
-                                    );
-                                  }
-                                }}
-                                className="h-8 text-sm text-right min-w-[80px]"
-                                placeholder="0.000"
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="font-mono">
-                              <p className="text-xs text-muted-foreground">Custo NF</p>
-                              <p className="text-base font-semibold">
-                                R$ {formatarValor(Number(insumo.custo_nf) || 0)}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input
-                                type="text"
-                                inputMode="decimal"
-                                value={insumo.custo_servico === 0 ? "0" : (insumo.custo_servico || "")}
-                                onChange={(e) => {
-                                  const raw = e.target.value.replace(",", ".");
-                                  if (raw === "" || raw === "0" || /^\d*\.?\d*$/.test(raw)) {
-                                    onAtualizarInsumo(
-                                      insumo.id,
-                                      "custo_servico",
-                                      raw === "" ? 0 : (raw.endsWith(".") ? raw : parseFloat(raw) || 0)
-                                    );
-                                  }
-                                }}
-                                className="h-8 text-sm text-right min-w-[80px]"
-                                placeholder="0.000"
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="font-mono">
-                              <p className="text-xs text-muted-foreground">Custo Serviço</p>
-                              <p className="text-base font-semibold">
-                                R$ {formatarValor(Number(insumo.custo_servico) || 0)}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input
-                                type="text"
-                                inputMode="decimal"
-                                value={insumo.custo_condicao === 0 ? "0" : (insumo.custo_condicao || "")}
-                                onChange={(e) => {
-                                  const raw = e.target.value.replace(",", ".");
-                                  if (raw === "" || raw === "0" || /^\d*\.?\d*$/.test(raw)) {
-                                    onAtualizarInsumo(
-                                      insumo.id,
-                                      "custo_condicao",
-                                      raw === "" ? 0 : (raw.endsWith(".") ? raw : parseFloat(raw) || 0)
-                                    );
-                                  }
-                                }}
-                                className="h-8 text-sm text-right min-w-[80px]"
-                                placeholder="0.000"
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="font-mono">
-                              <p className="text-xs text-muted-foreground">Custo Condição</p>
-                              <p className="text-base font-semibold">
-                                R$ {formatarValor(Number(insumo.custo_condicao) || 0)}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          value={insumo.nf_referencia || ""}
-                          onChange={(e) =>
-                            onAtualizarInsumo(insumo.id, "nf_referencia", e.target.value)
-                          }
-                          className="h-8 text-sm"
-                          placeholder="NF12345"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => onRemoverInsumo(insumo.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive flex-shrink-0"
+                      onClick={() => onRemoverInsumo(insumo.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Tipo + Fornecedor */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Tipo</Label>
+                      <Select
+                        value={insumo.tipo_insumo}
+                        onValueChange={(value) =>
+                          onAtualizarInsumo(insumo.id, "tipo_insumo", value)
+                        }
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tiposInsumo.map((tipo) => (
+                            <SelectItem key={tipo.value} value={tipo.value}>
+                              {tipo.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Fornecedor</Label>
+                      <Input
+                        value={insumo.fornecedor || ""}
+                        onChange={(e) =>
+                          onAtualizarInsumo(insumo.id, "fornecedor", e.target.value)
+                        }
+                        className="h-9"
+                        placeholder="Fornecedor"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Custos + NF Ref */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">NF (R$)</Label>
+                      <DecimalInput
+                        value={insumo.custo_nf}
+                        onChange={(val) => onAtualizarInsumo(insumo.id, "custo_nf", val)}
+                        className="text-right"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Serviço (R$)</Label>
+                      <DecimalInput
+                        value={insumo.custo_servico}
+                        onChange={(val) => onAtualizarInsumo(insumo.id, "custo_servico", val)}
+                        className="text-right"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Condição (R$)</Label>
+                      <DecimalInput
+                        value={insumo.custo_condicao}
+                        onChange={(val) => onAtualizarInsumo(insumo.id, "custo_condicao", val)}
+                        className="text-right"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">NF Ref.</Label>
+                      <Input
+                        value={insumo.nf_referencia || ""}
+                        onChange={(e) =>
+                          onAtualizarInsumo(insumo.id, "nf_referencia", e.target.value)
+                        }
+                        className="h-10"
+                        placeholder="NF12345"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
@@ -386,8 +320,8 @@ export function FichaCustoProdutoEditor({
       {/* Linha de Markup */}
       {config && Number(config.percentual_markup) > 0 && (
         <Card className="bg-muted/50">
-          <CardContent className="py-3">
-            <div className="flex items-center justify-between text-sm">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between text-sm flex-wrap gap-2">
               <span className="font-medium">
                 Markup {config.percentual_markup}%
                 <span className="text-muted-foreground ml-2 text-xs font-normal">
@@ -412,10 +346,10 @@ export function FichaCustoProdutoEditor({
 
       {/* Totais */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader>
           <CardTitle className="text-base">Totais</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="p-4 bg-muted rounded-lg text-center">
               <p className="text-sm text-muted-foreground">NF</p>
@@ -439,7 +373,7 @@ export function FichaCustoProdutoEditor({
 
           {/* Regra aplicada */}
           {config && Number(config.percentual_markup) > 0 && (
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+            <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border">
               <Info className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <span className="text-sm text-muted-foreground">
                 {config.base_calculo_markup === 'total' && `Markup de ${config.percentual_markup}% aplicado sobre NF + Serviço + Condição`}
