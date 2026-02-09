@@ -39,9 +39,10 @@ interface Props {
   insumos?: InsumoRef[];
   tipoRemetente?: "usuario" | "diretoria";
   insumosComApontamento?: Set<string>;
+  onNavigateToInsumo?: (insumoId: string) => void;
 }
 
-export function RevisaoChatPanel({ revisaoId, insumos = [], tipoRemetente = "usuario", insumosComApontamento = new Set() }: Props) {
+export function RevisaoChatPanel({ revisaoId, insumos = [], tipoRemetente = "usuario", insumosComApontamento = new Set(), onNavigateToInsumo }: Props) {
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
@@ -193,9 +194,14 @@ export function RevisaoChatPanel({ revisaoId, insumos = [], tipoRemetente = "usu
                     {insumoNome && (
                       <Badge
                         variant={isUsuario ? "secondary" : "outline"}
-                        className="text-[10px] mb-1 py-0"
+                        className={`text-[10px] mb-1 py-0 ${onNavigateToInsumo ? "cursor-pointer hover:underline" : ""}`}
+                        onClick={() => {
+                          if (onNavigateToInsumo && msg.insumo_id) {
+                            onNavigateToInsumo(msg.insumo_id);
+                          }
+                        }}
                       >
-                        {insumoNome}
+                        {insumoNome} {onNavigateToInsumo ? "↗" : ""}
                       </Badge>
                     )}
                     <p className="text-sm whitespace-pre-wrap">{msg.conteudo}</p>
