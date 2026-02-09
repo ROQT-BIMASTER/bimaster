@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,12 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, GripVertical, Save, FileText, Info, Printer, Download } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Plus, Trash2, GripVertical, Save, FileText, Info, Printer, Download, History, AlertTriangle } from "lucide-react";
 import { CustoInsumo, CustoConfig, Totais, BaseCalculoMarkup } from "@/hooks/useFichaCustoProduto";
 import { AdicionarInsumoCustoDialog } from "./AdicionarInsumoCustoDialog";
 import { ImportarInsumosIA } from "./ImportarInsumosIA";
+import { HistoricoCustosInsumoDialog } from "./HistoricoCustosInsumoDialog";
+import { AlterarCustoDialog } from "./AlterarCustoDialog";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
+import { supabase } from "@/integrations/supabase/client";
 
 import { FichaAprovacaoBanner } from "./FichaAprovacaoBanner";
 import { FichaApontamentosPanel } from "./FichaApontamentosPanel";
@@ -101,7 +105,80 @@ export function FichaCustoProdutoEditor({
   onSubmeterAprovacao,
 }: Props) {
   const [dialogAberto, setDialogAberto] = useState(false);
+  const [historicoInsumo, setHistoricoInsumo] = useState<{ id: string; nome: string } | null>(null);
+  const [alteracaoCusto, setAlteracaoCusto] = useState<{
+    insumoId: string;
+    insumoNome: string;
+    campo: string;
+    valorAnterior: number;
+    valorNovo: number;
+  } | null>(null);
   const isLocked = statusAprovacao === "em_revisao" || statusAprovacao === "aprovada";
+
+  // Map de insumo_id -> apontamentos
+  const apontamentosPorInsumo = useMemo(() => {
+    const map = new Map<string, RevisaoItem[]>();
+    apontamentos.forEach((a) => {
+      if (a.insumo_id) {
+        if (!map.has(a.insumo_id)) map.set(a.insumo_id, []);
+        map.get(a.insumo_id)!.push(a);
+      }
+    });
+    return map;
+  }, [apontamentos]);
+
+  // Handler para campos de custo com justificativa
+  const handleCustoChange = (insumoId: string, campo: string, valorNovo: number | string) => {
+    const insumo = insumos.find((i) => i.id === insumoId);
+    if (!insumo) return;
+    const valorAnterior = Number(insumo[campo as keyof CustoInsumo]) || 0;
+    const novoNum = typeof valorNovo === "string" ? (valorNovo.endsWith(".") ? 0 : parseFloat(valorNovo) || 0) : valorNovo;
+
+    // Se é string parcial (digitando), atualizar direto
+    if (typeof valorNovo === "string" && valorNovo.endsWith(".")) {
+      onAtualizarInsumo(insumoId, campo as keyof CustoInsumo, valorNovo);
+      return;
+    }
+
+    // Se valor anterior era 0 ou é primeira vez, não pedir justificativa
+    if (valorAnterior === 0 || novoNum === valorAnterior) {
+      onAtualizarInsumo(insumoId, campo as keyof CustoInsumo, valorNovo);
+      return;
+    }
+
+    // Pedir justificativa
+    setAlteracaoCusto({
+      insumoId,
+      insumoNome: insumo.nome,
+      campo,
+      valorAnterior,
+      valorNovo: novoNum,
+    });
+  };
+
+  const handleConfirmarAlteracao = async (motivo: string) => {
+    if (!alteracaoCusto) return;
+    const { insumoId, campo, valorNovo } = alteracaoCusto;
+
+    // Atualizar o insumo (trigger no banco registra o histórico)
+    onAtualizarInsumo(insumoId, campo as keyof CustoInsumo, valorNovo);
+
+    // Também atualizar o motivo no histórico (via update no registro mais recente)
+    // O trigger insere sem motivo, então atualizamos logo em seguida
+    const user = (await supabase.auth.getUser()).data.user;
+    setTimeout(async () => {
+      await supabase
+        .from("fabrica_insumo_custo_historico" as any)
+        .update({ motivo, usuario_nome: user?.user_metadata?.nome || user?.email || "" } as any)
+        .eq("produto_custo_id", insumoId)
+        .eq("campo", campo)
+        .is("motivo", null)
+        .order("created_at", { ascending: false })
+        .limit(1);
+    }, 500);
+
+    setAlteracaoCusto(null);
+  };
 
   const formatarValor = (valor: number) => {
     return valor.toLocaleString("pt-BR", {
@@ -394,93 +471,127 @@ export function FichaCustoProdutoEditor({
                     <TableHead className="min-w-[110px] text-right">Serviço (R$)</TableHead>
                     <TableHead className="min-w-[110px] text-right">Condição (R$)</TableHead>
                     <TableHead className="min-w-[120px]">NF Ref.</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="w-[80px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {insumos.map((insumo) => (
-                    <TableRow key={insumo.id}>
-                      <TableCell className="px-2">
-                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {insumo.codigo}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {insumo.nome}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={insumo.tipo_insumo}
-                          onValueChange={(value) =>
-                            onAtualizarInsumo(insumo.id, "tipo_insumo", value)
-                          }
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {tiposInsumo.map((tipo) => (
-                              <SelectItem key={tipo.value} value={tipo.value}>
-                                {tipo.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          value={insumo.fornecedor || ""}
-                          onChange={(e) =>
-                            onAtualizarInsumo(insumo.id, "fornecedor", e.target.value)
-                          }
-                          className="h-9"
-                          placeholder="Fornecedor"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <DecimalInput
-                          value={insumo.custo_nf}
-                          onChange={(val) => onAtualizarInsumo(insumo.id, "custo_nf", val)}
-                          className="h-9 text-right"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <DecimalInput
-                          value={insumo.custo_servico}
-                          onChange={(val) => onAtualizarInsumo(insumo.id, "custo_servico", val)}
-                          className="h-9 text-right"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <DecimalInput
-                          value={insumo.custo_condicao}
-                          onChange={(val) => onAtualizarInsumo(insumo.id, "custo_condicao", val)}
-                          className="h-9 text-right"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          value={insumo.nf_referencia || ""}
-                          onChange={(e) =>
-                            onAtualizarInsumo(insumo.id, "nf_referencia", e.target.value)
-                          }
-                          className="h-9"
-                          placeholder="NF12345"
-                        />
-                      </TableCell>
-                      <TableCell className="px-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => onRemoverInsumo(insumo.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {insumos.map((insumo) => {
+                    const temApontamento = apontamentosPorInsumo.has(insumo.id);
+                    const apts = apontamentosPorInsumo.get(insumo.id) || [];
+                    return (
+                      <TableRow key={insumo.id} className={temApontamento ? "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500" : ""}>
+                        <TableCell className="px-2">
+                          <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          <div className="flex items-center gap-1">
+                            {insumo.codigo}
+                            {temApontamento && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <p className="font-semibold mb-1">Apontamentos:</p>
+                                    {apts.map((a, i) => (
+                                      <p key={i} className="text-xs">
+                                        {a.campo}: sugerido {a.valor_sugerido != null ? `R$ ${Number(a.valor_sugerido).toFixed(2)}` : "revisão"} — {a.comentario || ""}
+                                      </p>
+                                    ))}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {insumo.nome}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={insumo.tipo_insumo}
+                            onValueChange={(value) =>
+                              onAtualizarInsumo(insumo.id, "tipo_insumo", value)
+                            }
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {tiposInsumo.map((tipo) => (
+                                <SelectItem key={tipo.value} value={tipo.value}>
+                                  {tipo.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={insumo.fornecedor || ""}
+                            onChange={(e) =>
+                              onAtualizarInsumo(insumo.id, "fornecedor", e.target.value)
+                            }
+                            className="h-9"
+                            placeholder="Fornecedor"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <DecimalInput
+                            value={insumo.custo_nf}
+                            onChange={(val) => handleCustoChange(insumo.id, "custo_nf", typeof val === "string" ? val : Number(val))}
+                            className="h-9 text-right"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <DecimalInput
+                            value={insumo.custo_servico}
+                            onChange={(val) => handleCustoChange(insumo.id, "custo_servico", typeof val === "string" ? val : Number(val))}
+                            className="h-9 text-right"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <DecimalInput
+                            value={insumo.custo_condicao}
+                            onChange={(val) => handleCustoChange(insumo.id, "custo_condicao", typeof val === "string" ? val : Number(val))}
+                            className="h-9 text-right"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={insumo.nf_referencia || ""}
+                            onChange={(e) =>
+                              onAtualizarInsumo(insumo.id, "nf_referencia", e.target.value)
+                            }
+                            className="h-9"
+                            placeholder="NF12345"
+                          />
+                        </TableCell>
+                        <TableCell className="px-2">
+                          <div className="flex gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => setHistoricoInsumo({ id: insumo.id, nome: insumo.nome })}
+                              title="Histórico de custos"
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => onRemoverInsumo(insumo.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -591,6 +702,29 @@ export function FichaCustoProdutoEditor({
         onOpenChange={setDialogAberto}
         onAdicionar={onAdicionarInsumo}
       />
+
+      {/* Dialog de histórico de custos */}
+      {historicoInsumo && (
+        <HistoricoCustosInsumoDialog
+          open={!!historicoInsumo}
+          onOpenChange={(open) => !open && setHistoricoInsumo(null)}
+          produtoCustoId={historicoInsumo.id}
+          insumoNome={historicoInsumo.nome}
+        />
+      )}
+
+      {/* Dialog de justificativa de alteração */}
+      {alteracaoCusto && (
+        <AlterarCustoDialog
+          open={!!alteracaoCusto}
+          onOpenChange={(open) => !open && setAlteracaoCusto(null)}
+          insumoNome={alteracaoCusto.insumoNome}
+          campo={alteracaoCusto.campo}
+          valorAnterior={alteracaoCusto.valorAnterior}
+          valorNovo={alteracaoCusto.valorNovo}
+          onConfirmar={handleConfirmarAlteracao}
+        />
+      )}
     </div>
   );
 }
