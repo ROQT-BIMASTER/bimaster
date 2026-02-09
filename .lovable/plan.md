@@ -1,105 +1,76 @@
 
 
-# Estrategia de Calculo por Linha ou Produto Individual
+# Controle de Acesso Granular: Por Linha e Por Produto
 
 ## Situacao Atual
 
-Hoje, o markup (tipo e valor) e definido **por tabela** na `fabrica_tabelas_preco`. Quando os precos sao gerados, todos os produtos da tabela recebem o mesmo calculo:
-
-```text
-Tabela Distribuidor: +35% sobre todos os produtos
-Tabela E-commerce: x1.8 sobre todos os produtos
-```
-
-Isso funciona bem para o cenario atual, mas nao permite diferenciar estrategias por familia de produto ou produto especifico.
+Hoje o controle de acesso (`user_price_table_access`) permite restringir usuarios por **tabela de preco** inteira, com tres niveis de permissao: visualizar, editar e aprovar. Nao existe forma de restringir a visibilidade ou edicao a apenas uma linha de produto (ex: "Banana") ou a um produto individual dentro de uma tabela.
 
 ## O Que Sera Feito
 
-Criar uma tabela de **overrides de markup** que permite definir regras de calculo especificas por linha de produto ou por produto individual, sem alterar o funcionamento atual.
+Adicionar duas novas colunas opcionais na tabela `user_price_table_access` para permitir restricoes mais granulares:
 
-### Hierarquia de Prioridade (mais especifico vence)
+- **linha** (text, nullable) -- restringe o acesso apenas aos produtos daquela linha
+- **produto_id** (uuid, nullable) -- restringe o acesso a um produto individual
+
+### Hierarquia de Acesso (mais especifico vence)
 
 ```text
-1. Override por PRODUTO individual (maior prioridade)
-2. Override por LINHA de produto
-3. Markup da TABELA (comportamento atual - fallback padrao)
+1. Regra com produto_id definido (mais restritiva/especifica)
+2. Regra com linha definida
+3. Regra so com tabela_id (comportamento atual - acesso a tabela inteira)
 ```
+
+Se um usuario tem apenas uma regra com `linha = "Banana"` para a tabela Distribuidor, ele so vera os produtos da linha Banana nessa tabela.
 
 ## Detalhes Tecnicos
 
-### 1. Nova Tabela: `fabrica_markup_overrides`
+### 1. Alteracao na tabela `user_price_table_access`
 
-```text
-Colunas:
-- id (uuid, PK)
-- tabela_id (FK -> fabrica_tabelas_preco) -- para qual tabela se aplica
-- linha (text, nullable) -- ex: "Banana", "Melu" (se aplicar por linha)
-- produto_id (FK -> fabrica_produtos, nullable) -- se aplicar por produto individual
-- tipo_markup (text) -- 'percentual', 'multiplicador', 'valor_fixo'
-- valor_markup (numeric)
-- ativo (boolean, default true)
-- created_at, updated_at
-- created_by (FK -> profiles)
+Adicionar duas colunas:
+- `linha` (text, nullable) -- nome da linha de produto
+- `produto_id` (uuid, nullable, FK para fabrica_produtos)
 
-Constraint: CHECK (linha IS NOT NULL OR produto_id IS NOT NULL)
-Unique: (tabela_id, linha, produto_id) -- evita duplicatas
-```
+Atualizar a constraint unique de `(user_id, tabela_id)` para `(user_id, tabela_id, linha, produto_id)` para permitir multiplas regras por tabela.
 
-RLS: Acesso restrito a usuarios autenticados com role admin ou acesso ao modulo fabrica.
+### 2. Alteracao no Hook `useUserPriceTableAccess`
 
-### 2. Alteracao no `pricing-calculator.ts`
+Extender o hook para expor funcoes adicionais:
+- `canViewProduct(tabelaId, linha, produtoId)` -- verifica se o usuario pode ver um produto especifico
+- `filterProductsByAccess(tabelaId, produtos)` -- filtra lista de produtos baseado nas restricoes
+- Manter compatibilidade total: se nao ha restricoes de linha/produto, funciona como hoje
 
-Na funcao `calcularPrecosProdutos`, antes de aplicar o markup da tabela, buscar overrides:
+### 3. Alteracao na UI de Gerenciamento (`GerenciamentoAcessoPrecos.tsx`)
 
-```text
-Para cada produto:
-  1. Buscar override por produto_id + tabela_id
-  2. Se nao encontrar, buscar override por linha + tabela_id
-  3. Se nao encontrar, usar markup da tabela (comportamento atual)
-```
+No dialog "Adicionar Acesso":
+- Apos selecionar a tabela, exibir opcao de escopo: "Tabela Inteira", "Por Linha" ou "Por Produto"
+- Se "Por Linha": dropdown com as linhas existentes (Banana, MELU, Pistache, etc.)
+- Se "Por Produto": busca de produto com autocomplete
+- Na listagem, exibir badges indicando o escopo da regra
 
-A mudanca e cirurgica -- apenas no trecho entre as linhas 428-432 onde o markup e aplicado. O restante (limites, margens, cadeia) continua identico.
+### 4. Integracao nos componentes de precos
 
-### 3. Interface de Gerenciamento (nova aba no modulo de Tabelas de Preco)
-
-Um dialog ou painel dentro da tabela de precos onde o admin pode:
-
-- Ver a lista de overrides ativos para aquela tabela
-- Adicionar override por Linha (dropdown com linhas existentes)
-- Adicionar override por Produto (busca de produto)
-- Definir tipo e valor do markup para cada override
-- Ativar/desativar overrides individualmente
-
-### 4. Indicadores Visuais
-
-Na tabela de precos gerados, produtos com override terao um badge indicando que usam markup diferenciado:
-
-- Badge "Linha" (azul) -- quando usa override de linha
-- Badge "Individual" (roxo) -- quando usa override de produto
+Nos locais onde produtos sao exibidos (GeradorPrecosDialog, Matriz Comparativa, Portal Cliente), aplicar a filtragem granular usando o hook atualizado.
 
 ## Compatibilidade
 
-- **Zero impacto** no funcionamento atual: se nao existirem overrides, tudo funciona exatamente como hoje
-- A cadeia de recalculo (`recalcularCadeiaPrecos`) automaticamente respeita os overrides
-- O Simulador de Cenarios pode ser estendido futuramente para simular com overrides
-- Os limites de preco (`fabrica_limites_preco_tabela`) continuam sendo aplicados normalmente sobre o preco calculado com override
+- Regras existentes (so com tabela_id) continuam funcionando identicamente -- `linha` e `produto_id` serao NULL, significando acesso total a tabela
+- Administradores e supervisores continuam com acesso total
+- Zero impacto no fluxo de aprovacao existente
 
 ## Arquivos Afetados
 
 | Arquivo | Alteracao |
 |---------|-----------|
-| Nova migracao SQL | Criar tabela `fabrica_markup_overrides` com RLS |
-| `src/lib/fabrica/pricing-calculator.ts` | Buscar overrides antes de aplicar markup (linhas 428-432) |
-| Novo componente `MarkupOverridesManager.tsx` | UI para gerenciar overrides por tabela |
-| `src/components/fabrica/GeradorPrecosDialog.tsx` | Badge visual nos produtos com override |
-| `src/integrations/supabase/types.ts` | Atualizado automaticamente |
+| Nova migracao SQL | Adicionar colunas `linha` e `produto_id` na `user_price_table_access`, atualizar constraint unique |
+| `src/hooks/useUserPriceTableAccess.ts` | Adicionar `canViewProduct()` e `filterProductsByAccess()` |
+| `src/pages/GerenciamentoAcessoPrecos.tsx` | Adicionar selecao de escopo (Tabela/Linha/Produto) no dialog e badges na listagem |
+| `src/components/fabrica/GeradorPrecosDialog.tsx` | Aplicar filtragem granular na exibicao de produtos |
 
 ## Resultado
 
 Com essa estrutura voce podera, por exemplo:
-
-- Tabela Distribuidor: +35% geral, mas Linha "Banana" com +28% e produto "Pistache Premium" com +42%
-- Tabela E-commerce: x1.8 geral, mas Linha "Clear" com x2.0
-
-Tudo retrocompativel e sem afetar o que ja funciona.
+- Dar acesso total a tabela Distribuidor para o Joao
+- Dar acesso apenas a linha "Banana" na tabela E-commerce para a Maria
+- Dar acesso apenas ao produto "Pistache Premium" na tabela Atacado para o Pedro
 
