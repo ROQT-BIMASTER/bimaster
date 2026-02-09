@@ -1,64 +1,63 @@
 
 
-# Correcao do Erro Select.Item e Integracao da IA nos Lancamentos Financeiros
+# Padronizar Lancamentos Trade com o Modelo de Eventos
 
-## Problema 1: Erro "Select.Item must have a value prop that is not an empty string"
+## Objetivo
+Alinhar o formulario de "Novo Lancamento" do Trade Marketing com o padrao ja estabelecido na tela de despesas de Eventos, trazendo consistencia visual e funcional para o usuario.
 
-### Causa Raiz
-No arquivo `src/components/trade/NovoLancamentoDialog.tsx`, na linha 440, existe um `SelectItem` com valor vazio:
+## Diferencas Atuais
 
-```
-<SelectItem value="">Nenhuma campanha</SelectItem>
-```
+| Aspecto | Eventos (padrao) | Trade (atual) |
+|---------|-------------------|---------------|
+| Anexos | Componente `ExpenseAttachments` com upload estruturado, preview, download e remocao individual | Upload manual de fotos com grid de imagens e URLs armazenadas em texto nas notas |
+| Campos de valor | Valor Previsto + Valor Realizado | Apenas um campo "Valor" |
+| Categorias | Sistema de categorias padronizadas (`EXPENSE_CATEGORIES`) | Tipos de lancamento (budget_allocation, investment, expense, etc.) |
+| Separadores visuais | Separadores entre secoes do formulario | Sem separadores |
 
-O Radix UI Select **nao permite** que um `SelectItem` tenha `value=""` (string vazia), pois o valor vazio e reservado para limpar a selecao e mostrar o placeholder. Isso causa o crash da aplicacao ao tentar abrir o dialog "Novo Lancamento".
+## O que sera feito
 
-### Correcao
-- Remover o `SelectItem value=""` da lista de campanhas
-- Usar `value="none"` como valor sentinela e tratar no submit para converter "none" em `null`
-- Garantir que o campo `campaignId` inicie com `"none"` ao inves de `""` quando nenhuma campanha for selecionada
+### 1. Substituir o sistema de upload de fotos pelo componente `ExpenseAttachments`
+- Remover o bloco de upload manual de fotos (linhas 648-692 do dialog Trade)
+- Adicionar o componente `ExpenseAttachments` ja existente, usando o bucket `trade-photos` (ou um bucket dedicado `trade-expense-docs`)
+- Armazenar os anexos como JSON estruturado na coluna `attachments` da tabela `trade_financial_entries` (nova coluna, tipo `jsonb`)
+- Mover os arquivos para o caminho definitivo apos o insert, igual ao padrao de Eventos
 
-### Arquivo a modificar
-- `src/components/trade/NovoLancamentoDialog.tsx`
-  - Linha 440: Trocar `value=""` por `value="none"`
-  - Linha 56: Inicializar `campaignId` como `"none"`
-  - Linha 197: No submit, converter `"none"` para `null` antes de salvar
-  - Linha 218/226: No reset do form, resetar para `"none"`
+### 2. Adicionar campo de "Valor Previsto"
+- Incluir um campo `valor_previsto` (opcional) ao lado do campo `Valor` existente (que passara a ser "Valor Realizado")
+- Adicionar coluna `valor_previsto` na tabela `trade_financial_entries`
 
----
+### 3. Adicionar categorias padronizadas
+- Criar uma lista de categorias especificas para Trade (ex: Material POS, Degustacao, Promocao, Bonificacao, Logistica, etc.)
+- Adicionar campo `category` na tabela `trade_financial_entries`
+- Manter o campo `entry_type` existente para compatibilidade
 
-## Problema 2: Funcionalidades de IA nao aparecem na tela de Lancamentos Trade
-
-### Causa
-Os componentes de IA (Scanner OCR, Chat, Resumo, Anomalias) foram integrados nas telas de:
-- Central de Aprovacoes de Departamentos (`DepartmentApprovalHub`)
-- Central de Aprovacoes de Eventos (`EventsApprovalHub`)
-- Dialogs de Despesas de Eventos e Departamentos
-
-Porem, a tela de **Lancamentos Financeiros Trade** (`TradeLancamentos.tsx`) e o dialog **Novo Lancamento Trade** (`NovoLancamentoDialog.tsx`) sao componentes completamente diferentes e **nao foram incluidos** na integracao de IA.
-
-### Correcao
-Integrar os componentes de IA na tela de Lancamentos Trade:
-
-1. **`src/components/trade/NovoLancamentoDialog.tsx`**
-   - Adicionar o componente `ExpenseReceiptScanner` no topo do formulario, permitindo que o usuario escaneie um comprovante e preencha automaticamente os campos (descricao, valor, data)
-
-2. **`src/pages/TradeLancamentos.tsx`**
-   - Adicionar o `PaymentPolicyBanner` no topo da pagina para mostrar a politica financeira vigente
-   - Adicionar o `ExpenseAIChatFloat` como chat flutuante para que o usuario faca perguntas sobre lancamentos
-
----
+### 4. Melhorias visuais de padronizacao
+- Adicionar separadores (`Separator`) entre as secoes do formulario
+- Organizar campos de forma consistente com o dialog de Eventos
 
 ## Detalhes tecnicos
 
-### Alteracoes no `NovoLancamentoDialog.tsx`
-- Importar `ExpenseReceiptScanner` de `@/components/ai/ExpenseReceiptScanner`
-- Adicionar o scanner antes do formulario com callback `onFieldsExtracted` que mapeia os campos extraidos (descricao, valor, data) para os estados do formulario
-- Corrigir o `SelectItem` da campanha para usar `value="none"` e ajustar a logica de submit
+### Migracao SQL
+Nova migracao para adicionar colunas na tabela `trade_financial_entries`:
+- `attachments` (jsonb, default '[]')
+- `valor_previsto` (numeric, nullable)
+- `category` (text, nullable)
 
-### Alteracoes no `TradeLancamentos.tsx`
-- Importar `PaymentPolicyBanner` de `@/components/financeiro/payments/PaymentPolicyBanner`
-- Importar `ExpenseAIChatFloat` de `@/components/ai/ExpenseAIChatFloat`
-- Renderizar o banner abaixo do header
-- Renderizar o chat flutuante no final da pagina
+Criar o storage bucket `trade-expense-docs` se nao existir.
+
+### Arquivo `src/components/trade/NovoLancamentoDialog.tsx`
+- Importar `ExpenseAttachments` de `@/components/events/ExpenseAttachments`
+- Importar `Separator` de `@/components/ui/separator`
+- Remover estados `uploadedPhotos`, `uploading` e funcoes `handlePhotoUpload`, `removePhoto`
+- Adicionar estados `attachments`, `tempEntryId`, `valorPrevisto`, `category`
+- Criar constante `TRADE_EXPENSE_CATEGORIES` com categorias especificas de Trade
+- Substituir bloco de fotos pelo componente `ExpenseAttachments`
+- Adicionar campo "Valor Previsto" ao lado do "Valor Realizado"
+- Adicionar seletor de Categoria
+- Ajustar `handleSubmit` para salvar anexos, valor_previsto e category
+- Adicionar logica de mover arquivos de storage apos insert (mesmo padrao do Evento)
+- Adicionar `Separator` entre secoes
+
+### Arquivo `src/components/trade/EditarLancamentoDialog.tsx`
+- Aplicar as mesmas mudancas de anexos e campos para manter consistencia na edicao
 
