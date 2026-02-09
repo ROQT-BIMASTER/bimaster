@@ -6389,6 +6389,9 @@ export type Database = {
           arquivo_url: string | null
           condicao_pagamento: string | null
           created_at: string
+          custo_condicao: number
+          custo_nf: number
+          custo_servico: number
           fornecedor_nome: string
           id: string
           mp_id: string | null
@@ -6406,6 +6409,9 @@ export type Database = {
           arquivo_url?: string | null
           condicao_pagamento?: string | null
           created_at?: string
+          custo_condicao?: number
+          custo_nf?: number
+          custo_servico?: number
           fornecedor_nome: string
           id?: string
           mp_id?: string | null
@@ -6423,6 +6429,9 @@ export type Database = {
           arquivo_url?: string | null
           condicao_pagamento?: string | null
           created_at?: string
+          custo_condicao?: number
+          custo_nf?: number
+          custo_servico?: number
           fornecedor_nome?: string
           id?: string
           mp_id?: string | null

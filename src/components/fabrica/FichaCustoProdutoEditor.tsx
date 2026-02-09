@@ -763,17 +763,18 @@ export function FichaCustoProdutoEditor({
                                   produtoCustoId={insumo.id}
                                   produtoId={produto?.id || ""}
                                   mpId={insumo.mp_id}
-                                  custoAtual={Number(insumo.custo_nf) || 0}
+                                  custoAtualNF={Number(insumo.custo_nf) || 0}
+                                  custoAtualServico={Number(insumo.custo_servico) || 0}
+                                  custoAtualCondicao={Number(insumo.custo_condicao) || 0}
                                   insumoNome={insumo.nome}
-                                  onAplicarCotacao={(fornecedorNome, valor) => {
-                                    // Trigger the cost change dialog with pre-filled justification
-                                    setAlteracaoCusto({
-                                      insumoId: insumo.id,
-                                      insumoNome: insumo.nome,
-                                      campo: "custo_nf",
-                                      valorAnterior: Number(insumo.custo_nf) || 0,
-                                      valorNovo: valor,
-                                    });
+                                  onAplicarCotacao={(fornecedorNome, custoNF, custoServico, custoCondicao) => {
+                                    // Aplicar os 3 campos de custo vindos da cotação
+                                    const motivo = `Cotação aprovada - ${fornecedorNome}`;
+                                    onAtualizarInsumo(insumo.id, "custo_nf", custoNF);
+                                    onAtualizarInsumo(insumo.id, "custo_servico", custoServico);
+                                    onAtualizarInsumo(insumo.id, "custo_condicao", custoCondicao);
+                                    onAtualizarInsumo(insumo.id, "fornecedor", fornecedorNome);
+                                    toast.success(`Cotação de ${fornecedorNome} aplicada com sucesso`);
                                   }}
                                 />
 
