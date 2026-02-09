@@ -30,10 +30,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DOCUMENT_TYPES, usePortadores } from "@/hooks/useEventExpenses";
-import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, AlertTriangle, Clock, CalendarCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
+import { FinancialFieldsSuggestion } from "@/components/ai/FinancialFieldsSuggestion";
+import { useActivePaymentPolicy, isWithinCutoff, getPolicySummary, getNextPaymentDateFormatted } from "@/hooks/useFinancialPaymentPolicies";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
@@ -58,6 +61,7 @@ export function EnviarFinanceiroTradeDialog({
   onSuccess,
 }: EnviarFinanceiroTradeDialogProps) {
   const { data: portadores } = usePortadores();
+  const { data: activePolicy } = useActivePaymentPolicy();
   const [loading, setLoading] = useState(false);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [fornecedorId, setFornecedorId] = useState<string>("");
@@ -72,6 +76,10 @@ export function EnviarFinanceiroTradeDialog({
     portador: "",
     payment_notes: "",
   });
+
+  const hasAttachments = entry?.attachments && entry.attachments.length > 0;
+  const isApproved = entry?.approval_status === "approved";
+  const withinCutoff = activePolicy ? isWithinCutoff(activePolicy) : true;
 
   // Fetch suppliers when dialog opens
   useEffect(() => {
@@ -145,6 +153,18 @@ export function EnviarFinanceiroTradeDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate approval status
+    if (!isApproved) {
+      toast.error("Lançamento precisa estar aprovado para enviar ao financeiro");
+      return;
+    }
+
+    // Validate attachments
+    if (!hasAttachments) {
+      toast.error("Adicione pelo menos um anexo antes de enviar ao financeiro");
+      return;
+    }
+
     if (
       !fornecedorId ||
       !formData.document_type ||
@@ -163,10 +183,8 @@ export function EnviarFinanceiroTradeDialog({
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Generate a unique code for the payment queue entry
       const code = `TRD-${Date.now()}`;
 
-      // 1. Insert into financial_payment_queue
       const { data: queueEntry, error: queueError } = await supabase
         .from("financial_payment_queue")
         .insert({
@@ -194,7 +212,6 @@ export function EnviarFinanceiroTradeDialog({
 
       if (queueError) throw queueError;
 
-      // 2. Update trade_financial_entries with send_to_financial flag and payment_queue_id
       const { error: updateError } = await supabase
         .from("trade_financial_entries")
         .update({
@@ -237,7 +254,65 @@ export function EnviarFinanceiroTradeDialog({
             Preencha os dados do fornecedor e documento para enviar ao financeiro
           </DialogDescription>
         </DialogHeader>
+
+        {/* Attachment validation alert */}
+        {!hasAttachments && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Este lançamento não possui anexos. Adicione pelo menos um comprovante antes de enviar ao financeiro.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Approval status alert */}
+        {!isApproved && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Este lançamento ainda não foi aprovado. Somente lançamentos aprovados podem ser enviados ao financeiro.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Payment policy banner */}
+        {activePolicy && (
+          <Alert variant={withinCutoff ? "info" : "warning"}>
+            {withinCutoff ? (
+              <CalendarCheck className="h-4 w-4" />
+            ) : (
+              <Clock className="h-4 w-4" />
+            )}
+            <AlertDescription className="text-xs">
+              {withinCutoff ? (
+                <>
+                  <strong>Dentro do corte.</strong> {getPolicySummary(activePolicy)} — Pagamento previsto: {getNextPaymentDateFormatted(activePolicy)}
+                </>
+              ) : (
+                <>
+                  <strong>Fora do corte.</strong> {getPolicySummary(activePolicy)} — Este envio será processado na próxima semana.
+                </>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* AI Suggestions */}
+          {entry?.id && (
+            <FinancialFieldsSuggestion
+              expenseId={entry.id}
+              onApplySuggestions={(fields) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  document_type: fields.document_type || prev.document_type,
+                  portador: fields.portador || prev.portador,
+                  due_date: fields.due_date || prev.due_date,
+                }));
+              }}
+            />
+          )}
+
           {/* Dados do Fornecedor */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -435,7 +510,7 @@ export function EnviarFinanceiroTradeDialog({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading || !fornecedorId}>
+            <Button type="submit" disabled={loading || !fornecedorId || !hasAttachments || !isApproved}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Send className="mr-2 h-4 w-4" />
               Enviar ao Financeiro
