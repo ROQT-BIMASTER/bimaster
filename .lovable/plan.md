@@ -1,73 +1,89 @@
 
-# Conectar Lancamentos Trade a Central de Pagamentos
 
-## Resumo
-O fluxo atual do Trade Marketing esta incompleto: apos a aprovacao do gestor, nao existe o passo "Enviar ao Financeiro" que insere o registro na `financial_payment_queue`. Os modulos de Eventos e Departamentos ja possuem esse mecanismo. Vamos replicar o mesmo padrao para o Trade.
+# Garantir que Envios ao Financeiro Respeitem as Politicas
+
+## Problema
+O dialog de envio ao financeiro do Trade Marketing (`EnviarFinanceiroTradeDialog`) nao aplica as mesmas regras e validacoes que os modulos de Eventos e Departamentos ja implementam. Isso permite envios que violam politicas do financeiro.
+
+## Lacunas Identificadas
+
+| Regra | Departamentos | Eventos | Trade |
+|-------|:---:|:---:|:---:|
+| Exigir anexos | Sim | Sim | **NAO** |
+| Sugestoes IA de campos | Nao | Sim | **NAO** |
+| Validar status aprovado antes do envio | Sim | Sim | **PARCIAL** (so no dropdown) |
+| Banner de politica de pagamento no dialog | Nao | Nao | Nao |
 
 ## O que sera feito
 
-### 1. Criar `EnviarFinanceiroTradeDialog.tsx`
-Novo dialog seguindo o padrao exato do `EnviarFinanceiroDialog.tsx` (Eventos). Campos:
-- **Fornecedor** (Combobox com busca, pre-preenchido se ja informado no lancamento)
-- **CNPJ/CPF** (auto-preenchido ao selecionar fornecedor)
-- **Tipo de Documento** (NF, Boleto, Recibo, etc.)
-- **Numero do Documento**
-- **Data de Vencimento**
-- **Portador/Forma de Pagamento** (usando `usePortadores`)
-- **Observacoes para Pagamento**
+### 1. Exigir Anexos Obrigatorios (Trade)
+Adicionar a mesma validacao que o modulo de Departamentos possui:
+- Verificar se `entry.attachments` possui pelo menos 1 item
+- Exibir alerta destrutivo se nao houver anexos
+- Desabilitar o botao "Enviar ao Financeiro" quando nao houver anexos
+- Bloquear a submissao no `handleSubmit`
 
-Ao submeter:
-1. Atualiza `trade_financial_entries` com `send_to_financial: true`, `status: 'pending_financial'`, e os dados do documento
-2. Insere registro na `financial_payment_queue` com `source_type: 'trade_entry'`, `source_id`, valor, fornecedor, anexos e empresa
-3. Salva o `payment_queue_id` de volta no lancamento para rastreabilidade
+### 2. Validar Status de Aprovacao no Submit
+Adicionar verificacao dupla no `handleSubmit` para garantir que `entry.approval_status === 'approved'`, impedindo envios de lancamentos nao aprovados mesmo que o dialog seja aberto indevidamente.
 
-### 2. Atualizar `TradeLancamentos.tsx`
-- Adicionar acao "Enviar ao Financeiro" no `DropdownMenu` para lancamentos com `approval_status === 'approved'` e `send_to_financial !== true`
-- Adicionar estado e renderizacao do `EnviarFinanceiroTradeDialog`
-- Adicionar status `pending_financial` no badge e no filtro de status
-- Adicionar KPI ou badge visual para lancamentos ja enviados ao financeiro
+### 3. Adicionar Sugestoes IA de Campos Financeiros
+Integrar o componente `FinancialFieldsSuggestion` (ja usado no dialog de Eventos) para sugerir automaticamente tipo de documento, portador e data de vencimento com base no historico.
 
-### 3. Atualizar `AprovarLancamentoDialog.tsx` (opcional mas recomendado)
-Adicionar botao "Aprovar e Enviar ao Financeiro" como atalho para o gestor que deseja fazer as duas acoes de uma vez, reduzindo cliques.
+### 4. Adicionar Banner de Politica de Pagamento dentro do Dialog
+Exibir um aviso compacto dentro do dialog informando se o envio esta dentro ou fora da janela de corte, para que o usuario saiba quando o pagamento sera processado.
 
 ## Detalhes Tecnicos
 
-### Nenhuma migracao necessaria
-A tabela `trade_financial_entries` ja possui todos os campos necessarios: `send_to_financial`, `payment_queue_id`, `document_type`, `document_number`, `due_date`, `portador`, `supplier_name`, `supplier_document`. A tabela `financial_payment_queue` ja suporta `source_type: 'trade_entry'`.
+### Arquivo modificado
+- `src/components/trade/EnviarFinanceiroTradeDialog.tsx`
 
-### Arquivos criados
-- `src/components/trade/EnviarFinanceiroTradeDialog.tsx` -- Dialog com formulario de envio, reutilizando `usePortadores`, `DOCUMENT_TYPES`, Combobox de fornecedor e `FornecedorQuickAdd`
+### Alteracoes especificas
 
-### Arquivos modificados
-- `src/pages/TradeLancamentos.tsx` -- Adicionar acao no dropdown, estado do dialog, status `pending_financial` no badge/filtro
-- `src/components/trade/AprovarLancamentoDialog.tsx` -- Botao opcional "Aprovar e Enviar"
+**Imports adicionais:**
+- `Alert, AlertDescription` de `@/components/ui/alert`
+- `AlertTriangle` de `lucide-react`
+- `FinancialFieldsSuggestion` de `@/components/ai/FinancialFieldsSuggestion`
+- `useActivePaymentPolicy, isWithinCutoff, getPolicySummary` de `@/hooks/useFinancialPaymentPolicies`
 
-### Fluxo completo apos implementacao
-
+**Logica de anexos (seguindo padrao do EnviarFinanceiroDepDialog):**
 ```text
-Lancamento criado (pending)
-    |
-    v
-Gestor aprova na Central de Aprovacoes (approved)
-    |
-    v
-Usuario clica "Enviar ao Financeiro" no dropdown (pending_financial)
-    |
-    v
-Registro inserido na financial_payment_queue
-    |
-    v
-Financeiro processa na Central de Pagamentos (paid)
+const hasAttachments = entry?.attachments && entry.attachments.length > 0;
+
+// No JSX: Alert destrutivo se !hasAttachments
+// No botao: disabled={... || !hasAttachments}
+// No handleSubmit: if (!hasAttachments) return;
 ```
 
-### Insert na financial_payment_queue
-Seguira exatamente o padrao de Eventos:
-- `source_type: 'trade_entry'`
-- `source_id: entry.id`
-- `amount: entry.amount` (valor realizado)
-- `supplier_name`, `supplier_document` do formulario
-- `document_type`, `document_number`, `due_date`, `portador` do formulario
-- `attachments: entry.attachments`
-- `empresa_id`, `empresa_nome` do lancamento
-- `department_name: 'Trade Marketing'`
-- `requested_by: user.id`
+**Validacao de status no submit:**
+```text
+if (entry?.approval_status !== 'approved') {
+  toast.error("Lancamento precisa estar aprovado");
+  return;
+}
+```
+
+**Banner de corte compacto:**
+```text
+// Dentro do dialog, antes do formulario:
+// Se fora do corte: Alert amarelo informando que pagamento ira para proxima semana
+// Se dentro do corte: Info discreta com data prevista de pagamento
+```
+
+**Sugestoes IA:**
+```text
+<FinancialFieldsSuggestion
+  expenseId={entry.id}
+  onApplySuggestions={(fields) => {
+    setFormData(prev => ({
+      ...prev,
+      document_type: fields.document_type || prev.document_type,
+      portador: fields.portador || prev.portador,
+      due_date: fields.due_date || prev.due_date,
+    }));
+  }}
+/>
+```
+
+### Nenhuma migracao de banco necessaria
+Todas as alteracoes sao puramente de frontend, aplicando validacoes que ja existem nas tabelas e politicas do backend.
+
