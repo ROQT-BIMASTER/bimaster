@@ -546,7 +546,17 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                       const produto = produtos?.find(p => p.id === preco.produto_id);
                       return (
                         <tr key={preco.produto_id} className={`border-t ${preco.preco_limitado ? 'bg-yellow-500/5' : ''}`}>
-                          <td className="p-2">{produto?.nome}</td>
+                          <td className="p-2">
+                            <div className="flex items-center gap-1.5">
+                              {produto?.nome}
+                              {preco.override_tipo === 'produto' && (
+                                <Badge className="bg-purple-500/20 text-purple-700 border-purple-300 text-[10px] px-1 py-0">Individual</Badge>
+                              )}
+                              {preco.override_tipo === 'linha' && (
+                                <Badge className="bg-blue-500/20 text-blue-700 border-blue-300 text-[10px] px-1 py-0">Linha</Badge>
+                              )}
+                            </div>
+                          </td>
                           <td className="p-2 text-right">{formatarMoeda(preco.custo_base)}</td>
                           <td className="p-2 text-right">
                             <div className="flex flex-col items-end">

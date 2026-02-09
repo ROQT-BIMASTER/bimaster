@@ -5775,6 +5775,81 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_markup_overrides: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          linha: string | null
+          produto_id: string | null
+          tabela_id: string
+          tipo_markup: string
+          updated_at: string
+          valor_markup: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          linha?: string | null
+          produto_id?: string | null
+          tabela_id: string
+          tipo_markup?: string
+          updated_at?: string
+          valor_markup?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          linha?: string | null
+          produto_id?: string | null
+          tabela_id?: string
+          tipo_markup?: string
+          updated_at?: string
+          valor_markup?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_markup_overrides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_markup_overrides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_markup_overrides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fabrica_markup_overrides_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_markup_overrides_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_materias_primas: {
         Row: {
           ativo: boolean | null
