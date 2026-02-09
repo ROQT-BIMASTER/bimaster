@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Trash2, GripVertical, Save, FileText, Info, Printer, Download, History, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, FileText, Info, Printer, Download, History, AlertTriangle, ChevronDown, ChevronRight, ArrowRight, Paperclip, Upload, X, Eye } from "lucide-react";
 import { CustoInsumo, CustoConfig, Totais, BaseCalculoMarkup } from "@/hooks/useFichaCustoProduto";
 import { AdicionarInsumoCustoDialog } from "./AdicionarInsumoCustoDialog";
 import { ImportarInsumosIA } from "./ImportarInsumosIA";
@@ -29,6 +29,7 @@ import { AlterarCustoDialog } from "./AlterarCustoDialog";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 import { FichaAprovacaoBanner } from "./FichaAprovacaoBanner";
 import { FichaApontamentosPanel } from "./FichaApontamentosPanel";
@@ -106,6 +107,9 @@ export function FichaCustoProdutoEditor({
 }: Props) {
   const [dialogAberto, setDialogAberto] = useState(false);
   const [historicoInsumo, setHistoricoInsumo] = useState<{ id: string; nome: string } | null>(null);
+  const [expandedInsumos, setExpandedInsumos] = useState<Set<string>>(new Set());
+  const [evidencias, setEvidencias] = useState<Record<string, any[]>>({});
+  const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [alteracaoCusto, setAlteracaoCusto] = useState<{
     insumoId: string;
     insumoNome: string;
@@ -178,6 +182,76 @@ export function FichaCustoProdutoEditor({
     }, 500);
 
     setAlteracaoCusto(null);
+  };
+  // Toggle expanded row
+  const toggleExpanded = (insumoId: string) => {
+    setExpandedInsumos((prev) => {
+      const next = new Set(prev);
+      if (next.has(insumoId)) next.delete(insumoId);
+      else next.add(insumoId);
+      return next;
+    });
+    // Carregar evidências quando expande
+    if (!expandedInsumos.has(insumoId)) {
+      carregarEvidencias(insumoId);
+    }
+  };
+
+  // Carregar evidências de um insumo
+  const carregarEvidencias = useCallback(async (produtoCustoId: string) => {
+    const { data } = await supabase
+      .from("fabrica_custo_evidencias" as any)
+      .select("*")
+      .eq("produto_custo_id", produtoCustoId)
+      .order("created_at", { ascending: false });
+    if (data) {
+      setEvidencias((prev) => ({ ...prev, [produtoCustoId]: data as any[] }));
+    }
+  }, []);
+
+  // Upload de evidência
+  const handleUploadEvidencia = async (insumoId: string, file: File) => {
+    if (!produto?.id) return;
+    setUploadingFor(insumoId);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${produto.id}/${insumoId}/${crypto.randomUUID()}.${ext}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("fabrica-custo-evidencias")
+        .upload(path, file);
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("fabrica-custo-evidencias")
+        .getPublicUrl(path);
+
+      const user = (await supabase.auth.getUser()).data.user;
+      await supabase.from("fabrica_custo_evidencias" as any).insert({
+        produto_custo_id: insumoId,
+        produto_id: produto.id,
+        nome_arquivo: file.name,
+        url_arquivo: urlData.publicUrl,
+        tipo_arquivo: file.type,
+        tamanho_bytes: file.size,
+        usuario_id: user?.id,
+        usuario_nome: user?.user_metadata?.nome || user?.email || "",
+      } as any);
+
+      toast.success("Evidência enviada");
+      carregarEvidencias(insumoId);
+    } catch (err: any) {
+      toast.error("Erro ao enviar: " + err.message);
+    } finally {
+      setUploadingFor(null);
+    }
+  };
+
+  // Remover evidência
+  const handleRemoverEvidencia = async (evidenciaId: string, insumoId: string) => {
+    await supabase.from("fabrica_custo_evidencias" as any).delete().eq("id", evidenciaId);
+    carregarEvidencias(insumoId);
+    toast.success("Evidência removida");
   };
 
   const formatarValor = (valor: number) => {
@@ -478,118 +552,227 @@ export function FichaCustoProdutoEditor({
                   {insumos.map((insumo) => {
                     const temApontamento = apontamentosPorInsumo.has(insumo.id);
                     const apts = apontamentosPorInsumo.get(insumo.id) || [];
+                    const isExpanded = expandedInsumos.has(insumo.id);
+                    const insumoEvidencias = evidencias[insumo.id] || [];
+                    const campoLabels: Record<string, string> = { custo_nf: "Custo NF", custo_servico: "Custo Serviço", custo_condicao: "Custo Condição" };
+
                     return (
-                      <TableRow key={insumo.id} className={temApontamento ? "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500" : ""}>
-                        <TableCell className="px-2">
-                          <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          <div className="flex items-center gap-1">
-                            {insumo.codigo}
-                            {temApontamento && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    <p className="font-semibold mb-1">Apontamentos:</p>
-                                    {apts.map((a, i) => (
-                                      <p key={i} className="text-xs">
-                                        {a.campo}: sugerido {a.valor_sugerido != null ? `R$ ${Number(a.valor_sugerido).toFixed(2)}` : "revisão"} — {a.comentario || ""}
-                                      </p>
-                                    ))}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                      <React.Fragment key={insumo.id}>
+                        <TableRow className={temApontamento ? "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500" : ""}>
+                          <TableCell className="px-2">
+                            {temApontamento ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 p-0"
+                                onClick={() => toggleExpanded(insumo.id)}
+                              >
+                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              </Button>
+                            ) : (
+                              <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {insumo.nome}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={insumo.tipo_insumo}
-                            onValueChange={(value) =>
-                              onAtualizarInsumo(insumo.id, "tipo_insumo", value)
-                            }
-                          >
-                            <SelectTrigger className="h-9">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {tiposInsumo.map((tipo) => (
-                                <SelectItem key={tipo.value} value={tipo.value}>
-                                  {tipo.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={insumo.fornecedor || ""}
-                            onChange={(e) =>
-                              onAtualizarInsumo(insumo.id, "fornecedor", e.target.value)
-                            }
-                            className="h-9"
-                            placeholder="Fornecedor"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <DecimalInput
-                            value={insumo.custo_nf}
-                            onChange={(val) => handleCustoChange(insumo.id, "custo_nf", typeof val === "string" ? val : Number(val))}
-                            className="h-9 text-right"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <DecimalInput
-                            value={insumo.custo_servico}
-                            onChange={(val) => handleCustoChange(insumo.id, "custo_servico", typeof val === "string" ? val : Number(val))}
-                            className="h-9 text-right"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <DecimalInput
-                            value={insumo.custo_condicao}
-                            onChange={(val) => handleCustoChange(insumo.id, "custo_condicao", typeof val === "string" ? val : Number(val))}
-                            className="h-9 text-right"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={insumo.nf_referencia || ""}
-                            onChange={(e) =>
-                              onAtualizarInsumo(insumo.id, "nf_referencia", e.target.value)
-                            }
-                            className="h-9"
-                            placeholder="NF12345"
-                          />
-                        </TableCell>
-                        <TableCell className="px-2">
-                          <div className="flex gap-0.5">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => setHistoricoInsumo({ id: insumo.id, nome: insumo.nome })}
-                              title="Histórico de custos"
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            <div className="flex items-center gap-1">
+                              {insumo.codigo}
+                              {temApontamento && (
+                                <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {insumo.nome}
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={insumo.tipo_insumo}
+                              onValueChange={(value) =>
+                                onAtualizarInsumo(insumo.id, "tipo_insumo", value)
+                              }
                             >
-                              <History className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => onRemoverInsumo(insumo.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                              <SelectTrigger className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {tiposInsumo.map((tipo) => (
+                                  <SelectItem key={tipo.value} value={tipo.value}>
+                                    {tipo.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={insumo.fornecedor || ""}
+                              onChange={(e) =>
+                                onAtualizarInsumo(insumo.id, "fornecedor", e.target.value)
+                              }
+                              className="h-9"
+                              placeholder="Fornecedor"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <DecimalInput
+                              value={insumo.custo_nf}
+                              onChange={(val) => handleCustoChange(insumo.id, "custo_nf", typeof val === "string" ? val : Number(val))}
+                              className="h-9 text-right"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <DecimalInput
+                              value={insumo.custo_servico}
+                              onChange={(val) => handleCustoChange(insumo.id, "custo_servico", typeof val === "string" ? val : Number(val))}
+                              className="h-9 text-right"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <DecimalInput
+                              value={insumo.custo_condicao}
+                              onChange={(val) => handleCustoChange(insumo.id, "custo_condicao", typeof val === "string" ? val : Number(val))}
+                              className="h-9 text-right"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={insumo.nf_referencia || ""}
+                              onChange={(e) =>
+                                onAtualizarInsumo(insumo.id, "nf_referencia", e.target.value)
+                              }
+                              className="h-9"
+                              placeholder="NF12345"
+                            />
+                          </TableCell>
+                          <TableCell className="px-2">
+                            <div className="flex gap-0.5">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setHistoricoInsumo({ id: insumo.id, nome: insumo.nome })}
+                                title="Histórico de custos"
+                              >
+                                <History className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => onRemoverInsumo(insumo.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Linha expandida com apontamentos e evidências */}
+                        {temApontamento && isExpanded && (
+                          <TableRow className="bg-red-50/50 dark:bg-red-950/10">
+                            <TableCell colSpan={10} className="p-0">
+                              <div className="p-4 space-y-4">
+                                {/* Apontamentos da diretoria */}
+                                <div>
+                                  <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                                    Solicitações da Diretoria
+                                  </h4>
+                                  <div className="space-y-2">
+                                    {apts.map((a) => (
+                                      <div key={a.id} className="p-3 bg-background rounded-lg border space-y-1">
+                                        <div className="flex items-center justify-between">
+                                          <Badge variant="outline" className="text-xs">{campoLabels[a.campo] || a.campo}</Badge>
+                                          {a.atendido && <Badge className="bg-green-100 text-green-800 text-xs">Atendido</Badge>}
+                                        </div>
+                                        <div className="flex items-center gap-2 text-sm">
+                                          <span className="text-muted-foreground">Atual: {formatarMoeda(Number(a.valor_atual))}</span>
+                                          <ArrowRight className="h-3 w-3 text-destructive" />
+                                          <span className="font-semibold text-destructive">{formatarMoeda(Number(a.valor_sugerido))}</span>
+                                        </div>
+                                        {a.comentario && (
+                                          <p className="text-xs text-muted-foreground italic">"{a.comentario}"</p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Upload de evidências */}
+                                <div>
+                                  <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                                    <Paperclip className="h-4 w-4" />
+                                    Evidências / Arquivos
+                                  </h4>
+
+                                  {/* Lista de evidências existentes */}
+                                  {insumoEvidencias.length > 0 && (
+                                    <div className="space-y-1 mb-3">
+                                      {insumoEvidencias.map((ev: any) => (
+                                        <div key={ev.id} className="flex items-center gap-2 p-2 bg-background rounded border text-sm">
+                                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                          <span className="flex-1 truncate">{ev.nome_arquivo}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {ev.tamanho_bytes ? `${(ev.tamanho_bytes / 1024).toFixed(0)} KB` : ""}
+                                          </span>
+                                          <span className="text-xs text-muted-foreground">{ev.usuario_nome}</span>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7"
+                                            onClick={() => window.open(ev.url_arquivo, "_blank")}
+                                            title="Visualizar"
+                                          >
+                                            <Eye className="h-3.5 w-3.5" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 text-destructive hover:text-destructive"
+                                            onClick={() => handleRemoverEvidencia(ev.id, insumo.id)}
+                                            title="Remover"
+                                          >
+                                            <X className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Botão de upload */}
+                                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="file"
+                                      className="hidden"
+                                      multiple
+                                      onChange={(e) => {
+                                        const files = e.target.files;
+                                        if (files) {
+                                          Array.from(files).forEach((f) => handleUploadEvidencia(insumo.id, f));
+                                        }
+                                        e.target.value = "";
+                                      }}
+                                    />
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      type="button"
+                                      disabled={uploadingFor === insumo.id}
+                                      onClick={(e) => {
+                                        const input = (e.currentTarget.parentElement as HTMLLabelElement)?.querySelector("input");
+                                        input?.click();
+                                      }}
+                                    >
+                                      <Upload className="h-4 w-4 mr-1" />
+                                      {uploadingFor === insumo.id ? "Enviando..." : "Anexar Evidência"}
+                                    </Button>
+                                  </label>
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </TableBody>

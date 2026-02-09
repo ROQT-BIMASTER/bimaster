@@ -4325,6 +4325,59 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_custo_evidencias: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          nome_arquivo: string
+          produto_custo_id: string | null
+          produto_id: string
+          revisao_item_id: string | null
+          tamanho_bytes: number | null
+          tipo_arquivo: string | null
+          url_arquivo: string
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome_arquivo: string
+          produto_custo_id?: string | null
+          produto_id: string
+          revisao_item_id?: string | null
+          tamanho_bytes?: number | null
+          tipo_arquivo?: string | null
+          url_arquivo: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome_arquivo?: string
+          produto_custo_id?: string | null
+          produto_id?: string
+          revisao_item_id?: string | null
+          tamanho_bytes?: number | null
+          tipo_arquivo?: string | null
+          url_arquivo?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_custo_evidencias_produto_custo_id_fkey"
+            columns: ["produto_custo_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produto_custos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_custos_origem: {
         Row: {
           ativo: boolean | null
