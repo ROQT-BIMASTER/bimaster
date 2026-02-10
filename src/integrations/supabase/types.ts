@@ -15179,6 +15179,153 @@ export type Database = {
         }
         Relationships: []
       }
+      team_form_submissions: {
+        Row: {
+          cpf: string
+          created_at: string
+          data_nascimento: string | null
+          email_pessoal: string | null
+          equipe_comercial: string | null
+          id: string
+          nome_completo: string
+          observacoes: string | null
+          rg: string | null
+          supervisor_nome: string | null
+          tamanho_camiseta: string | null
+          token_id: string | null
+          vinculado: boolean
+          vinculado_user_id: string | null
+          whatsapp: string
+        }
+        Insert: {
+          cpf: string
+          created_at?: string
+          data_nascimento?: string | null
+          email_pessoal?: string | null
+          equipe_comercial?: string | null
+          id?: string
+          nome_completo: string
+          observacoes?: string | null
+          rg?: string | null
+          supervisor_nome?: string | null
+          tamanho_camiseta?: string | null
+          token_id?: string | null
+          vinculado?: boolean
+          vinculado_user_id?: string | null
+          whatsapp: string
+        }
+        Update: {
+          cpf?: string
+          created_at?: string
+          data_nascimento?: string | null
+          email_pessoal?: string | null
+          equipe_comercial?: string | null
+          id?: string
+          nome_completo?: string
+          observacoes?: string | null
+          rg?: string | null
+          supervisor_nome?: string | null
+          tamanho_camiseta?: string | null
+          token_id?: string | null
+          vinculado?: boolean
+          vinculado_user_id?: string | null
+          whatsapp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_form_submissions_token_id_fkey"
+            columns: ["token_id"]
+            isOneToOne: false
+            referencedRelation: "team_form_tokens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_form_submissions_vinculado_user_id_fkey"
+            columns: ["vinculado_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_form_submissions_vinculado_user_id_fkey"
+            columns: ["vinculado_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_form_submissions_vinculado_user_id_fkey"
+            columns: ["vinculado_user_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      team_form_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          equipe_comercial: string | null
+          expires_at: string
+          id: string
+          label: string
+          max_uses: number | null
+          status: string
+          supervisor_nome: string | null
+          token_hash: string
+          use_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          equipe_comercial?: string | null
+          expires_at: string
+          id?: string
+          label: string
+          max_uses?: number | null
+          status?: string
+          supervisor_nome?: string | null
+          token_hash: string
+          use_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          equipe_comercial?: string | null
+          expires_at?: string
+          id?: string
+          label?: string
+          max_uses?: number | null
+          status?: string
+          supervisor_nome?: string | null
+          token_hash?: string
+          use_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_form_tokens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_form_tokens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_form_tokens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       team_member_details: {
         Row: {
           cpf: string | null

@@ -156,6 +156,7 @@ const FinanceiroConsolidadoDashboard = lazy(() => import("./pages/FinanceiroCons
 // Portal do Cliente (isolado)
 const PortalPrecos = lazy(() => import("./pages/portal/PortalPrecos"));
 const PortalPerfil = lazy(() => import("./pages/portal/PortalPerfil"));
+const FormularioEquipe = lazy(() => import("./pages/FormularioEquipe"));
 
 // Loading component
 const PageLoader = () => (
@@ -415,6 +416,9 @@ function AppContent() {
             <Route path="/portal/precos" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
             <Route path="/portal/perfil" element={<ClienteProtectedRoute><PortalPerfil /></ClienteProtectedRoute>} />
             
+
+            {/* Formulário público - sem autenticação */}
+            <Route path="/formulario-equipe" element={<FormularioEquipe />} />
 
             <Route path="/not-found" element={<NotFound />} />
           </Routes>

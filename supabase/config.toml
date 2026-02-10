@@ -212,3 +212,6 @@ verify_jwt = false
 # Assistente IA para despesas corporativas
 [functions.expense-ai-assistant]
 verify_jwt = false
+
+[functions.team-form-submit]
+verify_jwt = false
