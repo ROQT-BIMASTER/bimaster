@@ -33,6 +33,7 @@ const WhitespaceAnalysis = () => {
     ufsForRegiao,
     kpis,
     kpisLoading,
+    kpiDetails,
     tableData,
     tableTotal,
     tableLoading,
@@ -131,8 +132,16 @@ const WhitespaceAnalysis = () => {
           </div>
         </div>
 
-        {/* KPIs */}
-        <WhitespaceKPICards kpis={kpis} loading={kpisLoading} />
+        <WhitespaceKPICards
+          kpis={kpis}
+          loading={kpisLoading}
+          detailData={kpiDetails ? {
+            ufBreakdown: kpiDetails.uf_breakdown,
+            topByPib: kpiDetails.top_by_pib,
+            topByPop: kpiDetails.top_by_pop,
+            topMicros: kpiDetails.top_micros,
+          } : undefined}
+        />
 
         {/* Chart */}
         <WhitespaceMicroChart data={chartData} loading={chartLoading} />

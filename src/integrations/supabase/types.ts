@@ -19042,6 +19042,10 @@ export type Database = {
           vendedor_nome: string
         }[]
       }
+      fn_get_whitespace_kpi_details: {
+        Args: { p_min_penetracao?: number; p_regiao?: string; p_uf?: string }
+        Returns: Json
+      }
       fn_get_whitespace_kpis: {
         Args: { p_min_penetracao?: number; p_regiao?: string; p_uf?: string }
         Returns: {
