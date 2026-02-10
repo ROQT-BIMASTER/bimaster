@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Users, CalendarDays, ClipboardList } from "lucide-react";
+import { RefreshCw, Users, CalendarDays, ClipboardList, Link2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useTradeSupervisorDashboard,
@@ -20,6 +20,8 @@ import { TradeExecutiveLancamentosTable } from "@/components/trade/executive/Tra
 import { TradeExecutiveCurvaChart } from "@/components/trade/executive/TradeExecutiveCurvaChart";
 import { SupervisorTeamSelector } from "@/components/trade/supervisor/SupervisorTeamSelector";
 import { TeamMemberRegistration } from "@/components/trade/supervisor/TeamMemberRegistration";
+import { GenerateFormLinkDialog } from "@/components/trade/supervisor/GenerateFormLinkDialog";
+import { FormSubmissionsPanel } from "@/components/trade/supervisor/FormSubmissionsPanel";
 import {
   Select,
   SelectContent,
@@ -182,6 +184,7 @@ export default function TradeSupervisorDashboard() {
                 </>
               )}
 
+              <GenerateFormLinkDialog />
               <Button variant="outline" size="sm" onClick={refetchAll}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Atualizar
@@ -207,6 +210,10 @@ export default function TradeSupervisorDashboard() {
             <TabsTrigger value="cadastro" className="gap-2">
               <ClipboardList className="h-4 w-4" />
               Cadastro Equipe
+            </TabsTrigger>
+            <TabsTrigger value="formularios" className="gap-2">
+              <Link2 className="h-4 w-4" />
+              Formulários
             </TabsTrigger>
           </TabsList>
 
@@ -282,6 +289,11 @@ export default function TradeSupervisorDashboard() {
               teamMemberIds={teamMemberIds}
               isLoadingTeam={isLoadingTeam}
             />
+          </TabsContent>
+
+          {/* Tab: Formulários */}
+          <TabsContent value="formularios" className="mt-4">
+            <FormSubmissionsPanel />
           </TabsContent>
         </Tabs>
       </div>
