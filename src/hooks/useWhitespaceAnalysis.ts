@@ -90,6 +90,21 @@ export function useWhitespaceAnalysis() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const kpiDetailsQuery = useQuery({
+    queryKey: ["whitespace-kpi-details", filters],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("fn_get_whitespace_kpi_details", {
+        p_uf: filters.uf,
+        p_regiao: filters.regiao,
+        p_min_penetracao: filters.minPenetracao,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !!kpisQuery.data,
+  });
+
   const tableQuery = useQuery({
     queryKey: ["whitespace-table", filters, sort, page],
     queryFn: async (): Promise<{ rows: WhitespaceRow[]; totalCount: number }> => {
@@ -151,6 +166,7 @@ export function useWhitespaceAnalysis() {
     ufsForRegiao,
     kpis: kpisQuery.data,
     kpisLoading: kpisQuery.isLoading,
+    kpiDetails: kpiDetailsQuery.data,
     tableData: tableQuery.data?.rows || [],
     tableTotal: tableQuery.data?.totalCount || 0,
     tableLoading: tableQuery.isLoading,
