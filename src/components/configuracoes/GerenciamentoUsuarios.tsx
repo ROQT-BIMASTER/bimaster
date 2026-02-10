@@ -158,46 +158,45 @@ export const GerenciamentoUsuarios = () => {
     try {
       const validatedData = userSchema.parse(novoUsuario);
       
-      // Criar usuário no auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: validatedData.email,
-        password: validatedData.senha,
-        options: {
-          data: {
+      // Usar edge function para criar usuário (signUp está desabilitado)
+      const { data: fnData, error: fnError } = await supabase.functions.invoke("create-admin-users", {
+        body: {
+          users: [{
+            email: validatedData.email,
+            password: validatedData.senha,
             nome: validatedData.nome,
-            tipo_usuario: validatedData.tipo_usuario
-          }
+            role: validatedData.tipo_usuario,
+          }]
         }
       });
 
-      if (authError) throw authError;
+      if (fnError) throw fnError;
       
-      if (authData.user) {
-        // Atualizar status para ativo e aprovação para admins
-        const { error: updateError } = await supabase
+      const result = fnData?.results?.[0];
+      if (!result?.success) {
+        throw new Error(result?.error || "Não foi possível criar o usuário");
+      }
+
+      const userId = result.userId;
+
+      // Atualizar supervisor se selecionado
+      if (selectedSupervisor && userId) {
+        await supabase
           .from("profiles")
-          .update({ 
-            status: "ativo",
-            aprovado: validatedData.tipo_usuario === "admin" ? true : undefined,
-            supervisor_id: selectedSupervisor
-          })
-          .eq("id", authData.user.id);
+          .update({ supervisor_id: selectedSupervisor })
+          .eq("id", userId);
+      }
 
-        if (updateError) throw updateError;
-
-        // Vincular municípios se for vendedor
-        if (validatedData.tipo_usuario === "vendedor" && selectedMunicipios.length > 0) {
-          const { error: vinculoError } = await supabase
-            .from("municipios_usuarios")
-            .insert(
-              selectedMunicipios.map(municipioId => ({
-                usuario_id: authData.user.id,
-                municipio_id: municipioId
-              }))
-            );
-
-          if (vinculoError) throw vinculoError;
-        }
+      // Vincular municípios se for vendedor
+      if (validatedData.tipo_usuario === "vendedor" && selectedMunicipios.length > 0 && userId) {
+        await supabase
+          .from("municipios_usuarios")
+          .insert(
+            selectedMunicipios.map(municipioId => ({
+              usuario_id: userId,
+              municipio_id: municipioId
+            }))
+          );
       }
       
       setIsDialogOpen(false);
