@@ -106,11 +106,16 @@ export function usePaginatedQuery<T = any>(
     await fetchPage(0, false);
   }, [fetchPage]);
 
+  // Serialize to prevent infinite loops from object reference changes
+  const filtersKey = JSON.stringify(filters);
+  const orderByKey = JSON.stringify(orderBy);
+
   useEffect(() => {
     if (enabled) {
       refresh();
     }
-  }, [table, filters, orderBy, enabled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [table, filtersKey, orderByKey, enabled]);
 
   return {
     data,
