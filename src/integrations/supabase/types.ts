@@ -9863,6 +9863,95 @@ export type Database = {
           },
         ]
       }
+      internal_tickets: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          prioridade: string
+          prospect_id: string | null
+          responsavel_id: string | null
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          prioridade?: string
+          prospect_id?: string | null
+          responsavel_id?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          prioridade?: string
+          prospect_id?: string | null
+          responsavel_id?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_tickets_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_tickets_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_tickets_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "internal_tickets_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_tickets_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_tickets_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_tickets_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       kpi_snapshots: {
         Row: {
           created_at: string | null
@@ -10347,6 +10436,165 @@ export type Database = {
           },
           {
             foreignKeyName: "lancamentos_tarefas_marketing_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      lead_activity_logs: {
+        Row: {
+          acao: string
+          created_at: string
+          detalhes: string | null
+          id: string
+          prospect_id: string
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          detalhes?: string | null
+          id?: string
+          prospect_id: string
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          detalhes?: string | null
+          id?: string
+          prospect_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activity_logs_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      lead_messages: {
+        Row: {
+          conteudo: string
+          created_at: string
+          direcao: string
+          id: string
+          prospect_id: string
+          remetente_nome: string | null
+          tipo: string
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          direcao?: string
+          id?: string
+          prospect_id: string
+          remetente_nome?: string | null
+          tipo?: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          direcao?: string
+          id?: string
+          prospect_id?: string
+          remetente_nome?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_messages_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_subtasks: {
+        Row: {
+          checklist: Json | null
+          concluida: boolean
+          created_at: string
+          data_entrega: string | null
+          id: string
+          prospect_id: string
+          responsavel_id: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          checklist?: Json | null
+          concluida?: boolean
+          created_at?: string
+          data_entrega?: string | null
+          id?: string
+          prospect_id: string
+          responsavel_id?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          checklist?: Json | null
+          concluida?: boolean
+          created_at?: string
+          data_entrega?: string | null
+          id?: string
+          prospect_id?: string
+          responsavel_id?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_subtasks_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_subtasks_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_subtasks_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_subtasks_responsavel_id_fkey"
             columns: ["responsavel_id"]
             isOneToOne: false
             referencedRelation: "team_performance_view"

@@ -215,3 +215,6 @@ verify_jwt = false
 
 [functions.team-form-submit]
 verify_jwt = false
+
+[functions.lead-insight]
+verify_jwt = true
