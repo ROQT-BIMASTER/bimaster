@@ -256,7 +256,7 @@ export function TeamMemberRegistration({
                                 <p className="font-medium text-sm">
                                   {member.details?.nome_completo || member.profile_nome}
                                 </p>
-                                <p className="text-xs text-muted-foreground hidden sm:block">
+                                <p className="text-xs text-muted-foreground">
                                   {member.details?.email_pessoal || member.profile_email || "—"}
                                 </p>
                               </div>
