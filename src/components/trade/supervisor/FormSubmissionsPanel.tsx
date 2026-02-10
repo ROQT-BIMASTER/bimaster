@@ -138,6 +138,7 @@ export function FormSubmissionsPanel() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
+                    <TableHead>E-mail</TableHead>
                     <TableHead>CPF</TableHead>
                     <TableHead>WhatsApp</TableHead>
                     <TableHead>Camiseta</TableHead>
@@ -150,6 +151,7 @@ export function FormSubmissionsPanel() {
                   {submissions.map((s) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-medium">{s.nome_completo}</TableCell>
+                      <TableCell className="text-sm">{s.email_pessoal || "—"}</TableCell>
                       <TableCell className="font-mono text-sm">
                         {s.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")}
                       </TableCell>
