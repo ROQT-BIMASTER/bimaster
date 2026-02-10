@@ -1,134 +1,65 @@
 
 
-# CRM Omnichannel - Evolucao do Kanban de Leads
+# Revisao e Melhorias - Modulo de Atendimento (Prospects/CRM)
 
-## Visao Geral
+## Problemas Identificados
 
-Transformar o Kanban de Prospects atual em um CRM Omnichannel completo, adicionando um modal detalhado com abas, central de demandas internas, e automacoes ao mover cards.
+1. **Central de Demandas sem acesso na sidebar** - A pagina `/dashboard/demandas` existe mas nao tem link no menu lateral, tornando-a inacessivel pela navegacao normal
+2. **Lista de Prospects usa dialog antigo** - `ProspectsOptimized.tsx` ainda usa o `ProspectDetailDialog` simples ao inves do novo `ProspectFullModal` com 4 abas
+3. **ProspectsModule (landing page) incompleta** - Faltam links para Central de Demandas e Municipios no modulo principal
+4. **KanbanColumn nao passa `vendedor` para ProspectCard** - A interface do KanbanColumn nao inclui o campo `vendedor`, fazendo com que o card nao exiba o vendedor responsavel
+5. **InternalTicketsPage sem KPIs** - Nao segue o padrao arquitetural de paginas operacionais (sem breadcrumbs, sem metricas no topo)
+6. **ProspectFullModal sem botao de editar/salvar dados** - O modal so exibe dados mas nao permite edicao direta dos campos de qualificacao
+7. **LeadWhatsAppHistory sem dados mock** - Interface de chat vazia, sem demonstracao visual
 
-## O que ja existe (aproveitado)
+## Melhorias Planejadas
 
-- Kanban com drag-and-drop funcional (6 colunas de status)
-- Tabela `prospects` rica (50+ campos incluindo CNPJ, redes sociais, scores)
-- Tabela `atividades` vinculada a prospects
-- Sistema de chat interno (`conversas` + `mensagens`)
-- Componente `ProspectDetailDialog` (formulario simples de edicao)
-- Autenticacao e RLS configurados
+### 1. Adicionar Central de Demandas na Sidebar
+- Adicionar link "Central de Demandas" no menu de Prospects na sidebar (`AppSidebar.tsx`)
+- Garantir navegacao acessivel
 
-## O que sera construido
+### 2. Unificar Modal de Prospect
+- Substituir uso do `ProspectDetailDialog` em `ProspectsOptimized.tsx` pelo `ProspectFullModal` com as 4 abas
+- Manter consistencia entre Kanban e Lista
 
-### Fase 1 - Modal de Lead com 4 Abas
+### 3. Melhorar ProspectsModule (Landing Page)
+- Adicionar cards de acesso rapido para Central de Demandas e Lista de Prospects
+- Incluir link para Municipios nos modulos secundarios
 
-Substituir o `ProspectDetailDialog` atual por um modal fullscreen com abas:
+### 4. Corrigir interface KanbanColumn
+- Atualizar a interface `Prospect` no `KanbanColumn.tsx` para incluir `vendedor`
+- Passar dados corretamente para `ProspectCard`
 
-**Aba 1 - Resumo IA e Dados**
-- Campos de qualificacao do prospect (dados ja existentes: porte, CNAE, score, faturamento)
-- Campo "Insight da IA" gerado via Lovable AI (edge function) que analisa historico de atividades e dados do lead para gerar um resumo do momento atual
-- Cards visuais com metricas: dias sem contato, quantidade de atividades, score de propensao
+### 5. Melhorar InternalTicketsPage
+- Adicionar KPIs no topo (Total, Abertos, Em Andamento, Urgentes)
+- Adicionar icone de busca/filtro por texto
+- Melhorar layout visual com estilo Linear.app (bordas finas, espacamento)
 
-**Aba 2 - Subtarefas Dinamicas**
-- Nova tabela `lead_subtasks` (prospect_id, titulo, responsavel_id, checklist JSONB, data_entrega, concluida)
-- Interface de checklist com barra de progresso percentual
-- Cada subtarefa pode ter sub-itens (checklist interno em JSONB)
-- Atribuicao de responsavel por subtarefa
+### 6. Adicionar aba de Edicao no ProspectFullModal
+- Incorporar formulario de edicao (campos do ProspectDetailDialog) como funcionalidade dentro da aba "Resumo IA"
+- Botao "Editar" que alterna para modo edicao inline
 
-**Aba 3 - Historico de WhatsApp (Simulado)**
-- Nova tabela `lead_messages` (prospect_id, tipo: text/audio/image, conteudo, direcao: inbound/outbound, created_at)
-- Interface visual identica ao WhatsApp (baloes verdes/brancos, timestamps)
-- Suporte visual a audios (player simulado), imagens e textos
-- Dados mock iniciais para demonstracao
-
-**Aba 4 - Log de Acompanhamento (Auditoria)**
-- Nova tabela `lead_activity_logs` (prospect_id, user_id, acao, detalhes, created_at)
-- Linha do tempo vertical com icones por tipo de evento
-- Registro automatico ao mover card no Kanban, concluir subtarefa, etc.
-
-### Fase 2 - Central de Demandas Internas
-
-- Nova tabela `internal_tickets` (titulo, descricao, prospect_id nullable, prioridade, status, responsavel_id, criado_por)
-- Pagina dedicada com lista/kanban de tickets
-- Vinculo opcional com lead (campo "Vinculo com Lead")
-- Efeito visual "glow" para tickets urgentes (animacao CSS)
-
-### Fase 3 - Automacao Kanban -> Demandas
-
-- Ao mover card para "Ganho" (coluna fechado), criar automaticamente um ticket interno para Onboarding
-- Logica no `handleDragEnd` do KanbanBoard
-- Registro no log de auditoria
+### 7. Inserir dados mock no WhatsApp
+- Criar seed de mensagens simuladas na primeira carga quando nao ha mensagens
+- Mensagens de texto, audio e imagem para demonstracao
 
 ## Detalhes Tecnicos
 
-### Novas tabelas (migration SQL)
+### Arquivos Modificados
 
-```text
-lead_subtasks
-  - id (uuid PK)
-  - prospect_id (FK prospects)
-  - titulo (text)
-  - responsavel_id (FK profiles)
-  - checklist (jsonb) -- [{item: "...", done: bool}]
-  - data_entrega (date)
-  - concluida (boolean default false)
-  - created_at, updated_at
+| Arquivo | Alteracao |
+|---|---|
+| `src/components/dashboard/AppSidebar.tsx` | Adicionar link "Demandas" no menu Prospects |
+| `src/pages/ProspectsOptimized.tsx` | Trocar `ProspectDetailDialog` por `ProspectFullModal` |
+| `src/pages/modules/ProspectsModule.tsx` | Adicionar cards para Demandas e Municipios |
+| `src/components/kanban/KanbanColumn.tsx` | Corrigir interface Prospect com campo `vendedor` |
+| `src/pages/InternalTicketsPage.tsx` | Adicionar KPIs, busca textual, melhorar layout |
+| `src/components/kanban/LeadResumoIA.tsx` | Adicionar botao de edicao inline dos dados |
+| `src/components/kanban/LeadWhatsAppHistory.tsx` | Adicionar dados mock de demonstracao |
+| `src/components/kanban/ProspectFullModal.tsx` | Adicionar callback de edicao na aba Resumo |
 
-lead_messages
-  - id (uuid PK)
-  - prospect_id (FK prospects)
-  - tipo (text: 'text','audio','image')
-  - conteudo (text)
-  - direcao (text: 'inbound','outbound')
-  - remetente_nome (text)
-  - created_at
-
-lead_activity_logs
-  - id (uuid PK)
-  - prospect_id (FK prospects)
-  - user_id (FK profiles)
-  - acao (text)
-  - detalhes (text)
-  - created_at
-
-internal_tickets
-  - id (uuid PK)
-  - titulo (text)
-  - descricao (text)
-  - prospect_id (FK prospects, nullable)
-  - prioridade (text: 'baixa','media','alta','urgente')
-  - status (text: 'aberto','em_andamento','concluido')
-  - responsavel_id (FK profiles)
-  - criado_por (FK profiles)
-  - created_at, updated_at
-```
-
-Todas com RLS habilitado e politicas para authenticated users com `check_user_access`.
-
-### Novos componentes
-
-- `ProspectFullModal.tsx` - Modal fullscreen com Tabs (substitui ProspectDetailDialog)
-- `LeadResumoIA.tsx` - Aba 1
-- `LeadSubtarefas.tsx` - Aba 2 com checklist e barra de progresso
-- `LeadWhatsAppHistory.tsx` - Aba 3 com interface de chat
-- `LeadActivityLog.tsx` - Aba 4 com timeline
-- `InternalTicketsPage.tsx` - Pagina da Central de Demandas
-- `InternalTicketCard.tsx` - Card com glow effect
-
-### Edge Function (IA)
-
-- `lead-insight`: recebe prospect_id, consulta dados + atividades, gera resumo via Lovable AI (gemini-3-flash-preview)
-
-### Dados mock
-
-- Inserir mensagens simuladas de WhatsApp e logs de auditoria para demonstracao visual
-
-### Arquivos modificados
-
-- `KanbanBoard.tsx` - usar novo modal + registrar log + criar ticket automatico ao mover para "ganho"
-- `ProspectCard.tsx` - sem alteracoes significativas
-- Rotas: adicionar rota para Central de Demandas Internas
-
-### Design
-
-- Estilo limpo inspirado em Linear.app: bordas finas, espacamento generoso, tipografia precisa
-- Uso de Shadcn/UI + Tailwind + Lucide Icons (ja instalados)
-- Glow effect CSS para urgencias: `animate-pulse` + `ring-2 ring-red-500/50`
+### Padrao Seguido
+- Layout padronizado de paginas operacionais (KPIs + Filtros + Lista)
+- Estilo Linear.app (limpo, bordas finas, tipografia precisa)
+- Componentes Shadcn/UI + Tailwind + Lucide Icons
 
