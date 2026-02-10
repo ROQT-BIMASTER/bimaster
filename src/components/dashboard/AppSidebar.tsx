@@ -336,7 +336,6 @@ export function AppSidebar() {
     { title: "Lista de Prospects", url: "/dashboard/prospects/list", icon: Users, screenCode: "PROSPECTS_LISTA" },
     { title: "Kanban", url: "/dashboard/prospects/kanban", icon: LayoutGrid, screenCode: "PROSPECTS_KANBAN" },
     { title: "Atividades", url: "/dashboard/prospects/atividades", icon: Activity, screenCode: "PROSPECTS_ATIVIDADES" },
-    { title: "Mapa", url: "/dashboard/prospects/mapa", icon: MapPin, screenCode: "PROSPECTS_MAPA" },
     { title: "Central de Demandas", url: "/dashboard/demandas", icon: Ticket, screenCode: "PROSPECTS_DEMANDAS" },
   ];
 
