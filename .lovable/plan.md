@@ -1,77 +1,120 @@
 
-## Correcao de Mensagens e Modulo de Requisitos Obrigatorios na Revisao
 
-### Problema 1: Mensagens nao aparecem na tela de aprovacao
+# Formulario Compartilhado com Token Unico
 
-**Causa raiz identificada:** Quando o usuario resubmete a ficha apos revisao, o sistema cria uma NOVA revisao (v2 com ID diferente). As mensagens enviadas estavam vinculadas a revisao anterior (v1). Como o chat filtra por `revisao_id`, as mensagens "desaparecem".
+## Mudanca Principal
 
-**Solucao:** Alterar o `RevisaoChatPanel` para buscar mensagens de TODAS as revisoes do mesmo `config_id`, nao apenas da revisao atual. Assim, todo o historico de comunicacao e preservado entre versoes.
+Em vez de gerar um token individual para cada vendedor, sera criado **um unico token/codigo de acesso** que o administrador gera e compartilha com todos os 280 vendedores. O token fica ativo por 24 horas e pode ser usado multiplas vezes.
 
-- Adicionar prop `configId` ao `RevisaoChatPanel`
-- Buscar mensagens com query: todas as revisoes que pertencem ao mesmo `config_id`, ordenadas por data
-- Exibir um separador visual entre versoes (ex: "--- Revisao v1 ---")
-- Novas mensagens continuam sendo inseridas com o `revisao_id` atual
-- Atualizar os dois pontos de integracao (editor do usuario e tela da diretoria)
+## Como Funciona
 
-### Problema 2: Opcoes de requisitos obrigatorios na revisao
+1. O administrador acessa "Minha Equipe" e clica em "Gerar Link do Formulario"
+2. O sistema cria um token unico (ex: `EQUIPE2024`) valido por 24 horas
+3. O admin compartilha o link `seusite.com/formulario-equipe?token=EQUIPE2024` via WhatsApp/grupo
+4. Cada vendedor abre o link, informa o token, preenche seus dados pessoais
+5. Os dados sao salvos na tabela intermediaria `team_form_submissions`
+6. O admin pode acompanhar quantos ja preencheram e vincular os dados futuramente
 
-Permitir que a Diretoria, ao solicitar revisao, defina requisitos obrigatorios que o usuario precisa cumprir antes de resubmeter.
+## Arquitetura de Seguranca
 
-#### 2a. Nova tabela no banco
+- Token de uso multiplo, mas com expiracao de 24h (configuravel)
+- Edge Function valida o token e insere os dados (sem acesso anonimo direto ao banco)
+- Validacao de CPF duplicado para evitar preenchimentos repetidos
+- Rate limiting por IP na Edge Function
 
-**Tabela:** `fabrica_revisao_requisitos`
+## Detalhamento Tecnico
 
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| id | uuid | PK |
-| revisao_id | uuid | FK para fabrica_ficha_custo_revisoes |
-| descricao | text | Ex: "Subir 3 orcamentos para o insumo X" |
-| tipo | text | "orcamentos", "evidencia", "justificativa", "outro" |
-| quantidade_minima | integer | Ex: 3 (para orcamentos) |
-| insumo_id | uuid (nullable) | Insumo especifico, se aplicavel |
-| cumprido | boolean | Default false |
-| cumprido_em | timestamptz | |
-| created_at | timestamptz | |
+### 1. Nova tabela: `team_form_tokens`
 
-- RLS: usuarios autenticados podem SELECT; INSERT/UPDATE para autenticados
+```sql
+CREATE TABLE public.team_form_tokens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  token_hash text NOT NULL UNIQUE,
+  label text NOT NULL,              -- ex: "Formulario Equipe Fev/2026"
+  equipe_comercial text,
+  supervisor_nome text,
+  max_uses integer,                 -- NULL = ilimitado
+  use_count integer DEFAULT 0,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','expired','revoked')),
+  expires_at timestamptz NOT NULL,
+  created_by uuid REFERENCES public.profiles(id),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+```
 
-#### 2b. UI na tela da Diretoria
+### 2. Nova tabela: `team_form_submissions`
 
-Na secao de "Solicitar Revisao" do `FichaRevisaoDiretoria.tsx`:
+```sql
+CREATE TABLE public.team_form_submissions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  token_id uuid REFERENCES public.team_form_tokens(id),
+  nome_completo text NOT NULL,
+  cpf text NOT NULL,
+  rg text,
+  data_nascimento date,
+  email_pessoal text,
+  whatsapp text NOT NULL,
+  tamanho_camiseta text,
+  equipe_comercial text,
+  supervisor_nome text,
+  observacoes text,
+  vinculado boolean DEFAULT false,
+  vinculado_user_id uuid REFERENCES public.profiles(id),
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(cpf)                      -- impede duplicatas pelo CPF
+);
+```
 
-- Adicionar secao "Requisitos Obrigatorios" abaixo dos apontamentos
-- Opcoes pre-definidas via checkboxes/cards:
-  - "Subir orcamentos" (com campo de quantidade minima, ex: 3)
-  - "Anexar evidencia/NF" (com campo de quantidade)
-  - "Justificar manutencao de valores"
-  - "Outro" (campo de texto livre)
-- Opcao de vincular a um insumo especifico via dropdown
-- Ao clicar "Enviar Revisao", salvar os requisitos na tabela junto com os apontamentos
+- A constraint `UNIQUE(cpf)` garante que cada vendedor preencha apenas uma vez
+- Se precisar atualizar, a Edge Function faz `upsert` pelo CPF
 
-#### 2c. UI na tela do usuario (FichaCustoProdutoEditor)
+### 3. Edge Function: `team-form-submit`
 
-- Exibir os requisitos pendentes em um card de alerta abaixo do banner de revisao
-- Cada requisito mostra:
-  - Descricao e tipo
-  - Status (cumprido/pendente) com icone
-  - Progresso (ex: "1/3 orcamentos subidos")
-- Verificacao automatica de cumprimento:
-  - Para tipo "orcamentos": contar cotacoes em `fabrica_mp_cotacoes` para o insumo
-  - Para tipo "evidencia": contar arquivos em evidencias
-- Bloquear a resubmissao ate todos os requisitos estarem cumpridos
+- Recebe: `{ token, dados_do_formulario }`
+- Valida: token existe, status = 'active', nao expirado
+- Valida dados (CPF, WhatsApp, campos obrigatorios)
+- Faz upsert em `team_form_submissions` pelo CPF (permite correcao se preencher de novo com mesmo CPF)
+- Incrementa `use_count` no token
+- Retorna sucesso ou erro com mensagem clara
 
----
+### 4. Pagina publica: `/formulario-equipe`
 
-### Detalhes tecnicos
+- Rota publica (sem `ProtectedRoute`)
+- Tela 1: Campo para informar o codigo de acesso
+- Tela 2: Formulario com os campos (reutilizando validacoes do `teamMemberFormSchema`)
+- Campos pre-preenchidos: equipe_comercial e supervisor_nome (vindos do token, editaveis)
+- Tela 3: Confirmacao de sucesso apos envio
+- Design limpo e responsivo (muitos vendedores acessarao pelo celular)
 
-**Arquivos a criar:**
-- Nenhum componente novo (tudo integrado nos existentes)
+### 5. Painel do administrador (dentro de "Minha Equipe")
 
-**Arquivos a modificar:**
-- `src/components/fabrica/RevisaoChatPanel.tsx` — buscar mensagens por config_id em vez de apenas revisao_id
-- `src/components/fabrica/FichaCustoProdutoEditor.tsx` — passar configId ao chat; exibir card de requisitos pendentes; bloquear resubmissao
-- `src/pages/FichaRevisaoDiretoria.tsx` — adicionar secao de requisitos obrigatorios no modo revisao
-- `src/hooks/useFichaRevisao.ts` — salvar requisitos junto com a revisao; buscar requisitos ativos
+- Botao "Gerar Link Formulario" abre modal com:
+  - Campo: nome/label do formulario
+  - Campo: equipe comercial (opcional, pre-preenche no form)
+  - Campo: supervisor (opcional, pre-preenche no form)
+  - Validade: 24h (padrao, editavel)
+- Apos gerar, exibe link para copiar e compartilhar
+- Lista de tokens ativos/expirados com contagem de preenchimentos
+- Tabela de submissions recebidas com status de vinculacao
 
-**Migration SQL:**
-- Tabela `fabrica_revisao_requisitos` com RLS e indice em `revisao_id`
+### 6. Arquivos a criar/modificar
+
+| Arquivo | Acao |
+|---------|------|
+| Migration SQL | Criar tabelas `team_form_tokens` e `team_form_submissions` com RLS |
+| `supabase/functions/team-form-submit/index.ts` | Edge Function para validar token e salvar dados |
+| `src/pages/FormularioEquipe.tsx` | Pagina publica do formulario |
+| `src/components/trade/supervisor/GenerateFormLinkDialog.tsx` | Modal para gerar token e link |
+| `src/components/trade/supervisor/FormSubmissionsPanel.tsx` | Painel de acompanhamento das submissoes |
+| `src/hooks/useTeamFormTokens.ts` | Hook para gerenciar tokens |
+| `src/App.tsx` | Adicionar rota publica `/formulario-equipe` |
+
+### Resumo de Seguranca
+
+- Token com expiracao de 24h (nao e permanente)
+- Admin pode revogar o token a qualquer momento
+- Edge Function faz toda validacao server-side
+- CPF unico impede preenchimento duplicado
+- Sem acesso anonimo direto ao banco de dados
+- Dados sensiveis trafegam apenas pela Edge Function com service role
+
