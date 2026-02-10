@@ -58,12 +58,13 @@ export function useTeamFormTokens() {
 
       const { error } = await supabase.from("team_form_tokens").insert({
         token_hash: tokenHash,
+        token_plain: tokenValue,
         label: params.label,
         equipe_comercial: params.equipe_comercial || null,
         supervisor_nome: params.supervisor_nome || null,
         expires_at: expiresAt,
         created_by: user.id,
-      });
+      } as any);
 
       if (error) throw error;
       return tokenValue;
