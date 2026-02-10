@@ -112,7 +112,7 @@ const MarketIntelligence = () => {
         </div>
 
         {/* KPI Cards */}
-        <MarketKPICards kpis={kpis} isLoading={isLoading} />
+        <MarketKPICards kpis={kpis} isLoading={isLoading} coverageData={coverageData} />
 
         {/* Chart + Heatmap */}
         <div className="grid gap-6 lg:grid-cols-2">
