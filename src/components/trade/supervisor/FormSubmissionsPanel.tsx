@@ -4,9 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Ban, CheckCircle2, Clock, FileText, Users } from "lucide-react";
+import { Ban, CheckCircle2, Clock, Copy, FileText, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "@/hooks/use-toast";
 
 export function FormSubmissionsPanel() {
   const { tokens, submissions, isLoadingTokens, isLoadingSubmissions, revokeToken } = useTeamFormTokens();
@@ -43,6 +44,7 @@ export function FormSubmissionsPanel() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
+                  <TableHead>Código / Link</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-center">Preenchimentos</TableHead>
                   <TableHead>Expira em</TableHead>
@@ -53,9 +55,31 @@ export function FormSubmissionsPanel() {
                 {tokens.map((t) => (
                   <TableRow key={t.id}>
                     <TableCell className="font-medium">{t.label}</TableCell>
+                    <TableCell>
+                      {(t as any).token_plain ? (
+                        <div className="flex items-center gap-1">
+                          <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
+                            {(t as any).token_plain}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => {
+                              const link = `${window.location.origin}/formulario-equipe?token=${(t as any).token_plain}`;
+                              navigator.clipboard.writeText(link);
+                              toast({ title: "Link copiado!" });
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell>{statusBadge(t.status, t.expires_at)}</TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline">{t.use_count}</Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(t.expires_at), "dd/MM HH:mm", { locale: ptBR })}
