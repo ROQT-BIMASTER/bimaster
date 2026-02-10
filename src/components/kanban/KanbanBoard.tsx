@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ProspectDetailDialog } from "./ProspectDetailDialog";
+import { ProspectFullModal } from "./ProspectFullModal";
 import { 
   DndContext, 
   DragEndEvent, 
@@ -185,6 +185,8 @@ export const KanbanBoard = () => {
 
     // Atualizar no banco com o tipo correto e atualizar timestamp
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+
       const { error } = await supabase
         .from("prospects")
         .update({ 
@@ -196,13 +198,41 @@ export const KanbanBoard = () => {
       if (error) throw error;
 
       const statusLabel = STAGES.find(s => s.id === newStatus)?.label || newStatus;
-      toast({
-        title: "Status atualizado",
-        description: `Prospect movido para "${statusLabel}" em todos os módulos`,
-      });
+      const prospect = prospects.find(p => p.id === prospectId);
+
+      // Registrar log de auditoria
+      if (user) {
+        await supabase.from("lead_activity_logs").insert({
+          prospect_id: prospectId,
+          user_id: user.id,
+          acao: `Moveu para "${statusLabel}"`,
+          detalhes: `Status alterado para ${statusLabel}`,
+        });
+      }
+
+      // Automação: ao mover para "ganho", criar ticket de Onboarding
+      if (newStatus === "ganho" && prospect && user) {
+        await supabase.from("internal_tickets").insert({
+          titulo: `Onboarding - ${prospect.nome_empresa}`,
+          descricao: `Prospect "${prospect.nome_empresa}" foi ganho. Iniciar processo de onboarding.`,
+          prospect_id: prospectId,
+          prioridade: "alta",
+          status: "aberto",
+          criado_por: user.id,
+        });
+
+        toast({
+          title: "🎉 Prospect Ganho!",
+          description: `Ticket de Onboarding criado automaticamente para "${prospect.nome_empresa}"`,
+        });
+      } else {
+        toast({
+          title: "Status atualizado",
+          description: `Prospect movido para "${statusLabel}"`,
+        });
+      }
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      // Reverter mudança local em caso de erro
       fetchProspects();
       toast({
         title: "Erro",
@@ -268,7 +298,7 @@ export const KanbanBoard = () => {
         </DragOverlay>
       </DndContext>
 
-      <ProspectDetailDialog
+      <ProspectFullModal
         prospect={selectedProspect}
         open={dialogOpen}
         onOpenChange={setDialogOpen}

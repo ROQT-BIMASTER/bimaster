@@ -60,6 +60,7 @@ const TradeBrandShareDashboard = lazy(() => import("./pages/TradeBrandShareDashb
 const TradeMeasurementGuide = lazy(() => import("./pages/TradeMeasurementGuide"));
 const TradeOurBrands = lazy(() => import("./pages/TradeOurBrands"));
 const Ranking = lazy(() => import("./pages/Ranking"));
+const InternalTicketsPage = lazy(() => import("./pages/InternalTicketsPage"));
 const TradeFinanceiro = lazy(() => import("./pages/TradeFinanceiro"));
 const TradeFinanceiroDashboard = lazy(() => import("./pages/TradeFinanceiroDashboard"));
 const TradeContasCorrentes = lazy(() => import("./pages/TradeContasCorrentes"));
@@ -262,6 +263,7 @@ function AppContent() {
             <Route path="/dashboard/prospects/atividades" element={<ProtectedRoute><Atividades /></ProtectedRoute>} />
             <Route path="/dashboard/prospects/mapa" element={<ProtectedRoute><Mapa /></ProtectedRoute>} />
             <Route path="/dashboard/prospects/municipios" element={<ProtectedRoute><Municipios /></ProtectedRoute>} />
+            <Route path="/dashboard/demandas" element={<ProtectedRoute><InternalTicketsPage /></ProtectedRoute>} />
             
             {/* Outras funcionalidades */}
             <Route path="/dashboard/ranking" element={<ProtectedRoute><Ranking /></ProtectedRoute>} />
