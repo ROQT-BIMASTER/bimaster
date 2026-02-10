@@ -9,7 +9,7 @@ import { Search, Plus, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { NovoProspectDialog } from "@/components/prospects/NovoProspectDialog";
-import { ProspectDetailDialog } from "@/components/kanban/ProspectDetailDialog";
+import { ProspectFullModal } from "@/components/kanban/ProspectFullModal";
 import { AIInsightsChat } from "@/components/chat/AIInsightsChat";
 import { AtribuirProspectsDialog } from "@/components/admin/AtribuirProspectsDialog";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -228,14 +228,12 @@ const ProspectsOptimized = () => {
         {/* Dialogs */}
         <NovoProspectDialog onSuccess={refresh} />
 
-        {selectedProspect && (
-          <ProspectDetailDialog
-            prospect={selectedProspect}
-            open={!!selectedProspect}
-            onOpenChange={(open) => !open && setSelectedProspect(null)}
-            onUpdate={refresh}
-          />
-        )}
+        <ProspectFullModal
+          prospect={selectedProspect}
+          open={!!selectedProspect}
+          onOpenChange={(open) => !open && setSelectedProspect(null)}
+          onUpdate={refresh}
+        />
 
         <AIInsightsChat open={chatOpen} onOpenChange={setChatOpen} />
       </div>

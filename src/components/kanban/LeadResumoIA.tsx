@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Calendar, Activity, TrendingUp, Loader2, RefreshCw } from "lucide-react";
+import { Sparkles, Calendar, Activity, TrendingUp, Loader2, RefreshCw, Pencil, Save, X } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
 
 interface LeadResumoIAProps {
   prospect: {
@@ -22,12 +24,24 @@ interface LeadResumoIAProps {
     proxima_acao: string | null;
     observacoes: string | null;
   };
+  onUpdate?: () => void;
 }
 
-export const LeadResumoIA = ({ prospect }: LeadResumoIAProps) => {
+export const LeadResumoIA = ({ prospect, onUpdate }: LeadResumoIAProps) => {
   const [insight, setInsight] = useState<string | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
   const [activityCount, setActivityCount] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editData, setEditData] = useState({
+    contato_principal: prospect.contato_principal || "",
+    email: prospect.email || "",
+    telefone: prospect.telefone || "",
+    cnpj: prospect.cnpj || "",
+    porte_empresa: prospect.porte_empresa || "",
+    categoria: prospect.categoria || "",
+  });
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchActivityCount();
@@ -100,8 +114,43 @@ export const LeadResumoIA = ({ prospect }: LeadResumoIAProps) => {
 
       {/* Dados de Qualificação */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Dados de Qualificação</CardTitle>
+          {!editing ? (
+            <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="gap-1.5">
+              <Pencil className="h-3.5 w-3.5" />
+              Editar
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setEditing(false)} className="gap-1.5">
+                <X className="h-3.5 w-3.5" />
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={async () => {
+                setSaving(true);
+                const { error } = await supabase.from("prospects").update({
+                  contato_principal: editData.contato_principal || null,
+                  email: editData.email || null,
+                  telefone: editData.telefone || null,
+                  cnpj: editData.cnpj || null,
+                  porte_empresa: editData.porte_empresa || null,
+                  categoria: (editData.categoria || null) as "A" | "B" | "C" | "D" | null,
+                }).eq("id", prospect.id);
+                setSaving(false);
+                if (error) {
+                  toast({ title: "Erro ao salvar", variant: "destructive" });
+                } else {
+                  toast({ title: "Dados atualizados" });
+                  setEditing(false);
+                  onUpdate?.();
+                }
+              }} disabled={saving} className="gap-1.5">
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Salvar
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -115,31 +164,51 @@ export const LeadResumoIA = ({ prospect }: LeadResumoIAProps) => {
             </div>
             <div>
               <span className="text-muted-foreground">CNPJ:</span>
-              <p className="font-medium">{prospect.cnpj || "—"}</p>
+              {editing ? (
+                <Input value={editData.cnpj} onChange={e => setEditData({...editData, cnpj: e.target.value})} className="h-8 mt-1" />
+              ) : (
+                <p className="font-medium">{prospect.cnpj || "—"}</p>
+              )}
             </div>
             <div>
               <span className="text-muted-foreground">Porte:</span>
-              <p className="font-medium">{prospect.porte_empresa || "—"}</p>
+              {editing ? (
+                <Input value={editData.porte_empresa} onChange={e => setEditData({...editData, porte_empresa: e.target.value})} className="h-8 mt-1" />
+              ) : (
+                <p className="font-medium">{prospect.porte_empresa || "—"}</p>
+              )}
             </div>
             <div>
               <span className="text-muted-foreground">Contato:</span>
-              <p className="font-medium">{prospect.contato_principal || "—"}</p>
+              {editing ? (
+                <Input value={editData.contato_principal} onChange={e => setEditData({...editData, contato_principal: e.target.value})} className="h-8 mt-1" />
+              ) : (
+                <p className="font-medium">{prospect.contato_principal || "—"}</p>
+              )}
             </div>
             <div>
               <span className="text-muted-foreground">Email:</span>
-              <p className="font-medium">{prospect.email || "—"}</p>
+              {editing ? (
+                <Input value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} className="h-8 mt-1" />
+              ) : (
+                <p className="font-medium">{prospect.email || "—"}</p>
+              )}
             </div>
             <div>
               <span className="text-muted-foreground">Telefone:</span>
-              <p className="font-medium">{prospect.telefone || "—"}</p>
+              {editing ? (
+                <Input value={editData.telefone} onChange={e => setEditData({...editData, telefone: e.target.value})} className="h-8 mt-1" />
+              ) : (
+                <p className="font-medium">{prospect.telefone || "—"}</p>
+              )}
             </div>
             <div>
-              <span className="text-muted-foreground">Próxima Ação:</span>
-              <p className="font-medium">
-                {prospect.proxima_acao
-                  ? format(new Date(prospect.proxima_acao), "dd/MM/yyyy", { locale: ptBR })
-                  : "—"}
-              </p>
+              <span className="text-muted-foreground">Categoria:</span>
+              {editing ? (
+                <Input value={editData.categoria} onChange={e => setEditData({...editData, categoria: e.target.value})} className="h-8 mt-1" />
+              ) : (
+                <p className="font-medium">{prospect.categoria || "—"}</p>
+              )}
             </div>
           </div>
         </CardContent>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, TrendingUp, Activity, Target, ArrowRight, Plus, ChevronDown, Zap, MapPin, Kanban } from "lucide-react";
+import { Users, TrendingUp, Activity, Target, ArrowRight, Plus, ChevronDown, Zap, MapPin, Kanban, Ticket, List } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -86,6 +86,10 @@ const ProspectsModule = () => {
     "Visualizações": [
       { title: "Kanban", to: "/dashboard/prospects/kanban", icon: Kanban, color: "text-purple-600" },
       { title: "Mapa", to: "/dashboard/prospects/mapa", icon: MapPin, color: "text-green-600" },
+      { title: "Lista Completa", to: "/dashboard/prospects/list", icon: List, color: "text-blue-600" },
+    ],
+    "Gestão": [
+      { title: "Central de Demandas", to: "/dashboard/demandas", icon: Ticket, color: "text-red-600" },
     ],
   };
 

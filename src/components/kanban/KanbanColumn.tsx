@@ -14,6 +14,7 @@ interface Prospect {
   categoria: string | null;
   ultimo_contato: string | null;
   proxima_acao: string | null;
+  vendedor?: { nome: string } | null;
 }
 
 interface KanbanColumnProps {
