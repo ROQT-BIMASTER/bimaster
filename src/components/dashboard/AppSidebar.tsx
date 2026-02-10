@@ -402,21 +402,7 @@ export function AppSidebar() {
                 <MenuItemLink to="/dashboard" icon={Home} title="Dashboard" end />
               )}
               
-              {hasPermission("ranking") && (
-                <MenuItemLink to="/dashboard/ranking" icon={TrendingUp} title="Ranking" />
-              )}
               
-              {hasPermission("relatorios") && (
-                <MenuItemLink to="/dashboard/relatorios" icon={FileText} title="Relatórios" />
-              )}
-              
-              {hasPermission("ai_analytics") && (
-                <MenuItemLink to="/dashboard/ai-analytics" icon={Brain} title="Painel de IA" />
-              )}
-              
-              {hasPermission("chat") && (
-                <MenuItemLink to="/dashboard/chat" icon={MessageSquare} title="Chat" />
-              )}
               
               {hasPermission("tarefas") && (
                 <MenuItemLink to="/dashboard/tarefas" icon={CheckSquare} title="Tarefas" />
