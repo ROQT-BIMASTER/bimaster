@@ -15,6 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -260,7 +267,7 @@ export function AppSidebar() {
   const [precosOpen, setPrecosOpen] = useState(true);
   const [tabelasPendentes, setTabelasPendentes] = useState(0);
   const [userName, setUserName] = useState<string>("");
-  const [selectedModule, setSelectedModule] = useState<string>("all");
+  const [selectedModules, setSelectedModules] = useState<Set<string>>(new Set());
 
   const loading = permissionsLoading || modulesLoading;
 
@@ -280,7 +287,29 @@ export function AppSidebar() {
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
 
-  const showModule = (code: string) => selectedModule === "all" || selectedModule === code;
+  // Empty set = show all (no filter active)
+  const showModule = (code: string) => selectedModules.size === 0 || selectedModules.has(code);
+
+  const toggleModule = (code: string) => {
+    setSelectedModules(prev => {
+      const next = new Set(prev);
+      if (next.has(code)) {
+        next.delete(code);
+      } else {
+        next.add(code);
+      }
+      return next;
+    });
+  };
+
+  const filterLabel = useMemo(() => {
+    if (selectedModules.size === 0) return "Todos os Módulos";
+    if (selectedModules.size === 1) {
+      const code = Array.from(selectedModules)[0];
+      return moduleFilterOptions.find(m => m.code === code)?.label || code;
+    }
+    return `${selectedModules.size} módulos`;
+  }, [selectedModules, moduleFilterOptions]);
 
   // Fetch user name
   useEffect(() => {
@@ -423,19 +452,48 @@ export function AppSidebar() {
       {/* Module filter */}
       {moduleFilterOptions.length > 1 && (
         <div className="px-3 py-2 border-b border-sidebar-border">
-          <Select value={selectedModule} onValueChange={setSelectedModule}>
-            <SelectTrigger className="h-9 text-xs bg-sidebar-accent/30 border-sidebar-border">
-              <SelectValue placeholder="Filtrar módulo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Módulos</SelectItem>
-              {moduleFilterOptions.map((m) => (
-                <SelectItem key={m.code} value={m.code}>
-                  {m.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-9 justify-between text-xs bg-sidebar-accent/30 border-sidebar-border"
+              >
+                <span className="truncate">{filterLabel}</span>
+                <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" align="start" side="bottom">
+              <div className="space-y-1">
+                <button
+                  onClick={() => setSelectedModules(new Set())}
+                  className={cn(
+                    "flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-md transition-colors",
+                    selectedModules.size === 0
+                      ? "bg-accent text-accent-foreground font-medium"
+                      : "hover:bg-muted"
+                  )}
+                >
+                  Todos os Módulos
+                </button>
+                <Separator />
+                {moduleFilterOptions.map((m) => (
+                  <label
+                    key={m.code}
+                    className="flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-md hover:bg-muted cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={selectedModules.has(m.code)}
+                      onCheckedChange={() => toggleModule(m.code)}
+                      className="h-3.5 w-3.5"
+                    />
+                    <m.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>{m.label}</span>
+                  </label>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       )}
 
