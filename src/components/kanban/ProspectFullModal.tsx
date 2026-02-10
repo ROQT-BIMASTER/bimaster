@@ -1,4 +1,5 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +50,8 @@ export const ProspectFullModal = ({ prospect, open, onOpenChange, onUpdate }: Pr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[95vw] h-[90vh] p-0 flex flex-col gap-0 overflow-hidden">
+      <DialogContent className="max-w-4xl w-[95vw] h-[90vh] p-0 flex flex-col gap-0 overflow-hidden" aria-describedby={undefined}>
+        <VisuallyHidden><DialogTitle>{prospect.nome_empresa}</DialogTitle></VisuallyHidden>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
           <div className="flex items-center gap-3 min-w-0">
