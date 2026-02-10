@@ -20,7 +20,7 @@ export const userSchema = z.object({
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, { 
       message: "Senha deve conter letras maiúsculas, minúsculas e números" 
     }),
-  tipo_usuario: z.enum(["admin", "supervisor", "vendedor", "promotor", "cliente"], {
+  tipo_usuario: z.enum(["admin", "gerente", "supervisor", "vendedor", "promotor", "cliente"], {
     errorMap: () => ({ message: "Tipo de usuário inválido" })
   }),
 });
