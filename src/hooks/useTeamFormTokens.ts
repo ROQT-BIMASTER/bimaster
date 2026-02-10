@@ -95,6 +95,35 @@ export function useTeamFormTokens() {
     },
   });
 
+  const deleteToken = useMutation({
+    mutationFn: async (tokenId: string) => {
+      // First delete related submissions
+      const { error: subError } = await supabase
+        .from("team_form_submissions")
+        .delete()
+        .eq("token_id", tokenId);
+      if (subError) throw subError;
+
+      const { error } = await supabase
+        .from("team_form_tokens")
+        .delete()
+        .eq("id", tokenId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-form-tokens"] });
+      queryClient.invalidateQueries({ queryKey: ["team-form-submissions"] });
+      toast({ title: "Formulário excluído com sucesso" });
+    },
+    onError: (err) => {
+      toast({
+        title: "Erro ao excluir",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     tokens: tokensQuery.data || [],
     submissions: submissionsQuery.data || [],
@@ -102,5 +131,6 @@ export function useTeamFormTokens() {
     isLoadingSubmissions: submissionsQuery.isLoading,
     generateToken,
     revokeToken,
+    deleteToken,
   };
 }

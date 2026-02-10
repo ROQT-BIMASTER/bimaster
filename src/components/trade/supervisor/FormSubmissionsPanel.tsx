@@ -4,13 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Ban, CheckCircle2, Clock, Copy, FileText, Users } from "lucide-react";
+import { Ban, CheckCircle2, Clock, Copy, FileText, Trash2, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 
 export function FormSubmissionsPanel() {
-  const { tokens, submissions, isLoadingTokens, isLoadingSubmissions, revokeToken } = useTeamFormTokens();
+  const { tokens, submissions, isLoadingTokens, isLoadingSubmissions, revokeToken, deleteToken } = useTeamFormTokens();
 
   if (isLoadingTokens || isLoadingSubmissions) {
     return <Skeleton className="h-64 w-full" />;
@@ -84,17 +84,31 @@ export function FormSubmissionsPanel() {
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(t.expires_at), "dd/MM HH:mm", { locale: ptBR })}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="flex items-center gap-1">
                       {t.status === "active" && new Date(t.expires_at) > new Date() && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => revokeToken.mutate(t.id)}
                           className="text-destructive hover:text-destructive"
+                          title="Revogar"
                         >
                           <Ban className="h-4 w-4" />
                         </Button>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm("Excluir este formulário e todos os cadastros vinculados?")) {
+                            deleteToken.mutate(t.id);
+                          }
+                        }}
+                        className="text-destructive hover:text-destructive"
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
