@@ -242,7 +242,7 @@ function AppContent() {
             <Route path="/usuario-bloqueado" element={<UsuarioBloqueado />} />
             
             {/* Protected Routes */}
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><Navigate to="/dashboard/prospects" replace /></ProtectedRoute>} />
             <Route path="/dashboard/ai-analytics" element={<ProtectedRoute><AIAnalytics /></ProtectedRoute>} />
             <Route path="/dashboard/qa-agent" element={<ProtectedRoute><QAAgent /></ProtectedRoute>} />
             <Route path="/dashboard/agente-huggs" element={<ProtectedRoute><AgenteHuggs /></ProtectedRoute>} />
