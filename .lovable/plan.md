@@ -1,120 +1,134 @@
 
 
-# Formulario Compartilhado com Token Unico
+# CRM Omnichannel - Evolucao do Kanban de Leads
 
-## Mudanca Principal
+## Visao Geral
 
-Em vez de gerar um token individual para cada vendedor, sera criado **um unico token/codigo de acesso** que o administrador gera e compartilha com todos os 280 vendedores. O token fica ativo por 24 horas e pode ser usado multiplas vezes.
+Transformar o Kanban de Prospects atual em um CRM Omnichannel completo, adicionando um modal detalhado com abas, central de demandas internas, e automacoes ao mover cards.
 
-## Como Funciona
+## O que ja existe (aproveitado)
 
-1. O administrador acessa "Minha Equipe" e clica em "Gerar Link do Formulario"
-2. O sistema cria um token unico (ex: `EQUIPE2024`) valido por 24 horas
-3. O admin compartilha o link `seusite.com/formulario-equipe?token=EQUIPE2024` via WhatsApp/grupo
-4. Cada vendedor abre o link, informa o token, preenche seus dados pessoais
-5. Os dados sao salvos na tabela intermediaria `team_form_submissions`
-6. O admin pode acompanhar quantos ja preencheram e vincular os dados futuramente
+- Kanban com drag-and-drop funcional (6 colunas de status)
+- Tabela `prospects` rica (50+ campos incluindo CNPJ, redes sociais, scores)
+- Tabela `atividades` vinculada a prospects
+- Sistema de chat interno (`conversas` + `mensagens`)
+- Componente `ProspectDetailDialog` (formulario simples de edicao)
+- Autenticacao e RLS configurados
 
-## Arquitetura de Seguranca
+## O que sera construido
 
-- Token de uso multiplo, mas com expiracao de 24h (configuravel)
-- Edge Function valida o token e insere os dados (sem acesso anonimo direto ao banco)
-- Validacao de CPF duplicado para evitar preenchimentos repetidos
-- Rate limiting por IP na Edge Function
+### Fase 1 - Modal de Lead com 4 Abas
 
-## Detalhamento Tecnico
+Substituir o `ProspectDetailDialog` atual por um modal fullscreen com abas:
 
-### 1. Nova tabela: `team_form_tokens`
+**Aba 1 - Resumo IA e Dados**
+- Campos de qualificacao do prospect (dados ja existentes: porte, CNAE, score, faturamento)
+- Campo "Insight da IA" gerado via Lovable AI (edge function) que analisa historico de atividades e dados do lead para gerar um resumo do momento atual
+- Cards visuais com metricas: dias sem contato, quantidade de atividades, score de propensao
 
-```sql
-CREATE TABLE public.team_form_tokens (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  token_hash text NOT NULL UNIQUE,
-  label text NOT NULL,              -- ex: "Formulario Equipe Fev/2026"
-  equipe_comercial text,
-  supervisor_nome text,
-  max_uses integer,                 -- NULL = ilimitado
-  use_count integer DEFAULT 0,
-  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','expired','revoked')),
-  expires_at timestamptz NOT NULL,
-  created_by uuid REFERENCES public.profiles(id),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+**Aba 2 - Subtarefas Dinamicas**
+- Nova tabela `lead_subtasks` (prospect_id, titulo, responsavel_id, checklist JSONB, data_entrega, concluida)
+- Interface de checklist com barra de progresso percentual
+- Cada subtarefa pode ter sub-itens (checklist interno em JSONB)
+- Atribuicao de responsavel por subtarefa
+
+**Aba 3 - Historico de WhatsApp (Simulado)**
+- Nova tabela `lead_messages` (prospect_id, tipo: text/audio/image, conteudo, direcao: inbound/outbound, created_at)
+- Interface visual identica ao WhatsApp (baloes verdes/brancos, timestamps)
+- Suporte visual a audios (player simulado), imagens e textos
+- Dados mock iniciais para demonstracao
+
+**Aba 4 - Log de Acompanhamento (Auditoria)**
+- Nova tabela `lead_activity_logs` (prospect_id, user_id, acao, detalhes, created_at)
+- Linha do tempo vertical com icones por tipo de evento
+- Registro automatico ao mover card no Kanban, concluir subtarefa, etc.
+
+### Fase 2 - Central de Demandas Internas
+
+- Nova tabela `internal_tickets` (titulo, descricao, prospect_id nullable, prioridade, status, responsavel_id, criado_por)
+- Pagina dedicada com lista/kanban de tickets
+- Vinculo opcional com lead (campo "Vinculo com Lead")
+- Efeito visual "glow" para tickets urgentes (animacao CSS)
+
+### Fase 3 - Automacao Kanban -> Demandas
+
+- Ao mover card para "Ganho" (coluna fechado), criar automaticamente um ticket interno para Onboarding
+- Logica no `handleDragEnd` do KanbanBoard
+- Registro no log de auditoria
+
+## Detalhes Tecnicos
+
+### Novas tabelas (migration SQL)
+
+```text
+lead_subtasks
+  - id (uuid PK)
+  - prospect_id (FK prospects)
+  - titulo (text)
+  - responsavel_id (FK profiles)
+  - checklist (jsonb) -- [{item: "...", done: bool}]
+  - data_entrega (date)
+  - concluida (boolean default false)
+  - created_at, updated_at
+
+lead_messages
+  - id (uuid PK)
+  - prospect_id (FK prospects)
+  - tipo (text: 'text','audio','image')
+  - conteudo (text)
+  - direcao (text: 'inbound','outbound')
+  - remetente_nome (text)
+  - created_at
+
+lead_activity_logs
+  - id (uuid PK)
+  - prospect_id (FK prospects)
+  - user_id (FK profiles)
+  - acao (text)
+  - detalhes (text)
+  - created_at
+
+internal_tickets
+  - id (uuid PK)
+  - titulo (text)
+  - descricao (text)
+  - prospect_id (FK prospects, nullable)
+  - prioridade (text: 'baixa','media','alta','urgente')
+  - status (text: 'aberto','em_andamento','concluido')
+  - responsavel_id (FK profiles)
+  - criado_por (FK profiles)
+  - created_at, updated_at
 ```
 
-### 2. Nova tabela: `team_form_submissions`
+Todas com RLS habilitado e politicas para authenticated users com `check_user_access`.
 
-```sql
-CREATE TABLE public.team_form_submissions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  token_id uuid REFERENCES public.team_form_tokens(id),
-  nome_completo text NOT NULL,
-  cpf text NOT NULL,
-  rg text,
-  data_nascimento date,
-  email_pessoal text,
-  whatsapp text NOT NULL,
-  tamanho_camiseta text,
-  equipe_comercial text,
-  supervisor_nome text,
-  observacoes text,
-  vinculado boolean DEFAULT false,
-  vinculado_user_id uuid REFERENCES public.profiles(id),
-  created_at timestamptz DEFAULT now(),
-  UNIQUE(cpf)                      -- impede duplicatas pelo CPF
-);
-```
+### Novos componentes
 
-- A constraint `UNIQUE(cpf)` garante que cada vendedor preencha apenas uma vez
-- Se precisar atualizar, a Edge Function faz `upsert` pelo CPF
+- `ProspectFullModal.tsx` - Modal fullscreen com Tabs (substitui ProspectDetailDialog)
+- `LeadResumoIA.tsx` - Aba 1
+- `LeadSubtarefas.tsx` - Aba 2 com checklist e barra de progresso
+- `LeadWhatsAppHistory.tsx` - Aba 3 com interface de chat
+- `LeadActivityLog.tsx` - Aba 4 com timeline
+- `InternalTicketsPage.tsx` - Pagina da Central de Demandas
+- `InternalTicketCard.tsx` - Card com glow effect
 
-### 3. Edge Function: `team-form-submit`
+### Edge Function (IA)
 
-- Recebe: `{ token, dados_do_formulario }`
-- Valida: token existe, status = 'active', nao expirado
-- Valida dados (CPF, WhatsApp, campos obrigatorios)
-- Faz upsert em `team_form_submissions` pelo CPF (permite correcao se preencher de novo com mesmo CPF)
-- Incrementa `use_count` no token
-- Retorna sucesso ou erro com mensagem clara
+- `lead-insight`: recebe prospect_id, consulta dados + atividades, gera resumo via Lovable AI (gemini-3-flash-preview)
 
-### 4. Pagina publica: `/formulario-equipe`
+### Dados mock
 
-- Rota publica (sem `ProtectedRoute`)
-- Tela 1: Campo para informar o codigo de acesso
-- Tela 2: Formulario com os campos (reutilizando validacoes do `teamMemberFormSchema`)
-- Campos pre-preenchidos: equipe_comercial e supervisor_nome (vindos do token, editaveis)
-- Tela 3: Confirmacao de sucesso apos envio
-- Design limpo e responsivo (muitos vendedores acessarao pelo celular)
+- Inserir mensagens simuladas de WhatsApp e logs de auditoria para demonstracao visual
 
-### 5. Painel do administrador (dentro de "Minha Equipe")
+### Arquivos modificados
 
-- Botao "Gerar Link Formulario" abre modal com:
-  - Campo: nome/label do formulario
-  - Campo: equipe comercial (opcional, pre-preenche no form)
-  - Campo: supervisor (opcional, pre-preenche no form)
-  - Validade: 24h (padrao, editavel)
-- Apos gerar, exibe link para copiar e compartilhar
-- Lista de tokens ativos/expirados com contagem de preenchimentos
-- Tabela de submissions recebidas com status de vinculacao
+- `KanbanBoard.tsx` - usar novo modal + registrar log + criar ticket automatico ao mover para "ganho"
+- `ProspectCard.tsx` - sem alteracoes significativas
+- Rotas: adicionar rota para Central de Demandas Internas
 
-### 6. Arquivos a criar/modificar
+### Design
 
-| Arquivo | Acao |
-|---------|------|
-| Migration SQL | Criar tabelas `team_form_tokens` e `team_form_submissions` com RLS |
-| `supabase/functions/team-form-submit/index.ts` | Edge Function para validar token e salvar dados |
-| `src/pages/FormularioEquipe.tsx` | Pagina publica do formulario |
-| `src/components/trade/supervisor/GenerateFormLinkDialog.tsx` | Modal para gerar token e link |
-| `src/components/trade/supervisor/FormSubmissionsPanel.tsx` | Painel de acompanhamento das submissoes |
-| `src/hooks/useTeamFormTokens.ts` | Hook para gerenciar tokens |
-| `src/App.tsx` | Adicionar rota publica `/formulario-equipe` |
-
-### Resumo de Seguranca
-
-- Token com expiracao de 24h (nao e permanente)
-- Admin pode revogar o token a qualquer momento
-- Edge Function faz toda validacao server-side
-- CPF unico impede preenchimento duplicado
-- Sem acesso anonimo direto ao banco de dados
-- Dados sensiveis trafegam apenas pela Edge Function com service role
+- Estilo limpo inspirado em Linear.app: bordas finas, espacamento generoso, tipografia precisa
+- Uso de Shadcn/UI + Tailwind + Lucide Icons (ja instalados)
+- Glow effect CSS para urgencias: `animate-pulse` + `ring-2 ring-red-500/50`
 
