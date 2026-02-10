@@ -259,6 +259,7 @@ function AppContent() {
             {/* Módulo de Prospects */}
             <Route path="/dashboard/prospects" element={<ProtectedRoute><ProspectsModule /></ProtectedRoute>} />
             <Route path="/dashboard/prospects/lista" element={<ProtectedRoute><Prospects /></ProtectedRoute>} />
+            <Route path="/dashboard/prospects/list" element={<ProtectedRoute><Prospects /></ProtectedRoute>} />
             <Route path="/dashboard/prospects/kanban" element={<ProtectedRoute><Kanban /></ProtectedRoute>} />
             <Route path="/dashboard/prospects/atividades" element={<ProtectedRoute><Atividades /></ProtectedRoute>} />
             <Route path="/dashboard/prospects/mapa" element={<ProtectedRoute><Mapa /></ProtectedRoute>} />
