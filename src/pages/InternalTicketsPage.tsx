@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Ticket, Link2 } from "lucide-react";
+import { Loader2, Plus, Ticket, Link2, Search, AlertTriangle, Clock, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -44,10 +44,18 @@ const InternalTicketsPage = () => {
   const [tickets, setTickets] = useState<InternalTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("todos");
+  const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newTicket, setNewTicket] = useState({ titulo: "", descricao: "", prioridade: "media" });
   const [creating, setCreating] = useState(false);
   const { toast } = useToast();
+
+  const kpis = {
+    total: tickets.length,
+    abertos: tickets.filter(t => t.status === "aberto").length,
+    emAndamento: tickets.filter(t => t.status === "em_andamento").length,
+    urgentes: tickets.filter(t => t.prioridade === "urgente" && t.status !== "concluido").length,
+  };
 
   useEffect(() => {
     fetchTickets();
@@ -94,7 +102,8 @@ const InternalTicketsPage = () => {
     fetchTickets();
   };
 
-  const filtered = filterStatus === "todos" ? tickets : tickets.filter(t => t.status === filterStatus);
+  const filtered = (filterStatus === "todos" ? tickets : tickets.filter(t => t.status === filterStatus))
+    .filter(t => !searchTerm.trim() || t.titulo.toLowerCase().includes(searchTerm.toLowerCase()) || t.descricao?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   if (loading) {
     return (
@@ -109,29 +118,85 @@ const InternalTicketsPage = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Central de Demandas</h2>
             <p className="text-muted-foreground">{tickets.length} tickets registrados</p>
           </div>
-          <div className="flex gap-2">
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="aberto">Abertos</SelectItem>
-                <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                <SelectItem value="concluido">Concluídos</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={() => setDialogOpen(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Novo Ticket
-            </Button>
-          </div>
+          <Button onClick={() => setDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Ticket
+          </Button>
         </div>
+
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2">
+                <Ticket className="h-4 w-4 text-blue-500" />
+                <span className="text-xs text-muted-foreground">Total</span>
+              </div>
+              <p className="text-2xl font-bold mt-1">{kpis.total}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4 border-l-yellow-500">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-yellow-500" />
+                <span className="text-xs text-muted-foreground">Abertos</span>
+              </div>
+              <p className="text-2xl font-bold mt-1">{kpis.abertos}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4 border-l-orange-500">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-orange-500" />
+                <span className="text-xs text-muted-foreground">Em Andamento</span>
+              </div>
+              <p className="text-2xl font-bold mt-1">{kpis.emAndamento}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4 border-l-red-500">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <span className="text-xs text-muted-foreground">Urgentes</span>
+              </div>
+              <p className="text-2xl font-bold mt-1">{kpis.urgentes}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar tickets..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 h-9"
+                />
+              </div>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full sm:w-[160px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="aberto">Abertos</SelectItem>
+                  <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                  <SelectItem value="concluido">Concluídos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-3">
           {filtered.map((ticket) => {

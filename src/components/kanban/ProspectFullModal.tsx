@@ -96,7 +96,7 @@ export const ProspectFullModal = ({ prospect, open, onOpenChange, onUpdate }: Pr
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <TabsContent value="resumo" className="mt-0">
-              <LeadResumoIA prospect={prospect} />
+              <LeadResumoIA prospect={prospect} onUpdate={onUpdate} />
             </TabsContent>
             <TabsContent value="subtarefas" className="mt-0">
               <LeadSubtarefas prospectId={prospect.id} />

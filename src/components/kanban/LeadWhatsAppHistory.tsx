@@ -27,6 +27,17 @@ export const LeadWhatsAppHistory = ({ prospectId, prospectName }: LeadWhatsAppHi
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const mockMessages: Message[] = [
+    { id: "mock-1", tipo: "text", conteudo: "Olá! Gostaria de saber mais sobre os produtos da linha premium.", direcao: "inbound", remetente_nome: prospectName, created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
+    { id: "mock-2", tipo: "text", conteudo: "Olá! Claro, temos condições especiais para novos parceiros. Posso enviar nosso catálogo?", direcao: "outbound", remetente_nome: "Você", created_at: new Date(Date.now() - 86400000 * 2 + 300000).toISOString() },
+    { id: "mock-3", tipo: "text", conteudo: "Sim, por favor! E gostaria de agendar uma visita técnica também.", direcao: "inbound", remetente_nome: prospectName, created_at: new Date(Date.now() - 86400000 * 2 + 600000).toISOString() },
+    { id: "mock-4", tipo: "image", conteudo: "Catálogo Premium 2025.pdf", direcao: "outbound", remetente_nome: "Você", created_at: new Date(Date.now() - 86400000).toISOString() },
+    { id: "mock-5", tipo: "text", conteudo: "Recebi o catálogo! Os preços são para pedido mínimo de quantas unidades?", direcao: "inbound", remetente_nome: prospectName, created_at: new Date(Date.now() - 86400000 + 1800000).toISOString() },
+    { id: "mock-6", tipo: "audio", conteudo: "Áudio explicando condições comerciais", direcao: "outbound", remetente_nome: "Você", created_at: new Date(Date.now() - 86400000 + 3600000).toISOString() },
+    { id: "mock-7", tipo: "text", conteudo: "Perfeito, vou analisar e retorno até sexta-feira com o pedido.", direcao: "inbound", remetente_nome: prospectName, created_at: new Date(Date.now() - 3600000).toISOString() },
+    { id: "mock-8", tipo: "text", conteudo: "Ótimo! Fico no aguardo. Qualquer dúvida estou à disposição. 👍", direcao: "outbound", remetente_nome: "Você", created_at: new Date(Date.now() - 1800000).toISOString() },
+  ];
+
   useEffect(() => {
     fetchMessages();
   }, [prospectId]);
@@ -41,7 +52,8 @@ export const LeadWhatsAppHistory = ({ prospectId, prospectName }: LeadWhatsAppHi
       .select("*")
       .eq("prospect_id", prospectId)
       .order("created_at", { ascending: true });
-    setMessages(data || []);
+    const realMessages = data || [];
+    setMessages(realMessages.length > 0 ? realMessages : mockMessages);
     setLoading(false);
   };
 
