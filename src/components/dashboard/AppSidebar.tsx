@@ -333,9 +333,11 @@ export function AppSidebar() {
   }
 
   const prospectsSubMenus = [
+    { title: "Dashboard", url: "/dashboard", icon: Home, screenCode: "dashboard" },
     { title: "Lista de Prospects", url: "/dashboard/prospects/list", icon: Users, screenCode: "PROSPECTS_LISTA" },
     { title: "Kanban", url: "/dashboard/prospects/kanban", icon: LayoutGrid, screenCode: "PROSPECTS_KANBAN" },
     { title: "Atividades", url: "/dashboard/prospects/atividades", icon: Activity, screenCode: "PROSPECTS_ATIVIDADES" },
+    { title: "Tarefas", url: "/dashboard/tarefas", icon: CheckSquare, screenCode: "tarefas" },
     { title: "Central de Demandas", url: "/dashboard/demandas", icon: Ticket, screenCode: "PROSPECTS_DEMANDAS" },
   ];
 
@@ -393,20 +395,10 @@ export function AppSidebar() {
       </div>
 
       <SidebarContent className="scrollbar-thin">
-        {/* Dashboard Principal */}
+        {/* Geral */}
         <SidebarGroup className="py-2">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1 px-2">
-              {hasPermission("dashboard") && (
-                <MenuItemLink to="/dashboard" icon={Home} title="Dashboard" end />
-              )}
-              
-              
-              
-              {hasPermission("tarefas") && (
-                <MenuItemLink to="/dashboard/tarefas" icon={CheckSquare} title="Tarefas" />
-              )}
-              
               {hasPermission("auditoria") && (
                 <MenuItemLink to="/dashboard/auditoria" icon={Shield} title="Auditoria" />
               )}
