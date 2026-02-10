@@ -35,7 +35,7 @@ export function GenerateFormLinkDialog() {
   };
 
   const formLink = generatedToken
-    ? `${window.location.origin}/formulario-equipe?token=${generatedToken}`
+    ? `https://bimaster.lovable.app/formulario-equipe?token=${generatedToken}`
     : "";
 
   const handleCopy = async () => {
