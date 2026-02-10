@@ -6,8 +6,15 @@ import {
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import logoUnion from "@/assets/logo-union.png";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sidebar,
   SidebarContent,
@@ -253,8 +260,27 @@ export function AppSidebar() {
   const [precosOpen, setPrecosOpen] = useState(true);
   const [tabelasPendentes, setTabelasPendentes] = useState(0);
   const [userName, setUserName] = useState<string>("");
+  const [selectedModule, setSelectedModule] = useState<string>("all");
 
   const loading = permissionsLoading || modulesLoading;
+
+  // Build available modules list based on permissions
+  const moduleFilterOptions = useMemo(() => {
+    const allModules = [
+      { code: "prospects", label: "Prospects", icon: Users },
+      { code: "financeiro", label: "Financeiro", icon: DollarSign },
+      { code: "marketing", label: "Marketing", icon: BarChart3 },
+      { code: "trade", label: "Trade Marketing", icon: Store },
+      { code: "fabrica", label: "Fábrica", icon: Factory },
+      { code: "comercial", label: "Comercial", icon: Briefcase },
+      { code: "eventos", label: "Eventos", icon: PartyPopper },
+      { code: "departamentos", label: "Departamentos", icon: Building2 },
+      { code: "precos", label: "Tabelas de Preços", icon: DollarSign },
+    ];
+    return allModules.filter(m => hasModulePermission(m.code));
+  }, [hasModulePermission]);
+
+  const showModule = (code: string) => selectedModule === "all" || selectedModule === code;
 
   // Fetch user name
   useEffect(() => {
@@ -394,6 +420,25 @@ export function AppSidebar() {
         <img src={logoUnion} alt="Logo Union - Sistema de Gestão Huggs" className="w-28 mx-auto" />
       </div>
 
+      {/* Module filter */}
+      {moduleFilterOptions.length > 1 && (
+        <div className="px-3 py-2 border-b border-sidebar-border">
+          <Select value={selectedModule} onValueChange={setSelectedModule}>
+            <SelectTrigger className="h-9 text-xs bg-sidebar-accent/30 border-sidebar-border">
+              <SelectValue placeholder="Filtrar módulo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Módulos</SelectItem>
+              {moduleFilterOptions.map((m) => (
+                <SelectItem key={m.code} value={m.code}>
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <SidebarContent className="scrollbar-thin">
         {/* Geral */}
         <SidebarGroup className="py-2">
@@ -412,7 +457,7 @@ export function AppSidebar() {
         <Separator className="mx-4 w-auto" />
 
         {/* Módulo de Prospects */}
-        {hasModulePermission("prospects") && (
+        {hasModulePermission("prospects") && showModule("prospects") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={prospectsOpen} onOpenChange={setProspectsOpen}>
               <CollapsibleTrigger className="w-full">
@@ -454,7 +499,7 @@ export function AppSidebar() {
         )}
 
         {/* Módulo Financeiro */}
-        {hasModulePermission("financeiro") && (
+        {hasModulePermission("financeiro") && showModule("financeiro") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={financeiroOpen} onOpenChange={setFinanceiroOpen} defaultOpen>
               <CollapsibleTrigger className="w-full">
@@ -488,7 +533,7 @@ export function AppSidebar() {
         )}
 
         {/* Módulo de Marketing */}
-        {hasModulePermission("marketing") && (
+        {hasModulePermission("marketing") && showModule("marketing") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={marketingOpen} onOpenChange={setMarketingOpen}>
               <CollapsibleTrigger className="w-full">
@@ -530,7 +575,7 @@ export function AppSidebar() {
         )}
 
         {/* Módulo de Trade Marketing */}
-        {hasModulePermission("trade") && (
+        {hasModulePermission("trade") && showModule("trade") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={tradeOpen} onOpenChange={setTradeOpen}>
               <CollapsibleTrigger className="w-full">
@@ -574,7 +619,7 @@ export function AppSidebar() {
         )}
 
         {/* Módulo de Fábrica - Com grupos */}
-        {hasModulePermission("fabrica") && (
+        {hasModulePermission("fabrica") && showModule("fabrica") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={fabricaOpen} onOpenChange={setFabricaOpen}>
               <CollapsibleTrigger className="w-full">
@@ -629,7 +674,7 @@ export function AppSidebar() {
         )}
 
         {/* Módulo Comercial */}
-        {hasModulePermission("comercial") && (
+        {hasModulePermission("comercial") && showModule("comercial") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={comercialOpen} onOpenChange={setComercialOpen}>
               <CollapsibleTrigger className="w-full">
@@ -698,7 +743,7 @@ export function AppSidebar() {
         )}
 
         {/* Módulo de Eventos Corporativos */}
-        {hasModulePermission("eventos") && (
+        {hasModulePermission("eventos") && showModule("eventos") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={eventosOpen} onOpenChange={setEventosOpen}>
               <CollapsibleTrigger className="w-full">
@@ -737,7 +782,7 @@ export function AppSidebar() {
         )}
 
         {/* Módulo de Departamentos - Cada departamento com submenu */}
-        {hasModulePermission("departamentos") && userDepartments.length > 0 && userDepartments.map((dept, index) => {
+        {hasModulePermission("departamentos") && showModule("departamentos") && userDepartments.length > 0 && userDepartments.map((dept, index) => {
           // Cores harmoniosas para cada departamento
           const deptColors = [
             { bg: "bg-blue-500", bgLight: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-600 dark:text-blue-400", hover: "hover:bg-blue-100 dark:hover:bg-blue-900/40" },
@@ -800,7 +845,7 @@ export function AppSidebar() {
         })}
 
         {/* Módulo de Tabelas de Preços */}
-        {hasModulePermission("precos") && (
+        {hasModulePermission("precos") && showModule("precos") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={precosOpen} onOpenChange={setPrecosOpen}>
               <CollapsibleTrigger className="w-full">
