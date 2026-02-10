@@ -251,12 +251,12 @@ export default function FabricaProdutosAcabados() {
 
   const renderProdutoRow = (produto: any) => {
     const statusFicha = fichasMap.get(produto.id);
-    const isRevisaoSolicitada = statusFicha === "revisao_solicitada";
+    const isEmRevisao = statusFicha === "revisao_solicitada" || statusFicha === "em_revisao";
     const custoTotal = custoTotalMap.get(produto.id);
     const temAumento = produtosComAumento.has(produto.id);
 
     return (
-      <TableRow key={produto.id} className={isRevisaoSolicitada ? "bg-red-50 dark:bg-red-950/20" : ""}>
+      <TableRow key={produto.id} className={isEmRevisao ? "bg-red-50 dark:bg-red-950/20" : ""}>
         <TableCell className="font-mono">{produto.codigo}</TableCell>
         <TableCell className="font-medium">{produto.nome}</TableCell>
         <TableCell>
