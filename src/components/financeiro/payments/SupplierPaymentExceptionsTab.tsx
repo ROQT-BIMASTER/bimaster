@@ -33,6 +33,7 @@ import {
 } from "@/hooks/useSupplierPaymentExceptions";
 import { getDayNameShort } from "@/hooks/useFinancialPaymentPolicies";
 import { supabase } from "@/integrations/supabase/client";
+import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
 import {
   Loader2,
   Calendar,
@@ -44,6 +45,7 @@ import {
   ChevronsUpDown,
   Check,
   Search,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -234,72 +236,99 @@ export function SupplierPaymentExceptionsTab() {
             {/* Supplier Select */}
             <div className="space-y-2">
               <Label>Fornecedor *</Label>
-              <Popover open={supplierPopoverOpen} onOpenChange={setSupplierPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between font-normal"
-                  >
-                    {selectedSupplier ? (
-                      <span className="truncate">
-                        {selectedSupplier.razao_social}
-                        {selectedSupplier.cnpj && (
-                          <span className="text-muted-foreground ml-2 text-xs font-mono">
-                            {selectedSupplier.cnpj}
-                          </span>
-                        )}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">Selecione um fornecedor...</span>
-                    )}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0" align="start">
-                  <Command shouldFilter={false}>
-                    <CommandInput
-                      placeholder="Buscar por nome ou CNPJ..."
-                      value={supplierSearch}
-                      onValueChange={setSupplierSearch}
-                    />
-                    <CommandList>
-                      {loadingSuppliers ? (
-                        <div className="flex justify-center py-4">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        </div>
-                      ) : filteredSuppliers.length === 0 ? (
-                        <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
+              <div className="flex gap-2">
+                <Popover open={supplierPopoverOpen} onOpenChange={setSupplierPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="flex-1 justify-between font-normal"
+                    >
+                      {selectedSupplier ? (
+                        <span className="truncate">
+                          {selectedSupplier.razao_social}
+                          {selectedSupplier.cnpj && (
+                            <span className="text-muted-foreground ml-2 text-xs font-mono">
+                              {selectedSupplier.cnpj}
+                            </span>
+                          )}
+                        </span>
                       ) : (
-                        <CommandGroup>
-                          {filteredSuppliers.map((supplier) => (
-                            <CommandItem
-                              key={supplier.id}
-                              value={supplier.id}
-                              onSelect={() => handleSelectSupplier(supplier)}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  form.supplier_id === supplier.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex flex-col">
-                                <span className="text-sm">{supplier.razao_social}</span>
-                                {supplier.cnpj && (
-                                  <span className="text-xs text-muted-foreground font-mono">
-                                    {supplier.cnpj}
-                                  </span>
-                                )}
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
+                        <span className="text-muted-foreground">Selecione um fornecedor...</span>
                       )}
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder="Buscar por nome ou CNPJ..."
+                        value={supplierSearch}
+                        onValueChange={setSupplierSearch}
+                      />
+                      <CommandList>
+                        {loadingSuppliers ? (
+                          <div className="flex justify-center py-4">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                        ) : filteredSuppliers.length === 0 ? (
+                          <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
+                        ) : (
+                          <CommandGroup>
+                            {filteredSuppliers.map((supplier) => (
+                              <CommandItem
+                                key={supplier.id}
+                                value={supplier.id}
+                                onSelect={() => handleSelectSupplier(supplier)}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    form.supplier_id === supplier.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span className="text-sm">{supplier.razao_social}</span>
+                                  {supplier.cnpj && (
+                                    <span className="text-xs text-muted-foreground font-mono">
+                                      {supplier.cnpj}
+                                    </span>
+                                  )}
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FornecedorQuickAdd
+                  onFornecedorCriado={(novo) => {
+                    const newSupplier: Supplier = {
+                      id: novo.id,
+                      razao_social: novo.nome,
+                      cnpj: novo.cnpj || null,
+                    };
+                    setSuppliers((prev) => [newSupplier, ...prev]);
+                    handleSelectSupplier(newSupplier);
+                  }}
+                />
+              </div>
+              {selectedSupplier && (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-xs gap-1"
+                  onClick={() => {
+                    window.open(`/dashboard/fabrica/materias-primas?fornecedor=${selectedSupplier.id}`, "_blank");
+                  }}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Abrir cadastro do fornecedor
+                </Button>
+              )}
             </div>
 
             {/* Name */}
