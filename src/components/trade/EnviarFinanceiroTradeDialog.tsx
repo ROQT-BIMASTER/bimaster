@@ -169,8 +169,7 @@ export function EnviarFinanceiroTradeDialog({
       !fornecedorId ||
       !formData.document_type ||
       !formData.document_number ||
-      !formData.due_date ||
-      !formData.portador
+      !formData.due_date
     ) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
@@ -461,29 +460,15 @@ export function EnviarFinanceiroTradeDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="portador">Portador *</Label>
-                <Select
+                <Label htmlFor="portador">Portador</Label>
+                <Input
+                  id="portador"
                   value={formData.portador}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, portador: value })
+                  onChange={(e) =>
+                    setFormData({ ...formData, portador: e.target.value })
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {portadores?.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {p}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="BRADESCO">BRADESCO</SelectItem>
-                    <SelectItem value="ITAU">ITAÚ</SelectItem>
-                    <SelectItem value="CARTEIRA">CARTEIRA</SelectItem>
-                    <SelectItem value="PIX">PIX</SelectItem>
-                    <SelectItem value="DEPOSITO">DEPÓSITO</SelectItem>
-                  </SelectContent>
-                </Select>
+                  placeholder="Ex: BRADESCO, ITAÚ, PIX..."
+                />
               </div>
             </div>
           </div>

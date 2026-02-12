@@ -67,8 +67,11 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
     const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
       pending: { label: "Pendente", variant: "outline" },
       approved: { label: "Aprovado", variant: "default" },
+      pending_financial: { label: "Aprovado - Pendente Financeiro", variant: "secondary" },
+      sent_financial: { label: "Enviado Financeiro", variant: "secondary" },
       rejected: { label: "Rejeitado", variant: "destructive" },
       completed: { label: "Concluído", variant: "secondary" },
+      paid: { label: "Pago", variant: "default" },
     };
 
     const config = statusMap[status] || { label: status, variant: "outline" };
@@ -157,8 +160,11 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
               <SelectItem value="all">Todos os status</SelectItem>
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="approved">Aprovado</SelectItem>
+              <SelectItem value="pending_financial">Pendente Financeiro</SelectItem>
+              <SelectItem value="sent_financial">Enviado Financeiro</SelectItem>
               <SelectItem value="rejected">Rejeitado</SelectItem>
               <SelectItem value="completed">Concluído</SelectItem>
+              <SelectItem value="paid">Pago</SelectItem>
             </SelectContent>
           </Select>
         </div>

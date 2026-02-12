@@ -457,7 +457,7 @@ export function SupplierDetailsCard({
                   variant="outline"
                   size="sm"
                   className="shrink-0 text-xs gap-1"
-                  onClick={() => window.open(`/dashboard/fabrica/materias-primas`, "_blank")}
+                  onClick={() => window.open(`/dashboard/fabrica/materias-primas?fornecedor=${localSupplier?.id || ''}`, "_blank")}
                 >
                   <ExternalLink className="h-3 w-3" />
                   Cadastrar
