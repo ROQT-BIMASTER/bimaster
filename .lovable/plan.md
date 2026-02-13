@@ -1,54 +1,72 @@
 
+# Corrigir Erro de Importacao Dinamica e Preparar para Producao
 
-# Traduzir Cards, Graficos e Colunas de Tabelas
+## Problema Identificado
 
-## Problema
-Os componentes de KPI cards, graficos (Recharts) e tabelas de dados continuam com textos hardcoded em portugues. Apenas 7 arquivos usam `useLanguage` atualmente -- a maioria dos widgets, dashboards e tabelas nao foi integrada.
+O erro `TypeError: Failed to fetch dynamically imported module` ocorre quando o Vite tenta carregar um modulo lazy (como `PrecosMatrizComparativa.tsx`) e a requisicao de rede falha. Isso pode acontecer por:
 
-## Componentes a Traduzir
+1. **Durante desenvolvimento**: Hot Module Replacement (HMR) reconstroi o modulo e a URL antiga fica invalida temporariamente
+2. **Em producao**: Apos um novo deploy, as URLs dos chunks antigos mudam e usuarios com a pagina aberta tentam navegar para rotas cujos chunks ja nao existem
 
-### Dashboard Widgets (pagina principal)
-- **TradeDashboardWidget** - 4 cards: "PDVs Ativos", "Visitas do Mes", "Fotos do Mes", "Investimentos" + descricoes
-- **FinanceiroDashboardWidget** - 8 cards: "A Pagar (Pendentes)", "A Pagar (Vencidas)", "Total a Pagar", etc. + headers de secao "Contas a Pagar" / "Contas a Receber"
-- **ExecutiveKPIs** - 5 cards: "Total de Prospects", "Visitas (30 dias)", "Taxa de Conversao", "Ticket Medio", "Metas Ativas" + label "vs periodo anterior"
-- **FunilProspeccao** - Titulo "Funil de Prospeccao", descricao, tooltip labels ("Prospects:", "Percentual:")
+Testei ambas as paginas (`/dashboard/precos/matriz` e `/dashboard/precos`) e elas carregam normalmente agora. O erro e intermitente.
 
-### Trade Marketing
-- **BrandShareKPIs** - 4 cards: "Total Medicoes", "Share Medio", "Marca Lider", "Crescimento" + descricoes
-- **BrandSharePieChart** - Titulo "Distribuicao por Marca", mensagem vazia
-- **BrandShareEvolutionChart** - Titulo "Evolucao Mensal por Marca", mensagem vazia
-- **BrandShareRankingTable** - Titulo "Ranking de Lojas por Share", labels "medicoes"
-- **TradeExecutiveKPIs** - 4 cards: "PDVs Ativos", "Visitas do Mes", "Fotos do Mes", "ROI Medio"
-- **TradeExecutiveTopClients** - Titulo "Top 10 Clientes por Lancamentos"
-- **TradeExecutivePhotosGallery** - Titulo "Fotos Recentes", badges "Pendente"
-- **ApprovalKPICards** - 5 cards: "Total Pendente", "Campanhas", "Lancamentos", "Valor Total", "Status"
+## Solucao
 
-## Abordagem Tecnica
+### 1. Adicionar retry automatico nos lazy imports (App.tsx)
 
-### 1. Expandir dicionario em `LanguageContext.tsx`
-Adicionar ~80 novas chaves cobrindo todos os textos dos componentes listados acima, nos 4 idiomas (pt-BR, en, es, ar).
+Criar uma funcao `lazyWithRetry` que tenta importar o modulo e, em caso de falha, faz ate 3 tentativas com intervalo. Se todas falharem, forca um reload da pagina (para buscar o novo manifest apos deploy).
 
-Exemplo de chaves:
-```
-"trade_widget.active_stores": "PDVs Ativos" / "Active Stores" / "PDVs Activos" / "نقاط البيع النشطة"
-"trade_widget.monthly_visits": "Visitas do Mês" / "Monthly Visits" / ...
-"finance_widget.payable_pending": "A Pagar (Pendentes)" / "Payable (Pending)" / ...
-"chart.brand_distribution": "Distribuição por Marca" / "Brand Distribution" / ...
-"table.store_ranking": "Ranking de Lojas por Share" / "Store Share Ranking" / ...
+```text
+lazyWithRetry(importFn)
+  tentativa 1 -> falhou? espera 1s
+  tentativa 2 -> falhou? espera 1s  
+  tentativa 3 -> falhou? window.location.reload()
 ```
 
-### 2. Integrar `useLanguage()` em cada componente
-Para cada um dos 12 componentes:
-- Importar `useLanguage` de `@/contexts/LanguageContext`
-- Extrair `const { t } = useLanguage()`
-- Substituir strings hardcoded por chamadas `t("chave")`
+### 2. Aplicar `lazyWithRetry` em todas as ~140 rotas lazy
 
-### 3. Ordem de implementacao
-1. Expandir o dicionario com todas as chaves novas (1 arquivo)
-2. Atualizar os 4 widgets do Dashboard principal (TradeDashboardWidget, FinanceiroDashboardWidget, ExecutiveKPIs, FunilProspeccao)
-3. Atualizar os 4 componentes de Brand Share
-4. Atualizar os 3 componentes Trade Executive
-5. Atualizar ApprovalKPICards
+Substituir todos os `lazy(() => import("./pages/..."))` por `lazyWithRetry(() => import("./pages/..."))`.
+
+### 3. Melhorar o fallback do Suspense
+
+O `PageLoader` atual mostra um spinner. Adicionar deteccao de erro de carregamento com mensagem amigavel e botao de "Tentar Novamente".
+
+## Arquivos a Modificar
+
+- **`src/App.tsx`**: Criar funcao `lazyWithRetry` e aplicar em todas as importacoes lazy (~140 linhas)
+
+## Detalhes Tecnicos
+
+A funcao `lazyWithRetry`:
+
+```text
+function lazyWithRetry(importFn, retries = 3, interval = 1000) {
+  return lazy(async () => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await importFn();
+      } catch (error) {
+        if (i === retries - 1) {
+          // Ultima tentativa falhou - verificar se e erro de chunk
+          // e forcar reload para buscar novo manifest
+          if (!sessionStorage.getItem('chunk-reload')) {
+            sessionStorage.setItem('chunk-reload', 'true');
+            window.location.reload();
+          }
+          throw error;
+        }
+        await new Promise(r => setTimeout(r, interval));
+      }
+    }
+    return importFn(); // fallback final
+  });
+}
+```
+
+A flag `sessionStorage('chunk-reload')` evita loops infinitos de reload. E limpa ao carregar com sucesso.
 
 ## Resultado Esperado
-Ao trocar o idioma no seletor, todos os cards de KPI, titulos de graficos, labels de tooltips e headers de tabelas mudarao para o idioma selecionado. Dados dinamicos (nomes de marcas, valores numericos, datas) permanecem no formato original.
+
+- Erros de chunk intermitentes serao resolvidos automaticamente com retry
+- Apos deploys em producao, usuarios nao verao mais a tela "Algo deu errado" ao navegar
+- A experiencia sera transparente: o usuario vera no maximo um breve delay no carregamento
