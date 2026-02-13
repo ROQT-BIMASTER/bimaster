@@ -13,7 +13,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Download, Edit, CheckCircle2, AlertCircle, Users, Crown, Star, UserCheck, Target, User } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Search, Download, Edit, CheckCircle2, AlertCircle, Users, Crown, Star, UserCheck, Target, User, ChevronDown, ChevronRight } from "lucide-react";
 import { formatCPF, formatPhone } from "@/lib/formatters";
 import { exportArrayToExcel } from "@/lib/excel-utils";
 import { format } from "date-fns";
@@ -24,6 +29,7 @@ import {
   type TeamMemberWithProfile,
 } from "@/hooks/useTeamMemberDetails";
 import type { TeamMemberFormData } from "@/lib/validations/teamMember";
+import { cn } from "@/lib/utils";
 
 const ROLE_ORDER: Record<string, number> = {
   admin: 0,
@@ -53,13 +59,174 @@ function maskCPF(cpf: string): string {
   return formatted.replace(/(\d{3})\.(\d{3})\.(\d{3})-(\d{2})/, "$1.***.***-$4");
 }
 
-type RoleGroup = {
-  role: string;
-  label: string;
-  icon: React.ReactNode;
-  color: string;
-  members: TeamMemberWithProfile[];
-};
+// ── Hierarchy types ──
+interface SupervisorGroup {
+  supervisor: TeamMemberWithProfile;
+  vendedores: TeamMemberWithProfile[];
+}
+
+interface ManagerTree {
+  manager: TeamMemberWithProfile;
+  supervisorGroups: SupervisorGroup[];
+  directMembers: TeamMemberWithProfile[]; // members without a supervisor match
+}
+
+/**
+ * Match a vendedor's `supervisor_nome` to a supervisor profile.
+ * Handles partial names like "Juliana", "Juliana Moura", "Nathalia", "Naty", "Cris", "Cristiana", etc.
+ */
+function matchSupervisor(supervisorNome: string | null | undefined, supervisors: TeamMemberWithProfile[]): TeamMemberWithProfile | null {
+  if (!supervisorNome) return null;
+  const term = supervisorNome.trim().toLowerCase();
+  if (!term) return null;
+
+  // Exact full name match first
+  const exactMatch = supervisors.find(
+    s => (s.details?.nome_completo || s.profile_nome).toLowerCase() === term
+  );
+  if (exactMatch) return exactMatch;
+
+  // First name match
+  const firstNameMatch = supervisors.find(s => {
+    const nome = (s.details?.nome_completo || s.profile_nome).toLowerCase();
+    const firstName = nome.split(" ")[0];
+    return firstName === term || nome.startsWith(term);
+  });
+  if (firstNameMatch) return firstNameMatch;
+
+  // Partial/nickname match
+  const partialMatch = supervisors.find(s => {
+    const nome = (s.details?.nome_completo || s.profile_nome).toLowerCase();
+    return nome.includes(term) || term.includes(nome.split(" ")[0]);
+  });
+  return partialMatch || null;
+}
+
+// ── Member Row Component ──
+function MemberRow({
+  member,
+  indent = 0,
+  onEdit,
+}: {
+  member: TeamMemberWithProfile;
+  indent?: number;
+  onEdit: (m: TeamMemberWithProfile) => void;
+}) {
+  const roleConfig = ROLE_CONFIG[member.profile_role || "vendedor"] || ROLE_CONFIG.vendedor;
+
+  return (
+    <TableRow className="hover:bg-muted/30">
+      <TableCell>
+        <div className="flex items-center gap-3" style={{ paddingLeft: `${indent * 16 + 8}px` }}>
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={member.profile_avatar_url || undefined} />
+            <AvatarFallback className="text-xs">
+              {(member.details?.nome_completo || member.profile_nome || "?")
+                .split(" ")
+                .map((n) => n[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium text-sm flex items-center gap-2">
+              {member.details?.nome_completo || member.profile_nome}
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", roleConfig.color)}>
+                {roleConfig.label}
+              </Badge>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {member.details?.email_pessoal || member.profile_email || "—"}
+            </p>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell className="hidden md:table-cell text-sm">
+        {member.details?.equipe_comercial || "—"}
+      </TableCell>
+      <TableCell className="hidden md:table-cell text-sm font-mono">
+        {member.details?.cpf ? maskCPF(member.details.cpf) : "—"}
+      </TableCell>
+      <TableCell className="hidden lg:table-cell text-sm">
+        {member.details?.whatsapp ? formatPhone(member.details.whatsapp) : "—"}
+      </TableCell>
+      <TableCell className="hidden lg:table-cell text-sm">
+        {member.details?.tamanho_camiseta || "—"}
+      </TableCell>
+      <TableCell>
+        {member.cadastro_completo ? (
+          <Badge variant="default" className="text-xs">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Completo
+          </Badge>
+        ) : (
+          <Badge variant="secondary" className="text-xs">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Pendente
+          </Badge>
+        )}
+      </TableCell>
+      <TableCell>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onEdit(member)}
+          title="Editar cadastro"
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+// ── Collapsible Supervisor Group ──
+function SupervisorGroupSection({
+  group,
+  onEdit,
+}: {
+  group: SupervisorGroup;
+  onEdit: (m: TeamMemberWithProfile) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+  const supConfig = ROLE_CONFIG.supervisor;
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+        <TableRow className="bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-50/80 dark:hover:bg-blue-950/30 cursor-pointer">
+          <TableCell colSpan={7} className="py-2">
+            <div className="flex items-center gap-2 pl-6">
+              {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              <span className={supConfig.color}>{supConfig.icon}</span>
+              <span className="font-semibold text-sm">{group.supervisor.details?.nome_completo || group.supervisor.profile_nome}</span>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-blue-600">
+                Supervisor
+              </Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">
+                {group.vendedores.length} membro{group.vendedores.length !== 1 ? "s" : ""}
+              </Badge>
+              {group.supervisor.details?.equipe_comercial && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  • {group.supervisor.details.equipe_comercial}
+                </span>
+              )}
+            </div>
+          </TableCell>
+        </TableRow>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        {/* Supervisor's own row */}
+        <MemberRow member={group.supervisor} indent={2} onEdit={onEdit} />
+        {/* Vendedores */}
+        {group.vendedores.map((v) => (
+          <MemberRow key={v.user_id} member={v} indent={3} onEdit={onEdit} />
+        ))}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
 
 export function TeamMemberRegistration({
   teamMemberIds,
@@ -78,35 +245,100 @@ export function TeamMemberRegistration({
     return members.filter(
       (m) =>
         m.profile_nome.toLowerCase().includes(term) ||
+        (m.details?.nome_completo || "").toLowerCase().includes(term) ||
         m.details?.equipe_comercial?.toLowerCase().includes(term) ||
-        m.details?.nome_completo?.toLowerCase().includes(term)
+        m.details?.supervisor_nome?.toLowerCase().includes(term)
     );
   }, [members, searchTerm]);
 
-  const roleGroups = useMemo(() => {
-    const groups = new Map<string, TeamMemberWithProfile[]>();
-    filteredMembers.forEach((m) => {
-      const role = m.profile_role || "vendedor";
-      if (!groups.has(role)) groups.set(role, []);
-      groups.get(role)!.push(m);
-    });
+  // Build hierarchical tree: Gerente → Supervisor → Vendedor
+  const { managerTrees, unassigned } = useMemo(() => {
+    const gerentes = filteredMembers.filter(m => m.profile_role === "gerente");
+    const supervisores = filteredMembers.filter(m => m.profile_role === "supervisor");
+    const vendedores = filteredMembers.filter(m => m.profile_role === "vendedor" || m.profile_role === "promotor");
+    const admins = filteredMembers.filter(m => m.profile_role === "admin");
+    const others = filteredMembers.filter(m => !["gerente", "supervisor", "vendedor", "promotor", "admin"].includes(m.profile_role || ""));
 
-    const result: RoleGroup[] = [];
-    const sortedRoles = Array.from(groups.keys()).sort(
-      (a, b) => (ROLE_ORDER[a] ?? 99) - (ROLE_ORDER[b] ?? 99)
-    );
+    // Match vendedores to supervisors
+    const supervisorMap = new Map<string, SupervisorGroup>();
+    const assignedVendedorIds = new Set<string>();
 
-    for (const role of sortedRoles) {
-      const config = ROLE_CONFIG[role] || { label: role, icon: <User className="h-4 w-4" />, color: "text-muted-foreground" };
-      result.push({
-        role,
-        label: config.label,
-        icon: config.icon,
-        color: config.color,
-        members: groups.get(role)!.sort((a, b) => a.profile_nome.localeCompare(b.profile_nome)),
+    for (const sup of supervisores) {
+      supervisorMap.set(sup.user_id, { supervisor: sup, vendedores: [] });
+    }
+
+    for (const vend of vendedores) {
+      const supNome = vend.details?.supervisor_nome;
+      const matchedSup = matchSupervisor(supNome, supervisores);
+      if (matchedSup && supervisorMap.has(matchedSup.user_id)) {
+        supervisorMap.get(matchedSup.user_id)!.vendedores.push(vend);
+        assignedVendedorIds.add(vend.user_id);
+      }
+    }
+
+    // Sort vendedores inside each supervisor group
+    for (const group of supervisorMap.values()) {
+      group.vendedores.sort((a, b) =>
+        (a.details?.nome_completo || a.profile_nome).localeCompare(b.details?.nome_completo || b.profile_nome)
+      );
+    }
+
+    // Build manager trees
+    // For now, we know all supervisors report to Milene (the hierarchy).
+    // But to be generic, we create a tree per gerente with all supervisors assigned.
+    // We'll use a simple approach: each gerente gets supervisors shown under them.
+    // In a more complex setup, you'd query `get_subordinados` per manager
+    const trees: ManagerTree[] = [];
+    const assignedSupervisorIds = new Set<string>();
+
+    for (const mgr of gerentes) {
+      const mgrGroups: SupervisorGroup[] = [];
+
+      // All supervisors are shown under managers (since they're all part of the same org)
+      // In a more complex setup, you'd query `get_subordinados` per manager
+      for (const [supId, group] of supervisorMap.entries()) {
+        if (!assignedSupervisorIds.has(supId)) {
+          mgrGroups.push(group);
+        }
+      }
+
+      trees.push({
+        manager: mgr,
+        supervisorGroups: [], // We'll assign below
+        directMembers: [],
       });
     }
-    return result;
+
+    // Assign supervisors to the first manager that has them as subordinates
+    // For simplicity with the data we have, show hierarchy under "Milene Harumi" as main
+    // and unassigned supervisors under other managers
+    if (trees.length > 0 && supervisorMap.size > 0) {
+      // Try to distribute: main manager gets all supervisors for now
+      // since all supervisors report to the same org tree
+      const mainManager = trees.find(t =>
+        t.manager.profile_nome.toLowerCase().includes("milene")
+      ) || trees[0];
+
+      for (const [supId, group] of supervisorMap.entries()) {
+        mainManager.supervisorGroups.push(group);
+        assignedSupervisorIds.add(supId);
+      }
+
+      // Other managers without explicit supervisors
+      for (const tree of trees) {
+        if (tree !== mainManager) {
+          tree.supervisorGroups = [];
+        }
+      }
+    }
+
+    // Unassigned vendedores (no supervisor match)
+    const unassignedVendedores = vendedores.filter(v => !assignedVendedorIds.has(v.user_id));
+
+    return {
+      managerTrees: trees,
+      unassigned: [...admins, ...unassignedVendedores, ...others],
+    };
   }, [filteredMembers]);
 
   const totalCompletos = members.filter((m) => m.cadastro_completo).length;
@@ -133,6 +365,7 @@ export function TeamMemberRegistration({
   const handleExport = async () => {
     const exportData = members.map((m) => ({
       Nome: m.details?.nome_completo || m.profile_nome,
+      Cargo: ROLE_CONFIG[m.profile_role || ""]?.label || m.profile_role || "",
       "Equipe Comercial": m.details?.equipe_comercial || "",
       Supervisor: m.details?.supervisor_nome || "",
       CPF: m.details?.cpf ? formatCPF(m.details.cpf) : "",
@@ -168,6 +401,9 @@ export function TeamMemberRegistration({
     );
   }
 
+  const totalSupervisors = managerTrees.reduce((s, t) => s + t.supervisorGroups.length, 0);
+  const totalVendedores = managerTrees.reduce((s, t) => s + t.supervisorGroups.reduce((ss, g) => ss + g.vendedores.length, 0), 0);
+
   return (
     <>
       <Card>
@@ -180,6 +416,13 @@ export function TeamMemberRegistration({
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 {members.length} membros •{" "}
+                {managerTrees.length > 0 && (
+                  <>
+                    <span className="text-purple-500">{managerTrees.length} gerente{managerTrees.length !== 1 ? "s" : ""}</span> •{" "}
+                    <span className="text-blue-500">{totalSupervisors} supervisor{totalSupervisors !== 1 ? "es" : ""}</span> •{" "}
+                    <span className="text-green-500">{totalVendedores} vendedor{totalVendedores !== 1 ? "es" : ""}</span> •{" "}
+                  </>
+                )}
                 <span className="text-primary">{totalCompletos} completos</span> •{" "}
                 <span className="text-destructive">{totalPendentes} pendentes</span>
               </p>
@@ -195,15 +438,15 @@ export function TeamMemberRegistration({
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome ou equipe..."
+              placeholder="Buscar por nome, equipe ou supervisor..."
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          {/* Table grouped by role */}
-          {roleGroups.length === 0 ? (
+          {/* Hierarchical Table */}
+          {filteredMembers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               {searchTerm ? "Nenhum membro encontrado para esta busca." : "Nenhum membro na equipe."}
             </div>
@@ -222,85 +465,29 @@ export function TeamMemberRegistration({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {roleGroups.map((group) => (
+                  {managerTrees.map((tree) => (
+                    <ManagerTreeSection key={tree.manager.user_id} tree={tree} onEdit={handleEdit} />
+                  ))}
+
+                  {/* Unassigned members */}
+                  {unassigned.length > 0 && (
                     <>
-                      {/* Role group header */}
-                      <TableRow key={`header-${group.role}`} className="bg-muted/40 hover:bg-muted/40">
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
                         <TableCell colSpan={7} className="py-2">
                           <div className="flex items-center gap-2">
-                            <span className={group.color}>{group.icon}</span>
-                            <span className="font-semibold text-sm">{group.label}</span>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-semibold text-sm text-muted-foreground">Sem equipe definida</span>
                             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                              {group.members.length}
+                              {unassigned.length}
                             </Badge>
                           </div>
                         </TableCell>
                       </TableRow>
-                      {/* Members in this group */}
-                      {group.members.map((member) => (
-                        <TableRow key={member.user_id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3 pl-4">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={member.profile_avatar_url || undefined} />
-                                <AvatarFallback className="text-xs">
-                                  {(member.details?.nome_completo || member.profile_nome || "?")
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .slice(0, 2)
-                                    .join("")
-                                    .toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium text-sm">
-                                  {member.details?.nome_completo || member.profile_nome}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {member.details?.email_pessoal || member.profile_email || "—"}
-                                </p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell text-sm">
-                            {member.details?.equipe_comercial || "—"}
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell text-sm font-mono">
-                            {member.details?.cpf ? maskCPF(member.details.cpf) : "—"}
-                          </TableCell>
-                          <TableCell className="hidden lg:table-cell text-sm">
-                            {member.details?.whatsapp ? formatPhone(member.details.whatsapp) : "—"}
-                          </TableCell>
-                          <TableCell className="hidden lg:table-cell text-sm">
-                            {member.details?.tamanho_camiseta || "—"}
-                          </TableCell>
-                          <TableCell>
-                            {member.cadastro_completo ? (
-                              <Badge variant="default" className="text-xs">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Completo
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="text-xs">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Pendente
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(member)}
-                              title="Editar cadastro"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
+                      {unassigned.map((m) => (
+                        <MemberRow key={m.user_id} member={m} indent={1} onEdit={handleEdit} />
                       ))}
                     </>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -319,5 +506,54 @@ export function TeamMemberRegistration({
         isSaving={isUpserting}
       />
     </>
+  );
+}
+
+// ── Manager Tree Section (collapsible) ──
+function ManagerTreeSection({
+  tree,
+  onEdit,
+}: {
+  tree: ManagerTree;
+  onEdit: (m: TeamMemberWithProfile) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+  const mgrConfig = ROLE_CONFIG.gerente;
+  const totalMembers = tree.supervisorGroups.reduce((s, g) => s + 1 + g.vendedores.length, 0) + tree.directMembers.length;
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+        <TableRow className="bg-purple-50/50 dark:bg-purple-950/20 hover:bg-purple-50/80 dark:hover:bg-purple-950/30 cursor-pointer">
+          <TableCell colSpan={7} className="py-3">
+            <div className="flex items-center gap-2">
+              {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              <span className={mgrConfig.color}>{mgrConfig.icon}</span>
+              <span className="font-bold text-sm">{tree.manager.details?.nome_completo || tree.manager.profile_nome}</span>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-purple-600 border-purple-300">
+                Gerente
+              </Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">
+                {tree.supervisorGroups.length} supervisor{tree.supervisorGroups.length !== 1 ? "es" : ""} • {totalMembers} membro{totalMembers !== 1 ? "s" : ""}
+              </Badge>
+            </div>
+          </TableCell>
+        </TableRow>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        {/* Manager's own row */}
+        <MemberRow member={tree.manager} indent={1} onEdit={onEdit} />
+
+        {/* Supervisor groups */}
+        {tree.supervisorGroups.map((group) => (
+          <SupervisorGroupSection key={group.supervisor.user_id} group={group} onEdit={onEdit} />
+        ))}
+
+        {/* Direct members without supervisor */}
+        {tree.directMembers.map((m) => (
+          <MemberRow key={m.user_id} member={m} indent={2} onEdit={onEdit} />
+        ))}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
