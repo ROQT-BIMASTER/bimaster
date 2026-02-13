@@ -14,6 +14,8 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { parseLocalDate, getDateKey, getToday } from "@/utils/dateUtils";
 import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
+import { useLanguage } from "@/contexts/LanguageContext";
+
 interface ContaPagar {
   id: string;
   fornecedor_nome: string;
@@ -43,12 +45,11 @@ const COLORS = [
   'hsl(var(--chart-8))',
 ];
 
-// Cores específicas para status
 const STATUS_COLORS: { [key: string]: string } = {
-  'Pago': 'hsl(var(--chart-2))',      // Verde
-  'Pendente': 'hsl(var(--chart-3))',  // Amarelo/Laranja
-  'Vencido': 'hsl(var(--chart-5))',   // Vermelho
-  'Parcial': 'hsl(var(--chart-1))',   // Azul
+  'Pago': 'hsl(var(--chart-2))',
+  'Pendente': 'hsl(var(--chart-3))',
+  'Vencido': 'hsl(var(--chart-5))',
+  'Parcial': 'hsl(var(--chart-1))',
 };
 
 const formatCurrency = (value: number) => 
@@ -58,7 +59,9 @@ const formatCompact = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(value);
 
 export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagarProps) {
+  const { t } = useLanguage();
   const [chartViewType, setChartViewType] = useState<'area' | 'bar' | 'line'>('area');
+
   // KPIs Avançados
   const kpisAvancados = useMemo(() => {
     if (!contas || contas.length === 0) {
@@ -331,7 +334,7 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
       <div className="space-y-4">
         <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <span>Carregando dados consolidados...</span>
+          <span>{t("fin.loading_data")}</span>
         </div>
         <div className="grid gap-4 md:grid-cols-4">
           {[...Array(8)].map((_, i) => (
@@ -355,31 +358,31 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Prazo Médio Pagamento</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("fin.avg_payment_term")}</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{kpisAvancados.pmp} dias</div>
-            <p className="text-xs text-muted-foreground">Média entre emissão e pagamento</p>
+            <div className="text-2xl font-bold">{kpisAvancados.pmp} {t("fin.days")}</div>
+            <p className="text-xs text-muted-foreground">{t("fin.avg_payment_desc")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Índice de Pontualidade</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("fin.punctuality_index")}</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${kpisAvancados.indicePontualidade >= 80 ? 'text-green-600' : kpisAvancados.indicePontualidade >= 50 ? 'text-yellow-600' : 'text-destructive'}`}>
               {kpisAvancados.indicePontualidade}%
             </div>
-            <p className="text-xs text-muted-foreground">Pagos no prazo ou antes</p>
+            <p className="text-xs text-muted-foreground">{t("fin.paid_on_time")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mês Atual</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("fin.current_month")}</CardTitle>
             <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -388,15 +391,15 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
               {kpisAvancados.variacaoMensal > 0 ? (
                 <>
                   <TrendingUp className="h-3 w-3 text-destructive" />
-                  <span className="text-destructive">+{kpisAvancados.variacaoMensal}% vs mês anterior</span>
+                  <span className="text-destructive">+{kpisAvancados.variacaoMensal}% {t("fin.vs_prev_month")}</span>
                 </>
               ) : kpisAvancados.variacaoMensal < 0 ? (
                 <>
                   <TrendingDown className="h-3 w-3 text-green-600" />
-                  <span className="text-green-600">{kpisAvancados.variacaoMensal}% vs mês anterior</span>
+                  <span className="text-green-600">{kpisAvancados.variacaoMensal}% {t("fin.vs_prev_month")}</span>
                 </>
               ) : (
-                <span className="text-muted-foreground">Sem variação</span>
+                <span className="text-muted-foreground">{t("fin.no_variation")}</span>
               )}
             </div>
           </CardContent>
@@ -404,12 +407,12 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Próximos 30 dias</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("fin.next_30_days")}</CardTitle>
             <Hourglass className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCompact(kpisAvancados.concentracao30dias)}</div>
-            <p className="text-xs text-muted-foreground">A vencer no período</p>
+            <p className="text-xs text-muted-foreground">{t("fin.due_in_period")}</p>
           </CardContent>
         </Card>
       </div>
@@ -420,7 +423,7 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Clock className={`h-4 w-4 ${kpisAvancados.qtdVencendoHoje > 0 ? 'text-yellow-600' : 'text-muted-foreground'}`} />
-              Vencendo Hoje
+              {t("fin.due_today")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -428,7 +431,7 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
               <span className={`text-2xl font-bold ${kpisAvancados.qtdVencendoHoje > 0 ? 'text-yellow-600' : ''}`}>
                 {kpisAvancados.qtdVencendoHoje}
               </span>
-              <span className="text-sm text-muted-foreground">títulos</span>
+              <span className="text-sm text-muted-foreground">{t("fin.titles")}</span>
             </div>
             <p className="text-lg font-semibold">{formatCurrency(kpisAvancados.valorVencendoHoje)}</p>
           </CardContent>
@@ -438,7 +441,7 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <AlertTriangle className={`h-4 w-4 ${kpisAvancados.qtdVencendo7dias > 5 ? 'text-orange-600' : 'text-muted-foreground'}`} />
-              Próximos 7 Dias
+              {t("fin.next_7_days")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -446,7 +449,7 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
               <span className={`text-2xl font-bold ${kpisAvancados.qtdVencendo7dias > 5 ? 'text-orange-600' : ''}`}>
                 {kpisAvancados.qtdVencendo7dias}
               </span>
-              <span className="text-sm text-muted-foreground">títulos</span>
+              <span className="text-sm text-muted-foreground">{t("fin.titles")}</span>
             </div>
             <p className="text-lg font-semibold">{formatCurrency(kpisAvancados.valorVencendo7dias)}</p>
           </CardContent>
@@ -456,7 +459,7 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <AlertCircle className={`h-4 w-4 ${kpisAvancados.qtdVencidas30dias > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
-              Vencidas +30 dias
+              {t("fin.overdue_30d")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -464,33 +467,33 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
               <span className={`text-2xl font-bold ${kpisAvancados.qtdVencidas30dias > 0 ? 'text-destructive' : ''}`}>
                 {kpisAvancados.qtdVencidas30dias}
               </span>
-              <span className="text-sm text-muted-foreground">títulos</span>
+              <span className="text-sm text-muted-foreground">{t("fin.titles")}</span>
             </div>
             <p className="text-lg font-semibold">{formatCurrency(kpisAvancados.valorVencidas30dias)}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráfico de Evolução Mensal - LARGO com opções de visualização */}
+      {/* Gráfico de Evolução Mensal */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                Evolução Mensal
+                {t("fin.monthly_evolution")}
               </CardTitle>
-              <CardDescription>Pagamentos realizados vs pendentes</CardDescription>
+              <CardDescription>{t("fin.payments_vs_pending")}</CardDescription>
             </div>
             <ToggleGroup type="single" value={chartViewType} onValueChange={(val) => val && setChartViewType(val as 'area' | 'bar' | 'line')}>
-              <ToggleGroupItem value="area" aria-label="Área" className="text-xs px-3">
-                Área
+              <ToggleGroupItem value="area" aria-label={t("fin.area")} className="text-xs px-3">
+                {t("fin.area")}
               </ToggleGroupItem>
-              <ToggleGroupItem value="bar" aria-label="Barras" className="text-xs px-3">
-                Barras
+              <ToggleGroupItem value="bar" aria-label={t("fin.bars")} className="text-xs px-3">
+                {t("fin.bars")}
               </ToggleGroupItem>
-              <ToggleGroupItem value="line" aria-label="Linhas" className="text-xs px-3">
-                Linhas
+              <ToggleGroupItem value="line" aria-label={t("fin.lines")} className="text-xs px-3">
+                {t("fin.lines")}
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -516,93 +519,31 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
                   <Tooltip 
                     formatter={(value: number) => formatCurrency(value)}
                     labelStyle={{ color: 'hsl(var(--foreground))' }}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
+                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
                   />
                   <Legend />
-                  <Area 
-                    type="monotone" 
-                    dataKey="pago" 
-                    name="Pago"
-                    stackId="1"
-                    stroke="hsl(var(--chart-2))" 
-                    fill="url(#gradPago)" 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="pendente" 
-                    name="Pendente"
-                    stackId="1"
-                    stroke="hsl(var(--chart-1))" 
-                    fill="url(#gradPendente)" 
-                  />
+                  <Area type="monotone" dataKey="pago" name={t("fin.paid")} stackId="1" stroke="hsl(var(--chart-2))" fill="url(#gradPago)" />
+                  <Area type="monotone" dataKey="pendente" name={t("fin.pending")} stackId="1" stroke="hsl(var(--chart-1))" fill="url(#gradPendente)" />
                 </AreaChart>
               ) : chartViewType === 'bar' ? (
                 <BarChart data={dadosEvolucaoMensal}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis dataKey="mes" className="text-xs" />
                   <YAxis tickFormatter={(v) => formatCompact(v)} className="text-xs" />
-                  <Tooltip 
-                    formatter={(value: number) => formatCurrency(value)}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} labelStyle={{ color: 'hsl(var(--foreground))' }} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
                   <Legend />
-                  <Bar 
-                    dataKey="pago" 
-                    name="Pago"
-                    fill="hsl(var(--chart-2))" 
-                    radius={[4, 4, 0, 0]}
-                    stackId="a"
-                  />
-                  <Bar 
-                    dataKey="pendente" 
-                    name="Pendente"
-                    fill="hsl(var(--chart-1))" 
-                    radius={[4, 4, 0, 0]}
-                    stackId="a"
-                  />
+                  <Bar dataKey="pago" name={t("fin.paid")} fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} stackId="a" />
+                  <Bar dataKey="pendente" name={t("fin.pending")} fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} stackId="a" />
                 </BarChart>
               ) : (
                 <LineChart data={dadosEvolucaoMensal}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis dataKey="mes" className="text-xs" />
                   <YAxis tickFormatter={(v) => formatCompact(v)} className="text-xs" />
-                  <Tooltip 
-                    formatter={(value: number) => formatCurrency(value)}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} labelStyle={{ color: 'hsl(var(--foreground))' }} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="pago" 
-                    name="Pago"
-                    stroke="hsl(var(--chart-2))" 
-                    strokeWidth={3}
-                    dot={{ fill: "hsl(var(--chart-2))", strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="pendente" 
-                    name="Pendente"
-                    stroke="hsl(var(--chart-1))" 
-                    strokeWidth={3}
-                    dot={{ fill: "hsl(var(--chart-1))", strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
+                  <Line type="monotone" dataKey="pago" name={t("fin.paid")} stroke="hsl(var(--chart-2))" strokeWidth={3} dot={{ fill: "hsl(var(--chart-2))", strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="pendente" name={t("fin.pending")} stroke="hsl(var(--chart-1))" strokeWidth={3} dot={{ fill: "hsl(var(--chart-1))", strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               )}
             </ResponsiveContainer>
@@ -612,55 +553,37 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
 
       {/* Grid de Gráficos Menores */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Distribuição por Departamento */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PieChartIcon className="h-5 w-5" />
-              Por Departamento
+              {t("fin.by_department")}
             </CardTitle>
-            <CardDescription>Distribuição de despesas</CardDescription>
+            <CardDescription>{t("fin.expense_distribution")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={distribuicaoDepartamento}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={90}
-                    fill="#8884d8"
-                    dataKey="valor"
-                    label={({ nome, percent }) => `${nome} (${(percent * 100).toFixed(0)}%)`}
-                  >
+                  <Pie data={distribuicaoDepartamento} cx="50%" cy="50%" labelLine={false} outerRadius={90} fill="#8884d8" dataKey="valor" label={({ nome, percent }) => `${nome} (${(percent * 100).toFixed(0)}%)`}>
                     {distribuicaoDepartamento.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    formatter={(value: number, name: string, props: any) => [formatCurrency(value), props.payload.nomeCompleto]}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
+                  <Tooltip formatter={(value: number, name: string, props: any) => [formatCurrency(value), props.payload.nomeCompleto]} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        {/* Distribuição por Status */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
-              Por Status
+              {t("fin.by_status")}
             </CardTitle>
-            <CardDescription>Situação dos títulos</CardDescription>
+            <CardDescription>{t("fin.title_status")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[280px]">
@@ -669,19 +592,9 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis dataKey="nome" className="text-xs" />
                   <YAxis tickFormatter={(v) => formatCompact(v)} className="text-xs" />
-                  <Tooltip 
-                    formatter={(value: number, name: string) => [
-                      name === 'valor' ? formatCurrency(value) : value,
-                      name === 'valor' ? 'Valor' : 'Quantidade'
-                    ]}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
+                  <Tooltip formatter={(value: number, name: string) => [name === 'valor' ? formatCurrency(value) : value, name === 'valor' ? t("approval.total_value") : name]} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
                   <Legend />
-                  <Bar dataKey="valor" name="Valor" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="valor" name={t("approval.total_value")} radius={[4, 4, 0, 0]}>
                     {distribuicaoStatus.map((entry) => (
                       <Cell key={`cell-${entry.nome}`} fill={STATUS_COLORS[entry.nome] || COLORS[0]} />
                     ))}
@@ -692,14 +605,13 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
           </CardContent>
         </Card>
 
-        {/* Top Fornecedores - MOVIDO PARA BAIXO */}
         <Card className="lg:col-span-1 md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Top 10 Fornecedores
+              {t("fin.top10_suppliers")}
             </CardTitle>
-            <CardDescription>Por valor total</CardDescription>
+            <CardDescription>{t("fin.by_total_value")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[280px]">
@@ -708,18 +620,8 @@ export function DashboardContasPagar({ contas, isLoading }: DashboardContasPagar
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis type="number" tickFormatter={(v) => formatCompact(v)} className="text-xs" />
                   <YAxis dataKey="nome" type="category" width={100} className="text-xs" tick={{ fontSize: 10 }} />
-                  <Tooltip 
-                    formatter={(value: number, name: string, props: any) => [formatCurrency(value), props.payload.nomeCompleto]}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Bar 
-                    dataKey="valor" 
-                    radius={[0, 4, 4, 0]}
-                  >
+                  <Tooltip formatter={(value: number, name: string, props: any) => [formatCurrency(value), props.payload.nomeCompleto]} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
+                  <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
                     {topFornecedores.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}

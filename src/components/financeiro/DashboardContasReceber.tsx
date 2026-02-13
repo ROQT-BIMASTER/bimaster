@@ -1,20 +1,22 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Receipt, AlertCircle, Clock, TrendingUp, TrendingDown, Calendar, Users, 
+import {
+  Receipt, AlertCircle, Clock, TrendingUp, TrendingDown, Calendar, Users,
   BarChart3, PieChart as PieChartIcon, AlertTriangle, CheckCircle2, Hourglass
 } from "lucide-react";
 import { format, differenceInDays, subMonths, startOfMonth, endOfMonth, isWithinInterval, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate, getDateKey, getToday } from "@/utils/dateUtils";
-import { 
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, 
+import {
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   ComposedChart, Line
 } from "recharts";
 import { EvolutionChart, HorizontalBarChart, DonutChart, StatusBarChart } from "./FinanceiroChartsGrid";
+import { useLanguage } from "@/contexts/LanguageContext";
 
+// Interfaces
 interface ContaReceber {
   id: string;
   cliente_nome: string;
@@ -51,32 +53,23 @@ const STATUS_COLORS: { [key: string]: string } = {
   'Parcial': 'hsl(var(--chart-1))',
 };
 
-const formatCurrency = (value: number) => 
+const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-const formatCompact = (value: number) => 
+const formatCompact = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(value);
 
 export function DashboardContasReceber({ contas, isLoading }: DashboardContasReceberProps) {
+  const { t } = useLanguage();
   
   // KPIs Avançados
   const kpisAvancados = useMemo(() => {
     if (!contas || contas.length === 0) {
       return {
-        pmr: 0,
-        indicePontualidade: 0,
-        concentracao7dias: 0,
-        concentracao15dias: 0,
-        concentracao30dias: 0,
-        totalMesAtual: 0,
-        totalMesAnterior: 0,
-        variacaoMensal: 0,
-        qtdVencendoHoje: 0,
-        qtdVencendo7dias: 0,
-        qtdVencidas30dias: 0,
-        valorVencendoHoje: 0,
-        valorVencendo7dias: 0,
-        valorVencidas30dias: 0,
+        pmr: 0, indicePontualidade: 0, concentracao7dias: 0, concentracao15dias: 0,
+        concentracao30dias: 0, totalMesAtual: 0, totalMesAnterior: 0, variacaoMensal: 0,
+        qtdVencendoHoje: 0, qtdVencendo7dias: 0, qtdVencidas30dias: 0,
+        valorVencendoHoje: 0, valorVencendo7dias: 0, valorVencidas30dias: 0,
       };
     }
 
@@ -87,30 +80,17 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
     const inicioMesAnterior = startOfMonth(subMonths(hoje, 1));
     const fimMesAnterior = endOfMonth(subMonths(hoje, 1));
 
-    // Normalizar status (banco usa lowercase)
     const isRecebido = (status: string) => status?.toLowerCase() === 'recebido';
-    const isPendente = (status: string) => ['pendente', 'parcial'].includes(status?.toLowerCase() || '');
     
-    // Determinar se está vencido baseado na data
-    const isVencido = (conta: ContaReceber) => {
-      if (isRecebido(conta.status)) return false;
-      const venc = parseLocalDate(conta.data_vencimento);
-      return venc ? differenceInDays(hoje, venc) > 0 : false;
-    };
-
-    // PMR - Prazo Médio de Recebimento
     const contasRecebidas = contas.filter(c => c.data_recebimento && c.data_emissao && isRecebido(c.status));
     let totalDiasRecebimento = 0;
     contasRecebidas.forEach(c => {
       const emissao = parseLocalDate(c.data_emissao);
       const recebimento = parseLocalDate(c.data_recebimento!);
-      if (emissao && recebimento) {
-        totalDiasRecebimento += differenceInDays(recebimento, emissao);
-      }
+      if (emissao && recebimento) totalDiasRecebimento += differenceInDays(recebimento, emissao);
     });
     const pmr = contasRecebidas.length > 0 ? Math.round(totalDiasRecebimento / contasRecebidas.length) : 0;
 
-    // Índice de Pontualidade
     const recebidasNoPrazo = contasRecebidas.filter(c => {
       const vencimento = parseLocalDate(c.data_vencimento);
       const recebimento = parseLocalDate(c.data_recebimento!);
@@ -118,10 +98,8 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
       return differenceInDays(recebimento, vencimento) <= 0;
     });
     const indicePontualidade = contasRecebidas.length > 0 
-      ? Math.round((recebidasNoPrazo.length / contasRecebidas.length) * 100) 
-      : 0;
+      ? Math.round((recebidasNoPrazo.length / contasRecebidas.length) * 100) : 0;
 
-    // Concentração de vencimentos (apenas pendentes, não recebidos)
     const contasPendentes = contas.filter(c => !isRecebido(c.status));
     
     const vencendo7dias = contasPendentes.filter(c => {
@@ -130,13 +108,6 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
       if (!venc) return false;
       const dias = differenceInDays(venc, hoje);
       return dias >= 0 && dias <= 7;
-    });
-    const vencendo15dias = contasPendentes.filter(c => {
-      if (!c.data_vencimento) return false;
-      const venc = parseLocalDate(c.data_vencimento);
-      if (!venc) return false;
-      const dias = differenceInDays(venc, hoje);
-      return dias >= 0 && dias <= 15;
     });
     const vencendo30dias = contasPendentes.filter(c => {
       if (!c.data_vencimento) return false;
@@ -147,10 +118,8 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
     });
 
     const concentracao7dias = vencendo7dias.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
-    const concentracao15dias = vencendo15dias.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
     const concentracao30dias = vencendo30dias.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
 
-    // Comparativo mensal
     const totalMesAtual = contas.filter(c => {
       if (!c.data_vencimento) return false;
       const venc = parseLocalDate(c.data_vencimento);
@@ -166,16 +135,9 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
     }).reduce((sum, c) => sum + (c.valor_original || 0), 0);
 
     const variacaoMensal = totalMesAnterior > 0 
-      ? Math.round(((totalMesAtual - totalMesAnterior) / totalMesAnterior) * 100) 
-      : 0;
+      ? Math.round(((totalMesAtual - totalMesAnterior) / totalMesAnterior) * 100) : 0;
 
-    // Alertas
-    const vencendoHoje = contasPendentes.filter(c => {
-      const vencKey = getDateKey(c.data_vencimento);
-      return vencKey === hojeStr;
-    });
-    
-    // Vencidas há mais de 30 dias
+    const vencendoHoje = contasPendentes.filter(c => getDateKey(c.data_vencimento) === hojeStr);
     const vencidas30dias = contasPendentes.filter(c => {
       if (!c.data_vencimento) return false;
       const venc = parseLocalDate(c.data_vencimento);
@@ -184,16 +146,9 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
     });
 
     return {
-      pmr,
-      indicePontualidade,
-      concentracao7dias,
-      concentracao15dias,
-      concentracao30dias,
-      totalMesAtual,
-      totalMesAnterior,
-      variacaoMensal,
-      qtdVencendoHoje: vencendoHoje.length,
-      qtdVencendo7dias: vencendo7dias.length,
+      pmr, indicePontualidade, concentracao7dias, concentracao15dias: 0,
+      concentracao30dias, totalMesAtual, totalMesAnterior, variacaoMensal,
+      qtdVencendoHoje: vencendoHoje.length, qtdVencendo7dias: vencendo7dias.length,
       qtdVencidas30dias: vencidas30dias.length,
       valorVencendoHoje: vencendoHoje.reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
       valorVencendo7dias: concentracao7dias,
@@ -201,84 +156,47 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
     };
   }, [contas]);
 
-  // Dados para gráfico de evolução mensal
+  // Dados para evolução mensal
   const dadosEvolucaoMensal = useMemo(() => {
     if (!contas || contas.length === 0) return [];
-
     const hoje = getToday();
+    const isRecebido = (status: string) => status?.toLowerCase() === 'recebido';
     const meses: { mes: string; recebido: number; pendente: number; inicio: Date; fim: Date }[] = [];
-
     for (let i = 5; i >= 0; i--) {
       const data = subMonths(hoje, i);
-      const inicio = startOfMonth(data);
-      const fim = endOfMonth(data);
-      meses.push({
-        mes: format(data, 'MMM/yy', { locale: ptBR }),
-        recebido: 0,
-        pendente: 0,
-        inicio,
-        fim
-      });
+      meses.push({ mes: format(data, 'MMM/yy', { locale: ptBR }), recebido: 0, pendente: 0, inicio: startOfMonth(data), fim: endOfMonth(data) });
     }
-
-    // Normalizar status
-    const isRecebido = (status: string) => status?.toLowerCase() === 'recebido';
-
     contas.forEach(c => {
       if (!c.data_vencimento) return;
       const venc = parseLocalDate(c.data_vencimento);
       if (!venc) return;
-      
-      const mesIndex = meses.findIndex(m => 
-        isWithinInterval(venc, { start: m.inicio, end: m.fim })
-      );
-      
+      const mesIndex = meses.findIndex(m => isWithinInterval(venc, { start: m.inicio, end: m.fim }));
       if (mesIndex !== -1) {
-        if (isRecebido(c.status)) {
-          meses[mesIndex].recebido += c.valor_recebido || 0;
-        } else {
-          meses[mesIndex].pendente += c.valor_aberto || 0;
-        }
+        if (isRecebido(c.status)) meses[mesIndex].recebido += c.valor_recebido || 0;
+        else meses[mesIndex].pendente += c.valor_aberto || 0;
       }
     });
-
-    return meses.map(m => ({
-      mes: m.mes,
-      recebido: m.recebido,
-      pendente: m.pendente,
-    }));
+    return meses.map(m => ({ mes: m.mes, recebido: m.recebido, pendente: m.pendente }));
   }, [contas]);
 
-  // Top 10 clientes devedores
+  // Top 10 clientes com contas em aberto
   const topClientes = useMemo(() => {
     if (!contas || contas.length === 0) return [];
-
     const porCliente: { [key: string]: number } = {};
     const isRecebido = (status: string) => status?.toLowerCase() === 'recebido';
-    
     contas.filter(c => !isRecebido(c.status)).forEach(c => {
       const nome = c.cliente_nome || 'Não informado';
       porCliente[nome] = (porCliente[nome] || 0) + (c.valor_aberto || 0);
     });
-
-    return Object.entries(porCliente)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([nome, valor]) => ({
-        nome: nome.length > 20 ? nome.substring(0, 20) + '...' : nome,
-        nomeCompleto: nome,
-        valor,
-      }));
+    return Object.entries(porCliente).sort((a, b) => b[1] - a[1]).slice(0, 10)
+      .map(([nome, valor]) => ({ nome: nome.length > 20 ? nome.substring(0, 20) + '...' : nome, nomeCompleto: nome, valor }));
   }, [contas]);
 
-  // Aging Report - A Receber (futuro) com faixas de dias
+  // Aging report (faixas de vencimento)
   const agingReport = useMemo(() => {
     if (!contas || contas.length === 0) return [];
-
     const hoje = getToday();
     const isRecebido = (status: string) => status?.toLowerCase() === 'recebido';
-    
-    // Faixas de dias à frente (A Vencer)
     const faixasFuturo = [
       { nome: 'Vencido', tipo: 'vencido', min: 1, max: 9999, valor: 0, qtd: 0 },
       { nome: 'Hoje', tipo: 'hoje', min: 0, max: 0, valor: 0, qtd: 0 },
@@ -287,74 +205,42 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
       { nome: '61-90 dias', tipo: 'futuro', min: 61, max: 90, valor: 0, qtd: 0 },
       { nome: '+90 dias', tipo: 'futuro', min: 91, max: 9999, valor: 0, qtd: 0 },
     ];
-
     contas.filter(c => !isRecebido(c.status) && c.data_vencimento).forEach(c => {
       const venc = parseLocalDate(c.data_vencimento);
       if (!venc) return;
-      const diasAteFuturo = differenceInDays(venc, hoje); // positivo = futuro, negativo = passado
-      
-      if (diasAteFuturo < 0) {
-        // Vencido
-        faixasFuturo[0].valor += c.valor_aberto || 0;
-        faixasFuturo[0].qtd += 1;
-      } else if (diasAteFuturo === 0) {
-        // Hoje
-        faixasFuturo[1].valor += c.valor_aberto || 0;
-        faixasFuturo[1].qtd += 1;
-      } else {
-        // Futuro - encontrar faixa correta
+      const diasAteFuturo = differenceInDays(venc, hoje);
+      if (diasAteFuturo < 0) { faixasFuturo[0].valor += c.valor_aberto || 0; faixasFuturo[0].qtd += 1; }
+      else if (diasAteFuturo === 0) { faixasFuturo[1].valor += c.valor_aberto || 0; faixasFuturo[1].qtd += 1; }
+      else {
         const faixa = faixasFuturo.find(f => f.tipo === 'futuro' && diasAteFuturo >= f.min && diasAteFuturo <= f.max);
-        if (faixa) {
-          faixa.valor += c.valor_aberto || 0;
-          faixa.qtd += 1;
-        }
+        if (faixa) { faixa.valor += c.valor_aberto || 0; faixa.qtd += 1; }
       }
     });
-
     return faixasFuturo;
   }, [contas]);
 
   // Distribuição por status
   const distribuicaoStatus = useMemo(() => {
     if (!contas || contas.length === 0) return [];
-
     const hoje = getToday();
     const porStatus: { [key: string]: { qtd: number; valor: number } } = {
-      'Recebido': { qtd: 0, valor: 0 },
-      'Pendente': { qtd: 0, valor: 0 },
-      'Vencido': { qtd: 0, valor: 0 },
-      'Parcial': { qtd: 0, valor: 0 },
+      'Recebido': { qtd: 0, valor: 0 }, 'Pendente': { qtd: 0, valor: 0 },
+      'Vencido': { qtd: 0, valor: 0 }, 'Parcial': { qtd: 0, valor: 0 },
     };
-    
     contas.forEach(c => {
       const statusLower = c.status?.toLowerCase() || 'pendente';
       let status: string;
-      
-      if (statusLower === 'recebido') {
-        status = 'Recebido';
-      } else if (statusLower === 'parcial') {
-        status = 'Parcial';
-      } else {
-        // Verificar se está vencido baseado na data
+      if (statusLower === 'recebido') status = 'Recebido';
+      else if (statusLower === 'parcial') status = 'Parcial';
+      else {
         const venc = parseLocalDate(c.data_vencimento);
-        if (venc && differenceInDays(hoje, venc) > 0) {
-          status = 'Vencido';
-        } else {
-          status = 'Pendente';
-        }
+        status = (venc && differenceInDays(hoje, venc) > 0) ? 'Vencido' : 'Pendente';
       }
-      
       porStatus[status].qtd += 1;
       porStatus[status].valor += c.valor_original || 0;
     });
-
-    return Object.entries(porStatus)
-      .filter(([_, data]) => data.qtd > 0)
-      .map(([nome, data]) => ({
-        nome,
-        valor: data.valor,
-        qtd: data.qtd,
-      }));
+    return Object.entries(porStatus).filter(([_, data]) => data.qtd > 0)
+      .map(([nome, data]) => ({ nome, valor: data.valor, qtd: data.qtd }));
   }, [contas]);
 
   if (isLoading) {
@@ -362,18 +248,11 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
       <div className="space-y-4">
         <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <span>Carregando dados consolidados...</span>
+          <span>{t("fin.loading_data")}</span>
         </div>
         <div className="grid gap-4 md:grid-cols-4">
           {[...Array(8)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="pt-6">
-                <div className="animate-pulse space-y-2">
-                  <div className="h-4 bg-muted rounded w-1/2"></div>
-                  <div className="h-8 bg-muted rounded w-3/4"></div>
-                </div>
-              </CardContent>
-            </Card>
+            <Card key={i}><CardContent className="pt-6"><div className="animate-pulse space-y-2"><div className="h-4 bg-muted rounded w-1/2"></div><div className="h-8 bg-muted rounded w-3/4"></div></div></CardContent></Card>
           ))}
         </div>
       </div>
@@ -382,52 +261,45 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
 
   return (
     <div className="space-y-6">
-      {/* KPIs Estratégicos */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Prazo Médio Recebimento</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("fin.avg_receipt_term")}</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{kpisAvancados.pmr} dias</div>
-            <p className="text-xs text-muted-foreground">Média entre emissão e recebimento</p>
+            <div className="text-2xl font-bold">{kpisAvancados.pmr} {t("fin.days")}</div>
+            <p className="text-xs text-muted-foreground">{t("fin.avg_receipt_desc")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Índice de Pontualidade</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("fin.punctuality_index")}</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${kpisAvancados.indicePontualidade >= 80 ? 'text-green-600' : kpisAvancados.indicePontualidade >= 50 ? 'text-yellow-600' : 'text-destructive'}`}>
               {kpisAvancados.indicePontualidade}%
             </div>
-            <p className="text-xs text-muted-foreground">Recebidos no prazo ou antes</p>
+            <p className="text-xs text-muted-foreground">{t("fin.received_on_time")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mês Atual</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("fin.current_month")}</CardTitle>
             <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCompact(kpisAvancados.totalMesAtual)}</div>
             <div className="flex items-center gap-1 text-xs">
               {kpisAvancados.variacaoMensal > 0 ? (
-                <>
-                  <TrendingUp className="h-3 w-3 text-green-600" />
-                  <span className="text-green-600">+{kpisAvancados.variacaoMensal}% vs mês anterior</span>
-                </>
+                <><TrendingUp className="h-3 w-3 text-green-600" /><span className="text-green-600">+{kpisAvancados.variacaoMensal}% {t("fin.vs_prev_month")}</span></>
               ) : kpisAvancados.variacaoMensal < 0 ? (
-                <>
-                  <TrendingDown className="h-3 w-3 text-destructive" />
-                  <span className="text-destructive">{kpisAvancados.variacaoMensal}% vs mês anterior</span>
-                </>
+                <><TrendingDown className="h-3 w-3 text-destructive" /><span className="text-destructive">{kpisAvancados.variacaoMensal}% {t("fin.vs_prev_month")}</span></>
               ) : (
-                <span className="text-muted-foreground">Sem variação</span>
+                <span className="text-muted-foreground">{t("fin.no_variation")}</span>
               )}
             </div>
           </CardContent>
@@ -435,31 +307,28 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Próximos 30 dias</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("fin.next_30_days")}</CardTitle>
             <Hourglass className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCompact(kpisAvancados.concentracao30dias)}</div>
-            <p className="text-xs text-muted-foreground">A receber no período</p>
+            <p className="text-xs text-muted-foreground">{t("fin.to_receive_period")}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Cards de Alerta */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className={kpisAvancados.qtdVencendoHoje > 0 ? 'border-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10' : ''}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Clock className={`h-4 w-4 ${kpisAvancados.qtdVencendoHoje > 0 ? 'text-yellow-600' : 'text-muted-foreground'}`} />
-              Vencendo Hoje
+              {t("fin.due_today")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <span className={`text-2xl font-bold ${kpisAvancados.qtdVencendoHoje > 0 ? 'text-yellow-600' : ''}`}>
-                {kpisAvancados.qtdVencendoHoje}
-              </span>
-              <span className="text-sm text-muted-foreground">títulos</span>
+              <span className={`text-2xl font-bold ${kpisAvancados.qtdVencendoHoje > 0 ? 'text-yellow-600' : ''}`}>{kpisAvancados.qtdVencendoHoje}</span>
+              <span className="text-sm text-muted-foreground">{t("fin.titles")}</span>
             </div>
             <p className="text-lg font-semibold">{formatCurrency(kpisAvancados.valorVencendoHoje)}</p>
           </CardContent>
@@ -469,15 +338,13 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <AlertTriangle className={`h-4 w-4 ${kpisAvancados.qtdVencendo7dias > 5 ? 'text-orange-600' : 'text-muted-foreground'}`} />
-              Próximos 7 Dias
+              {t("fin.next_7_days")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <span className={`text-2xl font-bold ${kpisAvancados.qtdVencendo7dias > 5 ? 'text-orange-600' : ''}`}>
-                {kpisAvancados.qtdVencendo7dias}
-              </span>
-              <span className="text-sm text-muted-foreground">títulos</span>
+              <span className={`text-2xl font-bold ${kpisAvancados.qtdVencendo7dias > 5 ? 'text-orange-600' : ''}`}>{kpisAvancados.qtdVencendo7dias}</span>
+              <span className="text-sm text-muted-foreground">{t("fin.titles")}</span>
             </div>
             <p className="text-lg font-semibold">{formatCurrency(kpisAvancados.valorVencendo7dias)}</p>
           </CardContent>
@@ -487,31 +354,24 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <AlertCircle className={`h-4 w-4 ${kpisAvancados.qtdVencidas30dias > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
-              Vencidas +30 dias
+              {t("fin.overdue_30d")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <span className={`text-2xl font-bold ${kpisAvancados.qtdVencidas30dias > 0 ? 'text-destructive' : ''}`}>
-                {kpisAvancados.qtdVencidas30dias}
-              </span>
-              <span className="text-sm text-muted-foreground">títulos</span>
+              <span className={`text-2xl font-bold ${kpisAvancados.qtdVencidas30dias > 0 ? 'text-destructive' : ''}`}>{kpisAvancados.qtdVencidas30dias}</span>
+              <span className="text-sm text-muted-foreground">{t("fin.titles")}</span>
             </div>
             <p className="text-lg font-semibold">{formatCurrency(kpisAvancados.valorVencidas30dias)}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráficos */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Evolução Mensal */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Evolução Mensal
-            </CardTitle>
-            <CardDescription>Recebimentos realizados vs pendentes</CardDescription>
+            <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{t("fin.monthly_evolution")}</CardTitle>
+            <CardDescription>{t("fin.receipts_vs_pending")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -520,46 +380,20 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis dataKey="mes" className="text-xs" />
                   <YAxis tickFormatter={(v) => formatCompact(v)} className="text-xs" />
-                  <Tooltip 
-                    formatter={(value: number) => formatCurrency(value)}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} labelStyle={{ color: 'hsl(var(--foreground))' }} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
                   <Legend />
-                  <Area 
-                    type="monotone" 
-                    dataKey="recebido" 
-                    name="Recebido"
-                    stroke="hsl(var(--chart-2))" 
-                    fill="hsl(var(--chart-2))" 
-                    fillOpacity={0.3}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="pendente" 
-                    name="Pendente"
-                    stroke="hsl(var(--chart-3))" 
-                    fill="hsl(var(--chart-3))" 
-                    fillOpacity={0.3}
-                  />
+                  <Area type="monotone" dataKey="recebido" name={t("fin.received")} stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.3} />
+                  <Area type="monotone" dataKey="pendente" name={t("fin.pending")} stroke="hsl(var(--chart-3))" fill="hsl(var(--chart-3))" fillOpacity={0.3} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        {/* Top Clientes Devedores */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Top 10 Clientes (em aberto)
-            </CardTitle>
-            <CardDescription>Maiores valores a receber</CardDescription>
+            <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" />{t("fin.top10_clients_open")}</CardTitle>
+            <CardDescription>{t("fin.highest_receivable")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -568,16 +402,7 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis type="number" tickFormatter={(v) => formatCompact(v)} className="text-xs" />
                   <YAxis type="category" dataKey="nome" className="text-xs" width={100} />
-                  <Tooltip 
-                    formatter={(value: number) => formatCurrency(value)}
-                    labelFormatter={(label) => topClientes.find(c => c.nome === label)?.nomeCompleto || label}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} labelFormatter={(label) => topClientes.find(c => c.nome === label)?.nomeCompleto || label} labelStyle={{ color: 'hsl(var(--foreground))' }} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
                   <Bar dataKey="valor" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -585,14 +410,10 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
           </CardContent>
         </Card>
 
-        {/* Aging Report */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              A Receber por Prazo
-            </CardTitle>
-            <CardDescription>Distribuição por faixa de vencimento</CardDescription>
+            <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{t("fin.receivable_by_term")}</CardTitle>
+            <CardDescription>{t("fin.distribution_by_term")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -601,21 +422,10 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis dataKey="nome" className="text-xs" />
                   <YAxis tickFormatter={(v) => formatCompact(v)} className="text-xs" />
-                  <Tooltip 
-                    formatter={(value: number, name: string) => [formatCurrency(value), name === 'valor' ? 'Valor' : name]}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Bar dataKey="valor" name="Valor" radius={[4, 4, 0, 0]}>
+                  <Tooltip formatter={(value: number, name: string) => [formatCurrency(value), name === 'valor' ? t("approval.total_value") : name]} labelStyle={{ color: 'hsl(var(--foreground))' }} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
+                  <Bar dataKey="valor" name={t("approval.total_value")} radius={[4, 4, 0, 0]}>
                     {agingReport.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={index === 0 ? 'hsl(var(--chart-5))' : 'hsl(var(--chart-2))'}
-                      />
+                      <Cell key={`cell-${index}`} fill={index === 0 ? 'hsl(var(--chart-5))' : 'hsl(var(--chart-2))'} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -624,47 +434,21 @@ export function DashboardContasReceber({ contas, isLoading }: DashboardContasRec
           </CardContent>
         </Card>
 
-        {/* Distribuição por Status */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PieChartIcon className="h-5 w-5" />
-              Distribuição por Status
-            </CardTitle>
-            <CardDescription>Proporção de valores por situação</CardDescription>
+            <CardTitle className="flex items-center gap-2"><PieChartIcon className="h-5 w-5" />{t("fin.status_distribution")}</CardTitle>
+            <CardDescription>{t("fin.value_by_status")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={distribuicaoStatus}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    dataKey="valor"
-                    nameKey="nome"
-                    label={({ nome, percent }) => `${nome}: ${(percent * 100).toFixed(0)}%`}
-                    labelLine={false}
-                  >
+                  <Pie data={distribuicaoStatus} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="valor" nameKey="nome" label={({ nome, percent }) => `${nome}: ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                     {distribuicaoStatus.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={STATUS_COLORS[entry.nome] || COLORS[index % COLORS.length]} 
-                      />
+                      <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.nome] || COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    formatter={(value: number) => formatCurrency(value)}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} labelStyle={{ color: 'hsl(var(--foreground))' }} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
