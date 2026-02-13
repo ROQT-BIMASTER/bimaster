@@ -1,6 +1,7 @@
 import { memo, useMemo, useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FunnelChart, Funnel, LabelList, Tooltip, ResponsiveContainer } from "recharts";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface FunnelData {
   stage: string;
@@ -15,69 +16,45 @@ interface FunilProspeccaoProps {
 
 export const FunilProspeccao = memo(({ data }: FunilProspeccaoProps) => {
   const [hasAnimated, setHasAnimated] = useState(false);
+  const { t } = useLanguage();
 
-  // Desativar animação após primeira renderização
   useEffect(() => {
     const timer = setTimeout(() => setHasAnimated(true), 1500);
     return () => clearTimeout(timer);
   }, []);
 
-  // Memoizar CustomTooltip
   const CustomTooltip = useCallback(({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const tooltipData = payload[0].payload;
       return (
         <div className="bg-card border rounded-lg p-3 shadow-lg">
           <p className="font-semibold">{tooltipData.stage}</p>
-          <p className="text-sm">Prospects: {tooltipData.count}</p>
-          <p className="text-sm">Percentual: {tooltipData.percentage}%</p>
+          <p className="text-sm">{t("funnel.prospects_label")}: {tooltipData.count}</p>
+          <p className="text-sm">{t("funnel.percentage_label")}: {tooltipData.percentage}%</p>
         </div>
       );
     }
     return null;
-  }, []);
+  }, [t]);
 
-  // Memoizar CustomLabel
   const CustomLabel = useCallback((props: any) => {
     const { x, y, width, value, stage, count } = props;
     return (
       <g>
-        <text
-          x={x + width / 2}
-          y={y + 20}
-          fill="#fff"
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="font-semibold text-sm"
-        >
+        <text x={x + width / 2} y={y + 20} fill="#fff" textAnchor="middle" dominantBaseline="middle" className="font-semibold text-sm">
           {stage}
         </text>
-        <text
-          x={x + width / 2}
-          y={y + 40}
-          fill="#fff"
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="text-xs"
-        >
+        <text x={x + width / 2} y={y + 40} fill="#fff" textAnchor="middle" dominantBaseline="middle" className="text-xs">
           {count} prospects ({value}%)
         </text>
       </g>
     );
   }, []);
 
-  // Memoizar cards de stages
   const stageCards = useMemo(() => (
     data.map((stage, index) => (
-      <div
-        key={index}
-        className="flex flex-col items-center p-3 rounded-lg border"
-        style={{ borderColor: stage.fill }}
-      >
-        <div
-          className="w-3 h-3 rounded-full mb-2"
-          style={{ backgroundColor: stage.fill }}
-        />
+      <div key={index} className="flex flex-col items-center p-3 rounded-lg border" style={{ borderColor: stage.fill }}>
+        <div className="w-3 h-3 rounded-full mb-2" style={{ backgroundColor: stage.fill }} />
         <p className="text-xs font-medium text-center">{stage.stage}</p>
         <p className="text-lg font-bold">{stage.count}</p>
         <p className="text-xs text-muted-foreground">{stage.percentage}%</p>
@@ -88,22 +65,15 @@ export const FunilProspeccao = memo(({ data }: FunilProspeccaoProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Funil de Prospecção</CardTitle>
-        <CardDescription>Taxa de conversão por etapa do processo</CardDescription>
+        <CardTitle>{t("funnel.title")}</CardTitle>
+        <CardDescription>{t("funnel.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           <FunnelChart>
             <Tooltip content={CustomTooltip} />
-            <Funnel
-              dataKey="percentage"
-              data={data}
-              isAnimationActive={!hasAnimated}
-            >
-              <LabelList
-                position="center"
-                content={CustomLabel}
-              />
+            <Funnel dataKey="percentage" data={data} isAnimationActive={!hasAnimated}>
+              <LabelList position="center" content={CustomLabel} />
             </Funnel>
           </FunnelChart>
         </ResponsiveContainer>
