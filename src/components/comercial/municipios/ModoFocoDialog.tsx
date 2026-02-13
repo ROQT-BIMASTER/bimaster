@@ -7,6 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -57,6 +58,7 @@ export function ModoFocoDialog({ open, onOpenChange }: ModoFocoDialogProps) {
   const [lastMinedCity, setLastMinedCity] = useState<string>("");
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [detailLead, setDetailLead] = useState<LeadMinerado | null>(null);
+  const [miningQuery, setMiningQuery] = useState("distribuidora alimentos");
 
   // Use the existing lead mining hook for results view
   const {
@@ -144,7 +146,7 @@ export function ModoFocoDialog({ open, onOpenChange }: ModoFocoDialogProps) {
   const mineMutation = useMutation({
     mutationFn: async (params: { query: string; cidade: string; uf: string }) => {
       const { data, error } = await supabase.functions.invoke("google-places-search", {
-        body: { ...params, maxResults: 20 },
+        body: { ...params, maxResults: 30 },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -161,7 +163,7 @@ export function ModoFocoDialog({ open, onOpenChange }: ModoFocoDialogProps) {
       setMiningId(m.municipio_id);
       try {
         const result = await mineMutation.mutateAsync({
-          query: `distribuidora alimentos ${m.municipio_nome} ${m.uf_sigla}`,
+          query: `${miningQuery} ${m.municipio_nome} ${m.uf_sigla}`,
           cidade: m.municipio_nome,
           uf: m.uf_sigla,
         });
@@ -198,7 +200,7 @@ export function ModoFocoDialog({ open, onOpenChange }: ModoFocoDialogProps) {
       setBatchProgress({ current: i + 1, total: items.length });
       try {
         await mineMutation.mutateAsync({
-          query: `distribuidora alimentos ${m.municipio_nome} ${m.uf_sigla}`,
+          query: `${miningQuery} ${m.municipio_nome} ${m.uf_sigla}`,
           cidade: m.municipio_nome,
           uf: m.uf_sigla,
         });
@@ -326,6 +328,8 @@ export function ModoFocoDialog({ open, onOpenChange }: ModoFocoDialogProps) {
             batchProgress={batchProgress}
             onBatchMine={handleBatchMine}
             isLoading={isLoading}
+            miningQuery={miningQuery}
+            setMiningQuery={setMiningQuery}
           />
         ) : (
           <ResultsView
@@ -366,13 +370,32 @@ interface HierarchyViewProps {
   batchProgress: { current: number; total: number };
   onBatchMine: () => void;
   isLoading: boolean;
+  miningQuery: string;
+  setMiningQuery: (v: string) => void;
 }
+
+const RAMOS_PREDEFINIDOS = [
+  { value: "distribuidora alimentos", label: "Distribuidora de Alimentos" },
+  { value: "supermercado", label: "Supermercado" },
+  { value: "mercearia", label: "Mercearia" },
+  { value: "atacado alimentos", label: "Atacado de Alimentos" },
+  { value: "padaria", label: "Padaria" },
+  { value: "restaurante", label: "Restaurante" },
+  { value: "lanchonete", label: "Lanchonete" },
+  { value: "farmacia", label: "Farmácia" },
+  { value: "loja conveniencia", label: "Loja de Conveniência" },
+  { value: "bar", label: "Bar" },
+  { value: "hotel pousada", label: "Hotel / Pousada" },
+  { value: "perfumaria cosmeticos", label: "Perfumaria / Cosméticos" },
+];
 
 function HierarchyView({
   search, setSearch, filtered, grouped, regionCounts, selected,
   toggleSelect, selectAllInUF, miningId, onMine,
   batchMining, batchProgress, onBatchMine, isLoading,
+  miningQuery, setMiningQuery,
 }: HierarchyViewProps) {
+  const [customQuery, setCustomQuery] = useState(false);
   return (
     <>
       {/* KPIs + Search */}
@@ -390,6 +413,60 @@ function HierarchyView({
               </Badge>
             ))}
         </div>
+        {/* Mining query selector - Ramo / CNAE */}
+        <div className="flex gap-2 items-end">
+          <div className="flex-1 space-y-1">
+            <Label className="text-xs text-muted-foreground">Ramo de Atividade / CNAE</Label>
+            {customQuery ? (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ex: CNAE 4637-1, farmácia, padaria..."
+                  value={miningQuery}
+                  onChange={(e) => setMiningQuery(e.target.value)}
+                  className="h-9"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 text-xs shrink-0"
+                  onClick={() => {
+                    setCustomQuery(false);
+                    setMiningQuery("distribuidora alimentos");
+                  }}
+                >
+                  Predefinidos
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Select value={miningQuery} onValueChange={setMiningQuery}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Selecione o ramo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RAMOS_PREDEFINIDOS.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 text-xs shrink-0"
+                  onClick={() => {
+                    setCustomQuery(true);
+                    setMiningQuery("");
+                  }}
+                >
+                  CNAE / Personalizado
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -404,7 +481,7 @@ function HierarchyView({
             <Button
               size="sm"
               onClick={onBatchMine}
-              disabled={batchMining}
+              disabled={batchMining || !miningQuery.trim()}
               className="gap-1 shrink-0"
             >
               {batchMining ? (
