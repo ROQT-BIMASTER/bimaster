@@ -13,6 +13,7 @@ import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
 import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { LanguageSelector } from "./LanguageSelector";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -80,7 +81,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <SidebarTrigger aria-label="Alternar menu lateral" />
               <h1 className="text-lg font-semibold">Sistema Huggs</h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <LanguageSelector />
               <ImpersonationSelector />
               <NotificationBell />
               <img src={logoUnion} alt="Logo Union - Sistema de Gestão Huggs" className="h-10" />
