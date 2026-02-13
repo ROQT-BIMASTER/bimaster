@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Users, CalendarDays, ClipboardList, Link2 } from "lucide-react";
@@ -45,8 +47,24 @@ const presetLabels: Record<DatePreset, string> = {
   custom: "Personalizado",
 };
 
+const FORM_ALLOWED_IDS = [
+  "7eb17733-d824-4758-8ddf-7b9606ef4991", // Milene Harumi
+  "23d470c6-7a46-4643-9a45-ef082fe808e1", // Jessika Marcondes
+];
+
 export default function TradeSupervisorDashboard() {
+  const { isAdmin } = useUserRole();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [datePreset, setDatePreset] = useState<DatePreset>("this_month");
+
+  // Fetch current user id once
+  useState(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setCurrentUserId(data.user.id);
+    });
+  });
+
+  const canAccessForms = isAdmin || (currentUserId ? FORM_ALLOWED_IDS.includes(currentUserId) : false);
   const [customRange, setCustomRange] = useState<DateRangeFilter | undefined>();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -184,7 +202,7 @@ export default function TradeSupervisorDashboard() {
                 </>
               )}
 
-              <GenerateFormLinkDialog />
+              {canAccessForms && <GenerateFormLinkDialog />}
               <Button variant="outline" size="sm" onClick={refetchAll}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Atualizar
@@ -211,10 +229,12 @@ export default function TradeSupervisorDashboard() {
               <ClipboardList className="h-4 w-4" />
               Cadastro Equipe
             </TabsTrigger>
-            <TabsTrigger value="formularios" className="gap-2">
-              <Link2 className="h-4 w-4" />
-              Formulários
-            </TabsTrigger>
+            {canAccessForms && (
+              <TabsTrigger value="formularios" className="gap-2">
+                <Link2 className="h-4 w-4" />
+                Formulários
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Tab: Dashboard */}
@@ -291,10 +311,12 @@ export default function TradeSupervisorDashboard() {
             />
           </TabsContent>
 
-          {/* Tab: Formulários */}
-          <TabsContent value="formularios" className="mt-4">
-            <FormSubmissionsPanel />
-          </TabsContent>
+          {/* Tab: Formulários - only for Milene, Jessika, and Admins */}
+          {canAccessForms && (
+            <TabsContent value="formularios" className="mt-4">
+              <FormSubmissionsPanel />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </DashboardLayout>
