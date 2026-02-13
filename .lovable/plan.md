@@ -1,61 +1,54 @@
 
 
-# Corrigir Sistema de Tradução Multi-idiomas
+# Traduzir Cards, Graficos e Colunas de Tabelas
 
-## Problema Identificado
+## Problema
+Os componentes de KPI cards, graficos (Recharts) e tabelas de dados continuam com textos hardcoded em portugues. Apenas 7 arquivos usam `useLanguage` atualmente -- a maioria dos widgets, dashboards e tabelas nao foi integrada.
 
-O sistema de tradução (`LanguageContext`) foi criado com apenas ~12 chaves genéricas (titulo do sistema, navegacao, mensagens offline). Nenhum componente da aplicacao realmente usa a funcao `t()` para traduzir textos. Todos os textos estao hardcoded em portugues nos componentes.
+## Componentes a Traduzir
 
-## Abordagem
+### Dashboard Widgets (pagina principal)
+- **TradeDashboardWidget** - 4 cards: "PDVs Ativos", "Visitas do Mes", "Fotos do Mes", "Investimentos" + descricoes
+- **FinanceiroDashboardWidget** - 8 cards: "A Pagar (Pendentes)", "A Pagar (Vencidas)", "Total a Pagar", etc. + headers de secao "Contas a Pagar" / "Contas a Receber"
+- **ExecutiveKPIs** - 5 cards: "Total de Prospects", "Visitas (30 dias)", "Taxa de Conversao", "Ticket Medio", "Metas Ativas" + label "vs periodo anterior"
+- **FunilProspeccao** - Titulo "Funil de Prospeccao", descricao, tooltip labels ("Prospects:", "Percentual:")
 
-Como o sistema possui **100+ paginas e centenas de componentes**, traduzir tudo de uma vez seria inviavel. A estrategia sera:
+### Trade Marketing
+- **BrandShareKPIs** - 4 cards: "Total Medicoes", "Share Medio", "Marca Lider", "Crescimento" + descricoes
+- **BrandSharePieChart** - Titulo "Distribuicao por Marca", mensagem vazia
+- **BrandShareEvolutionChart** - Titulo "Evolucao Mensal por Marca", mensagem vazia
+- **BrandShareRankingTable** - Titulo "Ranking de Lojas por Share", labels "medicoes"
+- **TradeExecutiveKPIs** - 4 cards: "PDVs Ativos", "Visitas do Mes", "Fotos do Mes", "ROI Medio"
+- **TradeExecutiveTopClients** - Titulo "Top 10 Clientes por Lancamentos"
+- **TradeExecutivePhotosGallery** - Titulo "Fotos Recentes", badges "Pendente"
+- **ApprovalKPICards** - 5 cards: "Total Pendente", "Campanhas", "Lancamentos", "Valor Total", "Status"
 
-1. **Expandir massivamente o dicionario de traducoes** no `LanguageContext.tsx` com todas as chaves necessarias para as areas principais
-2. **Integrar `t()` nos componentes mais visiveis** que o usuario interage diariamente
+## Abordagem Tecnica
 
-## Componentes Prioritarios para Traduzir
+### 1. Expandir dicionario em `LanguageContext.tsx`
+Adicionar ~80 novas chaves cobrindo todos os textos dos componentes listados acima, nos 4 idiomas (pt-BR, en, es, ar).
 
-### Fase 1 - Layout e Navegacao (visivel em todas as paginas)
-- `DashboardLayout.tsx` - titulo do header, mensagens offline
-- `AppSidebar.tsx` - todos os menus e submenus (Prospects, Financeiro, Trade, Marketing, Fabrica, etc.)
+Exemplo de chaves:
+```
+"trade_widget.active_stores": "PDVs Ativos" / "Active Stores" / "PDVs Activos" / "نقاط البيع النشطة"
+"trade_widget.monthly_visits": "Visitas do Mês" / "Monthly Visits" / ...
+"finance_widget.payable_pending": "A Pagar (Pendentes)" / "Payable (Pending)" / ...
+"chart.brand_distribution": "Distribuição por Marca" / "Brand Distribution" / ...
+"table.store_ranking": "Ranking de Lojas por Share" / "Store Share Ranking" / ...
+```
 
-### Fase 2 - Paginas Principais
-- `ProspectsOptimized.tsx` - titulo, filtros, labels, mensagens
-- `Dashboard.tsx` - cards de estatisticas, titulos de secoes
-- `ProspectsDashboardWidget.tsx` - cards de KPI
+### 2. Integrar `useLanguage()` em cada componente
+Para cada um dos 12 componentes:
+- Importar `useLanguage` de `@/contexts/LanguageContext`
+- Extrair `const { t } = useLanguage()`
+- Substituir strings hardcoded por chamadas `t("chave")`
 
-### Fase 3 - Componentes Compartilhados
-- Status labels (Novo, Em Contato, Proposta, Negociacao, Ganho, Perdido)
-- Botoes comuns (Novo Prospect, Atualizar, Buscar, Salvar, Cancelar)
-- Mensagens de estado (Carregando, Nenhum resultado, etc.)
-
-## Detalhes Tecnicos
-
-### 1. Expandir `LanguageContext.tsx`
-Adicionar ~150+ chaves de traducao cobrindo:
-- Sidebar: nomes de modulos e submenus
-- Prospects: titulos, filtros, status, labels
-- Dashboard: KPIs, graficos
-- Acoes comuns: botoes, mensagens de feedback
-- Financeiro, Trade, Marketing: titulos principais
-
-Todas as 4 linguas: pt-BR, en, es, ar
-
-### 2. Integrar `useLanguage()` nos componentes
-- Importar `useLanguage` em cada componente
-- Substituir strings hardcoded por `t("chave")`
-- Manter `pt-BR` como fallback (ja funciona assim)
-
-### 3. Componentes a modificar
-- `src/components/dashboard/DashboardLayout.tsx` - header title, mensagens offline
-- `src/components/dashboard/AppSidebar.tsx` - todos os menus (~50 itens)
-- `src/pages/ProspectsOptimized.tsx` - titulo, filtros, botoes, status
-- `src/pages/Dashboard.tsx` - titulos e labels
-- `src/components/dashboard/ProspectsDashboardWidget.tsx` - cards
-
-### 4. Sidebar - Estrategia
-Os menus da sidebar sao arrays de objetos com `title: "string"`. Serao convertidos para usar chaves de traducao: `title: t("sidebar.prospects.dashboard")`.
+### 3. Ordem de implementacao
+1. Expandir o dicionario com todas as chaves novas (1 arquivo)
+2. Atualizar os 4 widgets do Dashboard principal (TradeDashboardWidget, FinanceiroDashboardWidget, ExecutiveKPIs, FunilProspeccao)
+3. Atualizar os 4 componentes de Brand Share
+4. Atualizar os 3 componentes Trade Executive
+5. Atualizar ApprovalKPICards
 
 ## Resultado Esperado
-Ao trocar o idioma no seletor, todos os menus, titulos de paginas, labels de filtros, status e botoes principais mudarao para o idioma selecionado. O conteudo dinamico (nomes de empresas, dados do banco) permanecera no idioma original.
-
+Ao trocar o idioma no seletor, todos os cards de KPI, titulos de graficos, labels de tooltips e headers de tabelas mudarao para o idioma selecionado. Dados dinamicos (nomes de marcas, valores numericos, datas) permanecem no formato original.
