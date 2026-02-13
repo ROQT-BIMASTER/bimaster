@@ -1,72 +1,126 @@
 
-# Corrigir Erro de Importacao Dinamica e Preparar para Producao
+# Migracao Segura: Storage Buckets Publicos para Privados
 
-## Problema Identificado
+## Estrategia de 3 Fases (Zero Downtime)
 
-O erro `TypeError: Failed to fetch dynamically imported module` ocorre quando o Vite tenta carregar um modulo lazy (como `PrecosMatrizComparativa.tsx`) e a requisicao de rede falha. Isso pode acontecer por:
-
-1. **Durante desenvolvimento**: Hot Module Replacement (HMR) reconstroi o modulo e a URL antiga fica invalida temporariamente
-2. **Em producao**: Apos um novo deploy, as URLs dos chunks antigos mudam e usuarios com a pagina aberta tentam navegar para rotas cujos chunks ja nao existem
-
-Testei ambas as paginas (`/dashboard/precos/matriz` e `/dashboard/precos`) e elas carregam normalmente agora. O erro e intermitente.
-
-## Solucao
-
-### 1. Adicionar retry automatico nos lazy imports (App.tsx)
-
-Criar uma funcao `lazyWithRetry` que tenta importar o modulo e, em caso de falha, faz ate 3 tentativas com intervalo. Se todas falharem, forca um reload da pagina (para buscar o novo manifest apos deploy).
+A migracao sera feita em 3 fases sequenciais para garantir que nenhum usuario em producao seja impactado:
 
 ```text
-lazyWithRetry(importFn)
-  tentativa 1 -> falhou? espera 1s
-  tentativa 2 -> falhou? espera 1s  
-  tentativa 3 -> falhou? window.location.reload()
+Fase 1: Uploads geram signed URLs (codigo novo)
+Fase 2: Exibicao converte URLs antigas para signed URLs
+Fase 3: SQL torna buckets privados (so apos Fases 1 e 2 publicadas)
 ```
 
-### 2. Aplicar `lazyWithRetry` em todas as ~140 rotas lazy
+---
 
-Substituir todos os `lazy(() => import("./pages/..."))` por `lazyWithRetry(() => import("./pages/..."))`.
+## Fase 1 - Migrar Uploads para Signed URLs
 
-### 3. Melhorar o fallback do Suspense
+Criar helper centralizado e atualizar todos os componentes que fazem upload para gerar signed URLs em vez de URLs publicas.
 
-O `PageLoader` atual mostra um spinner. Adicionar deteccao de erro de carregamento com mensagem amigavel e botao de "Tentar Novamente".
+### 1.1 Adicionar `uploadAndGetSignedUrl` em `src/lib/utils/storage-helper.ts`
 
-## Arquivos a Modificar
+Nova funcao que faz upload e retorna signed URL (expiracao de 1 ano = 31536000s) em vez de URL publica. Todos os componentes de upload passam a usar esta funcao.
 
-- **`src/App.tsx`**: Criar funcao `lazyWithRetry` e aplicar em todas as importacoes lazy (~140 linhas)
+### 1.2 Atualizar 16 pontos de upload (getPublicUrl -> signed URL)
 
-## Detalhes Tecnicos
+Arquivos que chamam `getPublicUrl()` e precisam ser migrados:
 
-A funcao `lazyWithRetry`:
+| Arquivo | Bucket |
+|---|---|
+| `src/components/events/ExpenseAttachments.tsx` | event-expense-docs |
+| `src/components/departments/DepartmentExpenseAttachments.tsx` | department-expense-docs |
+| `src/components/trade/NovoLancamentoDialog.tsx` | trade-expense-docs |
+| `src/components/trade/budgets/BudgetDocumentUpload.tsx` | trade-budget-docs |
+| `src/components/trade/QuickEntryDialog.tsx` | campaign-evidence |
+| `src/components/trade/campaigns/CampaignLancamentoForm.tsx` | campaign-evidence |
+| `src/components/trade/campaigns/LancamentoPhotoCapture.tsx` | trade-photos |
+| `src/components/trade/OfflinePhotoCapture.tsx` | trade-photos |
+| `src/components/trade/AdicionarEvidenciaDialog.tsx` | attachments |
+| `src/components/fabrica/FichaCustoProdutoEditor.tsx` | fabrica-custo-evidencias |
+| `src/components/fabrica/CotacoesInsumoPanel.tsx` | fabrica-cotacoes |
+| `src/components/marketing/mission-control/CreativeHub.tsx` | marketing-assets |
+| `src/components/marketing/mission-control/task-detail/TaskFiles.tsx` | marketing-files |
+| `src/components/financeiro/payments/ReceiptUploadSection.tsx` | event-expense-docs |
+| `src/hooks/useSyncOfflineData.ts` | trade-photos |
+| `src/lib/offline/syncManager.ts` | photos |
+| `src/pages/TradeFinanceiro.tsx` | trade-budget-docs |
+
+**Nota:** `src/components/shared/ProfileAvatarUpload.tsx` (bucket `avatars`) permanece com `getPublicUrl()` pois avatars continuara publico.
+
+---
+
+## Fase 2 - Migrar Exibicao para Signed URLs
+
+Todos os componentes que exibem arquivos usando URLs armazenadas no banco precisam converter a URL publica para signed URL antes de abrir/exibir.
+
+### 2.1 Usar `resolveStorageUrl()` nos pontos de exibicao
+
+`resolveStorageUrl()` ja existe em `src/lib/utils/storage-url.ts` e faz exatamente isso: recebe uma URL publica, extrai bucket/path, e gera uma signed URL. Ja inclui fallback de busca por nome.
+
+Arquivos que exibem arquivos e precisam de migracao:
+
+| Arquivo | Como exibe | Migracao |
+|---|---|---|
+| `ExpenseAttachments.tsx` | `window.open(attachment.url)` e `<a href={url}>` | Converter via `resolveStorageUrl` antes de abrir |
+| `DepartmentExpenseAttachments.tsx` | `window.open(attachment.url)` | Idem |
+| `AprovarDespesaDepartamentoDialog.tsx` | `<a href={attachment.url}>` | Idem |
+| `AprovarLancamentoDialog.tsx` | `window.open(entry.document_url)` | Idem |
+| `CotacoesInsumoPanel.tsx` | `window.open(c.arquivo_url)` | Idem |
+| `FichaCustoProdutoEditor.tsx` | `window.open(ev.url_arquivo)` | Idem |
+| `CreativeHub.tsx` | `window.open(previewAsset.url_publica)` e `<img src>` | Idem |
+| `StoreDetailDialog.tsx` | `<a href={investment.evidence_url}>` | Idem |
+| `VisitDetailDialog.tsx` | `window.open(photo.photo_url)` | Idem |
+| `PaymentReviewDialog.tsx` | `<a href={item.attachment_url}>` | Idem |
+| `NovaDespesaEventoDialog.tsx` | Move files entre paths | Atualizar para signed URL apos move |
+
+**Ja migrados (nao precisam de alteracao):**
+- `ReceiptUploadSection.tsx` - ja usa `resolveStorageUrl`
+- `AttachmentAcknowledgement.tsx` - ja usa `resolveStorageUrl`
+
+### 2.2 Criar hook `useSignedUrl` para componentes que exibem imagens
+
+Para componentes que mostram imagens inline (como fotos de visita), criar um hook React que converte a URL publica para signed URL de forma reativa, com cache em memoria.
+
+---
+
+## Fase 3 - Tornar Buckets Privados (SQL)
+
+**Executar SOMENTE apos as Fases 1 e 2 estarem publicadas em producao.**
+
+Migracao SQL:
 
 ```text
-function lazyWithRetry(importFn, retries = 3, interval = 1000) {
-  return lazy(async () => {
-    for (let i = 0; i < retries; i++) {
-      try {
-        return await importFn();
-      } catch (error) {
-        if (i === retries - 1) {
-          // Ultima tentativa falhou - verificar se e erro de chunk
-          // e forcar reload para buscar novo manifest
-          if (!sessionStorage.getItem('chunk-reload')) {
-            sessionStorage.setItem('chunk-reload', 'true');
-            window.location.reload();
-          }
-          throw error;
-        }
-        await new Promise(r => setTimeout(r, interval));
-      }
-    }
-    return importFn(); // fallback final
-  });
-}
+UPDATE storage.buckets 
+SET public = false 
+WHERE id IN (
+  'event-expense-docs', 
+  'department-expense-docs', 
+  'trade-expense-docs', 
+  'trade-budget-docs',
+  'campaign-evidence', 
+  'fabrica-custo-evidencias', 
+  'fabrica-cotacoes', 
+  'marketing-assets', 
+  'attachments', 
+  'email-assets'
+);
 ```
 
-A flag `sessionStorage('chunk-reload')` evita loops infinitos de reload. E limpa ao carregar com sucesso.
+O bucket `avatars` permanece publico.
 
-## Resultado Esperado
+---
 
-- Erros de chunk intermitentes serao resolvidos automaticamente com retry
-- Apos deploys em producao, usuarios nao verao mais a tela "Algo deu errado" ao navegar
-- A experiencia sera transparente: o usuario vera no maximo um breve delay no carregamento
+## Resumo de Arquivos Modificados
+
+- **1 arquivo novo/atualizado de utils**: `storage-helper.ts` (nova funcao + hook)
+- **~17 arquivos de upload**: substituir `getPublicUrl` por `uploadAndGetSignedUrl`
+- **~11 arquivos de exibicao**: adicionar `resolveStorageUrl` antes de abrir/exibir URLs
+- **1 migracao SQL**: executada manualmente apos deploy (Fase 3)
+
+## Ordem de Execucao
+
+1. Atualizar `storage-helper.ts` com nova funcao e hook
+2. Migrar todos os uploads (Fase 1)
+3. Migrar todas as exibicoes (Fase 2)
+4. Publicar em producao
+5. Executar SQL da Fase 3 (eu avisarei quando for seguro)
