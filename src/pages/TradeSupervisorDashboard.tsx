@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,11 +58,11 @@ export default function TradeSupervisorDashboard() {
   const [datePreset, setDatePreset] = useState<DatePreset>("this_month");
 
   // Fetch current user id once
-  useState(() => {
+  useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setCurrentUserId(data.user.id);
     });
-  });
+  }, []);
 
   const canAccessForms = isAdmin || (currentUserId ? FORM_ALLOWED_IDS.includes(currentUserId) : false);
   const [customRange, setCustomRange] = useState<DateRangeFilter | undefined>();
