@@ -237,16 +237,39 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [voiceCallMode, setVoiceCallMode] = useState(false);
+  const [voiceCallDuration, setVoiceCallDuration] = useState(0);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recognitionRef = useRef<any>(null);
+  const voiceCallTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const continueListeningRef = useRef(false);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Voice call timer
+  useEffect(() => {
+    if (voiceCallMode) {
+      setVoiceCallDuration(0);
+      voiceCallTimerRef.current = setInterval(() => {
+        setVoiceCallDuration(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (voiceCallTimerRef.current) {
+        clearInterval(voiceCallTimerRef.current);
+        voiceCallTimerRef.current = null;
+      }
+      setVoiceCallDuration(0);
+    }
+    return () => {
+      if (voiceCallTimerRef.current) clearInterval(voiceCallTimerRef.current);
+    };
+  }, [voiceCallMode]);
 
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -268,14 +291,26 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
         setIsListening(false);
         if (event.error === 'not-allowed') {
           toast.error("Permissão de microfone negada");
+          setVoiceCallMode(false);
+        } else if (event.error === 'no-speech' && continueListeningRef.current) {
+          // Re-start listening in voice call mode
+          try { recognitionRef.current?.start(); setIsListening(true); } catch {}
         }
       };
 
       recognitionRef.current.onend = () => {
         setIsListening(false);
+        // Auto-restart in voice call mode (after Sofia finishes speaking)
+        if (continueListeningRef.current && !isSpeaking) {
+          setTimeout(() => {
+            if (continueListeningRef.current) {
+              try { recognitionRef.current?.start(); setIsListening(true); } catch {}
+            }
+          }, 500);
+        }
       };
     }
-  }, []);
+  }, [isSpeaking]);
 
   const playAudio = useCallback(async (base64Audio: string) => {
     try {
@@ -284,7 +319,17 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
       if (audioRef.current) audioRef.current.pause();
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
-      audio.onended = () => setIsSpeaking(false);
+      audio.onended = () => {
+        setIsSpeaking(false);
+        // In voice call mode, auto-restart listening after Sofia finishes speaking
+        if (continueListeningRef.current && recognitionRef.current) {
+          setTimeout(() => {
+            if (continueListeningRef.current) {
+              try { recognitionRef.current?.start(); setIsListening(true); } catch {}
+            }
+          }, 600);
+        }
+      };
       audio.onerror = () => setIsSpeaking(false);
       await audio.play();
     } catch (error) {
@@ -300,6 +345,28 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
       setIsSpeaking(false);
     }
   }, []);
+
+  const startVoiceCall = useCallback(() => {
+    if (!recognitionRef.current) {
+      toast.error("Reconhecimento de voz não suportado neste navegador");
+      return;
+    }
+    setVoiceCallMode(true);
+    setVoiceEnabled(true);
+    continueListeningRef.current = true;
+    setIsOpen(true);
+    toast.success("Modo conversa por voz ativado! Fale com a Sofia.");
+    try { recognitionRef.current.start(); setIsListening(true); } catch {}
+  }, []);
+
+  const endVoiceCall = useCallback(() => {
+    setVoiceCallMode(false);
+    continueListeningRef.current = false;
+    setIsListening(false);
+    try { recognitionRef.current?.stop(); } catch {}
+    stopAudio();
+    toast.info("Conversa por voz encerrada.");
+  }, [stopAudio]);
 
   const toggleListening = useCallback(() => {
     if (!recognitionRef.current) {
@@ -412,15 +479,29 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating buttons */}
       <AnimatePresence>
         {!isOpen && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 right-6 z-50"
+            className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 items-center"
           >
+            {/* Voice call quick button */}
+            <Button
+              onClick={() => {
+                setIsOpen(true);
+                setTimeout(() => startVoiceCall(), 300);
+              }}
+              size="icon"
+              variant="outline"
+              className="h-10 w-10 rounded-full shadow-md bg-background hover:bg-emerald-50 border-emerald-200"
+              title="Conversar por voz com a Sofia"
+            >
+              <Phone className="h-4 w-4 text-emerald-600" />
+            </Button>
+            {/* Chat button */}
             <Button
               onClick={() => setIsOpen(true)}
               size="lg"
@@ -437,8 +518,8 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                 className="absolute -top-1 -right-1"
               >
                 <span className="flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-emerald-400"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                 </span>
               </motion.div>
             )}
@@ -489,6 +570,18 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                     variant="ghost"
                     size="icon"
                     onClick={() => {
+                      if (voiceCallMode) endVoiceCall();
+                      else startVoiceCall();
+                    }}
+                    className={`h-8 w-8 text-primary-foreground hover:bg-white/20 ${voiceCallMode ? 'bg-white/20' : ''}`}
+                    title={voiceCallMode ? "Encerrar conversa por voz" : "Conversar por voz"}
+                  >
+                    {voiceCallMode ? <PhoneOff className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
                       if (isSpeaking) stopAudio();
                       setVoiceEnabled(!voiceEnabled);
                     }}
@@ -499,7 +592,10 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => {
+                      if (voiceCallMode) endVoiceCall();
+                      setIsOpen(false);
+                    }}
                     className="h-8 w-8 text-primary-foreground hover:bg-white/20"
                   >
                     <X className="h-4 w-4" />
@@ -633,13 +729,63 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
               </div>
             </ScrollArea>
 
+            {/* Voice Call Overlay */}
+            {voiceCallMode && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-4 py-3 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-t border-emerald-500/20"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                        isListening 
+                          ? 'bg-emerald-500/20 ring-2 ring-emerald-500/50' 
+                          : isSpeaking
+                          ? 'bg-primary/20 ring-2 ring-primary/50'
+                          : 'bg-muted'
+                      }`}>
+                        {isListening ? (
+                          <Mic className="h-5 w-5 text-emerald-600 animate-pulse" />
+                        ) : isSpeaking ? (
+                          <Volume2 className="h-5 w-5 text-primary animate-pulse" />
+                        ) : isLoading ? (
+                          <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+                        ) : (
+                          <Mic className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {isListening ? "Ouvindo você..." : isSpeaking ? "Sofia está falando..." : isLoading ? "Processando..." : "Aguardando..."}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {Math.floor(voiceCallDuration / 60).toString().padStart(2, '0')}:{(voiceCallDuration % 60).toString().padStart(2, '0')}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={endVoiceCall}
+                    className="gap-1.5"
+                  >
+                    <PhoneOff className="h-4 w-4" />
+                    Encerrar
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
             {/* Input */}
             <div className="p-3 border-t bg-muted/30">
               <div className="flex gap-2">
                 <Button
-                  variant={isListening ? "destructive" : "outline"}
+                  variant={isListening ? "destructive" : voiceCallMode ? "secondary" : "outline"}
                   size="icon"
-                  onClick={toggleListening}
+                  onClick={voiceCallMode ? (isListening ? () => { try { recognitionRef.current?.stop(); } catch {} setIsListening(false); } : () => { try { recognitionRef.current?.start(); setIsListening(true); } catch {} }) : toggleListening}
                   disabled={isLoading}
                   className="shrink-0 h-9 w-9"
                 >
@@ -650,7 +796,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  placeholder={isListening ? "Ouvindo..." : "Peça gráficos, relatórios, análises..."}
+                  placeholder={isListening ? "Ouvindo..." : voiceCallMode ? "Ou digite aqui..." : "Peça gráficos, relatórios, análises..."}
                   disabled={isLoading || isListening}
                   className="flex-1 h-9 text-sm"
                 />
