@@ -1,276 +1,454 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface ChatMessage {
-  role: "user" | "assistant" | "system";
-  content: string;
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+function getSupabaseAdmin() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
 }
 
-interface ChatRequest {
-  message: string;
-  history?: ChatMessage[];
-  generateAudio?: boolean;
-  action?: string;
-}
+// ────────── Tools definitions for Sofia ──────────
+const sofiaTools = [
+  {
+    type: "function",
+    function: {
+      name: "buscar_contas_vencidas",
+      description: "Busca contas a pagar vencidas com detalhes de fornecedor, valor e dias de atraso. Use quando o usuário perguntar sobre contas vencidas, inadimplência ou atrasos.",
+      parameters: {
+        type: "object",
+        properties: {
+          limite: { type: "number", description: "Quantidade máxima de resultados (padrão 20)" },
+          dias_atraso_min: { type: "number", description: "Filtrar por mínimo de dias de atraso" },
+        },
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "buscar_contas_por_fornecedor",
+      description: "Busca contas a pagar de um fornecedor específico. Use quando o usuário perguntar sobre um fornecedor.",
+      parameters: {
+        type: "object",
+        properties: {
+          fornecedor_nome: { type: "string", description: "Nome (parcial) do fornecedor" },
+        },
+        required: ["fornecedor_nome"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "resumo_fluxo_caixa",
+      description: "Gera um resumo do fluxo de caixa com entradas e saídas previstas para os próximos dias. Use quando o usuário perguntar sobre fluxo de caixa, previsão ou projeção.",
+      parameters: {
+        type: "object",
+        properties: {
+          dias: { type: "number", description: "Projeção para quantos dias à frente (padrão 30)" },
+        },
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "analise_aging",
+      description: "Gera análise de aging (envelhecimento) das contas a pagar vencidas por faixa de dias. Use para análises de inadimplência e risco.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "top_fornecedores_gastos",
+      description: "Lista os fornecedores com maiores valores em contas a pagar. Use para análise de concentração de gastos.",
+      parameters: {
+        type: "object",
+        properties: {
+          limite: { type: "number", description: "Quantidade de fornecedores (padrão 10)" },
+          periodo: { type: "string", description: "Período: 'mes_atual', 'trimestre', 'ano' (padrão ano)" },
+        },
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "gerar_relatorio_executivo",
+      description: "Gera um relatório executivo completo em markdown com todas as métricas financeiras. Use quando o usuário pedir relatório ou resumo completo.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+];
 
-const LEGISLACAO_CONTEXT = `
-## CONHECIMENTO EM LEGISLAÇÃO E BOAS PRÁTICAS:
+// ────────── Tool execution ──────────
+async function executeTool(name: string, args: Record<string, unknown>): Promise<string> {
+  const sb = getSupabaseAdmin();
+  const hoje = new Date();
+  const dataHoje = hoje.toISOString().split("T")[0];
+  const anoAtual = hoje.getFullYear();
 
-### Lei de Pagamentos (Lei 14.133/2021 - Nova Lei de Licitações)
-- Prazo máximo para pagamento em contratos: 30 dias após o adimplemento
-- Multas por atraso podem ser aplicadas conforme contrato
-- Juros de mora: 1% ao mês após vencimento
+  switch (name) {
+    case "buscar_contas_vencidas": {
+      const limite = (args.limite as number) || 20;
+      const diasMin = (args.dias_atraso_min as number) || 0;
+      const dataLimite = diasMin > 0
+        ? new Date(hoje.getTime() - diasMin * 86400000).toISOString().split("T")[0]
+        : dataHoje;
 
-### Código Civil Brasileiro
-- Art. 389: Mora do devedor gera responsabilidade por juros, correção e honorários
-- Art. 395: Responde o devedor pelos prejuízos a que sua mora der causa
-- Art. 397: O inadimplemento ocorre no dia imediatamente seguinte ao vencimento
+      const { data, error } = await sb
+        .from("contas_pagar")
+        .select("fornecedor_nome, valor_original, valor_aberto, data_vencimento, status, categoria_nome, numero_documento")
+        .lt("data_vencimento", dataLimite)
+        .neq("status", "pago")
+        .order("data_vencimento", { ascending: true })
+        .limit(limite);
 
-### Práticas de Gestão Financeira
-- Técnica ABC: Classificar fornecedores por volume de compras
-- Cash Flow Management: Priorizar pagamentos por impacto operacional
-- Negociação de prazos: Média de mercado 30-60-90 dias
-- Early Payment Discount: Desconto típico de 2-3% para pagamento antecipado
+      if (error) return `Erro ao buscar: ${error.message}`;
+      if (!data?.length) return "Nenhuma conta vencida encontrada.";
 
-### Indicadores de Performance (KPIs)
-- DSO (Days Sales Outstanding): Ideal < 45 dias
-- DPO (Days Payable Outstanding): Balancear com fluxo de caixa
-- Working Capital Ratio: Ideal entre 1.5 e 2.0
-- Aging de contas: Monitorar % acima de 30, 60, 90 dias
+      const resultado = data.map((c: any) => {
+        const dias = Math.floor((hoje.getTime() - new Date(c.data_vencimento).getTime()) / 86400000);
+        return `• ${c.fornecedor_nome || "N/I"}: R$ ${(c.valor_aberto || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} — ${dias} dias de atraso (Cat: ${c.categoria_nome || "N/C"})`;
+      });
 
-### Recomendações Técnicas
-- Provisionar 2-3% do faturamento para contingências
-- Manter relacionamento com top 20% dos fornecedores (Pareto)
-- Automatizar pagamentos recorrentes
-- Renegociar contratos com fornecedores inadimplentes frequentes
-`;
+      const total = data.reduce((s: number, c: any) => s + (c.valor_aberto || 0), 0);
+      return `**${data.length} contas vencidas** (total: R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}):\n\n${resultado.join("\n")}`;
+    }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    case "buscar_contas_por_fornecedor": {
+      const nome = args.fornecedor_nome as string;
+      const { data, error } = await sb
+        .from("contas_pagar")
+        .select("fornecedor_nome, valor_original, valor_aberto, data_vencimento, status, categoria_nome")
+        .ilike("fornecedor_nome", `%${nome}%`)
+        .order("data_vencimento", { ascending: false })
+        .limit(20);
+
+      if (error) return `Erro: ${error.message}`;
+      if (!data?.length) return `Nenhuma conta encontrada para "${nome}".`;
+
+      const total = data.reduce((s: number, c: any) => s + (c.valor_aberto || 0), 0);
+      const pagas = data.filter((c: any) => c.status === "pago").length;
+      const vencidas = data.filter((c: any) => c.data_vencimento < dataHoje && c.status !== "pago").length;
+
+      const linhas = data.slice(0, 10).map((c: any) =>
+        `• R$ ${(c.valor_aberto || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} — Venc: ${c.data_vencimento?.substring(0, 10)} — Status: ${c.status}`
+      );
+
+      return `**Fornecedor: ${data[0].fornecedor_nome}**\n${data.length} títulos | ${pagas} pagos | ${vencidas} vencidos | Total aberto: R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n\n${linhas.join("\n")}`;
+    }
+
+    case "resumo_fluxo_caixa": {
+      const dias = (args.dias as number) || 30;
+      const dataFim = new Date(hoje.getTime() + dias * 86400000).toISOString().split("T")[0];
+
+      // Saídas previstas
+      const { data: saidas } = await sb
+        .from("contas_pagar")
+        .select("valor_aberto, data_vencimento")
+        .gte("data_vencimento", dataHoje)
+        .lte("data_vencimento", dataFim)
+        .neq("status", "pago");
+
+      // Entradas previstas
+      const { data: entradas } = await sb
+        .from("contas_receber")
+        .select("valor_aberto, data_vencimento")
+        .gte("data_vencimento", dataHoje)
+        .lte("data_vencimento", dataFim)
+        .neq("status", "recebido");
+
+      const totalSaidas = (saidas || []).reduce((s: number, c: any) => s + (c.valor_aberto || 0), 0);
+      const totalEntradas = (entradas || []).reduce((s: number, c: any) => s + (c.valor_aberto || 0), 0);
+      const saldo = totalEntradas - totalSaidas;
+
+      return `**Fluxo de Caixa — Próximos ${dias} dias:**\n\n📥 Entradas previstas: R$ ${totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${(entradas || []).length} títulos)\n📤 Saídas previstas: R$ ${totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${(saidas || []).length} títulos)\n${saldo >= 0 ? "✅" : "⚠️"} Saldo projetado: R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+    }
+
+    case "analise_aging": {
+      const { data: vencidas } = await sb
+        .from("contas_pagar")
+        .select("valor_aberto, data_vencimento")
+        .lt("data_vencimento", dataHoje)
+        .neq("status", "pago");
+
+      const faixas = { ate30: 0, de31a60: 0, de61a90: 0, acima90: 0 };
+      const qtd = { ate30: 0, de31a60: 0, de61a90: 0, acima90: 0 };
+
+      (vencidas || []).forEach((c: any) => {
+        const dias = Math.floor((hoje.getTime() - new Date(c.data_vencimento).getTime()) / 86400000);
+        const val = c.valor_aberto || 0;
+        if (dias <= 30) { faixas.ate30 += val; qtd.ate30++; }
+        else if (dias <= 60) { faixas.de31a60 += val; qtd.de31a60++; }
+        else if (dias <= 90) { faixas.de61a90 += val; qtd.de61a90++; }
+        else { faixas.acima90 += val; qtd.acima90++; }
+      });
+
+      const total = Object.values(faixas).reduce((a, b) => a + b, 0);
+      const fmt = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+
+      return `**Aging de Contas Vencidas:**\n\n| Faixa | Títulos | Valor | % |\n|---|---|---|---|\n| Até 30 dias | ${qtd.ate30} | R$ ${fmt(faixas.ate30)} | ${total > 0 ? ((faixas.ate30 / total) * 100).toFixed(1) : 0}% |\n| 31-60 dias | ${qtd.de31a60} | R$ ${fmt(faixas.de31a60)} | ${total > 0 ? ((faixas.de31a60 / total) * 100).toFixed(1) : 0}% |\n| 61-90 dias | ${qtd.de61a90} | R$ ${fmt(faixas.de61a90)} | ${total > 0 ? ((faixas.de61a90 / total) * 100).toFixed(1) : 0}% |\n| Acima 90 dias | ${qtd.acima90} | R$ ${fmt(faixas.acima90)} | ${total > 0 ? ((faixas.acima90 / total) * 100).toFixed(1) : 0}% |\n| **Total** | **${(vencidas || []).length}** | **R$ ${fmt(total)}** | **100%** |`;
+    }
+
+    case "top_fornecedores_gastos": {
+      const limite = (args.limite as number) || 10;
+      const { data } = await sb
+        .from("contas_pagar")
+        .select("fornecedor_nome, valor_original, valor_aberto, status")
+        .gte("data_vencimento", `${anoAtual}-01-01`);
+
+      if (!data?.length) return "Nenhum dado encontrado.";
+
+      const agrupado: Record<string, { total: number; aberto: number; qtd: number }> = {};
+      data.forEach((c: any) => {
+        const key = c.fornecedor_nome || "N/I";
+        if (!agrupado[key]) agrupado[key] = { total: 0, aberto: 0, qtd: 0 };
+        agrupado[key].total += c.valor_original || 0;
+        agrupado[key].aberto += c.valor_aberto || 0;
+        agrupado[key].qtd++;
+      });
+
+      const sorted = Object.entries(agrupado)
+        .sort((a, b) => b[1].total - a[1].total)
+        .slice(0, limite);
+
+      const fmt = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+      const linhas = sorted.map(([nome, d], i) =>
+        `${i + 1}. **${nome}** — R$ ${fmt(d.total)} total (${d.qtd} títulos, R$ ${fmt(d.aberto)} em aberto)`
+      );
+
+      return `**Top ${limite} Fornecedores por Volume (${anoAtual}):**\n\n${linhas.join("\n")}`;
+    }
+
+    case "gerar_relatorio_executivo": {
+      // Gather all data for the report
+      const [vencidasRes, pagarRes, receberRes] = await Promise.all([
+        sb.from("contas_pagar").select("valor_aberto, data_vencimento, status, fornecedor_nome, categoria_nome").lt("data_vencimento", dataHoje).neq("status", "pago"),
+        sb.from("contas_pagar").select("valor_original, valor_aberto, valor_pago, status").gte("data_vencimento", `${anoAtual}-01-01`),
+        sb.from("contas_receber").select("valor_original, valor_aberto, status").gte("data_vencimento", `${anoAtual}-01-01`).limit(500),
+      ]);
+
+      const vencidas = vencidasRes.data || [];
+      const pagar = pagarRes.data || [];
+      const receber = receberRes.data || [];
+
+      const totalPagar = pagar.reduce((s: number, c: any) => s + (c.valor_original || 0), 0);
+      const totalAbertoPagar = pagar.reduce((s: number, c: any) => s + (c.valor_aberto || 0), 0);
+      const totalVencido = vencidas.reduce((s: number, c: any) => s + (c.valor_aberto || 0), 0);
+      const totalReceber = receber.reduce((s: number, c: any) => s + (c.valor_original || 0), 0);
+      const totalAbertoReceber = receber.reduce((s: number, c: any) => s + (c.valor_aberto || 0), 0);
+
+      const fmt = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+
+      return `# 📊 Relatório Executivo Financeiro — ${new Date().toLocaleDateString("pt-BR")}\n\n## Contas a Pagar\n- Total ${anoAtual}: **R$ ${fmt(totalPagar)}** (${pagar.length} títulos)\n- Em aberto: **R$ ${fmt(totalAbertoPagar)}**\n- Vencidas: **R$ ${fmt(totalVencido)}** (${vencidas.length} títulos)\n\n## Contas a Receber\n- Total ${anoAtual}: **R$ ${fmt(totalReceber)}** (${receber.length} títulos)\n- Em aberto: **R$ ${fmt(totalAbertoReceber)}**\n\n## Saldo Líquido\n- A receber - A pagar (aberto): **R$ ${fmt(totalAbertoReceber - totalAbertoPagar)}**\n\n---\n*Relatório gerado automaticamente pela Sofia IA.*`;
+    }
+
+    default:
+      return `Ferramenta "${name}" não reconhecida.`;
   }
+}
+
+// ────────── Build context summary ──────────
+async function buildContextSummary(): Promise<string> {
+  const sb = getSupabaseAdmin();
+  const hoje = new Date();
+  const dataHoje = hoje.toISOString().split("T")[0];
+  const anoAtual = hoje.getFullYear();
+
+  const [contasRes, receberRes] = await Promise.all([
+    sb.from("contas_pagar").select("valor_original, valor_aberto, data_vencimento, status").gte("data_vencimento", `${anoAtual}-01-01`).limit(1000),
+    sb.from("contas_receber").select("valor_original, valor_aberto, data_vencimento, status").gte("data_vencimento", `${anoAtual}-01-01`).limit(500),
+  ]);
+
+  const contas = contasRes.data || [];
+  const receber = receberRes.data || [];
+
+  const totalContas = contas.length;
+  const totalAberto = contas.reduce((s, c: any) => s + (c.valor_aberto || 0), 0);
+  const vencidas = contas.filter((c: any) => c.data_vencimento < dataHoje && c.status !== "pago");
+  const totalVencido = vencidas.reduce((s, c: any) => s + (c.valor_aberto || 0), 0);
+
+  const totalReceber = receber.reduce((s, c: any) => s + (c.valor_aberto || 0), 0);
+
+  const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+
+  return `Data: ${new Date().toLocaleDateString("pt-BR")}
+Contas a Pagar: ${totalContas} títulos, ${fmt(totalAberto)} em aberto, ${vencidas.length} vencidas (${fmt(totalVencido)})
+Contas a Receber: ${receber.length} títulos, ${fmt(totalReceber)} em aberto
+Saldo Líquido (aberto): ${fmt(totalReceber - totalAberto)}`;
+}
+
+const SYSTEM_PROMPT = `Você é Sofia, uma assistente financeira avançada especialista em contas a pagar e gestão financeira corporativa. Você tem acesso a ferramentas para consultar dados financeiros em tempo real.
+
+## Suas capacidades:
+1. **Consultar contas vencidas** com detalhes de fornecedor e dias de atraso
+2. **Buscar contas por fornecedor** específico
+3. **Analisar fluxo de caixa** com projeções de entradas e saídas
+4. **Gerar análise de aging** (envelhecimento de dívidas)
+5. **Rankear fornecedores** por volume de gastos
+6. **Gerar relatórios executivos** completos
+
+## Conhecimento em legislação:
+- Lei 14.133/2021: Prazo máximo 30 dias para pagamento
+- Código Civil Art. 389, 395, 397: Mora, juros e inadimplemento
+- KPIs: DSO, DPO, Working Capital Ratio
+- Práticas: ABC, Early Payment Discount (2-3%), Pareto 80/20
+
+## Comportamento:
+- Responda em português brasileiro, de forma clara e profissional
+- Use as ferramentas SEMPRE que precisar de dados atualizados
+- Formate valores em R$ com 2 casas decimais
+- Use markdown para estruturar respostas (tabelas, listas, negrito)
+- Dê insights proativos e recomendações baseadas nos dados
+- Cite legislação quando relevante
+- Seja concisa mas completa`;
+
+// ────────── MAIN HANDLER ──────────
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { message, history = [], generateAudio = false, action = 'chat' }: ChatRequest = await req.json();
+    const { message, history = [], generateAudio = false } = await req.json();
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
 
-    // Buscar contexto financeiro
-    const hoje = new Date();
-    const anoAtual = hoje.getFullYear();
-    const dataHoje = hoje.toISOString().split('T')[0];
+    // Build quick context
+    const contextSummary = await buildContextSummary();
 
-    // Buscar resumo das contas a pagar
-    const { data: contasResumo, error: contasError } = await supabase
-      .from('contas_pagar')
-      .select('*')
-      .gte('data_vencimento', `${anoAtual}-01-01`)
-      .lte('data_vencimento', `${anoAtual}-12-31`)
-      .limit(1000);
-
-    if (contasError) {
-      console.error("Erro ao buscar contas:", contasError);
-    }
-
-    const contas = contasResumo || [];
-
-    // Calcular métricas
-    const totalContas = contas.length;
-    const totalValor = contas.reduce((sum, c) => sum + (c.valor_original || 0), 0);
-    const totalAberto = contas.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
-    const totalPago = contas.filter(c => c.status === 'pago').reduce((sum, c) => sum + (c.valor_pago || 0), 0);
-    
-    const vencidas = contas.filter(c => {
-      const venc = c.data_vencimento?.substring(0, 10);
-      return venc && venc < dataHoje && c.status !== 'pago';
-    });
-    const totalVencido = vencidas.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
-    
-    const vencendoHoje = contas.filter(c => {
-      const venc = c.data_vencimento?.substring(0, 10);
-      return venc === dataHoje && c.status !== 'pago';
-    });
-    const totalVencendoHoje = vencendoHoje.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
-
-    const vencendoProximos7Dias = contas.filter(c => {
-      const venc = c.data_vencimento?.substring(0, 10);
-      if (!venc || c.status === 'pago') return false;
-      const dataVenc = new Date(venc);
-      const diff = (dataVenc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24);
-      return diff > 0 && diff <= 7;
-    });
-    const totalProximos7Dias = vencendoProximos7Dias.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
-
-    // Análise por categoria/departamento
-    interface CategoriaAnalise { valor: number; qtd: number; }
-    const porCategoria: Record<string, CategoriaAnalise> = contas.reduce((acc, c) => {
-      const key = c.categoria_nome || 'Não classificado';
-      if (!acc[key]) acc[key] = { valor: 0, qtd: 0 };
-      acc[key].valor += c.valor_aberto || 0;
-      acc[key].qtd += 1;
-      return acc;
-    }, {} as Record<string, CategoriaAnalise>);
-
-    const topCategorias = Object.entries(porCategoria)
-      .sort((a, b) => (b[1] as CategoriaAnalise).valor - (a[1] as CategoriaAnalise).valor)
-      .slice(0, 5)
-      .map(([nome, dados]) => {
-        const d = dados as CategoriaAnalise;
-        return `${nome}: R$ ${d.valor.toLocaleString('pt-BR')} (${d.qtd} títulos)`;
-      });
-
-    // Top fornecedores com contas vencidas
-    interface FornecedorVencido { valor: number; qtd: number; diasMaxAtraso: number; }
-    const fornecedoresVencidos: Record<string, FornecedorVencido> = vencidas.reduce((acc, c) => {
-      const key = c.fornecedor_nome || 'Não identificado';
-      const diasAtraso = Math.floor((hoje.getTime() - new Date(c.data_vencimento).getTime()) / (1000 * 60 * 60 * 24));
-      if (!acc[key]) acc[key] = { valor: 0, qtd: 0, diasMaxAtraso: 0 };
-      acc[key].valor += c.valor_aberto || 0;
-      acc[key].qtd += 1;
-      acc[key].diasMaxAtraso = Math.max(acc[key].diasMaxAtraso, diasAtraso);
-      return acc;
-    }, {} as Record<string, FornecedorVencido>);
-
-    const topFornecedoresVencidos = Object.entries(fornecedoresVencidos)
-      .sort((a, b) => (b[1] as FornecedorVencido).valor - (a[1] as FornecedorVencido).valor)
-      .slice(0, 5)
-      .map(([nome, dados]) => {
-        const d = dados as FornecedorVencido;
-        return `${nome}: R$ ${d.valor.toLocaleString('pt-BR')} (${d.qtd} títulos, até ${d.diasMaxAtraso} dias de atraso)`;
-      });
-
-    // Calcular aging
-    const aging = {
-      ate30: vencidas.filter(c => {
-        const dias = Math.floor((hoje.getTime() - new Date(c.data_vencimento).getTime()) / (1000 * 60 * 60 * 24));
-        return dias <= 30;
-      }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-      de31a60: vencidas.filter(c => {
-        const dias = Math.floor((hoje.getTime() - new Date(c.data_vencimento).getTime()) / (1000 * 60 * 60 * 24));
-        return dias > 30 && dias <= 60;
-      }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-      de61a90: vencidas.filter(c => {
-        const dias = Math.floor((hoje.getTime() - new Date(c.data_vencimento).getTime()) / (1000 * 60 * 60 * 24));
-        return dias > 60 && dias <= 90;
-      }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-      acima90: vencidas.filter(c => {
-        const dias = Math.floor((hoje.getTime() - new Date(c.data_vencimento).getTime()) / (1000 * 60 * 60 * 24));
-        return dias > 90;
-      }).reduce((sum, c) => sum + (c.valor_aberto || 0), 0),
-    };
-
-    // Contexto do sistema com legislação e técnicas
-    const systemPrompt = `Você é Sofia, uma assistente financeira especializada em contas a pagar com profundo conhecimento em legislação brasileira e técnicas de gestão financeira. Você fala português brasileiro de forma natural e amigável.
-
-${LEGISLACAO_CONTEXT}
-
-## CONTEXTO ATUAL DOS DADOS (${new Date().toLocaleDateString('pt-BR')}):
-
-### Resumo Geral (${anoAtual}):
-- Total de títulos: ${totalContas}
-- Valor total original: R$ ${totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-- Valor em aberto: R$ ${totalAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-- Valor já pago: R$ ${totalPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-
-### Situação de Vencimentos:
-- Títulos vencidos: ${vencidas.length} (R$ ${totalVencido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
-- Vencendo HOJE: ${vencendoHoje.length} títulos (R$ ${totalVencendoHoje.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
-- Vencendo nos próximos 7 dias: ${vencendoProximos7Dias.length} títulos (R$ ${totalProximos7Dias.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
-
-### Aging de Vencidos:
-- Até 30 dias: R$ ${aging.ate30.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-- 31 a 60 dias: R$ ${aging.de31a60.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-- 61 a 90 dias: R$ ${aging.de61a90.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-- Acima de 90 dias: R$ ${aging.acima90.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-
-### Top 5 Categorias por Valor:
-${topCategorias.length > 0 ? topCategorias.join('\n') : 'Nenhuma categoria identificada.'}
-
-### Top 5 Fornecedores com Contas Vencidas:
-${topFornecedoresVencidos.length > 0 ? topFornecedoresVencidos.join('\n') : 'Nenhum fornecedor com contas vencidas.'}
-
-## INSTRUÇÕES DE COMPORTAMENTO:
-- Responda de forma clara, objetiva e amigável
-- Use os dados acima para responder perguntas sobre a situação financeira
-- Quando falar valores, use formato brasileiro (R$ X.XXX,XX)
-- Dê sugestões proativas quando identificar riscos ou oportunidades
-- Seja conversacional e natural, como se estivesse em uma ligação telefônica
-- Mantenha respostas concisas, ideais para serem ouvidas (máximo 4-5 frases por resposta)
-- NÃO use marcadores, listas ou formatação markdown. Use texto corrido natural.
-- Quando solicitado conselhos ou recomendações, cite a legislação ou técnica aplicável
-- Quando solicitado relatório, forneça um resumo executivo em texto corrido
-
-## TIPO DE SOLICITAÇÃO ATUAL: ${action === 'generate_report' ? 'GERAR RELATÓRIO' : action === 'advice' ? 'FORNECER CONSELHOS ESPECIALIZADOS' : 'CONVERSA NORMAL'}
-
-${action === 'advice' ? 'O usuário quer conselhos baseados em legislação e técnicas de gestão. Cite artigos de lei, práticas de mercado e KPIs relevantes.' : ''}
-${action === 'generate_report' ? 'O usuário quer um relatório. Forneça um resumo executivo completo com os principais dados, riscos e recomendações.' : ''}`;
-
-    const messages: ChatMessage[] = [
-      { role: "system", content: systemPrompt },
-      ...history.slice(-10),
-      { role: "user", content: message }
+    const messages = [
+      { role: "system", content: `${SYSTEM_PROMPT}\n\n## Resumo atual:\n${contextSummary}` },
+      ...((history as any[]).slice(-15)),
+      { role: "user", content: message },
     ];
 
-    // Chamar Lovable AI
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY não configurada");
-    }
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // First call — let AI decide if it needs tools
+    const firstRes = await fetch(AI_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages,
-        max_tokens: action === 'generate_report' ? 1500 : 600,
-        temperature: 0.7,
+        tools: sofiaTools,
+        temperature: 0.4,
+        max_tokens: 2000,
       }),
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("Erro Lovable AI:", aiResponse.status, errorText);
-      
-      if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Muitas solicitações. Aguarde um momento." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+    if (!firstRes.ok) {
+      const t = await firstRes.text();
+      console.error("AI error:", firstRes.status, t);
+      if (firstRes.status === 429) {
+        return new Response(JSON.stringify({ success: false, error: "Muitas solicitações. Aguarde um momento." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Créditos de IA esgotados." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      if (firstRes.status === 402) {
+        return new Response(JSON.stringify({ success: false, error: "Créditos de IA esgotados." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      
-      throw new Error(`Erro ao chamar IA: ${aiResponse.status}`);
+      throw new Error(`AI error: ${firstRes.status}`);
     }
 
-    const aiData = await aiResponse.json();
-    const assistantMessage = aiData.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua solicitação.";
+    const firstData = await firstRes.json();
+    const firstChoice = firstData.choices?.[0]?.message;
 
-    // Gerar áudio se solicitado
+    let finalContent = firstChoice?.content || "";
+    const toolsUsed: string[] = [];
+
+    // If AI wants to call tools
+    if (firstChoice?.tool_calls?.length) {
+      const toolResults: any[] = [];
+
+      for (const tc of firstChoice.tool_calls) {
+        const toolName = tc.function.name;
+        let toolArgs = {};
+        try { toolArgs = JSON.parse(tc.function.arguments || "{}"); } catch { /* */ }
+
+        console.log(`[Sofia] Executing tool: ${toolName}`, toolArgs);
+        toolsUsed.push(toolName);
+
+        const result = await executeTool(toolName, toolArgs);
+        toolResults.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content: result,
+        });
+      }
+
+      // Second call with tool results
+      const secondMessages = [
+        ...messages,
+        firstChoice,
+        ...toolResults,
+      ];
+
+      const secondRes = await fetch(AI_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          messages: secondMessages,
+          temperature: 0.4,
+          max_tokens: 2000,
+        }),
+      });
+
+      if (secondRes.ok) {
+        const secondData = await secondRes.json();
+        finalContent = secondData.choices?.[0]?.message?.content || finalContent;
+      }
+    }
+
+    if (!finalContent) {
+      finalContent = "Desculpe, não consegui processar sua solicitação. Tente reformular a pergunta.";
+    }
+
+    // Generate audio if requested
     let audioBase64: string | null = null;
     if (generateAudio) {
       const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
       if (ELEVENLABS_API_KEY) {
         try {
-          // Limitar texto para TTS (máximo ~1000 caracteres para performance)
-          const textForTTS = assistantMessage.length > 1000 
-            ? assistantMessage.substring(0, 1000) + "... Para mais detalhes, veja o texto completo na tela."
-            : assistantMessage;
+          // Strip markdown for TTS
+          const textForTTS = finalContent
+            .replace(/[#*|_`\[\]]/g, "")
+            .replace(/\n{2,}/g, ". ")
+            .replace(/\n/g, " ")
+            .substring(0, 800);
 
           const ttsResponse = await fetch(
             "https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL?output_format=mp3_44100_128",
@@ -295,52 +473,35 @@ ${action === 'generate_report' ? 'O usuário quer um relatório. Forneça um res
           );
 
           if (ttsResponse.ok) {
+            const { encode: base64Encode } = await import("https://deno.land/std@0.168.0/encoding/base64.ts");
             const audioBuffer = await ttsResponse.arrayBuffer();
-            const bytes = new Uint8Array(audioBuffer);
-            let binary = '';
-            for (let i = 0; i < bytes.length; i++) {
-              binary += String.fromCharCode(bytes[i]);
-            }
-            audioBase64 = btoa(binary);
+            audioBase64 = base64Encode(audioBuffer);
           } else {
-            console.error("Erro ElevenLabs TTS:", ttsResponse.status, await ttsResponse.text());
+            console.error("ElevenLabs TTS error:", ttsResponse.status);
           }
         } catch (ttsError) {
-          console.error("Erro ao gerar áudio:", ttsError);
+          console.error("TTS error:", ttsError);
         }
-      } else {
-        console.log("ELEVENLABS_API_KEY não configurada, pulando TTS");
       }
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: assistantMessage,
+        message: finalContent,
         audioBase64,
-        type: action,
-        context: {
-          totalVencido,
-          totalVencendoHoje,
-          qtdVencidas: vencidas.length,
-          qtdVencendoHoje: vencendoHoje.length,
-        }
+        toolsUsed,
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Erro no chat:", error);
+    console.error("Sofia error:", error);
     return new Response(
       JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : "Erro desconhecido",
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

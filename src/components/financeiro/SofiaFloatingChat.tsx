@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
   Mic, MicOff, Send, Volume2, VolumeX, Bot, User, Loader2, 
-  Sparkles, AlertCircle, Calendar, DollarSign, X, MessageCircle,
-  FileText, Lightbulb, Scale, TrendingUp
+  Sparkles, AlertCircle, X, MessageCircle,
+  FileText, Lightbulb, Scale, TrendingUp, Wrench, BarChart3, Search
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAuthHeaders } from "@/lib/utils/auth-headers";
+import ReactMarkdown from "react-markdown";
 
 interface ChatMessage {
   id: string;
@@ -19,19 +20,21 @@ interface ChatMessage {
   content: string;
   audioBase64?: string;
   timestamp: Date;
-  type?: "text" | "pdf" | "advice";
-}
-
-interface ChatContext {
-  totalVencido: number;
-  totalVencendoHoje: number;
-  qtdVencidas: number;
-  qtdVencendoHoje: number;
+  toolsUsed?: string[];
 }
 
 interface SofiaFloatingChatProps {
   contasData?: any[];
 }
+
+const TOOL_LABELS: Record<string, { label: string; icon: typeof Search }> = {
+  buscar_contas_vencidas: { label: "Contas vencidas", icon: AlertCircle },
+  buscar_contas_por_fornecedor: { label: "Fornecedor", icon: Search },
+  resumo_fluxo_caixa: { label: "Fluxo de caixa", icon: TrendingUp },
+  analise_aging: { label: "Aging", icon: BarChart3 },
+  top_fornecedores_gastos: { label: "Top fornecedores", icon: BarChart3 },
+  gerar_relatorio_executivo: { label: "Relatório", icon: FileText },
+};
 
 export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,7 +44,6 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [context, setContext] = useState<ChatContext | null>(null);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -86,17 +88,11 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
     try {
       setIsSpeaking(true);
       const audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
-      
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      
+      if (audioRef.current) audioRef.current.pause();
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
-      
       audio.onended = () => setIsSpeaking(false);
       audio.onerror = () => setIsSpeaking(false);
-      
       await audio.play();
     } catch (error) {
       console.error("Erro ao reproduzir áudio:", error);
@@ -117,7 +113,6 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
       toast.error("Reconhecimento de voz não suportado");
       return;
     }
-
     if (isListening) {
       recognitionRef.current.stop();
       setIsListening(false);
@@ -158,10 +153,18 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
             message: text,
             history,
             generateAudio: voiceEnabled,
-            action: detectAction(text),
           }),
         }
       );
+
+      if (response.status === 429) {
+        toast.error("IA temporariamente indisponível. Aguarde um momento.");
+        throw new Error("Rate limited");
+      }
+      if (response.status === 402) {
+        toast.error("Créditos de IA esgotados.");
+        throw new Error("Payment required");
+      }
 
       const data = await response.json();
 
@@ -175,47 +178,26 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
         content: data.message,
         audioBase64: data.audioBase64,
         timestamp: new Date(),
-        type: data.type || "text",
+        toolsUsed: data.toolsUsed,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      setContext(data.context);
 
-      // Reproduzir áudio automaticamente
       if (data.audioBase64 && voiceEnabled) {
         await playAudio(data.audioBase64);
       }
-
-      // Se gerou PDF, abrir em nova aba
-      if (data.pdfUrl) {
-        window.open(data.pdfUrl, '_blank');
-        toast.success("Relatório PDF gerado com sucesso!");
-      }
     } catch (error) {
       console.error("Erro no chat:", error);
-      toast.error("Erro ao processar mensagem");
-      
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "Desculpe, ocorreu um erro. Tente novamente.",
+        content: "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.",
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const detectAction = (text: string): string => {
-    const lowerText = text.toLowerCase();
-    if (lowerText.includes('relatório') || lowerText.includes('pdf') || lowerText.includes('gerar')) {
-      return 'generate_report';
-    }
-    if (lowerText.includes('conselho') || lowerText.includes('dica') || lowerText.includes('recomendação') || lowerText.includes('legislação')) {
-      return 'advice';
-    }
-    return 'chat';
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -227,14 +209,16 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
 
   const quickActions = [
     { icon: AlertCircle, text: "Qual a situação das contas vencidas?", color: "text-red-500" },
-    { icon: FileText, text: "Gerar relatório PDF das contas vencidas", color: "text-blue-500" },
-    { icon: Lightbulb, text: "Me dê conselhos para melhorar o fluxo de caixa", color: "text-yellow-500" },
-    { icon: Scale, text: "Quais são os prazos legais para pagamento de fornecedores?", color: "text-purple-500" },
+    { icon: TrendingUp, text: "Como está o fluxo de caixa dos próximos 30 dias?", color: "text-blue-500" },
+    { icon: BarChart3, text: "Faça uma análise de aging das contas vencidas", color: "text-amber-500" },
+    { icon: FileText, text: "Gere um relatório executivo financeiro completo", color: "text-green-500" },
+    { icon: Lightbulb, text: "Quais fornecedores têm mais gastos este ano?", color: "text-purple-500" },
+    { icon: Scale, text: "Me dê conselhos para melhorar a inadimplência", color: "text-yellow-500" },
   ];
 
   return (
     <>
-      {/* Botão flutuante */}
+      {/* Floating button */}
       <AnimatePresence>
         {!isOpen && (
           <motion.div
@@ -250,15 +234,8 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
             >
               <div className="relative">
                 <Bot className="h-6 w-6" />
-                {context && context.qtdVencidas > 0 && (
-                  <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                    {context.qtdVencidas > 9 ? '9+' : context.qtdVencidas}
-                  </span>
-                )}
               </div>
             </Button>
-            
-            {/* Indicador de fala */}
             {isSpeaking && (
               <motion.div
                 initial={{ scale: 0 }}
@@ -275,7 +252,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
         )}
       </AnimatePresence>
 
-      {/* Chat expandido */}
+      {/* Chat window */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -283,7 +260,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.9 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-6 right-6 z-50 w-[420px] h-[600px] bg-background border rounded-xl shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-6 right-6 z-50 w-[440px] h-[650px] bg-background border rounded-xl shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="px-4 py-3 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
@@ -305,8 +282,11 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                   <div>
                     <h3 className="font-semibold flex items-center gap-2">
                       Sofia <Sparkles className="h-4 w-4 text-yellow-300" />
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-white/20 text-white border-0">
+                        PRO
+                      </Badge>
                     </h3>
-                    <p className="text-xs opacity-80">IA Especialista em Contas a Pagar</p>
+                    <p className="text-xs opacity-80">IA Financeira com Gemini Pro</p>
                   </div>
                 </div>
                 
@@ -332,47 +312,31 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                   </Button>
                 </div>
               </div>
-              
-              {/* Badges de contexto */}
-              {context && (
-                <div className="flex gap-2 mt-2">
-                  {context.qtdVencidas > 0 && (
-                    <Badge variant="destructive" className="text-[10px]">
-                      {context.qtdVencidas} vencidas
-                    </Badge>
-                  )}
-                  {context.qtdVencendoHoje > 0 && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      {context.qtdVencendoHoje} hoje
-                    </Badge>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Messages */}
             <ScrollArea className="flex-1 p-4" ref={scrollRef}>
               <div className="space-y-4">
                 {messages.length === 0 && (
-                  <div className="text-center py-4">
+                  <div className="text-center py-3">
                     <Bot className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
                     <h3 className="font-medium mb-1">Olá! Sou a Sofia 👋</h3>
                     <p className="text-xs text-muted-foreground mb-4">
-                      Posso gerar relatórios, dar conselhos baseados em legislação e analisar suas contas.
+                      Agora com IA avançada! Consulto dados em tempo real, gero relatórios e analiso seu financeiro.
                     </p>
                     
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       {quickActions.map((q, i) => (
                         <Button
                           key={i}
                           variant="outline"
                           size="sm"
                           onClick={() => handleSend(q.text)}
-                          className="w-full justify-start gap-2 text-xs h-9"
+                          className="justify-start gap-1.5 text-[11px] h-8 px-2"
                           disabled={isLoading}
                         >
-                          <q.icon className={`h-4 w-4 ${q.color}`} />
-                          <span className="truncate">{q.text}</span>
+                          <q.icon className={`h-3.5 w-3.5 shrink-0 ${q.color}`} />
+                          <span className="truncate text-left">{q.text}</span>
                         </Button>
                       ))}
                     </div>
@@ -387,40 +351,63 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                     }`}
                   >
                     {message.role === "assistant" && (
-                      <Avatar className="h-7 w-7 bg-primary/10 shrink-0">
+                      <Avatar className="h-7 w-7 bg-primary/10 shrink-0 mt-1">
                         <AvatarFallback className="bg-transparent">
                           <Bot className="h-3.5 w-3.5 text-primary" />
                         </AvatarFallback>
                       </Avatar>
                     )}
                     
-                    <div
-                      className={`max-w-[85%] rounded-lg px-3 py-2 ${
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      
-                      {message.role === "assistant" && message.audioBase64 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-1 h-6 text-[10px] gap-1 px-2"
-                          onClick={() => {
-                            if (isSpeaking) stopAudio();
-                            else playAudio(message.audioBase64!);
-                          }}
-                        >
-                          {isSpeaking ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-                          {isSpeaking ? "Parar" : "Ouvir"}
-                        </Button>
-                      )}
+                    <div className={`max-w-[85%] space-y-1`}>
+                      {/* Tool badges */}
+                      {message.role === "assistant" && message.toolsUsed?.length ? (
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {message.toolsUsed.map((tool, i) => {
+                            const info = TOOL_LABELS[tool];
+                            return (
+                              <Badge key={i} variant="outline" className="text-[9px] gap-1 py-0 px-1.5 bg-primary/5">
+                                <Wrench className="h-2.5 w-2.5" />
+                                {info?.label || tool}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+
+                      <div
+                        className={`rounded-lg px-3 py-2 ${
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}
+                      >
+                        {message.role === "assistant" ? (
+                          <div className="text-sm prose prose-sm dark:prose-invert max-w-none [&_table]:text-xs [&_table]:w-full [&_th]:px-2 [&_th]:py-1 [&_td]:px-2 [&_td]:py-1 [&_table]:border-collapse [&_th]:border [&_td]:border [&_th]:border-border [&_td]:border-border [&_th]:bg-muted/50 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_li]:my-0">
+                            <ReactMarkdown>{message.content}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        )}
+                        
+                        {message.role === "assistant" && message.audioBase64 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-1 h-6 text-[10px] gap-1 px-2"
+                            onClick={() => {
+                              if (isSpeaking) stopAudio();
+                              else playAudio(message.audioBase64!);
+                            }}
+                          >
+                            {isSpeaking ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                            {isSpeaking ? "Parar" : "Ouvir"}
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     {message.role === "user" && (
-                      <Avatar className="h-7 w-7 bg-secondary shrink-0">
+                      <Avatar className="h-7 w-7 bg-secondary shrink-0 mt-1">
                         <AvatarFallback className="bg-transparent">
                           <User className="h-3.5 w-3.5" />
                         </AvatarFallback>
@@ -439,7 +426,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                     <div className="bg-muted rounded-lg px-3 py-2">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-3 w-3 animate-spin" />
-                        <span className="text-xs text-muted-foreground">Pensando...</span>
+                        <span className="text-xs text-muted-foreground">Consultando dados e analisando...</span>
                       </div>
                     </div>
                   </div>
@@ -463,8 +450,8 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder={isListening ? "Ouvindo..." : "Digite ou fale..."}
+                  onKeyDown={handleKeyPress}
+                  placeholder={isListening ? "Ouvindo..." : "Pergunte sobre finanças..."}
                   disabled={isLoading || isListening}
                   className="flex-1 h-9 text-sm"
                 />
@@ -475,13 +462,9 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                   size="icon"
                   className="shrink-0 h-9 w-9"
                 >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  <Send className="h-4 w-4" />
                 </Button>
               </div>
-              
-              <p className="text-[10px] text-muted-foreground text-center mt-2">
-                {voiceEnabled ? "🔊 Voz ativa" : "🔇 Mudo"} • Diga "gerar PDF" ou "me dê conselhos"
-              </p>
             </div>
           </motion.div>
         )}
