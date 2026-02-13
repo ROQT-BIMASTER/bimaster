@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
   Mic, MicOff, Send, Volume2, VolumeX, Bot, User, Loader2, 
-  Sparkles, AlertCircle, X, MessageCircle,
+  Sparkles, AlertCircle, X, MessageCircle, Phone, PhoneOff,
   FileText, Lightbulb, Scale, TrendingUp, Wrench, BarChart3, Search,
   Download, Image as ImageIcon
 } from "lucide-react";
@@ -19,6 +19,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend,
 } from "recharts";
 import { exportToExcel } from "@/utils/excelExport";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChartPayload {
   type: "bar" | "line" | "pie" | "area";
