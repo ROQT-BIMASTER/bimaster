@@ -218,3 +218,9 @@ verify_jwt = false
 
 [functions.lead-insight]
 verify_jwt = true
+
+[functions.sofia-voice-token]
+verify_jwt = false
+
+[functions.elevenlabs-tts]
+verify_jwt = false
