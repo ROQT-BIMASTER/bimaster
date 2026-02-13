@@ -7,12 +7,27 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
   Mic, MicOff, Send, Volume2, VolumeX, Bot, User, Loader2, 
   Sparkles, AlertCircle, X, MessageCircle,
-  FileText, Lightbulb, Scale, TrendingUp, Wrench, BarChart3, Search
+  FileText, Lightbulb, Scale, TrendingUp, Wrench, BarChart3, Search,
+  Download, Image as ImageIcon
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAuthHeaders } from "@/lib/utils/auth-headers";
 import ReactMarkdown from "react-markdown";
+import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend,
+} from "recharts";
+import { exportToExcel } from "@/utils/excelExport";
+
+interface ChartPayload {
+  type: "bar" | "line" | "pie" | "area";
+  title: string;
+  data: any[];
+  xKey: string;
+  yKeys: string[];
+  colors: string[];
+}
 
 interface ChatMessage {
   id: string;
@@ -21,6 +36,7 @@ interface ChatMessage {
   audioBase64?: string;
   timestamp: Date;
   toolsUsed?: string[];
+  charts?: ChartPayload[];
 }
 
 interface SofiaFloatingChatProps {
@@ -34,7 +50,183 @@ const TOOL_LABELS: Record<string, { label: string; icon: typeof Search }> = {
   analise_aging: { label: "Aging", icon: BarChart3 },
   top_fornecedores_gastos: { label: "Top fornecedores", icon: BarChart3 },
   gerar_relatorio_executivo: { label: "Relatório", icon: FileText },
+  gerar_dados_grafico: { label: "Gráfico", icon: BarChart3 },
 };
+
+const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+
+function SofiaChart({ chart, messageId }: { chart: ChartPayload; messageId: string }) {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const downloadPNG = async () => {
+    if (!chartRef.current) return;
+    try {
+      const svg = chartRef.current.querySelector("svg");
+      if (!svg) return;
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const img = new window.Image();
+      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => {
+          canvas.width = img.width * 2;
+          canvas.height = img.height * 2;
+          ctx!.fillStyle = "#ffffff";
+          ctx!.fillRect(0, 0, canvas.width, canvas.height);
+          ctx!.scale(2, 2);
+          ctx!.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(blob);
+              a.download = `sofia-${chart.title.replace(/\s+/g, "-").toLowerCase()}.png`;
+              a.click();
+              URL.revokeObjectURL(a.href);
+            }
+            resolve();
+          }, "image/png");
+          URL.revokeObjectURL(url);
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+
+      toast.success("Gráfico baixado como PNG!");
+    } catch {
+      toast.error("Erro ao exportar gráfico");
+    }
+  };
+
+  const downloadExcel = async () => {
+    try {
+      const columns = Object.keys(chart.data[0] || {}).map((key) => ({
+        header: key.charAt(0).toUpperCase() + key.slice(1),
+        key,
+        width: 20,
+      }));
+      await exportToExcel(chart.data, {
+        filename: `sofia-${chart.title.replace(/\s+/g, "-").toLowerCase()}`,
+        sheetName: chart.title.substring(0, 31),
+        columns,
+        includeTimestamp: true,
+      });
+      toast.success("Dados exportados para Excel!");
+    } catch {
+      toast.error("Erro ao exportar dados");
+    }
+  };
+
+  const renderChart = () => {
+    const { type, data, xKey, yKeys, colors } = chart;
+
+    const customTooltip = ({ active, payload, label }: any) => {
+      if (!active || !payload?.length) return null;
+      return (
+        <div className="bg-background border rounded-md shadow-lg p-2 text-xs">
+          <p className="font-medium mb-1">{label}</p>
+          {payload.map((p: any, i: number) => (
+            <p key={i} style={{ color: p.color }}>
+              {p.name}: {typeof p.value === "number" ? fmt(p.value) : p.value}
+            </p>
+          ))}
+        </div>
+      );
+    };
+
+    switch (type) {
+      case "bar":
+        return (
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey={xKey} tick={{ fontSize: 9 }} angle={-30} textAnchor="end" height={50} />
+              <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+              <Tooltip content={customTooltip} />
+              {yKeys.map((key, i) => (
+                <Bar key={key} dataKey={key} fill={colors[i % colors.length]} radius={[3, 3, 0, 0]} />
+              ))}
+              {yKeys.length > 1 && <Legend wrapperStyle={{ fontSize: 10 }} />}
+            </BarChart>
+          </ResponsiveContainer>
+        );
+      case "line":
+        return (
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey={xKey} tick={{ fontSize: 9 }} angle={-30} textAnchor="end" height={50} />
+              <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+              <Tooltip content={customTooltip} />
+              {yKeys.map((key, i) => (
+                <Line key={key} type="monotone" dataKey={key} stroke={colors[i % colors.length]} strokeWidth={2} dot={{ r: 3 }} />
+              ))}
+              {yKeys.length > 1 && <Legend wrapperStyle={{ fontSize: 10 }} />}
+            </LineChart>
+          </ResponsiveContainer>
+        );
+      case "area":
+        return (
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey={xKey} tick={{ fontSize: 9 }} angle={-30} textAnchor="end" height={50} />
+              <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+              <Tooltip content={customTooltip} />
+              {yKeys.map((key, i) => (
+                <Area key={key} type="monotone" dataKey={key} stroke={colors[i % colors.length]} fill={colors[i % colors.length]} fillOpacity={0.2} strokeWidth={2} />
+              ))}
+              {yKeys.length > 1 && <Legend wrapperStyle={{ fontSize: 10 }} />}
+            </AreaChart>
+          </ResponsiveContainer>
+        );
+      case "pie":
+        return (
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={70}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={{ strokeWidth: 1 }}
+                fontSize={9}
+              >
+                {data.map((_, i) => (
+                  <Cell key={i} fill={colors[i % colors.length]} />
+                ))}
+              </Pie>
+              <Tooltip content={customTooltip} />
+            </PieChart>
+          </ResponsiveContainer>
+        );
+    }
+  };
+
+  return (
+    <div className="mt-2 bg-background rounded-lg border p-2">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-semibold">{chart.title}</span>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={downloadPNG} title="Baixar PNG">
+            <ImageIcon className="h-3 w-3" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={downloadExcel} title="Baixar Excel">
+            <Download className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+      <div ref={chartRef}>
+        {renderChart()}
+      </div>
+    </div>
+  );
+}
 
 export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -179,6 +371,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
         audioBase64: data.audioBase64,
         timestamp: new Date(),
         toolsUsed: data.toolsUsed,
+        charts: data.charts?.length ? data.charts : undefined,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -210,10 +403,10 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
   const quickActions = [
     { icon: AlertCircle, text: "Qual a situação das contas vencidas?", color: "text-red-500" },
     { icon: TrendingUp, text: "Como está o fluxo de caixa dos próximos 30 dias?", color: "text-blue-500" },
-    { icon: BarChart3, text: "Faça uma análise de aging das contas vencidas", color: "text-amber-500" },
+    { icon: BarChart3, text: "Gere um gráfico de aging das contas vencidas", color: "text-amber-500" },
     { icon: FileText, text: "Gere um relatório executivo financeiro completo", color: "text-green-500" },
-    { icon: Lightbulb, text: "Quais fornecedores têm mais gastos este ano?", color: "text-purple-500" },
-    { icon: Scale, text: "Me dê conselhos para melhorar a inadimplência", color: "text-yellow-500" },
+    { icon: BarChart3, text: "Gráfico dos top 10 fornecedores por gastos", color: "text-purple-500" },
+    { icon: Scale, text: "Gráfico de evolução mensal do fluxo de caixa", color: "text-yellow-500" },
   ];
 
   return (
@@ -260,7 +453,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.9 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-6 right-6 z-50 w-[440px] h-[650px] bg-background border rounded-xl shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-6 right-6 z-50 w-[480px] h-[700px] bg-background border rounded-xl shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="px-4 py-3 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
@@ -286,7 +479,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                         PRO
                       </Badge>
                     </h3>
-                    <p className="text-xs opacity-80">IA Financeira com Gemini Pro</p>
+                    <p className="text-xs opacity-80">IA Financeira • Gráficos • Relatórios</p>
                   </div>
                 </div>
                 
@@ -322,7 +515,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                     <Bot className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
                     <h3 className="font-medium mb-1">Olá! Sou a Sofia 👋</h3>
                     <p className="text-xs text-muted-foreground mb-4">
-                      Agora com IA avançada! Consulto dados em tempo real, gero relatórios e analiso seu financeiro.
+                      IA avançada com gráficos interativos, relatórios e análise de todo o histórico financeiro.
                     </p>
                     
                     <div className="grid grid-cols-2 gap-1.5">
@@ -358,7 +551,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                       </Avatar>
                     )}
                     
-                    <div className={`max-w-[85%] space-y-1`}>
+                    <div className={`max-w-[88%] space-y-1`}>
                       {/* Tool badges */}
                       {message.role === "assistant" && message.toolsUsed?.length ? (
                         <div className="flex flex-wrap gap-1 mb-1">
@@ -404,6 +597,11 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                           </Button>
                         )}
                       </div>
+
+                      {/* Charts */}
+                      {message.charts?.map((chart, i) => (
+                        <SofiaChart key={`${message.id}-chart-${i}`} chart={chart} messageId={message.id} />
+                      ))}
                     </div>
 
                     {message.role === "user" && (
@@ -451,7 +649,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  placeholder={isListening ? "Ouvindo..." : "Pergunte sobre finanças..."}
+                  placeholder={isListening ? "Ouvindo..." : "Peça gráficos, relatórios, análises..."}
                   disabled={isLoading || isListening}
                   className="flex-1 h-9 text-sm"
                 />
