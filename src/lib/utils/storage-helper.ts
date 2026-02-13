@@ -126,6 +126,41 @@ export async function getSignedUrls(
 }
 
 /**
+ * Faz upload de um arquivo e retorna uma signed URL (em vez de URL pública).
+ * Usar esta função em vez de getPublicUrl() para preparar migração para buckets privados.
+ * @param bucket Nome do bucket
+ * @param filePath Caminho do arquivo no bucket
+ * @param file Arquivo a ser enviado
+ * @param expiresIn Expiração da signed URL em segundos (padrão: 1 ano)
+ */
+export async function uploadAndGetSignedUrl(
+  bucket: string,
+  filePath: string,
+  file: File,
+  expiresIn = 31536000 // 1 ano
+): Promise<{ signedUrl: string; path: string; error: null } | { signedUrl: null; path: string; error: Error }> {
+  try {
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file, { upsert: false });
+
+    if (uploadError) throw uploadError;
+
+    const { data, error: signError } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(filePath, expiresIn);
+
+    if (signError || !data?.signedUrl) {
+      throw signError || new Error('Failed to generate signed URL');
+    }
+
+    return { signedUrl: data.signedUrl, path: filePath, error: null };
+  } catch (error) {
+    return { signedUrl: null, path: filePath, error: error as Error };
+  }
+}
+
+/**
  * Extrai o caminho do arquivo de uma URL pública ou assinada
  */
 export function extractPathFromUrl(url: string): string | null {
@@ -150,7 +185,7 @@ export async function migratePublicUrlToSigned(
   expiresIn = 3600
 ): Promise<string | null> {
   const path = extractPathFromUrl(publicUrl);
-  if (!path) return publicUrl; // Se não conseguir extrair, retorna a original
+  if (!path) return publicUrl;
 
   const { signedUrl } = await getSignedUrl(bucket, path, expiresIn);
   return signedUrl || publicUrl;

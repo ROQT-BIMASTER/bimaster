@@ -18,6 +18,8 @@ import { Loader2, CheckCircle, XCircle, FileText, DollarSign, Calendar, User, Al
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveStorageUrl } from "@/lib/utils/storage-url";
+import { toast } from "sonner";
 
 interface AprovarDespesaDepartamentoDialogProps {
   expense: DepartmentExpense;
@@ -191,19 +193,21 @@ export function AprovarDespesaDepartamentoDialog({
 
                   <div className="space-y-2">
                     {expense.attachments.map((attachment, index) => (
-                      <a
+                      <button
                         key={index}
-                        href={attachment.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between p-2 rounded border hover:bg-muted/50 transition-colors group"
+                        onClick={async () => {
+                          const { signedUrl, error } = await resolveStorageUrl(attachment.url);
+                          if (error || !signedUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+                          window.open(signedUrl, "_blank");
+                        }}
+                        className="flex items-center justify-between p-2 rounded border hover:bg-muted/50 transition-colors group w-full text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           <span className="text-sm truncate">{attachment.name}</span>
                         </div>
                         <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary flex-shrink-0" />
-                      </a>
+                      </button>
                     ))}
                   </div>
 

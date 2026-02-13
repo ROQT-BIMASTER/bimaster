@@ -131,10 +131,12 @@ export const OfflinePhotoCapture: React.FC<OfflinePhotoCaptureProps> = ({
 
       if (uploadError) throw uploadError;
 
-      // Obter URL pública
-      const { data: urlData } = supabase.storage
+      // Gerar signed URL em vez de URL pública
+      const { data: signedData, error: signError } = await supabase.storage
         .from('trade-photos')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 31536000); // 1 ano
+
+      if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
 
       // Inserir registro no banco
       const { error: insertError } = await supabase
@@ -142,7 +144,7 @@ export const OfflinePhotoCapture: React.FC<OfflinePhotoCaptureProps> = ({
         .insert({
           store_id: photo.storeId || null,
           photo_type: photo.photoType,
-          photo_url: urlData.publicUrl,
+          photo_url: signedData.signedUrl,
           upload_date: photo.capturedAt,
           ai_processed: false
         });

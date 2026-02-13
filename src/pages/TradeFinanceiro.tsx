@@ -761,11 +761,14 @@ export default function TradeFinanceiro() {
                               
                               if (uploadError) throw uploadError;
                               
-                              const { data: urlData } = supabase.storage
+                              // Gerar signed URL em vez de URL pública
+                              const { data: signedData, error: signError } = await supabase.storage
                                 .from("trade-budget-docs")
-                                .getPublicUrl(fileName);
+                                .createSignedUrl(fileName, 31536000); // 1 ano
                               
-                              setInvestmentReceiptUrl(urlData.publicUrl);
+                              if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
+                              
+                              setInvestmentReceiptUrl(signedData.signedUrl);
                               toast.success("Comprovante anexado!");
                             } catch (error) {
                               toast.error(getSafeErrorMessage(error));

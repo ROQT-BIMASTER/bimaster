@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { toast } from "sonner";
 import { Paperclip, X, FileText, Image, Loader2, Download, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -59,13 +60,20 @@ export function ExpenseAttachments({
           continue;
         }
 
-        const { data: urlData } = supabase.storage
+        // Gerar signed URL em vez de URL pública
+        const { data: signedData, error: signError } = await supabase.storage
           .from(bucket)
-          .getPublicUrl(fileName);
+          .createSignedUrl(fileName, 31536000); // 1 ano
+
+        if (signError || !signedData?.signedUrl) {
+          console.error("Signed URL error:", signError);
+          toast.error(`Erro ao gerar URL para ${file.name}`);
+          continue;
+        }
 
         newAttachments.push({
           name: file.name,
-          url: urlData.publicUrl,
+          url: signedData.signedUrl,
           type: file.type,
           size: file.size,
           uploaded_at: new Date().toISOString(),
@@ -179,7 +187,11 @@ export function ExpenseAttachments({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => window.open(attachment.url, "_blank")}
+                  onClick={async () => {
+                    const { signedUrl, error } = await resolveStorageUrl(attachment.url);
+                    if (error || !signedUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+                    window.open(signedUrl, "_blank");
+                  }}
                   title="Visualizar"
                 >
                   <Eye className="h-4 w-4" />
@@ -189,11 +201,17 @@ export function ExpenseAttachments({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  asChild
+                  onClick={async () => {
+                    const { signedUrl, error } = await resolveStorageUrl(attachment.url);
+                    if (error || !signedUrl) { toast.error(error || "Erro ao baixar arquivo"); return; }
+                    const a = document.createElement('a');
+                    a.href = signedUrl;
+                    a.download = attachment.name;
+                    a.click();
+                  }}
+                  title="Baixar"
                 >
-                  <a href={attachment.url} download={attachment.name} title="Baixar">
-                    <Download className="h-4 w-4" />
-                  </a>
+                  <Download className="h-4 w-4" />
                 </Button>
                 {!readOnly && (
                   <Button

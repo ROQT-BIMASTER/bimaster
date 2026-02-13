@@ -82,15 +82,21 @@ export function BudgetDocumentUpload({
           continue;
         }
 
-        // Obter URL pública
-        const { data: urlData } = supabase.storage
+        // Gerar signed URL em vez de URL pública
+        const { data: signedData, error: signError } = await supabase.storage
           .from("trade-budget-docs")
-          .getPublicUrl(path);
+          .createSignedUrl(path, 31536000); // 1 ano
+
+        if (signError || !signedData?.signedUrl) {
+          console.error("Signed URL error:", signError);
+          toast.error(`Erro ao gerar URL para ${file.name}`);
+          continue;
+        }
 
         newFiles.push({
           name: file.name,
           path,
-          url: urlData.publicUrl,
+          url: signedData.signedUrl,
           type: file.type,
           size: file.size,
         });

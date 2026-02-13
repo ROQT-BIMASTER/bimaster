@@ -133,16 +133,18 @@ const syncPhoto = async (data: any): Promise<boolean> => {
     
     if (uploadError) throw uploadError;
     
-    // Obter URL pública
-    const { data: urlData } = supabase.storage
+    // Gerar signed URL em vez de URL pública
+    const { data: signedData, error: signError } = await supabase.storage
       .from('photos')
-      .getPublicUrl(`visits/${data.storeId}/${fileName}`);
+      .createSignedUrl(`visits/${data.storeId}/${fileName}`, 31536000); // 1 ano
+
+    if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
     
     // Salvar no banco
     const { error: dbError } = await supabase.from('photos').insert({
       visit_id: data.visitId,
       store_id: data.storeId,
-      photo_url: urlData.publicUrl,
+      photo_url: signedData.signedUrl,
       photo_type: data.photoType,
       latitude: data.latitude,
       longitude: data.longitude,

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Check, TrendingDown, TrendingUp, Upload, FileText, Trash2, Star } from "lucide-react";
 import { toast } from "sonner";
+import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -114,8 +115,11 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
         const path = `${produtoId}/${produtoCustoId}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("fabrica-cotacoes").upload(path, arquivo);
         if (upErr) throw upErr;
-        const { data: urlData } = supabase.storage.from("fabrica-cotacoes").getPublicUrl(path);
-        arquivoUrl = urlData.publicUrl;
+        const { data: signedData, error: signError } = await supabase.storage
+          .from("fabrica-cotacoes")
+          .createSignedUrl(path, 31536000); // 1 ano
+        if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
+        arquivoUrl = signedData.signedUrl;
         arquivoNome = arquivo.name;
       }
 
@@ -263,7 +267,11 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
                   {c.validade && <p className="text-xs text-muted-foreground">Validade: {format(new Date(c.validade), "dd/MM/yyyy", { locale: ptBR })}</p>}
                   {c.observacoes && <p className="text-xs text-muted-foreground italic">{c.observacoes}</p>}
                   {c.arquivo_url && (
-                    <Button variant="ghost" size="sm" className="h-6 text-xs px-1" onClick={() => window.open(c.arquivo_url!, "_blank")}>
+                    <Button variant="ghost" size="sm" className="h-6 text-xs px-1" onClick={async () => {
+                      const { signedUrl, error } = await resolveStorageUrl(c.arquivo_url!);
+                      if (error || !signedUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+                      window.open(signedUrl, "_blank");
+                    }}>
                       <FileText className="h-3 w-3 mr-1" /> {c.arquivo_nome || "Ver arquivo"}
                     </Button>
                   )}

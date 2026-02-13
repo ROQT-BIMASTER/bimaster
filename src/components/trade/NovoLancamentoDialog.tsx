@@ -139,8 +139,10 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         const newPath = `${finalEntryId}/${fileName}`;
         try {
           await supabase.storage.from("trade-expense-docs").move(oldPath, newPath);
-          const { data: urlData } = supabase.storage.from("trade-expense-docs").getPublicUrl(newPath);
-          movedAttachments.push({ ...att, url: urlData.publicUrl });
+          const { data: signedData } = await supabase.storage
+            .from("trade-expense-docs")
+            .createSignedUrl(newPath, 31536000); // 1 ano
+          movedAttachments.push({ ...att, url: signedData?.signedUrl || att.url });
         } catch {
           movedAttachments.push(att);
         }

@@ -31,6 +31,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { resolveStorageUrl } from "@/lib/utils/storage-url";
 
 import { FichaAprovacaoBanner } from "./FichaAprovacaoBanner";
 import { FichaApontamentosPanel } from "./FichaApontamentosPanel";
@@ -241,16 +242,19 @@ export function FichaCustoProdutoEditor({
         .upload(path, file);
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      // Gerar signed URL em vez de URL pública
+      const { data: signedData, error: signError } = await supabase.storage
         .from("fabrica-custo-evidencias")
-        .getPublicUrl(path);
+        .createSignedUrl(path, 31536000); // 1 ano
+
+      if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
 
       const user = (await supabase.auth.getUser()).data.user;
       await supabase.from("fabrica_custo_evidencias" as any).insert({
         produto_custo_id: insumoId,
         produto_id: produto.id,
         nome_arquivo: file.name,
-        url_arquivo: urlData.publicUrl,
+        url_arquivo: signedData.signedUrl,
         tipo_arquivo: file.type,
         tamanho_bytes: file.size,
         usuario_id: user?.id,
@@ -861,7 +865,11 @@ export function FichaCustoProdutoEditor({
                                             {ev.tamanho_bytes ? `${(ev.tamanho_bytes / 1024).toFixed(0)} KB` : ""}
                                           </span>
                                           <span className="text-xs text-muted-foreground">{ev.usuario_nome}</span>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(ev.url_arquivo, "_blank")} title="Visualizar">
+                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={async () => {
+                                            const { signedUrl, error } = await resolveStorageUrl(ev.url_arquivo);
+                                            if (error || !signedUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+                                            window.open(signedUrl, "_blank");
+                                          }} title="Visualizar">
                                             <Eye className="h-3.5 w-3.5" />
                                           </Button>
                                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleRemoverEvidencia(ev.id, insumo.id)} title="Remover">

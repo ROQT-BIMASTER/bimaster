@@ -53,11 +53,13 @@ export function AdicionarEvidenciaDialog({
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
+        const { data: signedData, error: signError } = await supabase.storage
           .from("attachments")
-          .getPublicUrl(filePath);
+          .createSignedUrl(filePath, 31536000); // 1 ano
 
-        newFiles.push({ name: file.name, url: urlData.publicUrl });
+        if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
+
+        newFiles.push({ name: file.name, url: signedData.signedUrl });
       }
 
       setUploadedFiles((prev) => [...prev, ...newFiles]);
