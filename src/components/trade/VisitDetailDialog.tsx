@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveStorageUrl } from "@/lib/utils/storage-url";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -357,7 +359,11 @@ export function VisitDetailDialog({ open, onOpenChange, visitId }: VisitDetailDi
                           src={photo.photo_url}
                           alt={`Foto ${photo.photo_type}`}
                           className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                          onClick={() => window.open(photo.photo_url, '_blank')}
+                          onClick={async () => {
+                            const { signedUrl, error } = await resolveStorageUrl(photo.photo_url);
+                            if (error || !signedUrl) { toast.error(error || "Erro ao abrir foto"); return; }
+                            window.open(signedUrl, '_blank');
+                          }}
                         />
                         {photo.category && (
                           <Badge 

@@ -20,6 +20,7 @@ import {
 import { ProductCreativeGenerator } from "../ProductCreativeGenerator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -280,10 +281,12 @@ function UploadAssetDialog({ onSuccess }: { onSuccess: () => void }) {
 
         if (uploadError) throw uploadError;
 
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
+        // Gerar signed URL em vez de URL pública
+        const { data: signedData, error: signError } = await supabase.storage
           .from('marketing-assets')
-          .getPublicUrl(fileName);
+          .createSignedUrl(fileName, 31536000); // 1 ano
+
+        if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
 
         // Save metadata
         const tipo = selectedFiles.length === 1 ? formData.tipo : getFileType(file);
@@ -296,7 +299,7 @@ function UploadAssetDialog({ onSuccess }: { onSuccess: () => void }) {
             descricao: formData.descricao || null,
             tipo,
             storage_path: fileName,
-            url_publica: publicUrl,
+            url_publica: signedData.signedUrl,
             tamanho_bytes: file.size,
             mime_type: file.type,
             lancamento_id: formData.lancamento_id || null,
@@ -714,7 +717,11 @@ function AssetGallery() {
             {previewAsset && !isImage(previewAsset.mime_type) && !isVideo(previewAsset.mime_type) && (
               <div className="text-center py-12">
                 <FileImage className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <Button onClick={() => window.open(previewAsset.url_publica, '_blank')}>
+                <Button onClick={async () => {
+                  const { signedUrl, error } = await resolveStorageUrl(previewAsset.url_publica);
+                  if (error || !signedUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+                  window.open(signedUrl, '_blank');
+                }}>
                   <Eye className="h-4 w-4 mr-2" />
                   Abrir em nova aba
                 </Button>

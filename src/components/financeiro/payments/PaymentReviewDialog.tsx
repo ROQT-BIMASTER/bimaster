@@ -11,6 +11,8 @@ import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, E
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { resolveStorageUrl } from "@/lib/utils/storage-url";
+import { toast } from "sonner";
 import type { PaymentQueueItem, SourceType, PaymentQueueStatus } from "@/hooks/useFinancialPaymentQueue";
 import { AttachmentAcknowledgement } from "./AttachmentAcknowledgement";
 import { SupplierDetailsCard } from "./SupplierDetailsCard";
@@ -273,11 +275,13 @@ export function PaymentReviewDialog({
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Documento anexado</span>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={item.attachment_url} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    const { signedUrl, error } = await resolveStorageUrl(item.attachment_url!);
+                    if (error || !signedUrl) { toast.error(error || "Erro ao abrir documento"); return; }
+                    window.open(signedUrl, "_blank");
+                  }}>
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Visualizar
-                    </a>
                   </Button>
                 </div>
               </CardContent>

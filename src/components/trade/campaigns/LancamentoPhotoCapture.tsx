@@ -78,17 +78,20 @@ export function LancamentoPhotoCapture({
 
           if (uploadError) throw uploadError;
 
-          const { data: urlData } = supabase.storage
+          // Gerar signed URL em vez de URL pública
+          const { data: signedData, error: signError } = await supabase.storage
             .from('trade-photos')
-            .getPublicUrl(fileName);
+            .createSignedUrl(fileName, 31536000); // 1 ano
 
-          const publicUrl = urlData.publicUrl;
+          if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
+
+          const photoUrl = signedData.signedUrl;
 
           // Create photo record
           const { data: photoRecord, error: photoError } = await supabase
             .from('photos')
             .insert({
-              photo_url: publicUrl,
+              photo_url: photoUrl,
               photo_type: 'campaign_execution',
               vendedor_id: user.id,
               store_id: null, // Will link via customer if needed
@@ -102,19 +105,19 @@ export function LancamentoPhotoCapture({
           // Add to analysis queue
           await supabase.from('photo_analysis_queue').insert({
             photo_id: photoRecord.id,
-            photo_url: publicUrl,
+            photo_url: photoUrl,
             created_by: user.id,
           });
 
           // Update photo status
           const updatedPhotos = photos.map(p => 
             p.id === tempId 
-              ? { ...p, id: photoRecord.id, url: publicUrl, status: 'pending_analysis' as const }
+              ? { ...p, id: photoRecord.id, url: photoUrl, status: 'pending_analysis' as const }
               : p
           );
           onPhotosChange([...updatedPhotos.filter(p => p.id !== tempId), {
             id: photoRecord.id,
-            url: publicUrl,
+            url: photoUrl,
             status: 'pending_analysis'
           }]);
 

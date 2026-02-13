@@ -79,10 +79,12 @@ export function TaskFiles({ tarefaId, files }: TaskFilesProps) {
         return;
       }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      // Gerar signed URL em vez de URL pública
+      const { data: signedData, error: signError } = await supabase.storage
         .from('marketing-files')
-        .getPublicUrl(uploadData.path);
+        .createSignedUrl(uploadData.path, 31536000); // 1 ano
+
+      if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
 
       // Save to database
       const { error } = await supabase
@@ -90,7 +92,7 @@ export function TaskFiles({ tarefaId, files }: TaskFilesProps) {
         .insert({
           tarefa_id: tarefaId,
           nome: file.name,
-          url: publicUrl,
+          url: signedData.signedUrl,
           tipo: file.type,
           tamanho_bytes: file.size,
           created_by: user?.id

@@ -13,6 +13,7 @@ import { StoreShareHistoryChart } from "./StoreShareHistoryChart";
 import { ClassificationBadge } from "./ClassificationBadge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { Progress } from "@/components/ui/progress";
 
 interface StoreDetailDialogProps {
@@ -1291,15 +1292,17 @@ export const StoreDetailDialog = ({ open, onOpenChange, storeId }: StoreDetailDi
                       )}
                       {investment.evidence_url && (
                         <div className="mt-2 pt-2 border-t">
-                          <a 
-                            href={investment.evidence_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
+                          <button 
+                            onClick={async () => {
+                              const { signedUrl, error } = await resolveStorageUrl(investment.evidence_url);
+                              if (error || !signedUrl) { toast.error(error || "Erro ao abrir evidência"); return; }
+                              window.open(signedUrl, "_blank");
+                            }}
                             className="text-sm text-primary hover:underline flex items-center gap-1"
                           >
                             <FileText className="h-3 w-3" />
                             Ver evidência
-                          </a>
+                          </button>
                         </div>
                       )}
                     </CardContent>

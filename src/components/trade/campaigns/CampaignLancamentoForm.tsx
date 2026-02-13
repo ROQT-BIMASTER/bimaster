@@ -245,12 +245,12 @@ export function CampaignLancamentoForm({
           continue;
         }
 
-        const { data: urlData } = supabase.storage
+        const { data: signedData, error: signError } = await supabase.storage
           .from('campaign-evidence')
-          .getPublicUrl(fileName);
+          .createSignedUrl(fileName, 31536000); // 1 ano
 
-        if (urlData?.publicUrl) {
-          newUrls.push(urlData.publicUrl);
+        if (!signError && signedData?.signedUrl) {
+          newUrls.push(signedData.signedUrl);
         }
       }
 

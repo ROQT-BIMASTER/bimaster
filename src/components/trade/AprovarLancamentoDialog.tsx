@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { CheckCircle2, XCircle, FileText, ExternalLink, Store, CreditCard, Calendar, User, DollarSign, Send } from "lucide-react";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { Card, CardContent } from "@/components/ui/card";
@@ -382,7 +383,12 @@ export function AprovarLancamentoDialog({
                     <Button
                       variant="outline"
                       className="w-full justify-start"
-                      onClick={() => window.open(entry.document_url || entry.receipt_url, "_blank")}
+                      onClick={async () => {
+                        const url = entry.document_url || entry.receipt_url;
+                        const { signedUrl, error } = await resolveStorageUrl(url);
+                        if (error || !signedUrl) { toast.error(error || "Erro ao abrir documento"); return; }
+                        window.open(signedUrl, "_blank");
+                      }}
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Abrir Comprovante / Nota Fiscal

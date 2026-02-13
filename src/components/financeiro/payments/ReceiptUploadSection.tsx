@@ -72,14 +72,17 @@ export function ReceiptUploadSection({
 
       if (uploadError) throw uploadError;
 
-      const { data: publicUrlData } = supabase.storage
+      // Gerar signed URL em vez de URL pública
+      const { data: signedData, error: signError } = await supabase.storage
         .from("event-expense-docs")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 31536000); // 1 ano
 
-      // Update the payment queue record with receipt URL
+      if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
+
+      // Update the payment queue record with signed URL
       const { error: updateError } = await supabase
         .from("financial_payment_queue")
-        .update({ receipt_url: publicUrlData.publicUrl })
+        .update({ receipt_url: signedData.signedUrl })
         .eq("id", paymentId);
 
       if (updateError) throw updateError;

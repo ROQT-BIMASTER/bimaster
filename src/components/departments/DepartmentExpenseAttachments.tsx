@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useDepartmentExpenses, DepartmentExpense, ExpenseAttachment } from "@/hooks/useDepartmentExpenses";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { Loader2, Upload, Paperclip, Trash2, ExternalLink, FileText, Image, File } from "lucide-react";
 
 interface DepartmentExpenseAttachmentsProps {
@@ -60,13 +61,16 @@ export function DepartmentExpenseAttachments({
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
+        // Gerar signed URL em vez de URL pública
+        const { data: signedData, error: signError } = await supabase.storage
           .from("department-expense-docs")
-          .getPublicUrl(fileName);
+          .createSignedUrl(fileName, 31536000); // 1 ano
+
+        if (signError || !signedData?.signedUrl) throw signError || new Error('Failed to generate signed URL');
 
         newAttachments.push({
           name: file.name,
-          url: publicUrl,
+          url: signedData.signedUrl,
           type: file.type,
           size: file.size,
           uploaded_at: new Date().toISOString(),
@@ -164,7 +168,11 @@ export function DepartmentExpenseAttachments({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => window.open(attachment.url, "_blank")}
+                        onClick={async () => {
+                          const { signedUrl, error } = await resolveStorageUrl(attachment.url);
+                          if (error || !signedUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+                          window.open(signedUrl, "_blank");
+                        }}
                       >
                         <ExternalLink className="h-4 w-4" />
                       </Button>
