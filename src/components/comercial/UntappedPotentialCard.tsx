@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingDown, MapPin } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { PotencialNaoExplorado } from "@/hooks/useClienteAnalytics";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Props {
   data: PotencialNaoExplorado[] | undefined;
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export function UntappedPotentialCard({ data, isLoading }: Props) {
+  const { t } = useLanguage();
+
   if (isLoading) return <Skeleton className="h-[350px] rounded-xl" />;
   if (!data || data.length === 0) return null;
 
@@ -21,21 +24,15 @@ export function UntappedPotentialCard({ data, isLoading }: Props) {
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <TrendingDown className="h-4 w-4 text-muted-foreground" />
-          Potencial Não Explorado
+          {t("comercial.untapped")}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          {totalSemCompra} clientes cadastrados sem nenhuma compra registrada
+          {totalSemCompra} {t("comercial.no_purchase")}
         </p>
       </CardHeader>
       <CardContent className="space-y-2.5">
         {top8.map((item) => {
-          const severity =
-            item.taxaInatividade > 80
-              ? "destructive"
-              : item.taxaInatividade > 50
-              ? "secondary"
-              : "outline";
-
+          const severity = item.taxaInatividade > 80 ? "destructive" : item.taxaInatividade > 50 ? "secondary" : "outline";
           return (
             <div key={item.uf} className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -43,12 +40,8 @@ export function UntappedPotentialCard({ data, isLoading }: Props) {
                 <span className="font-medium text-sm">{item.uf}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {item.semCompra} de {item.cadastrados}
-                </span>
-                <Badge variant={severity} className="text-[10px] px-1.5 py-0 min-w-[42px] justify-center">
-                  {item.taxaInatividade.toFixed(0)}%
-                </Badge>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{item.semCompra} de {item.cadastrados}</span>
+                <Badge variant={severity} className="text-[10px] px-1.5 py-0 min-w-[42px] justify-center">{item.taxaInatividade.toFixed(0)}%</Badge>
               </div>
             </div>
           );

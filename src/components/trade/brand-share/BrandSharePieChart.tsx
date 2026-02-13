@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface BrandShareData {
   brandName: string;
@@ -13,6 +14,8 @@ interface BrandSharePieChartProps {
 }
 
 export function BrandSharePieChart({ data }: BrandSharePieChartProps) {
+  const { t } = useLanguage();
+
   const chartData = data.map((item) => ({
     name: item.brandName,
     value: item.percentage,
@@ -24,10 +27,10 @@ export function BrandSharePieChart({ data }: BrandSharePieChartProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Distribuição por Marca</CardTitle>
+          <CardTitle className="text-base">{t("brand.distribution")}</CardTitle>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center">
-          <p className="text-muted-foreground">Sem dados para exibir</p>
+          <p className="text-muted-foreground">{t("brand.no_data")}</p>
         </CardContent>
       </Card>
     );
@@ -36,7 +39,7 @@ export function BrandSharePieChart({ data }: BrandSharePieChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Distribuição por Marca</CardTitle>
+        <CardTitle className="text-base">{t("brand.distribution")}</CardTitle>
       </CardHeader>
       <CardContent className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">

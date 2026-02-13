@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface MonthlyEvolution {
   month: string;
@@ -13,14 +14,16 @@ interface BrandShareEvolutionChartProps {
 }
 
 export function BrandShareEvolutionChart({ data, brandNames, brandColors }: BrandShareEvolutionChartProps) {
+  const { t } = useLanguage();
+
   if (data.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Evolução Mensal</CardTitle>
+          <CardTitle className="text-base">{t("brand.monthly_evolution")}</CardTitle>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center">
-          <p className="text-muted-foreground">Sem dados para exibir</p>
+          <p className="text-muted-foreground">{t("brand.no_data")}</p>
         </CardContent>
       </Card>
     );
@@ -29,7 +32,7 @@ export function BrandShareEvolutionChart({ data, brandNames, brandColors }: Bran
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Evolução Mensal por Marca</CardTitle>
+        <CardTitle className="text-base">{t("brand.monthly_evolution")}</CardTitle>
       </CardHeader>
       <CardContent className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">

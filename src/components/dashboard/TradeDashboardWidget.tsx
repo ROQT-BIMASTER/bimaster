@@ -5,6 +5,7 @@ import { Store, Calendar, Camera, DollarSign } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface TradeStats {
   totalStores: number;
@@ -18,8 +19,8 @@ export const TradeDashboardWidget = memo(() => {
   const [loading, setLoading] = useState(true);
   const { isImpersonating, impersonatedUser } = useImpersonation();
   const { isAdmin } = useUserRole();
+  const { t } = useLanguage();
 
-  // Determinar o userId efetivo para filtros
   const effectiveUserId = isImpersonating ? impersonatedUser?.id : null;
   const shouldFilter = !isAdmin || isImpersonating;
 
@@ -31,28 +32,24 @@ export const TradeDashboardWidget = memo(() => {
         firstDayOfMonth.setHours(0, 0, 0, 0);
         const monthStartDate = firstDayOfMonth.toISOString().split("T")[0];
 
-        // Buscar contagem de stores
         let storesQuery = supabase.from("stores").select("id", { count: "exact", head: true }).eq("status", "active");
         if (shouldFilter && effectiveUserId) {
           storesQuery = storesQuery.eq("vendedor_id", effectiveUserId);
         }
         const { count: storesCount } = await storesQuery;
         
-        // Buscar contagem de visitas
         let visitsQuery = supabase.from("visits").select("id", { count: "exact", head: true }).gte("scheduled_date", monthStartDate);
         if (shouldFilter && effectiveUserId) {
           visitsQuery = visitsQuery.eq("user_id", effectiveUserId);
         }
         const { count: visitsCount } = await visitsQuery;
         
-        // Buscar contagem de fotos
         let photosQuery = supabase.from("photos").select("id", { count: "exact", head: true }).gte("upload_date", monthStartDate);
         if (shouldFilter && effectiveUserId) {
           photosQuery = photosQuery.eq("vendedor_id", effectiveUserId);
         }
         const { count: photosCount } = await photosQuery;
         
-        // Buscar investimentos
         let investmentsQuery = supabase.from("trade_investments").select("amount").gte("investment_date", monthStartDate);
         if (shouldFilter && effectiveUserId) {
           investmentsQuery = investmentsQuery.eq("created_by", effectiveUserId);
@@ -82,34 +79,34 @@ export const TradeDashboardWidget = memo(() => {
 
   const statCards = useMemo(() => [
     {
-      title: "PDVs Ativos",
+      title: t("trade_w.active_stores"),
       value: stats?.totalStores || 0,
       icon: Store,
-      description: "Pontos de venda",
+      description: t("trade_w.active_stores_desc"),
       format: "number" as const,
     },
     {
-      title: "Visitas do Mês",
+      title: t("trade_w.monthly_visits"),
       value: stats?.visitsThisMonth || 0,
       icon: Calendar,
-      description: "Visitas realizadas",
+      description: t("trade_w.monthly_visits_desc"),
       format: "number" as const,
     },
     {
-      title: "Fotos do Mês",
+      title: t("trade_w.monthly_photos"),
       value: stats?.photosThisMonth || 0,
       icon: Camera,
-      description: "Fotos enviadas",
+      description: t("trade_w.monthly_photos_desc"),
       format: "number" as const,
     },
     {
-      title: "Investimentos",
+      title: t("trade_w.investments"),
       value: stats?.totalInvestments || 0,
       icon: DollarSign,
-      description: "Total do mês",
+      description: t("trade_w.investments_desc"),
       format: "currency" as const,
     },
-  ], [stats]);
+  ], [stats, t]);
 
   if (loading) {
     return (
