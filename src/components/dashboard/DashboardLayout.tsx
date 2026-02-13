@@ -14,6 +14,7 @@ import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { LanguageSelector } from "./LanguageSelector";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -23,7 +24,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const { session, approved, loading, isOnline } = useAuth();
   const { isImpersonating } = useImpersonation();
-  useSyncOfflineData(); // Sincronização automática quando online
+  const { t } = useLanguage();
+  useSyncOfflineData();
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
 
   // Monitorar qualidade da conexão
@@ -59,7 +61,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">Carregando...</div>
+        <div className="text-lg">{t("loading")}</div>
       </div>
     );
   }
@@ -79,7 +81,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <header className="h-14 border-b flex items-center justify-between px-4 bg-card">
             <div className="flex items-center gap-4">
               <SidebarTrigger aria-label="Alternar menu lateral" />
-              <h1 className="text-lg font-semibold">Sistema Huggs</h1>
+              <h1 className="text-lg font-semibold">{t("system.title")}</h1>
             </div>
             <div className="flex items-center gap-3">
               <LanguageSelector />
@@ -92,7 +94,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <Alert className="m-4 border-destructive bg-destructive/10">
               <WifiOff className="h-4 w-4" />
               <AlertDescription>
-                Você está offline. Algumas funcionalidades podem estar limitadas. Os dados serão sincronizados quando você voltar online.
+                {t("offline.message")}
               </AlertDescription>
             </Alert>
           )}
@@ -100,7 +102,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <Alert className="m-4 border-warning bg-warning/10">
               <Wifi className="h-4 w-4" />
               <AlertDescription>
-                Conexão instável detectada. O aplicativo tentará reconectar automaticamente se houver falhas.
+                {t("offline.poor")}
               </AlertDescription>
             </Alert>
           )}

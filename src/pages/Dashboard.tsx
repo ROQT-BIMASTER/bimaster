@@ -20,6 +20,7 @@ import { usePermissions } from "@/contexts/PermissionsContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PushNotificationPrompt } from "@/components/pwa/PushNotificationPrompt";
 import { usePhotoQueueProcessor } from "@/hooks/usePhotoQueueProcessor";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface PipelineData {
   stage: string;
@@ -34,12 +35,11 @@ interface ActivityData {
 }
 
 const Dashboard = () => {
-  // Usar hooks que respeitam impersonação
   const { hasModulePermission, loading: permissionsLoading } = useModulePermissions();
   const { isAdmin: realIsAdmin } = usePermissions();
   const { isImpersonating, impersonatedPermissions } = useImpersonation();
+  const { t } = useLanguage();
   
-  // isAdmin efetivo: usa permissões do usuário impersonado se ativo
   const effectiveIsAdmin = useMemo(() => {
     if (isImpersonating && impersonatedPermissions) {
       return impersonatedPermissions.isAdmin;
@@ -52,10 +52,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
 
-  // Processar fila de fotos apenas para usuários com acesso ao Trade
   usePhotoQueueProcessor();
 
-  // Memoizar verificação de permissões para evitar recálculos
   const hasProspectsPermission = useMemo(() => 
     !permissionsLoading && hasModulePermission("prospects"), 
     [permissionsLoading, hasModulePermission]
@@ -71,7 +69,6 @@ const Dashboard = () => {
     [permissionsLoading, hasModulePermission]
   );
 
-  // Carregar dados do pipeline e atividades - otimizado com query agregada
   useEffect(() => {
     if (permissionsLoading || !hasProspectsPermission) {
       setLoading(false);
@@ -80,7 +77,6 @@ const Dashboard = () => {
     
     const fetchData = async () => {
       try {
-        // Fetch pipeline data
         const stages = ["novo", "em_contato", "proposta_enviada", "negociacao", "ganho"] as const;
         const stageLabels = ["Novo", "Contato", "Proposta", "Negociação", "Ganho"];
         const stageColors = [
@@ -108,7 +104,6 @@ const Dashboard = () => {
 
         setPipelineData(pipeline);
 
-        // Fetch activity data usando função agregada (1 query em vez de 30)
         const startDate = format(subDays(new Date(), 29), "yyyy-MM-dd");
         const endDate = format(new Date(), "yyyy-MM-dd");
         
@@ -117,7 +112,6 @@ const Dashboard = () => {
           p_end_date: endDate,
         });
 
-        // Criar mapa de contagens
         const countsMap = new Map(
           (activityCounts || []).map((item: { activity_date: string; activity_count: number }) => [
             item.activity_date,
@@ -125,7 +119,6 @@ const Dashboard = () => {
           ])
         );
 
-        // Gerar array com todos os 30 dias
         const activities = Array.from({ length: 30 }, (_, i) => {
           const date = subDays(new Date(), 29 - i);
           const dateStr = format(date, "yyyy-MM-dd");
@@ -146,56 +139,53 @@ const Dashboard = () => {
     fetchData();
   }, [permissionsLoading, hasProspectsPermission]);
 
-  // Memoizar módulos rápidos
   const quickModules = useMemo(() => {
     if (permissionsLoading) return [];
     
     return [
       {
         moduleCode: "prospects",
-        title: "Módulo de Prospects",
-        description: "Gestão completa de prospects e pipeline",
+        title: t("quick.prospects"),
+        description: t("quick.prospects_desc"),
         icon: Users,
         link: "/dashboard/prospects",
       },
       {
         moduleCode: "trade",
-        title: "Módulo de Trade Marketing",
-        description: "Monitoramento de PDVs e performance",
+        title: t("quick.trade"),
+        description: t("quick.trade_desc"),
         icon: Building2,
         link: "/dashboard/trade",
       },
       {
         moduleCode: "financeiro",
-        title: "Módulo Financeiro",
-        description: "Gestão de contas e fluxo de caixa",
+        title: t("quick.financeiro"),
+        description: t("quick.financeiro_desc"),
         icon: DollarSign,
         link: "/dashboard/financeiro",
       },
       {
         moduleCode: "fabrica",
-        title: "Módulo Fábrica",
-        description: "Produção, fórmulas e qualidade",
+        title: t("quick.fabrica"),
+        description: t("quick.fabrica_desc"),
         icon: Factory,
         link: "/dashboard/fabrica",
       },
     ].filter((mod) => hasModulePermission(mod.moduleCode));
-  }, [permissionsLoading, hasModulePermission]);
+  }, [permissionsLoading, hasModulePermission, t]);
 
-  // Memoizar tooltip do gráfico
   const ActivityTooltip = useCallback(({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-card border rounded-lg p-3 shadow-lg">
           <p className="font-semibold">{payload[0].payload.date}</p>
-          <p className="text-sm">Atividades: {payload[0].payload.count}</p>
+          <p className="text-sm">{t("dashboard.activities_label")}: {payload[0].payload.count}</p>
         </div>
       );
     }
     return null;
-  }, []);
+  }, [t]);
 
-  // Memoizar grid class
   const quickModulesGridClass = useMemo(() => {
     const count = quickModules.length;
     if (count === 1) return "md:grid-cols-1";
@@ -209,21 +199,19 @@ const Dashboard = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-            <p className="text-muted-foreground">Visão geral do seu CRM</p>
+            <h2 className="text-3xl font-bold tracking-tight">{t("dashboard.title")}</h2>
+            <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
           </div>
           <Button variant="outline" className="gap-2" onClick={() => setChatOpen(true)}>
             <Sparkles className="h-4 w-4" />
-            Insights de IA
+            {t("dashboard.ai_insights")}
           </Button>
         </div>
 
         {effectiveIsAdmin && <MetricasDistribuicao />}
 
-        {/* Prompt para ativar notificações push */}
         <PushNotificationPrompt />
 
-        {/* Widgets condicionais por módulo */}
         {permissionsLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-32 w-full" />
@@ -231,14 +219,13 @@ const Dashboard = () => {
           </div>
         ) : null}
 
-        {/* Atividades - apenas se tiver módulo de prospects */}
         {hasProspectsPermission && (
           <div className="grid gap-6">
 
             <Card>
               <CardHeader>
-                <CardTitle>Atividades - Últimos 30 Dias</CardTitle>
-                <CardDescription>Linha do tempo de atividades registradas</CardDescription>
+                <CardTitle>{t("dashboard.activities_30d")}</CardTitle>
+                <CardDescription>{t("dashboard.activities_timeline")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {loading ? (
