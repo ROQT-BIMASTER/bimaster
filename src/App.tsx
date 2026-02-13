@@ -16,6 +16,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { PWAProvider, usePWA } from "@/contexts/PWAContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { SplashScreen } from "@/components/pwa/SplashScreen";
 import { TourProvider } from "@/components/tour";
@@ -464,6 +465,7 @@ const App = () => {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <PWAProvider>
+          <LanguageProvider>
           <AuthProvider>
             <PermissionsProvider>
               <ImpersonationProvider>
@@ -477,6 +479,7 @@ const App = () => {
               </ImpersonationProvider>
             </PermissionsProvider>
           </AuthProvider>
+          </LanguageProvider>
         </PWAProvider>
       </QueryClientProvider>
     </ErrorBoundary>

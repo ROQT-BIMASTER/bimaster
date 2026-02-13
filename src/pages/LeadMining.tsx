@@ -74,7 +74,7 @@ const LeadMining = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUF, setSelectedUF] = useState<string>("");
   const [selectedCidade, setSelectedCidade] = useState<string>("");
-  const [maxResults, setMaxResults] = useState<number>(60);
+  const [maxResults, setMaxResults] = useState<number>(30);
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterRating, setFilterRating] = useState<number>(0);
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
@@ -222,13 +222,16 @@ const LeadMining = () => {
           <CardContent>
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
               <div className="lg:col-span-2">
-                <Label>O que buscar</Label>
+                <Label>O que buscar (tipo de negócio, CNAE, segmento)</Label>
                 <Input
-                  placeholder="Ex: supermercados, distribuidora de alimentos, padarias..."
+                  placeholder="Ex: perfumaria, farmácia, supermercado, distribuidora, cosméticos, CNAE 4772..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleMine()}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Busque por tipo de cliente, segmento ou código CNAE
+                </p>
               </div>
               <div>
                 <Label>Estado</Label>
@@ -265,13 +268,13 @@ const LeadMining = () => {
             </div>
             <div className="flex items-end gap-4 mt-4">
               <div className="flex-1 max-w-xs">
-                <Label>Máximo de resultados: {maxResults}</Label>
+                <Label>Resultados por busca: {maxResults}</Label>
                 <Slider
                   value={[maxResults]}
                   onValueChange={([v]) => setMaxResults(v)}
-                  min={20}
+                  min={10}
                   max={200}
-                  step={20}
+                  step={10}
                   className="mt-2"
                 />
               </div>
@@ -373,6 +376,7 @@ const LeadMining = () => {
                     />
                   </TableHead>
                   <TableHead>Nome</TableHead>
+                  <TableHead>CNPJ</TableHead>
                   <TableHead>Telefone</TableHead>
                   <TableHead>Cidade/UF</TableHead>
                   <TableHead>Rating</TableHead>
@@ -385,13 +389,13 @@ const LeadMining = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12">
+                      <TableCell colSpan={10} className="text-center py-12">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : leads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                       <Pickaxe className="h-10 w-10 mx-auto mb-2 opacity-30" />
                       <p>Nenhum lead minerado ainda.</p>
                       <p className="text-xs">Use a busca acima para encontrar novos leads.</p>
@@ -410,6 +414,13 @@ const LeadMining = () => {
                         </TableCell>
                         <TableCell className="font-medium max-w-[200px] truncate">
                           {lead.nome}
+                        </TableCell>
+                        <TableCell>
+                          {lead.cnpj ? (
+                            <span className="text-sm font-mono">{lead.cnpj}</span>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {lead.telefone ? (
