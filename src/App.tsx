@@ -28,17 +28,19 @@ function lazyWithRetry<T extends ComponentType<any>>(
   interval = 1500
 ) {
   return lazy(async () => {
-    // Limpar flag de reload bem-sucedido
-    sessionStorage.removeItem('chunk-reload');
-
     for (let i = 0; i < retries; i++) {
       try {
         return await importFn();
       } catch (error) {
+        console.warn(`[lazyWithRetry] Attempt ${i + 1}/${retries} failed:`, error);
         if (i === retries - 1) {
-          // Última tentativa falhou - forçar reload para buscar novo manifest
-          if (!sessionStorage.getItem('chunk-reload')) {
-            sessionStorage.setItem('chunk-reload', 'true');
+          // Última tentativa falhou - forçar reload completo para buscar novo manifest
+          // Usar timestamp para evitar que sessionStorage bloqueie reloads legítimos
+          const lastReload = sessionStorage.getItem('chunk-reload-ts');
+          const now = Date.now();
+          // Permite reload se nunca fez ou se faz mais de 10s desde o último
+          if (!lastReload || (now - parseInt(lastReload, 10)) > 10000) {
+            sessionStorage.setItem('chunk-reload-ts', now.toString());
             window.location.reload();
           }
           throw error;
