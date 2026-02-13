@@ -31,7 +31,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { DOCUMENT_TYPES, usePortadores } from "@/hooks/useEventExpenses";
+import { DOCUMENT_TYPES } from "@/hooks/useEventExpenses";
 import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, AlertTriangle, Clock, CalendarCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
@@ -60,7 +60,6 @@ export function EnviarFinanceiroTradeDialog({
   onOpenChange,
   onSuccess,
 }: EnviarFinanceiroTradeDialogProps) {
-  const { data: portadores } = usePortadores();
   const { data: activePolicy } = useActivePaymentPolicy();
   const [loading, setLoading] = useState(false);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
