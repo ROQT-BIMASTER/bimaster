@@ -204,7 +204,7 @@ const ModuleHeader = ({ icon: Icon, title, isOpen, colorKey }: ModuleHeaderProps
       <ChevronDown className={cn(
         "h-4 w-4 transition-transform duration-200",
         colors.text,
-        !isOpen && "-rotate-90"
+        !isOpen && "ltr:-rotate-90 rtl:rotate-90"
       )} />
     </div>
   );
@@ -233,7 +233,7 @@ const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemL
             isActive
               ? cn(
                   "font-medium",
-                  colors ? cn(colors.bgLight, colors.text, "border-l-2", colors.border) : "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-primary"
+                  colors ? cn(colors.bgLight, colors.text, "ltr:border-l-2 rtl:border-r-2", colors.border) : "bg-sidebar-accent text-sidebar-accent-foreground ltr:border-l-2 rtl:border-r-2 border-primary"
                 )
               : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
           )}
@@ -247,7 +247,7 @@ const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemL
   );
 };
 
-export function AppSidebar() {
+export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -256,7 +256,8 @@ export function AppSidebar() {
   const { isAdminOrSupervisor } = useUserRole();
   const { user } = useAuth();
   const { data: userDepartments = [] } = useUserDepartments();
-  const { t } = useLanguage();
+  const { t, dir } = useLanguage();
+  const isRTL = dir === "rtl";
   
   const [prospectsOpen, setProspectsOpen] = useState(true);
   const [financeiroOpen, setFinanceiroOpen] = useState(true);
@@ -379,7 +380,7 @@ export function AppSidebar() {
 
   if (loading) {
     return (
-      <Sidebar>
+      <Sidebar side={side}>
         <SidebarContent>
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -445,7 +446,7 @@ export function AppSidebar() {
   ];
 
   return (
-    <Sidebar className="border-r border-sidebar-border">
+    <Sidebar side={side} className={cn("border-sidebar-border", isRTL ? "border-l" : "border-r")}>
       {/* Header with logo */}
       <div className="p-4 border-b border-sidebar-border bg-gradient-to-b from-sidebar-background to-sidebar-accent/30">
         <img src={logoUnion} alt="Logo Union - Sistema de Gestão Huggs" className="w-28 mx-auto" />
@@ -530,7 +531,7 @@ export function AppSidebar() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 pl-2">
+                  <SidebarMenu className="space-y-0.5 ps-2">
                     {hasPermission("PROSPECTS_DASHBOARD") && (
                       <MenuItemLink 
                         to="/dashboard/prospects" 
@@ -572,7 +573,7 @@ export function AppSidebar() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 pl-2">
+                  <SidebarMenu className="space-y-0.5 ps-2">
                     {financeiroSubMenus
                       .filter((item) => hasPermission(item.screenCode))
                       .map((item) => (
@@ -606,7 +607,7 @@ export function AppSidebar() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 pl-2">
+                  <SidebarMenu className="space-y-0.5 ps-2">
                     {hasPermission("MARKETING_DASHBOARD") && (
                       <MenuItemLink 
                         to="/dashboard/marketing" 
@@ -649,7 +650,7 @@ export function AppSidebar() {
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
                   <ScrollArea className="max-h-64">
-                    <SidebarMenu className="space-y-0.5 pl-2">
+                    <SidebarMenu className="space-y-0.5 ps-2">
                       {hasPermission("TRADE_DASHBOARD") && (
                         <MenuItemLink 
                           to="/dashboard/trade" 
@@ -693,7 +694,7 @@ export function AppSidebar() {
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
                   <ScrollArea className="max-h-72">
-                    <SidebarMenu className="space-y-0.5 pl-2">
+                    <SidebarMenu className="space-y-0.5 ps-2">
                       {hasPermission("fabrica_dashboard") && (
                         <MenuItemLink 
                           to="/dashboard/fabrica" 
@@ -747,7 +748,7 @@ export function AppSidebar() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 pl-2">
+                  <SidebarMenu className="space-y-0.5 ps-2">
                     {hasPermission("comercial_dashboard") && (
                       <MenuItemLink 
                         to="/dashboard/comercial" 
@@ -816,7 +817,7 @@ export function AppSidebar() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 pl-2">
+                  <SidebarMenu className="space-y-0.5 ps-2">
                     {hasPermission("eventos_dashboard") && (
                       <MenuItemLink 
                         to="/dashboard/eventos" 
@@ -882,7 +883,7 @@ export function AppSidebar() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarGroupContent className="mt-1">
-                    <SidebarMenu className="space-y-0.5 pl-2">
+                    <SidebarMenu className="space-y-0.5 ps-2">
                       <MenuItemLink 
                         to={`/dashboard/departamentos/${dept.id}`} 
                         icon={FileText} 
@@ -918,7 +919,7 @@ export function AppSidebar() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 pl-2">
+                  <SidebarMenu className="space-y-0.5 ps-2">
                     {precosSubMenus
                       .filter((item) => hasPermission(item.screenCode))
                       .map((item) => (

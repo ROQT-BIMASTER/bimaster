@@ -15,6 +15,7 @@ import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector"
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { LanguageSelector } from "./LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -24,7 +25,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const { session, approved, loading, isOnline } = useAuth();
   const { isImpersonating } = useImpersonation();
-  const { t } = useLanguage();
+  const { t, dir } = useLanguage();
+  const isRTL = dir === "rtl";
   useSyncOfflineData();
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
 
@@ -75,8 +77,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Banner de impersonação - sempre visível no topo */}
       <ImpersonationBanner />
       
-      <div className={`min-h-screen flex w-full ${isImpersonating ? 'pt-12' : ''}`}>
-        <AppSidebar />
+      <div className={cn("min-h-screen flex w-full", isImpersonating && "pt-12")} dir={dir}>
+        <AppSidebar side={isRTL ? "right" : "left"} />
         <main className="flex-1">
           <header className="h-14 border-b flex items-center justify-between px-4 bg-card">
             <div className="flex items-center gap-4">

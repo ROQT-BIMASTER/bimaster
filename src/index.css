@@ -458,6 +458,20 @@ All colors MUST be HSL.
   outline-offset: 2px;
 }
 
+/* RTL Support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] .flex {
+  /* flex direction is auto-handled by browser with dir=rtl */
+}
+
+/* Flip chevron rotation for RTL */
+[dir="rtl"] .sidebar-chevron-collapsed {
+  transform: rotate(90deg);
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
