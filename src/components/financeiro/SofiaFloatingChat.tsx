@@ -20,6 +20,7 @@ import {
 } from "recharts";
 import { exportToExcel } from "@/utils/excelExport";
 import { supabase } from "@/integrations/supabase/client";
+import { useConversation } from "@elevenlabs/react";
 
 interface ChartPayload {
   type: "bar" | "line" | "pie" | "area";
@@ -239,12 +240,58 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [voiceCallMode, setVoiceCallMode] = useState(false);
   const [voiceCallDuration, setVoiceCallDuration] = useState(0);
+  const [isConnectingVoice, setIsConnectingVoice] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recognitionRef = useRef<any>(null);
   const voiceCallTimerRef = useRef<NodeJS.Timeout | null>(null);
   const continueListeningRef = useRef(false);
+
+  // ElevenLabs Conversational AI
+  const conversation = useConversation({
+    onConnect: () => {
+      console.log("ElevenLabs Agent conectado");
+      setVoiceCallMode(true);
+      setIsConnectingVoice(false);
+      toast.success("Conversa por voz ativada! Fale com a Sofia.");
+    },
+    onDisconnect: () => {
+      console.log("ElevenLabs Agent desconectado");
+      setVoiceCallMode(false);
+      setIsConnectingVoice(false);
+    },
+    onMessage: (message: any) => {
+      console.log("ElevenLabs message:", message);
+      if (message.type === "user_transcript") {
+        const text = message.user_transcription_event?.user_transcript;
+        if (text) {
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            role: "user",
+            content: text,
+            timestamp: new Date(),
+          }]);
+        }
+      } else if (message.type === "agent_response") {
+        const text = message.agent_response_event?.agent_response;
+        if (text) {
+          setMessages(prev => [...prev, {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: text,
+            timestamp: new Date(),
+          }]);
+        }
+      }
+    },
+    onError: (error) => {
+      console.error("ElevenLabs error:", error);
+      toast.error("Erro na conversa por voz. Tente novamente.");
+      setVoiceCallMode(false);
+      setIsConnectingVoice(false);
+    },
+  });
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -271,6 +318,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
     };
   }, [voiceCallMode]);
 
+  // Web Speech API for text chat mic input (not voice call mode)
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
@@ -291,26 +339,14 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
         setIsListening(false);
         if (event.error === 'not-allowed') {
           toast.error("Permissão de microfone negada");
-          setVoiceCallMode(false);
-        } else if (event.error === 'no-speech' && continueListeningRef.current) {
-          // Re-start listening in voice call mode
-          try { recognitionRef.current?.start(); setIsListening(true); } catch {}
         }
       };
 
       recognitionRef.current.onend = () => {
         setIsListening(false);
-        // Auto-restart in voice call mode (after Sofia finishes speaking)
-        if (continueListeningRef.current && !isSpeaking) {
-          setTimeout(() => {
-            if (continueListeningRef.current) {
-              try { recognitionRef.current?.start(); setIsListening(true); } catch {}
-            }
-          }, 500);
-        }
       };
     }
-  }, [isSpeaking]);
+  }, []);
 
   const playAudio = useCallback(async (base64Audio: string) => {
     try {
@@ -346,27 +382,51 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
     }
   }, []);
 
-  const startVoiceCall = useCallback(() => {
-    if (!recognitionRef.current) {
-      toast.error("Reconhecimento de voz não suportado neste navegador");
-      return;
-    }
-    setVoiceCallMode(true);
-    setVoiceEnabled(true);
-    continueListeningRef.current = true;
+  const startVoiceCall = useCallback(async () => {
+    if (isConnectingVoice) return;
+    setIsConnectingVoice(true);
     setIsOpen(true);
-    toast.success("Modo conversa por voz ativado! Fale com a Sofia.");
-    try { recognitionRef.current.start(); setIsListening(true); } catch {}
-  }, []);
+    
+    try {
+      // Request microphone permission
+      await navigator.mediaDevices.getUserMedia({ audio: true });
 
-  const endVoiceCall = useCallback(() => {
+      // Get token from edge function
+      const { data, error } = await supabase.functions.invoke("sofia-voice-token");
+      
+      if (error || !data?.token) {
+        // Fallback to signed URL
+        if (data?.signed_url) {
+          await conversation.startSession({
+            signedUrl: data.signed_url,
+          });
+        } else {
+          throw new Error("Não foi possível obter credenciais de voz");
+        }
+      } else {
+        await conversation.startSession({
+          conversationToken: data.token,
+          connectionType: "webrtc",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao iniciar conversa por voz:", error);
+      toast.error("Erro ao conectar conversa por voz. Verifique o microfone.");
+      setIsConnectingVoice(false);
+      setVoiceCallMode(false);
+    }
+  }, [conversation, isConnectingVoice]);
+
+  const endVoiceCall = useCallback(async () => {
+    try {
+      await conversation.endSession();
+    } catch {}
     setVoiceCallMode(false);
     continueListeningRef.current = false;
     setIsListening(false);
-    try { recognitionRef.current?.stop(); } catch {}
     stopAudio();
     toast.info("Conversa por voz encerrada.");
-  }, [stopAudio]);
+  }, [conversation, stopAudio]);
 
   const toggleListening = useCallback(() => {
     if (!recognitionRef.current) {
@@ -730,7 +790,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
             </ScrollArea>
 
             {/* Voice Call Overlay */}
-            {voiceCallMode && (
+            {(voiceCallMode || isConnectingVoice) && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -740,26 +800,24 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                        isListening 
-                          ? 'bg-emerald-500/20 ring-2 ring-emerald-500/50' 
-                          : isSpeaking
-                          ? 'bg-primary/20 ring-2 ring-primary/50'
-                          : 'bg-muted'
+                        conversation.isSpeaking 
+                          ? 'bg-primary/20 ring-2 ring-primary/50' 
+                          : isConnectingVoice
+                          ? 'bg-muted'
+                          : 'bg-emerald-500/20 ring-2 ring-emerald-500/50'
                       }`}>
-                        {isListening ? (
-                          <Mic className="h-5 w-5 text-emerald-600 animate-pulse" />
-                        ) : isSpeaking ? (
-                          <Volume2 className="h-5 w-5 text-primary animate-pulse" />
-                        ) : isLoading ? (
+                        {isConnectingVoice ? (
                           <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+                        ) : conversation.isSpeaking ? (
+                          <Volume2 className="h-5 w-5 text-primary animate-pulse" />
                         ) : (
-                          <Mic className="h-5 w-5 text-muted-foreground" />
+                          <Mic className="h-5 w-5 text-emerald-600 animate-pulse" />
                         )}
                       </div>
                     </div>
                     <div>
                       <p className="text-sm font-medium">
-                        {isListening ? "Ouvindo você..." : isSpeaking ? "Sofia está falando..." : isLoading ? "Processando..." : "Aguardando..."}
+                        {isConnectingVoice ? "Conectando..." : conversation.isSpeaking ? "Sofia está falando..." : "Ouvindo você..."}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {Math.floor(voiceCallDuration / 60).toString().padStart(2, '0')}:{(voiceCallDuration % 60).toString().padStart(2, '0')}
@@ -771,6 +829,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
                     size="sm"
                     onClick={endVoiceCall}
                     className="gap-1.5"
+                    disabled={isConnectingVoice}
                   >
                     <PhoneOff className="h-4 w-4" />
                     Encerrar
