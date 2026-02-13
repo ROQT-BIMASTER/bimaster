@@ -52,6 +52,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useUserDepartments } from "@/hooks/useUserDepartments";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // Module color configuration
 const moduleColors = {
@@ -255,6 +256,7 @@ export function AppSidebar() {
   const { isAdminOrSupervisor } = useUserRole();
   const { user } = useAuth();
   const { data: userDepartments = [] } = useUserDepartments();
+  const { t } = useLanguage();
   
   const [prospectsOpen, setProspectsOpen] = useState(true);
   const [financeiroOpen, setFinanceiroOpen] = useState(true);
@@ -274,15 +276,15 @@ export function AppSidebar() {
   // Build available modules list based on permissions
   const moduleFilterOptions = useMemo(() => {
     const allModules = [
-      { code: "prospects", label: "Prospects", icon: Users },
-      { code: "financeiro", label: "Financeiro", icon: DollarSign },
-      { code: "marketing", label: "Marketing", icon: BarChart3 },
-      { code: "trade", label: "Trade Marketing", icon: Store },
-      { code: "fabrica", label: "Fábrica", icon: Factory },
-      { code: "comercial", label: "Comercial", icon: Briefcase },
-      { code: "eventos", label: "Eventos", icon: PartyPopper },
-      { code: "departamentos", label: "Departamentos", icon: Building2 },
-      { code: "precos", label: "Tabelas de Preços", icon: DollarSign },
+      { code: "prospects", label: t("module.prospects"), icon: Users },
+      { code: "financeiro", label: t("module.financeiro"), icon: DollarSign },
+      { code: "marketing", label: t("module.marketing"), icon: BarChart3 },
+      { code: "trade", label: t("module.trade"), icon: Store },
+      { code: "fabrica", label: t("module.fabrica"), icon: Factory },
+      { code: "comercial", label: t("module.comercial"), icon: Briefcase },
+      { code: "eventos", label: t("module.eventos"), icon: PartyPopper },
+      { code: "departamentos", label: t("module.departamentos"), icon: Building2 },
+      { code: "precos", label: t("module.precos"), icon: DollarSign },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
@@ -303,12 +305,12 @@ export function AppSidebar() {
   };
 
   const filterLabel = useMemo(() => {
-    if (selectedModules.size === 0) return "Todos os Módulos";
+    if (selectedModules.size === 0) return t("nav.all_modules");
     if (selectedModules.size === 1) {
       const code = Array.from(selectedModules)[0];
       return moduleFilterOptions.find(m => m.code === code)?.label || code;
     }
-    return `${selectedModules.size} módulos`;
+    return `${selectedModules.size} ${t("nav.n_modules")}`;
   }, [selectedModules, moduleFilterOptions]);
 
   // Fetch user name
@@ -369,8 +371,8 @@ export function AppSidebar() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast({
-      title: "Logout realizado",
-      description: "Até logo!",
+      title: t("logout.title"),
+      description: t("logout.description"),
     });
     navigate("/auth/login");
   };
@@ -388,58 +390,58 @@ export function AppSidebar() {
   }
 
   const prospectsSubMenus = [
-    { title: "Dashboard", url: "/dashboard", icon: Home, screenCode: "dashboard" },
-    { title: "Lista de Prospects", url: "/dashboard/prospects/list", icon: Users, screenCode: "PROSPECTS_LISTA" },
-    { title: "Kanban", url: "/dashboard/prospects/kanban", icon: LayoutGrid, screenCode: "PROSPECTS_KANBAN" },
-    { title: "Atividades", url: "/dashboard/prospects/atividades", icon: Activity, screenCode: "PROSPECTS_ATIVIDADES" },
-    { title: "Tarefas", url: "/dashboard/tarefas", icon: CheckSquare, screenCode: "tarefas" },
-    { title: "Central de Demandas", url: "/dashboard/demandas", icon: Ticket, screenCode: "PROSPECTS_DEMANDAS" },
+    { title: t("nav.dashboard"), url: "/dashboard", icon: Home, screenCode: "dashboard" },
+    { title: t("prospects.list"), url: "/dashboard/prospects/list", icon: Users, screenCode: "PROSPECTS_LISTA" },
+    { title: t("prospects.kanban"), url: "/dashboard/prospects/kanban", icon: LayoutGrid, screenCode: "PROSPECTS_KANBAN" },
+    { title: t("prospects.activities"), url: "/dashboard/prospects/atividades", icon: Activity, screenCode: "PROSPECTS_ATIVIDADES" },
+    { title: t("prospects.tasks"), url: "/dashboard/tarefas", icon: CheckSquare, screenCode: "tarefas" },
+    { title: t("prospects.demands"), url: "/dashboard/demandas", icon: Ticket, screenCode: "PROSPECTS_DEMANDAS" },
   ];
 
   const financeiroSubMenus = [
-    { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home, end: true, screenCode: "financeiro_dashboard" },
-    { title: "Dashboard Consolidado", url: "/dashboard/financeiro/consolidado", icon: Layers, screenCode: "financeiro_dashboard" },
-    { title: "DRE Analítico", url: "/dashboard/financeiro/dre-analitico", icon: FileText, screenCode: "financeiro_dre" },
-    { title: "Visão por Departamento", url: "/dashboard/financeiro/visao-departamentos", icon: Building2, screenCode: "financeiro_departamentos" },
-    { title: "Gestão de Verbas", url: "/dashboard/financeiro/trade", icon: Store, screenCode: "financeiro_verbas" },
-    { title: "Central de Pagamentos", url: "/dashboard/financeiro/central-pagamentos", icon: CreditCard, screenCode: "financeiro_contas_pagar" },
-    { title: "Aprovações Depts", url: "/dashboard/departamentos/aprovacoes", icon: ClipboardCheck, screenCode: "financeiro_aprovacoes_depts" },
-    { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar" },
-    { title: "Contas a Receber", url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign, screenCode: "financeiro_contas_receber" },
-    { title: "Fluxo de Caixa", url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp, screenCode: "financeiro_fluxo_caixa" },
-    { title: "Saldos Bancários", url: "/dashboard/financeiro/saldos-bancarios", icon: Wallet, screenCode: "financeiro_saldos_bancarios" },
-    { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: List, screenCode: "financeiro_plano_contas" },
-    { title: "Classificar Banco", url: "/dashboard/financeiro/classificar-banco", icon: ClipboardCheck, screenCode: "financeiro_classificar" },
+    { title: t("financeiro.overview"), url: "/dashboard/financeiro", icon: Home, end: true, screenCode: "financeiro_dashboard" },
+    { title: t("financeiro.consolidated"), url: "/dashboard/financeiro/consolidado", icon: Layers, screenCode: "financeiro_dashboard" },
+    { title: t("financeiro.dre"), url: "/dashboard/financeiro/dre-analitico", icon: FileText, screenCode: "financeiro_dre" },
+    { title: t("financeiro.departments"), url: "/dashboard/financeiro/visao-departamentos", icon: Building2, screenCode: "financeiro_departamentos" },
+    { title: t("financeiro.trade_budget"), url: "/dashboard/financeiro/trade", icon: Store, screenCode: "financeiro_verbas" },
+    { title: t("financeiro.payments_center"), url: "/dashboard/financeiro/central-pagamentos", icon: CreditCard, screenCode: "financeiro_contas_pagar" },
+    { title: t("financeiro.dept_approvals"), url: "/dashboard/departamentos/aprovacoes", icon: ClipboardCheck, screenCode: "financeiro_aprovacoes_depts" },
+    { title: t("financeiro.payables"), url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar" },
+    { title: t("financeiro.receivables"), url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign, screenCode: "financeiro_contas_receber" },
+    { title: t("financeiro.cashflow"), url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp, screenCode: "financeiro_fluxo_caixa" },
+    { title: t("financeiro.bank_balances"), url: "/dashboard/financeiro/saldos-bancarios", icon: Wallet, screenCode: "financeiro_saldos_bancarios" },
+    { title: t("financeiro.chart_accounts"), url: "/dashboard/financeiro/plano-contas", icon: List, screenCode: "financeiro_plano_contas" },
+    { title: t("financeiro.classify_bank"), url: "/dashboard/financeiro/classificar-banco", icon: ClipboardCheck, screenCode: "financeiro_classificar" },
   ];
 
   const tradeSubMenus = [
-    { title: "Administrativo", url: "/dashboard/trade/admin", icon: Settings, screenCode: "trade_admin" },
-    { title: "Minha Equipe", url: "/dashboard/trade/minha-equipe", icon: Users, screenCode: "TRADE_DASHBOARD", requireAdminOrSupervisor: true },
-    { title: "PDVs", url: "/dashboard/trade/stores", icon: Store, screenCode: "TRADE_LOJAS" },
-    { title: "Visitas", url: "/dashboard/trade/visits", icon: Calendar, screenCode: "TRADE_VISITAS" },
-    { title: "Sell Out", url: "/dashboard/trade/sellout", icon: DollarSign, screenCode: "trade_sellout" },
-    { title: "Medição Prateleiras", url: "/dashboard/trade/shelf-measurements", icon: Activity, screenCode: "trade_shelf" },
-    { title: "Nossas Marcas", url: "/dashboard/trade/our-brands", icon: Tag, screenCode: "trade_brands" },
-    { title: "Fotos", url: "/dashboard/trade/photos", icon: Camera, screenCode: "TRADE_FOTOS" },
-    { title: "Fotos Ideais", url: "/dashboard/trade/ideal-photos", icon: Image, screenCode: "trade_ideal_photos" },
-    { title: "Auditoria Gôndola", url: "/dashboard/trade/auditorias", icon: ClipboardCheck, screenCode: "TRADE_AUDITORIAS" },
-    { title: "Análise Competitiva", url: "/dashboard/trade/relatorio-competitivo", icon: BarChart3, screenCode: "trade_competitors", requireAdminOrSupervisor: true },
-    { title: "Premiações", url: "/dashboard/trade/rewards", icon: Trophy, screenCode: "trade_rewards" },
-    { title: "WhatsApp", url: "/dashboard/trade/whatsapp", icon: MessageSquare, screenCode: "trade_whatsapp" },
-    { title: "Insights IA", url: "/dashboard/trade/insights", icon: Sparkles, screenCode: "trade_insights", requireAdminOrSupervisor: true },
+    { title: t("trade.admin"), url: "/dashboard/trade/admin", icon: Settings, screenCode: "trade_admin" },
+    { title: t("trade.my_team"), url: "/dashboard/trade/minha-equipe", icon: Users, screenCode: "TRADE_DASHBOARD", requireAdminOrSupervisor: true },
+    { title: t("trade.pdvs"), url: "/dashboard/trade/stores", icon: Store, screenCode: "TRADE_LOJAS" },
+    { title: t("trade.visits"), url: "/dashboard/trade/visits", icon: Calendar, screenCode: "TRADE_VISITAS" },
+    { title: t("trade.sellout"), url: "/dashboard/trade/sellout", icon: DollarSign, screenCode: "trade_sellout" },
+    { title: t("trade.shelf"), url: "/dashboard/trade/shelf-measurements", icon: Activity, screenCode: "trade_shelf" },
+    { title: t("trade.brands"), url: "/dashboard/trade/our-brands", icon: Tag, screenCode: "trade_brands" },
+    { title: t("trade.photos"), url: "/dashboard/trade/photos", icon: Camera, screenCode: "TRADE_FOTOS" },
+    { title: t("trade.ideal_photos"), url: "/dashboard/trade/ideal-photos", icon: Image, screenCode: "trade_ideal_photos" },
+    { title: t("trade.audit"), url: "/dashboard/trade/auditorias", icon: ClipboardCheck, screenCode: "TRADE_AUDITORIAS" },
+    { title: t("trade.competitive"), url: "/dashboard/trade/relatorio-competitivo", icon: BarChart3, screenCode: "trade_competitors", requireAdminOrSupervisor: true },
+    { title: t("trade.rewards"), url: "/dashboard/trade/rewards", icon: Trophy, screenCode: "trade_rewards" },
+    { title: t("trade.whatsapp"), url: "/dashboard/trade/whatsapp", icon: MessageSquare, screenCode: "trade_whatsapp" },
+    { title: t("trade.ai_insights"), url: "/dashboard/trade/insights", icon: Sparkles, screenCode: "trade_insights", requireAdminOrSupervisor: true },
   ];
 
   const marketingSubMenus = [
-    { title: "Dashboards & IA", url: "/dashboard/marketing/social", icon: BarChart3, screenCode: "MARKETING_SOCIAL" },
+    { title: t("marketing.dashboards"), url: "/dashboard/marketing/social", icon: BarChart3, screenCode: "MARKETING_SOCIAL" },
   ];
 
   const precosSubMenus = [
-    { title: "Dashboard", url: "/dashboard/precos", icon: Home, end: true, screenCode: "precos_dashboard" },
-    { title: "Matriz Comparativa", url: "/dashboard/precos/matriz", icon: Grid3X3, screenCode: "precos_matriz" },
-    { title: "Gerenciar Tabelas", url: "/dashboard/precos/tabelas", icon: Receipt, screenCode: "precos_tabelas" },
-    { title: "Aprovação", url: "/dashboard/precos/aprovacao", icon: CheckSquare, screenCode: "precos_aprovacao" },
-    { title: "Portal Cliente", url: "/dashboard/precos/portal-cliente", icon: Users, screenCode: "precos_portal" },
-    { title: "Controle de Acesso", url: "/dashboard/precos/acesso", icon: Shield, screenCode: "precos_acesso" },
+    { title: t("precos.dashboard"), url: "/dashboard/precos", icon: Home, end: true, screenCode: "precos_dashboard" },
+    { title: t("precos.matrix"), url: "/dashboard/precos/matriz", icon: Grid3X3, screenCode: "precos_matriz" },
+    { title: t("precos.manage"), url: "/dashboard/precos/tabelas", icon: Receipt, screenCode: "precos_tabelas" },
+    { title: t("precos.approval"), url: "/dashboard/precos/aprovacao", icon: CheckSquare, screenCode: "precos_aprovacao" },
+    { title: t("precos.client_portal"), url: "/dashboard/precos/portal-cliente", icon: Users, screenCode: "precos_portal" },
+    { title: t("precos.access_control"), url: "/dashboard/precos/acesso", icon: Shield, screenCode: "precos_acesso" },
   ];
 
   return (
@@ -474,7 +476,7 @@ export function AppSidebar() {
                       : "hover:bg-muted"
                   )}
                 >
-                  Todos os Módulos
+                  {t("nav.all_modules")}
                 </button>
                 <Separator />
                 {moduleFilterOptions.map((m) => (
@@ -503,11 +505,11 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1 px-2">
               {hasPermission("auditoria") && (
-                <MenuItemLink to="/dashboard/auditoria" icon={Shield} title="Auditoria" />
+                <MenuItemLink to="/dashboard/auditoria" icon={Shield} title={t("nav.audit")} />
               )}
               
               {/* Instalar App - visível para todos os usuários */}
-              <MenuItemLink to="/dashboard/instalar-app" icon={Download} title="Instalar App" />
+              <MenuItemLink to="/dashboard/instalar-app" icon={Download} title={t("nav.install_app")} />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -521,7 +523,7 @@ export function AppSidebar() {
               <CollapsibleTrigger className="w-full">
                 <ModuleHeader 
                   icon={Users} 
-                  title="Prospects" 
+                  title={t("module.prospects")} 
                   isOpen={prospectsOpen} 
                   colorKey="prospects" 
                 />
@@ -533,7 +535,7 @@ export function AppSidebar() {
                       <MenuItemLink 
                         to="/dashboard/prospects" 
                         icon={Home} 
-                        title="Visão Geral" 
+                        title={t("prospects.overview")} 
                         colorKey="prospects"
                         end 
                       />
@@ -563,7 +565,7 @@ export function AppSidebar() {
               <CollapsibleTrigger className="w-full">
                 <ModuleHeader 
                   icon={DollarSign} 
-                  title="Financeiro" 
+                  title={t("module.financeiro")} 
                   isOpen={financeiroOpen} 
                   colorKey="financeiro" 
                 />
@@ -597,7 +599,7 @@ export function AppSidebar() {
               <CollapsibleTrigger className="w-full">
                 <ModuleHeader 
                   icon={BarChart3} 
-                  title="Marketing" 
+                  title={t("module.marketing")} 
                   isOpen={marketingOpen} 
                   colorKey="marketing" 
                 />
@@ -609,7 +611,7 @@ export function AppSidebar() {
                       <MenuItemLink 
                         to="/dashboard/marketing" 
                         icon={Home} 
-                        title="Visão Geral" 
+                        title={t("marketing.overview")} 
                         colorKey="marketing"
                         end 
                       />
@@ -639,7 +641,7 @@ export function AppSidebar() {
               <CollapsibleTrigger className="w-full">
                 <ModuleHeader 
                   icon={Store} 
-                  title="Trade Marketing" 
+                  title={t("module.trade")} 
                   isOpen={tradeOpen} 
                   colorKey="trade" 
                 />
@@ -652,7 +654,7 @@ export function AppSidebar() {
                         <MenuItemLink 
                           to="/dashboard/trade" 
                           icon={Home} 
-                          title="Visão Geral" 
+                          title={t("prospects.overview")} 
                           colorKey="trade"
                           end 
                         />
@@ -683,7 +685,7 @@ export function AppSidebar() {
               <CollapsibleTrigger className="w-full">
                 <ModuleHeader 
                   icon={Factory} 
-                  title="Fábrica" 
+                  title={t("module.fabrica")} 
                   isOpen={fabricaOpen} 
                   colorKey="fabrica" 
                 />
@@ -696,7 +698,7 @@ export function AppSidebar() {
                         <MenuItemLink 
                           to="/dashboard/fabrica" 
                           icon={Home} 
-                          title="Dashboard" 
+                          title={t("fabrica.dashboard")} 
                           colorKey="fabrica"
                           end 
                         />
@@ -738,7 +740,7 @@ export function AppSidebar() {
               <CollapsibleTrigger className="w-full">
                 <ModuleHeader 
                   icon={Briefcase} 
-                  title="Comercial" 
+                  title={t("module.comercial")} 
                   isOpen={comercialOpen} 
                   colorKey="comercial" 
                 />
@@ -750,7 +752,7 @@ export function AppSidebar() {
                       <MenuItemLink 
                         to="/dashboard/comercial" 
                         icon={Home} 
-                        title="Dashboard" 
+                        title={t("comercial.dashboard")} 
                         colorKey="comercial"
                         end 
                       />
@@ -759,38 +761,38 @@ export function AppSidebar() {
                       <MenuItemLink 
                         to="/dashboard/comercial/lancamentos" 
                         icon={Rocket} 
-                        title="Calendário de Lançamentos" 
+                        title={t("comercial.launches")} 
                         colorKey="comercial"
                       />
                     )}
                     <MenuItemLink 
                       to="/dashboard/comercial/ibge" 
                       icon={MapPin} 
-                      title="Dados IBGE" 
+                      title={t("comercial.ibge")} 
                       colorKey="comercial"
                     />
                     <MenuItemLink 
                       to="/dashboard/comercial/mineracao" 
                       icon={Pickaxe} 
-                      title="Mineração de Leads" 
+                      title={t("comercial.mining")} 
                       colorKey="comercial"
                     />
                     <MenuItemLink 
                       to="/dashboard/comercial/reativacao" 
                       icon={AlertTriangle} 
-                      title="Reativação" 
+                      title={t("comercial.reactivation")} 
                       colorKey="comercial"
                     />
                     <MenuItemLink 
                       to="/dashboard/comercial/municipios-inteligencia" 
                       icon={Building2} 
-                      title="Municípios" 
+                      title={t("comercial.municipalities")} 
                       colorKey="comercial"
                     />
                     <MenuItemLink 
                       to="/dashboard/comercial/whitespace" 
                       icon={Compass} 
-                      title="Whitespace" 
+                      title={t("comercial.whitespace")} 
                       colorKey="comercial"
                     />
                   </SidebarMenu>
@@ -807,7 +809,7 @@ export function AppSidebar() {
               <CollapsibleTrigger className="w-full">
                 <ModuleHeader 
                   icon={PartyPopper} 
-                  title="Eventos" 
+                  title={t("module.eventos")} 
                   isOpen={eventosOpen} 
                   colorKey="eventos" 
                 />
@@ -819,7 +821,7 @@ export function AppSidebar() {
                       <MenuItemLink 
                         to="/dashboard/eventos" 
                         icon={Home} 
-                        title="Eventos" 
+                        title={t("eventos.events")} 
                         colorKey="eventos"
                         end 
                       />
@@ -828,7 +830,7 @@ export function AppSidebar() {
                       <MenuItemLink 
                         to="/dashboard/eventos/dashboard" 
                         icon={BarChart3} 
-                        title="Dashboard" 
+                        title={t("eventos.dashboard")} 
                         colorKey="eventos"
                       />
                     )}
@@ -884,14 +886,14 @@ export function AppSidebar() {
                       <MenuItemLink 
                         to={`/dashboard/departamentos/${dept.id}`} 
                         icon={FileText} 
-                        title="Despesas" 
+                        title={t("dept.expenses")} 
                         colorKey="departamentos"
                         end
                       />
                       <MenuItemLink 
                         to={`/dashboard/departamentos/${dept.id}/dashboard`} 
                         icon={BarChart3} 
-                        title="Dashboard" 
+                        title={t("dept.dashboard")} 
                         colorKey="departamentos"
                       />
                     </SidebarMenu>
@@ -909,7 +911,7 @@ export function AppSidebar() {
               <CollapsibleTrigger className="w-full">
                 <ModuleHeader 
                   icon={DollarSign} 
-                  title="Tabelas de Preços" 
+                  title={t("module.precos")} 
                   isOpen={precosOpen} 
                   colorKey="precos" 
                 />
@@ -957,7 +959,7 @@ export function AppSidebar() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{userName}</p>
-                <p className="text-xs text-muted-foreground">Conectado</p>
+                <p className="text-xs text-muted-foreground">{t("nav.connected")}</p>
               </div>
             </div>
           </div>
@@ -977,7 +979,7 @@ export function AppSidebar() {
                   )}
                 >
                   <Settings className="h-4 w-4" />
-                  <span>Configurações</span>
+                  <span>{t("nav.settings")}</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -988,7 +990,7 @@ export function AppSidebar() {
               className="flex items-center gap-3 px-3 py-2 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive transition-all"
             >
               <LogOut className="h-4 w-4" />
-              <span>Sair</span>
+              <span>{t("nav.logout")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, TrendingUp, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ProspectsStats {
   totalProspects: number;
@@ -13,6 +14,7 @@ interface ProspectsStats {
 export const ProspectsDashboardWidget = memo(() => {
   const [stats, setStats] = useState<ProspectsStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -43,24 +45,24 @@ export const ProspectsDashboardWidget = memo(() => {
 
   const statCards = useMemo(() => [
     {
-      title: "Total de Prospects",
+      title: t("widget.total_prospects"),
       value: stats?.totalProspects || 0,
       icon: Users,
-      description: "Prospects cadastrados",
+      description: t("widget.prospects_registered"),
     },
     {
-      title: "Em Negociação",
+      title: t("widget.in_negotiation"),
       value: stats?.prospectsEmNegociacao || 0,
       icon: TrendingUp,
-      description: "Prospects em negociação",
+      description: t("widget.prospects_negotiation"),
     },
     {
-      title: "Atividades Hoje",
+      title: t("widget.activities_today"),
       value: stats?.atividadesHoje || 0,
       icon: Activity,
-      description: "Atividades registradas",
+      description: t("widget.activities_registered"),
     },
-  ], [stats]);
+  ], [stats, t]);
 
   if (loading) {
     return (
