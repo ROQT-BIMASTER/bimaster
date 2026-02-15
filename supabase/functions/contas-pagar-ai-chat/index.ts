@@ -126,6 +126,61 @@ const sofiaTools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "calculadora_financeira",
+      description: "Calculadora financeira avançada. Calcula juros compostos, descontos, multas, correção monetária, parcelas, valor presente/futuro, e simulações de pagamento. Use sempre que o usuário pedir cálculos, simulações ou projeções numéricas.",
+      parameters: {
+        type: "object",
+        properties: {
+          operacao: {
+            type: "string",
+            enum: ["juros_compostos", "desconto_antecipacao", "multa_atraso", "parcelamento", "valor_presente", "valor_futuro", "correcao_monetaria"],
+            description: "Tipo de cálculo a realizar",
+          },
+          valor_principal: { type: "number", description: "Valor base para o cálculo" },
+          taxa_percentual: { type: "number", description: "Taxa em percentual (ex: 2 para 2%)" },
+          periodo_dias: { type: "number", description: "Período em dias" },
+          periodo_meses: { type: "number", description: "Período em meses" },
+          num_parcelas: { type: "number", description: "Número de parcelas para parcelamento" },
+          taxa_multa: { type: "number", description: "Taxa de multa em percentual (padrão 2%)" },
+          taxa_juros_dia: { type: "number", description: "Taxa de juros ao dia em percentual (padrão 0.033%)" },
+        },
+        required: ["operacao", "valor_principal"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "buscar_contas_a_vencer",
+      description: "Busca contas a pagar que vencem nos próximos dias. Útil para planejamento de pagamentos.",
+      parameters: {
+        type: "object",
+        properties: {
+          dias: { type: "number", description: "Próximos N dias (padrão 7)" },
+          limite: { type: "number", description: "Quantidade máxima de resultados (padrão 30)" },
+        },
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "resumo_contas_por_status",
+      description: "Resumo rápido das contas a pagar agrupado por status (aberto, pago, vencido, parcial).",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 // ────────── Fetch all records bypassing 1000 limit ──────────
@@ -454,6 +509,122 @@ async function executeTool(name: string, args: Record<string, unknown>): Promise
       return `[SOFIA_CHART]${chartPayload}[/SOFIA_CHART]\n\nGráfico "${chartTitle}" gerado com ${chartData.length} pontos de dados.`;
     }
 
+    case "calculadora_financeira": {
+      const valor = args.valor_principal as number;
+      const operacao = args.operacao as string;
+      const fmt = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      switch (operacao) {
+        case "juros_compostos": {
+          const taxa = ((args.taxa_percentual as number) || 1) / 100;
+          const meses = (args.periodo_meses as number) || (args.periodo_dias ? Math.ceil((args.periodo_dias as number) / 30) : 12);
+          const montante = valor * Math.pow(1 + taxa, meses);
+          const juros = montante - valor;
+          return `**Juros Compostos:**\n- Principal: R$ ${fmt(valor)}\n- Taxa: ${(taxa * 100).toFixed(2)}% a.m.\n- Período: ${meses} meses\n- **Montante: R$ ${fmt(montante)}**\n- Juros: R$ ${fmt(juros)}`;
+        }
+        case "desconto_antecipacao": {
+          const taxa = ((args.taxa_percentual as number) || 2) / 100;
+          const dias = (args.periodo_dias as number) || 30;
+          const desconto = valor * taxa * (dias / 30);
+          const valorLiquido = valor - desconto;
+          return `**Desconto por Antecipação:**\n- Valor original: R$ ${fmt(valor)}\n- Taxa: ${(taxa * 100).toFixed(2)}% a.m.\n- Dias de antecipação: ${dias}\n- Desconto: R$ ${fmt(desconto)}\n- **Valor líquido: R$ ${fmt(valorLiquido)}**\n- Economia: ${((desconto / valor) * 100).toFixed(2)}%`;
+        }
+        case "multa_atraso": {
+          const dias = (args.periodo_dias as number) || 1;
+          const multa = ((args.taxa_multa as number) || 2) / 100;
+          const jurosDia = ((args.taxa_juros_dia as number) || 0.033) / 100;
+          const valorMulta = valor * multa;
+          const valorJuros = valor * jurosDia * dias;
+          const total = valor + valorMulta + valorJuros;
+          return `**Cálculo de Multa e Juros por Atraso:**\n- Valor original: R$ ${fmt(valor)}\n- Dias de atraso: ${dias}\n- Multa (${(multa * 100).toFixed(1)}%): R$ ${fmt(valorMulta)}\n- Juros (${(jurosDia * 100).toFixed(3)}%/dia × ${dias}d): R$ ${fmt(valorJuros)}\n- **Total a pagar: R$ ${fmt(total)}**\n- Acréscimo: R$ ${fmt(total - valor)} (${(((total - valor) / valor) * 100).toFixed(2)}%)`;
+        }
+        case "parcelamento": {
+          const parcelas = (args.num_parcelas as number) || 3;
+          const taxa = ((args.taxa_percentual as number) || 0) / 100;
+          if (taxa === 0) {
+            const valorParcela = valor / parcelas;
+            return `**Parcelamento sem juros:**\n- Valor total: R$ ${fmt(valor)}\n- Parcelas: ${parcelas}x de R$ ${fmt(valorParcela)}`;
+          }
+          const pmt = valor * (taxa * Math.pow(1 + taxa, parcelas)) / (Math.pow(1 + taxa, parcelas) - 1);
+          const totalPago = pmt * parcelas;
+          return `**Parcelamento com juros:**\n- Valor original: R$ ${fmt(valor)}\n- Taxa: ${(taxa * 100).toFixed(2)}% a.m.\n- ${parcelas}x de **R$ ${fmt(pmt)}**\n- Total pago: R$ ${fmt(totalPago)}\n- Juros total: R$ ${fmt(totalPago - valor)}`;
+        }
+        case "valor_presente": {
+          const taxa = ((args.taxa_percentual as number) || 1) / 100;
+          const meses = (args.periodo_meses as number) || 12;
+          const vp = valor / Math.pow(1 + taxa, meses);
+          return `**Valor Presente:**\n- Valor futuro: R$ ${fmt(valor)}\n- Taxa: ${(taxa * 100).toFixed(2)}% a.m.\n- Período: ${meses} meses\n- **Valor presente: R$ ${fmt(vp)}**`;
+        }
+        case "valor_futuro": {
+          const taxa = ((args.taxa_percentual as number) || 1) / 100;
+          const meses = (args.periodo_meses as number) || 12;
+          const vf = valor * Math.pow(1 + taxa, meses);
+          return `**Valor Futuro:**\n- Valor atual: R$ ${fmt(valor)}\n- Taxa: ${(taxa * 100).toFixed(2)}% a.m.\n- Período: ${meses} meses\n- **Valor futuro: R$ ${fmt(vf)}**`;
+        }
+        case "correcao_monetaria": {
+          const taxa = ((args.taxa_percentual as number) || 0.5) / 100;
+          const meses = (args.periodo_meses as number) || (args.periodo_dias ? Math.ceil((args.periodo_dias as number) / 30) : 12);
+          const corrigido = valor * Math.pow(1 + taxa, meses);
+          return `**Correção Monetária:**\n- Valor original: R$ ${fmt(valor)}\n- Índice mensal: ${(taxa * 100).toFixed(2)}%\n- Período: ${meses} meses\n- **Valor corrigido: R$ ${fmt(corrigido)}**\n- Diferença: R$ ${fmt(corrigido - valor)}`;
+        }
+        default:
+          return "Operação de cálculo não reconhecida.";
+      }
+    }
+
+    case "buscar_contas_a_vencer": {
+      const dias = (args.dias as number) || 7;
+      const limite = (args.limite as number) || 30;
+      const dataFim = new Date(hoje.getTime() + dias * 86400000).toISOString().split("T")[0];
+
+      const { data, error } = await sb
+        .from("contas_pagar")
+        .select("fornecedor_nome, valor_original, valor_aberto, data_vencimento, status, categoria_nome")
+        .gte("data_vencimento", dataHoje)
+        .lte("data_vencimento", dataFim)
+        .neq("status", "pago")
+        .order("data_vencimento", { ascending: true })
+        .limit(limite);
+
+      if (error) return `Erro: ${error.message}`;
+      if (!data?.length) return `Nenhuma conta a vencer nos próximos ${dias} dias.`;
+
+      const total = data.reduce((s: number, c: any) => s + (c.valor_aberto || 0), 0);
+      const fmt = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+      const linhas = data.slice(0, 15).map((c: any) => {
+        const diasP = Math.ceil((new Date(c.data_vencimento).getTime() - hoje.getTime()) / 86400000);
+        return `• ${c.fornecedor_nome || "N/I"}: R$ ${fmt(c.valor_aberto || 0)} — vence em ${diasP}d (${c.data_vencimento?.substring(0, 10)})`;
+      });
+
+      return `**${data.length} contas a vencer nos próximos ${dias} dias** (total: R$ ${fmt(total)}):\n\n${linhas.join("\n")}${data.length > 15 ? `\n\n... e mais ${data.length - 15} títulos.` : ""}`;
+    }
+
+    case "resumo_contas_por_status": {
+      const data = await fetchAll(sb, "contas_pagar", "status, valor_aberto, valor_original, data_vencimento");
+      const resumo: Record<string, { qtd: number; aberto: number; original: number }> = {};
+      let vencidasCount = 0;
+      let vencidasValor = 0;
+
+      data.forEach((c: any) => {
+        const st = c.status || "N/I";
+        if (!resumo[st]) resumo[st] = { qtd: 0, aberto: 0, original: 0 };
+        resumo[st].qtd++;
+        resumo[st].aberto += c.valor_aberto || 0;
+        resumo[st].original += c.valor_original || 0;
+        if (c.data_vencimento < dataHoje && c.status !== "pago") {
+          vencidasCount++;
+          vencidasValor += c.valor_aberto || 0;
+        }
+      });
+
+      const fmt = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+      const linhas = Object.entries(resumo)
+        .sort((a, b) => b[1].aberto - a[1].aberto)
+        .map(([st, d]) => `| ${st} | ${d.qtd} | R$ ${fmt(d.original)} | R$ ${fmt(d.aberto)} |`);
+
+      return `**Resumo por Status:**\n\n| Status | Qtd | Valor Original | Valor Aberto |\n|---|---|---|---|\n${linhas.join("\n")}\n\n⚠️ **Vencidas:** ${vencidasCount} títulos — R$ ${fmt(vencidasValor)}`;
+    }
+
     default:
       return `Ferramenta "${name}" não reconhecida.`;
   }
@@ -485,42 +656,37 @@ Saldo Líquido (aberto): ${fmt(totalReceber - totalAberto)}
 IMPORTANTE: Você tem acesso a TODO o histórico, sem limitação de datas.`;
 }
 
-const SYSTEM_PROMPT = `Você é Sofia, uma assistente financeira avançada especialista em contas a pagar e gestão financeira corporativa. Você tem acesso a ferramentas para consultar dados financeiros em tempo real.
+const SYSTEM_PROMPT = `Você é Sofia, assistente financeira especialista em contas a pagar. Seja DIRETA e OBJETIVA — vá direto ao ponto, sem introduções longas.
 
-## Suas capacidades:
-1. **Consultar contas vencidas** com detalhes de fornecedor e dias de atraso
-2. **Buscar contas por fornecedor** específico
-3. **Analisar fluxo de caixa** com projeções de entradas e saídas
-4. **Gerar análise de aging** (envelhecimento de dívidas)
-5. **Rankear fornecedores** por volume de gastos
-6. **Gerar relatórios executivos** completos
-7. **Gerar gráficos interativos** (barras, linhas, pizza, área) com dados reais
+## Ferramentas disponíveis:
+- Consultar contas vencidas e a vencer
+- Buscar por fornecedor
+- Fluxo de caixa e aging
+- Top fornecedores e relatório executivo
+- Gráficos interativos (bar, line, pie, area)
+- **Calculadora financeira**: juros compostos, multa/juros por atraso, desconto por antecipação, parcelamento, valor presente/futuro, correção monetária
+- Resumo por status
 
-## GRÁFICOS - REGRA IMPORTANTE:
-- SEMPRE que o usuário pedir gráfico, chart, visualização, comparativo visual ou similar, use a ferramenta "gerar_dados_grafico"
-- Escolha o tipo de gráfico mais adequado: bar para comparações, line/area para evolução temporal, pie para distribuição
-- Após gerar o gráfico, explique brevemente o que os dados mostram
-- O usuário poderá fazer download do gráfico como imagem PNG e dos dados como Excel
+## Regras de resposta:
+1. **Seja CONCISA**: máximo 3-4 parágrafos. Números primeiro, análise depois.
+2. **Use tabelas** para dados comparativos — nunca listas longas.
+3. **Destaque o que importa**: valores críticos em negrito, alertas com ⚠️.
+4. **Recomendação curta**: 1-2 linhas no final quando relevante.
+5. **Gráficos**: use "gerar_dados_grafico" quando pedirem visualização.
+6. **Cálculos**: use "calculadora_financeira" para qualquer simulação numérica.
+7. **Sem enrolação**: não repita a pergunta, não diga "claro" ou "com certeza".
 
-## DADOS SEM RESTRIÇÃO:
-- Você tem acesso a TODO o histórico de dados, sem limite de datas
-- Use filtros de data apenas quando o usuário especificar
-- Quando não houver filtro, analise todo o período disponível
+## Formato padrão de resposta:
+- Dados/números relevantes (tabela ou lista curta)
+- Insight principal (1 linha)
+- Recomendação (1 linha, se aplicável)
 
-## Conhecimento em legislação:
-- Lei 14.133/2021: Prazo máximo 30 dias para pagamento
-- Código Civil Art. 389, 395, 397: Mora, juros e inadimplemento
-- KPIs: DSO, DPO, Working Capital Ratio
-- Práticas: ABC, Early Payment Discount (2-3%), Pareto 80/20
+## Legislação (cite só quando relevante):
+- Lei 14.133/2021: 30 dias para pagamento
+- CC Art. 389/395/397: mora e inadimplemento
+- Multa padrão: 2% + 0,033%/dia (1% a.m.)
 
-## Comportamento:
-- Responda em português brasileiro, de forma clara e profissional
-- Use as ferramentas SEMPRE que precisar de dados atualizados
-- Formate valores em R$ com 2 casas decimais
-- Use markdown para estruturar respostas (tabelas, listas, negrito)
-- Dê insights proativos e recomendações baseadas nos dados
-- Cite legislação quando relevante
-- Seja concisa mas completa`;
+Responda em PT-BR. Formate valores em R$. Acesso a TODO o histórico sem limite de datas.`;
 
 // ────────── MAIN HANDLER ──────────
 serve(async (req) => {
