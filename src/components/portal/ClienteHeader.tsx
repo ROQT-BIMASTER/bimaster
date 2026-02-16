@@ -5,16 +5,17 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logoUnion from "@/assets/logo-union.png";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const ClienteHeader = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [userName, setUserName] = useState<string>("");
 
   useEffect(() => {
     const fetchUserInfo = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Buscar informações do profile
         const { data: profile } = await supabase
           .from("profiles")
           .select("nome, email")
@@ -34,18 +35,17 @@ export const ClienteHeader = () => {
 
   const handleLogout = async () => {
     try {
-      // Registrar log de saída
       await supabase.rpc("registrar_acesso_portal", {
         p_acao: "logout",
         p_detalhes: {}
       });
 
       await supabase.auth.signOut();
-      toast.success("Logout realizado com sucesso");
+      toast.success(t("portal.logout_success"));
       navigate("/auth/login");
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
-      toast.error("Erro ao fazer logout");
+      toast.error(t("portal.logout_error"));
     }
   };
 
@@ -60,22 +60,21 @@ export const ClienteHeader = () => {
               className="h-10 w-auto"
             />
             <div className="hidden md:block">
-              <h1 className="text-lg font-semibold text-foreground">Portal do Cliente</h1>
+              <h1 className="text-lg font-semibold text-foreground">{t("portal.title")}</h1>
             </div>
           </Link>
           
-          {/* Navigation */}
           <nav className="hidden md:flex items-center gap-4">
             <Link to="/portal/precos">
               <Button variant="ghost" size="sm" className="gap-2">
                 <FileText className="h-4 w-4" />
-                Tabelas de Preço
+                {t("portal.price_tables")}
               </Button>
             </Link>
             <Link to="/portal/perfil">
               <Button variant="ghost" size="sm" className="gap-2">
                 <UserCircle className="h-4 w-4" />
-                Meu Perfil
+                {t("portal.my_profile")}
               </Button>
             </Link>
           </nav>
@@ -94,7 +93,7 @@ export const ClienteHeader = () => {
             className="gap-2"
           >
             <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sair</span>
+            <span className="hidden sm:inline">{t("portal.exit")}</span>
           </Button>
         </div>
       </div>
