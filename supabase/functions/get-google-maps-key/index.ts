@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const GOOGLE_MAPS_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY') || '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,7 +45,12 @@ serve(async (req) => {
 
     console.log('✅ Usuário autenticado:', user.id);
 
-    const { data: profile } = await supabase
+    // SECURITY: Use service role to check profile + role (bypass RLS for admin check)
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+
+    const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('aprovado')
       .eq('id', user.id)
@@ -53,6 +59,32 @@ serve(async (req) => {
     if (!profile?.aprovado) {
       return new Response(
         JSON.stringify({ error: 'User not approved' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      );
+    }
+
+    // SECURITY: Restrict to users with trade or commercial module access
+    const { data: moduleAccess } = await supabaseAdmin
+      .from('usuario_permissoes_modulos')
+      .select('modulo_id, modulos_sistema!inner(codigo)')
+      .eq('usuario_id', user.id);
+
+    const { data: userRole } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    const isAdmin = userRole?.role === 'admin';
+    const allowedModules = ['trade_marketing', 'comercial', 'fabrica'];
+    const hasModuleAccess = moduleAccess?.some((m: any) => 
+      allowedModules.includes(m.modulos_sistema?.codigo)
+    );
+
+    if (!isAdmin && !hasModuleAccess) {
+      console.warn('⚠️ Usuário sem permissão para acessar Google Maps key:', user.id);
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
       );
     }
