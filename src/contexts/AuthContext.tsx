@@ -66,20 +66,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { approved: globalAuthCache.approved, isActive: globalAuthCache.isActive };
     }
 
-    // Verificar localStorage cache (para resposta rápida)
+    // SECURITY: Always validate with server - never trust localStorage alone
+    // localStorage is only used as initial UI state to prevent flash, 
+    // but server validation always runs
     const cachedApproval = localStorage.getItem("user_approved_cache");
     const cachedActive = localStorage.getItem("user_active_cache");
-    
-    // Em forceRefresh, sempre buscar do banco
-    if (!forceRefresh && cachedApproval === "true" && cachedActive !== "false") {
-      globalAuthCache = {
-        userId,
-        approved: true,
-        isActive: true,
-        timestamp: now,
-      };
-      return { approved: true, isActive: true };
-    }
 
     try {
       // CRITICAL: Fetch both aprovado AND status fields
