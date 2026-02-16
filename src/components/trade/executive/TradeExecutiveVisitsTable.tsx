@@ -6,21 +6,24 @@ import { Calendar, Clock, Star } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { RecentVisit } from "@/hooks/useTradeExecutiveDashboard";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface TradeExecutiveVisitsTableProps {
   data?: RecentVisit[];
   isLoading: boolean;
 }
 
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  completed: { label: "Concluída", variant: "default" },
-  in_progress: { label: "Em Andamento", variant: "secondary" },
-  scheduled: { label: "Agendada", variant: "outline" },
-  cancelled: { label: "Cancelada", variant: "destructive" },
-  pending: { label: "Pendente", variant: "outline" },
-};
-
 export function TradeExecutiveVisitsTable({ data, isLoading }: TradeExecutiveVisitsTableProps) {
+  const { t } = useLanguage();
+
+  const statusConfig: Record<string, { labelKey: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+    completed: { labelKey: "visits.completed", variant: "default" },
+    in_progress: { labelKey: "visits.in_progress", variant: "secondary" },
+    scheduled: { labelKey: "visits.scheduled", variant: "outline" },
+    cancelled: { labelKey: "visits.cancelled", variant: "destructive" },
+    pending: { labelKey: "visits.pending", variant: "outline" },
+  };
+
   if (isLoading) {
     return <Skeleton className="h-[400px]" />;
   }
@@ -30,7 +33,7 @@ export function TradeExecutiveVisitsTable({ data, isLoading }: TradeExecutiveVis
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           <Calendar className="h-5 w-5 text-primary" />
-          Visitas Recentes
+          {t("visits.recent")}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -38,12 +41,12 @@ export function TradeExecutiveVisitsTable({ data, isLoading }: TradeExecutiveVis
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>PDV</TableHead>
-                <TableHead>Vendedor</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Duração</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Score</TableHead>
+                <TableHead>{t("visits.pdv")}</TableHead>
+                <TableHead>{t("visits.seller")}</TableHead>
+                <TableHead>{t("visits.date")}</TableHead>
+                <TableHead>{t("visits.duration")}</TableHead>
+                <TableHead>{t("visits.status")}</TableHead>
+                <TableHead className="text-right">{t("visits.score")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -66,14 +69,14 @@ export function TradeExecutiveVisitsTable({ data, isLoading }: TradeExecutiveVis
                       {visit.duracao !== null ? (
                         <span className="flex items-center gap-1 text-muted-foreground">
                           <Clock className="h-3 w-3" />
-                          {visit.duracao} min
+                          {visit.duracao} {t("visits.min")}
                         </span>
                       ) : (
                         "-"
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={status.variant}>{status.label}</Badge>
+                      <Badge variant={status.variant}>{t(status.labelKey)}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       {visit.score !== null ? (
@@ -92,7 +95,7 @@ export function TradeExecutiveVisitsTable({ data, isLoading }: TradeExecutiveVis
           </Table>
         ) : (
           <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-            Nenhuma visita encontrada
+            {t("visits.none_found")}
           </div>
         )}
       </CardContent>

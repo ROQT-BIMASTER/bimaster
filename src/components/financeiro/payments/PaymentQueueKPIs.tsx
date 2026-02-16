@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, CheckCircle2, XCircle, Wallet, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface PaymentQueueKPIsProps {
   kpis: {
@@ -26,9 +27,11 @@ const formatCurrency = (value: number) => {
 };
 
 export function PaymentQueueKPIs({ kpis }: PaymentQueueKPIsProps) {
+  const { t } = useLanguage();
+
   const cards = [
     {
-      title: "Pendentes",
+      title: t("pq.pending"),
       value: kpis.pendingCount,
       subtitle: formatCurrency(kpis.pendingAmount),
       icon: Clock,
@@ -37,7 +40,7 @@ export function PaymentQueueKPIs({ kpis }: PaymentQueueKPIsProps) {
       borderColor: "border-amber-500/30",
     },
     {
-      title: "Aceitos",
+      title: t("pq.accepted"),
       value: kpis.acceptedCount,
       subtitle: formatCurrency(kpis.acceptedAmount),
       icon: CheckCircle2,
@@ -46,16 +49,16 @@ export function PaymentQueueKPIs({ kpis }: PaymentQueueKPIsProps) {
       borderColor: "border-emerald-500/30",
     },
     {
-      title: "Rejeitados",
+      title: t("pq.rejected"),
       value: kpis.rejectedCount,
-      subtitle: "itens",
+      subtitle: t("pq.items"),
       icon: XCircle,
       color: "text-red-500",
       bgColor: "bg-red-500/10",
       borderColor: "border-red-500/30",
     },
     {
-      title: "Pagos",
+      title: t("pq.paid"),
       value: kpis.paidCount,
       subtitle: formatCurrency(kpis.paidAmount),
       icon: Wallet,
@@ -64,9 +67,9 @@ export function PaymentQueueKPIs({ kpis }: PaymentQueueKPIsProps) {
       borderColor: "border-blue-500/30",
     },
     {
-      title: "Total Geral",
+      title: t("pq.total"),
       value: formatCurrency(kpis.totalAmount),
-      subtitle: `${kpis.totalCount} solicitações`,
+      subtitle: `${kpis.totalCount} ${t("pq.requests")}`,
       icon: DollarSign,
       color: "text-primary",
       bgColor: "bg-primary/10",
