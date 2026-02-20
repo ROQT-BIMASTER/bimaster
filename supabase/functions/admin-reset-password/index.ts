@@ -13,17 +13,25 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     // Verify caller is admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Não autorizado");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    // Create client with user's token to verify identity
+    const supabaseUser = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    const { data: { user: caller }, error: authError } = await supabaseUser.auth.getUser();
     if (authError || !caller) throw new Error("Não autorizado");
 
     // Check if caller is admin via user_roles table

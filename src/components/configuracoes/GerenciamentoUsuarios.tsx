@@ -296,8 +296,6 @@ export const GerenciamentoUsuarios = () => {
 
       // Só atualizar role se realmente mudou (evita trigger destrutivo)
       if (novoUsuario.tipo_usuario !== editingUser.tipo_usuario) {
-        // Usar UPDATE ao invés de DELETE/INSERT para preservar o registro
-        // O trigger só dispara sincronização suave quando o role realmente muda
         const { error: roleError } = await supabase
           .from("user_roles")
           .upsert({
@@ -307,7 +305,21 @@ export const GerenciamentoUsuarios = () => {
 
         if (roleError) throw roleError;
       }
-      // Se o role não mudou, não mexe na tabela user_roles - preserva permissões customizadas
+
+      // Atualizar senha se foi preenchida
+      if (novoUsuario.senha && novoUsuario.senha.length >= 8) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Sessão expirada");
+
+        const response = await supabase.functions.invoke("update-user-password", {
+          body: { user_id: editingUser.id, password: novoUsuario.senha },
+        });
+
+        if (response.error) throw new Error(response.error.message || "Erro ao atualizar senha");
+        if (response.data?.error) throw new Error(response.data.error);
+      } else if (novoUsuario.senha && novoUsuario.senha.length > 0 && novoUsuario.senha.length < 8) {
+        throw new Error("Senha deve ter no mínimo 8 caracteres");
+      }
 
       // Atualizar municípios se for vendedor
       if (novoUsuario.tipo_usuario === "vendedor") {
@@ -316,7 +328,7 @@ export const GerenciamentoUsuarios = () => {
 
       toast({
         title: "Usuário atualizado",
-        description: "As informações foram atualizadas com sucesso",
+        description: novoUsuario.senha ? "Informações e senha atualizadas com sucesso" : "As informações foram atualizadas com sucesso",
       });
 
       setIsDialogOpen(false);
@@ -494,17 +506,19 @@ export const GerenciamentoUsuarios = () => {
                     {errors.tipo_usuario && <p className="text-sm text-destructive">{errors.tipo_usuario}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="senha">Senha Inicial</Label>
+                    <Label htmlFor="senha">{editingUser ? "Nova Senha (deixe vazio para manter)" : "Senha Inicial"}</Label>
                     <Input
                       id="senha"
                       type="password"
                       value={novoUsuario.senha}
                       onChange={(e) => setNovoUsuario({ ...novoUsuario, senha: e.target.value })}
-                      placeholder="••••••••"
+                      placeholder={editingUser ? "Deixe vazio para manter a senha atual" : "••••••••"}
                       maxLength={100}
                     />
                     {errors.senha && <p className="text-sm text-destructive">{errors.senha}</p>}
-                    <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, com letras maiúsculas, minúsculas e números</p>
+                    <p className="text-xs text-muted-foreground">
+                      {editingUser ? "Preencha apenas se deseja alterar. " : ""}Mínimo 8 caracteres, com letras maiúsculas, minúsculas e números
+                    </p>
                   </div>
 
                   {novoUsuario.tipo_usuario !== "admin" && (
