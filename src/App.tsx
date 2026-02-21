@@ -12,6 +12,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ClienteProtectedRoute } from "@/components/auth/ClienteProtectedRoute";
 import { ModuleProtectedRoute } from "@/components/auth/ModuleProtectedRoute";
 import { ScreenProtectedRoute } from "@/components/auth/ScreenProtectedRoute";
+import { DashboardRedirect } from "@/components/auth/DashboardRedirect";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
@@ -274,7 +275,7 @@ function AppContent() {
             <Route path="/usuario-bloqueado" element={<UsuarioBloqueado />} />
             
             {/* Protected Routes */}
-            <Route path="/dashboard" element={<ProtectedRoute><Navigate to="/dashboard/prospects" replace /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
             <Route path="/dashboard/ai-analytics" element={<ProtectedRoute><AIAnalytics /></ProtectedRoute>} />
             <Route path="/dashboard/qa-agent" element={<ProtectedRoute><QAAgent /></ProtectedRoute>} />
             <Route path="/dashboard/agente-huggs" element={<ProtectedRoute><AgenteHuggs /></ProtectedRoute>} />
