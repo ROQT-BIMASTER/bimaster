@@ -23,7 +23,7 @@ interface Usuario {
   id: string;
   nome: string;
   email: string;
-  role: "admin" | "supervisor" | "vendedor" | "promotor";
+  role: "admin" | "gerente" | "supervisor" | "vendedor" | "promotor";
   supervisor_id: string | null;
   subordinados?: Usuario[];
   status: string;
@@ -118,7 +118,7 @@ export function HierarquiaUsuarios() {
     });
 
     // Separar supervisores
-    const supervisoresList = usuarios.filter(u => u.role === 'supervisor');
+    const supervisoresList = usuarios.filter(u => u.role === 'supervisor' || u.role === 'gerente');
     setSupervisores(supervisoresList);
 
     // Construir a árvore de hierarquia
@@ -159,7 +159,7 @@ export function HierarquiaUsuarios() {
     });
 
     // Ordenar por role e nome
-    const roleOrder = { admin: 0, supervisor: 1, vendedor: 2, promotor: 3 };
+    const roleOrder: Record<string, number> = { admin: 0, gerente: 1, supervisor: 2, vendedor: 3, promotor: 4 };
     const sortUsuarios = (list: Usuario[]) => {
       list.sort((a, b) => {
         const roleCompare = roleOrder[a.role] - roleOrder[b.role];
@@ -287,9 +287,11 @@ export function HierarquiaUsuarios() {
 
       // Regras de hierarquia:
       // - Admin pode ser superior de qualquer um
+      // - Gerente pode ser superior de supervisor, vendedor e promotor
       // - Supervisor pode ser superior de vendedor e promotor
       // - Vendedor pode ser superior de promotor
       if (u.role === 'admin') return true;
+      if (u.role === 'gerente' && (usuario.role === 'supervisor' || usuario.role === 'vendedor' || usuario.role === 'promotor')) return true;
       if (u.role === 'supervisor' && (usuario.role === 'vendedor' || usuario.role === 'promotor')) return true;
       if (u.role === 'vendedor' && usuario.role === 'promotor') return true;
 
@@ -312,6 +314,7 @@ export function HierarquiaUsuarios() {
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'admin': return Shield;
+      case 'gerente': return UserCog;
       case 'supervisor': return UserCog;
       case 'vendedor': return User;
       case 'promotor': return UserCircle2;
@@ -322,6 +325,7 @@ export function HierarquiaUsuarios() {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin': return 'default';
+      case 'gerente': return 'default';
       case 'supervisor': return 'secondary';
       case 'vendedor': return 'outline';
       case 'promotor': return 'outline';
@@ -332,6 +336,7 @@ export function HierarquiaUsuarios() {
   const getRoleLabel = (role: string) => {
     switch (role) {
       case 'admin': return 'Admin';
+      case 'gerente': return 'Gerente';
       case 'supervisor': return 'Supervisor';
       case 'vendedor': return 'Vendedor';
       case 'promotor': return 'Promotor';
@@ -446,7 +451,8 @@ export function HierarquiaUsuarios() {
       supervisores: usuarios.filter(u => u.role === 'supervisor').length,
       vendedores: usuarios.filter(u => u.role === 'vendedor').length,
       promotores: usuarios.filter(u => u.role === 'promotor').length,
-      semSuperior: usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'supervisor').length,
+      gerentes: usuarios.filter(u => u.role === 'gerente').length,
+      semSuperior: usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'gerente' && u.role !== 'supervisor').length,
     };
     return stats;
   };
