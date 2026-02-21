@@ -27,7 +27,7 @@ export function useMapTeamData() {
   const { isAdmin, isGerente, isSupervisor, isAdminOrSupervisor, loading: roleLoading } = useUserRole();
 
   const effectiveUserId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
-  const hasFullVisibility = isAdmin || isGerente;
+  const hasFullVisibility = isAdmin;
 
   const teamQuery = useQuery({
     queryKey: ["map-team-hierarchy", effectiveUserId, hasFullVisibility, isSupervisor],
@@ -45,7 +45,7 @@ export function useMapTeamData() {
 
         if (error) throw error;
         allProfiles = profiles || [];
-      } else if (isSupervisor) {
+      } else if (isSupervisor || isGerente) {
         // Supervisor: subordinados via get_subordinados
         const { data: subordinados, error: subError } = await supabase
           .rpc("get_subordinados", { _user_id: effectiveUserId });

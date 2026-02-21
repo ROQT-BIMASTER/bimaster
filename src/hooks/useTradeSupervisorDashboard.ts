@@ -67,16 +67,16 @@ export function useTradeSupervisorDashboard(
         .maybeSingle();
       effectiveRole = roleData?.role || '';
 
-      // Admin e Gerente veem TODAS as equipes; se personificando, usa o role do personificado
+      // Apenas Admin vê TODAS as equipes; Gerente vê apenas sua árvore hierárquica (subordinados)
       const isRealAdmin = !isImpersonating && effectiveRole === 'admin';
-      const hasFullVisibility = effectiveRole === 'admin' || effectiveRole === 'gerente';
+      const hasFullVisibility = effectiveRole === 'admin';
 
       console.log("[SupervisorDashboard] Buscando equipe para:", effectiveUserId, `(${effectiveRole})`, hasFullVisibility ? "- visão total" : "- hierarquia");
 
       let allProfiles: any[] = [];
 
       if (hasFullVisibility) {
-        // Admin e Gerente: buscar TODOS os usuários ativos (exceto o próprio)
+        // Admin: buscar TODOS os usuários ativos (exceto o próprio)
         const { data: profiles, error: profilesError } = await (supabase
           .from("profiles")
           .select("id, nome, email, supervisor_id") as any)
