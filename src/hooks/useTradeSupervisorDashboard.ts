@@ -67,9 +67,13 @@ export function useTradeSupervisorDashboard(
         .maybeSingle();
       effectiveRole = roleData?.role || '';
 
-      // Apenas Admin vê TODAS as equipes; Gerente vê apenas sua árvore hierárquica (subordinados)
+      // Admin vê TODAS as equipes; IDs com visibilidade total também (gerentes gerais)
+      const FULL_VISIBILITY_IDS = [
+        '7eb17733-d824-4758-8ddf-7b9606ef4991', // Milene Harumi
+        'c534168c-db4f-493c-b42c-77c8b0b4c1db', // Ahmad
+      ];
       const isRealAdmin = !isImpersonating && effectiveRole === 'admin';
-      const hasFullVisibility = effectiveRole === 'admin';
+      const hasFullVisibility = effectiveRole === 'admin' || FULL_VISIBILITY_IDS.includes(effectiveUserId);
 
       console.log("[SupervisorDashboard] Buscando equipe para:", effectiveUserId, `(${effectiveRole})`, hasFullVisibility ? "- visão total" : "- hierarquia");
 
