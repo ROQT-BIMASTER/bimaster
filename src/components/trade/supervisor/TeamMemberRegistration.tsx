@@ -259,7 +259,7 @@ export function TeamMemberRegistration({
     const admins = filteredMembers.filter(m => m.profile_role === "admin");
     const others = filteredMembers.filter(m => !["gerente", "supervisor", "vendedor", "promotor", "admin"].includes(m.profile_role || ""));
 
-    // Match vendedores to supervisors
+    // Match vendedores to supervisors (by profile_supervisor_id first, then fallback to supervisor_nome)
     const supervisorMap = new Map<string, SupervisorGroup>();
     const assignedVendedorIds = new Set<string>();
 
@@ -268,6 +268,13 @@ export function TeamMemberRegistration({
     }
 
     for (const vend of vendedores) {
+      // Priority 1: profile_supervisor_id points directly to a supervisor
+      if (vend.profile_supervisor_id && supervisorMap.has(vend.profile_supervisor_id)) {
+        supervisorMap.get(vend.profile_supervisor_id)!.vendedores.push(vend);
+        assignedVendedorIds.add(vend.user_id);
+        continue;
+      }
+      // Priority 2: fallback to supervisor_nome matching
       const supNome = vend.details?.supervisor_nome;
       const matchedSup = matchSupervisor(supNome, supervisores);
       if (matchedSup && supervisorMap.has(matchedSup.user_id)) {
@@ -283,53 +290,47 @@ export function TeamMemberRegistration({
       );
     }
 
-    // Build manager trees
-    // For now, we know all supervisors report to Milene (the hierarchy).
-    // But to be generic, we create a tree per gerente with all supervisors assigned.
-    // We'll use a simple approach: each gerente gets supervisors shown under them.
-    // In a more complex setup, you'd query `get_subordinados` per manager
+    // Build manager trees using real supervisor_id links
     const trees: ManagerTree[] = [];
     const assignedSupervisorIds = new Set<string>();
 
     for (const mgr of gerentes) {
-      const mgrGroups: SupervisorGroup[] = [];
+      const mgrSupervisors: SupervisorGroup[] = [];
 
-      // All supervisors are shown under managers (since they're all part of the same org)
-      // In a more complex setup, you'd query `get_subordinados` per manager
+      // Find supervisors whose profile_supervisor_id points to this manager
       for (const [supId, group] of supervisorMap.entries()) {
-        if (!assignedSupervisorIds.has(supId)) {
-          mgrGroups.push(group);
+        if (group.supervisor.profile_supervisor_id === mgr.user_id) {
+          mgrSupervisors.push(group);
+          assignedSupervisorIds.add(supId);
         }
       }
+
+      // Direct members (vendedores whose supervisor_id points to this manager, not already assigned)
+      const directVends = vendedores.filter(v =>
+        v.profile_supervisor_id === mgr.user_id && !assignedVendedorIds.has(v.user_id)
+      );
 
       trees.push({
         manager: mgr,
-        supervisorGroups: [], // We'll assign below
-        directMembers: [],
+        supervisorGroups: mgrSupervisors,
+        directMembers: directVends,
       });
     }
 
-    // Assign supervisors to the first manager that has them as subordinates
-    // For simplicity with the data we have, show hierarchy under "Milene Harumi" as main
-    // and unassigned supervisors under other managers
-    if (trees.length > 0 && supervisorMap.size > 0) {
-      // Try to distribute: main manager gets all supervisors for now
-      // since all supervisors report to the same org tree
-      const mainManager = trees.find(t =>
-        t.manager.profile_nome.toLowerCase().includes("milene")
-      ) || trees[0];
-
-      for (const [supId, group] of supervisorMap.entries()) {
-        mainManager.supervisorGroups.push(group);
-        assignedSupervisorIds.add(supId);
+    // Unassigned supervisors (no supervisor_id pointing to any manager) go into a fallback tree
+    const unassignedSups: SupervisorGroup[] = [];
+    for (const [supId, group] of supervisorMap.entries()) {
+      if (!assignedSupervisorIds.has(supId)) {
+        unassignedSups.push(group);
       }
-
-      // Other managers without explicit supervisors
-      for (const tree of trees) {
-        if (tree !== mainManager) {
-          tree.supervisorGroups = [];
-        }
-      }
+    }
+    if (unassignedSups.length > 0) {
+      // Create a placeholder tree for unassigned supervisors
+      trees.push({
+        manager: { user_id: "__unassigned__", profile_nome: "Sem equipe definida", profile_email: "", profile_role: "gerente", profile_avatar_url: null, profile_supervisor_id: null, details: null, cadastro_completo: false },
+        supervisorGroups: unassignedSups,
+        directMembers: [],
+      });
     }
 
     // Unassigned vendedores (no supervisor match)

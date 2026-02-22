@@ -29,6 +29,7 @@ export interface TeamMemberWithProfile {
   profile_email: string;
   profile_role: string | null;
   profile_avatar_url: string | null;
+  profile_supervisor_id: string | null;
   details: TeamMemberDetail | null;
   cadastro_completo: boolean;
 }
@@ -63,7 +64,7 @@ export function useTeamMemberDetails(teamMemberIds: string[]) {
       if (!teamMemberIds.length) return [];
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, nome, email, avatar_url")
+        .select("id, nome, email, avatar_url, supervisor_id")
         .in("id", teamMemberIds);
       if (error) throw error;
       return data || [];
@@ -111,6 +112,7 @@ export function useTeamMemberDetails(teamMemberIds: string[]) {
       profile_email: profile.email || "",
       profile_role: roleEntry?.role || null,
       profile_avatar_url: profile.avatar_url,
+      profile_supervisor_id: (profile as any).supervisor_id || null,
       details,
       cadastro_completo: isCadastroCompleto(details),
     };
