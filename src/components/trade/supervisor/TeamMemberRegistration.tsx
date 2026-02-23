@@ -453,7 +453,7 @@ export function TeamMemberRegistration({
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+               <Table className="table-fixed w-full">
                  <TableHeader>
                   <TableRow>
                      <TableHead className="w-[30%] min-w-[200px]">Membro</TableHead>
