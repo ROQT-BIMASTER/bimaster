@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link } from "react-router-dom";
-import { ChevronRight, Compass } from "lucide-react";
+import { ChevronRight, Compass, Info, ChevronDown, Target, TrendingUp, Map, BarChart3 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -72,6 +73,77 @@ const WhitespaceAnalysis = () => {
             </div>
           </div>
         </div>
+
+        {/* Explicação */}
+        <Collapsible>
+          <CollapsibleTrigger className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer group w-full">
+            <Info className="h-4 w-4" />
+            <span>Como funciona esta análise?</span>
+            <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-3 p-4 rounded-lg bg-primary/5 border border-primary/10 space-y-4">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                A <strong>Análise de Espaço em Branco (Whitespace)</strong> identifica municípios onde sua empresa 
+                <strong> ainda não possui clientes ativos</strong>, mas que estão em <strong>microrregiões onde já há presença comercial</strong>. 
+                Isso significa oportunidades reais de expansão com menor custo logístico, pois já existem rotas e vendedores operando na região.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="flex gap-2 items-start">
+                  <div className="p-1.5 bg-primary/10 rounded-md shrink-0">
+                    <Target className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold">Score de Expansão</p>
+                    <p className="text-xs text-muted-foreground">
+                      Combina PIB per Capita × Penetração da microrregião. Quanto maior, mais promissor o município.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2 items-start">
+                  <div className="p-1.5 bg-primary/10 rounded-md shrink-0">
+                    <Map className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold">Penetração da Microrregião</p>
+                    <p className="text-xs text-muted-foreground">
+                      % de municípios da microrregião onde já temos clientes. Alta penetração = vizinhança já atendida.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2 items-start">
+                  <div className="p-1.5 bg-primary/10 rounded-md shrink-0">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold">Clientes Vizinhos</p>
+                    <p className="text-xs text-muted-foreground">
+                      Quantidade de clientes ativos nos municípios vizinhos da mesma microrregião.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2 items-start">
+                  <div className="p-1.5 bg-primary/10 rounded-md shrink-0">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold">Filtros Inteligentes</p>
+                    <p className="text-xs text-muted-foreground">
+                      Use Região, UF e Penetração mínima para focar nas oportunidades mais relevantes para sua equipe.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground italic">
+                💡 <strong>Dica:</strong> Clique em qualquer município na tabela para ver detalhes como clientes vizinhos, 
+                dados demográficos e o vendedor mais próximo. Use o slider de penetração mínima para encontrar 
+                regiões onde já temos forte presença — essas são as expansões mais fáceis.
+              </p>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Filters */}
         <div className="flex flex-wrap items-end gap-4 p-4 rounded-lg bg-muted/50 border">
