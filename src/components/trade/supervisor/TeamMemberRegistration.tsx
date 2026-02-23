@@ -454,17 +454,17 @@ export function TeamMemberRegistration({
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                 <TableHeader>
                   <TableRow>
-                    <TableHead>Membro</TableHead>
-                    <TableHead className="hidden md:table-cell">Equipe</TableHead>
-                    <TableHead className="hidden md:table-cell">CPF</TableHead>
-                    <TableHead className="hidden lg:table-cell">WhatsApp</TableHead>
-                    <TableHead className="hidden lg:table-cell">Camiseta</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[60px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
+                     <TableHead className="w-[30%] min-w-[200px]">Membro</TableHead>
+                     <TableHead className="hidden md:table-cell w-[14%] min-w-[120px]">Equipe</TableHead>
+                     <TableHead className="hidden md:table-cell w-[14%] min-w-[130px]">CPF</TableHead>
+                     <TableHead className="hidden lg:table-cell w-[14%] min-w-[130px]">WhatsApp</TableHead>
+                     <TableHead className="hidden lg:table-cell w-[8%] min-w-[80px]">Camiseta</TableHead>
+                     <TableHead className="w-[10%] min-w-[100px]">Status</TableHead>
+                     <TableHead className="w-[50px]"></TableHead>
+                   </TableRow>
+                 </TableHeader>
                 <TableBody>
                   {managerTrees.map((tree) => (
                     <ManagerTreeSection key={tree.manager.user_id} tree={tree} onEdit={handleEdit} />
