@@ -35,7 +35,8 @@ export function MunicipiosFiltersBar({ filters, onFilterChange }: MunicipiosFilt
       let query = supabase
         .from('ibge_municipios')
         .select('id, nome, uf_sigla')
-        .order('nome');
+        .order('nome')
+        .limit(6000);
 
       if (filters.uf) {
         query = query.eq('uf_sigla', filters.uf);

@@ -242,6 +242,11 @@ export function ModoFocoDialog({ open, onOpenChange }: ModoFocoDialogProps) {
     });
   };
 
+  const selectFirst20 = () => {
+    const first20 = filtered.slice(0, 20);
+    setSelected(new Set(first20.map(m => m.municipio_id)));
+  };
+
   // Lead actions
   const copyPhone = (phone: string) => {
     navigator.clipboard.writeText(phone);
@@ -322,6 +327,8 @@ export function ModoFocoDialog({ open, onOpenChange }: ModoFocoDialogProps) {
             selected={selected}
             toggleSelect={toggleSelect}
             selectAllInUF={selectAllInUF}
+            selectFirst20={selectFirst20}
+            clearSelection={() => setSelected(new Set())}
             miningId={miningId}
             onMine={handleMine}
             batchMining={batchMining}
@@ -364,6 +371,8 @@ interface HierarchyViewProps {
   selected: Set<number>;
   toggleSelect: (id: number) => void;
   selectAllInUF: (ufs: MunicipioIntelligence[]) => void;
+  selectFirst20: () => void;
+  clearSelection: () => void;
   miningId: number | null;
   onMine: (m: MunicipioIntelligence) => void;
   batchMining: boolean;
@@ -391,7 +400,7 @@ const RAMOS_PREDEFINIDOS = [
 
 function HierarchyView({
   search, setSearch, filtered, grouped, regionCounts, selected,
-  toggleSelect, selectAllInUF, miningId, onMine,
+  toggleSelect, selectAllInUF, selectFirst20, clearSelection, miningId, onMine,
   batchMining, batchProgress, onBatchMine, isLoading,
   miningQuery, setMiningQuery,
 }: HierarchyViewProps) {
@@ -467,8 +476,8 @@ function HierarchyView({
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <div className="relative flex-1">
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar município, UF ou microrregião..."
@@ -477,20 +486,40 @@ function HierarchyView({
               className="pl-9 h-9"
             />
           </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={selectFirst20}
+            disabled={batchMining || filtered.length === 0}
+            className="gap-1 shrink-0"
+          >
+            <Users className="h-4 w-4" />
+            Selecionar 20
+          </Button>
           {selected.size > 0 && (
-            <Button
-              size="sm"
-              onClick={onBatchMine}
-              disabled={batchMining || !miningQuery.trim()}
-              className="gap-1 shrink-0"
-            >
-              {batchMining ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Pickaxe className="h-4 w-4" />
-              )}
-              Minerar {selected.size} selecionados
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={clearSelection}
+                className="shrink-0 text-muted-foreground"
+              >
+                Limpar seleção
+              </Button>
+              <Button
+                size="sm"
+                onClick={onBatchMine}
+                disabled={batchMining || !miningQuery.trim()}
+                className="gap-1 shrink-0"
+              >
+                {batchMining ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Pickaxe className="h-4 w-4" />
+                )}
+                Minerar {selected.size} selecionados
+              </Button>
+            </>
           )}
         </div>
         {batchMining && (
