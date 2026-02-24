@@ -975,7 +975,7 @@ export default function ContasAPagar() {
             <div className="flex flex-col gap-4">
               <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Ano</label>
+                  <label htmlFor="filter-ano" className="text-sm font-medium mb-2 block">Ano</label>
                   <Select value={filterAno} onValueChange={(value) => {
                     handleFilterChange(setFilterAno)(value);
                     if (value === 'all') setFilterMes('all');
@@ -993,7 +993,7 @@ export default function ContasAPagar() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Mês</label>
+                  <label htmlFor="filter-mes" className="text-sm font-medium mb-2 block">Mês</label>
                   <Select 
                     value={filterMes} 
                     onValueChange={handleFilterChange(setFilterMes)}
@@ -1021,7 +1021,7 @@ export default function ContasAPagar() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Empresa</label>
+                  <label htmlFor="filter-empresa" className="text-sm font-medium mb-2 block">Empresa</label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between">
@@ -1074,7 +1074,7 @@ export default function ContasAPagar() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Departamento</label>
+                  <label htmlFor="filter-departamento" className="text-sm font-medium mb-2 block">Departamento</label>
                   <Select value={filterDepartamento} onValueChange={handleFilterChange(setFilterDepartamento)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Todos" />
@@ -1091,7 +1091,7 @@ export default function ContasAPagar() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Portador</label>
+                  <label htmlFor="filter-portador" className="text-sm font-medium mb-2 block">Portador</label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-between">
@@ -1154,8 +1154,10 @@ export default function ContasAPagar() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Dia Vencimento</label>
+                  <label htmlFor="filter-dia-vencimento" className="text-sm font-medium mb-2 block">Dia Vencimento</label>
                   <Input 
+                    id="filter-dia-vencimento"
+                    name="filter-dia-vencimento"
                     type="date" 
                     value={filterDiaVencimento} 
                     onChange={(e) => handleFilterChange(setFilterDiaVencimento)(e.target.value)}
@@ -1164,8 +1166,10 @@ export default function ContasAPagar() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Dia Pagamento</label>
+                  <label htmlFor="filter-dia-pagamento" className="text-sm font-medium mb-2 block">Dia Pagamento</label>
                   <Input 
+                    id="filter-dia-pagamento"
+                    name="filter-dia-pagamento"
                     type="date" 
                     value={filterDiaPagamento} 
                     onChange={(e) => handleFilterChange(setFilterDiaPagamento)(e.target.value)}
@@ -1267,7 +1271,7 @@ export default function ContasAPagar() {
               <CardContent className="pt-6">
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Status</label>
+                    <label htmlFor="filter-status" className="text-sm font-medium mb-2 block">Status</label>
                     <Select value={filterStatus} onValueChange={handleFilterChange(setFilterStatus)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Todos" />
@@ -1283,8 +1287,10 @@ export default function ContasAPagar() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="text-sm font-medium mb-2 block">Buscar Fornecedor</label>
+                    <label htmlFor="search-fornecedor" className="text-sm font-medium mb-2 block">Buscar Fornecedor</label>
                     <Input
+                      id="search-fornecedor"
+                      name="search-fornecedor"
                       placeholder="Digite o nome do fornecedor..."
                       value={searchFornecedor}
                       onChange={(e) => {
