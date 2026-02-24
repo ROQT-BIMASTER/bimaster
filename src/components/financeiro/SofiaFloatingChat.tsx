@@ -247,19 +247,55 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
   const recognitionRef = useRef<any>(null);
   const voiceCallTimerRef = useRef<NodeJS.Timeout | null>(null);
   const continueListeningRef = useRef(false);
+  const intentionalDisconnectRef = useRef(false);
+  const voiceRetryCountRef = useRef(0);
+  const lastSignedUrlRef = useRef<string | null>(null);
 
   // ElevenLabs Conversational AI
   const conversation = useConversation({
     onConnect: () => {
       console.log("ElevenLabs Agent conectado");
+      voiceRetryCountRef.current = 0;
       setVoiceCallMode(true);
       setIsConnectingVoice(false);
       toast.success("Conversa por voz ativada! Fale com a Sofia.");
     },
     onDisconnect: () => {
-      console.log("ElevenLabs Agent desconectado");
-      setVoiceCallMode(false);
-      setIsConnectingVoice(false);
+      console.log("ElevenLabs Agent desconectado, intencional:", intentionalDisconnectRef.current);
+      if (intentionalDisconnectRef.current) {
+        intentionalDisconnectRef.current = false;
+        setVoiceCallMode(false);
+        setIsConnectingVoice(false);
+        return;
+      }
+      // Unexpected disconnect - try to reconnect up to 2 times
+      if (voiceRetryCountRef.current < 2 && lastSignedUrlRef.current) {
+        voiceRetryCountRef.current += 1;
+        console.log(`Tentando reconectar (${voiceRetryCountRef.current}/2)...`);
+        toast.info(`Reconectando... (tentativa ${voiceRetryCountRef.current})`);
+        setTimeout(async () => {
+          try {
+            const { data } = await supabase.functions.invoke("sofia-voice-token");
+            if (data?.signed_url) {
+              lastSignedUrlRef.current = data.signed_url;
+              await conversation.startSession({
+                signedUrl: data.signed_url,
+              });
+            }
+          } catch (e) {
+            console.error("Falha na reconexão:", e);
+            setVoiceCallMode(false);
+            setIsConnectingVoice(false);
+            toast.error("Não foi possível reconectar. Tente iniciar novamente.");
+          }
+        }, 1500);
+      } else {
+        setVoiceCallMode(false);
+        setIsConnectingVoice(false);
+        if (voiceRetryCountRef.current >= 2) {
+          toast.error("Conexão de voz instável. Tente novamente em alguns instantes.");
+        }
+      }
     },
     onMessage: (message: any) => {
       console.log("ElevenLabs message:", message);
@@ -386,6 +422,8 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
     if (isConnectingVoice) return;
     setIsConnectingVoice(true);
     setIsOpen(true);
+    voiceRetryCountRef.current = 0;
+    intentionalDisconnectRef.current = false;
     
     try {
       // Request microphone permission
@@ -394,20 +432,23 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
       // Get token from edge function
       const { data, error } = await supabase.functions.invoke("sofia-voice-token");
       
-      if (error || !data?.token) {
-        // Fallback to signed URL
-        if (data?.signed_url) {
-          await conversation.startSession({
-            signedUrl: data.signed_url,
-          });
-        } else {
-          throw new Error("Não foi possível obter credenciais de voz");
-        }
-      } else {
+      if (error || !data) {
+        throw new Error("Não foi possível obter credenciais de voz");
+      }
+
+      // Prefer signed_url (WebSocket) - more stable than WebRTC
+      if (data.signed_url) {
+        lastSignedUrlRef.current = data.signed_url;
+        await conversation.startSession({
+          signedUrl: data.signed_url,
+        });
+      } else if (data.token) {
         await conversation.startSession({
           conversationToken: data.token,
           connectionType: "webrtc",
         });
+      } else {
+        throw new Error("Nenhuma credencial de voz disponível");
       }
     } catch (error) {
       console.error("Erro ao iniciar conversa por voz:", error);
@@ -418,6 +459,7 @@ export function SofiaFloatingChat({ contasData = [] }: SofiaFloatingChatProps) {
   }, [conversation, isConnectingVoice]);
 
   const endVoiceCall = useCallback(async () => {
+    intentionalDisconnectRef.current = true;
     try {
       await conversation.endSession();
     } catch {}
