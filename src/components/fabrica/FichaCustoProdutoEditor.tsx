@@ -457,40 +457,188 @@ export function FichaCustoProdutoEditor({
         <FichaApontamentosPanel apontamentos={apontamentos} insumos={insumos} />
       )}
 
-      {/* Requisitos obrigatórios da diretoria */}
-      {statusAprovacao === "revisao_solicitada" && requisitos.length > 0 && (
-        <Card className="border-purple-500/50 bg-purple-50/30">
+      {/* Requisitos obrigatórios e painel de resubmissão */}
+      {statusAprovacao === "revisao_solicitada" && (
+        <Card className="border-purple-500/50 bg-purple-50/30 dark:bg-purple-950/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-purple-600" />
-              Requisitos Obrigatórios para Resubmissão
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-purple-600" />
+                Requisitos Obrigatórios para Resubmissão
+              </CardTitle>
+              {onSubmeterAprovacao && config?.id && (
+                <Button
+                  onClick={onSubmeterAprovacao}
+                  disabled={submitting || requisitos.some((r: any) => !r.cumprido)}
+                  size="sm"
+                  title={requisitos.some((r: any) => !r.cumprido) ? "Cumpra todos os requisitos pendentes" : "Resubmeter para aprovação"}
+                >
+                  <SendHorizonal className="h-4 w-4 mr-2" />
+                  {submitting ? "Submetendo..." : "Resubmeter para Aprovação"}
+                </Button>
+              )}
+            </div>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {requisitos.map((req: any) => {
-              const insumoNome = req.insumo_id ? insumos.find(i => i.id === req.insumo_id) : null;
-              return (
-                <div key={req.id} className={`flex items-center gap-3 p-2 rounded-lg border ${req.cumprido ? "bg-green-50 border-green-200" : "bg-orange-50 border-orange-200"}`}>
-                  <Badge variant={req.cumprido ? "default" : "destructive"} className="text-xs">
-                    {req.cumprido ? "✓ Cumprido" : "Pendente"}
-                  </Badge>
-                  <span className="text-sm flex-1">
-                    {req.descricao}
-                    {req.quantidade_minima > 1 && ` (mín. ${req.quantidade_minima})`}
-                    {insumoNome && <span className="text-muted-foreground"> — {insumoNome.codigo} {insumoNome.nome}</span>}
-                  </span>
-                </div>
-              );
-            })}
-            {requisitos.some((r: any) => !r.cumprido) ? (
-              <p className="text-xs text-destructive font-medium mt-1">
-                ⚠ Cumpra todos os requisitos antes de resubmeter a ficha.
-              </p>
+          <CardContent className="space-y-3">
+            {requisitos.length > 0 ? (
+              <>
+                {requisitos.map((req: any) => {
+                  const insumoNome = req.insumo_id ? insumos.find(i => i.id === req.insumo_id) : null;
+                  const canUpload = !req.cumprido && (req.tipo === "evidencia" || req.tipo === "orcamentos");
+                  return (
+                    <div key={req.id} className={`flex items-center gap-3 p-3 rounded-lg border ${req.cumprido ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" : "bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-800"}`}>
+                      <Badge variant={req.cumprido ? "default" : "destructive"} className="text-xs shrink-0">
+                        {req.cumprido ? "✓ Cumprido" : "Pendente"}
+                      </Badge>
+                      <span className="text-sm flex-1">
+                        {req.descricao}
+                        {req.quantidade_minima > 1 && ` (mín. ${req.quantidade_minima})`}
+                        {insumoNome && <span className="text-muted-foreground"> — {(insumoNome as any).codigo} {(insumoNome as any).nome}</span>}
+                      </span>
+                      {canUpload && (
+                        <div className="shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 text-xs"
+                            disabled={uploadingFor === req.id}
+                            onClick={() => document.getElementById(`req-upload-${req.id}`)?.click()}
+                          >
+                            {uploadingFor === req.id ? (
+                              <span className="animate-spin">⏳</span>
+                            ) : (
+                              <Upload className="h-3.5 w-3.5" />
+                            )}
+                            {req.tipo === "orcamentos" ? "Enviar Orçamento" : "Enviar Evidência"}
+                          </Button>
+                          <input
+                            id={`req-upload-${req.id}`}
+                            type="file"
+                            multiple
+                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const files = e.target.files;
+                              if (!files || !produto?.id) return;
+                              setUploadingFor(req.id);
+                              try {
+                                for (const file of Array.from(files)) {
+                                  const ext = file.name.split('.').pop();
+                                  const targetId = req.insumo_id || 'geral';
+                                  const path = `${produto.id}/${targetId}/${crypto.randomUUID()}.${ext}`;
+                                  const { error: uploadError } = await supabase.storage
+                                    .from("fabrica-custo-evidencias")
+                                    .upload(path, file);
+                                  if (uploadError) throw uploadError;
+                                  const { data: signedData, error: signError } = await supabase.storage
+                                    .from("fabrica-custo-evidencias")
+                                    .createSignedUrl(path, 31536000);
+                                  if (signError || !signedData?.signedUrl) throw signError || new Error('Falha ao gerar URL');
+                                  const user = (await supabase.auth.getUser()).data.user;
+                                  await supabase.from("fabrica_custo_evidencias" as any).insert({
+                                    produto_custo_id: req.insumo_id || config?.id,
+                                    produto_id: produto.id,
+                                    nome_arquivo: file.name,
+                                    url_arquivo: signedData.signedUrl,
+                                    tipo_arquivo: file.type,
+                                    tamanho_bytes: file.size,
+                                    usuario_id: user?.id,
+                                    usuario_nome: user?.user_metadata?.nome || user?.email || "",
+                                  } as any);
+                                }
+                                toast.success("Arquivo(s) enviado(s) com sucesso!");
+                                // Reload evidencias if insumo_id exists
+                                if (req.insumo_id) carregarEvidencias(req.insumo_id);
+                              } catch (err: any) {
+                                toast.error("Erro ao enviar: " + err.message);
+                              } finally {
+                                setUploadingFor(null);
+                                e.target.value = "";
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {requisitos.some((r: any) => !r.cumprido) ? (
+                  <p className="text-xs text-destructive font-medium mt-1">
+                    ⚠ Cumpra todos os requisitos ({requisitos.filter((r: any) => !r.cumprido).length} pendente(s)) antes de resubmeter.
+                  </p>
+                ) : (
+                  <p className="text-xs text-green-600 font-medium mt-1">
+                    ✓ Todos os requisitos foram cumpridos! Clique em "Resubmeter para Aprovação".
+                  </p>
+                )}
+              </>
             ) : (
-              <p className="text-xs text-green-600 font-medium mt-1">
-                ✓ Todos os requisitos foram cumpridos! Você já pode resubmeter a ficha para aprovação.
-              </p>
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                <p className="text-sm text-muted-foreground">
+                  Nenhum requisito específico definido pela Diretoria. Você pode resubmeter quando estiver pronto.
+                </p>
+              </div>
             )}
+
+            {/* Upload geral de evidências */}
+            <div className="pt-2 border-t">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={uploadingFor === 'geral-requisito'}
+                  onClick={() => document.getElementById('req-upload-geral')?.click()}
+                >
+                  <Upload className="h-4 w-4" />
+                  Enviar Evidência / Comprovante Geral
+                </Button>
+                <input
+                  id="req-upload-geral"
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const files = e.target.files;
+                    if (!files || !produto?.id || !config?.id) return;
+                    setUploadingFor('geral-requisito');
+                    try {
+                      for (const file of Array.from(files)) {
+                        const ext = file.name.split('.').pop();
+                        const path = `${produto.id}/geral/${crypto.randomUUID()}.${ext}`;
+                        const { error: uploadError } = await supabase.storage
+                          .from("fabrica-custo-evidencias")
+                          .upload(path, file);
+                        if (uploadError) throw uploadError;
+                        const { data: signedData, error: signError } = await supabase.storage
+                          .from("fabrica-custo-evidencias")
+                          .createSignedUrl(path, 31536000);
+                        if (signError || !signedData?.signedUrl) throw signError || new Error('Falha ao gerar URL');
+                        const user = (await supabase.auth.getUser()).data.user;
+                        await supabase.from("fabrica_custo_evidencias" as any).insert({
+                          produto_custo_id: config.id,
+                          produto_id: produto.id,
+                          nome_arquivo: file.name,
+                          url_arquivo: signedData.signedUrl,
+                          tipo_arquivo: file.type,
+                          tamanho_bytes: file.size,
+                          usuario_id: user?.id,
+                          usuario_nome: user?.user_metadata?.nome || user?.email || "",
+                        } as any);
+                      }
+                      toast.success("Evidência(s) geral(is) enviada(s)!");
+                    } catch (err: any) {
+                      toast.error("Erro ao enviar: " + err.message);
+                    } finally {
+                      setUploadingFor(null);
+                      e.target.value = "";
+                    }
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">PDF, imagens, Word, Excel</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -1031,33 +1179,26 @@ export function FichaCustoProdutoEditor({
               {saving ? "Salvando..." : "Salvar Ficha"}
             </Button>
           )}
-          {(statusAprovacao === "rascunho" || statusAprovacao === "revisao_solicitada") && onSubmeterAprovacao && config?.id && (() => {
-            const pendentes = requisitos.filter((r: any) => !r.cumprido);
-            const temPendentes = statusAprovacao === "revisao_solicitada" && pendentes.length > 0;
-            return (
-              <div className="flex items-center gap-3">
-                {temPendentes && (
-                  <div className="text-xs text-destructive max-w-xs text-right">
-                    <span className="font-semibold">Bloqueios ({pendentes.length}):</span>
-                    <ul className="list-disc list-inside mt-0.5">
-                      {pendentes.slice(0, 3).map((r: any, i: number) => (
-                        <li key={i} className="truncate">{r.descricao}</li>
-                      ))}
-                      {pendentes.length > 3 && <li>...e mais {pendentes.length - 3}</li>}
-                    </ul>
-                  </div>
-                )}
-                <Button
-                  onClick={onSubmeterAprovacao}
-                  disabled={submitting || temPendentes}
-                  title={temPendentes ? `${pendentes.length} requisito(s) pendente(s)` : "Submeter para aprovação da diretoria"}
-                >
-                  <SendHorizonal className="h-4 w-4 mr-2" />
-                  {submitting ? "Submetendo..." : statusAprovacao === "revisao_solicitada" ? "Resubmeter para Aprovação" : "Submeter para Aprovação"}
-                </Button>
-              </div>
-            );
-          })()}
+          {statusAprovacao === "rascunho" && onSubmeterAprovacao && config?.id && (
+            <Button
+              onClick={onSubmeterAprovacao}
+              disabled={submitting}
+              title="Submeter para aprovação da diretoria"
+            >
+              <SendHorizonal className="h-4 w-4 mr-2" />
+              {submitting ? "Submetendo..." : "Submeter para Aprovação"}
+            </Button>
+          )}
+          {statusAprovacao === "revisao_solicitada" && onSubmeterAprovacao && config?.id && (
+            <Button
+              onClick={onSubmeterAprovacao}
+              disabled={submitting || requisitos.some((r: any) => !r.cumprido)}
+              title={requisitos.some((r: any) => !r.cumprido) ? `${requisitos.filter((r: any) => !r.cumprido).length} requisito(s) pendente(s)` : "Resubmeter para aprovação"}
+            >
+              <SendHorizonal className="h-4 w-4 mr-2" />
+              {submitting ? "Submetendo..." : "Resubmeter para Aprovação"}
+            </Button>
+          )}
         </div>
       </div>
 
