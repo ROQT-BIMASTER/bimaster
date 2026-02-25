@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -137,33 +137,52 @@ export function FichaCustoProdutoEditor({
     return map;
   }, [apontamentos]);
 
-  // Handler para campos de custo com justificativa
+  // Refs para debounce do motivo dialog
+  const custoChangeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingCustoChangeRef = useRef<{insumoId: string; campo: string; valorAnterior: number; valorNovo: number} | null>(null);
+
+  // Handler para campos de custo com justificativa (debounced)
   const handleCustoChange = (insumoId: string, campo: string, valorNovo: number | string) => {
     const insumo = insumos.find((i) => i.id === insumoId);
     if (!insumo) return;
     const valorAnterior = Number(insumo[campo as keyof CustoInsumo]) || 0;
-    const novoNum = typeof valorNovo === "string" ? (valorNovo.endsWith(".") ? 0 : parseFloat(valorNovo) || 0) : valorNovo;
 
-    // Se é string parcial (digitando), atualizar direto
-    if (typeof valorNovo === "string" && valorNovo.endsWith(".")) {
-      onAtualizarInsumo(insumoId, campo as keyof CustoInsumo, valorNovo);
+    // Sempre atualizar o valor no estado (para o input refletir)
+    onAtualizarInsumo(insumoId, campo as keyof CustoInsumo, valorNovo);
+
+    // Se é string parcial (digitando decimais), não pedir justificativa ainda
+    if (typeof valorNovo === "string" && (valorNovo.endsWith(".") || valorNovo === "")) {
+      // Cancelar timer anterior se existir
+      if (custoChangeTimerRef.current) clearTimeout(custoChangeTimerRef.current);
+      pendingCustoChangeRef.current = null;
       return;
     }
+
+    const novoNum = typeof valorNovo === "string" ? parseFloat(valorNovo) || 0 : valorNovo;
 
     // Se valor anterior era 0 ou é primeira vez, não pedir justificativa
     if (valorAnterior === 0 || novoNum === valorAnterior) {
-      onAtualizarInsumo(insumoId, campo as keyof CustoInsumo, valorNovo);
+      if (custoChangeTimerRef.current) clearTimeout(custoChangeTimerRef.current);
+      pendingCustoChangeRef.current = null;
       return;
     }
 
-    // Pedir justificativa
-    setAlteracaoCusto({
-      insumoId,
-      insumoNome: insumo.nome,
-      campo,
-      valorAnterior,
-      valorNovo: novoNum,
-    });
+    // Debounce: espera 1.5s sem digitar para abrir dialog de justificativa
+    if (custoChangeTimerRef.current) clearTimeout(custoChangeTimerRef.current);
+    pendingCustoChangeRef.current = { insumoId, campo, valorAnterior, valorNovo: novoNum };
+    custoChangeTimerRef.current = setTimeout(() => {
+      if (pendingCustoChangeRef.current) {
+        const pending = pendingCustoChangeRef.current;
+        setAlteracaoCusto({
+          insumoId: pending.insumoId,
+          insumoNome: insumo.nome,
+          campo: pending.campo,
+          valorAnterior: pending.valorAnterior,
+          valorNovo: pending.valorNovo,
+        });
+        pendingCustoChangeRef.current = null;
+      }
+    }, 1500);
   };
 
   const handleConfirmarAlteracao = async (motivo: string) => {
@@ -463,9 +482,13 @@ export function FichaCustoProdutoEditor({
                 </div>
               );
             })}
-            {requisitos.some((r: any) => !r.cumprido) && (
+            {requisitos.some((r: any) => !r.cumprido) ? (
               <p className="text-xs text-destructive font-medium mt-1">
                 ⚠ Cumpra todos os requisitos antes de resubmeter a ficha.
+              </p>
+            ) : (
+              <p className="text-xs text-green-600 font-medium mt-1">
+                ✓ Todos os requisitos foram cumpridos! Você já pode resubmeter a ficha para aprovação.
               </p>
             )}
           </CardContent>
@@ -1008,16 +1031,33 @@ export function FichaCustoProdutoEditor({
               {saving ? "Salvando..." : "Salvar Ficha"}
             </Button>
           )}
-          {(statusAprovacao === "rascunho" || statusAprovacao === "revisao_solicitada") && onSubmeterAprovacao && config?.id && (
-            <Button
-              onClick={onSubmeterAprovacao}
-              disabled={submitting || (statusAprovacao === "revisao_solicitada" && requisitos.length > 0 && requisitos.some((r: any) => !r.cumprido))}
-              title={statusAprovacao === "revisao_solicitada" && requisitos.some((r: any) => !r.cumprido) ? "Cumpra todos os requisitos obrigatórios antes de resubmeter" : undefined}
-            >
-              <SendHorizonal className="h-4 w-4 mr-2" />
-              {submitting ? "Submetendo..." : "Submeter para Aprovação"}
-            </Button>
-          )}
+          {(statusAprovacao === "rascunho" || statusAprovacao === "revisao_solicitada") && onSubmeterAprovacao && config?.id && (() => {
+            const pendentes = requisitos.filter((r: any) => !r.cumprido);
+            const temPendentes = statusAprovacao === "revisao_solicitada" && pendentes.length > 0;
+            return (
+              <div className="flex items-center gap-3">
+                {temPendentes && (
+                  <div className="text-xs text-destructive max-w-xs text-right">
+                    <span className="font-semibold">Bloqueios ({pendentes.length}):</span>
+                    <ul className="list-disc list-inside mt-0.5">
+                      {pendentes.slice(0, 3).map((r: any, i: number) => (
+                        <li key={i} className="truncate">{r.descricao}</li>
+                      ))}
+                      {pendentes.length > 3 && <li>...e mais {pendentes.length - 3}</li>}
+                    </ul>
+                  </div>
+                )}
+                <Button
+                  onClick={onSubmeterAprovacao}
+                  disabled={submitting || temPendentes}
+                  title={temPendentes ? `${pendentes.length} requisito(s) pendente(s)` : "Submeter para aprovação da diretoria"}
+                >
+                  <SendHorizonal className="h-4 w-4 mr-2" />
+                  {submitting ? "Submetendo..." : statusAprovacao === "revisao_solicitada" ? "Resubmeter para Aprovação" : "Submeter para Aprovação"}
+                </Button>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

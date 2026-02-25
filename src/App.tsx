@@ -266,8 +266,6 @@ function AppContent() {
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            {/* Error route */}
-            <Route path="*" element={<ErrorPage />} />
             <Route path="/" element={<Index />} />
             <Route path="/auth/login" element={<Auth />} />
             <Route path="/auth/signup" element={<Navigate to="/auth/login" replace />} />
@@ -457,6 +455,8 @@ function AppContent() {
             <Route path="/formulario-equipe" element={<FormularioEquipe />} />
 
             <Route path="/not-found" element={<NotFound />} />
+            {/* Catch-all route - must be last */}
+            <Route path="*" element={<ErrorPage />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
