@@ -20,7 +20,17 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Trash2, GripVertical, Save, FileText, Info, Printer, Download, History, AlertTriangle, ChevronDown, ChevronRight, ArrowRight, Paperclip, Upload, X, Eye } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, FileText, Info, Printer, Download, History, AlertTriangle, ChevronDown, ChevronRight, ArrowRight, Paperclip, Upload, X, Eye, MessageSquare, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CustoInsumo, CustoConfig, Totais, BaseCalculoMarkup } from "@/hooks/useFichaCustoProduto";
 import { AdicionarInsumoCustoDialog } from "./AdicionarInsumoCustoDialog";
 import { ImportarInsumosIA } from "./ImportarInsumosIA";
@@ -123,6 +133,19 @@ export function FichaCustoProdutoEditor({
     valorAnterior: number;
     valorNovo: number;
   } | null>(null);
+  // Contestation state
+  const [contestacaoReq, setContestacaoReq] = useState<any | null>(null);
+  const [contestacaoMotivo, setContestacaoMotivo] = useState("");
+  const [contestandoId, setContestandoId] = useState<string | null>(null);
+  // Resolution state
+  const [resolucaoReq, setResolucaoReq] = useState<any | null>(null);
+  const [resolucaoDescricao, setResolucaoDescricao] = useState("");
+  const [resolvendoId, setResolvendoId] = useState<string | null>(null);
+  // Acknowledgment term state
+  const [showTermoCiencia, setShowTermoCiencia] = useState(false);
+  const [termoCienciaAceito, setTermoCienciaAceito] = useState(false);
+  const [submittingComTermo, setSubmittingComTermo] = useState(false);
+
   const isLocked = statusAprovacao === "em_revisao" || statusAprovacao === "aprovada";
 
   // Map de insumo_id -> apontamentos
@@ -296,6 +319,76 @@ export function FichaCustoProdutoEditor({
     toast.success("Evidência removida");
   };
 
+  // Contestar requisito
+  const handleContestar = async () => {
+    if (!contestacaoReq || !contestacaoMotivo.trim()) return;
+    setContestandoId(contestacaoReq.id);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      await supabase.from("fabrica_revisao_requisitos" as any).update({
+        contestado: true,
+        contestacao_motivo: contestacaoMotivo.trim(),
+        contestado_por: user?.id,
+        contestado_em: new Date().toISOString(),
+      } as any).eq("id", contestacaoReq.id);
+      toast.success("Contestação registrada. A Diretoria será notificada.");
+      setContestacaoReq(null);
+      setContestacaoMotivo("");
+    } catch (err: any) {
+      toast.error("Erro ao contestar: " + err.message);
+    } finally {
+      setContestandoId(null);
+    }
+  };
+
+  // Resolver requisito manualmente
+  const handleResolver = async () => {
+    if (!resolucaoReq || !resolucaoDescricao.trim()) return;
+    setResolvendoId(resolucaoReq.id);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      await supabase.from("fabrica_revisao_requisitos" as any).update({
+        cumprido: true,
+        resolvido_manualmente: true,
+        resolucao_descricao: resolucaoDescricao.trim(),
+        resolvido_por: user?.id,
+        resolvido_em: new Date().toISOString(),
+      } as any).eq("id", resolucaoReq.id);
+      toast.success("Requisito marcado como resolvido!");
+      setResolucaoReq(null);
+      setResolucaoDescricao("");
+    } catch (err: any) {
+      toast.error("Erro ao resolver: " + err.message);
+    } finally {
+      setResolvendoId(null);
+    }
+  };
+
+  // Submeter com termo de ciência (bypass requisitos pendentes)
+  const handleSubmeterComTermo = async () => {
+    if (!onSubmeterAprovacao || !config?.id || !revisaoAtiva?.id) return;
+    setSubmittingComTermo(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const pendentes = requisitos.filter((r: any) => !r.cumprido && !r.contestado);
+      await supabase.from("fabrica_ficha_custo_revisoes" as any).update({
+        termo_ciencia_assinado: true,
+        termo_ciencia_texto: `Eu, ${user?.user_metadata?.nome || user?.email}, declaro estar ciente de que existem ${pendentes.length} requisito(s) pendente(s) não atendido(s). Assumo total responsabilidade por prosseguir com a submissão nestas condições.`,
+        termo_ciencia_assinado_por: user?.id,
+        termo_ciencia_assinado_em: new Date().toISOString(),
+        requisitos_pendentes_ao_submeter: pendentes.map((r: any) => ({ id: r.id, descricao: r.descricao, tipo: r.tipo })),
+      } as any).eq("id", revisaoAtiva.id);
+      // Proceed with submission
+      await onSubmeterAprovacao();
+      setShowTermoCiencia(false);
+      setTermoCienciaAceito(false);
+    } catch (err: any) {
+      toast.error("Erro ao submeter: " + err.message);
+    } finally {
+      setSubmittingComTermo(false);
+    }
+  };
+
   const formatarValor = (valor: number) => {
     return valor.toLocaleString("pt-BR", {
       minimumFractionDigits: 3,
@@ -459,24 +552,35 @@ export function FichaCustoProdutoEditor({
 
       {/* Requisitos obrigatórios e painel de resubmissão */}
       {statusAprovacao === "revisao_solicitada" && (
-        <Card className="border-purple-500/50 bg-purple-50/30 dark:bg-purple-950/20">
+        <Card className="border-accent/50 bg-accent/5">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-purple-600" />
+                <AlertTriangle className="h-4 w-4 text-destructive" />
                 Requisitos Obrigatórios para Resubmissão
               </CardTitle>
-              {onSubmeterAprovacao && config?.id && (
-                <Button
-                  onClick={onSubmeterAprovacao}
-                  disabled={submitting || requisitos.some((r: any) => !r.cumprido)}
-                  size="sm"
-                  title={requisitos.some((r: any) => !r.cumprido) ? "Cumpra todos os requisitos pendentes" : "Resubmeter para aprovação"}
-                >
-                  <SendHorizonal className="h-4 w-4 mr-2" />
-                  {submitting ? "Submetendo..." : "Resubmeter para Aprovação"}
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {onSubmeterAprovacao && config?.id && (() => {
+                  const pendentes = requisitos.filter((r: any) => !r.cumprido && !r.contestado);
+                  const todosCumpridos = pendentes.length === 0;
+                  return todosCumpridos ? (
+                    <Button onClick={onSubmeterAprovacao} disabled={submitting} size="sm">
+                      <SendHorizonal className="h-4 w-4 mr-2" />
+                      {submitting ? "Submetendo..." : "Resubmeter para Aprovação"}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowTermoCiencia(true)}
+                      className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                    >
+                      <ShieldCheck className="h-4 w-4 mr-2" />
+                      Avançar com Termo de Ciência ({pendentes.length} pendente{pendentes.length > 1 ? 's' : ''})
+                    </Button>
+                  );
+                })()}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -484,99 +588,146 @@ export function FichaCustoProdutoEditor({
               <>
                 {requisitos.map((req: any) => {
                   const insumoNome = req.insumo_id ? insumos.find(i => i.id === req.insumo_id) : null;
-                  const canUpload = !req.cumprido && (req.tipo === "evidencia" || req.tipo === "orcamentos");
+                  const canUpload = !req.cumprido && !req.contestado && (req.tipo === "evidencia" || req.tipo === "orcamentos");
+                  const isContestado = req.contestado;
+                  const isResolvido = req.cumprido;
+                  
                   return (
-                    <div key={req.id} className={`flex items-center gap-3 p-3 rounded-lg border ${req.cumprido ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" : "bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-800"}`}>
-                      <Badge variant={req.cumprido ? "default" : "destructive"} className="text-xs shrink-0">
-                        {req.cumprido ? "✓ Cumprido" : "Pendente"}
-                      </Badge>
-                      <span className="text-sm flex-1">
-                        {req.descricao}
-                        {req.quantidade_minima > 1 && ` (mín. ${req.quantidade_minima})`}
-                        {insumoNome && <span className="text-muted-foreground"> — {(insumoNome as any).codigo} {(insumoNome as any).nome}</span>}
-                      </span>
-                      {canUpload && (
-                        <div className="shrink-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5 text-xs"
-                            disabled={uploadingFor === req.id}
-                            onClick={() => document.getElementById(`req-upload-${req.id}`)?.click()}
-                          >
-                            {uploadingFor === req.id ? (
-                              <span className="animate-spin">⏳</span>
-                            ) : (
-                              <Upload className="h-3.5 w-3.5" />
+                    <div key={req.id} className={`p-3 rounded-lg border space-y-2 ${
+                      isResolvido ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" 
+                      : isContestado ? "bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800"
+                      : "bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-800"
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <Badge variant={isResolvido ? "default" : isContestado ? "secondary" : "destructive"} className="text-xs shrink-0">
+                          {isResolvido ? "✓ Cumprido" : isContestado ? "⚖ Contestado" : "Pendente"}
+                        </Badge>
+                        <span className="text-sm flex-1">
+                          {req.descricao}
+                          {req.quantidade_minima > 1 && ` (mín. ${req.quantidade_minima})`}
+                          {insumoNome && <span className="text-muted-foreground"> — {(insumoNome as any).codigo} {(insumoNome as any).nome}</span>}
+                        </span>
+                        {!isResolvido && !isContestado && (
+                          <div className="flex gap-1.5 shrink-0">
+                            {/* Resolver */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-xs"
+                              onClick={() => { setResolucaoReq(req); setResolucaoDescricao(""); }}
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Resolver
+                            </Button>
+                            {/* Upload for evidence/quotes */}
+                            {canUpload && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1 text-xs"
+                                  disabled={uploadingFor === req.id}
+                                  onClick={() => document.getElementById(`req-upload-${req.id}`)?.click()}
+                                >
+                                  {uploadingFor === req.id ? <span className="animate-spin">⏳</span> : <Upload className="h-3.5 w-3.5" />}
+                                  {req.tipo === "orcamentos" ? "Orçamento" : "Evidência"}
+                                </Button>
+                                <input
+                                  id={`req-upload-${req.id}`}
+                                  type="file"
+                                  multiple
+                                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const files = e.target.files;
+                                    if (!files || !produto?.id) return;
+                                    setUploadingFor(req.id);
+                                    try {
+                                      for (const file of Array.from(files)) {
+                                        const ext = file.name.split('.').pop();
+                                        const targetId = req.insumo_id || 'geral';
+                                        const path = `${produto.id}/${targetId}/${crypto.randomUUID()}.${ext}`;
+                                        const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
+                                        if (uploadError) throw uploadError;
+                                        const { data: signedData, error: signError } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(path, 31536000);
+                                        if (signError || !signedData?.signedUrl) throw signError || new Error('Falha ao gerar URL');
+                                        const user = (await supabase.auth.getUser()).data.user;
+                                        await supabase.from("fabrica_custo_evidencias" as any).insert({
+                                          produto_custo_id: req.insumo_id || config?.id,
+                                          produto_id: produto.id,
+                                          nome_arquivo: file.name,
+                                          url_arquivo: signedData.signedUrl,
+                                          tipo_arquivo: file.type,
+                                          tamanho_bytes: file.size,
+                                          usuario_id: user?.id,
+                                          usuario_nome: user?.user_metadata?.nome || user?.email || "",
+                                        } as any);
+                                      }
+                                      toast.success("Arquivo(s) enviado(s)!");
+                                      if (req.insumo_id) carregarEvidencias(req.insumo_id);
+                                    } catch (err: any) {
+                                      toast.error("Erro ao enviar: " + err.message);
+                                    } finally {
+                                      setUploadingFor(null);
+                                      e.target.value = "";
+                                    }
+                                  }}
+                                />
+                              </>
                             )}
-                            {req.tipo === "orcamentos" ? "Enviar Orçamento" : "Enviar Evidência"}
-                          </Button>
-                          <input
-                            id={`req-upload-${req.id}`}
-                            type="file"
-                            multiple
-                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                            className="hidden"
-                            onChange={async (e) => {
-                              const files = e.target.files;
-                              if (!files || !produto?.id) return;
-                              setUploadingFor(req.id);
-                              try {
-                                for (const file of Array.from(files)) {
-                                  const ext = file.name.split('.').pop();
-                                  const targetId = req.insumo_id || 'geral';
-                                  const path = `${produto.id}/${targetId}/${crypto.randomUUID()}.${ext}`;
-                                  const { error: uploadError } = await supabase.storage
-                                    .from("fabrica-custo-evidencias")
-                                    .upload(path, file);
-                                  if (uploadError) throw uploadError;
-                                  const { data: signedData, error: signError } = await supabase.storage
-                                    .from("fabrica-custo-evidencias")
-                                    .createSignedUrl(path, 31536000);
-                                  if (signError || !signedData?.signedUrl) throw signError || new Error('Falha ao gerar URL');
-                                  const user = (await supabase.auth.getUser()).data.user;
-                                  await supabase.from("fabrica_custo_evidencias" as any).insert({
-                                    produto_custo_id: req.insumo_id || config?.id,
-                                    produto_id: produto.id,
-                                    nome_arquivo: file.name,
-                                    url_arquivo: signedData.signedUrl,
-                                    tipo_arquivo: file.type,
-                                    tamanho_bytes: file.size,
-                                    usuario_id: user?.id,
-                                    usuario_nome: user?.user_metadata?.nome || user?.email || "",
-                                  } as any);
-                                }
-                                toast.success("Arquivo(s) enviado(s) com sucesso!");
-                                // Reload evidencias if insumo_id exists
-                                if (req.insumo_id) carregarEvidencias(req.insumo_id);
-                              } catch (err: any) {
-                                toast.error("Erro ao enviar: " + err.message);
-                              } finally {
-                                setUploadingFor(null);
-                                e.target.value = "";
-                              }
-                            }}
-                          />
+                            {/* Contestar */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-xs text-muted-foreground"
+                              onClick={() => { setContestacaoReq(req); setContestacaoMotivo(""); }}
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              Contestar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      {/* Show contestation reason */}
+                      {isContestado && req.contestacao_motivo && (
+                        <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded ml-6">
+                          <strong>Defesa apresentada:</strong> {req.contestacao_motivo}
+                        </div>
+                      )}
+                      {/* Show resolution description */}
+                      {isResolvido && req.resolvido_manualmente && req.resolucao_descricao && (
+                        <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded ml-6">
+                          <strong>Resolução:</strong> {req.resolucao_descricao}
                         </div>
                       )}
                     </div>
                   );
                 })}
-                {requisitos.some((r: any) => !r.cumprido) ? (
-                  <p className="text-xs text-destructive font-medium mt-1">
-                    ⚠ Cumpra todos os requisitos ({requisitos.filter((r: any) => !r.cumprido).length} pendente(s)) antes de resubmeter.
-                  </p>
-                ) : (
-                  <p className="text-xs text-green-600 font-medium mt-1">
-                    ✓ Todos os requisitos foram cumpridos! Clique em "Resubmeter para Aprovação".
-                  </p>
-                )}
+                {(() => {
+                  const pendentes = requisitos.filter((r: any) => !r.cumprido && !r.contestado);
+                  const contestados = requisitos.filter((r: any) => r.contestado);
+                  return pendentes.length > 0 ? (
+                    <p className="text-xs text-destructive font-medium mt-1">
+                      ⚠ {pendentes.length} requisito(s) pendente(s){contestados.length > 0 ? ` e ${contestados.length} contestado(s)` : ''}. Resolva-os ou avance com Termo de Ciência.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-green-600 font-medium mt-1">
+                      ✓ Todos os requisitos foram cumpridos ou contestados! Clique em "Resubmeter para Aprovação".
+                    </p>
+                  );
+                })()}
               </>
             ) : (
               <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                 <p className="text-sm text-muted-foreground">
                   Nenhum requisito específico definido pela Diretoria. Você pode resubmeter quando estiver pronto.
                 </p>
+                {onSubmeterAprovacao && config?.id && (
+                  <Button onClick={onSubmeterAprovacao} disabled={submitting} size="sm">
+                    <SendHorizonal className="h-4 w-4 mr-2" />
+                    {submitting ? "Submetendo..." : "Resubmeter para Aprovação"}
+                  </Button>
+                )}
               </div>
             )}
 
@@ -607,13 +758,9 @@ export function FichaCustoProdutoEditor({
                       for (const file of Array.from(files)) {
                         const ext = file.name.split('.').pop();
                         const path = `${produto.id}/geral/${crypto.randomUUID()}.${ext}`;
-                        const { error: uploadError } = await supabase.storage
-                          .from("fabrica-custo-evidencias")
-                          .upload(path, file);
+                        const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
                         if (uploadError) throw uploadError;
-                        const { data: signedData, error: signError } = await supabase.storage
-                          .from("fabrica-custo-evidencias")
-                          .createSignedUrl(path, 31536000);
+                        const { data: signedData, error: signError } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(path, 31536000);
                         if (signError || !signedData?.signedUrl) throw signError || new Error('Falha ao gerar URL');
                         const user = (await supabase.auth.getUser()).data.user;
                         await supabase.from("fabrica_custo_evidencias" as any).insert({
@@ -1189,16 +1336,24 @@ export function FichaCustoProdutoEditor({
               {submitting ? "Submetendo..." : "Submeter para Aprovação"}
             </Button>
           )}
-          {statusAprovacao === "revisao_solicitada" && onSubmeterAprovacao && config?.id && (
-            <Button
-              onClick={onSubmeterAprovacao}
-              disabled={submitting || requisitos.some((r: any) => !r.cumprido)}
-              title={requisitos.some((r: any) => !r.cumprido) ? `${requisitos.filter((r: any) => !r.cumprido).length} requisito(s) pendente(s)` : "Resubmeter para aprovação"}
-            >
-              <SendHorizonal className="h-4 w-4 mr-2" />
-              {submitting ? "Submetendo..." : "Resubmeter para Aprovação"}
-            </Button>
-          )}
+          {statusAprovacao === "revisao_solicitada" && onSubmeterAprovacao && config?.id && (() => {
+            const pendentes = requisitos.filter((r: any) => !r.cumprido && !r.contestado);
+            return pendentes.length === 0 ? (
+              <Button onClick={onSubmeterAprovacao} disabled={submitting}>
+                <SendHorizonal className="h-4 w-4 mr-2" />
+                {submitting ? "Submetendo..." : "Resubmeter para Aprovação"}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => setShowTermoCiencia(true)}
+                className="border-destructive/50 text-destructive hover:bg-destructive/10"
+              >
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                Avançar com Termo ({pendentes.length} pendente{pendentes.length > 1 ? 's' : ''})
+              </Button>
+            );
+          })()}
         </div>
       </div>
 
@@ -1231,6 +1386,134 @@ export function FichaCustoProdutoEditor({
           onConfirmar={handleConfirmarAlteracao}
         />
       )}
+
+      {/* Dialog de contestação de requisito */}
+      <Dialog open={!!contestacaoReq} onOpenChange={(open) => !open && setContestacaoReq(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Contestar Requisito</DialogTitle>
+            <DialogDescription>
+              Apresente sua defesa explicando por que discorda deste requisito. A Diretoria avaliará sua argumentação.
+            </DialogDescription>
+          </DialogHeader>
+          {contestacaoReq && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted rounded-lg text-sm">
+                <strong>Requisito:</strong> {contestacaoReq.descricao}
+              </div>
+              <div className="space-y-2">
+                <Label>Motivo da Contestação / Defesa</Label>
+                <Textarea
+                  value={contestacaoMotivo}
+                  onChange={(e) => setContestacaoMotivo(e.target.value)}
+                  placeholder="Explique por que este requisito não se aplica ou já foi atendido de outra forma..."
+                  rows={4}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setContestacaoReq(null)}>Cancelar</Button>
+            <Button
+              onClick={handleContestar}
+              disabled={!contestacaoMotivo.trim() || !!contestandoId}
+            >
+              {contestandoId ? "Enviando..." : "Enviar Contestação"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de resolução manual de requisito */}
+      <Dialog open={!!resolucaoReq} onOpenChange={(open) => !open && setResolucaoReq(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Resolver Requisito</DialogTitle>
+            <DialogDescription>
+              Descreva como este requisito foi atendido. Você também pode anexar evidências na seção de upload.
+            </DialogDescription>
+          </DialogHeader>
+          {resolucaoReq && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted rounded-lg text-sm">
+                <strong>Requisito:</strong> {resolucaoReq.descricao}
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição da Resolução</Label>
+                <Textarea
+                  value={resolucaoDescricao}
+                  onChange={(e) => setResolucaoDescricao(e.target.value)}
+                  placeholder="Descreva o que foi feito para atender este requisito..."
+                  rows={4}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResolucaoReq(null)}>Cancelar</Button>
+            <Button
+              onClick={handleResolver}
+              disabled={!resolucaoDescricao.trim() || !!resolvendoId}
+            >
+              {resolvendoId ? "Salvando..." : "Marcar como Resolvido"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Termo de Ciência */}
+      <Dialog open={showTermoCiencia} onOpenChange={setShowTermoCiencia}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-destructive" />
+              Termo de Ciência
+            </DialogTitle>
+            <DialogDescription>
+              Você está prestes a submeter a ficha com requisitos ainda pendentes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg text-sm space-y-2">
+              <p className="font-semibold text-destructive">Requisitos não atendidos:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                {requisitos.filter((r: any) => !r.cumprido && !r.contestado).map((r: any) => (
+                  <li key={r.id}>{r.descricao}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="p-4 bg-muted rounded-lg text-sm">
+              <p>
+                Ao prosseguir, declaro estar <strong>ciente</strong> de que existem requisitos obrigatórios 
+                pendentes que não foram atendidos. Assumo <strong>total responsabilidade</strong> por submeter 
+                a ficha nestas condições e entendo que a Diretoria poderá rejeitar a submissão.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="aceite-termo"
+                checked={termoCienciaAceito}
+                onCheckedChange={(checked) => setTermoCienciaAceito(!!checked)}
+              />
+              <label htmlFor="aceite-termo" className="text-sm font-medium cursor-pointer">
+                Li e concordo com os termos acima
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowTermoCiencia(false); setTermoCienciaAceito(false); }}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmeterComTermo}
+              disabled={!termoCienciaAceito || submittingComTermo}
+              variant="destructive"
+            >
+              {submittingComTermo ? "Submetendo..." : "Assinar e Submeter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

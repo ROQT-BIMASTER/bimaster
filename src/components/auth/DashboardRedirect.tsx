@@ -11,11 +11,39 @@ const MODULE_ROUTES = [
   { code: "estoque", path: "/dashboard/estoque" },
   { code: "comercial", path: "/dashboard/comercial" },
   { code: "marketing", path: "/dashboard/marketing" },
+  { code: "precos", path: "/dashboard/precos" },
+] as const;
+
+// Fallback screen-based routes for users without module permissions
+const SCREEN_FALLBACK_ROUTES = [
+  { screen: "fabrica_produtos", path: "/dashboard/fabrica/produtos-acabados" },
+  { screen: "fabrica_materias_primas", path: "/dashboard/fabrica/materias-primas" },
+  { screen: "fabrica_recebimentos", path: "/dashboard/fabrica/recebimentos" },
+  { screen: "fabrica_formulas", path: "/dashboard/fabrica/formulas" },
+  { screen: "fabrica_planejamento", path: "/dashboard/fabrica/planejamento" },
+  { screen: "fabrica_fiscal", path: "/dashboard/fabrica/fiscal" },
+  { screen: "fabrica_ordens", path: "/dashboard/fabrica/ordens-producao" },
+  { screen: "fabrica_qualidade", path: "/dashboard/fabrica/qualidade" },
+  { screen: "precos_tabelas", path: "/dashboard/precos/tabelas" },
+  { screen: "precos_matriz", path: "/dashboard/precos/matriz" },
+  { screen: "comercial_lancamentos", path: "/dashboard/comercial/lancamentos" },
+  { screen: "trade_admin", path: "/dashboard/trade/admin" },
+  { screen: "financeiro_contas_pagar", path: "/dashboard/financeiro/contas-pagar" },
+  { screen: "financeiro_contas_receber", path: "/dashboard/financeiro/contas-receber" },
+  { screen: "estoque_dashboard", path: "/dashboard/estoque" },
+] as const;
+
+// Generic routes any authenticated user can access
+const GENERIC_FALLBACK_ROUTES = [
+  "/dashboard/instalar-app",
+  "/dashboard/configuracoes",
+  "/dashboard/tarefas",
+  "/dashboard/chat",
 ] as const;
 
 export const DashboardRedirect = () => {
   const { loading } = usePermissions();
-  const { hasModulePermission } = useImpersonation();
+  const { hasModulePermission, hasScreenPermission } = useImpersonation();
 
   if (loading) {
     return (
@@ -25,12 +53,20 @@ export const DashboardRedirect = () => {
     );
   }
 
+  // 1. Try module-level redirect
   for (const mod of MODULE_ROUTES) {
     if (hasModulePermission(mod.code)) {
       return <Navigate to={mod.path} replace />;
     }
   }
 
-  // No module permission — show general dashboard
-  return <Navigate to="/dashboard/visao-geral" replace />;
+  // 2. Try screen-level redirect for users with specific screen permissions but no module
+  for (const route of SCREEN_FALLBACK_ROUTES) {
+    if (hasScreenPermission(route.screen)) {
+      return <Navigate to={route.path} replace />;
+    }
+  }
+
+  // 3. Fallback to a generic route that doesn't require specific permissions
+  return <Navigate to={GENERIC_FALLBACK_ROUTES[0]} replace />;
 };
