@@ -4939,6 +4939,7 @@ export type Database = {
           id: string
           parecer: string | null
           produto_id: string
+          requisitos_pendentes_ao_submeter: Json | null
           revisado_em: string | null
           revisado_por: string | null
           snapshot_config: Json | null
@@ -4947,6 +4948,10 @@ export type Database = {
           status: string
           submetido_em: string
           submetido_por: string | null
+          termo_ciencia_assinado: boolean | null
+          termo_ciencia_assinado_em: string | null
+          termo_ciencia_assinado_por: string | null
+          termo_ciencia_texto: string | null
           versao: number
         }
         Insert: {
@@ -4955,6 +4960,7 @@ export type Database = {
           id?: string
           parecer?: string | null
           produto_id: string
+          requisitos_pendentes_ao_submeter?: Json | null
           revisado_em?: string | null
           revisado_por?: string | null
           snapshot_config?: Json | null
@@ -4963,6 +4969,10 @@ export type Database = {
           status?: string
           submetido_em?: string
           submetido_por?: string | null
+          termo_ciencia_assinado?: boolean | null
+          termo_ciencia_assinado_em?: string | null
+          termo_ciencia_assinado_por?: string | null
+          termo_ciencia_texto?: string | null
           versao?: number
         }
         Update: {
@@ -4971,6 +4981,7 @@ export type Database = {
           id?: string
           parecer?: string | null
           produto_id?: string
+          requisitos_pendentes_ao_submeter?: Json | null
           revisado_em?: string | null
           revisado_por?: string | null
           snapshot_config?: Json | null
@@ -4979,6 +4990,10 @@ export type Database = {
           status?: string
           submetido_em?: string
           submetido_por?: string | null
+          termo_ciencia_assinado?: boolean | null
+          termo_ciencia_assinado_em?: string | null
+          termo_ciencia_assinado_por?: string | null
+          termo_ciencia_texto?: string | null
           versao?: number
         }
         Relationships: [
@@ -7896,6 +7911,10 @@ export type Database = {
       }
       fabrica_revisao_requisitos: {
         Row: {
+          contestacao_motivo: string | null
+          contestado: boolean | null
+          contestado_em: string | null
+          contestado_por: string | null
           created_at: string
           cumprido: boolean
           cumprido_em: string | null
@@ -7903,10 +7922,18 @@ export type Database = {
           id: string
           insumo_id: string | null
           quantidade_minima: number | null
+          resolucao_descricao: string | null
+          resolvido_em: string | null
+          resolvido_manualmente: boolean | null
+          resolvido_por: string | null
           revisao_id: string
           tipo: string
         }
         Insert: {
+          contestacao_motivo?: string | null
+          contestado?: boolean | null
+          contestado_em?: string | null
+          contestado_por?: string | null
           created_at?: string
           cumprido?: boolean
           cumprido_em?: string | null
@@ -7914,10 +7941,18 @@ export type Database = {
           id?: string
           insumo_id?: string | null
           quantidade_minima?: number | null
+          resolucao_descricao?: string | null
+          resolvido_em?: string | null
+          resolvido_manualmente?: boolean | null
+          resolvido_por?: string | null
           revisao_id: string
           tipo?: string
         }
         Update: {
+          contestacao_motivo?: string | null
+          contestado?: boolean | null
+          contestado_em?: string | null
+          contestado_por?: string | null
           created_at?: string
           cumprido?: boolean
           cumprido_em?: string | null
@@ -7925,6 +7960,10 @@ export type Database = {
           id?: string
           insumo_id?: string | null
           quantidade_minima?: number | null
+          resolucao_descricao?: string | null
+          resolvido_em?: string | null
+          resolvido_manualmente?: boolean | null
+          resolvido_por?: string | null
           revisao_id?: string
           tipo?: string
         }
