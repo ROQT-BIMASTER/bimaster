@@ -16,6 +16,7 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { LanguageSelector } from "./LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -115,7 +116,9 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 HUGGS
               </div>
             </div>
-            <div className="relative z-10">{children}</div>
+            <ErrorBoundary>
+              <div className="relative z-10">{children}</div>
+            </ErrorBoundary>
           </div>
         </main>
         
