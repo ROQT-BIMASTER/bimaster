@@ -7361,6 +7361,7 @@ export type Database = {
           codigo_legado: string | null
           created_at: string | null
           created_by: string | null
+          custo_unitario: number | null
           descricao: string | null
           descricao_completa: string | null
           descricao_curta: string | null
@@ -7368,14 +7369,19 @@ export type Database = {
           formula_id: string | null
           foto_url: string | null
           id: string
+          itens_display: number | null
+          lead_time_dias: number | null
           linha: string | null
           marca: string | null
           modelo: string | null
+          modo_foco: boolean | null
+          ncm: string | null
           nome: string
           nome_comercial: string | null
           origem: string | null
           preco_maximo: number | null
           preco_minimo: number | null
+          processo_anvisa: string | null
           rendimento: number | null
           sku: string | null
           status: string | null
@@ -7395,6 +7401,7 @@ export type Database = {
           codigo_legado?: string | null
           created_at?: string | null
           created_by?: string | null
+          custo_unitario?: number | null
           descricao?: string | null
           descricao_completa?: string | null
           descricao_curta?: string | null
@@ -7402,14 +7409,19 @@ export type Database = {
           formula_id?: string | null
           foto_url?: string | null
           id?: string
+          itens_display?: number | null
+          lead_time_dias?: number | null
           linha?: string | null
           marca?: string | null
           modelo?: string | null
+          modo_foco?: boolean | null
+          ncm?: string | null
           nome: string
           nome_comercial?: string | null
           origem?: string | null
           preco_maximo?: number | null
           preco_minimo?: number | null
+          processo_anvisa?: string | null
           rendimento?: number | null
           sku?: string | null
           status?: string | null
@@ -7429,6 +7441,7 @@ export type Database = {
           codigo_legado?: string | null
           created_at?: string | null
           created_by?: string | null
+          custo_unitario?: number | null
           descricao?: string | null
           descricao_completa?: string | null
           descricao_curta?: string | null
@@ -7436,14 +7449,19 @@ export type Database = {
           formula_id?: string | null
           foto_url?: string | null
           id?: string
+          itens_display?: number | null
+          lead_time_dias?: number | null
           linha?: string | null
           marca?: string | null
           modelo?: string | null
+          modo_foco?: boolean | null
+          ncm?: string | null
           nome?: string
           nome_comercial?: string | null
           origem?: string | null
           preco_maximo?: number | null
           preco_minimo?: number | null
+          processo_anvisa?: string | null
           rendimento?: number | null
           sku?: string | null
           status?: string | null

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle2, AlertTriangle, Eye, Loader2, ClipboardList, Plus, Trash2, FileText, Receipt, MessageSquare } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle2, AlertTriangle, Eye, Loader2, ClipboardList, Plus, Trash2, FileText, Receipt, MessageSquare, Download, ShieldAlert, ShieldCheck, MessageCircle } from "lucide-react";
 import { useFichaRevisaoDiretoria } from "@/hooks/useFichaRevisao";
 import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ApontamentoForm {
   insumo_id: string;
@@ -48,9 +50,53 @@ export default function FichaRevisaoDiretoria() {
     { tipo: "justificativa", descricao: "Justificar manutenção de valores", quantidade_minima: 1, insumo_id: "", ativo: false },
   ]);
   const [requisitoCustom, setRequisitoCustom] = useState("");
+  const [evidencias, setEvidencias] = useState<any[]>([]);
+  const [requisitosStatus, setRequisitosStatus] = useState<any[]>([]);
+  const [loadingEvidencias, setLoadingEvidencias] = useState(false);
 
   const formatarMoeda = (valor: number) =>
     valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
+
+  // Load evidence and requisitos when a ficha is opened
+  useEffect(() => {
+    if (!fichaAberta) return;
+    const loadExtras = async () => {
+      setLoadingEvidencias(true);
+      try {
+        // Load evidências
+        const { data: evData } = await supabase
+          .from("fabrica_custo_evidencias" as any)
+          .select("*")
+          .eq("produto_id", fichaAberta.produto_id);
+        setEvidencias((evData as any[]) || []);
+
+        // Load requisitos status from the revision
+        const { data: reqData } = await supabase
+          .from("fabrica_revisao_requisitos" as any)
+          .select("*")
+          .eq("revisao_id", fichaAberta.id);
+        setRequisitosStatus((reqData as any[]) || []);
+      } catch (e) {
+        console.error("Error loading extras:", e);
+      } finally {
+        setLoadingEvidencias(false);
+      }
+    };
+    loadExtras();
+  }, [fichaAberta]);
+
+  const handleDownloadEvidencia = async (filePath: string, fileName: string) => {
+    try {
+      const { data } = await supabase.storage
+        .from("fabrica-custo-evidencias")
+        .createSignedUrl(filePath, 3600);
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, "_blank");
+      }
+    } catch (e) {
+      console.error("Error downloading:", e);
+    }
+  };
 
   const handleAbrirFicha = (ficha: any) => {
     setFichaAberta(ficha);
@@ -241,7 +287,105 @@ export default function FichaRevisaoDiretoria() {
             </div>
           </div>
 
-          {/* Modo revisão - apontamentos */}
+          {/* Evidências, Orçamentos e Requisitos */}
+          <Tabs defaultValue="evidencias" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="evidencias" className="gap-1">
+                <FileText className="h-3 w-3" />
+                Evidências e Orçamentos ({evidencias.length})
+              </TabsTrigger>
+              <TabsTrigger value="requisitos" className="gap-1">
+                <ClipboardList className="h-3 w-3" />
+                Requisitos ({requisitosStatus.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="evidencias" className="mt-3">
+              {loadingEvidencias ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : evidencias.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">
+                  Nenhuma evidência ou orçamento enviado ainda.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {evidencias.map((ev: any) => (
+                    <div key={ev.id} className="flex items-center justify-between p-2.5 border rounded-lg bg-muted/30">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {ev.tipo === "orcamento" ? (
+                          <Receipt className="h-4 w-4 text-primary shrink-0" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-primary shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{ev.nome_arquivo || "Arquivo"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {ev.tipo === "orcamento" ? "Orçamento" : "Evidência"} • {new Date(ev.created_at).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDownloadEvidencia(ev.arquivo_path, ev.nome_arquivo)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="requisitos" className="mt-3">
+              {requisitosStatus.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">
+                  Nenhum requisito registrado para esta revisão.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {requisitosStatus.map((req: any) => (
+                    <div key={req.id} className="p-3 border rounded-lg space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {req.cumprido ? (
+                            <ShieldCheck className="h-4 w-4 text-green-600" />
+                          ) : req.contestado ? (
+                            <MessageCircle className="h-4 w-4 text-orange-500" />
+                          ) : req.resolvido_manualmente ? (
+                            <ShieldAlert className="h-4 w-4 text-blue-500" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                          )}
+                          <span className="text-sm font-medium">{req.descricao}</span>
+                        </div>
+                        <Badge
+                          variant={req.cumprido ? "success" : req.contestado ? "warning" : req.resolvido_manualmente ? "secondary" : "destructive"}
+                          className="text-[10px]"
+                        >
+                          {req.cumprido ? "Cumprido" : req.contestado ? "Contestado" : req.resolvido_manualmente ? "Resolvido Manual" : "Pendente"}
+                        </Badge>
+                      </div>
+                      {req.contestado && req.contestacao_motivo && (
+                        <div className="ml-6 p-2 bg-orange-50 dark:bg-orange-950/20 rounded text-xs">
+                          <span className="font-medium">Contestação:</span> {req.contestacao_motivo}
+                        </div>
+                      )}
+                      {req.resolvido_manualmente && req.resolucao_descricao && (
+                        <div className="ml-6 p-2 bg-blue-50 dark:bg-blue-950/20 rounded text-xs">
+                          <span className="font-medium">Resolução:</span> {req.resolucao_descricao}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+
+
           {modoRevisao && (
             <Card className="border-orange-500/50">
               <CardHeader className="pb-2">

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
@@ -44,8 +45,16 @@ const GENERIC_FALLBACK_ROUTES = [
 export const DashboardRedirect = () => {
   const { loading } = usePermissions();
   const { hasModulePermission, hasScreenPermission } = useImpersonation();
+  const [timedOut, setTimedOut] = useState(false);
 
-  if (loading) {
+  // Safety timeout: if loading takes more than 5s, force redirect
+  useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => setTimedOut(true), 5000);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  if (loading && !timedOut) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

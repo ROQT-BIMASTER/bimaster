@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon } from "lucide-react";
+import { ProdutoCard } from "@/components/fabrica/ProdutoCard";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
 import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
 import { Link, useNavigate } from "react-router-dom";
@@ -43,6 +44,7 @@ export default function FabricaProdutosAcabados() {
   const [filtroMarca, setFiltroMarca] = useState("none");
   const [filtroLinha, setFiltroLinha] = useState("none");
   const [agrupamentoAtivo, setAgrupamentoAtivo] = useState(false);
+  const [viewMode, setViewMode] = useState<"tabela" | "cards">("tabela");
   const [agruparPor, setAgruparPor] = useState("marca");
 
   useEffect(() => {
@@ -92,7 +94,7 @@ export default function FabricaProdutosAcabados() {
     ["fabrica-produtos-revisoes-custos"],
     async () => {
       const { data, error } = await supabase
-        .from("fabrica_ficha_revisoes" as any)
+        .from("fabrica_ficha_custo_revisoes" as any)
         .select("produto_id, snapshot_totais, status")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -530,6 +532,24 @@ export default function FabricaProdutosAcabados() {
               )}
             </div>
 
+            {/* View mode toggle */}
+            <div className="flex items-center gap-1 border-l pl-4">
+              <Button
+                variant={viewMode === "tabela" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("tabela")}
+              >
+                <TableIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "cards" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("cards")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
+
             {/* Limpar */}
             {temFiltrosAtivos && (
               <Button variant="ghost" size="sm" onClick={limparFiltros} className="text-muted-foreground">
@@ -540,7 +560,7 @@ export default function FabricaProdutosAcabados() {
           </div>
         </div>
 
-        {/* Tabela */}
+        {/* Content */}
         <Card data-tour="pa-tabela">
           <CardContent className="pt-6">
             {isLoading ? (
@@ -551,7 +571,50 @@ export default function FabricaProdutosAcabados() {
               <div className="text-center py-8 text-muted-foreground">
                 Nenhum produto encontrado
               </div>
+            ) : viewMode === "cards" ? (
+              /* Card View */
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {agrupamentoAtivo
+                  ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
+                      <div key={`group-${grupo}`} className="col-span-full space-y-3">
+                        <div className="flex items-center gap-2 font-semibold text-sm border-b pb-2">
+                          <Layers className="h-4 w-4 text-muted-foreground" />
+                          {grupo}
+                          <Badge variant="secondary" className="text-xs">{items.length}</Badge>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                          {items.map((produto: any) => (
+                            <ProdutoCard
+                              key={produto.id}
+                              produto={produto}
+                              statusFicha={fichasMap.get(produto.id)}
+                              custoTotal={custoTotalMap.get(produto.id)}
+                              temAumento={produtosComAumento.has(produto.id)}
+                              onEditar={handleEditar}
+                              onExcluir={handleExcluir}
+                              onFichaCustos={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
+                              formatarMoeda={formatarMoeda}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  : produtosFiltrados?.map((produto: any) => (
+                      <ProdutoCard
+                        key={produto.id}
+                        produto={produto}
+                        statusFicha={fichasMap.get(produto.id)}
+                        custoTotal={custoTotalMap.get(produto.id)}
+                        temAumento={produtosComAumento.has(produto.id)}
+                        onEditar={handleEditar}
+                        onExcluir={handleExcluir}
+                        onFichaCustos={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
+                        formatarMoeda={formatarMoeda}
+                      />
+                    ))}
+              </div>
             ) : (
+              /* Table View */
               <Table>
                 <TableHeader>
                   <TableRow>
