@@ -23,8 +23,11 @@ import {
   Eye,
   Maximize2,
   X,
+  Filter,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
@@ -53,6 +56,10 @@ export function ProdutosAcabadosAdminDashboard({
   const navigate = useNavigate();
   const [expandedAlerts, setExpandedAlerts] = useState<Record<number, boolean>>({});
   const [alertasFocusOpen, setAlertasFocusOpen] = useState(false);
+  const [focusBusca, setFocusBusca] = useState("");
+  const [focusMarca, setFocusMarca] = useState("all");
+  const [focusLinha, setFocusLinha] = useState("all");
+  const [focusAgrupar, setFocusAgrupar] = useState<"none" | "marca" | "linha">("marca");
 
   const handleToggleModoFoco = async (produtoId: string, currentValue?: boolean) => {
     try {
@@ -115,7 +122,7 @@ export function ProdutosAcabadosAdminDashboard({
       tipo: "aumento" | "sem_ficha";
       titulo: string;
       descricao: string;
-      produtosList: { id: string; nome: string; codigo: string; modo_foco?: boolean }[];
+      produtosList: { id: string; nome: string; codigo: string; modo_foco?: boolean; marca?: string; linha?: string }[];
     }[] = [];
 
     if (alertasAumento && produtos) {
@@ -133,7 +140,7 @@ export function ProdutosAcabadosAdminDashboard({
       if (produtosComAumentoIds.size > 0) {
         const lista = produtos
           .filter((p: any) => produtosComAumentoIds.has(p.id))
-          .map((p: any) => ({ id: p.id, nome: p.nome, codigo: p.codigo, modo_foco: p.modo_foco }));
+          .map((p: any) => ({ id: p.id, nome: p.nome, codigo: p.codigo, modo_foco: p.modo_foco, marca: p.marca, linha: p.linha }));
         items.push({
           tipo: "aumento",
           titulo: `${lista.length} produto(s) com aumento de custo`,
@@ -147,7 +154,7 @@ export function ProdutosAcabadosAdminDashboard({
       const configuredIds = new Set(fichasConfig.map((f: any) => f.produto_id));
       const semFicha = produtos
         .filter((p: any) => !configuredIds.has(p.id))
-        .map((p: any) => ({ id: p.id, nome: p.nome, codigo: p.codigo, modo_foco: p.modo_foco }));
+        .map((p: any) => ({ id: p.id, nome: p.nome, codigo: p.codigo, modo_foco: p.modo_foco, marca: p.marca, linha: p.linha }));
       if (semFicha.length > 0) {
         items.push({
           tipo: "sem_ficha",
@@ -160,6 +167,38 @@ export function ProdutosAcabadosAdminDashboard({
 
     return items;
   }, [alertasAumento, produtos, fichasConfig]);
+
+  // Focus mode: all products from all alerts combined
+  const allAlertProducts = useMemo(() => {
+    const all = alertas.flatMap((a) => a.produtosList.map((p) => ({ ...p, alertaTipo: a.tipo, alertaTitulo: a.titulo })));
+    // deduplicate by id, keep first occurrence
+    const seen = new Set<string>();
+    return all.filter((p) => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
+  }, [alertas]);
+
+  const focusMarcas = useMemo(() => [...new Set(allAlertProducts.map((p) => p.marca).filter(Boolean))].sort(), [allAlertProducts]);
+  const focusLinhas = useMemo(() => [...new Set(allAlertProducts.map((p) => p.linha).filter(Boolean))].sort(), [allAlertProducts]);
+
+  const focusFiltered = useMemo(() => {
+    return allAlertProducts.filter((p) => {
+      const matchBusca = !focusBusca || p.nome.toLowerCase().includes(focusBusca.toLowerCase()) || p.codigo.toLowerCase().includes(focusBusca.toLowerCase());
+      const matchMarca = focusMarca === "all" || p.marca === focusMarca;
+      const matchLinha = focusLinha === "all" || p.linha === focusLinha;
+      return matchBusca && matchMarca && matchLinha;
+    });
+  }, [allAlertProducts, focusBusca, focusMarca, focusLinha]);
+
+  const focusGrouped = useMemo(() => {
+    if (focusAgrupar === "none") return new Map([["Todos", focusFiltered]]);
+    const campo = focusAgrupar === "marca" ? "marca" : "linha";
+    const grouped = new Map<string, typeof focusFiltered>();
+    focusFiltered.forEach((p) => {
+      const key = (p as any)[campo] || "Sem classificação";
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(p);
+    });
+    return grouped;
+  }, [focusFiltered, focusAgrupar]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -511,82 +550,141 @@ export function ProdutosAcabadosAdminDashboard({
       </div>
 
       {/* Dialog Modo Foco Alertas */}
-      <Dialog open={alertasFocusOpen} onOpenChange={setAlertasFocusOpen}>
-        <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] p-0 overflow-hidden">
+      <Dialog open={alertasFocusOpen} onOpenChange={(open) => {
+        setAlertasFocusOpen(open);
+        if (!open) { setFocusBusca(""); setFocusMarca("all"); setFocusLinha("all"); }
+      }}>
+        <DialogContent className="max-w-4xl w-[96vw] max-h-[92vh] p-0 overflow-hidden">
           <DialogHeader className="px-6 py-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-row items-center justify-between space-y-0">
             <DialogTitle className="flex items-center gap-2 text-lg font-bold">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              Alertas Rápidos — Modo Foco
+              Alertas — Modo Foco
+              <Badge variant="secondary" className="ml-2 text-xs">{focusFiltered.length} produto(s)</Badge>
             </DialogTitle>
             <Button variant="ghost" size="icon" onClick={() => setAlertasFocusOpen(false)}>
               <X className="h-4 w-4" />
             </Button>
           </DialogHeader>
-          <ScrollArea className="max-h-[calc(90vh-80px)] p-6">
-            <div className="space-y-4">
-              {alertas.map((alerta, i) => (
-                <div
-                  key={i}
-                  className={`rounded-lg border overflow-hidden ${
-                    alerta.tipo === "aumento"
-                      ? "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
-                      : "border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950/30"
-                  }`}
-                >
-                  <div className="p-4 flex items-center gap-2">
-                    {alerta.tipo === "aumento" ? (
-                      <TrendingUp className="h-5 w-5 text-red-500 shrink-0" />
-                    ) : (
-                      <FileX className="h-5 w-5 text-yellow-500 shrink-0" />
-                    )}
-                    <div className="flex-1">
-                      <p className="font-semibold">{alerta.titulo}</p>
-                      <p className="text-sm text-muted-foreground">{alerta.descricao}</p>
-                    </div>
-                  </div>
-                  <div className="border-t px-4 pb-4 pt-3 space-y-2">
-                    {alerta.produtosList.map((prod) => (
-                      <div
-                        key={prod.id}
-                        className="flex items-center justify-between gap-2 py-2 px-3 rounded-md bg-background/60 hover:bg-background transition-colors"
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <span className="font-mono text-xs text-muted-foreground">
-                            {prod.codigo}
-                          </span>
-                          <span className="truncate font-medium">{prod.nome}</span>
-                          {prod.modo_foco && (
-                            <Badge variant="warning" className="text-[10px] px-1.5 py-0 shrink-0">
-                              <Focus className="h-3 w-3 mr-0.5" />
-                              Foco
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex gap-1 shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2"
-                            onClick={() => handleToggleModoFoco(prod.id, prod.modo_foco)}
-                            title={prod.modo_foco ? "Desativar Modo Foco" : "Ativar Modo Foco"}
-                          >
-                            <Focus className={`h-4 w-4 ${prod.modo_foco ? "text-yellow-600" : "text-muted-foreground"}`} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2"
-                            onClick={() => navigate(`/dashboard/fabrica/produtos/${prod.id}/custos`)}
-                            title="Ver ficha de custos"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+
+          {/* Filtros */}
+          <div className="px-6 py-3 border-b bg-muted/30 flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[180px] max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar produto..."
+                value={focusBusca}
+                onChange={(e) => setFocusBusca(e.target.value)}
+                className="pl-8 h-9"
+              />
+            </div>
+            <Select value={focusMarca} onValueChange={setFocusMarca}>
+              <SelectTrigger className="w-[160px] h-9">
+                <SelectValue placeholder="Marca" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Marcas</SelectItem>
+                {focusMarcas.map((m) => (
+                  <SelectItem key={m} value={m!}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={focusLinha} onValueChange={setFocusLinha}>
+              <SelectTrigger className="w-[160px] h-9">
+                <SelectValue placeholder="Linha" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Linhas</SelectItem>
+                {focusLinhas.map((l) => (
+                  <SelectItem key={l} value={l!}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={focusAgrupar} onValueChange={(v) => setFocusAgrupar(v as any)}>
+              <SelectTrigger className="w-[160px] h-9">
+                <SelectValue placeholder="Agrupar" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem agrupamento</SelectItem>
+                <SelectItem value="marca">Por Marca</SelectItem>
+                <SelectItem value="linha">Por Linha</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <ScrollArea className="max-h-[calc(92vh-160px)]">
+            <div className="p-6 space-y-5">
+              {focusFiltered.length === 0 ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  <div className="text-center">
+                    <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">Nenhum produto encontrado com os filtros aplicados</p>
                   </div>
                 </div>
-              ))}
+              ) : (
+                Array.from(focusGrouped.entries()).map(([groupName, groupProducts]) => (
+                  <div key={groupName}>
+                    {focusAgrupar !== "none" && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <h3 className="text-sm font-semibold text-foreground">{groupName}</h3>
+                        <Badge variant="outline" className="text-[10px]">{groupProducts.length}</Badge>
+                        <div className="flex-1 border-t" />
+                      </div>
+                    )}
+                    <div className="space-y-1.5">
+                      {groupProducts.map((prod) => (
+                        <div
+                          key={prod.id}
+                          className="flex items-center justify-between gap-2 py-2.5 px-3 rounded-lg border bg-card hover:bg-accent/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <Badge
+                              variant={prod.alertaTipo === "aumento" ? "destructive" : "warning"}
+                              className="text-[9px] px-1.5 py-0 shrink-0"
+                            >
+                              {prod.alertaTipo === "aumento" ? "Custo ↑" : "Sem ficha"}
+                            </Badge>
+                            <span className="font-mono text-xs text-muted-foreground shrink-0">
+                              {prod.codigo}
+                            </span>
+                            <span className="truncate font-medium text-sm">{prod.nome}</span>
+                            {prod.marca && (
+                              <span className="text-[10px] text-muted-foreground shrink-0 hidden sm:inline">
+                                {prod.marca}
+                              </span>
+                            )}
+                            {prod.modo_foco && (
+                              <Badge variant="warning" className="text-[10px] px-1.5 py-0 shrink-0">
+                                <Focus className="h-3 w-3 mr-0.5" />
+                                Foco
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
+                              onClick={() => handleToggleModoFoco(prod.id, prod.modo_foco)}
+                              title={prod.modo_foco ? "Desativar Modo Foco" : "Ativar Modo Foco"}
+                            >
+                              <Focus className={`h-4 w-4 ${prod.modo_foco ? "text-yellow-600" : "text-muted-foreground"}`} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
+                              onClick={() => navigate(`/dashboard/fabrica/produtos/${prod.id}/custos`)}
+                              title="Ver ficha de custos"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </ScrollArea>
         </DialogContent>
