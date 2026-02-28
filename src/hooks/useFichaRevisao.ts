@@ -217,7 +217,7 @@ export function useFichaRevisaoDiretoria() {
         .from("fabrica_ficha_custo_revisoes")
         .select(`
           *,
-          produto:fabrica_produtos(id, nome, codigo, origem)
+          produto:fabrica_produtos(id, nome, codigo, origem, marca, linha)
         `)
         .eq("status", "pendente")
         .order("submetido_em", { ascending: false });

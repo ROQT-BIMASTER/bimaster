@@ -28,6 +28,9 @@ export default function FichaRevisaoDiretoria() {
   const { fichasPendentes, isLoading, processando, aprovarFicha, solicitarRevisao, refetch } = useFichaRevisaoDiretoria();
   const [fichaAberta, setFichaAberta] = useState<any | null>(null);
   const [busca, setBusca] = useState("");
+  const [filtroMarca, setFiltroMarca] = useState("all");
+  const [filtroLinha, setFiltroLinha] = useState("all");
+  const [filtroProduto, setFiltroProduto] = useState("all");
   const [adminOpen, setAdminOpen] = useState(true);
   const [tabAtiva, setTabAtiva] = useState("fichas");
 
@@ -57,14 +60,46 @@ export default function FichaRevisaoDiretoria() {
   const formatarMoeda = (valor: number) =>
     valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
+  // Opções de filtro extraídas das fichas
+  const marcas = useMemo(() => {
+    const set = new Set<string>();
+    fichasPendentes.forEach((f: any) => { if (f.produto?.marca) set.add(f.produto.marca); });
+    return [...set].sort();
+  }, [fichasPendentes]);
+
+  const linhas = useMemo(() => {
+    const set = new Set<string>();
+    fichasPendentes.forEach((f: any) => {
+      if (f.produto?.linha && (filtroMarca === "all" || f.produto?.marca === filtroMarca))
+        set.add(f.produto.linha);
+    });
+    return [...set].sort();
+  }, [fichasPendentes, filtroMarca]);
+
+  const produtos = useMemo(() => {
+    const map = new Map<string, string>();
+    fichasPendentes.forEach((f: any) => {
+      if (!f.produto) return;
+      if (filtroMarca !== "all" && f.produto.marca !== filtroMarca) return;
+      if (filtroLinha !== "all" && f.produto.linha !== filtroLinha) return;
+      map.set(f.produto.id, f.produto.nome);
+    });
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [fichasPendentes, filtroMarca, filtroLinha]);
+
   // Filtros
   const fichasFiltradas = useMemo(() => {
-    if (!busca) return fichasPendentes;
-    const b = busca.toLowerCase();
-    return fichasPendentes.filter((f: any) =>
-      f.produto?.nome?.toLowerCase().includes(b) || f.produto?.codigo?.toLowerCase().includes(b)
-    );
-  }, [fichasPendentes, busca]);
+    return fichasPendentes.filter((f: any) => {
+      if (filtroMarca !== "all" && f.produto?.marca !== filtroMarca) return false;
+      if (filtroLinha !== "all" && f.produto?.linha !== filtroLinha) return false;
+      if (filtroProduto !== "all" && f.produto?.id !== filtroProduto) return false;
+      if (busca) {
+        const b = busca.toLowerCase();
+        if (!f.produto?.nome?.toLowerCase().includes(b) && !f.produto?.codigo?.toLowerCase().includes(b)) return false;
+      }
+      return true;
+    });
+  }, [fichasPendentes, busca, filtroMarca, filtroLinha, filtroProduto]);
 
   // Admin KPIs
   const kpis = useMemo(() => {
@@ -230,11 +265,32 @@ export default function FichaRevisaoDiretoria() {
 
           <TabsContent value="fichas" className="mt-4 space-y-4">
             {/* Filtros */}
-            <div className="flex gap-2">
-              <div className="relative flex-1 max-w-sm">
+            <div className="flex flex-wrap gap-2">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Buscar por nome ou código..." value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-9" />
               </div>
+              <Select value={filtroMarca} onValueChange={(v) => { setFiltroMarca(v); setFiltroLinha("all"); setFiltroProduto("all"); }}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Marca" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Marcas</SelectItem>
+                  {marcas.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filtroLinha} onValueChange={(v) => { setFiltroLinha(v); setFiltroProduto("all"); }}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Linha" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Linhas</SelectItem>
+                  {linhas.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filtroProduto} onValueChange={setFiltroProduto}>
+                <SelectTrigger className="w-[200px]"><SelectValue placeholder="Produto" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Produtos</SelectItem>
+                  {produtos.map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
 
             {isLoading ? (
