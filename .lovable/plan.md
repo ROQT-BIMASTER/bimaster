@@ -1,51 +1,43 @@
 
 
-# Plano: Destaque de Documentos do Cofre + Aba de Documentos no Chat
+# Cofre de Documentos: Produto → Matérias Primas → Documentos
 
-## Alterações
+## Problema Atual
+A tabela `fabrica_revisao_documentos` só tem `produto_id`. Não há como vincular um documento a uma matéria-prima específica do produto.
 
-### 1. Cor diferente para anexos enviados ao cofre (`RevisaoChatPanel.tsx`)
+## Plano
 
-- Precisamos saber, na renderização da mensagem, se aquele anexo foi para o cofre ou não
-- Adicionar campo `enviado_para_cofre` (boolean) ao array `anexos` da mensagem (no JSONB), gravando `true` quando o checkbox estiver marcado
-- Na renderização dos anexos dentro do balão, usar cor diferenciada:
-  - **Cofre**: fundo verde/emerald com ícone de cofre (`Shield` ou `FolderOpen`) em vez do `FileText`
-  - **Normal**: manter o estilo atual (azul/muted)
-
-### 2. Aba lateral "Documentos" dentro do chat do produto
-
-- Usar `ResizablePanelGroup` (horizontal) para dividir o chat em dois painéis:
-  - **Painel esquerdo**: chat atual (mensagens + input)
-  - **Painel direito**: lista de documentos do cofre vinculados ao produto (reutilizar lógica do `DocumentosTab`)
-- O painel direito mostra apenas documentos que foram para o cofre (`fabrica_revisao_documentos` filtrado por `produto_id`)
-- Aba colapsável ou toggle para mostrar/esconder o painel de documentos
-
-### 3. Mudanças específicas
-
-**`RevisaoChatPanel.tsx`**:
-- No `enviarMensagem`: ao gravar `anexosMeta`, incluir `enviado_para_cofre: enviarParaCofre` em cada item do array
-- Na renderização dos anexos (linhas ~470-490): checar `anexo.enviado_para_cofre` para aplicar estilo verde + ícone diferente + badge "Cofre"
-- Envolver o card inteiro em `ResizablePanelGroup` com handle, painel esquerdo = chat, painel direito = `DocumentosTab` (passando `produtoId`)
-- Adicionar toggle/botão no header para abrir/fechar o painel de documentos
-
-**Interface `Mensagem.anexos`**: adicionar campo `enviado_para_cofre?: boolean` ao tipo
-
-### Resumo visual
-
-```text
-┌──────────────────────────────┬─────────────────────┐
-│       CHAT (mensagens)       │  DOCUMENTOS COFRE   │
-│                              │  (do produto)       │
-│  ┌─────────────────────┐     │                     │
-│  │ msg com anexo normal │     │  📄 orcamento.pdf  │
-│  │  📎 arquivo.pdf     │     │  📄 contrato.pdf   │
-│  └─────────────────────┘     │  📄 nf.pdf         │
-│  ┌─────────────────────┐     │                     │
-│  │ msg com anexo cofre  │     │                     │
-│  │  🛡️ doc.pdf  COFRE  │     │                     │
-│  └─────────────────────┘     │                     │
-│                              │                     │
-│  [📎] [input...    ] [enviar]│                     │
-└──────────────────────────────┴─────────────────────┘
+### 1. Migração DB — Adicionar coluna `materia_prima_id`
+```sql
+ALTER TABLE fabrica_revisao_documentos 
+  ADD COLUMN materia_prima_id uuid REFERENCES fabrica_materias_primas(id);
 ```
+
+### 2. Refatorar `DocumentosCofre.tsx` — Hierarquia de 3 níveis
+
+Estrutura visual:
+```text
+┌─────────────────────────────────────────────┐
+│ 📦 Produto A (código)              [5 docs] │
+│   ▸ 🧪 Matéria Prima X              [2 docs]│
+│   ▸ 🧪 Matéria Prima Y              [1 doc] │
+│   ▸ 📄 Documentos Gerais            [2 docs]│
+├─────────────────────────────────────────────┤
+│ 📦 Produto B (código)              [3 docs] │
+│   ▸ ...                                     │
+└─────────────────────────────────────────────┘
+```
+
+- Ao clicar no produto, expandir mostrando subcategorias de matérias primas (buscadas via `fabrica_formula_itens` → `fabrica_materias_primas`)
+- Documentos com `materia_prima_id` preenchido ficam agrupados sob a respectiva MP
+- Documentos sem `materia_prima_id` ficam em grupo "Documentos Gerais" do produto
+- Cada MP é um Collapsible interno com seus documentos
+- Carregar nomes das MPs via join na query
+
+### 3. Atualizar upload no chat (`RevisaoChatPanel.tsx`)
+- Ao marcar "Vincular ao Cofre", mostrar um select opcional para escolher a matéria-prima do produto (carregar itens da fórmula ativa)
+- Se nenhuma MP selecionada, documento fica como "geral" do produto
+
+### 4. Atualizar `DocumentosTab.tsx`
+- Agrupar documentos também por matéria-prima quando dentro do painel de análise do produto
 
