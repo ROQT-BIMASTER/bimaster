@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import {
   Package, DollarSign, FlaskConical, ExternalLink, Barcode,
-  Tag, Globe, Clock, Layers, Focus, CheckCircle2, XCircle,
+  Tag, Globe, Clock, Layers, Focus, CheckCircle2, XCircle, Pencil,
 } from "lucide-react";
 
 interface ProdutoDetalhesSheetProps {
@@ -92,14 +92,25 @@ export function ProdutoDetalhesSheet({ open, onOpenChange, produtoId }: ProdutoD
   const formatCurrency = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const DetailRow = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) => (
-    <div className="flex items-start gap-2.5 py-1.5">
+  const goToEdit = () => {
+    onOpenChange(false);
+    navigate(`/dashboard/fabrica/produtos?edit=${produtoId}`);
+  };
+
+  const DetailRow = ({ icon: Icon, label, value, editable = true }: { icon: React.ElementType; label: string; value: React.ReactNode; editable?: boolean }) => (
+    <button
+      onClick={editable ? goToEdit : undefined}
+      className={`flex items-start gap-2.5 py-1.5 w-full text-left rounded-md px-1 -mx-1 transition-colors ${editable ? "hover:bg-muted/50 cursor-pointer group" : ""}`}
+    >
       <Icon className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
         <span className="text-[11px] text-muted-foreground">{label}</span>
         <div className="text-sm font-medium truncate">{value || "—"}</div>
       </div>
-    </div>
+      {editable && (
+        <Pencil className="h-3 w-3 text-muted-foreground/0 group-hover:text-muted-foreground transition-colors mt-1 shrink-0" />
+      )}
+    </button>
   );
 
   return (
@@ -215,13 +226,10 @@ export function ProdutoDetalhesSheet({ open, onOpenChange, produtoId }: ProdutoD
                   className="w-full"
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    onOpenChange(false);
-                    navigate(`/dashboard/fabrica/produtos`);
-                  }}
+                  onClick={goToEdit}
                 >
-                  <Package className="h-3.5 w-3.5 mr-1.5" />
-                  Ir para Produtos
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Editar Produto
                 </Button>
               </div>
             </div>
