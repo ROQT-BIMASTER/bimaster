@@ -70,7 +70,12 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   }
 
   if (!session) {
-    return null;
+    // Don't return null - show loading to prevent white screen flash
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-lg">{t("loading")}</div>
+      </div>
+    );
   }
 
   return (

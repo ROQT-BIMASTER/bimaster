@@ -204,6 +204,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         setSession(newSession);
         if (newSession?.user) {
+          // CRITICAL: Set loading=true immediately to prevent premature redirects
+          setLoading(true);
+          
           // Para SIGNED_IN após login, forçar verificação
           const shouldForce = event === "SIGNED_IN";
           
