@@ -91,6 +91,8 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
   const [uploadingAnexos, setUploadingAnexos] = useState(false);
   const [enviarParaCofre, setEnviarParaCofre] = useState(false);
   const [showDocPanel, setShowDocPanel] = useState(false);
+  const [materiaPrimaSelecionada, setMateriaPrimaSelecionada] = useState<string>("none");
+  const [materiasPrimasDisponiveis, setMateriasPrimasDisponiveis] = useState<{ id: string; nome: string; codigo: string }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -106,6 +108,34 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
       if (data) setUsuarios(data.filter((p: any) => p.nome) as PerfilUsuario[]);
     });
   }, []);
+
+  // Load matérias-primas for the product
+  useEffect(() => {
+    if (!produtoId) return;
+    (async () => {
+      // Get active formula for the product
+      const { data: formula } = await supabase
+        .from("fabrica_formulas" as any)
+        .select("id")
+        .eq("produto_id", produtoId)
+        .eq("status", "ativa")
+        .limit(1)
+        .single();
+      if (!formula) return;
+      const { data: itens } = await supabase
+        .from("fabrica_formula_itens" as any)
+        .select("materia_prima_id")
+        .eq("formula_id", (formula as any).id);
+      if (!itens || itens.length === 0) return;
+      const mpIds = (itens as any[]).map(i => i.materia_prima_id).filter(Boolean);
+      if (mpIds.length === 0) return;
+      const { data: mps } = await supabase
+        .from("fabrica_materias_primas")
+        .select("id, nome, codigo")
+        .in("id", mpIds);
+      if (mps) setMateriasPrimasDisponiveis(mps as any[]);
+    })();
+  }, [produtoId]);
 
   // Load chat status
   useEffect(() => {
@@ -240,6 +270,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
           status: "ativo",
           enviado_por: user?.id,
           enviado_por_nome: nome,
+          materia_prima_id: materiaPrimaSelecionada !== "none" ? materiaPrimaSelecionada : null,
         }));
         await supabase.from("fabrica_revisao_documentos" as any).insert(docRows as any);
       }
@@ -250,6 +281,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
       setMencoesSelecionadas([]);
       setAnexosPendentes([]);
       setEnviarParaCofre(false);
+      setMateriaPrimaSelecionada("none");
     } catch (err: any) {
       toast.error("Erro ao enviar: " + err.message);
     } finally {
@@ -605,11 +637,29 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                   <input
                     type="checkbox"
                     checked={enviarParaCofre}
-                    onChange={(e) => setEnviarParaCofre(e.target.checked)}
+                    onChange={(e) => {
+                      setEnviarParaCofre(e.target.checked);
+                      if (!e.target.checked) setMateriaPrimaSelecionada("none");
+                    }}
                     className="h-3.5 w-3.5 rounded border-input accent-primary"
                   />
                   <span className="text-[10px] text-muted-foreground">Vincular ao Cofre de Documentos do produto</span>
                 </label>
+                {enviarParaCofre && materiasPrimasDisponiveis.length > 0 && (
+                  <Select value={materiaPrimaSelecionada} onValueChange={setMateriaPrimaSelecionada}>
+                    <SelectTrigger className="h-7 text-[10px] w-full">
+                      <SelectValue placeholder="Matéria-prima (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Documento geral do produto</SelectItem>
+                      {materiasPrimasDisponiveis.map(mp => (
+                        <SelectItem key={mp.id} value={mp.id} className="text-xs">
+                          {mp.codigo} - {mp.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             )}
 

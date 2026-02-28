@@ -7905,6 +7905,7 @@ export type Database = {
           enviado_por: string | null
           enviado_por_nome: string | null
           id: string
+          materia_prima_id: string | null
           mensagem_id: string | null
           nome_arquivo: string
           produto_id: string
@@ -7922,6 +7923,7 @@ export type Database = {
           enviado_por?: string | null
           enviado_por_nome?: string | null
           id?: string
+          materia_prima_id?: string | null
           mensagem_id?: string | null
           nome_arquivo: string
           produto_id: string
@@ -7939,6 +7941,7 @@ export type Database = {
           enviado_por?: string | null
           enviado_por_nome?: string | null
           id?: string
+          materia_prima_id?: string | null
           mensagem_id?: string | null
           nome_arquivo?: string
           produto_id?: string
@@ -7948,6 +7951,13 @@ export type Database = {
           tipo_arquivo?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fabrica_revisao_documentos_materia_prima_id_fkey"
+            columns: ["materia_prima_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_materias_primas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fabrica_revisao_documentos_mensagem_id_fkey"
             columns: ["mensagem_id"]

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import {
   FileText, Download, Search, Loader2, Archive, CheckCircle2,
-  FolderOpen, Receipt, FileCheck, File, Shield, ChevronRight, Package,
+  FolderOpen, Receipt, FileCheck, File, Shield, ChevronRight, Package, FlaskConical,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ interface Documento {
   revisao_id: string | null;
   produto_id: string;
   mensagem_id: string | null;
+  materia_prima_id: string | null;
   nome_arquivo: string;
   arquivo_path: string;
   tipo_arquivo: string;
@@ -37,11 +38,23 @@ interface Documento {
   created_at: string;
 }
 
+interface MPInfo {
+  id: string;
+  nome: string;
+  codigo: string;
+}
+
+interface MPGroup {
+  mp: MPInfo | null; // null = "Documentos Gerais"
+  documentos: Documento[];
+}
+
 interface ProdutoGroup {
   produto_id: string;
   produto_nome: string;
   produto_codigo: string;
-  documentos: Documento[];
+  mpGroups: MPGroup[];
+  totalDocs: number;
 }
 
 const CATEGORIAS = [
@@ -69,14 +82,50 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
+function DocumentoRow({ doc, onDownload, onArquivar }: { doc: Documento; onDownload: (d: Documento) => void; onArquivar: (id: string) => void }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
+      {getCategoriaIcon(doc.categoria)}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{doc.nome_arquivo}</p>
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+          <span className="capitalize">{doc.categoria}</span>
+          <span>•</span>
+          <span>{formatFileSize(doc.tamanho)}</span>
+          <span>•</span>
+          <span>{doc.enviado_por_nome || "—"}</span>
+          <span>•</span>
+          <span>{format(new Date(doc.created_at), "dd/MM/yy", { locale: ptBR })}</span>
+        </div>
+      </div>
+      <Badge variant={doc.status === "aprovado" ? "success" : doc.status === "arquivado" ? "ghost" : "secondary"} className="text-[10px]">
+        {doc.status === "aprovado" && <CheckCircle2 className="h-3 w-3 mr-0.5" />}
+        {doc.status}
+      </Badge>
+      <div className="flex gap-1">
+        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDownload(doc)} title="Download">
+          <Download className="h-3.5 w-3.5" />
+        </Button>
+        {doc.status !== "arquivado" && (
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onArquivar(doc.id)} title="Arquivar">
+            <Archive className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function DocumentosCofre() {
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [produtos, setProdutos] = useState<Map<string, { nome: string; codigo: string }>>(new Map());
+  const [materiasPrimas, setMateriasPrimas] = useState<Map<string, MPInfo>>(new Map());
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("all");
   const [filtroStatus, setFiltroStatus] = useState("aprovado");
   const [openProdutos, setOpenProdutos] = useState<Set<string>>(new Set());
+  const [openMPs, setOpenMPs] = useState<Set<string>>(new Set());
 
   const carregarDocumentos = useCallback(async () => {
     setLoading(true);
@@ -101,6 +150,18 @@ export function DocumentosCofre() {
         const map = new Map<string, { nome: string; codigo: string }>();
         (prods || []).forEach((p: any) => map.set(p.id, { nome: p.nome, codigo: p.codigo }));
         setProdutos(map);
+      }
+
+      // Load materia prima names
+      const mpIds = [...new Set(docs.map(d => d.materia_prima_id).filter(Boolean))];
+      if (mpIds.length > 0) {
+        const { data: mps } = await supabase
+          .from("fabrica_materias_primas")
+          .select("id, nome, codigo")
+          .in("id", mpIds);
+        const mpMap = new Map<string, MPInfo>();
+        (mps || []).forEach((mp: any) => mpMap.set(mp.id, { id: mp.id, nome: mp.nome, codigo: mp.codigo }));
+        setMateriasPrimas(mpMap);
       }
     } catch (e: any) {
       console.error(e);
@@ -133,35 +194,81 @@ export function DocumentosCofre() {
     }
   };
 
-  const grouped = useMemo(() => {
+  const grouped = useMemo((): ProdutoGroup[] => {
     const filtered = documentos.filter(d => {
       const prod = produtos.get(d.produto_id);
+      const mp = d.materia_prima_id ? materiasPrimas.get(d.materia_prima_id) : null;
       const matchBusca = !busca || 
         prod?.nome?.toLowerCase().includes(busca.toLowerCase()) ||
         prod?.codigo?.toLowerCase().includes(busca.toLowerCase()) ||
+        mp?.nome?.toLowerCase().includes(busca.toLowerCase()) ||
         d.nome_arquivo.toLowerCase().includes(busca.toLowerCase());
       const matchCat = filtroCategoria === "all" || d.categoria === filtroCategoria;
       return matchBusca && matchCat;
     });
 
-    const groups = new Map<string, ProdutoGroup>();
+    // Group by produto, then by materia_prima
+    const prodMap = new Map<string, { docs: Documento[] }>();
     filtered.forEach(doc => {
-      const prod = produtos.get(doc.produto_id);
-      if (!groups.has(doc.produto_id)) {
-        groups.set(doc.produto_id, {
-          produto_id: doc.produto_id,
-          produto_nome: prod?.nome || "Produto",
-          produto_codigo: prod?.codigo || "",
-          documentos: [],
-        });
+      if (!prodMap.has(doc.produto_id)) {
+        prodMap.set(doc.produto_id, { docs: [] });
       }
-      groups.get(doc.produto_id)!.documentos.push(doc);
+      prodMap.get(doc.produto_id)!.docs.push(doc);
     });
 
-    return Array.from(groups.values()).sort((a, b) => a.produto_nome.localeCompare(b.produto_nome));
-  }, [documentos, produtos, busca, filtroCategoria]);
+    return Array.from(prodMap.entries()).map(([prodId, { docs }]) => {
+      const prod = produtos.get(prodId);
+      
+      // Sub-group by materia_prima_id
+      const mpGroupMap = new Map<string | "geral", Documento[]>();
+      docs.forEach(doc => {
+        const key = doc.materia_prima_id || "geral";
+        if (!mpGroupMap.has(key)) mpGroupMap.set(key, []);
+        mpGroupMap.get(key)!.push(doc);
+      });
+
+      const mpGroups: MPGroup[] = [];
+      // MPs first
+      mpGroupMap.forEach((mpDocs, key) => {
+        if (key !== "geral") {
+          mpGroups.push({ mp: materiasPrimas.get(key) || { id: key, nome: "MP Desconhecida", codigo: "" }, documentos: mpDocs });
+        }
+      });
+      // Sort MPs by name
+      mpGroups.sort((a, b) => (a.mp?.nome || "").localeCompare(b.mp?.nome || ""));
+      // "Geral" last
+      const gerais = mpGroupMap.get("geral");
+      if (gerais) {
+        mpGroups.push({ mp: null, documentos: gerais });
+      }
+
+      return {
+        produto_id: prodId,
+        produto_nome: prod?.nome || "Produto",
+        produto_codigo: prod?.codigo || "",
+        mpGroups,
+        totalDocs: docs.length,
+      };
+    }).sort((a, b) => a.produto_nome.localeCompare(b.produto_nome));
+  }, [documentos, produtos, materiasPrimas, busca, filtroCategoria]);
 
   const totalDocs = documentos.length;
+
+  const toggleProduto = (id: string, open: boolean) => {
+    setOpenProdutos(prev => {
+      const next = new Set(prev);
+      open ? next.add(id) : next.delete(id);
+      return next;
+    });
+  };
+
+  const toggleMP = (key: string, open: boolean) => {
+    setOpenMPs(prev => {
+      const next = new Set(prev);
+      open ? next.add(key) : next.delete(key);
+      return next;
+    });
+  };
 
   return (
     <Card>
@@ -179,7 +286,7 @@ export function DocumentosCofre() {
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar por produto ou arquivo..." value={busca} onChange={e => setBusca(e.target.value)} className="pl-9 h-9" />
+            <Input placeholder="Buscar por produto, MP ou arquivo..." value={busca} onChange={e => setBusca(e.target.value)} className="pl-9 h-9" />
           </div>
           <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
             <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
@@ -211,18 +318,12 @@ export function DocumentosCofre() {
           </div>
         ) : (
           <ScrollArea className="max-h-[500px]">
-            <div className="space-y-4">
+            <div className="space-y-3">
               {grouped.map(group => (
                 <Collapsible
                   key={group.produto_id}
                   open={openProdutos.has(group.produto_id)}
-                  onOpenChange={(open) => {
-                    setOpenProdutos(prev => {
-                      const next = new Set(prev);
-                      open ? next.add(group.produto_id) : next.delete(group.produto_id);
-                      return next;
-                    });
-                  }}
+                  onOpenChange={(open) => toggleProduto(group.produto_id, open)}
                 >
                   <CollapsibleTrigger asChild>
                     <button className="w-full border rounded-lg px-4 py-3 flex items-center gap-3 hover:bg-muted/40 transition-colors text-left">
@@ -233,43 +334,48 @@ export function DocumentosCofre() {
                         <p className="text-[10px] text-muted-foreground">{group.produto_codigo}</p>
                       </div>
                       <Badge variant="secondary" className="text-xs shrink-0">
-                        {group.documentos.length} doc{group.documentos.length !== 1 ? "s" : ""}
+                        {group.totalDocs} doc{group.totalDocs !== 1 ? "s" : ""}
                       </Badge>
                     </button>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <div className="border border-t-0 rounded-b-lg divide-y ml-4 mr-0">
-                      {group.documentos.map(doc => (
-                        <div key={doc.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
-                          {getCategoriaIcon(doc.categoria)}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{doc.nome_arquivo}</p>
-                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                              <span className="capitalize">{doc.categoria}</span>
-                              <span>•</span>
-                              <span>{formatFileSize(doc.tamanho)}</span>
-                              <span>•</span>
-                              <span>{doc.enviado_por_nome || "—"}</span>
-                              <span>•</span>
-                              <span>{format(new Date(doc.created_at), "dd/MM/yy", { locale: ptBR })}</span>
-                            </div>
-                          </div>
-                          <Badge variant={doc.status === "aprovado" ? "success" : doc.status === "arquivado" ? "ghost" : "secondary"} className="text-[10px]">
-                            {doc.status === "aprovado" && <CheckCircle2 className="h-3 w-3 mr-0.5" />}
-                            {doc.status}
-                          </Badge>
-                          <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDownload(doc)} title="Download">
-                              <Download className="h-3.5 w-3.5" />
-                            </Button>
-                            {doc.status !== "arquivado" && (
-                              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleArquivar(doc.id)} title="Arquivar">
-                                <Archive className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                    <div className="ml-4 mt-1 space-y-1">
+                      {group.mpGroups.map(mpGroup => {
+                        const mpKey = mpGroup.mp ? mpGroup.mp.id : `${group.produto_id}-geral`;
+                        return (
+                          <Collapsible
+                            key={mpKey}
+                            open={openMPs.has(mpKey)}
+                            onOpenChange={(open) => toggleMP(mpKey, open)}
+                          >
+                            <CollapsibleTrigger asChild>
+                              <button className="w-full border rounded-md px-3 py-2 flex items-center gap-2 hover:bg-muted/30 transition-colors text-left">
+                                <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${openMPs.has(mpKey) ? "rotate-90" : ""}`} />
+                                {mpGroup.mp ? (
+                                  <FlaskConical className="h-4 w-4 text-amber-600 shrink-0" />
+                                ) : (
+                                  <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium truncate">
+                                    {mpGroup.mp ? `${mpGroup.mp.codigo} - ${mpGroup.mp.nome}` : "Documentos Gerais"}
+                                  </p>
+                                </div>
+                                <Badge variant="outline" className="text-[10px] shrink-0">
+                                  {mpGroup.documentos.length}
+                                </Badge>
+                              </button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="border border-t-0 rounded-b-md divide-y ml-3">
+                                {mpGroup.documentos.map(doc => (
+                                  <DocumentoRow key={doc.id} doc={doc} onDownload={handleDownload} onArquivar={handleArquivar} />
+                                ))}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        );
+                      })}
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
