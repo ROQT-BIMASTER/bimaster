@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Navigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { Button } from "@/components/ui/button";
 
 const MODULE_ROUTES = [
   { code: "prospects", path: "/dashboard/prospects" },
@@ -29,6 +30,7 @@ const SCREEN_FALLBACK_ROUTES = [
   { screen: "fabrica_maquinas", path: "/dashboard/fabrica/maquinas" },
   { screen: "fabrica_operadores", path: "/dashboard/fabrica/operadores" },
   { screen: "fabrica_paradas", path: "/dashboard/fabrica/paradas" },
+  { screen: "fabrica_dashboard", path: "/dashboard/fabrica/executivo" },
   { screen: "fabrica_lancamentos", path: "/dashboard/comercial/lancamentos" },
   { screen: "precos_tabelas", path: "/dashboard/precos/tabelas" },
   { screen: "precos_matriz", path: "/dashboard/precos/matriz" },
@@ -48,21 +50,36 @@ const GENERIC_FALLBACK_ROUTES = [
 ] as const;
 
 export const DashboardRedirect = () => {
-  const { loading } = usePermissions();
+  const { loading, refreshPermissions } = usePermissions();
   const { hasModulePermission, hasScreenPermission } = useImpersonation();
   const [timedOut, setTimedOut] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
-  // Safety timeout: if loading takes more than 5s, force redirect
+  // Safety timeout: if loading takes more than 8s, force redirect
   useEffect(() => {
-    if (!loading) return;
-    const timer = setTimeout(() => setTimedOut(true), 5000);
+    if (!loading) {
+      setTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setTimedOut(true), 8000);
     return () => clearTimeout(timer);
   }, [loading]);
 
-  if (loading && !timedOut) {
+  const handleRetry = useCallback(async () => {
+    setRetrying(true);
+    setTimedOut(false);
+    try {
+      await refreshPermissions();
+    } finally {
+      setRetrying(false);
+    }
+  }, [refreshPermissions]);
+
+  if ((loading || retrying) && !timedOut) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Carregando permissões...</p>
       </div>
     );
   }
@@ -81,6 +98,19 @@ export const DashboardRedirect = () => {
     }
   }
 
-  // 3. Fallback to a generic route that doesn't require specific permissions
+  // 3. If timed out with no permissions found, show retry option
+  if (timedOut) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <p className="text-muted-foreground">Não foi possível carregar suas permissões.</p>
+        <Button onClick={handleRetry} variant="outline" className="gap-2">
+          <RefreshCw className="h-4 w-4" />
+          Tentar novamente
+        </Button>
+      </div>
+    );
+  }
+
+  // 4. Fallback to a generic route that doesn't require specific permissions
   return <Navigate to={GENERIC_FALLBACK_ROUTES[0]} replace />;
 };
