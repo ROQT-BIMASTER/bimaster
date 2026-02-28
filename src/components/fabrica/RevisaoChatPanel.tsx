@@ -87,6 +87,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
   const [mencoesSelecionadas, setMencoesSelecionadas] = useState<{ user_id: string; nome: string }[]>([]);
   const [anexosPendentes, setAnexosPendentes] = useState<File[]>([]);
   const [uploadingAnexos, setUploadingAnexos] = useState(false);
+  const [enviarParaCofre, setEnviarParaCofre] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -222,8 +223,8 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
         anexos: anexosMeta,
       } as any).select().single();
 
-      // Register documents in fabrica_revisao_documentos
-      if (anexosMeta.length > 0 && msgData) {
+      // Register documents in fabrica_revisao_documentos only if user opted to send to vault
+      if (enviarParaCofre && anexosMeta.length > 0 && msgData) {
         const docRows = anexosMeta.map(a => ({
           revisao_id: revisaoId,
           produto_id: produtoId || revisaoId,
@@ -245,6 +246,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
       setReplyingTo(null);
       setMencoesSelecionadas([]);
       setAnexosPendentes([]);
+      setEnviarParaCofre(false);
     } catch (err: any) {
       toast.error("Erro ao enviar: " + err.message);
     } finally {
@@ -561,16 +563,27 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
 
             {/* Pending attachments preview */}
             {anexosPendentes.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {anexosPendentes.map((f, i) => (
-                  <Badge key={i} variant="outline" className="text-[10px] gap-1">
-                    <Paperclip className="h-2.5 w-2.5" />
-                    {f.name.length > 20 ? f.name.substring(0, 17) + "..." : f.name}
-                    <button onClick={() => setAnexosPendentes(prev => prev.filter((_, j) => j !== i))}>
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </Badge>
-                ))}
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap gap-1">
+                  {anexosPendentes.map((f, i) => (
+                    <Badge key={i} variant="outline" className="text-[10px] gap-1">
+                      <Paperclip className="h-2.5 w-2.5" />
+                      {f.name.length > 20 ? f.name.substring(0, 17) + "..." : f.name}
+                      <button onClick={() => setAnexosPendentes(prev => prev.filter((_, j) => j !== i))}>
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={enviarParaCofre}
+                    onChange={(e) => setEnviarParaCofre(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-input accent-primary"
+                  />
+                  <span className="text-[10px] text-muted-foreground">Vincular ao Cofre de Documentos do produto</span>
+                </label>
               </div>
             )}
 
