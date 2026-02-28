@@ -5,6 +5,11 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { Button } from "@/components/ui/button";
 
+// Map of modules that require a specific dashboard screen to access the module root
+const MODULE_DASHBOARD_SCREENS: Record<string, string> = {
+  fabrica: "fabrica_dashboard",
+};
+
 const MODULE_ROUTES = [
   { code: "prospects", path: "/dashboard/prospects" },
   { code: "trade", path: "/dashboard/trade" },
@@ -84,9 +89,14 @@ export const DashboardRedirect = () => {
     );
   }
 
-  // 1. Try module-level redirect
+  // 1. Try module-level redirect (skip if user lacks the module's dashboard screen)
   for (const mod of MODULE_ROUTES) {
     if (hasModulePermission(mod.code)) {
+      const requiredScreen = MODULE_DASHBOARD_SCREENS[mod.code];
+      // If this module requires a dashboard screen and user doesn't have it, skip to fallback
+      if (requiredScreen && !hasScreenPermission(requiredScreen)) {
+        continue;
+      }
       return <Navigate to={mod.path} replace />;
     }
   }
