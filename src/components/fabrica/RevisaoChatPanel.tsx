@@ -10,11 +10,12 @@ import {
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
-import { MessageSquare, Send, Loader2, Reply, X, Check, CheckCheck, Lock, Unlock, AtSign } from "lucide-react";
+import { MessageSquare, Send, Loader2, Reply, X, Check, CheckCheck, Lock, Unlock, AtSign, Paperclip, FileText, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { uploadFile, getSignedUrl } from "@/lib/utils/storage-helper";
 
 interface Mensagem {
   id: string;
@@ -28,6 +29,7 @@ interface Mensagem {
   resposta_a_id: string | null;
   mencoes: { user_id: string; nome: string }[];
   lida_por: string[];
+  anexos: { nome: string; path: string; tipo: string }[];
 }
 
 interface InsumoRef {
@@ -43,6 +45,7 @@ interface Props {
   tipoRemetente?: "usuario" | "diretoria";
   insumosComApontamento?: Set<string>;
   onNavigateToInsumo?: (insumoId: string) => void;
+  produtoId?: string;
 }
 
 interface MensagemComVersao extends Mensagem {
@@ -69,7 +72,7 @@ function renderConteudoComMencoes(texto: string) {
   );
 }
 
-export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemetente = "usuario", insumosComApontamento = new Set(), onNavigateToInsumo }: Props) {
+export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemetente = "usuario", insumosComApontamento = new Set(), onNavigateToInsumo, produtoId }: Props) {
   const [mensagens, setMensagens] = useState<MensagemComVersao[]>([]);
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
@@ -82,8 +85,11 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
   const [mentionOpen, setMentionOpen] = useState(false);
   const [mentionFilter, setMentionFilter] = useState("");
   const [mencoesSelecionadas, setMencoesSelecionadas] = useState<{ user_id: string; nome: string }[]>([]);
+  const [anexosPendentes, setAnexosPendentes] = useState<File[]>([]);
+  const [uploadingAnexos, setUploadingAnexos] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load current user
   useEffect(() => {
@@ -133,6 +139,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
             versao: versaoMap.get(m.revisao_id) || 1,
             mencoes: m.mencoes || [],
             lida_por: m.lida_por || [],
+            anexos: m.anexos || [],
           })));
         }
       }
@@ -148,6 +155,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
           ...m,
           mencoes: m.mencoes || [],
           lida_por: m.lida_por || [],
+          anexos: m.anexos || [],
         })));
       }
     }
@@ -169,7 +177,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
         setMensagens((prev) => {
           if (prev.some((m) => m.id === (payload.new as any).id)) return prev;
           const newMsg = payload.new as any;
-          return [...prev, { ...newMsg, mencoes: newMsg.mencoes || [], lida_por: newMsg.lida_por || [] }];
+          return [...prev, { ...newMsg, mencoes: newMsg.mencoes || [], lida_por: newMsg.lida_por || [], anexos: newMsg.anexos || [] }];
         });
       })
       .subscribe();
@@ -182,31 +190,66 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
   }, [mensagens]);
 
   const enviarMensagem = async () => {
-    if (!texto.trim() || chatStatus === "finalizado") return;
+    if ((!texto.trim() && anexosPendentes.length === 0) || chatStatus === "finalizado") return;
     setEnviando(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
       const nome = user?.user_metadata?.nome || user?.email || "Usuário";
 
-      await supabase.from("fabrica_revisao_mensagens" as any).insert({
+      // Upload attachments
+      let anexosMeta: { nome: string; path: string; tipo: string }[] = [];
+      if (anexosPendentes.length > 0) {
+        setUploadingAnexos(true);
+        for (const file of anexosPendentes) {
+          const ts = Date.now();
+          const filePath = `${revisaoId}/${ts}_${file.name}`;
+          const { path, error } = await uploadFile("fabrica-revisao-docs", filePath, file);
+          if (error) throw error;
+          anexosMeta.push({ nome: file.name, path, tipo: file.type });
+        }
+        setUploadingAnexos(false);
+      }
+
+      const { data: msgData } = await supabase.from("fabrica_revisao_mensagens" as any).insert({
         revisao_id: revisaoId,
         usuario_id: user?.id,
         usuario_nome: nome,
-        conteudo: texto.trim(),
+        conteudo: texto.trim() || (anexosMeta.length > 0 ? `📎 ${anexosMeta.length} arquivo(s) anexado(s)` : ""),
         tipo: tipoRemetente,
         insumo_id: insumoSelecionado !== "none" ? insumoSelecionado : null,
         resposta_a_id: replyingTo?.id || null,
         mencoes: mencoesSelecionadas.length > 0 ? mencoesSelecionadas : [],
-      } as any);
+        anexos: anexosMeta,
+      } as any).select().single();
+
+      // Register documents in fabrica_revisao_documentos
+      if (anexosMeta.length > 0 && msgData) {
+        const docRows = anexosMeta.map(a => ({
+          revisao_id: revisaoId,
+          produto_id: produtoId || revisaoId,
+          mensagem_id: (msgData as any).id,
+          nome_arquivo: a.nome,
+          arquivo_path: a.path,
+          tipo_arquivo: a.tipo,
+          tamanho: anexosPendentes.find(f => f.name === a.nome)?.size || 0,
+          categoria: "geral",
+          status: "ativo",
+          enviado_por: user?.id,
+          enviado_por_nome: nome,
+        }));
+        await supabase.from("fabrica_revisao_documentos" as any).insert(docRows as any);
+      }
 
       setTexto("");
       setInsumoSelecionado("none");
       setReplyingTo(null);
       setMencoesSelecionadas([]);
+      setAnexosPendentes([]);
     } catch (err: any) {
       toast.error("Erro ao enviar: " + err.message);
     } finally {
       setEnviando(false);
+      setUploadingAnexos(false);
     }
   };
 
@@ -422,6 +465,28 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                       {/* Content */}
                       <p className="text-sm whitespace-pre-wrap">{renderConteudoComMencoes(msg.conteudo)}</p>
 
+                      {/* Attachments */}
+                      {msg.anexos && msg.anexos.length > 0 && (
+                        <div className="mt-1.5 space-y-1">
+                          {msg.anexos.map((anexo, ai) => (
+                            <button
+                              key={ai}
+                              onClick={async () => {
+                                const { signedUrl } = await getSignedUrl("fabrica-revisao-docs", anexo.path);
+                                if (signedUrl) window.open(signedUrl, "_blank");
+                              }}
+                              className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs w-full text-left transition-colors ${
+                                isOwn ? "bg-blue-500/30 hover:bg-blue-500/50" : "bg-muted hover:bg-muted-foreground/10"
+                              }`}
+                            >
+                              <FileText className="h-3 w-3 shrink-0" />
+                              <span className="truncate flex-1">{anexo.nome}</span>
+                              <Download className="h-3 w-3 shrink-0 opacity-60" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Reply action */}
                       {!isFinalizado && (
                         <button
@@ -494,8 +559,46 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
               </div>
             )}
 
+            {/* Pending attachments preview */}
+            {anexosPendentes.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {anexosPendentes.map((f, i) => (
+                  <Badge key={i} variant="outline" className="text-[10px] gap-1">
+                    <Paperclip className="h-2.5 w-2.5" />
+                    {f.name.length > 20 ? f.name.substring(0, 17) + "..." : f.name}
+                    <button onClick={() => setAnexosPendentes(prev => prev.filter((_, j) => j !== i))}>
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                setAnexosPendentes(prev => [...prev, ...files]);
+                e.target.value = "";
+              }}
+            />
+
             {/* Text input + mention popover */}
             <div className="flex gap-2 relative">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-auto shrink-0"
+                onClick={() => fileInputRef.current?.click()}
+                title="Anexar arquivos"
+              >
+                <Paperclip className="h-4 w-4" />
+              </Button>
               <div className="relative flex-1">
                 <Textarea
                   ref={textareaRef}
@@ -547,10 +650,10 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
               <Button
                 size="icon"
                 onClick={enviarMensagem}
-                disabled={!texto.trim() || enviando}
+                disabled={(!texto.trim() && anexosPendentes.length === 0) || enviando || uploadingAnexos}
                 className="h-auto"
               >
-                {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {enviando || uploadingAnexos ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
           </div>

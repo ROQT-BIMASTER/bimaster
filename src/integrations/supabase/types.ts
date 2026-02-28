@@ -7895,8 +7895,78 @@ export type Database = {
           },
         ]
       }
+      fabrica_revisao_documentos: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          arquivo_path: string
+          categoria: string | null
+          created_at: string | null
+          enviado_por: string | null
+          enviado_por_nome: string | null
+          id: string
+          mensagem_id: string | null
+          nome_arquivo: string
+          produto_id: string
+          revisao_id: string | null
+          status: string | null
+          tamanho: number | null
+          tipo_arquivo: string
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          arquivo_path: string
+          categoria?: string | null
+          created_at?: string | null
+          enviado_por?: string | null
+          enviado_por_nome?: string | null
+          id?: string
+          mensagem_id?: string | null
+          nome_arquivo: string
+          produto_id: string
+          revisao_id?: string | null
+          status?: string | null
+          tamanho?: number | null
+          tipo_arquivo: string
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          arquivo_path?: string
+          categoria?: string | null
+          created_at?: string | null
+          enviado_por?: string | null
+          enviado_por_nome?: string | null
+          id?: string
+          mensagem_id?: string | null
+          nome_arquivo?: string
+          produto_id?: string
+          revisao_id?: string | null
+          status?: string | null
+          tamanho?: number | null
+          tipo_arquivo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_revisao_documentos_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_revisao_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_revisao_documentos_revisao_id_fkey"
+            columns: ["revisao_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_ficha_custo_revisoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_revisao_mensagens: {
         Row: {
+          anexos: Json | null
           conteudo: string
           created_at: string
           id: string
@@ -7910,6 +7980,7 @@ export type Database = {
           usuario_nome: string
         }
         Insert: {
+          anexos?: Json | null
           conteudo: string
           created_at?: string
           id?: string
@@ -7923,6 +7994,7 @@ export type Database = {
           usuario_nome: string
         }
         Update: {
+          anexos?: Json | null
           conteudo?: string
           created_at?: string
           id?: string

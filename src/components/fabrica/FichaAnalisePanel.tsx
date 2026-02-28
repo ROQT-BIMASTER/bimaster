@@ -20,6 +20,7 @@ import {
   ClipboardList, Loader2, X, History, TrendingUp, TrendingDown,
 } from "lucide-react";
 import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
+import { DocumentosTab } from "@/components/fabrica/DocumentosTab";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ApontamentoForm {
@@ -176,12 +177,13 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
 
             {/* Tabs de conteúdo */}
             <Tabs defaultValue="insumos" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="insumos" className="text-xs">Insumos</TabsTrigger>
                 <TabsTrigger value="config" className="text-xs">Config & M.O.</TabsTrigger>
                 <TabsTrigger value="evidencias" className="text-xs">Evidências ({evidencias.length})</TabsTrigger>
                 <TabsTrigger value="requisitos" className="text-xs">Requisitos ({requisitosStatus.length})</TabsTrigger>
                 <TabsTrigger value="historico" className="text-xs gap-1"><History className="h-3 w-3" /> Histórico</TabsTrigger>
+                <TabsTrigger value="documentos" className="text-xs gap-1"><FileText className="h-3 w-3" /> Documentos</TabsTrigger>
               </TabsList>
 
               <TabsContent value="insumos" className="mt-3">
@@ -358,6 +360,10 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                   </ScrollArea>
                 )}
               </TabsContent>
+
+              <TabsContent value="documentos" className="mt-3">
+                <DocumentosTab produtoId={ficha.produto_id} />
+              </TabsContent>
             </Tabs>
 
             {/* Apontamentos e Requisitos (modo revisão) */}
@@ -513,6 +519,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
             <RevisaoChatPanel
               revisaoId={ficha.id}
               configId={ficha.config_id}
+              produtoId={ficha.produto_id}
               insumos={snapshotInsumos.map((i: any) => ({ id: i.id, nome: i.nome, codigo: i.codigo }))}
               tipoRemetente="diretoria"
             />
