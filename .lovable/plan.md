@@ -1,57 +1,69 @@
 
 
-# Plano: Chat Profissional com Reply, Menções e Finalização
+# Cofre de Documentos + Anexos no Chat de Revisão
 
-## Problema
-O chat atual é linear e básico. Faltam: responder mensagens específicas (reply), mencionar usuários (@), finalizar conversas, e status de conversa (aberta/finalizada).
+## Visão Geral
 
----
-
-## 1. Migração do Banco de Dados
-
-Adicionar colunas à tabela `fabrica_revisao_mensagens`:
-- `resposta_a_id` (uuid, FK para si mesma) — referência à mensagem respondida (reply)
-- `mencoes` (jsonb, default '[]') — array de `{user_id, nome}` mencionados
-- `status_conversa` na tabela `fabrica_ficha_custo_revisoes`:
-  - `chat_status` (text, default 'aberto') — valores: 'aberto', 'finalizado'
-  - `chat_finalizado_por` (uuid) — quem finalizou
-  - `chat_finalizado_em` (timestamptz) — quando finalizou
+Criar um sistema de documentos vinculados a produtos e revisões, com capacidade de anexar arquivos diretamente nas mensagens do chat e um "Cofre de Documentos" que consolida todos os documentos aprovados/finalizados por produto.
 
 ---
 
-## 2. Refatorar `RevisaoChatPanel.tsx` — Estilo WhatsApp
+## 1. Banco de Dados — Nova Tabela `fabrica_revisao_documentos`
 
-### Reply (Responder mensagem)
-- Ao clicar/segurar uma mensagem, aparece botão "Responder"
-- Ao ativar, mostra preview da mensagem sendo respondida acima do input (com X para cancelar)
-- Na mensagem renderizada, exibe box citado com nome + texto truncado da mensagem original
-- Grava `resposta_a_id` no insert
+```sql
+CREATE TABLE fabrica_revisao_documentos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  revisao_id uuid REFERENCES fabrica_ficha_custo_revisoes(id),
+  produto_id uuid NOT NULL,
+  mensagem_id uuid REFERENCES fabrica_revisao_mensagens(id),
+  nome_arquivo text NOT NULL,
+  arquivo_path text NOT NULL,
+  tipo_arquivo text NOT NULL,
+  tamanho integer DEFAULT 0,
+  categoria text DEFAULT 'geral', -- 'orcamento', 'evidencia', 'nf', 'contrato', 'geral'
+  status text DEFAULT 'ativo', -- 'ativo', 'aprovado', 'arquivado'
+  aprovado_por uuid,
+  aprovado_em timestamptz,
+  enviado_por uuid,
+  enviado_por_nome text,
+  created_at timestamptz DEFAULT now()
+);
+```
 
-### Menções (@usuário)
-- Ao digitar `@` no textarea, abre um popover/dropdown com lista de usuários da fábrica (busca na tabela `profiles`)
-- Ao selecionar, insere `@NomeUsuário` no texto e grava no campo `mencoes`
-- Na renderização, destaca `@NomeUsuário` com cor diferente (bold, azul)
-
-### Finalizar conversa
-- Botão "Finalizar Conversa" no header do chat (visível para diretoria)
-- Ao finalizar: atualiza `chat_status = 'finalizado'` na revisão
-- Chat finalizado fica em modo readonly com banner informativo
-- Botão "Reabrir" para diretoria se necessário
-
-### UI melhorada
-- Avatar com iniciais ao lado de cada mensagem (como WhatsApp)
-- Mensagens próprias à direita (azul), de outros à esquerda (cinza)
-- Timestamp + status de leitura (checks) por mensagem
-- Hover em mensagem mostra ações rápidas (responder)
+- Adicionar coluna `anexos` (jsonb) à `fabrica_revisao_mensagens` para inline attachment metadata.
+- Criar bucket `fabrica-revisao-docs` (privado).
+- RLS: acesso via `can_access_fabrica()`.
 
 ---
 
-## 3. Refatorar `RevisaoChatConsolidado.tsx`
+## 2. Chat — Anexar Documentos nas Mensagens (`RevisaoChatPanel.tsx`)
 
-- Adicionar filtro por status da conversa: "Abertas" | "Finalizadas" | "Todas"
-- Na lista, mostrar badge de status (Aberta/Finalizada)
-- Conversas finalizadas ficam esmaecidas na lista
-- Botão de finalizar diretamente da lista (sem abrir a conversa)
+- Adicionar botão de clip (📎) ao lado do input de texto.
+- Ao selecionar arquivos, fazer upload para `fabrica-revisao-docs/{revisao_id}/{timestamp}_{nome}`.
+- Gravar registro em `fabrica_revisao_documentos` com `mensagem_id` e `revisao_id`.
+- Salvar metadata dos anexos no campo `anexos` da mensagem (nome, path, tipo).
+- Na renderização da mensagem, mostrar cards de anexos com ícone + nome + botão de download (signed URL).
+
+---
+
+## 3. Nova Aba "Documentos" na `FichaAnalisePanel.tsx`
+
+- Adicionar 6ª tab "Documentos" no painel de análise da ficha.
+- Listar todos os documentos vinculados àquele produto (`produto_id`), agrupados por categoria.
+- Ações do diretor: marcar como "Aprovado" (status = 'aprovado'), categorizar.
+- Filtro por categoria e status.
+
+---
+
+## 4. Cofre de Documentos — Nova aba na página `FichaRevisaoDiretoria.tsx`
+
+- Adicionar aba "Cofre de Documentos" ao lado de "Fichas Pendentes" e "Comunicação".
+- Componente `DocumentosCofre.tsx`:
+  - Listar todos os documentos com `status = 'aprovado'`, agrupados por produto.
+  - Busca por produto, filtro por categoria.
+  - Download via signed URL.
+  - Badge com total de documentos por produto.
+  - Possibilidade de arquivar documentos obsoletos (`status = 'arquivado'`).
 
 ---
 
@@ -59,21 +71,11 @@ Adicionar colunas à tabela `fabrica_revisao_mensagens`:
 
 | Entrega | Tipo |
 |---|---|
-| Colunas `resposta_a_id`, `mencoes` na mensagens | Migração DB |
-| Colunas `chat_status`, `chat_finalizado_por/em` na revisões | Migração DB |
-| Reply com preview e citação visual | UI (RevisaoChatPanel) |
-| Menções @usuário com autocomplete | UI (RevisaoChatPanel) |
-| Finalizar/Reabrir conversa | UI + DB |
-| Filtro aberta/finalizada no consolidado | UI (RevisaoChatConsolidado) |
-| Avatar + checks de leitura | UI (RevisaoChatPanel) |
-
----
-
-## Detalhes Técnicos
-
-- **Profiles query**: `SELECT id, nome FROM profiles WHERE aprovado = true` para o autocomplete de menções
-- **Reply**: FK `fabrica_revisao_mensagens(resposta_a_id) REFERENCES fabrica_revisao_mensagens(id)`
-- **Menções**: JSON array `[{"user_id": "...", "nome": "..."}]` — permite notificação futura
-- **Regex render**: `/@(\w+\s?\w*)/g` para highlight de menções no texto
-- **Finalização**: Apenas tipo `diretoria` pode finalizar; campo `chat_status` controla readonly
+| Tabela `fabrica_revisao_documentos` | Migração DB |
+| Coluna `anexos` em `fabrica_revisao_mensagens` | Migração DB |
+| Bucket `fabrica-revisao-docs` (privado) | Migração DB |
+| Upload de anexos no chat | UI (RevisaoChatPanel) |
+| Aba "Documentos" no painel de análise | UI (FichaAnalisePanel) |
+| Cofre de Documentos aprovados | Novo componente (DocumentosCofre) |
+| Aba "Cofre" na página de revisão | UI (FichaRevisaoDiretoria) |
 
