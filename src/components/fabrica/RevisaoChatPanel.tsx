@@ -10,7 +10,9 @@ import {
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
-import { MessageSquare, Send, Loader2, Reply, X, Check, CheckCheck, Lock, Unlock, AtSign, Paperclip, FileText, Download } from "lucide-react";
+import { MessageSquare, Send, Loader2, Reply, X, Check, CheckCheck, Lock, Unlock, AtSign, Paperclip, FileText, Download, Shield, FolderOpen } from "lucide-react";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { DocumentosTab } from "@/components/fabrica/DocumentosTab";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -29,7 +31,7 @@ interface Mensagem {
   resposta_a_id: string | null;
   mencoes: { user_id: string; nome: string }[];
   lida_por: string[];
-  anexos: { nome: string; path: string; tipo: string }[];
+  anexos: { nome: string; path: string; tipo: string; enviado_para_cofre?: boolean }[];
 }
 
 interface InsumoRef {
@@ -88,6 +90,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
   const [anexosPendentes, setAnexosPendentes] = useState<File[]>([]);
   const [uploadingAnexos, setUploadingAnexos] = useState(false);
   const [enviarParaCofre, setEnviarParaCofre] = useState(false);
+  const [showDocPanel, setShowDocPanel] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -198,7 +201,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
       const nome = user?.user_metadata?.nome || user?.email || "Usuário";
 
       // Upload attachments
-      let anexosMeta: { nome: string; path: string; tipo: string }[] = [];
+      let anexosMeta: { nome: string; path: string; tipo: string; enviado_para_cofre?: boolean }[] = [];
       if (anexosPendentes.length > 0) {
         setUploadingAnexos(true);
         for (const file of anexosPendentes) {
@@ -206,7 +209,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
           const filePath = `${revisaoId}/${ts}_${file.name}`;
           const { path, error } = await uploadFile("fabrica-revisao-docs", filePath, file);
           if (error) throw error;
-          anexosMeta.push({ nome: file.name, path, tipo: file.type });
+          anexosMeta.push({ nome: file.name, path, tipo: file.type, enviado_para_cofre: enviarParaCofre || undefined });
         }
         setUploadingAnexos(false);
       }
@@ -344,7 +347,9 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
   const isFinalizado = chatStatus === "finalizado";
 
   return (
-    <Card className="border-blue-200 bg-blue-50/30">
+    <ResizablePanelGroup direction="horizontal" className="rounded-xl border border-blue-200 bg-blue-50/30">
+      <ResizablePanel defaultSize={showDocPanel ? 65 : 100} minSize={50}>
+    <Card className="border-0 bg-transparent shadow-none">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
@@ -373,6 +378,17 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                 </Button>
               )}
             </div>
+          )}
+          {produtoId && (
+            <Button
+              variant={showDocPanel ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowDocPanel(v => !v)}
+              className="text-xs gap-1"
+            >
+              <FolderOpen className="h-3 w-3" />
+              Cofre
+            </Button>
           )}
         </div>
       </CardHeader>
@@ -470,22 +486,32 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                       {/* Attachments */}
                       {msg.anexos && msg.anexos.length > 0 && (
                         <div className="mt-1.5 space-y-1">
-                          {msg.anexos.map((anexo, ai) => (
-                            <button
-                              key={ai}
-                              onClick={async () => {
-                                const { signedUrl } = await getSignedUrl("fabrica-revisao-docs", anexo.path);
-                                if (signedUrl) window.open(signedUrl, "_blank");
-                              }}
-                              className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs w-full text-left transition-colors ${
-                                isOwn ? "bg-blue-500/30 hover:bg-blue-500/50" : "bg-muted hover:bg-muted-foreground/10"
-                              }`}
-                            >
-                              <FileText className="h-3 w-3 shrink-0" />
-                              <span className="truncate flex-1">{anexo.nome}</span>
-                              <Download className="h-3 w-3 shrink-0 opacity-60" />
-                            </button>
-                          ))}
+                          {msg.anexos.map((anexo, ai) => {
+                            const isCofre = !!(anexo as any).enviado_para_cofre;
+                            return (
+                              <button
+                                key={ai}
+                                onClick={async () => {
+                                  const { signedUrl } = await getSignedUrl("fabrica-revisao-docs", anexo.path);
+                                  if (signedUrl) window.open(signedUrl, "_blank");
+                                }}
+                                className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs w-full text-left transition-colors ${
+                                  isCofre
+                                    ? "bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 text-emerald-900"
+                                    : isOwn
+                                      ? "bg-blue-500/30 hover:bg-blue-500/50"
+                                      : "bg-muted hover:bg-muted-foreground/10"
+                                }`}
+                              >
+                                {isCofre ? <Shield className="h-3 w-3 shrink-0 text-emerald-600" /> : <FileText className="h-3 w-3 shrink-0" />}
+                                <span className="truncate flex-1">{anexo.nome}</span>
+                                {isCofre && (
+                                  <Badge variant="outline" className="text-[8px] py-0 px-1 border-emerald-400 text-emerald-700 shrink-0">Cofre</Badge>
+                                )}
+                                <Download className="h-3 w-3 shrink-0 opacity-60" />
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
 
@@ -673,5 +699,25 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
         )}
       </CardContent>
     </Card>
+      </ResizablePanel>
+
+      {showDocPanel && produtoId && (
+        <>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={35} minSize={20} maxSize={50}>
+            <div className="h-full p-3 overflow-auto">
+              <div className="flex items-center gap-2 mb-3">
+                <FolderOpen className="h-4 w-4 text-emerald-600" />
+                <span className="text-sm font-semibold">Cofre de Documentos</span>
+                <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" onClick={() => setShowDocPanel(false)}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <DocumentosTab produtoId={produtoId} />
+            </div>
+          </ResizablePanel>
+        </>
+      )}
+    </ResizablePanelGroup>
   );
 }
