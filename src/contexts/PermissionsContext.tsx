@@ -24,14 +24,39 @@ let globalPermissionsCache: {
   timestamp: number;
 } | null = null;
 
-const CACHE_DURATION = 30 * 1000; // 30 segundos - para garantir que mudanças de permissões sejam refletidas rapidamente
+const CACHE_DURATION = 30 * 1000; // 30 segundos
+const SAFETY_TIMEOUT = 12000; // 12s - mobile connections need more time
+const LOCAL_STORAGE_KEY = "permissions_cache_v1";
+
+// Restore from localStorage on startup for instant loading
+const restoreFromLocalStorage = (): typeof globalPermissionsCache => {
+  try {
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Accept localStorage cache for up to 5 minutes for instant boot
+      if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return null;
+};
+
+const saveToLocalStorage = (cache: NonNullable<typeof globalPermissionsCache>) => {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cache));
+  } catch {}
+};
 
 export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
-  const [modules, setModules] = useState<string[]>([]);
-  const [screens, setScreens] = useState<string[]>([]);
-  const [role, setRole] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // Try to restore from localStorage for instant boot on mobile
+  const initialCache = restoreFromLocalStorage();
+  const [modules, setModules] = useState<string[]>(initialCache?.modules || []);
+  const [screens, setScreens] = useState<string[]>(initialCache?.screens || []);
+  const [role, setRole] = useState<string | null>(initialCache?.role || null);
+  const [isAdmin, setIsAdmin] = useState(initialCache?.isAdmin || false);
+  const [loading, setLoading] = useState(!initialCache); // If we have cache, start as not loading
   const isMountedRef = useRef(true);
 
   // Timeout de segurança - garante que loading nunca fica infinito
@@ -39,9 +64,18 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     const timeout = setTimeout(() => {
       if (isMountedRef.current && loading) {
         console.log("[PermissionsContext] Safety timeout triggered - forcing loading to false");
+        // If we have localStorage cache, use it as fallback
+        const fallback = restoreFromLocalStorage();
+        if (fallback && fallback.modules.length > 0) {
+          console.log("[PermissionsContext] Using localStorage cache as fallback");
+          setModules(fallback.modules);
+          setScreens(fallback.screens);
+          setRole(fallback.role);
+          setIsAdmin(fallback.isAdmin);
+        }
         setLoading(false);
       }
-    }, 5000);
+    }, SAFETY_TIMEOUT);
     
     return () => clearTimeout(timeout);
   }, [loading]);
@@ -117,6 +151,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         isAdmin: userIsAdmin,
         timestamp: now,
       };
+      saveToLocalStorage(globalPermissionsCache);
 
       if (isMountedRef.current) {
         setModules(modulesList);
@@ -163,6 +198,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         isAdmin: userIsAdmin,
         timestamp: Date.now(),
       };
+      saveToLocalStorage(globalPermissionsCache);
 
       if (isMountedRef.current) {
         setModules(modulesList);
@@ -190,6 +226,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         fetchPermissions(true);
       } else if (event === "SIGNED_OUT") {
         globalPermissionsCache = null;
+        try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
         setModules([]);
         setScreens([]);
         setRole(null);
