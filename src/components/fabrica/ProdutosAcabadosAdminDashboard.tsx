@@ -94,27 +94,27 @@ export function ProdutosAcabadosAdminDashboard({
 
   // KPI counts
   const kpis = useMemo(() => {
-    if (!revisoes) return { pendentes: 0, emAnalise: 0, aprovadas: 0, reprovadas: 0 };
-    const pendentes = revisoes.filter(
-      (r: any) => r.status === "revisao_solicitada" || r.status === "pendente"
-    ).length;
+    if (!revisoes) return { pendentes: 0, revisaoSolicitada: 0, emAnalise: 0, aprovadas: 0, reprovadas: 0 };
+    const pendentes = revisoes.filter((r: any) => r.status === "pendente").length;
+    const revisaoSolicitada = revisoes.filter((r: any) => r.status === "revisao_solicitada").length;
     const emAnalise = revisoes.filter((r: any) => r.status === "em_revisao").length;
     const aprovadas = revisoes.filter((r: any) => r.status === "aprovada").length;
     const reprovadas = revisoes.filter((r: any) => r.status === "reprovada").length;
-    return { pendentes, emAnalise, aprovadas, reprovadas };
+    return { pendentes, revisaoSolicitada, emAnalise, aprovadas, reprovadas };
   }, [revisoes]);
 
   // Chart data
   const chartData = useMemo(() => {
     return [
       { name: "Pendentes", value: kpis.pendentes, color: CHART_COLORS.pendentes },
+      { name: "Rev. Solicitada", value: kpis.revisaoSolicitada, color: CHART_COLORS.emAnalise },
       { name: "Em Análise", value: kpis.emAnalise, color: CHART_COLORS.emAnalise },
       { name: "Aprovadas", value: kpis.aprovadas, color: CHART_COLORS.aprovadas },
       { name: "Reprovadas", value: kpis.reprovadas, color: CHART_COLORS.reprovadas },
     ].filter((d) => d.value > 0);
   }, [kpis]);
 
-  const totalRevisoes = kpis.pendentes + kpis.emAnalise + kpis.aprovadas + kpis.reprovadas;
+  const totalRevisoes = kpis.pendentes + kpis.revisaoSolicitada + kpis.emAnalise + kpis.aprovadas + kpis.reprovadas;
 
   // Alert data with product lists
   const alertas = useMemo(() => {
