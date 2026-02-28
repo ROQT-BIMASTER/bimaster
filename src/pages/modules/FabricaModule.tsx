@@ -66,8 +66,43 @@ const FabricaModule = () => {
     }
   });
 
+  // Smart redirect: se não tem fabrica_dashboard, redireciona para primeira tela disponível
   if (!permissionsLoading && !hasPermission("fabrica_dashboard")) {
-    return <Navigate to="/dashboard" replace />;
+    const FABRICA_SCREEN_ROUTES = [
+      { screen: "fabrica_produtos", path: "/dashboard/fabrica/produtos-acabados" },
+      { screen: "fabrica_materias_primas", path: "/dashboard/fabrica/materias-primas" },
+      { screen: "fabrica_recebimentos", path: "/dashboard/fabrica/recebimentos" },
+      { screen: "fabrica_formulas", path: "/dashboard/fabrica/formulas" },
+      { screen: "fabrica_ordens", path: "/dashboard/fabrica/ordens-producao" },
+      { screen: "fabrica_apontamentos", path: "/dashboard/fabrica/apontamentos" },
+      { screen: "fabrica_qualidade", path: "/dashboard/fabrica/qualidade" },
+      { screen: "fabrica_maquinas", path: "/dashboard/fabrica/maquinas" },
+      { screen: "fabrica_operadores", path: "/dashboard/fabrica/operadores" },
+      { screen: "fabrica_planejamento", path: "/dashboard/fabrica/planejamento" },
+      { screen: "fabrica_fiscal", path: "/dashboard/fabrica/fiscal" },
+      { screen: "fabrica_paradas", path: "/dashboard/fabrica/paradas" },
+      { screen: "comercial_lancamentos", path: "/dashboard/comercial/lancamentos" },
+    ];
+
+    for (const route of FABRICA_SCREEN_ROUTES) {
+      if (hasPermission(route.screen)) {
+        return <Navigate to={route.path} replace />;
+      }
+    }
+
+    // Nenhuma tela disponível - mostrar acesso negado
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <AlertTriangle className="h-12 w-12 text-destructive" />
+          <h2 className="text-xl font-semibold">Acesso Negado</h2>
+          <p className="text-muted-foreground text-center max-w-md">
+            Você não tem permissão para acessar nenhuma tela do módulo Fábrica. 
+            Entre em contato com o administrador.
+          </p>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   // Módulos secundários agrupados

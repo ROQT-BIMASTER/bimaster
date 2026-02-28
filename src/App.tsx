@@ -366,24 +366,24 @@ function AppContent() {
 
             {/* Módulo de Fábrica */}
             <Route path="/dashboard/fabrica" element={<ProtectedRoute><FabricaModule /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/recebimentos" element={<ProtectedRoute><FabricaRecebimentos /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/materias-primas" element={<ProtectedRoute><FabricaMateriasPrimas /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/formulas" element={<ProtectedRoute><FabricaFormulas /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/formulas/nova" element={<ProtectedRoute><FabricaFormulaEditor /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/formulas/:id" element={<ProtectedRoute><FabricaFormulaEditor /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/planejamento" element={<ProtectedRoute><FabricaPlanejamento /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/fiscal" element={<ProtectedRoute><FabricaFiscal /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/tabela-impostos" element={<ProtectedRoute><FabricaTabelaImpostos /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/ordens-producao" element={<ProtectedRoute><FabricaOrdensProducao /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/apontamentos" element={<ProtectedRoute><FabricaApontamentos /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/qualidade" element={<ProtectedRoute><FabricaQualidade /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/paradas" element={<ProtectedRoute><FabricaParadas /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/maquinas" element={<ProtectedRoute><FabricaMaquinas /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/operadores" element={<ProtectedRoute><FabricaOperadores /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/produtos-acabados" element={<ProtectedRoute><FabricaProdutosAcabados /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/produtos/:id/custos" element={<ProtectedRoute><FichaCustoProduto /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/produtos/importar" element={<ProtectedRoute><ImportarProdutosAcabados /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/revisao-fichas" element={<ProtectedRoute><FichaRevisaoDiretoria /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/recebimentos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_recebimentos"><FabricaRecebimentos /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/materias-primas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_materias_primas"><FabricaMateriasPrimas /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/formulas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_formulas"><FabricaFormulas /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/formulas/nova" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_formulas"><FabricaFormulaEditor /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/formulas/:id" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_formulas"><FabricaFormulaEditor /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/planejamento" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_planejamento"><FabricaPlanejamento /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/fiscal" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_fiscal"><FabricaFiscal /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/tabela-impostos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_fiscal"><FabricaTabelaImpostos /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/ordens-producao" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_ordens"><FabricaOrdensProducao /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/apontamentos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_apontamentos"><FabricaApontamentos /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/qualidade" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_qualidade"><FabricaQualidade /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/paradas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_paradas"><FabricaParadas /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/maquinas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_maquinas"><FabricaMaquinas /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/operadores" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_operadores"><FabricaOperadores /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/produtos-acabados" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><FabricaProdutosAcabados /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/produtos/:id/custos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><FichaCustoProduto /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/produtos/importar" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><ImportarProdutosAcabados /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/revisao-fichas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><FichaRevisaoDiretoria /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/executivo" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_dashboard"><FabricaExecutiveDashboard /></ScreenProtectedRoute></ProtectedRoute>} />
 
             {/* Módulo Comercial */}
