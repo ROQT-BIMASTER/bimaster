@@ -461,11 +461,14 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                       <div className="flex-1 h-px bg-border" />
                     </div>
                   )}
-                  <div className={`flex gap-2 group ${isOwn ? "flex-row-reverse" : ""}`}>
+                  {(() => {
+                    const isDiretoria = msg.tipo === "diretoria";
+                    return (
+                  <div className={`flex gap-2 group ${isDiretoria ? "flex-row-reverse" : ""}`}>
                     {/* Avatar */}
                     <Avatar className="h-7 w-7 shrink-0 mt-1">
                       <AvatarFallback className={`text-[10px] font-semibold ${
-                        msg.tipo === "diretoria" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                        isDiretoria ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
                       }`}>
                         {getInitials(msg.usuario_nome)}
                       </AvatarFallback>
@@ -473,12 +476,12 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
 
                     {/* Bubble */}
                     <div className={`max-w-[75%] rounded-xl px-3 py-2 relative ${
-                      isOwn ? "bg-blue-600 text-white" : "bg-muted text-foreground"
+                      isDiretoria ? "bg-blue-600 text-white" : "bg-muted text-foreground"
                     }`}>
                       {/* Reply quote */}
                       {replyMsg && (
                         <div className={`rounded-md px-2 py-1 mb-1.5 text-[11px] border-l-2 ${
-                          isOwn ? "bg-blue-500/40 border-blue-300" : "bg-muted-foreground/10 border-muted-foreground/40"
+                          isDiretoria ? "bg-blue-500/40 border-blue-300" : "bg-muted-foreground/10 border-muted-foreground/40"
                         }`}>
                           <span className="font-semibold">{replyMsg.usuario_nome}</span>
                           <p className="truncate opacity-80">{replyMsg.conteudo.substring(0, 80)}</p>
@@ -486,16 +489,16 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                       )}
 
                       {/* Header */}
-                      <div className={`flex items-center gap-2 mb-0.5 ${isOwn ? "text-blue-100" : "text-muted-foreground"}`}>
+                      <div className={`flex items-center gap-2 mb-0.5 ${isDiretoria ? "text-blue-100" : "text-muted-foreground"}`}>
                         <span className="text-xs font-semibold">{msg.usuario_nome}</span>
-                        {msg.tipo === "diretoria" && (
-                          <Badge variant="outline" className={`text-[9px] py-0 px-1 ${isOwn ? "border-blue-300 text-blue-200" : ""}`}>
+                        {isDiretoria && (
+                          <Badge variant="outline" className={`text-[9px] py-0 px-1 border-blue-300 text-blue-200`}>
                             Diretoria
                           </Badge>
                         )}
                         <span className="text-[10px] ml-auto flex items-center gap-0.5">
                           {format(new Date(msg.created_at), "dd/MM HH:mm", { locale: ptBR })}
-                          {isOwn && (
+                          {isDiretoria && (
                             isRead ? <CheckCheck className="h-3 w-3 text-blue-200" /> : <Check className="h-3 w-3 text-blue-300/60" />
                           )}
                         </span>
@@ -504,7 +507,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                       {/* Insumo tag */}
                       {insumoNome && (
                         <Badge
-                          variant={isOwn ? "secondary" : "outline"}
+                          variant={isDiretoria ? "secondary" : "outline"}
                           className={`text-[10px] mb-1 py-0 ${onNavigateToInsumo ? "cursor-pointer hover:underline" : ""}`}
                           onClick={() => onNavigateToInsumo && msg.insumo_id && onNavigateToInsumo(msg.insumo_id)}
                         >
@@ -530,7 +533,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                                 className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs w-full text-left transition-colors ${
                                   isCofre
                                     ? "bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 text-emerald-900"
-                                    : isOwn
+                                    : isDiretoria
                                       ? "bg-blue-500/30 hover:bg-blue-500/50"
                                       : "bg-muted hover:bg-muted-foreground/10"
                                 }`}
@@ -551,7 +554,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                       {!isFinalizado && (
                         <button
                           onClick={() => setReplyingTo(msg)}
-                          className={`absolute -top-2 ${isOwn ? "left-0 -translate-x-full" : "right-0 translate-x-full"} opacity-0 group-hover:opacity-100 transition-opacity bg-background border rounded-full p-1 shadow-sm`}
+                          className={`absolute -top-2 ${isDiretoria ? "left-0 -translate-x-full" : "right-0 translate-x-full"} opacity-0 group-hover:opacity-100 transition-opacity bg-background border rounded-full p-1 shadow-sm`}
                           title="Responder"
                         >
                           <Reply className="h-3 w-3 text-muted-foreground" />
@@ -559,6 +562,8 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                       )}
                     </div>
                   </div>
+                    );
+                  })()}
                 </React.Fragment>
               );
             })
