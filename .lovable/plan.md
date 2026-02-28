@@ -1,54 +1,42 @@
 
 
-# Diagnóstico e Plano de Correção
+# Dashboard Administrativo — Produtos Acabados
 
-## Causa Raiz Identificada
+## O que muda
+Adicionar uma seção de **dashboard administrativo** no topo da página de Produtos Acabados, entre o header e os KPIs existentes. Inspirado no estilo da imagem de referência (cards com indicadores e listas rápidas), com foco em **revisões solicitadas pela Diretoria** e visão gerencial.
 
-O problema é um **loop de redirecionamento infinito**:
+## Estrutura do Dashboard Admin
 
-```text
-1. Usuário entra → /dashboard
-2. DashboardRedirect vê permissão módulo "fabrica" → redireciona para /dashboard/fabrica
-3. FabricaModule verifica hasPermission("fabrica_dashboard") → NÃO TEM
-4. FabricaModule redireciona de volta para /dashboard (linha 69-71)
-5. Volta ao passo 2 → LOOP INFINITO → tela branca
-```
+### Linha 1: KPIs de Revisão (4 cards compactos)
+- **Revisões Pendentes** — contagem de fichas com `status = 'revisao_solicitada'` ou `'pendente'`
+- **Em Análise** — fichas com `status = 'em_revisao'`
+- **Aprovadas** — fichas aprovadas
+- **Reprovadas/Devolvidas** — fichas reprovadas
 
-O `FabricaModule` exige a permissão de tela `fabrica_dashboard` para renderizar. Quando o usuário tem o **módulo** `fabrica` mas **não** a **tela** `fabrica_dashboard`, ele fica preso.
+Cada card com ícone, número grande e cor temática (vermelho para pendentes, amarelo para análise, verde para aprovadas).
 
-Além disso, as sub-rotas da fábrica no `App.tsx` (linhas 369-386) não têm `ScreenProtectedRoute`, então qualquer usuário autenticado acessa qualquer sub-página — mas o dashboard principal bloqueia a entrada.
+### Linha 2: Painel de Revisões Solicitadas (gatilho rápido)
+Card com lista das **últimas revisões solicitadas pela Diretoria**, mostrando:
+- Nome do produto, código
+- Data da solicitação
+- Status atual (badge)
+- Botão de ação rápida → abre direto a ficha de custos do produto
 
-## Correções
+Máximo 5 itens visíveis, com link "Ver todas" → `/dashboard/fabrica/revisao-fichas`.
 
-### 1. FabricaModule: redirecionar para primeira tela disponível em vez de /dashboard
+### Linha 3: Alertas Rápidos (card lateral)
+Card compacto com:
+- Produtos com **aumento de custo** nos últimos 30 dias
+- Produtos **sem ficha de custos** configurada
 
-Alterar `FabricaModule.tsx` linhas 69-71: em vez de `<Navigate to="/dashboard">`, percorrer as telas do módulo fábrica e redirecionar para a primeira que o usuário tem permissão. Se nenhuma, aí sim mostrar `AccessDenied`.
+## Implementação
 
-Lista de telas a verificar em ordem:
-- `fabrica_produtos` → `/dashboard/fabrica/produtos-acabados`
-- `fabrica_materias_primas` → `/dashboard/fabrica/materias-primas`
-- `fabrica_recebimentos` → `/dashboard/fabrica/recebimentos`
-- `fabrica_formulas` → `/dashboard/fabrica/formulas`
-- `fabrica_ordens` → `/dashboard/fabrica/ordens-producao`
-- `fabrica_apontamentos` → `/dashboard/fabrica/apontamentos`
-- `fabrica_qualidade` → `/dashboard/fabrica/qualidade`
-- `fabrica_maquinas` → `/dashboard/fabrica/maquinas`
-- `fabrica_operadores` → `/dashboard/fabrica/operadores`
-- `fabrica_planejamento` → `/dashboard/fabrica/planejamento`
-- `fabrica_fiscal` → `/dashboard/fabrica/fiscal`
-- `fabrica_paradas` → `/dashboard/fabrica/paradas`
-- `fabrica_lancamentos` → `/dashboard/comercial/lancamentos`
+### Arquivos a modificar
+- `src/pages/FabricaProdutosAcabados.tsx` — adicionar seção do dashboard admin entre header e KPIs existentes, usando dados já carregados (`revisoes`, `fichasConfig`, `alertasAumento`) + nova query para revisões recentes com nome do produto
 
-### 2. DashboardRedirect: evitar redirecionar para módulo se usuário não tem tela do dashboard
+### Queries adicionais
+- Buscar revisões pendentes/solicitadas com join no nome do produto para exibir na lista de gatilho rápido
 
-Adicionar lógica mais inteligente: quando o usuário tem permissão ao módulo `fabrica` mas **não** tem `fabrica_dashboard`, pular o redirecionamento para `/dashboard/fabrica` e ir direto para as rotas de tela (fallback de SCREEN_FALLBACK_ROUTES).
-
-### 3. Proteger sub-rotas da fábrica com ScreenProtectedRoute no App.tsx
-
-Adicionar `ScreenProtectedRoute` nas rotas individuais da fábrica para evitar que usuários acessem páginas sem permissão via URL direta.
-
-### Arquivos a Modificar
-- `src/pages/modules/FabricaModule.tsx` — smart redirect para primeira tela disponível
-- `src/components/auth/DashboardRedirect.tsx` — verificar tela do dashboard antes de redirecionar para módulo
-- `src/App.tsx` — adicionar `ScreenProtectedRoute` nas sub-rotas da fábrica
+### Sem alteração de banco
+- Todos os dados necessários já existem nas tabelas `fabrica_ficha_custo_revisoes` e `fabrica_produto_custos_config`
 
