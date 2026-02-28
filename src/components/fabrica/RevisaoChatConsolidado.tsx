@@ -8,9 +8,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { MessageSquare, Search, Inbox, ArrowLeft, Loader2, Lock, CheckCheck } from "lucide-react";
+import { MessageSquare, Search, Inbox, ArrowLeft, Loader2, Lock, CheckCheck, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
+import { NovaComunicacaoDialog } from "@/components/fabrica/NovaComunicacaoDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ export function RevisaoChatConsolidado() {
   const [filtroUsuario, setFiltroUsuario] = useState("all");
   const [conversaAberta, setConversaAberta] = useState<ConversaResumo | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [dialogNovaCom, setDialogNovaCom] = useState(false);
 
   const carregarConversas = useCallback(async () => {
     setLoading(true);
@@ -251,6 +253,10 @@ export function RevisaoChatConsolidado() {
               <Badge variant="destructive" className="text-xs">{totalNaoLidas} não lida{totalNaoLidas !== 1 ? "s" : ""}</Badge>
             )}
           </CardTitle>
+          <Button size="sm" onClick={() => setDialogNovaCom(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Nova Comunicação
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -378,6 +384,34 @@ export function RevisaoChatConsolidado() {
           </ScrollArea>
         )}
       </CardContent>
+
+      <NovaComunicacaoDialog
+        open={dialogNovaCom}
+        onOpenChange={setDialogNovaCom}
+        onCriada={(revisaoId, configId, produto, insumos) => {
+          const novaConversa: ConversaResumo = {
+            revisaoId,
+            configId,
+            produtoNome: produto.nome,
+            produtoCodigo: produto.codigo,
+            produtoMarca: produto.marca,
+            produtoLinha: produto.linha,
+            produtoId: produto.id,
+            versao: 1,
+            status: "revisao_solicitada",
+            chatStatus: "aberto",
+            totalMensagens: 1,
+            naoLidas: 0,
+            ultimaMensagem: "",
+            ultimaMensagemData: new Date().toISOString(),
+            ultimoRemetente: "",
+            remetentes: [],
+            insumos,
+          };
+          setConversaAberta(novaConversa);
+          carregarConversas();
+        }}
+      />
     </Card>
   );
 }
