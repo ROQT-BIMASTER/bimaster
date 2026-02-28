@@ -41,7 +41,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         console.log("[PermissionsContext] Safety timeout triggered - forcing loading to false");
         setLoading(false);
       }
-    }, 10000);
+    }, 5000);
     
     return () => clearTimeout(timeout);
   }, [loading]);
@@ -185,6 +185,8 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       if (!isMountedRef.current) return;
       
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        // CRITICAL: Set loading=true immediately to prevent premature permission checks
+        setLoading(true);
         fetchPermissions(true);
       } else if (event === "SIGNED_OUT") {
         globalPermissionsCache = null;
