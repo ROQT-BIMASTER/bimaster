@@ -20,6 +20,9 @@ interface ConversaResumo {
   configId: string;
   produtoNome: string;
   produtoCodigo: string;
+  produtoMarca: string;
+  produtoLinha: string;
+  produtoId: string;
   versao: number;
   status: string;
   chatStatus: string;
@@ -28,6 +31,7 @@ interface ConversaResumo {
   ultimaMensagem: string;
   ultimaMensagemData: string;
   ultimoRemetente: string;
+  remetentes: string[];
   insumos: { id: string; nome: string; codigo: string }[];
 }
 
@@ -41,6 +45,10 @@ export function RevisaoChatConsolidado() {
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("all");
   const [filtroChatStatus, setFiltroChatStatus] = useState("aberto");
+  const [filtroMarca, setFiltroMarca] = useState("all");
+  const [filtroLinha, setFiltroLinha] = useState("all");
+  const [filtroProduto, setFiltroProduto] = useState("all");
+  const [filtroUsuario, setFiltroUsuario] = useState("all");
   const [conversaAberta, setConversaAberta] = useState<ConversaResumo | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -53,7 +61,7 @@ export function RevisaoChatConsolidado() {
 
       const { data: revisoes } = await supabase
         .from("fabrica_ficha_custo_revisoes")
-        .select("id, config_id, produto_id, versao, status, chat_status, snapshot_insumos, produto:fabrica_produtos(id, nome, codigo)")
+        .select("id, config_id, produto_id, versao, status, chat_status, snapshot_insumos, produto:fabrica_produtos(id, nome, codigo, marca, linha)")
         .in("status", ["pendente", "revisao_solicitada", "em_revisao"])
         .order("submetido_em", { ascending: false });
 
@@ -86,12 +94,16 @@ export function RevisaoChatConsolidado() {
           }).length : 0;
 
           const insumos = (rev.snapshot_insumos || []).map((i: any) => ({ id: i.id, nome: i.nome, codigo: i.codigo }));
+          const remetentes = [...new Set(msgs.map((m: any) => m.usuario_nome as string))];
 
           return {
             revisaoId: rev.id,
             configId: rev.config_id,
             produtoNome: rev.produto?.nome || "Produto",
             produtoCodigo: rev.produto?.codigo || "",
+            produtoMarca: rev.produto?.marca || "",
+            produtoLinha: rev.produto?.linha || "",
+            produtoId: rev.produto?.id || "",
             versao: rev.versao,
             status: rev.status,
             chatStatus: (rev as any).chat_status || "aberto",
@@ -100,6 +112,7 @@ export function RevisaoChatConsolidado() {
             ultimaMensagem: ultimaMsg.conteudo,
             ultimaMensagemData: ultimaMsg.created_at,
             ultimoRemetente: ultimaMsg.usuario_nome,
+            remetentes,
             insumos,
           } as ConversaResumo;
         })
@@ -144,14 +157,50 @@ export function RevisaoChatConsolidado() {
     } catch (err: any) { toast.error(err.message); }
   };
 
+  // Filter option lists
+  const marcas = useMemo(() => {
+    const set = new Set<string>();
+    conversas.forEach(c => { if (c.produtoMarca) set.add(c.produtoMarca); });
+    return [...set].sort();
+  }, [conversas]);
+
+  const linhas = useMemo(() => {
+    const set = new Set<string>();
+    conversas.forEach(c => {
+      if (c.produtoLinha && (filtroMarca === "all" || c.produtoMarca === filtroMarca))
+        set.add(c.produtoLinha);
+    });
+    return [...set].sort();
+  }, [conversas, filtroMarca]);
+
+  const produtos = useMemo(() => {
+    const map = new Map<string, string>();
+    conversas.forEach(c => {
+      if (filtroMarca !== "all" && c.produtoMarca !== filtroMarca) return;
+      if (filtroLinha !== "all" && c.produtoLinha !== filtroLinha) return;
+      map.set(c.produtoId, c.produtoNome);
+    });
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [conversas, filtroMarca, filtroLinha]);
+
+  const usuarios = useMemo(() => {
+    const set = new Set<string>();
+    conversas.forEach(c => c.remetentes.forEach(r => set.add(r)));
+    return [...set].sort();
+  }, [conversas]);
+
   const filtered = useMemo(() => {
     return conversas.filter((c) => {
+      if (filtroMarca !== "all" && c.produtoMarca !== filtroMarca) return false;
+      if (filtroLinha !== "all" && c.produtoLinha !== filtroLinha) return false;
+      if (filtroProduto !== "all" && c.produtoId !== filtroProduto) return false;
+      if (filtroUsuario !== "all" && !c.remetentes.includes(filtroUsuario)) return false;
       const matchBusca = !busca || c.produtoNome.toLowerCase().includes(busca.toLowerCase()) || c.produtoCodigo.toLowerCase().includes(busca.toLowerCase());
       const matchStatus = filtroStatus === "all" || c.status === filtroStatus;
       const matchChat = filtroChatStatus === "all" || c.chatStatus === filtroChatStatus;
       return matchBusca && matchStatus && matchChat;
     });
-  }, [conversas, busca, filtroStatus, filtroChatStatus]);
+  }, [conversas, busca, filtroStatus, filtroChatStatus, filtroMarca, filtroLinha, filtroProduto, filtroUsuario]);
 
   const totalNaoLidas = conversas.reduce((sum, c) => sum + c.naoLidas, 0);
 
@@ -205,13 +254,41 @@ export function RevisaoChatConsolidado() {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
+        <div className="flex flex-wrap gap-2">
+          <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar por produto..." value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-9 h-9" />
           </div>
+          <Select value={filtroMarca} onValueChange={(v) => { setFiltroMarca(v); setFiltroLinha("all"); setFiltroProduto("all"); }}>
+            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Marca" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas Marcas</SelectItem>
+              {marcas.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filtroLinha} onValueChange={(v) => { setFiltroLinha(v); setFiltroProduto("all"); }}>
+            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Linha" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas Linhas</SelectItem>
+              {linhas.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filtroProduto} onValueChange={setFiltroProduto}>
+            <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Produto" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos Produtos</SelectItem>
+              {produtos.map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filtroUsuario} onValueChange={setFiltroUsuario}>
+            <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Usuário" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos Usuários</SelectItem>
+              {usuarios.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <Select value={filtroChatStatus} onValueChange={setFiltroChatStatus}>
-            <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[130px] h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
               <SelectItem value="aberto">Abertas</SelectItem>
@@ -219,9 +296,9 @@ export function RevisaoChatConsolidado() {
             </SelectContent>
           </Select>
           <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-            <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os Status</SelectItem>
+              <SelectItem value="all">Todos Status</SelectItem>
               <SelectItem value="pendente">Pendente</SelectItem>
               <SelectItem value="revisao_solicitada">Revisão Solicitada</SelectItem>
               <SelectItem value="em_revisao">Em Revisão</SelectItem>
