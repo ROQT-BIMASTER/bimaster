@@ -7892,6 +7892,7 @@ export type Database = {
           created_at: string
           id: string
           insumo_id: string | null
+          lida_por: Json | null
           revisao_id: string
           tipo: string
           usuario_id: string | null
@@ -7902,6 +7903,7 @@ export type Database = {
           created_at?: string
           id?: string
           insumo_id?: string | null
+          lida_por?: Json | null
           revisao_id: string
           tipo?: string
           usuario_id?: string | null
@@ -7912,6 +7914,7 @@ export type Database = {
           created_at?: string
           id?: string
           insumo_id?: string | null
+          lida_por?: Json | null
           revisao_id?: string
           tipo?: string
           usuario_id?: string | null

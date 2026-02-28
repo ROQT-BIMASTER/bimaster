@@ -1,0 +1,1 @@
+ALTER TABLE public.fabrica_revisao_mensagens ADD COLUMN IF NOT EXISTS lida_por jsonb DEFAULT '[]'::jsonb;
