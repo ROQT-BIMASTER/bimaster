@@ -123,7 +123,7 @@ export function DocumentosCofre() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("all");
-  const [filtroStatus, setFiltroStatus] = useState("aprovado");
+  const [filtroStatus, setFiltroStatus] = useState("all");
   const [openProdutos, setOpenProdutos] = useState<Set<string>>(new Set());
   const [openMPs, setOpenMPs] = useState<Set<string>>(new Set());
 
@@ -140,16 +140,42 @@ export function DocumentosCofre() {
       const docs = (data as any[]) || [];
       setDocumentos(docs);
 
-      // Load product names
-      const produtoIds = [...new Set(docs.map(d => d.produto_id))];
-      if (produtoIds.length > 0) {
-        const { data: prods } = await supabase
-          .from("fabrica_produtos")
-          .select("id, nome, codigo")
-          .in("id", produtoIds);
-        const map = new Map<string, { nome: string; codigo: string }>();
-        (prods || []).forEach((p: any) => map.set(p.id, { nome: p.nome, codigo: p.codigo }));
-        setProdutos(map);
+      // Load product names — produto_id is actually a revisao_id
+      const revisaoIds = [...new Set(docs.map(d => d.produto_id))];
+      if (revisaoIds.length > 0) {
+        // Step 1: get real produto_id from revisions
+        const { data: revisoes } = await supabase
+          .from("fabrica_ficha_custo_revisoes")
+          .select("id, produto_id")
+          .in("id", revisaoIds);
+        
+        const revisaoToProduto = new Map<string, string>();
+        const realProdutoIds = new Set<string>();
+        (revisoes || []).forEach((r: any) => {
+          revisaoToProduto.set(r.id, r.produto_id);
+          realProdutoIds.add(r.produto_id);
+        });
+
+        // Step 2: get product names
+        if (realProdutoIds.size > 0) {
+          const { data: prods } = await supabase
+            .from("fabrica_produtos")
+            .select("id, nome, codigo")
+            .in("id", [...realProdutoIds]);
+          const prodMap = new Map<string, { nome: string; codigo: string }>();
+          (prods || []).forEach((p: any) => prodMap.set(p.id, { nome: p.nome, codigo: p.codigo }));
+          
+          // Map revisao_id → product info
+          const map = new Map<string, { nome: string; codigo: string }>();
+          revisaoIds.forEach(revId => {
+            const realProdId = revisaoToProduto.get(revId);
+            if (realProdId) {
+              const prod = prodMap.get(realProdId);
+              if (prod) map.set(revId, prod);
+            }
+          });
+          setProdutos(map);
+        }
       }
 
       // Load materia prima names
