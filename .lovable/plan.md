@@ -1,43 +1,27 @@
 
 
-# Cofre de Documentos: Produto → Matérias Primas → Documentos
+# Cofre de Documentos — Corrigir listagem de produtos
 
-## Problema Atual
-A tabela `fabrica_revisao_documentos` só tem `produto_id`. Não há como vincular um documento a uma matéria-prima específica do produto.
+## Problema identificado
 
-## Plano
+O campo `produto_id` na tabela `fabrica_revisao_documentos` contém o ID da **revisão** (`fabrica_ficha_custo_revisoes`), não o ID direto do produto. O código atual busca nomes em `fabrica_produtos` usando esse ID, mas não encontra nada — por isso aparece "Produto" genérico.
 
-### 1. Migração DB — Adicionar coluna `materia_prima_id`
-```sql
-ALTER TABLE fabrica_revisao_documentos 
-  ADD COLUMN materia_prima_id uuid REFERENCES fabrica_materias_primas(id);
-```
+Dados reais:
+- `produto_id` do documento = `e41bb853...` → é um ID de `fabrica_ficha_custo_revisoes`
+- A revisão aponta para `produto_id` = `6ce32560...` → `CREME DE MÃOS PISTACHILL` em `fabrica_produtos`
 
-### 2. Refatorar `DocumentosCofre.tsx` — Hierarquia de 3 níveis
+## Alterações em `DocumentosCofre.tsx`
 
-Estrutura visual:
+1. **Corrigir a busca de nomes de produtos**: Em vez de buscar direto em `fabrica_produtos`, buscar primeiro em `fabrica_ficha_custo_revisoes` para obter o `produto_id` real, depois buscar o nome em `fabrica_produtos`.
+
+2. **Alterar filtro padrão de status**: Mudar de `"aprovado"` para `"all"` para mostrar todos os documentos por padrão (os 2 documentos existentes têm status `"ativo"`).
+
+3. **Manter a hierarquia Produto → MP → Documentos** já implementada, apenas corrigindo a resolução de nomes.
+
 ```text
-┌─────────────────────────────────────────────┐
-│ 📦 Produto A (código)              [5 docs] │
-│   ▸ 🧪 Matéria Prima X              [2 docs]│
-│   ▸ 🧪 Matéria Prima Y              [1 doc] │
-│   ▸ 📄 Documentos Gerais            [2 docs]│
-├─────────────────────────────────────────────┤
-│ 📦 Produto B (código)              [3 docs] │
-│   ▸ ...                                     │
-└─────────────────────────────────────────────┘
+Fluxo corrigido:
+fabrica_revisao_documentos.produto_id  (= revisao_id)
+  → fabrica_ficha_custo_revisoes.id    (buscar produto_id real)
+  → fabrica_produtos.id               (buscar nome + codigo)
 ```
-
-- Ao clicar no produto, expandir mostrando subcategorias de matérias primas (buscadas via `fabrica_formula_itens` → `fabrica_materias_primas`)
-- Documentos com `materia_prima_id` preenchido ficam agrupados sob a respectiva MP
-- Documentos sem `materia_prima_id` ficam em grupo "Documentos Gerais" do produto
-- Cada MP é um Collapsible interno com seus documentos
-- Carregar nomes das MPs via join na query
-
-### 3. Atualizar upload no chat (`RevisaoChatPanel.tsx`)
-- Ao marcar "Vincular ao Cofre", mostrar um select opcional para escolher a matéria-prima do produto (carregar itens da fórmula ativa)
-- Se nenhuma MP selecionada, documento fica como "geral" do produto
-
-### 4. Atualizar `DocumentosTab.tsx`
-- Agrupar documentos também por matéria-prima quando dentro do painel de análise do produto
 
