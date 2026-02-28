@@ -1,14 +1,15 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { RevisaoChatConsolidado } from "@/components/fabrica/RevisaoChatConsolidado";
+import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function FabricaComunicacaoRevisoes() {
   return (
     <DashboardLayout>
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
+      <div className="h-full flex flex-col gap-2">
+        <div className="flex items-center gap-4 shrink-0">
           <Button variant="ghost" size="sm" asChild>
             <Link to="/dashboard/fabrica/produtos-acabados">
               <ArrowLeft className="h-4 w-4 mr-1" />
@@ -21,7 +22,9 @@ export default function FabricaComunicacaoRevisoes() {
           </div>
         </div>
 
-        <RevisaoChatConsolidado />
+        <div className="flex-1 min-h-0">
+          <RevisaoChatConsolidado />
+        </div>
       </div>
     </DashboardLayout>
   );
