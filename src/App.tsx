@@ -153,6 +153,7 @@ const FabricaProdutosAcabados = lazyWithRetry(() => import("./pages/FabricaProdu
 const FichaCustoProduto = lazyWithRetry(() => import("./pages/FichaCustoProduto"));
 const ImportarProdutosAcabados = lazyWithRetry(() => import("./pages/ImportarProdutosAcabados"));
 const FichaRevisaoDiretoria = lazyWithRetry(() => import("./pages/FichaRevisaoDiretoria"));
+const FabricaComunicacaoRevisoes = lazyWithRetry(() => import("./pages/FabricaComunicacaoRevisoes"));
 const TabelasPrecosModule = lazyWithRetry(() => import("./pages/modules/TabelasPrecosModule"));
 const FabricaTabelasPreco = lazyWithRetry(() => import("./pages/FabricaTabelasPreco"));
 const FabricaAprovacaoPrecos = lazyWithRetry(() => import("./pages/FabricaAprovacaoPrecos"));
@@ -383,7 +384,8 @@ function AppContent() {
             <Route path="/dashboard/fabrica/produtos-acabados" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><FabricaProdutosAcabados /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/produtos/:id/custos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><FichaCustoProduto /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/produtos/importar" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><ImportarProdutosAcabados /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/revisao-fichas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><FichaRevisaoDiretoria /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/revisao-fichas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_revisao_fichas"><FichaRevisaoDiretoria /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/comunicacao-revisoes" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><FabricaComunicacaoRevisoes /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/executivo" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_dashboard"><FabricaExecutiveDashboard /></ScreenProtectedRoute></ProtectedRoute>} />
 
             {/* Módulo Comercial */}

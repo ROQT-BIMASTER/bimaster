@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ProdutoCard } from "@/components/fabrica/ProdutoCard";
 import { ProdutosAcabadosAdminDashboard } from "@/components/fabrica/ProdutosAcabadosAdminDashboard";
@@ -378,9 +378,9 @@ export default function FabricaProdutosAcabados() {
               <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${showAdminDash ? "rotate-180" : ""}`} />
             </Button>
             <Button variant="outline" asChild data-tour="pa-revisao-btn">
-              <Link to="/dashboard/fabrica/revisao-fichas">
-                <ClipboardList className="h-4 w-4 mr-2" />
-                Revisões Solicitadas
+              <Link to="/dashboard/fabrica/comunicacao-revisoes">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Comunicação de Revisões
               </Link>
             </Button>
             <Button variant="outline" asChild>

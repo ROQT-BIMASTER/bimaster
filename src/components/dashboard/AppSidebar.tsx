@@ -164,6 +164,7 @@ const fabricaGroups = [
     label: "Saída",
     items: [
       { title: "Produtos Acabados", url: "/dashboard/fabrica/produtos-acabados", icon: Package, screenCode: "fabrica_produtos" },
+      { title: "Comunicação Revisões", url: "/dashboard/fabrica/comunicacao-revisoes", icon: MessageSquare, screenCode: "fabrica_produtos" },
       { title: "Revisão de Fichas", url: "/dashboard/fabrica/revisao-fichas", icon: CheckSquare, screenCode: "fabrica_revisao_fichas" },
     ]
   },
