@@ -5,11 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
   FileText, Download, Search, Loader2, Archive, CheckCircle2,
-  FolderOpen, Receipt, FileCheck, File, Shield,
+  FolderOpen, Receipt, FileCheck, File, Shield, ChevronRight, Package,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -73,6 +76,7 @@ export function DocumentosCofre() {
   const [busca, setBusca] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("all");
   const [filtroStatus, setFiltroStatus] = useState("aprovado");
+  const [openProdutos, setOpenProdutos] = useState<Set<string>>(new Set());
 
   const carregarDocumentos = useCallback(async () => {
     setLoading(true);
@@ -209,50 +213,66 @@ export function DocumentosCofre() {
           <ScrollArea className="max-h-[500px]">
             <div className="space-y-4">
               {grouped.map(group => (
-                <div key={group.produto_id} className="border rounded-lg overflow-hidden">
-                  <div className="bg-muted/50 px-4 py-2.5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{group.produto_nome}</span>
-                      <Badge variant="outline" className="text-[10px]">{group.produto_codigo}</Badge>
-                    </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {group.documentos.length} doc{group.documentos.length !== 1 ? "s" : ""}
-                    </Badge>
-                  </div>
-                  <div className="divide-y">
-                    {group.documentos.map(doc => (
-                      <div key={doc.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
-                        {getCategoriaIcon(doc.categoria)}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{doc.nome_arquivo}</p>
-                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                            <span className="capitalize">{doc.categoria}</span>
-                            <span>•</span>
-                            <span>{formatFileSize(doc.tamanho)}</span>
-                            <span>•</span>
-                            <span>{doc.enviado_por_nome || "—"}</span>
-                            <span>•</span>
-                            <span>{format(new Date(doc.created_at), "dd/MM/yy", { locale: ptBR })}</span>
+                <Collapsible
+                  key={group.produto_id}
+                  open={openProdutos.has(group.produto_id)}
+                  onOpenChange={(open) => {
+                    setOpenProdutos(prev => {
+                      const next = new Set(prev);
+                      open ? next.add(group.produto_id) : next.delete(group.produto_id);
+                      return next;
+                    });
+                  }}
+                >
+                  <CollapsibleTrigger asChild>
+                    <button className="w-full border rounded-lg px-4 py-3 flex items-center gap-3 hover:bg-muted/40 transition-colors text-left">
+                      <ChevronRight className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${openProdutos.has(group.produto_id) ? "rotate-90" : ""}`} />
+                      <Package className="h-5 w-5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{group.produto_nome}</p>
+                        <p className="text-[10px] text-muted-foreground">{group.produto_codigo}</p>
+                      </div>
+                      <Badge variant="secondary" className="text-xs shrink-0">
+                        {group.documentos.length} doc{group.documentos.length !== 1 ? "s" : ""}
+                      </Badge>
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="border border-t-0 rounded-b-lg divide-y ml-4 mr-0">
+                      {group.documentos.map(doc => (
+                        <div key={doc.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
+                          {getCategoriaIcon(doc.categoria)}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{doc.nome_arquivo}</p>
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <span className="capitalize">{doc.categoria}</span>
+                              <span>•</span>
+                              <span>{formatFileSize(doc.tamanho)}</span>
+                              <span>•</span>
+                              <span>{doc.enviado_por_nome || "—"}</span>
+                              <span>•</span>
+                              <span>{format(new Date(doc.created_at), "dd/MM/yy", { locale: ptBR })}</span>
+                            </div>
+                          </div>
+                          <Badge variant={doc.status === "aprovado" ? "success" : doc.status === "arquivado" ? "ghost" : "secondary"} className="text-[10px]">
+                            {doc.status === "aprovado" && <CheckCircle2 className="h-3 w-3 mr-0.5" />}
+                            {doc.status}
+                          </Badge>
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDownload(doc)} title="Download">
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
+                            {doc.status !== "arquivado" && (
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleArquivar(doc.id)} title="Arquivar">
+                                <Archive className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                           </div>
                         </div>
-                        <Badge variant={doc.status === "aprovado" ? "success" : doc.status === "arquivado" ? "ghost" : "secondary"} className="text-[10px]">
-                          {doc.status === "aprovado" && <CheckCircle2 className="h-3 w-3 mr-0.5" />}
-                          {doc.status}
-                        </Badge>
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDownload(doc)} title="Download">
-                            <Download className="h-3.5 w-3.5" />
-                          </Button>
-                          {doc.status !== "arquivado" && (
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleArquivar(doc.id)} title="Arquivar">
-                              <Archive className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               ))}
             </div>
           </ScrollArea>
