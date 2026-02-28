@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ProdutoCard } from "@/components/fabrica/ProdutoCard";
 import { ProdutosAcabadosAdminDashboard } from "@/components/fabrica/ProdutosAcabadosAdminDashboard";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
@@ -47,6 +48,7 @@ export default function FabricaProdutosAcabados() {
   const [agrupamentoAtivo, setAgrupamentoAtivo] = useState(false);
   const [viewMode, setViewMode] = useState<"tabela" | "cards">("tabela");
   const [agruparPor, setAgruparPor] = useState("marca");
+  const [showAdminDash, setShowAdminDash] = useState(false);
 
   useEffect(() => {
     if (!permLoading && hasPermission && !hasSeenTour(FABRICA_PRODUTOS_ACABADOS_TOUR_ID)) {
@@ -366,6 +368,15 @@ export default function FabricaProdutosAcabados() {
             >
               <HelpCircle className="h-5 w-5" />
             </Button>
+            <Button
+              variant={showAdminDash ? "default" : "outline"}
+              onClick={() => setShowAdminDash(!showAdminDash)}
+              data-tour="pa-admin-dash-btn"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Painel Administrativo
+              <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${showAdminDash ? "rotate-180" : ""}`} />
+            </Button>
             <Button variant="outline" asChild data-tour="pa-revisao-btn">
               <Link to="/dashboard/fabrica/revisao-fichas">
                 <ClipboardList className="h-4 w-4 mr-2" />
@@ -391,12 +402,16 @@ export default function FabricaProdutosAcabados() {
         </div>
 
         {/* Dashboard Administrativo */}
-        <ProdutosAcabadosAdminDashboard
-          revisoes={revisoes}
-          fichasConfig={fichasConfig}
-          alertasAumento={alertasAumento}
-          produtos={produtos}
-        />
+        <Collapsible open={showAdminDash} onOpenChange={setShowAdminDash}>
+          <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
+            <ProdutosAcabadosAdminDashboard
+              revisoes={revisoes}
+              fichasConfig={fichasConfig}
+              alertasAumento={alertasAumento}
+              produtos={produtos}
+            />
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* KPIs */}
         <div className="grid gap-4 md:grid-cols-5" data-tour="pa-kpis">

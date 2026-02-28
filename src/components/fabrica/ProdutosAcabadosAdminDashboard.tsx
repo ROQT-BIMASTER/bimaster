@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 interface Props {
   revisoes: any[] | undefined;
@@ -27,6 +28,13 @@ interface Props {
   alertasAumento: any[] | undefined;
   produtos: any[] | undefined;
 }
+
+const CHART_COLORS = {
+  pendentes: "hsl(0, 84%, 60%)",
+  emAnalise: "hsl(217, 91%, 60%)",
+  aprovadas: "hsl(142, 71%, 45%)",
+  reprovadas: "hsl(25, 95%, 53%)",
+};
 
 export function ProdutosAcabadosAdminDashboard({
   revisoes,
@@ -67,11 +75,22 @@ export function ProdutosAcabadosAdminDashboard({
     return { pendentes, emAnalise, aprovadas, reprovadas };
   }, [revisoes]);
 
+  // Chart data
+  const chartData = useMemo(() => {
+    return [
+      { name: "Pendentes", value: kpis.pendentes, color: CHART_COLORS.pendentes },
+      { name: "Em Análise", value: kpis.emAnalise, color: CHART_COLORS.emAnalise },
+      { name: "Aprovadas", value: kpis.aprovadas, color: CHART_COLORS.aprovadas },
+      { name: "Reprovadas", value: kpis.reprovadas, color: CHART_COLORS.reprovadas },
+    ].filter((d) => d.value > 0);
+  }, [kpis]);
+
+  const totalRevisoes = kpis.pendentes + kpis.emAnalise + kpis.aprovadas + kpis.reprovadas;
+
   // Alert data
   const alertas = useMemo(() => {
     const items: { tipo: "aumento" | "sem_ficha"; titulo: string; descricao: string }[] = [];
 
-    // Products with cost increase in last 30 days
     if (alertasAumento && produtos) {
       const trintaDias = new Date();
       trintaDias.setDate(trintaDias.getDate() - 30);
@@ -93,7 +112,6 @@ export function ProdutosAcabadosAdminDashboard({
       }
     }
 
-    // Products without cost config
     if (produtos && fichasConfig) {
       const configuredIds = new Set(fichasConfig.map((f: any) => f.produto_id));
       const semFicha = produtos.filter((p: any) => !configuredIds.has(p.id));
@@ -120,6 +138,19 @@ export function ProdutosAcabadosAdminDashboard({
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
+  };
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="rounded-lg border bg-background px-3 py-2 text-sm shadow-xl">
+          <p className="font-medium">{data.name}</p>
+          <p className="text-muted-foreground">{data.value} revisão(ões)</p>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -183,15 +214,15 @@ export function ProdutosAcabadosAdminDashboard({
         </Card>
       </div>
 
-      {/* Linha 2 + 3: Revisões Recentes + Alertas */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Linha 2: Revisões Recentes + Gráfico + Alertas */}
+      <div className="grid gap-4 md:grid-cols-5">
         {/* Painel de Revisões Solicitadas */}
         <Card className="md:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between text-base">
               <div className="flex items-center gap-2">
                 <ClipboardList className="h-5 w-5 text-primary" />
-                Revisões Solicitadas pela Diretoria
+                Revisões Solicitadas
               </div>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/dashboard/fabrica/revisao-fichas">
@@ -256,8 +287,68 @@ export function ProdutosAcabadosAdminDashboard({
           </CardContent>
         </Card>
 
+        {/* Gráfico de Distribuição */}
+        <Card className="md:col-span-1">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-center">Distribuição</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center">
+            {totalRevisoes === 0 ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                <div className="text-center">
+                  <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">Sem revisões</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="w-full h-[160px] relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={65}
+                        paddingAngle={3}
+                        dataKey="value"
+                        strokeWidth={2}
+                        stroke="hsl(var(--background))"
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold">{totalRevisoes}</p>
+                      <p className="text-[10px] text-muted-foreground">Total</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 text-xs w-full">
+                  {chartData.map((item) => (
+                    <div key={item.name} className="flex items-center gap-1.5">
+                      <div
+                        className="h-2.5 w-2.5 rounded-sm shrink-0"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="text-muted-foreground truncate">{item.name}</span>
+                      <span className="font-medium ml-auto">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Alertas Rápidos */}
-        <Card>
+        <Card className="md:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
