@@ -14,11 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   CheckCircle2, AlertTriangle, Eye, Loader2, ClipboardList, Search,
-  BarChart3, ChevronDown, ChevronUp, Clock, Inbox, MessageSquare,
+  BarChart3, ChevronDown, ChevronUp, Clock, Inbox, MessageSquare, FolderOpen,
 } from "lucide-react";
 import { useFichaRevisaoDiretoria } from "@/hooks/useFichaRevisao";
 import { FichaAnalisePanel } from "@/components/fabrica/FichaAnalisePanel";
 import { RevisaoChatConsolidado } from "@/components/fabrica/RevisaoChatConsolidado";
+import { DocumentosCofre } from "@/components/fabrica/DocumentosCofre";
 import { supabase } from "@/integrations/supabase/client";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
@@ -222,6 +223,9 @@ export default function FichaRevisaoDiretoria() {
             <TabsTrigger value="comunicacao" className="gap-1.5">
               <MessageSquare className="h-4 w-4" /> Comunicação
             </TabsTrigger>
+            <TabsTrigger value="cofre" className="gap-1.5">
+              <FolderOpen className="h-4 w-4" /> Cofre de Documentos
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="fichas" className="mt-4 space-y-4">
@@ -296,6 +300,10 @@ export default function FichaRevisaoDiretoria() {
 
           <TabsContent value="comunicacao" className="mt-4">
             <RevisaoChatConsolidado />
+          </TabsContent>
+
+          <TabsContent value="cofre" className="mt-4">
+            <DocumentosCofre />
           </TabsContent>
         </Tabs>
       </div>
