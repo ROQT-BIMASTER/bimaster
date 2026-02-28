@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, Link } from "react-router-dom";
 import {
@@ -54,6 +55,7 @@ export function ProdutosAcabadosAdminDashboard({
   produtos,
 }: Props) {
   const navigate = useNavigate();
+  const { hasScreenPermission } = usePermissions();
   const [expandedAlerts, setExpandedAlerts] = useState<Record<number, boolean>>({});
   const [alertasFocusOpen, setAlertasFocusOpen] = useState(false);
   const [focusBusca, setFocusBusca] = useState("");
@@ -298,7 +300,7 @@ export function ProdutosAcabadosAdminDashboard({
                 Revisões Solicitadas
               </div>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/dashboard/fabrica/revisao-fichas">
+                <Link to={hasScreenPermission("fabrica_revisao_fichas") ? "/dashboard/fabrica/revisao-fichas" : "/dashboard/fabrica/comunicacao-revisoes"}>
                   Ver todas <ArrowRight className="h-4 w-4 ml-1" />
                 </Link>
               </Button>
