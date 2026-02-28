@@ -21,7 +21,10 @@ import {
   ChevronDown,
   Focus,
   Eye,
+  Maximize2,
+  X,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
@@ -49,6 +52,7 @@ export function ProdutosAcabadosAdminDashboard({
 }: Props) {
   const navigate = useNavigate();
   const [expandedAlerts, setExpandedAlerts] = useState<Record<number, boolean>>({});
+  const [alertasFocusOpen, setAlertasFocusOpen] = useState(false);
 
   const handleToggleModoFoco = async (produtoId: string, currentValue?: boolean) => {
     try {
@@ -380,10 +384,23 @@ export function ProdutosAcabadosAdminDashboard({
         {/* Alertas Rápidos */}
         <Card className="md:col-span-2">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              Alertas Rápidos
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                Alertas Rápidos
+              </CardTitle>
+              {alertas.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 h-7 text-xs"
+                  onClick={() => setAlertasFocusOpen(true)}
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  Modo Foco
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {alertas.length === 0 ? (
@@ -492,6 +509,88 @@ export function ProdutosAcabadosAdminDashboard({
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog Modo Foco Alertas */}
+      <Dialog open={alertasFocusOpen} onOpenChange={setAlertasFocusOpen}>
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] p-0 overflow-hidden">
+          <DialogHeader className="px-6 py-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-row items-center justify-between space-y-0">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              Alertas Rápidos — Modo Foco
+            </DialogTitle>
+            <Button variant="ghost" size="icon" onClick={() => setAlertasFocusOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-80px)] p-6">
+            <div className="space-y-4">
+              {alertas.map((alerta, i) => (
+                <div
+                  key={i}
+                  className={`rounded-lg border overflow-hidden ${
+                    alerta.tipo === "aumento"
+                      ? "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
+                      : "border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950/30"
+                  }`}
+                >
+                  <div className="p-4 flex items-center gap-2">
+                    {alerta.tipo === "aumento" ? (
+                      <TrendingUp className="h-5 w-5 text-red-500 shrink-0" />
+                    ) : (
+                      <FileX className="h-5 w-5 text-yellow-500 shrink-0" />
+                    )}
+                    <div className="flex-1">
+                      <p className="font-semibold">{alerta.titulo}</p>
+                      <p className="text-sm text-muted-foreground">{alerta.descricao}</p>
+                    </div>
+                  </div>
+                  <div className="border-t px-4 pb-4 pt-3 space-y-2">
+                    {alerta.produtosList.map((prod) => (
+                      <div
+                        key={prod.id}
+                        className="flex items-center justify-between gap-2 py-2 px-3 rounded-md bg-background/60 hover:bg-background transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {prod.codigo}
+                          </span>
+                          <span className="truncate font-medium">{prod.nome}</span>
+                          {prod.modo_foco && (
+                            <Badge variant="warning" className="text-[10px] px-1.5 py-0 shrink-0">
+                              <Focus className="h-3 w-3 mr-0.5" />
+                              Foco
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2"
+                            onClick={() => handleToggleModoFoco(prod.id, prod.modo_foco)}
+                            title={prod.modo_foco ? "Desativar Modo Foco" : "Ativar Modo Foco"}
+                          >
+                            <Focus className={`h-4 w-4 ${prod.modo_foco ? "text-yellow-600" : "text-muted-foreground"}`} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2"
+                            onClick={() => navigate(`/dashboard/fabrica/produtos/${prod.id}/custos`)}
+                            title="Ver ficha de custos"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
