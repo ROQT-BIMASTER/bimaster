@@ -1,0 +1,524 @@
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  CheckCircle2, AlertTriangle, Plus, Trash2, FileText, Receipt,
+  MessageSquare, Download, ShieldAlert, ShieldCheck, MessageCircle,
+  ClipboardList, Loader2, X, History, TrendingUp, TrendingDown,
+} from "lucide-react";
+import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
+import { supabase } from "@/integrations/supabase/client";
+
+interface ApontamentoForm {
+  insumo_id: string;
+  campo: string;
+  valor_atual: number;
+  valor_sugerido: number;
+  comentario: string;
+}
+
+interface RequisitoForm {
+  tipo: string;
+  descricao: string;
+  quantidade_minima: number;
+  insumo_id: string;
+  ativo: boolean;
+}
+
+interface Props {
+  ficha: any;
+  processando: boolean;
+  onAprovar: (revisaoId: string, configId: string, parecer: string) => Promise<void>;
+  onSolicitarRevisao: (
+    revisaoId: string, configId: string, parecer: string,
+    itens: any[], requisitos: any[]
+  ) => Promise<void>;
+  onClose: () => void;
+}
+
+export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRevisao, onClose }: Props) {
+  const [parecer, setParecer] = useState("");
+  const [apontamentos, setApontamentos] = useState<ApontamentoForm[]>([]);
+  const [modoRevisao, setModoRevisao] = useState(false);
+  const [requisitos, setRequisitos] = useState<RequisitoForm[]>([
+    { tipo: "orcamentos", descricao: "Subir orçamentos", quantidade_minima: 3, insumo_id: "", ativo: false },
+    { tipo: "evidencia", descricao: "Anexar evidência/NF", quantidade_minima: 1, insumo_id: "", ativo: false },
+    { tipo: "justificativa", descricao: "Justificar manutenção de valores", quantidade_minima: 1, insumo_id: "", ativo: false },
+  ]);
+  const [requisitoCustom, setRequisitoCustom] = useState("");
+  const [evidencias, setEvidencias] = useState<any[]>([]);
+  const [requisitosStatus, setRequisitosStatus] = useState<any[]>([]);
+  const [loadingEvidencias, setLoadingEvidencias] = useState(false);
+  const [historicoVersoes, setHistoricoVersoes] = useState<any[]>([]);
+
+  const formatarMoeda = (valor: number) =>
+    valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
+
+  useEffect(() => {
+    const loadExtras = async () => {
+      setLoadingEvidencias(true);
+      try {
+        const [evRes, reqRes, histRes] = await Promise.all([
+          supabase.from("fabrica_custo_evidencias" as any).select("*").eq("produto_id", ficha.produto_id),
+          supabase.from("fabrica_revisao_requisitos" as any).select("*").eq("revisao_id", ficha.id),
+          supabase.from("fabrica_ficha_custo_revisoes").select("*").eq("config_id", ficha.config_id).order("versao", { ascending: false }),
+        ]);
+        setEvidencias((evRes.data as any[]) || []);
+        setRequisitosStatus((reqRes.data as any[]) || []);
+        setHistoricoVersoes((histRes.data as any[]) || []);
+      } catch (e) { console.error(e); }
+      finally { setLoadingEvidencias(false); }
+    };
+    loadExtras();
+  }, [ficha.id, ficha.produto_id, ficha.config_id]);
+
+  const handleDownloadEvidencia = async (filePath: string) => {
+    const { data } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(filePath, 3600);
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+  };
+
+  const handleAprovar = async () => {
+    await onAprovar(ficha.id, ficha.config_id, parecer);
+  };
+
+  const handleSolicitarRevisao = async () => {
+    const requisitosAtivos = requisitos
+      .filter(r => r.ativo)
+      .map(r => ({ tipo: r.tipo, descricao: r.descricao, quantidade_minima: r.quantidade_minima, insumo_id: r.insumo_id || null }));
+    if (requisitoCustom.trim()) {
+      requisitosAtivos.push({ tipo: "outro", descricao: requisitoCustom.trim(), quantidade_minima: 1, insumo_id: null });
+    }
+    await onSolicitarRevisao(ficha.id, ficha.config_id, parecer, apontamentos, requisitosAtivos);
+  };
+
+  const adicionarApontamento = () => {
+    setApontamentos(prev => [...prev, { insumo_id: "", campo: "custo_nf", valor_atual: 0, valor_sugerido: 0, comentario: "" }]);
+  };
+
+  const removerApontamento = (index: number) => {
+    setApontamentos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const atualizarApontamento = (index: number, field: keyof ApontamentoForm, value: any) => {
+    setApontamentos(prev => prev.map((a, i) => i === index ? { ...a, [field]: value } : a));
+  };
+
+  const snapshotInsumos = (ficha.snapshot_insumos || []) as any[];
+  const snapshotConfig = (ficha.snapshot_config || {}) as any;
+  const snapshotTotais = (ficha.snapshot_totais || {}) as any;
+
+  // Comparar com versão anterior
+  const versaoAnterior = historicoVersoes.find((v: any) => v.versao === ficha.versao - 1);
+  const insumosPrevMap = new Map<string, any>();
+  if (versaoAnterior?.snapshot_insumos) {
+    (versaoAnterior.snapshot_insumos as any[]).forEach((i: any) => insumosPrevMap.set(i.id, i));
+  }
+
+  return (
+    <Card className="border-primary/20">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              {ficha.produto?.nome}
+              <Badge variant="outline">v{ficha.versao}</Badge>
+              <Badge variant="secondary">{ficha.produto?.codigo}</Badge>
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Submetido em {new Date(ficha.submetido_em).toLocaleDateString("pt-BR")}
+              {ficha.termo_ciencia_assinado && (
+                <Badge variant="warning" className="ml-2 text-[10px]">Termo de Ciência</Badge>
+              )}
+            </p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* LEFT: Data */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* KPIs do snapshot */}
+            <div className="grid grid-cols-4 gap-3">
+              <div className="p-3 bg-muted rounded text-center">
+                <p className="text-xs text-muted-foreground">NF</p>
+                <p className="font-bold text-sm">{formatarMoeda((snapshotTotais.totalNF || 0) + (snapshotTotais.markupNF || 0))}</p>
+              </div>
+              <div className="p-3 bg-muted rounded text-center">
+                <p className="text-xs text-muted-foreground">Serviço</p>
+                <p className="font-bold text-sm">{formatarMoeda((snapshotTotais.totalServico || 0) + (snapshotTotais.markupServico || 0))}</p>
+              </div>
+              <div className="p-3 bg-muted rounded text-center">
+                <p className="text-xs text-muted-foreground">Condição</p>
+                <p className="font-bold text-sm">{formatarMoeda((snapshotTotais.totalCondicao || 0) + (snapshotTotais.markupCondicao || 0))}</p>
+              </div>
+              <div className="p-3 bg-primary/10 rounded text-center border-2 border-primary">
+                <p className="text-xs text-muted-foreground">Custo Total</p>
+                <p className="text-lg font-bold text-primary">{formatarMoeda(snapshotTotais.custoTotal || 0)}</p>
+              </div>
+            </div>
+
+            {/* Tabs de conteúdo */}
+            <Tabs defaultValue="insumos" className="w-full">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="insumos" className="text-xs">Insumos</TabsTrigger>
+                <TabsTrigger value="config" className="text-xs">Config & M.O.</TabsTrigger>
+                <TabsTrigger value="evidencias" className="text-xs">Evidências ({evidencias.length})</TabsTrigger>
+                <TabsTrigger value="requisitos" className="text-xs">Requisitos ({requisitosStatus.length})</TabsTrigger>
+                <TabsTrigger value="historico" className="text-xs gap-1"><History className="h-3 w-3" /> Histórico</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="insumos" className="mt-3">
+                <ScrollArea className="max-h-[400px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Código</TableHead>
+                        <TableHead>Insumo</TableHead>
+                        <TableHead>Fornecedor</TableHead>
+                        <TableHead className="text-right">NF (R$)</TableHead>
+                        <TableHead className="text-right">Serviço (R$)</TableHead>
+                        <TableHead className="text-right">Condição (R$)</TableHead>
+                        {versaoAnterior && <TableHead className="text-right">Δ%</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {snapshotInsumos.map((insumo: any, idx: number) => {
+                        const prev = insumosPrevMap.get(insumo.id);
+                        const custoAtual = (Number(insumo.custo_nf) || 0) + (Number(insumo.custo_servico) || 0) + (Number(insumo.custo_condicao) || 0);
+                        const custoPrev = prev ? (Number(prev.custo_nf) || 0) + (Number(prev.custo_servico) || 0) + (Number(prev.custo_condicao) || 0) : null;
+                        const variacao = custoPrev ? ((custoAtual - custoPrev) / custoPrev * 100) : null;
+                        const changed = variacao !== null && Math.abs(variacao) > 0.01;
+                        return (
+                          <TableRow key={idx} className={changed ? "bg-warning/5" : ""}>
+                            <TableCell className="font-mono text-sm">{insumo.codigo}</TableCell>
+                            <TableCell>{insumo.nome}</TableCell>
+                            <TableCell>{insumo.fornecedor || "-"}</TableCell>
+                            <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_nf) || 0)}</TableCell>
+                            <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_servico) || 0)}</TableCell>
+                            <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_condicao) || 0)}</TableCell>
+                            {versaoAnterior && (
+                              <TableCell className="text-right">
+                                {variacao !== null ? (
+                                  <span className={`flex items-center justify-end gap-1 text-xs font-medium ${variacao > 0 ? "text-destructive" : variacao < 0 ? "text-green-600" : "text-muted-foreground"}`}>
+                                    {variacao > 0 ? <TrendingUp className="h-3 w-3" /> : variacao < 0 ? <TrendingDown className="h-3 w-3" /> : null}
+                                    {variacao > 0 ? "+" : ""}{variacao.toFixed(1)}%
+                                  </span>
+                                ) : <span className="text-xs text-muted-foreground">Novo</span>}
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="config" className="mt-3">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="p-3 bg-muted rounded">
+                    <span className="text-muted-foreground text-xs block">Fornecedor M.O.</span>
+                    <span className="font-medium">{snapshotConfig.fornecedor_mao_obra || "-"}</span>
+                  </div>
+                  <div className="p-3 bg-muted rounded">
+                    <span className="text-muted-foreground text-xs block">M.O. NF</span>
+                    <span className="font-medium">{formatarMoeda(snapshotConfig.custo_mao_obra_nf || 0)}</span>
+                  </div>
+                  <div className="p-3 bg-muted rounded">
+                    <span className="text-muted-foreground text-xs block">M.O. Serviço</span>
+                    <span className="font-medium">{formatarMoeda(snapshotConfig.custo_mao_obra_servico || 0)}</span>
+                  </div>
+                  <div className="p-3 bg-muted rounded">
+                    <span className="text-muted-foreground text-xs block">Markup ({snapshotConfig.base_calculo_markup || "nf_servico"})</span>
+                    <span className="font-medium">{snapshotConfig.percentual_markup || 0}%</span>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="evidencias" className="mt-3">
+                {loadingEvidencias ? (
+                  <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+                ) : evidencias.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground text-sm">Nenhuma evidência enviada.</div>
+                ) : (
+                  <ScrollArea className="max-h-60">
+                    <div className="space-y-2">
+                      {evidencias.map((ev: any) => (
+                        <div key={ev.id} className="flex items-center justify-between p-2.5 border rounded-lg bg-muted/30">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {ev.tipo === "orcamento" ? <Receipt className="h-4 w-4 text-primary shrink-0" /> : <FileText className="h-4 w-4 text-primary shrink-0" />}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{ev.nome_arquivo || "Arquivo"}</p>
+                              <p className="text-xs text-muted-foreground">{ev.tipo === "orcamento" ? "Orçamento" : "Evidência"} • {new Date(ev.created_at).toLocaleDateString("pt-BR")}</p>
+                            </div>
+                          </div>
+                          <Button size="sm" variant="ghost" onClick={() => handleDownloadEvidencia(ev.arquivo_path)}>
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </TabsContent>
+
+              <TabsContent value="requisitos" className="mt-3">
+                {requisitosStatus.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground text-sm">Nenhum requisito registrado.</div>
+                ) : (
+                  <ScrollArea className="max-h-60">
+                    <div className="space-y-2">
+                      {requisitosStatus.map((req: any) => (
+                        <div key={req.id} className="p-3 border rounded-lg space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {req.cumprido ? <ShieldCheck className="h-4 w-4 text-green-600" /> :
+                               req.contestado ? <MessageCircle className="h-4 w-4 text-orange-500" /> :
+                               req.resolvido_manualmente ? <ShieldAlert className="h-4 w-4 text-blue-500" /> :
+                               <AlertTriangle className="h-4 w-4 text-destructive" />}
+                              <span className="text-sm font-medium">{req.descricao}</span>
+                            </div>
+                            <Badge variant={req.cumprido ? "success" : req.contestado ? "warning" : req.resolvido_manualmente ? "secondary" : "destructive"} className="text-[10px]">
+                              {req.cumprido ? "Cumprido" : req.contestado ? "Contestado" : req.resolvido_manualmente ? "Resolvido Manual" : "Pendente"}
+                            </Badge>
+                          </div>
+                          {req.contestado && req.contestacao_motivo && (
+                            <div className="ml-6 p-2 bg-orange-50 dark:bg-orange-950/20 rounded text-xs">
+                              <span className="font-medium">Contestação:</span> {req.contestacao_motivo}
+                            </div>
+                          )}
+                          {req.resolvido_manualmente && req.resolucao_descricao && (
+                            <div className="ml-6 p-2 bg-blue-50 dark:bg-blue-950/20 rounded text-xs">
+                              <span className="font-medium">Resolução:</span> {req.resolucao_descricao}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </TabsContent>
+
+              <TabsContent value="historico" className="mt-3">
+                {historicoVersoes.length <= 1 ? (
+                  <div className="text-center py-6 text-muted-foreground text-sm">Primeira versão — sem histórico anterior.</div>
+                ) : (
+                  <ScrollArea className="max-h-[300px]">
+                    <div className="space-y-2">
+                      {historicoVersoes.map((v: any) => {
+                        const totais = v.snapshot_totais || {};
+                        const isCurrent = v.id === ficha.id;
+                        const prevVersion = historicoVersoes.find((h: any) => h.versao === v.versao - 1);
+                        const prevTotal = prevVersion?.snapshot_totais?.custoTotal;
+                        const variacaoTotal = prevTotal ? ((totais.custoTotal - prevTotal) / prevTotal * 100) : null;
+                        return (
+                          <div key={v.id} className={`p-3 border rounded-lg flex items-center justify-between ${isCurrent ? "border-primary bg-primary/5" : ""}`}>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant={isCurrent ? "default" : v.status === "aprovada" ? "success" : v.status === "revisao_solicitada" ? "warning" : "outline"} className="text-xs">
+                                  v{v.versao}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground capitalize">{v.status?.replace("_", " ")}</span>
+                                {isCurrent && <Badge variant="secondary" className="text-[10px]">Atual</Badge>}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {new Date(v.submetido_em).toLocaleDateString("pt-BR")}
+                                {v.parecer && ` — ${v.parecer.substring(0, 60)}...`}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-sm">{formatarMoeda(totais.custoTotal || 0)}</p>
+                              {variacaoTotal !== null && (
+                                <span className={`text-xs font-medium ${variacaoTotal > 0 ? "text-destructive" : "text-green-600"}`}>
+                                  {variacaoTotal > 0 ? "+" : ""}{variacaoTotal.toFixed(1)}% vs v{v.versao - 1}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                )}
+              </TabsContent>
+            </Tabs>
+
+            {/* Apontamentos e Requisitos (modo revisão) */}
+            {modoRevisao && (
+              <div className="space-y-4">
+                <Card className="border-orange-500/50">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm">Apontamentos por Insumo</CardTitle>
+                      <Button size="sm" variant="outline" onClick={adicionarApontamento}><Plus className="h-3 w-3 mr-1" /> Adicionar</Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {apontamentos.map((ap, idx) => (
+                      <div key={idx} className="p-3 border rounded-lg space-y-2">
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <Label className="text-xs">Insumo</Label>
+                            <Select value={ap.insumo_id} onValueChange={(v) => {
+                              const insumo = snapshotInsumos.find((i: any) => i.id === v);
+                              atualizarApontamento(idx, "insumo_id", v);
+                              if (insumo) atualizarApontamento(idx, "valor_atual", Number(insumo[ap.campo]) || 0);
+                            }}>
+                              <SelectTrigger className="h-8"><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                              <SelectContent>
+                                {snapshotInsumos.map((i: any) => (
+                                  <SelectItem key={i.id} value={i.id}>{i.codigo} - {i.nome}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="w-36">
+                            <Label className="text-xs">Campo</Label>
+                            <Select value={ap.campo} onValueChange={(v) => {
+                              atualizarApontamento(idx, "campo", v);
+                              if (ap.insumo_id) {
+                                const insumo = snapshotInsumos.find((i: any) => i.id === ap.insumo_id);
+                                if (insumo) atualizarApontamento(idx, "valor_atual", Number(insumo[v]) || 0);
+                              }
+                            }}>
+                              <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="custo_nf">NF</SelectItem>
+                                <SelectItem value="custo_servico">Serviço</SelectItem>
+                                <SelectItem value="custo_condicao">Condição</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="w-28">
+                            <Label className="text-xs">Atual</Label>
+                            <Input className="h-8" value={ap.valor_atual} readOnly />
+                          </div>
+                          <div className="w-28">
+                            <Label className="text-xs">Sugerido</Label>
+                            <Input className="h-8" type="number" step="0.01" value={ap.valor_sugerido}
+                              onChange={(e) => atualizarApontamento(idx, "valor_sugerido", parseFloat(e.target.value) || 0)} />
+                          </div>
+                          <Button variant="ghost" size="icon" className="mt-5 text-destructive" onClick={() => removerApontamento(idx)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <Input placeholder="Justificativa / comentário" value={ap.comentario}
+                          onChange={(e) => atualizarApontamento(idx, "comentario", e.target.value)} className="h-8" />
+                      </div>
+                    ))}
+                    {apontamentos.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-2">Adicione apontamentos para indicar reduções específicas.</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-purple-500/50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <ClipboardList className="h-4 w-4" /> Requisitos Obrigatórios
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {requisitos.map((req, idx) => (
+                      <div key={idx} className="flex items-center gap-3 p-2 border rounded-lg">
+                        <Checkbox checked={req.ativo} onCheckedChange={(checked) => {
+                          setRequisitos(prev => prev.map((r, i) => i === idx ? { ...r, ativo: !!checked } : r));
+                        }} />
+                        <div className="flex-1 flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className="text-xs whitespace-nowrap">
+                            {req.tipo === "orcamentos" && <Receipt className="h-3 w-3 mr-1" />}
+                            {req.tipo === "evidencia" && <FileText className="h-3 w-3 mr-1" />}
+                            {req.tipo === "justificativa" && <MessageSquare className="h-3 w-3 mr-1" />}
+                            {req.descricao}
+                          </Badge>
+                          {(req.tipo === "orcamentos" || req.tipo === "evidencia") && req.ativo && (
+                            <div className="flex items-center gap-1">
+                              <Label className="text-xs text-muted-foreground">Qtd mín:</Label>
+                              <Input type="number" min={1} className="h-7 w-16 text-xs" value={req.quantidade_minima}
+                                onChange={(e) => setRequisitos(prev => prev.map((r, i) => i === idx ? { ...r, quantidade_minima: parseInt(e.target.value) || 1 } : r))} />
+                            </div>
+                          )}
+                          {req.ativo && (
+                            <div className="flex items-center gap-1">
+                              <Label className="text-xs text-muted-foreground">Insumo:</Label>
+                              <Select value={req.insumo_id || "all"} onValueChange={(v) => setRequisitos(prev => prev.map((r, i) => i === idx ? { ...r, insumo_id: v === "all" ? "" : v } : r))}>
+                                <SelectTrigger className="h-7 text-xs w-40"><SelectValue placeholder="Todos" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">Todos</SelectItem>
+                                  {snapshotInsumos.map((i: any) => (
+                                    <SelectItem key={i.id} value={i.id}>{i.codigo} - {i.nome}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    <Input placeholder="Outro requisito personalizado..." value={requisitoCustom}
+                      onChange={(e) => setRequisitoCustom(e.target.value)} className="h-8 text-sm" />
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Parecer + Ações */}
+            <div className="space-y-3">
+              <div>
+                <Label>Parecer Geral</Label>
+                <Textarea value={parecer} onChange={(e) => setParecer(e.target.value)}
+                  placeholder="Observações sobre a ficha de custos..." rows={3} />
+              </div>
+              <div className="flex gap-2 justify-end">
+                {!modoRevisao ? (
+                  <>
+                    <Button variant="outline" onClick={() => setModoRevisao(true)}>
+                      <AlertTriangle className="h-4 w-4 mr-1" /> Solicitar Revisão
+                    </Button>
+                    <Button onClick={handleAprovar} disabled={processando}>
+                      <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => setModoRevisao(false)}>Cancelar</Button>
+                    <Button variant="destructive" onClick={handleSolicitarRevisao} disabled={processando}>
+                      <AlertTriangle className="h-4 w-4 mr-1" /> Enviar Revisão ({apontamentos.length} apontamentos)
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT: Chat */}
+          <div className="lg:col-span-1">
+            <RevisaoChatPanel
+              revisaoId={ficha.id}
+              configId={ficha.config_id}
+              insumos={snapshotInsumos.map((i: any) => ({ id: i.id, nome: i.nome, codigo: i.codigo }))}
+              tipoRemetente="diretoria"
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
