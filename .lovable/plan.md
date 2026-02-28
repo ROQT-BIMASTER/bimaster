@@ -1,42 +1,27 @@
 
 
-# Dashboard Administrativo — Produtos Acabados
+# Dashboard Admin com Botão Separado e Gráfico Profissional
 
 ## O que muda
-Adicionar uma seção de **dashboard administrativo** no topo da página de Produtos Acabados, entre o header e os KPIs existentes. Inspirado no estilo da imagem de referência (cards com indicadores e listas rápidas), com foco em **revisões solicitadas pela Diretoria** e visão gerencial.
 
-## Estrutura do Dashboard Admin
+1. **Botão separado no header** — O dashboard admin fica oculto por padrão. Um botão "Painel Administrativo" no header da página abre/fecha a seção com animação suave (estado toggle com `useState`).
 
-### Linha 1: KPIs de Revisão (4 cards compactos)
-- **Revisões Pendentes** — contagem de fichas com `status = 'revisao_solicitada'` ou `'pendente'`
-- **Em Análise** — fichas com `status = 'em_revisao'`
-- **Aprovadas** — fichas aprovadas
-- **Reprovadas/Devolvidas** — fichas reprovadas
-
-Cada card com ícone, número grande e cor temática (vermelho para pendentes, amarelo para análise, verde para aprovadas).
-
-### Linha 2: Painel de Revisões Solicitadas (gatilho rápido)
-Card com lista das **últimas revisões solicitadas pela Diretoria**, mostrando:
-- Nome do produto, código
-- Data da solicitação
-- Status atual (badge)
-- Botão de ação rápida → abre direto a ficha de custos do produto
-
-Máximo 5 itens visíveis, com link "Ver todas" → `/dashboard/fabrica/revisao-fichas`.
-
-### Linha 3: Alertas Rápidos (card lateral)
-Card compacto com:
-- Produtos com **aumento de custo** nos últimos 30 dias
-- Produtos **sem ficha de custos** configurada
+2. **Gráfico de distribuição de revisões** — Adicionar um gráfico de barras horizontal (Recharts `BarChart`) ou gráfico de rosca (`PieChart`) mostrando a distribuição de status das revisões (Pendentes, Em Análise, Aprovadas, Reprovadas) com cores temáticas. Será posicionado ao lado dos alertas rápidos na linha 2, reorganizando o layout para 3 colunas: Revisões Solicitadas | Gráfico | Alertas.
 
 ## Implementação
 
-### Arquivos a modificar
-- `src/pages/FabricaProdutosAcabados.tsx` — adicionar seção do dashboard admin entre header e KPIs existentes, usando dados já carregados (`revisoes`, `fichasConfig`, `alertasAumento`) + nova query para revisões recentes com nome do produto
+### Arquivo: `src/pages/FabricaProdutosAcabados.tsx`
+- Adicionar estado `showAdminDash` (boolean, default `false`)
+- Adicionar botão "Painel Administrativo" com ícone `BarChart3` no header ao lado dos outros botões
+- Renderizar `ProdutosAcabadosAdminDashboard` condicionalmente com `showAdminDash`
+- Envolver em `Collapsible` do Radix para animação
 
-### Queries adicionais
-- Buscar revisões pendentes/solicitadas com join no nome do produto para exibir na lista de gatilho rápido
+### Arquivo: `src/components/fabrica/ProdutosAcabadosAdminDashboard.tsx`
+- Adicionar gráfico de rosca (Recharts `PieChart` + `Pie` + `Cell`) com os 4 status de revisão
+- Cores: vermelho (pendentes), azul (em análise), verde (aprovadas), laranja (reprovadas)
+- Usar `ChartContainer` e `ChartTooltip` já existentes em `@/components/ui/chart`
+- Reorganizar layout linha 2 para `md:grid-cols-5`: Revisões (col-span-2) | Gráfico (col-span-1) | Alertas (col-span-2) — ou manter 3 colunas com gráfico substituindo espaço dos alertas
 
-### Sem alteração de banco
-- Todos os dados necessários já existem nas tabelas `fabrica_ficha_custo_revisoes` e `fabrica_produto_custos_config`
+### Dados do gráfico
+- Reutilizar o `kpis` já calculado (pendentes, emAnalise, aprovadas, reprovadas) — sem query adicional
 
