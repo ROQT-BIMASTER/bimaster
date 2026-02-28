@@ -1,31 +1,52 @@
 
 
-# Separar telas de Revisão: Diretoria vs Compras/Faturamento
+# Profissionalização da Comunicação de Revisões
 
-## Contexto
-A tela `FichaRevisaoDiretoria` hoje é acessada por todos. O objetivo é restringi-la à Diretoria e criar uma tela dedicada para Compras/Faturamento, acessível via botão na tela de Produtos Acabados.
+## Melhorias propostas
 
-## Alterações
+### 1. Layout estilo mensageiro profissional (WhatsApp Business / Slack)
+- Substituir o layout atual por um **split-view permanente**: lista de conversas à esquerda (30%) e painel de chat à direita (70%), sem precisar navegar entre telas
+- Conversa selecionada fica destacada na lista
+- Responsivo: em mobile, mantém o comportamento atual de navegação
 
-### 1. Criar nova página `FabricaComunicacaoRevisoes.tsx`
-Nova página que reutiliza o componente `RevisaoChatConsolidado` com `tipoRemetente="usuario"`, contendo:
-- Header com botão de voltar para Produtos Acabados
-- O componente de conversas consolidado já existente (com filtros por Marca, Linha, Produto, Usuário)
-- Sem as abas de análise, documentos ou dashboard admin que são exclusivas da Diretoria
+### 2. Indicadores visuais na lista de conversas
+- **Foto/avatar do produto** (iniciais coloridas por marca)
+- **Preview da última mensagem** com horário relativo ("há 2h", "ontem")
+- **Contagem de não lidas** como badge vermelho
+- **Indicador de status** colorido (ponto verde = aberto, cinza = finalizado)
+- **Ordenação inteligente**: não lidas primeiro, depois por data
 
-### 2. Registrar rota em `App.tsx`
-Adicionar rota `/dashboard/fabrica/comunicacao-revisoes` protegida pelo mesmo `screenCode` de `fabrica_produtos`.
+### 3. Cabeçalho do chat com contexto do produto
+- Ao abrir uma conversa, mostrar um **header rico** com:
+  - Nome do produto, código, marca/linha
+  - Matérias-primas vinculadas como chips clicáveis
+  - Status da revisão com badge colorido
+  - Botão rápido para abrir ficha do produto
 
-### 3. Atualizar botão em `FabricaProdutosAcabados.tsx`
-- Trocar o botão "Revisões Solicitadas" (que aponta para `/revisao-fichas`) por "Comunicação de Revisões" apontando para `/comunicacao-revisoes`
-- Manter o botão antigo apenas se o usuário for admin (Diretoria), ou adicionar ambos os botões condicionalmente
+### 4. Agrupamento de mensagens por data
+- Separadores visuais "Hoje", "Ontem", "15/02/2026"
+- Agrupar mensagens consecutivas do mesmo remetente (sem repetir avatar/nome)
 
-### 4. Atualizar sidebar (`AppSidebar.tsx`)
-- Manter "Revisão de Fichas" no menu (restrito via permissão de tela `fabrica_revisao_fichas` — já existente)
-- Adicionar item "Comunicação Revisões" visível para quem tem `fabrica_produtos`
+### 5. Barra de filtros compacta e responsiva
+- Substituir os 7 selects soltos por uma **barra de filtros colapsável** com chips ativos
+- Filtros como badges removíveis (ex: "Marca: XYZ ✕")
+- Contagem de resultados visível ("12 conversas")
 
-### Detalhes técnicos
-- A nova página é essencialmente um wrapper de `RevisaoChatConsolidado` dentro de `DashboardLayout`
-- Não requer migração de banco — usa as mesmas tabelas e queries
-- O controle de acesso à tela de Diretoria continua pelo `screenCode` existente (`fabrica_revisao_fichas`)
+### 6. Estados vazios e feedback visual
+- Ilustração quando não há conversas
+- Skeleton loading ao carregar lista
+- Animação suave ao receber nova mensagem (highlight temporário na lista)
+
+### 7. Notificação sonora/visual de nova mensagem
+- Quando uma nova mensagem chega via realtime e o usuário está em outra conversa, destacar a conversa na lista com animação
+
+## Alterações técnicas
+
+### Arquivos a modificar
+- **`RevisaoChatConsolidado.tsx`**: Refatorar layout para split-view, melhorar lista de conversas, adicionar agrupamento por data, filtros como chips, skeleton loading
+- **`FabricaComunicacaoRevisoes.tsx`**: Ajustar container para ocupar altura total disponível
+- **`RevisaoChatPanel.tsx`**: Adicionar separadores de data entre mensagens, agrupar mensagens consecutivas do mesmo remetente
+
+### Sem alterações de banco
+Todas as melhorias são puramente de frontend/UX.
 
