@@ -1,52 +1,25 @@
 
 
-# Profissionalização da Comunicação de Revisões
+# Adicionar botão "Detalhes do Produto" no cabeçalho do chat
 
-## Melhorias propostas
+## O que será feito
+Adicionar um botão no header do chat (ao lado do avatar do produto) que abre um painel lateral (Sheet) com os detalhes completos do produto vinculado à conversa, incluindo link rápido para a ficha de custos.
 
-### 1. Layout estilo mensageiro profissional (WhatsApp Business / Slack)
-- Substituir o layout atual por um **split-view permanente**: lista de conversas à esquerda (30%) e painel de chat à direita (70%), sem precisar navegar entre telas
-- Conversa selecionada fica destacada na lista
-- Responsivo: em mobile, mantém o comportamento atual de navegação
+## Alterações
 
-### 2. Indicadores visuais na lista de conversas
-- **Foto/avatar do produto** (iniciais coloridas por marca)
-- **Preview da última mensagem** com horário relativo ("há 2h", "ontem")
-- **Contagem de não lidas** como badge vermelho
-- **Indicador de status** colorido (ponto verde = aberto, cinza = finalizado)
-- **Ordenação inteligente**: não lidas primeiro, depois por data
+### 1. Criar componente `ProdutoDetalhesSheet.tsx`
+- Sheet lateral que recebe o `produtoId` e carrega os dados do produto da tabela `fabrica_produtos`
+- Exibe: foto, nome, código, marca, linha, origem, NCM, Anvisa, lead time, itens/display, status ativo/inativo, modo foco
+- Carrega e exibe a última ficha de custos (custo total) via `fabrica_produto_custos_config`
+- Lista as matérias-primas da fórmula ativa do produto
+- Botão "Ver Ficha de Custos" que navega para `/dashboard/fabrica/produtos/{id}/custos`
+- Botão "Editar Produto" que abre o `NovoProdutoAcabadoDialog` em modo edição
 
-### 3. Cabeçalho do chat com contexto do produto
-- Ao abrir uma conversa, mostrar um **header rico** com:
-  - Nome do produto, código, marca/linha
-  - Matérias-primas vinculadas como chips clicáveis
-  - Status da revisão com badge colorido
-  - Botão rápido para abrir ficha do produto
+### 2. Integrar no `RevisaoChatConsolidado.tsx`
+- Adicionar botão com ícone `Info` ou `ExternalLink` no header rico do chat (ao lado do nome do produto)
+- Ao clicar, abre o `ProdutoDetalhesSheet` com os dados do produto da conversa selecionada
 
-### 4. Agrupamento de mensagens por data
-- Separadores visuais "Hoje", "Ontem", "15/02/2026"
-- Agrupar mensagens consecutivas do mesmo remetente (sem repetir avatar/nome)
-
-### 5. Barra de filtros compacta e responsiva
-- Substituir os 7 selects soltos por uma **barra de filtros colapsável** com chips ativos
-- Filtros como badges removíveis (ex: "Marca: XYZ ✕")
-- Contagem de resultados visível ("12 conversas")
-
-### 6. Estados vazios e feedback visual
-- Ilustração quando não há conversas
-- Skeleton loading ao carregar lista
-- Animação suave ao receber nova mensagem (highlight temporário na lista)
-
-### 7. Notificação sonora/visual de nova mensagem
-- Quando uma nova mensagem chega via realtime e o usuário está em outra conversa, destacar a conversa na lista com animação
-
-## Alterações técnicas
-
-### Arquivos a modificar
-- **`RevisaoChatConsolidado.tsx`**: Refatorar layout para split-view, melhorar lista de conversas, adicionar agrupamento por data, filtros como chips, skeleton loading
-- **`FabricaComunicacaoRevisoes.tsx`**: Ajustar container para ocupar altura total disponível
-- **`RevisaoChatPanel.tsx`**: Adicionar separadores de data entre mensagens, agrupar mensagens consecutivas do mesmo remetente
-
-### Sem alterações de banco
-Todas as melhorias são puramente de frontend/UX.
+### Arquivos
+- **Criar**: `src/components/fabrica/ProdutoDetalhesSheet.tsx`
+- **Editar**: `src/components/fabrica/RevisaoChatConsolidado.tsx` (adicionar botão e importar o sheet)
 
