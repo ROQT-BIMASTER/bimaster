@@ -6,8 +6,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  MessageSquare, Search, Inbox, Loader2, Lock, Plus, X, Filter, ChevronDown,
+  MessageSquare, Search, Inbox, Loader2, Lock, Plus, X, Filter, ChevronDown, Info,
 } from "lucide-react";
+import { ProdutoDetalhesSheet } from "@/components/fabrica/ProdutoDetalhesSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
 import { NovaComunicacaoDialog } from "@/components/fabrica/NovaComunicacaoDialog";
@@ -99,6 +100,7 @@ export function RevisaoChatConsolidado() {
   const [userId, setUserId] = useState<string | null>(null);
   const [dialogNovaCom, setDialogNovaCom] = useState(false);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [produtoDetalhesOpen, setProdutoDetalhesOpen] = useState(false);
   const isMobile = useIsMobile();
 
   const carregarConversas = useCallback(async () => {
@@ -598,16 +600,27 @@ export function RevisaoChatConsolidado() {
                 )}
               </div>
             </div>
-            {!isMobile && conversaAberta.chatStatus !== "finalizado" && (
+            <div className="flex items-center gap-1 shrink-0">
               <Button
                 variant="ghost"
-                size="sm"
-                className="text-xs text-muted-foreground hover:text-destructive shrink-0"
-                onClick={() => finalizarDaLista(conversaAberta.revisaoId)}
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                title="Detalhes do Produto"
+                onClick={() => setProdutoDetalhesOpen(true)}
               >
-                <Lock className="h-3.5 w-3.5 mr-1" /> Finalizar
+                <Info className="h-4 w-4" />
               </Button>
-            )}
+              {!isMobile && conversaAberta.chatStatus !== "finalizado" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground hover:text-destructive shrink-0"
+                  onClick={() => finalizarDaLista(conversaAberta.revisaoId)}
+                >
+                  <Lock className="h-3.5 w-3.5 mr-1" /> Finalizar
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Insumos chips */}
@@ -671,6 +684,13 @@ export function RevisaoChatConsolidado() {
             carregarConversas();
           }}
         />
+        {conversaAberta && (
+          <ProdutoDetalhesSheet
+            open={produtoDetalhesOpen}
+            onOpenChange={setProdutoDetalhesOpen}
+            produtoId={conversaAberta.produtoId}
+          />
+        )}
       </>
     );
   }
@@ -707,6 +727,13 @@ export function RevisaoChatConsolidado() {
           carregarConversas();
         }}
       />
+      {conversaAberta && (
+        <ProdutoDetalhesSheet
+          open={produtoDetalhesOpen}
+          onOpenChange={setProdutoDetalhesOpen}
+          produtoId={conversaAberta.produtoId}
+        />
+      )}
     </>
   );
 }
