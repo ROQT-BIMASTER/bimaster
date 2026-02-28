@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, Link } from "react-router-dom";
@@ -17,10 +18,14 @@ import {
   ArrowRight,
   DollarSign,
   ClipboardList,
+  ChevronDown,
+  Focus,
+  Eye,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { toast } from "sonner";
 
 interface Props {
   revisoes: any[] | undefined;
@@ -43,7 +48,20 @@ export function ProdutosAcabadosAdminDashboard({
   produtos,
 }: Props) {
   const navigate = useNavigate();
+  const [expandedAlerts, setExpandedAlerts] = useState<Record<number, boolean>>({});
 
+  const handleToggleModoFoco = async (produtoId: string, currentValue?: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("fabrica_produtos")
+        .update({ modo_foco: !currentValue })
+        .eq("id", produtoId);
+      if (error) throw error;
+      toast.success(currentValue ? "Modo Foco desativado" : "Modo Foco ativado");
+    } catch (err: any) {
+      toast.error("Erro ao atualizar: " + err.message);
+    }
+  };
   // Query for recent revisions with product name
   const { data: revisoesRecentes } = useSupabaseQuery(
     ["fabrica-revisoes-recentes-admin"],
@@ -87,39 +105,51 @@ export function ProdutosAcabadosAdminDashboard({
 
   const totalRevisoes = kpis.pendentes + kpis.emAnalise + kpis.aprovadas + kpis.reprovadas;
 
-  // Alert data
+  // Alert data with product lists
   const alertas = useMemo(() => {
-    const items: { tipo: "aumento" | "sem_ficha"; titulo: string; descricao: string }[] = [];
+    const items: {
+      tipo: "aumento" | "sem_ficha";
+      titulo: string;
+      descricao: string;
+      produtosList: { id: string; nome: string; codigo: string; modo_foco?: boolean }[];
+    }[] = [];
 
     if (alertasAumento && produtos) {
       const trintaDias = new Date();
       trintaDias.setDate(trintaDias.getDate() - 30);
-      const produtosComAumento = new Set<string>();
+      const produtosComAumentoIds = new Set<string>();
       alertasAumento.forEach((a: any) => {
         if (
           Number(a.valor_novo) > Number(a.valor_anterior) &&
           new Date(a.created_at) >= trintaDias
         ) {
-          produtosComAumento.add(a.produto_id);
+          produtosComAumentoIds.add(a.produto_id);
         }
       });
-      if (produtosComAumento.size > 0) {
+      if (produtosComAumentoIds.size > 0) {
+        const lista = produtos
+          .filter((p: any) => produtosComAumentoIds.has(p.id))
+          .map((p: any) => ({ id: p.id, nome: p.nome, codigo: p.codigo, modo_foco: p.modo_foco }));
         items.push({
           tipo: "aumento",
-          titulo: `${produtosComAumento.size} produto(s) com aumento de custo`,
+          titulo: `${lista.length} produto(s) com aumento de custo`,
           descricao: "Nos últimos 30 dias",
+          produtosList: lista,
         });
       }
     }
 
     if (produtos && fichasConfig) {
       const configuredIds = new Set(fichasConfig.map((f: any) => f.produto_id));
-      const semFicha = produtos.filter((p: any) => !configuredIds.has(p.id));
+      const semFicha = produtos
+        .filter((p: any) => !configuredIds.has(p.id))
+        .map((p: any) => ({ id: p.id, nome: p.nome, codigo: p.codigo, modo_foco: p.modo_foco }));
       if (semFicha.length > 0) {
         items.push({
           tipo: "sem_ficha",
           titulo: `${semFicha.length} produto(s) sem ficha de custos`,
           descricao: "Configuração pendente",
+          produtosList: semFicha,
         });
       }
     }
@@ -364,30 +394,96 @@ export function ProdutosAcabadosAdminDashboard({
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                {alertas.map((alerta, i) => (
-                  <div
-                    key={i}
-                    className={`p-3 rounded-lg border ${
-                      alerta.tipo === "aumento"
-                        ? "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
-                        : "border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950/30"
-                    }`}
-                  >
-                    <div className="flex items-start gap-2">
-                      {alerta.tipo === "aumento" ? (
-                        <TrendingUp className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                      ) : (
-                        <FileX className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
-                      )}
-                      <div>
-                        <p className="text-sm font-medium">{alerta.titulo}</p>
-                        <p className="text-xs text-muted-foreground">{alerta.descricao}</p>
+              <ScrollArea className="h-[220px]">
+                <div className="space-y-3">
+                  {alertas.map((alerta, i) => (
+                    <Collapsible
+                      key={i}
+                      open={expandedAlerts[i]}
+                      onOpenChange={(open) =>
+                        setExpandedAlerts((prev) => ({ ...prev, [i]: open }))
+                      }
+                    >
+                      <div
+                        className={`rounded-lg border overflow-hidden ${
+                          alerta.tipo === "aumento"
+                            ? "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
+                            : "border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950/30"
+                        }`}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <button className="w-full p-3 flex items-center gap-2 hover:opacity-80 transition-opacity text-left">
+                            {alerta.tipo === "aumento" ? (
+                              <TrendingUp className="h-4 w-4 text-red-500 shrink-0" />
+                            ) : (
+                              <FileX className="h-4 w-4 text-yellow-500 shrink-0" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">{alerta.titulo}</p>
+                              <p className="text-xs text-muted-foreground">{alerta.descricao}</p>
+                            </div>
+                            <ChevronDown
+                              className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${
+                                expandedAlerts[i] ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="border-t px-3 pb-3 pt-2 space-y-1.5">
+                            {alerta.produtosList.slice(0, 10).map((prod) => (
+                              <div
+                                key={prod.id}
+                                className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-md bg-background/60 hover:bg-background transition-colors text-sm"
+                              >
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <span className="font-mono text-xs text-muted-foreground">
+                                    {prod.codigo}
+                                  </span>
+                                  <span className="truncate font-medium text-sm">{prod.nome}</span>
+                                  {prod.modo_foco && (
+                                    <Badge variant="warning" className="text-[10px] px-1.5 py-0 shrink-0">
+                                      <Focus className="h-3 w-3 mr-0.5" />
+                                      Foco
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex gap-1 shrink-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={() => handleToggleModoFoco(prod.id, prod.modo_foco)}
+                                    title={prod.modo_foco ? "Desativar Modo Foco" : "Ativar Modo Foco"}
+                                  >
+                                    <Focus className={`h-3.5 w-3.5 ${prod.modo_foco ? "text-yellow-600" : "text-muted-foreground"}`} />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={() =>
+                                      navigate(`/dashboard/fabrica/produtos/${prod.id}/custos`)
+                                    }
+                                    title="Ver ficha de custos"
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                            {alerta.produtosList.length > 10 && (
+                              <p className="text-xs text-muted-foreground text-center pt-1">
+                                +{alerta.produtosList.length - 10} produto(s) adicionais
+                              </p>
+                            )}
+                          </div>
+                        </CollapsibleContent>
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    </Collapsible>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
           </CardContent>
         </Card>
