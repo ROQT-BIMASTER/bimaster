@@ -453,7 +453,10 @@ export function ProdutosAcabadosAdminDashboard({
                                     variant="ghost"
                                     size="sm"
                                     className="h-7 px-2 text-xs"
-                                    onClick={() => handleToggleModoFoco(prod.id, prod.modo_foco)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleModoFoco(prod.id, prod.modo_foco);
+                                    }}
                                     title={prod.modo_foco ? "Desativar Modo Foco" : "Ativar Modo Foco"}
                                   >
                                     <Focus className={`h-3.5 w-3.5 ${prod.modo_foco ? "text-yellow-600" : "text-muted-foreground"}`} />
@@ -462,9 +465,10 @@ export function ProdutosAcabadosAdminDashboard({
                                     variant="ghost"
                                     size="sm"
                                     className="h-7 px-2 text-xs"
-                                    onClick={() =>
-                                      navigate(`/dashboard/fabrica/produtos/${prod.id}/custos`)
-                                    }
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/dashboard/fabrica/produtos/${prod.id}/custos`);
+                                    }}
                                     title="Ver ficha de custos"
                                   >
                                     <Eye className="h-3.5 w-3.5" />
