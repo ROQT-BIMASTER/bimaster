@@ -25,6 +25,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon } from "lucide-react";
 import { ProdutoCard } from "@/components/fabrica/ProdutoCard";
+import { ProdutosAcabadosAdminDashboard } from "@/components/fabrica/ProdutosAcabadosAdminDashboard";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
 import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
 import { Link, useNavigate } from "react-router-dom";
@@ -388,6 +389,14 @@ export default function FabricaProdutosAcabados() {
             </Button>
           </div>
         </div>
+
+        {/* Dashboard Administrativo */}
+        <ProdutosAcabadosAdminDashboard
+          revisoes={revisoes}
+          fichasConfig={fichasConfig}
+          alertasAumento={alertasAumento}
+          produtos={produtos}
+        />
 
         {/* KPIs */}
         <div className="grid gap-4 md:grid-cols-5" data-tour="pa-kpis">
