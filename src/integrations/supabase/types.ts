@@ -4934,6 +4934,9 @@ export type Database = {
       }
       fabrica_ficha_custo_revisoes: {
         Row: {
+          chat_finalizado_em: string | null
+          chat_finalizado_por: string | null
+          chat_status: string | null
           config_id: string
           created_at: string
           id: string
@@ -4955,6 +4958,9 @@ export type Database = {
           versao: number
         }
         Insert: {
+          chat_finalizado_em?: string | null
+          chat_finalizado_por?: string | null
+          chat_status?: string | null
           config_id: string
           created_at?: string
           id?: string
@@ -4976,6 +4982,9 @@ export type Database = {
           versao?: number
         }
         Update: {
+          chat_finalizado_em?: string | null
+          chat_finalizado_por?: string | null
+          chat_status?: string | null
           config_id?: string
           created_at?: string
           id?: string
@@ -7893,6 +7902,8 @@ export type Database = {
           id: string
           insumo_id: string | null
           lida_por: Json | null
+          mencoes: Json | null
+          resposta_a_id: string | null
           revisao_id: string
           tipo: string
           usuario_id: string | null
@@ -7904,6 +7915,8 @@ export type Database = {
           id?: string
           insumo_id?: string | null
           lida_por?: Json | null
+          mencoes?: Json | null
+          resposta_a_id?: string | null
           revisao_id: string
           tipo?: string
           usuario_id?: string | null
@@ -7915,12 +7928,21 @@ export type Database = {
           id?: string
           insumo_id?: string | null
           lida_por?: Json | null
+          mencoes?: Json | null
+          resposta_a_id?: string | null
           revisao_id?: string
           tipo?: string
           usuario_id?: string | null
           usuario_nome?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fabrica_revisao_mensagens_resposta_a_id_fkey"
+            columns: ["resposta_a_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_revisao_mensagens"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fabrica_revisao_mensagens_revisao_id_fkey"
             columns: ["revisao_id"]
