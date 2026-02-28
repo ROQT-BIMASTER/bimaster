@@ -6,8 +6,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   FileText, Download, Loader2, CheckCircle2, Archive,
-  Receipt, FileCheck, File, Shield, Tag,
+  Receipt, FileCheck, File, Shield, Tag, FlaskConical, ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -27,7 +30,14 @@ interface Documento {
   categoria: string;
   status: string;
   enviado_por_nome: string | null;
+  materia_prima_id: string | null;
   created_at: string;
+}
+
+interface MPInfo {
+  id: string;
+  nome: string;
+  codigo: string;
 }
 
 const CATEGORIAS = ["orcamento", "evidencia", "nf", "contrato", "geral"];
@@ -50,9 +60,11 @@ function formatFileSize(bytes: number) {
 
 export function DocumentosTab({ produtoId }: Props) {
   const [documentos, setDocumentos] = useState<Documento[]>([]);
+  const [materiasPrimas, setMateriasPrimas] = useState<Map<string, MPInfo>>(new Map());
   const [loading, setLoading] = useState(true);
   const [filtroCategoria, setFiltroCategoria] = useState("all");
   const [filtroStatus, setFiltroStatus] = useState("all");
+  const [openMPs, setOpenMPs] = useState<Set<string>>(new Set());
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -63,7 +75,20 @@ export function DocumentosTab({ produtoId }: Props) {
         .eq("produto_id", produtoId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      setDocumentos((data as any[]) || []);
+      const docs = (data as any[]) || [];
+      setDocumentos(docs);
+
+      // Load MP names
+      const mpIds = [...new Set(docs.map(d => d.materia_prima_id).filter(Boolean))];
+      if (mpIds.length > 0) {
+        const { data: mps } = await supabase
+          .from("fabrica_materias_primas")
+          .select("id, nome, codigo")
+          .in("id", mpIds);
+        const mpMap = new Map<string, MPInfo>();
+        (mps || []).forEach((mp: any) => mpMap.set(mp.id, { id: mp.id, nome: mp.nome, codigo: mp.codigo }));
+        setMateriasPrimas(mpMap);
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, [produtoId]);
@@ -107,12 +132,34 @@ export function DocumentosTab({ produtoId }: Props) {
     return matchCat && matchStatus;
   });
 
-  // Group by category
-  const grouped = CATEGORIAS.reduce((acc, cat) => {
-    const docs = filtered.filter(d => d.categoria === cat);
-    if (docs.length > 0) acc.push({ categoria: cat, docs });
-    return acc;
-  }, [] as { categoria: string; docs: Documento[] }[]);
+  // Group by materia_prima_id
+  const mpGroups = (() => {
+    const groups = new Map<string | "geral", Documento[]>();
+    filtered.forEach(doc => {
+      const key = doc.materia_prima_id || "geral";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(doc);
+    });
+
+    const result: { mp: MPInfo | null; docs: Documento[] }[] = [];
+    groups.forEach((docs, key) => {
+      if (key !== "geral") {
+        result.push({ mp: materiasPrimas.get(key) || { id: key, nome: "MP", codigo: "" }, docs });
+      }
+    });
+    result.sort((a, b) => (a.mp?.nome || "").localeCompare(b.mp?.nome || ""));
+    const gerais = groups.get("geral");
+    if (gerais) result.push({ mp: null, docs: gerais });
+    return result;
+  })();
+
+  const toggleMP = (key: string, open: boolean) => {
+    setOpenMPs(prev => {
+      const next = new Set(prev);
+      open ? next.add(key) : next.delete(key);
+      return next;
+    });
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
@@ -144,52 +191,70 @@ export function DocumentosTab({ produtoId }: Props) {
         <div className="text-center py-6 text-muted-foreground text-sm">Nenhum documento vinculado a este produto.</div>
       ) : (
         <ScrollArea className="max-h-[350px]">
-          <div className="space-y-3">
-            {grouped.map(g => (
-              <div key={g.categoria}>
-                <div className="flex items-center gap-2 mb-1.5">
-                  {getCategoriaIcon(g.categoria)}
-                  <span className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">{g.categoria}</span>
-                  <Badge variant="secondary" className="text-[10px]">{g.docs.length}</Badge>
-                </div>
-                <div className="space-y-1 ml-6">
-                  {g.docs.map(doc => (
-                    <div key={doc.id} className="flex items-center gap-2 p-2 border rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{doc.nome_arquivo}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {formatFileSize(doc.tamanho)} • {doc.enviado_por_nome || "—"} • {format(new Date(doc.created_at), "dd/MM/yy", { locale: ptBR })}
-                        </p>
-                      </div>
-                      <Badge variant={doc.status === "aprovado" ? "success" : doc.status === "arquivado" ? "ghost" : "secondary"} className="text-[10px] shrink-0">
-                        {doc.status}
-                      </Badge>
-                      <Select value={doc.categoria} onValueChange={v => handleCategorizar(doc.id, v)}>
-                        <SelectTrigger className="h-7 w-24 text-[10px]"><Tag className="h-3 w-3 mr-1" /><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {CATEGORIAS.map(c => <SelectItem key={c} value={c} className="text-xs capitalize">{c}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <div className="flex gap-0.5">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDownload(doc)} title="Download">
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
-                        {doc.status === "ativo" && (
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={() => handleAprovar(doc.id)} title="Aprovar">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        {doc.status !== "arquivado" && (
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleArquivar(doc.id)} title="Arquivar">
-                            <Archive className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
+          <div className="space-y-2">
+            {mpGroups.map(group => {
+              const mpKey = group.mp ? group.mp.id : "geral";
+              return (
+                <Collapsible
+                  key={mpKey}
+                  open={openMPs.has(mpKey)}
+                  onOpenChange={(open) => toggleMP(mpKey, open)}
+                >
+                  <CollapsibleTrigger asChild>
+                    <button className="w-full border rounded-md px-3 py-2 flex items-center gap-2 hover:bg-muted/30 transition-colors text-left">
+                      <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${openMPs.has(mpKey) ? "rotate-90" : ""}`} />
+                      {group.mp ? (
+                        <FlaskConical className="h-4 w-4 text-amber-600 shrink-0" />
+                      ) : (
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      )}
+                      <span className="text-xs font-medium truncate flex-1">
+                        {group.mp ? `${group.mp.codigo} - ${group.mp.nome}` : "Documentos Gerais"}
+                      </span>
+                      <Badge variant="outline" className="text-[10px] shrink-0">{group.docs.length}</Badge>
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="space-y-1 ml-6 mt-1">
+                      {group.docs.map(doc => (
+                        <div key={doc.id} className="flex items-center gap-2 p-2 border rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{doc.nome_arquivo}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {formatFileSize(doc.tamanho)} • {doc.enviado_por_nome || "—"} • {format(new Date(doc.created_at), "dd/MM/yy", { locale: ptBR })}
+                            </p>
+                          </div>
+                          <Badge variant={doc.status === "aprovado" ? "success" : doc.status === "arquivado" ? "ghost" : "secondary"} className="text-[10px] shrink-0">
+                            {doc.status}
+                          </Badge>
+                          <Select value={doc.categoria} onValueChange={v => handleCategorizar(doc.id, v)}>
+                            <SelectTrigger className="h-7 w-24 text-[10px]"><Tag className="h-3 w-3 mr-1" /><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {CATEGORIAS.map(c => <SelectItem key={c} value={c} className="text-xs capitalize">{c}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <div className="flex gap-0.5">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDownload(doc)} title="Download">
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
+                            {doc.status === "ativo" && (
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={() => handleAprovar(doc.id)} title="Aprovar">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {doc.status !== "arquivado" && (
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleArquivar(doc.id)} title="Arquivar">
+                                <Archive className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })}
           </div>
         </ScrollArea>
       )}
