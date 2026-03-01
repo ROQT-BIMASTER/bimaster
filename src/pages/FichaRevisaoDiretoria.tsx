@@ -192,7 +192,7 @@ export default function FichaRevisaoDiretoria() {
             ) : (
               <>
                 {/* KPI Row */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <Card className="shadow-none">
                     <CardContent className="p-4 text-center">
                       <p className="text-xs text-muted-foreground">Pendentes</p>
@@ -209,18 +209,6 @@ export default function FichaRevisaoDiretoria() {
                     <CardContent className="p-4 text-center">
                       <p className="text-xs text-muted-foreground">Revisão Solicitada</p>
                       <p className="text-2xl font-bold text-orange-500">{kpis.revisaoSolicitada}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="shadow-none">
-                    <CardContent className="p-4 text-center">
-                      <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><Clock className="h-3 w-3" /> Tempo Médio</p>
-                      <p className="text-2xl font-bold">{kpis.tempoMedio.toFixed(0)}h</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="shadow-none">
-                    <CardContent className="p-4 text-center">
-                      <p className="text-xs text-muted-foreground">Paradas &gt;3 dias</p>
-                      <p className={`text-2xl font-bold ${kpis.paradas > 0 ? "text-destructive" : "text-muted-foreground"}`}>{kpis.paradas}</p>
                     </CardContent>
                   </Card>
                 </div>
