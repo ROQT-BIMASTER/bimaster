@@ -18,7 +18,6 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
   const exportar = async () => {
     setExportando(true);
     try {
-      // Fetch display product data
       const { data: displayProduto, error: prodError } = await supabase
         .from("fabrica_produtos")
         .select("id, nome, codigo, codigo_barras_ean, foto_url, ncm, processo_anvisa, tipo_rotulagem, itens_display")
@@ -27,7 +26,6 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
 
       if (prodError || !displayProduto) throw new Error("Produto não encontrado");
 
-      // Fetch grade items with child product details
       const { data: gradeItens, error: gradeError } = await supabase
         .from("fabrica_produto_grade_itens")
         .select("quantidade, ordem, cor_numero, produto_filho:fabrica_produtos!produto_filho_id(id, nome, codigo, codigo_barras_ean, foto_url, ncm, processo_anvisa, tipo_rotulagem)")
@@ -41,22 +39,22 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
         return;
       }
 
-      // Build Excel workbook
       const workbook = new ExcelJS.Workbook();
       workbook.creator = "BiMaster";
       workbook.created = new Date();
 
       const ws = workbook.addWorksheet("Display Grade");
 
-      // Define columns
+      // Define columns with differentiated headers
       ws.columns = [
         { header: "Item No.", key: "item_no", width: 18 },
-        { header: "Color/Commercial name", key: "cor_numero", width: 12 },
-        { header: "Color/Commercial name", key: "cor_nome", width: 30 },
+        { header: "Color No.", key: "cor_numero", width: 12 },
+        { header: "Color/Commercial Name", key: "cor_nome", width: 30 },
         { header: "Picture", key: "picture", width: 15 },
         { header: "Picture of box", key: "picture_box", width: 15 },
         { header: "Item Name", key: "item_name", width: 35 },
-        { header: "Quantity of\npieces per box", key: "qty_per_box", width: 16 },
+        { header: "Qty per item", key: "qty_per_item", width: 14 },
+        { header: "Qty per box", key: "qty_per_box", width: 14 },
         { header: "Type", key: "type", width: 14 },
         { header: "Barcode NO.", key: "barcode", width: 20 },
         { header: "Batch NO.", key: "batch", width: 14 },
@@ -77,21 +75,21 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
       };
       headerRow.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
 
-      // Add data rows
       const totalQty = gradeItens.reduce((s, i) => s + (i.quantidade || 0), 0);
 
+      // Add data rows — item_no on ALL rows
       gradeItens.forEach((item: any, index: number) => {
         const filho = item.produto_filho;
-        const isLast = index === gradeItens.length - 1;
 
         const row = ws.addRow({
-          item_no: isLast ? displayProduto.codigo : "",
+          item_no: displayProduto.codigo,
           cor_numero: item.cor_numero || String(index + 1),
           cor_nome: filho?.nome || "",
           picture: filho?.foto_url ? "Ver foto" : "",
-          picture_box: isLast ? (displayProduto.foto_url ? "Ver foto" : "") : "",
-          item_name: isLast ? displayProduto.nome : "",
-          qty_per_box: isLast ? totalQty : "",
+          picture_box: "",
+          item_name: "",
+          qty_per_item: item.quantidade || 1,
+          qty_per_box: "",
           type: filho?.tipo_rotulagem || displayProduto.tipo_rotulagem || "",
           barcode: filho?.codigo_barras_ean || "",
           batch: "",
@@ -111,12 +109,42 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
           cell.value = { text: "Ver foto", hyperlink: filho.foto_url };
           cell.font = { size: 10, color: { argb: "FF0563C1" }, underline: true };
         }
-        if (isLast && displayProduto.foto_url) {
-          const cell = row.getCell("picture_box");
-          cell.value = { text: "Ver foto", hyperlink: displayProduto.foto_url };
-          cell.font = { size: 10, color: { argb: "FF0563C1" }, underline: true };
-        }
       });
+
+      // Add TOTAL footer row
+      const totalRow = ws.addRow({
+        item_no: displayProduto.codigo,
+        cor_numero: "",
+        cor_nome: "",
+        picture: "",
+        picture_box: displayProduto.foto_url ? "Ver foto" : "",
+        item_name: displayProduto.nome,
+        qty_per_item: "",
+        qty_per_box: totalQty,
+        type: displayProduto.tipo_rotulagem || "",
+        barcode: displayProduto.codigo_barras_ean || "",
+        batch: "",
+        production_date: "",
+        expiry_date: "",
+        proc_anvisa: displayProduto.processo_anvisa || "",
+        ncm: displayProduto.ncm || "",
+      });
+
+      totalRow.height = 26;
+      totalRow.font = { bold: true, size: 10 };
+      totalRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFD9E2F3" },
+      };
+      totalRow.alignment = { vertical: "middle" };
+
+      // Hyperlink for display box photo
+      if (displayProduto.foto_url) {
+        const cell = totalRow.getCell("picture_box");
+        cell.value = { text: "Ver foto", hyperlink: displayProduto.foto_url };
+        cell.font = { bold: true, size: 10, color: { argb: "FF0563C1" }, underline: true };
+      }
 
       // Apply borders to all cells
       ws.eachRow((row) => {
@@ -130,7 +158,6 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
         });
       });
 
-      // Generate and download
       const timestamp = new Date().toISOString().split("T")[0];
       const filename = `Grade_${produtoCodigo}_${timestamp}.xlsx`;
 

@@ -301,6 +301,10 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
       return;
     }
 
+    if (formData.tipo === "DISPLAY" && gradeItems.length === 0) {
+      toast.warning("Atenção: este Display não possui itens na grade. Deseja continuar mesmo assim?");
+    }
+
     salvarMutation.mutate();
   };
 
@@ -578,30 +582,28 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                 </p>
               </div>
 
-              {formData.tipo === "DISPLAY" && (
-                <div>
-                  <Label htmlFor="tipo_rotulagem">Tipo de Rotulagem</Label>
-                  <Select
-                    value={formData.tipo_rotulagem || "SEM_TIPO"}
-                    onValueChange={(value) => setFormData({ ...formData, tipo_rotulagem: value === "SEM_TIPO" ? "" : value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="SEM_TIPO">Nenhum</SelectItem>
-                      <SelectItem value="sticker">Sticker</SelectItem>
-                      <SelectItem value="label">Label</SelectItem>
-                      <SelectItem value="sleeve">Sleeve</SelectItem>
-                      <SelectItem value="tag">Tag</SelectItem>
-                      <SelectItem value="outro">Outro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Tipo de rotulagem aplicada no produto (sticker, label, sleeve...)
-                  </p>
-                </div>
-              )}
+              <div>
+                <Label htmlFor="tipo_rotulagem">Tipo de Rotulagem</Label>
+                <Select
+                  value={formData.tipo_rotulagem || "SEM_TIPO"}
+                  onValueChange={(value) => setFormData({ ...formData, tipo_rotulagem: value === "SEM_TIPO" ? "" : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SEM_TIPO">Nenhum</SelectItem>
+                    <SelectItem value="sticker">Sticker</SelectItem>
+                    <SelectItem value="label">Label</SelectItem>
+                    <SelectItem value="sleeve">Sleeve</SelectItem>
+                    <SelectItem value="tag">Tag</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Tipo de rotulagem aplicada no produto (sticker, label, sleeve...)
+                </p>
+              </div>
             </TabsContent>
 
             {/* Aba Grade - only for DISPLAY type */}
