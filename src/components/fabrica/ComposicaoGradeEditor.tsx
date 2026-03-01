@@ -40,6 +40,7 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
       .or(`nome.ilike.%${termo}%,codigo.ilike.%${termo}%`)
       .eq("ativo", true)
       .neq("tipo", "MP")
+      .neq("tipo", "DISPLAY")
       .limit(10);
 
     // Filter out already-added items and the parent itself

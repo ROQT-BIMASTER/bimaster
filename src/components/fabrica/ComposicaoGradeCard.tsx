@@ -10,6 +10,7 @@ interface GradeFilho {
   nome: string;
   codigo: string;
   codigo_barras_ean: string | null;
+  foto_url: string | null;
   quantidade: number;
 }
 
@@ -27,7 +28,7 @@ export function ComposicaoGradeCard({ produtoId, compact = false }: ComposicaoGr
       setLoading(true);
       const { data } = await supabase
         .from("fabrica_produto_grade_itens")
-        .select("id, quantidade, ordem, produto_filho:fabrica_produtos!produto_filho_id(nome, codigo, codigo_barras_ean)")
+        .select("id, quantidade, ordem, produto_filho:fabrica_produtos!produto_filho_id(nome, codigo, codigo_barras_ean, foto_url)")
         .eq("produto_pai_id", produtoId)
         .order("ordem");
 
@@ -38,6 +39,7 @@ export function ComposicaoGradeCard({ produtoId, compact = false }: ComposicaoGr
             nome: d.produto_filho?.nome || "",
             codigo: d.produto_filho?.codigo || "",
             codigo_barras_ean: d.produto_filho?.codigo_barras_ean || null,
+            foto_url: d.produto_filho?.foto_url || null,
             quantidade: d.quantidade,
           }))
         );
@@ -83,6 +85,11 @@ export function ComposicaoGradeCard({ produtoId, compact = false }: ComposicaoGr
             className="flex items-center justify-between py-1.5 px-2 rounded bg-muted/30 text-xs"
           >
             <div className="flex items-center gap-2 min-w-0">
+              {item.foto_url ? (
+                <img src={item.foto_url} alt="" className="h-5 w-5 rounded object-cover shrink-0" />
+              ) : (
+                <Package className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+              )}
               <Badge variant="outline" className="text-[9px] py-0 px-1 shrink-0">
                 {item.codigo}
               </Badge>
