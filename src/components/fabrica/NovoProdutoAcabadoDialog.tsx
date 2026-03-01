@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ComposicaoGradeEditor } from "@/components/fabrica/ComposicaoGradeEditor";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -71,6 +73,8 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
     origem: "nacional",
   });
 
+  const [gradeItems, setGradeItems] = useState<any[]>([]);
+
   const { data: formulas } = useQuery({
     queryKey: ["formulas-ativas"],
     queryFn: async () => {
@@ -130,6 +134,31 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         ativo: produtoEdit.ativo ?? true,
         origem: produtoEdit.origem || "nacional",
       });
+
+      // Load grade items for DISPLAY products
+      if (produtoEdit.tipo === "DISPLAY") {
+        supabase
+          .from("fabrica_produto_grade_itens")
+          .select("produto_filho_id, quantidade, ordem, produto_filho:fabrica_produtos!produto_filho_id(nome, codigo, codigo_barras_ean)")
+          .eq("produto_pai_id", produtoEdit.id)
+          .order("ordem")
+          .then(({ data }) => {
+            if (data) {
+              setGradeItems(
+                data.map((d: any) => ({
+                  produto_filho_id: d.produto_filho_id,
+                  nome: d.produto_filho?.nome || "",
+                  codigo: d.produto_filho?.codigo || "",
+                  codigo_barras_ean: d.produto_filho?.codigo_barras_ean || null,
+                  quantidade: d.quantidade,
+                  ordem: d.ordem,
+                }))
+              );
+            }
+          });
+      } else {
+        setGradeItems([]);
+      }
     } else if (!produtoEdit && open) {
       setFormData({
         codigo: "",
@@ -159,6 +188,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         ativo: true,
         origem: "nacional",
       });
+      setGradeItems([]);
     }
   }, [produtoEdit, open]);
 
@@ -197,21 +227,50 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         created_by: user.id,
       };
 
+      let produtoId = produtoEdit?.id;
+
       if (produtoEdit) {
         const { error } = await supabase
           .from("fabrica_produtos")
-          .update(payload)
+          .update({ ...payload, itens_display: formData.tipo === "DISPLAY" ? gradeItems.reduce((s, i) => s + i.quantidade, 0) : (payload as any).itens_display })
           .eq("id", produtoEdit.id)
           .select();
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("fabrica_produtos")
-          .insert([payload])
-          .select();
+          .insert([{ ...payload, itens_display: formData.tipo === "DISPLAY" ? gradeItems.reduce((s, i) => s + i.quantidade, 0) : null }])
+          .select()
+          .single();
 
         if (error) throw error;
+        produtoId = data.id;
+      }
+
+      // Save grade items for DISPLAY type
+      if (formData.tipo === "DISPLAY" && produtoId) {
+        // Delete existing items
+        await supabase
+          .from("fabrica_produto_grade_itens")
+          .delete()
+          .eq("produto_pai_id", produtoId);
+
+        // Insert new items
+        if (gradeItems.length > 0) {
+          const { error: gradeError } = await supabase
+            .from("fabrica_produto_grade_itens")
+            .insert(
+              gradeItems.map((item, index) => ({
+                produto_pai_id: produtoId,
+                produto_filho_id: item.produto_filho_id,
+                quantidade: item.quantidade,
+                ordem: index,
+              }))
+            );
+
+          if (gradeError) throw gradeError;
+        }
       }
     },
     timeout: 15000,
@@ -250,9 +309,12 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
 
         <form onSubmit={handleSubmit}>
           <Tabs defaultValue="identificacao" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className={cn("grid w-full", formData.tipo === "DISPLAY" ? "grid-cols-5" : "grid-cols-4")}>
               <TabsTrigger value="identificacao">Identificação</TabsTrigger>
               <TabsTrigger value="classificacao">Classificação</TabsTrigger>
+              {formData.tipo === "DISPLAY" && (
+                <TabsTrigger value="grade">Grade</TabsTrigger>
+              )}
               <TabsTrigger value="producao">Produção</TabsTrigger>
               <TabsTrigger value="outros">Outros</TabsTrigger>
             </TabsList>
@@ -363,6 +425,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ACABADO">Produto Acabado</SelectItem>
+                      <SelectItem value="DISPLAY">Display / Kit</SelectItem>
                       <SelectItem value="INTER">Intermediário</SelectItem>
                       <SelectItem value="MP">Matéria-Prima</SelectItem>
                     </SelectContent>
@@ -495,6 +558,17 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                 </p>
               </div>
             </TabsContent>
+
+            {/* Aba Grade - only for DISPLAY type */}
+            {formData.tipo === "DISPLAY" && (
+              <TabsContent value="grade" className="space-y-4 mt-4">
+                <ComposicaoGradeEditor
+                  produtoPaiId={produtoEdit?.id}
+                  items={gradeItems}
+                  onChange={setGradeItems}
+                />
+              </TabsContent>
+            )}
 
             {/* Aba Produção */}
             <TabsContent value="producao" className="space-y-4 mt-4">

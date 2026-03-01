@@ -1,4 +1,5 @@
-import { Package, DollarSign, TrendingUp } from "lucide-react";
+import { Package, DollarSign, TrendingUp, Layers } from "lucide-react";
+import { ComposicaoGradeCard } from "@/components/fabrica/ComposicaoGradeCard";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,12 @@ export function ProdutoKanbanCard({
       <div className="p-3 space-y-1.5">
         <p className="font-medium text-sm leading-tight line-clamp-2">{produto.nome}</p>
         <p className="text-xs text-muted-foreground font-mono">{produto.codigo}</p>
+
+        {produto.tipo === "DISPLAY" && (
+          <div className="mt-1">
+            <ComposicaoGradeCard produtoId={produto.id} compact />
+          </div>
+        )}
 
         {(produto.marca || produto.linha) && (
           <div className="flex flex-wrap gap-1">
