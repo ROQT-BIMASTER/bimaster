@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -41,6 +42,7 @@ import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 
 export default function FabricaProdutosAcabados() {
   const { hasPermission, loading: permLoading } = useScreenPermissions();
+  const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const { startTour, hasSeenTour } = useTour();
   const [dialogNovo, setDialogNovo] = useState(false);
@@ -390,12 +392,14 @@ export default function FabricaProdutosAcabados() {
                 Comunicação de Revisões
               </Link>
             </Button>
-            <Button variant="outline" asChild>
-              <Link to="/dashboard/fabrica/produtos/importar">
-                <Upload className="h-4 w-4 mr-2" />
-                Importar em Massa
-              </Link>
-            </Button>
+            {isAdmin && (
+              <Button variant="outline" asChild>
+                <Link to="/dashboard/fabrica/produtos/importar">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Importar em Massa
+                </Link>
+              </Button>
+            )}
             <Button
               onClick={() => {
                 setProdutoEdit(null);
