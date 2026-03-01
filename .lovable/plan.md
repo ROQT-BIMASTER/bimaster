@@ -1,64 +1,45 @@
 
 
-## Plano: Persistir XMLs de NF-e para reutilização entre produtos
+## Plano: Acesso de Compras/Faturamento a Matérias-Primas + Correções da Fábrica
 
-Atualmente o XML é processado em memória e descartado após vincular. O objetivo é salvar o arquivo XML e seus dados parseados no banco, permitindo que ao vincular um insumo em qualquer produto, o usuário possa escolher entre **subir um novo XML** ou **selecionar um já salvo**.
+### 1. Corrigir inconsistência de screenCode na rota de Matérias-Primas
 
----
+**Bug encontrado:** Em `App.tsx`, a rota `/dashboard/fabrica/materias-primas` usa `screenCode="fabrica_materias_primas"`, mas a tela no banco tem código `fabrica_mps`. Isso pode bloquear acesso mesmo para quem tem permissão. Corrigir para `screenCode="fabrica_mps"`.
 
-### 1. Criar tabela `fabrica_nfe_xmls` e bucket de storage
+### 2. Garantir acesso para Compras/Faturamento
 
-**Tabela** para armazenar metadados dos XMLs já importados:
-- `id` (uuid, PK)
-- `numero_nf` (text) — número da NF
-- `serie` (text)
-- `chave_acesso` (text, unique)
-- `data_emissao` (date)
-- `valor_total` (numeric)
-- `fornecedor_cnpj` (text)
-- `fornecedor_razao_social` (text)
-- `fornecedor_nome_fantasia` (text)
-- `produtos` (jsonb) — array com os produtos parseados do XML
-- `storage_path` (text) — caminho do XML no storage
-- `uploaded_by` (uuid, FK profiles)
-- `created_at` (timestamptz)
+O sistema usa permissões por tela (`usuario_permissoes_telas`) vinculadas ao código da tela. Duas opções para liberar acesso:
 
-**Storage bucket** `fabrica-nfe-xmls` para guardar o arquivo XML original.
+- **Via banco:** Inserir permissão `fabrica_mps` para os usuários do departamento Compras/Faturamento (se o departamento não existe, criá-lo).
+- **Via código:** Não é necessário alterar código além da correção do screenCode, pois o sistema já suporta permissões individuais por usuário e departamento. O administrador pode conceder acesso pela tela de Permissões.
 
-**RLS**: usuários autenticados podem ler todos e inserir.
+**Ação:** Como não existe departamento "Compras/Faturamento" no banco, criar via migration e vincular a permissão do módulo `fabrica` e da tela `fabrica_mps` a esse departamento para que todos os membros tenham acesso automático.
 
-### 2. Atualizar `VincularXmlInsumoDialog`
+### 3. Testar funcionalidades da Fábrica via navegação
 
-Adicionar **duas abas/modos** no dialog:
-- **Subir novo XML**: fluxo atual, mas ao processar o XML com sucesso, salva o arquivo no storage e os metadados na tabela antes de apresentar os produtos.
-- **Selecionar XML salvo**: lista os XMLs já importados (número NF, fornecedor, data), ao selecionar carrega os produtos do campo `jsonb` para a mesma tabela de seleção.
+Após as correções, navegar pelo módulo Fábrica para verificar:
+- Matérias-Primas (listagem, criação, edição, exclusão)
+- Produtos Acabados
+- Fórmulas BOM
+- Ordens de Produção
+- Vinculação de XML (novo e salvos)
+- Configuração Fiscal
 
-Antes de salvar um novo XML, verificar pela `chave_acesso` se já existe — se sim, reutilizar o registro existente.
+### Arquivos afetados
 
-### 3. Ajustar fluxo de vinculação
-
-O restante do fluxo (selecionar produto, preencher fornecedor/custo/NF/código) permanece idêntico. A única diferença é a origem dos dados: memória local vs. banco.
-
----
+- `src/App.tsx` — corrigir `fabrica_materias_primas` → `fabrica_mps` na rota (linha 372)
+- Migration SQL — criar departamento "Compras e Faturamento" e vincular permissão da tela `fabrica_mps` e módulo `fabrica` ao departamento
 
 ### Detalhes técnicos
 
 ```text
-┌──────────────────────────────────────┐
-│  VincularXmlInsumoDialog             │
-│                                      │
-│  [Subir novo XML]  [XMLs salvos]     │
-│  ─────────────────────────────────── │
-│  Tab 1: Upload → parse → save DB     │
-│  Tab 2: Lista XMLs → select → load   │
-│  ─────────────────────────────────── │
-│  Tabela de produtos do XML           │
-│  [Vincular Produto]                  │
-└──────────────────────────────────────┘
-```
+App.tsx linha 372:
+  ANTES: screenCode="fabrica_materias_primas"
+  DEPOIS: screenCode="fabrica_mps"
 
-**Arquivos afetados:**
-- Migration SQL (nova tabela + bucket + RLS)
-- `src/components/fabrica/VincularXmlInsumoDialog.tsx` — adicionar abas, lógica de salvar e buscar XMLs
-- `src/lib/fabrica/nfe-xml-parser.ts` — sem alterações
+Migration SQL:
+  1. INSERT departamento "Compras e Faturamento"
+  2. INSERT departamento_permissoes_modulos → módulo fabrica
+  3. INSERT (se tabela existir) permissão de tela fabrica_mps
+```
 
