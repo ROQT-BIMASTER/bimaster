@@ -4,9 +4,6 @@ project_id = "aokkyrgaqjarhlywhjju"
 [functions.cofre-share]
 verify_jwt = false
 
-[functions.contas-receber-powerquery]
-verify_jwt = false
-
 [functions.cobranca-automation-api]
 verify_jwt = false
 

@@ -74,12 +74,14 @@ export function ProfileAvatarUpload({
 
       if (uploadError) throw uploadError;
 
-      // Obter URL pública
-      const { data: urlData } = supabase.storage
+      // Obter URL assinada (bucket privado)
+      const { data: signedData, error: signedError } = await supabase.storage
         .from("avatars")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 ano
 
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      if (signedError || !signedData?.signedUrl) throw signedError || new Error("Erro ao gerar URL assinada");
+
+      const publicUrl = signedData.signedUrl;
 
       // Atualizar perfil
       const { error: updateError } = await supabase
