@@ -37,6 +37,7 @@ import { ImportarInsumosIA } from "./ImportarInsumosIA";
 import { HistoricoCustosInsumoDialog } from "./HistoricoCustosInsumoDialog";
 import { AlterarCustoDialog } from "./AlterarCustoDialog";
 import { CotacoesInsumoPanel } from "./CotacoesInsumoPanel";
+import { VincularXmlInsumoDialog } from "./VincularXmlInsumoDialog";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { supabase } from "@/integrations/supabase/client";
@@ -147,6 +148,7 @@ export function FichaCustoProdutoEditor({
   const [submittingComTermo, setSubmittingComTermo] = useState(false);
   const [uploadingEvidenciaGeral, setUploadingEvidenciaGeral] = useState(false);
   const evidenciaFileRef = useRef<HTMLInputElement>(null);
+  const [xmlVincularInsumo, setXmlVincularInsumo] = useState<{ id: string; nome: string } | null>(null);
 
   const isLocked = statusAprovacao === "em_revisao" || statusAprovacao === "aprovada";
 
@@ -1092,6 +1094,15 @@ export function FichaCustoProdutoEditor({
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
+                                onClick={() => setXmlVincularInsumo({ id: insumo.id, nome: insumo.nome })}
+                                title="Vincular XML da NF-e"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
                                 onClick={() => setHistoricoInsumo({ id: insumo.id, nome: insumo.nome })}
                                 title="Histórico de custos"
                               >
@@ -1565,6 +1576,21 @@ export function FichaCustoProdutoEditor({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Dialog vincular XML ao insumo */}
+      {xmlVincularInsumo && (
+        <VincularXmlInsumoDialog
+          open={!!xmlVincularInsumo}
+          onOpenChange={(open) => { if (!open) setXmlVincularInsumo(null); }}
+          insumoId={xmlVincularInsumo.id}
+          insumoNome={xmlVincularInsumo.nome}
+          onVincular={(dados) => {
+            onAtualizarInsumo(xmlVincularInsumo.id, "fornecedor", dados.fornecedor);
+            onAtualizarInsumo(xmlVincularInsumo.id, "custo_nf", dados.custo_nf);
+            onAtualizarInsumo(xmlVincularInsumo.id, "nf_referencia", dados.nf_referencia);
+            onAtualizarInsumo(xmlVincularInsumo.id, "codigo", dados.codigo);
+          }}
+        />
+      )}
     </div>
   );
 }
