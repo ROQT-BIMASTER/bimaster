@@ -1,35 +1,38 @@
 
 
-## Diagnóstico e Plano
+## Plano: Reformular Grade com Tabela de Seleção, Filtros e Exportação PDF/Excel
 
-### O que já está implementado (confirmado no código)
+### Contexto
+Atualmente o editor de grade usa apenas uma barra de busca textual. O usuário quer:
+1. Ver todos os produtos acabados em uma mini-tabela com filtros por Marca, Linha e busca
+2. Selecionar produtos via checkbox e definir quantidade
+3. Exportar a grade completa para PDF (impressão) ou Excel
 
-Todas as alterações anteriores estão no código:
-- `ComposicaoGradeEditor.tsx`: filtro `.neq("tipo", "DISPLAY")`, busca por EAN, campo `cor_numero`
-- `NovoProdutoAcabadoDialog.tsx`: aba Grade condicional, limpeza ao trocar tipo, `tipo_rotulagem` para todos os tipos, warning de grade vazia
-- `ExportarDisplayGrade.tsx`: exportação Excel completa com headers diferenciados, qty individual, linha TOTAL
-- `ProdutoDetalhesSheet.tsx`: card de grade, botão exportar, "Usado em Displays" reverso
+### Dados disponíveis
+- 21 produtos, todos marca MELU, com linhas: Banana, Game on, MELU - Sérum, Pistache
+- Campos: id, nome, codigo, marca, linha, categoria, foto_url, codigo_barras_ean
 
-O motivo provável de "não encontrar" é que **nenhum produto está cadastrado como tipo DISPLAY** no banco (todos os 21 produtos são tipo ACABADO). As funcionalidades só aparecem ao selecionar tipo "Display / Kit" no cadastro de produto.
+### Alterações
 
-### Plano: Manual completo sobre Displays
+**1. Reescrever `ComposicaoGradeEditor.tsx`** -- Substituir busca simples por:
+- Barra de filtros: Select para **Marca** e **Linha** (valores distintos carregados do banco) + Input de busca textual
+- Mini-tabela abaixo dos filtros mostrando produtos filtrados com colunas: Código, Nome, Linha, EAN, botão "+"
+- Carregar todos os produtos elegíveis ao abrir (tipo != MP, != DISPLAY, ativo = true), filtrar no frontend
+- Manter a lista de itens selecionados abaixo com quantidade editável, Nº cor e botão remover
+- ScrollArea para a tabela (max ~200px) e para os itens selecionados (max ~200px)
 
-| Ação | Arquivo |
+**2. Adicionar exportação PDF ao `ExportarDisplayGrade.tsx`** -- Novo botão "Imprimir PDF" ao lado do Excel:
+- Gerar HTML formatado com tabela da grade no mesmo layout do Excel
+- Abrir em nova janela com `window.print()` para impressão/PDF nativo do navegador
+- Colunas: Item No., Color No., Color Name, Qty, Type, Barcode, Proc Anvisa, NCM
+
+**3. Atualizar `NovoProdutoAcabadoDialog.tsx`** -- Na aba Grade, mostrar dois botões de exportação (PDF + Excel) abaixo do editor quando houver itens na grade (mesmo antes de salvar, para preview)
+
+### Arquivos impactados
+
+| Arquivo | Ação |
 |---|---|
-| Adicionar seção "Displays / Kits" ao ManualFabricaDrawer | `ManualFabricaDrawer.tsx` |
-| Adicionar seção "Displays / Kits" ao FabricaManualPage | `FabricaManualPage.tsx` |
-| Adicionar seção ao manual contextual de Produtos Acabados explicando como acessar as funcionalidades de Display | `ManualFabricaDrawer.tsx` (seção "produtos-acabados") |
-
-### Conteúdo do Manual de Displays
-
-O manual cobrirá:
-1. **O que é um Display/Kit** -- conceito e quando usar
-2. **Como criar** -- passo a passo completo (tipo DISPLAY, aba Grade, busca de produtos, cor/número, quantidade)
-3. **Tipo de Rotulagem** -- sticker, label, sleeve, tag
-4. **Composição de Grade** -- adicionar/remover produtos, campo Nº da cor, quantidade por variante
-5. **Regras e validações** -- não permite DISPLAY dentro de DISPLAY, warning de grade vazia, limpeza ao trocar tipo
-6. **Exportação Excel** -- formato da planilha, colunas, linha TOTAL, como usar
-7. **Rastreabilidade reversa** -- "Usado em Displays" no painel de detalhes
-8. **Exemplo prático completo** -- Display com 3 variantes, exportação Excel
-9. **Fluxo recomendado** -- cadastrar produtos → criar Display → montar grade → exportar
+| `ComposicaoGradeEditor.tsx` | Reescrever: tabela de seleção com filtros Marca/Linha/Busca |
+| `ExportarDisplayGrade.tsx` | Adicionar botão de impressão PDF via `window.print()` |
+| `NovoProdutoAcabadoDialog.tsx` | Exibir botões PDF/Excel na aba Grade |
 
