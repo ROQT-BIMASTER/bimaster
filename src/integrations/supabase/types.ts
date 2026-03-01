@@ -6691,6 +6691,54 @@ export type Database = {
         }
         Relationships: []
       }
+      fabrica_nfe_xmls: {
+        Row: {
+          chave_acesso: string | null
+          created_at: string
+          data_emissao: string | null
+          fornecedor_cnpj: string | null
+          fornecedor_nome_fantasia: string | null
+          fornecedor_razao_social: string | null
+          id: string
+          numero_nf: string
+          produtos: Json
+          serie: string | null
+          storage_path: string | null
+          uploaded_by: string | null
+          valor_total: number | null
+        }
+        Insert: {
+          chave_acesso?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          fornecedor_cnpj?: string | null
+          fornecedor_nome_fantasia?: string | null
+          fornecedor_razao_social?: string | null
+          id?: string
+          numero_nf: string
+          produtos?: Json
+          serie?: string | null
+          storage_path?: string | null
+          uploaded_by?: string | null
+          valor_total?: number | null
+        }
+        Update: {
+          chave_acesso?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          fornecedor_cnpj?: string | null
+          fornecedor_nome_fantasia?: string | null
+          fornecedor_razao_social?: string | null
+          id?: string
+          numero_nf?: string
+          produtos?: Json
+          serie?: string | null
+          storage_path?: string | null
+          uploaded_by?: string | null
+          valor_total?: number | null
+        }
+        Relationships: []
+      }
       fabrica_notas_fiscais: {
         Row: {
           chave_acesso: string
