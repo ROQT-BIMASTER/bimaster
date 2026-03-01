@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
+import { ComposicaoGradeCard } from "@/components/fabrica/ComposicaoGradeCard";
 import { NovoProdutoAcabadoDialog } from "@/components/fabrica/NovoProdutoAcabadoDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -34,6 +35,7 @@ interface ProdutoData {
   ativo: boolean;
   modo_foco: boolean;
   foto_url: string | null;
+  tipo: string | null;
 }
 
 interface CustoConfigData {
@@ -67,7 +69,7 @@ export function ProdutoDetalhesSheet({ open, onOpenChange, produtoId }: ProdutoD
     const fetchData = async () => {
       // Fetch display data + full product data for edit dialog
       const [prodRes, fullProdRes, configRes, insumosRes] = await Promise.all([
-        supabase.from("fabrica_produtos").select("id, nome, codigo, marca, linha, origem, ncm, processo_anvisa, lead_time_dias, itens_display, ativo, modo_foco, foto_url").eq("id", produtoId).single(),
+        supabase.from("fabrica_produtos").select("id, nome, codigo, marca, linha, origem, ncm, processo_anvisa, lead_time_dias, itens_display, ativo, modo_foco, foto_url, tipo").eq("id", produtoId).single(),
         supabase.from("fabrica_produtos").select("*").eq("id", produtoId).single(),
         supabase.from("fabrica_produto_custos_config").select("custo_mao_obra_nf, custo_mao_obra_servico, percentual_markup").eq("produto_id", produtoId).maybeSingle(),
         supabase.from("fabrica_produto_custos").select("id, nome, codigo, custo_nf, custo_servico").eq("produto_id", produtoId).order("ordem"),
@@ -214,6 +216,14 @@ export function ProdutoDetalhesSheet({ open, onOpenChange, produtoId }: ProdutoD
                 </>
               )}
 
+              {/* Grade composition for DISPLAY products */}
+              {produto.tipo === "DISPLAY" && (
+                <>
+                  <Separator />
+                  <ComposicaoGradeCard produtoId={produto.id} />
+                </>
+              )}
+
               {/* Actions */}
               <Separator />
               <div className="space-y-2 pb-4">
@@ -257,7 +267,7 @@ export function ProdutoDetalhesSheet({ open, onOpenChange, produtoId }: ProdutoD
           setEditDialogOpen(false);
           // Reload product data
           setLoading(true);
-          supabase.from("fabrica_produtos").select("id, nome, codigo, marca, linha, origem, ncm, processo_anvisa, lead_time_dias, itens_display, ativo, modo_foco, foto_url").eq("id", produtoId).single().then(({ data }) => {
+          supabase.from("fabrica_produtos").select("id, nome, codigo, marca, linha, origem, ncm, processo_anvisa, lead_time_dias, itens_display, ativo, modo_foco, foto_url, tipo").eq("id", produtoId).single().then(({ data }) => {
             if (data) setProduto(data as unknown as ProdutoData);
             setLoading(false);
           });

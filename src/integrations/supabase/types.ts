@@ -7474,6 +7474,48 @@ export type Database = {
           },
         ]
       }
+      fabrica_produto_grade_itens: {
+        Row: {
+          created_at: string
+          id: string
+          ordem: number
+          produto_filho_id: string
+          produto_pai_id: string
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ordem?: number
+          produto_filho_id: string
+          produto_pai_id: string
+          quantidade?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ordem?: number
+          produto_filho_id?: string
+          produto_pai_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_produto_grade_itens_produto_filho_id_fkey"
+            columns: ["produto_filho_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_produto_grade_itens_produto_pai_id_fkey"
+            columns: ["produto_pai_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_produto_visibility_blocks: {
         Row: {
           blocked_by: string
