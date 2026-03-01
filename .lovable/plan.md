@@ -1,102 +1,64 @@
 
 
-# Inventario Completo de Vulnerabilidades
+## Plano: Persistir XMLs de NF-e para reutilização entre produtos
 
-## Status Atual do Sistema
-
-Após todas as correções implementadas, este e o panorama completo.
+Atualmente o XML é processado em memória e descartado após vincular. O objetivo é salvar o arquivo XML e seus dados parseados no banco, permitindo que ao vincular um insumo em qualquer produto, o usuário possa escolher entre **subir um novo XML** ou **selecionar um já salvo**.
 
 ---
 
-## CRÍTICO (0)
+### 1. Criar tabela `fabrica_nfe_xmls` e bucket de storage
 
-Nenhuma vulnerabilidade critica aberta. As anteriores (`contas-receber-powerquery`, `geocode-batch` sem auth, buckets publicos) foram todas corrigidas.
+**Tabela** para armazenar metadados dos XMLs já importados:
+- `id` (uuid, PK)
+- `numero_nf` (text) — número da NF
+- `serie` (text)
+- `chave_acesso` (text, unique)
+- `data_emissao` (date)
+- `valor_total` (numeric)
+- `fornecedor_cnpj` (text)
+- `fornecedor_razao_social` (text)
+- `fornecedor_nome_fantasia` (text)
+- `produtos` (jsonb) — array com os produtos parseados do XML
+- `storage_path` (text) — caminho do XML no storage
+- `uploaded_by` (uuid, FK profiles)
+- `created_at` (timestamptz)
 
----
+**Storage bucket** `fabrica-nfe-xmls` para guardar o arquivo XML original.
 
-## ALTO (1)
+**RLS**: usuários autenticados podem ler todos e inserir.
 
-**1. Config fantasma: `contas-receber-powerquery` ainda no `config.toml`**
-A função foi deletada mas a entrada `[functions.contas-receber-powerquery] verify_jwt = false` permanece no `supabase/config.toml` (linhas 7-8). Embora não cause risco direto (função não existe), é lixo de configuração que pode confundir deploys futuros.
+### 2. Atualizar `VincularXmlInsumoDialog`
 
-**Correção:** Remover as linhas 7-8 do `config.toml`.
+Adicionar **duas abas/modos** no dialog:
+- **Subir novo XML**: fluxo atual, mas ao processar o XML com sucesso, salva o arquivo no storage e os metadados na tabela antes de apresentar os produtos.
+- **Selecionar XML salvo**: lista os XMLs já importados (número NF, fornecedor, data), ao selecionar carrega os produtos do campo `jsonb` para a mesma tabela de seleção.
 
----
+Antes de salvar um novo XML, verificar pela `chave_acesso` se já existe — se sim, reutilizar o registro existente.
 
-## MEDIO (5)
+### 3. Ajustar fluxo de vinculação
 
-**2. Bucket `avatars` é público**
-O bucket `avatars` está `public = true`. Qualquer pessoa com a URL pode ver fotos de perfil dos usuarios. Embora avatares sejam menos sensíveis que documentos financeiros, em contexto corporativo isso expõe a identidade visual dos funcionarios.
-
-**3. Bucket `marketing-assets` é público**
-Intencionalmente público para materiais promocionais. Risco baixo, mas vale documentar como decisão consciente.
-
-**4. Credenciais de ads em JSONB sem criptografia**
-A tabela `ads_accounts` armazena tokens de API do Google/Meta Ads em coluna `credentials` JSONB sem criptografia aplicativa. A RLS bloqueia SELECT direto (forçando uso da view `ads_accounts_safe`), mas dumps de banco ou service_role expõem os tokens em texto plano.
-
-**5. Extensão `pg_net` no schema `public`**
-Limitação da plataforma Lovable Cloud — não pode ser movida. Já marcada como ignorada no linter.
-
-**6. `CORS Allow-Origin: *` em todas as Edge Functions**
-Todas as funções aceitam requisições de qualquer origem. Para integrações N8N/webhooks isso é necessário, mas funções chamadas apenas pelo frontend (ex: `elevenlabs-tts`, `expense-ai-assistant`, `qa-agent`) deveriam restringir ao domínio `bimaster.lovable.app`.
-
----
-
-## BAIXO (4)
-
-**7. Políticas `USING(true)` remanescentes em tabelas não-críticas**
-88 migrações contêm `USING(true)`. A maioria são tabelas de referência (`competitors`, `departamentos`, `trade_chart_of_accounts`) onde SELECT aberto para `authenticated` é aceitável. Tabelas financeiras e de notas fiscais já foram corrigidas.
-
-Tabelas com `FOR ALL USING(true)` ainda presentes:
-- `user_rankings` — Sistema atualiza rankings automaticamente
-- `user_challenge_progress` — Sistema atualiza progresso
-- `sync_rate_limiter` — Rate limiter operacional
-- `trade_campaign_audit_log` — INSERT com `WITH CHECK(true)`
-
-**8. `dangerouslySetInnerHTML` em 2 componentes**
-- `chart.tsx` — CSS estático de config
-- `WhatsAppAgentFlow.tsx` — Mermaid diagram hardcoded
-
-Risco negligível (conteúdo estático), mas padrão a evitar.
-
-**9. Re-autenticação via `signInWithPassword` para operações admin**
-`AdminPasswordDialog` e `PasswordConfirmDialog` chamam `signInWithPassword` para verificar identidade. Pode disparar rate limiting do auth em uso intenso. Risco baixo para operações infrequentes.
-
-**10. `localStorage` cache de status (2 min)**
-`user_approved_cache` e `user_active_cache` usados apenas como hint de UI. Validação server-side sempre executa. Implementação segura — cache não influencia decisões de autorização.
+O restante do fluxo (selecionar produto, preencher fornecedor/custo/NF/código) permanece idêntico. A única diferença é a origem dos dados: memória local vs. banco.
 
 ---
 
-## INFORMACIONAL (2)
+### Detalhes técnicos
 
-**11. ~20 rotas já protegidas com Module/ScreenProtectedRoute**
-Implementado na sessão anterior. Todas as rotas sensíveis agora verificam permissão de módulo/tela alem da autenticação.
+```text
+┌──────────────────────────────────────┐
+│  VincularXmlInsumoDialog             │
+│                                      │
+│  [Subir novo XML]  [XMLs salvos]     │
+│  ─────────────────────────────────── │
+│  Tab 1: Upload → parse → save DB     │
+│  Tab 2: Lista XMLs → select → load   │
+│  ─────────────────────────────────── │
+│  Tabela de produtos do XML           │
+│  [Vincular Produto]                  │
+└──────────────────────────────────────┘
+```
 
-**12. 3 buckets financeiros já privatizados**
-`event-expense-docs`, `department-expense-docs`, `attachments` já estão `public = false`.
-
----
-
-## Resumo Executivo
-
-| Severidade | Quantidade | Status |
-|-----------|-----------|--------|
-| Crítico | 0 | Todos corrigidos |
-| Alto | 1 | Config fantasma (trivial) |
-| Medio | 5 | 2 acionáveis, 3 limitações/decisões |
-| Baixo | 4 | Aceitáveis no contexto atual |
-| Info | 2 | Já corrigidos |
-
-## Ações Recomendadas (por prioridade)
-
-### Imediato (< 5 min)
-1. Remover entrada `contas-receber-powerquery` do `config.toml`
-
-### Curto prazo (esta semana)
-2. Privatizar bucket `avatars` e migrar `getPublicUrl` para `createSignedUrl` no `ProfileAvatarUpload.tsx`
-3. Restringir CORS nas Edge Functions que servem apenas o frontend (substituir `*` por `https://bimaster.lovable.app`)
-
-### Medio prazo (próximo sprint)
-4. Criptografar credenciais de `ads_accounts` na camada aplicativa antes de gravar no JSONB
-5. Revisar as políticas `FOR ALL USING(true)` remanescentes e restringir onde possível
+**Arquivos afetados:**
+- Migration SQL (nova tabela + bucket + RLS)
+- `src/components/fabrica/VincularXmlInsumoDialog.tsx` — adicionar abas, lógica de salvar e buscar XMLs
+- `src/lib/fabrica/nfe-xml-parser.ts` — sem alterações
 
