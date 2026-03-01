@@ -70,7 +70,7 @@ const FabricaModule = () => {
   if (!permissionsLoading && !hasPermission("fabrica_dashboard")) {
     const FABRICA_SCREEN_ROUTES = [
       { screen: "fabrica_produtos", path: "/dashboard/fabrica/produtos-acabados" },
-      { screen: "fabrica_materias_primas", path: "/dashboard/fabrica/materias-primas" },
+      { screen: "fabrica_mps", path: "/dashboard/fabrica/materias-primas" },
       { screen: "fabrica_recebimentos", path: "/dashboard/fabrica/recebimentos" },
       { screen: "fabrica_formulas", path: "/dashboard/fabrica/formulas" },
       { screen: "fabrica_ordens", path: "/dashboard/fabrica/ordens-producao" },
