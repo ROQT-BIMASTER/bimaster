@@ -19,7 +19,8 @@ export type ManualScreen =
   | "recebimentos"
   | "fiscal"
   | "tabelas-preco"
-  | "ficha-custos";
+  | "ficha-custos"
+  | "comunicacao";
 
 interface ManualFabricaDrawerProps {
   screen: ManualScreen;
@@ -213,6 +214,27 @@ const manualContent: Record<ManualScreen, { title: string; sections: { heading: 
       {
         heading: "Chat com Diretoria",
         content: "• Mensagens em tempo real dentro da ficha\n• Apontamentos por insumo\n• Requisitos obrigatórios (orçamentos, evidências)\n• Histórico preservado entre versões",
+      },
+    ],
+  },
+  "comunicacao": {
+    title: "💬 Manual — Comunicação de Revisões",
+    sections: [
+      {
+        heading: "O que é?",
+        content: "Canal centralizado de comunicação entre Fábrica e Diretoria sobre fichas de custos.\n• Cada produto tem seu próprio thread de mensagens\n• Histórico preservado entre versões da ficha",
+      },
+      {
+        heading: "Como usar",
+        content: '1. Selecione o produto na lista à esquerda\n2. Digite sua mensagem no campo inferior\n3. Envie com Enter ou clicando no botão\n4. Anexe evidências ou orçamentos quando solicitado',
+      },
+      {
+        heading: "Fluxo de Revisão",
+        content: "• Fábrica submete a ficha → status 'Em Revisão'\n• Diretoria analisa e pode solicitar ajustes via chat\n• Fábrica corrige e reenvia\n• Diretoria aprova → status 'Aprovada'",
+      },
+      {
+        heading: "Dicas",
+        content: "• Use @menções para chamar atenção de colegas\n• Mensagens ficam vinculadas ao produto/ficha\n• Acompanhe fichas pendentes no Painel Administrativo",
       },
     ],
   },

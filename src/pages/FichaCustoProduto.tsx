@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { useFichaCustoProduto } from "@/hooks/useFichaCustoProduto";
 import { useFichaRevisao } from "@/hooks/useFichaRevisao";
 import { FichaCustoProdutoEditor } from "@/components/fabrica/FichaCustoProdutoEditor";
@@ -83,6 +84,7 @@ export default function FichaCustoProduto() {
               Gerencie os custos detalhados do produto acabado
             </p>
           </div>
+          <ManualFabricaDrawer screen="ficha-custos" />
         </div>
 
         <FichaCustoProdutoEditor
