@@ -17,6 +17,8 @@ import { LanguageSelector } from "./LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
+import { InactivityModal } from "@/components/auth/InactivityModal";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -29,6 +31,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { t, dir } = useLanguage();
   const isRTL = dir === "rtl";
   useSyncOfflineData();
+  const { showWarning, secondsLeft, resetTimer } = useInactivityTimeout();
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
 
   // Monitorar qualidade da conexão
@@ -129,6 +132,13 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         
         {/* Indicador de status offline */}
         <OfflineIndicator />
+        
+        {/* Modal de inatividade */}
+        <InactivityModal
+          open={showWarning}
+          secondsLeft={secondsLeft}
+          onContinue={resetTimer}
+        />
       </div>
     </SidebarProvider>
   );
