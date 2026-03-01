@@ -6174,6 +6174,7 @@ export type Database = {
         Row: {
           ativo: boolean | null
           categoria_id: string | null
+          cfop: string | null
           codigo: string
           created_at: string | null
           created_by: string | null
@@ -6188,6 +6189,7 @@ export type Database = {
           lote: string | null
           lote_minimo_compra: number | null
           metodo_custeio: string | null
+          ncm: string | null
           nome: string
           observacoes: string | null
           ponto_reposicao: number | null
@@ -6201,6 +6203,7 @@ export type Database = {
         Insert: {
           ativo?: boolean | null
           categoria_id?: string | null
+          cfop?: string | null
           codigo: string
           created_at?: string | null
           created_by?: string | null
@@ -6215,6 +6218,7 @@ export type Database = {
           lote?: string | null
           lote_minimo_compra?: number | null
           metodo_custeio?: string | null
+          ncm?: string | null
           nome: string
           observacoes?: string | null
           ponto_reposicao?: number | null
@@ -6228,6 +6232,7 @@ export type Database = {
         Update: {
           ativo?: boolean | null
           categoria_id?: string | null
+          cfop?: string | null
           codigo?: string
           created_at?: string | null
           created_by?: string | null
@@ -6242,6 +6247,7 @@ export type Database = {
           lote?: string | null
           lote_minimo_compra?: number | null
           metodo_custeio?: string | null
+          ncm?: string | null
           nome?: string
           observacoes?: string | null
           ponto_reposicao?: number | null

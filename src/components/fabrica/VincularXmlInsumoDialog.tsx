@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -18,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, FileText, Check, AlertCircle, Database, Loader2 } from "lucide-react";
+import { Upload, FileText, Check, AlertCircle, Database, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { parseNFeXml, type NFeXmlData, type NFeXmlProduto } from "@/lib/fabrica/nfe-xml-parser";
@@ -28,11 +31,16 @@ interface VincularXmlInsumoDialogProps {
   onOpenChange: (open: boolean) => void;
   insumoNome: string;
   insumoId: string;
+  mpId?: string | null;
   onVincular: (dados: {
     fornecedor: string;
     custo_nf: number;
     nf_referencia: string;
     codigo: string;
+    dados_fiscais?: {
+      ncm: string;
+      cfop: string;
+    };
   }) => void;
 }
 
@@ -52,6 +60,7 @@ export function VincularXmlInsumoDialog({
   onOpenChange,
   insumoNome,
   insumoId,
+  mpId,
   onVincular,
 }: VincularXmlInsumoDialogProps) {
   const [xmlData, setXmlData] = useState<NFeXmlData | null>(null);
@@ -62,12 +71,14 @@ export function VincularXmlInsumoDialog({
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [selectedSavedXml, setSelectedSavedXml] = useState<SavedXml | null>(null);
   const [saving, setSaving] = useState(false);
+  const [salvarDadosFiscais, setSalvarDadosFiscais] = useState(false);
+  const [filtroFornecedor, setFiltroFornecedor] = useState("");
+  const [filtroNF, setFiltroNF] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const formatarValor = (v: number) =>
     v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
-  // Load saved XMLs when tab changes
   useEffect(() => {
     if (open && tab === "saved") {
       loadSavedXmls();
@@ -81,7 +92,7 @@ export function VincularXmlInsumoDialog({
         .from("fabrica_nfe_xmls")
         .select("id, numero_nf, fornecedor_razao_social, fornecedor_nome_fantasia, data_emissao, valor_total, produtos, fornecedor_cnpj")
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (error) throw error;
       setSavedXmls((data as unknown as SavedXml[]) || []);
@@ -91,6 +102,16 @@ export function VincularXmlInsumoDialog({
       setLoadingSaved(false);
     }
   };
+
+  const filteredXmls = useMemo(() => {
+    return savedXmls.filter((xml) => {
+      const fornecedor = (xml.fornecedor_nome_fantasia || xml.fornecedor_razao_social || "").toLowerCase();
+      const nf = xml.numero_nf.toLowerCase();
+      const matchFornecedor = !filtroFornecedor || fornecedor.includes(filtroFornecedor.toLowerCase());
+      const matchNF = !filtroNF || nf.includes(filtroNF.toLowerCase());
+      return matchFornecedor && matchNF;
+    });
+  }, [savedXmls, filtroFornecedor, filtroNF]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -110,7 +131,6 @@ export function VincularXmlInsumoDialog({
         return;
       }
 
-      // Save to DB and storage
       setSaving(true);
       await persistXml(data, file);
 
@@ -127,7 +147,6 @@ export function VincularXmlInsumoDialog({
 
   const persistXml = async (data: NFeXmlData, file: File) => {
     try {
-      // Check if already exists by chave_acesso
       if (data.chave_acesso) {
         const { data: existing } = await supabase
           .from("fabrica_nfe_xmls")
@@ -141,14 +160,11 @@ export function VincularXmlInsumoDialog({
         }
       }
 
-      // Upload file to storage
       const storagePath = `${Date.now()}_${file.name}`;
       await supabase.storage.from("fabrica-nfe-xmls").upload(storagePath, file);
 
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Insert metadata
       await (supabase.from("fabrica_nfe_xmls") as any).insert({
         numero_nf: data.numero,
         serie: data.serie,
@@ -166,13 +182,11 @@ export function VincularXmlInsumoDialog({
       toast.success("XML salvo para reutilização futura");
     } catch (err) {
       console.warn("Erro ao persistir XML:", err);
-      // Non-blocking — the XML was parsed, just not saved
     }
   };
 
   const handleSelectSavedXml = (xml: SavedXml) => {
     setSelectedSavedXml(xml);
-    // Convert saved data to NFeXmlData format for product selection
     setXmlData({
       numero: xml.numero_nf,
       serie: "",
@@ -189,7 +203,7 @@ export function VincularXmlInsumoDialog({
     setSelectedItem(null);
   };
 
-  const handleConfirmar = () => {
+  const handleConfirmar = async () => {
     if (!xmlData || selectedItem === null) return;
 
     const produto = xmlData.produtos[selectedItem];
@@ -197,13 +211,34 @@ export function VincularXmlInsumoDialog({
     const fornecedor =
       xmlData.fornecedor.nome_fantasia || xmlData.fornecedor.razao_social || "";
 
-    onVincular({
+    const dados: Parameters<typeof onVincular>[0] = {
       fornecedor: fornecedor.substring(0, 50),
       custo_nf: produto.valor_unitario,
       nf_referencia: nfRef,
       codigo: produto.codigo,
-    });
+    };
 
+    // Save fiscal data to matéria prima if checked
+    if (salvarDadosFiscais && mpId) {
+      try {
+        await (supabase.from("fabrica_materias_primas") as any)
+          .update({
+            ncm: produto.ncm || null,
+            cfop: produto.cfop || null,
+          })
+          .eq("id", mpId);
+
+        dados.dados_fiscais = {
+          ncm: produto.ncm,
+          cfop: produto.cfop,
+        };
+        toast.success("Dados fiscais salvos na matéria prima");
+      } catch (err) {
+        console.warn("Erro ao salvar dados fiscais:", err);
+      }
+    }
+
+    onVincular(dados);
     toast.success(`Insumo vinculado à ${nfRef}`);
     handleClose();
   };
@@ -214,12 +249,17 @@ export function VincularXmlInsumoDialog({
     setSelectedSavedXml(null);
     setError(null);
     setTab("upload");
+    setSalvarDadosFiscais(false);
+    setFiltroFornecedor("");
+    setFiltroNF("");
     onOpenChange(false);
   };
 
   const fornecedorNome = xmlData
     ? xmlData.fornecedor.nome_fantasia || xmlData.fornecedor.razao_social
     : "";
+
+  const selectedProd = xmlData && selectedItem !== null ? xmlData.produtos[selectedItem] : null;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -282,16 +322,40 @@ export function VincularXmlInsumoDialog({
             </TabsContent>
 
             <TabsContent value="saved" className="space-y-4 mt-4">
+              {/* Filters */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Filtrar por fornecedor..."
+                    value={filtroFornecedor}
+                    onChange={(e) => setFiltroFornecedor(e.target.value)}
+                    className="pl-8 h-9"
+                  />
+                </div>
+                <div className="relative w-32">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Nº NF..."
+                    value={filtroNF}
+                    onChange={(e) => setFiltroNF(e.target.value)}
+                    className="pl-8 h-9"
+                  />
+                </div>
+              </div>
+
               {loadingSaved ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : savedXmls.length === 0 ? (
+              ) : filteredXmls.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">
-                  Nenhum XML salvo ainda. Suba um novo XML na aba anterior.
+                  {savedXmls.length === 0
+                    ? "Nenhum XML salvo ainda. Suba um novo XML na aba anterior."
+                    : "Nenhum XML encontrado com os filtros aplicados."}
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border rounded-lg overflow-hidden max-h-[300px] overflow-y-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -303,7 +367,7 @@ export function VincularXmlInsumoDialog({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {savedXmls.map((xml) => (
+                      {filteredXmls.map((xml) => (
                         <TableRow key={xml.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleSelectSavedXml(xml)}>
                           <TableCell>
                             <Badge variant="outline">NF {xml.numero_nf}</Badge>
@@ -341,7 +405,7 @@ export function VincularXmlInsumoDialog({
               </span>
             </div>
 
-            {/* Tabela de produtos do XML */}
+            {/* Product table */}
             <div className="text-sm font-medium">
               Selecione o produto que corresponde a <strong>{insumoNome}</strong>:
             </div>
@@ -392,28 +456,39 @@ export function VincularXmlInsumoDialog({
               </Table>
             </div>
 
-            {/* Preview do que será preenchido */}
-            {selectedItem !== null && (
-              <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-3 text-sm space-y-1">
-                <p className="font-medium text-green-800 dark:text-green-300">Dados que serão preenchidos:</p>
-                <ul className="text-green-700 dark:text-green-400 space-y-0.5 text-xs">
-                  <li>
-                    <strong>Fornecedor:</strong> {fornecedorNome?.substring(0, 50)}
-                  </li>
-                  <li>
-                    <strong>Custo NF:</strong> R$ {formatarValor(xmlData.produtos[selectedItem].valor_unitario)}
-                  </li>
-                  <li>
-                    <strong>NF Ref.:</strong> NF{xmlData.numero}
-                  </li>
-                  <li>
-                    <strong>Código:</strong> {xmlData.produtos[selectedItem].codigo}
-                  </li>
+            {/* Preview */}
+            {selectedProd && (
+              <div className="bg-muted/50 border rounded-lg p-3 text-sm space-y-2">
+                <p className="font-medium">Dados que serão preenchidos:</p>
+                <ul className="space-y-0.5 text-xs text-muted-foreground">
+                  <li><strong>Fornecedor:</strong> {fornecedorNome?.substring(0, 50)}</li>
+                  <li><strong>Custo NF:</strong> R$ {formatarValor(selectedProd.valor_unitario)}</li>
+                  <li><strong>NF Ref.:</strong> NF{xmlData.numero}</li>
+                  <li><strong>Código:</strong> {selectedProd.codigo}</li>
+                  {(selectedProd.ncm || selectedProd.cfop) && (
+                    <li className="text-muted-foreground">
+                      <strong>NCM:</strong> {selectedProd.ncm || "—"} | <strong>CFOP:</strong> {selectedProd.cfop || "—"}
+                    </li>
+                  )}
                 </ul>
+
+                {/* Option to save fiscal data to MP */}
+                {mpId && (selectedProd.ncm || selectedProd.cfop) && (
+                  <div className="flex items-center gap-2 pt-2 border-t">
+                    <Checkbox
+                      id="salvar-fiscal"
+                      checked={salvarDadosFiscais}
+                      onCheckedChange={(v) => setSalvarDadosFiscais(!!v)}
+                    />
+                    <Label htmlFor="salvar-fiscal" className="text-xs cursor-pointer">
+                      Salvar NCM/CFOP no cadastro da matéria prima
+                    </Label>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Trocar XML */}
+            {/* Back */}
             <Button
               variant="ghost"
               size="sm"
@@ -422,6 +497,7 @@ export function VincularXmlInsumoDialog({
                 setXmlData(null);
                 setSelectedItem(null);
                 setSelectedSavedXml(null);
+                setSalvarDadosFiscais(false);
               }}
             >
               ← Selecionar outro XML

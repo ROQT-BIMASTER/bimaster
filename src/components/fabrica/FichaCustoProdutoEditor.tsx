@@ -148,7 +148,7 @@ export function FichaCustoProdutoEditor({
   const [submittingComTermo, setSubmittingComTermo] = useState(false);
   const [uploadingEvidenciaGeral, setUploadingEvidenciaGeral] = useState(false);
   const evidenciaFileRef = useRef<HTMLInputElement>(null);
-  const [xmlVincularInsumo, setXmlVincularInsumo] = useState<{ id: string; nome: string } | null>(null);
+  const [xmlVincularInsumo, setXmlVincularInsumo] = useState<{ id: string; nome: string; mp_id: string | null } | null>(null);
 
   const isLocked = statusAprovacao === "em_revisao" || statusAprovacao === "aprovada";
 
@@ -1094,7 +1094,7 @@ export function FichaCustoProdutoEditor({
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => setXmlVincularInsumo({ id: insumo.id, nome: insumo.nome })}
+                                onClick={() => setXmlVincularInsumo({ id: insumo.id, nome: insumo.nome, mp_id: insumo.mp_id || null })}
                                 title="Vincular XML da NF-e"
                               >
                                 <FileText className="h-4 w-4" />
@@ -1583,6 +1583,7 @@ export function FichaCustoProdutoEditor({
           onOpenChange={(open) => { if (!open) setXmlVincularInsumo(null); }}
           insumoId={xmlVincularInsumo.id}
           insumoNome={xmlVincularInsumo.nome}
+          mpId={xmlVincularInsumo.mp_id}
           onVincular={(dados) => {
             onAtualizarInsumo(xmlVincularInsumo.id, "fornecedor", dados.fornecedor);
             onAtualizarInsumo(xmlVincularInsumo.id, "custo_nf", dados.custo_nf);
