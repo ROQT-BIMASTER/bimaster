@@ -73,7 +73,7 @@ export default function FabricaProdutosAcabados() {
           *,
           unidade:fabrica_unidades_medida(sigla, nome)
         `)
-        .in("tipo", ["ACABADO", "INTER"])
+        .in("tipo", ["ACABADO", "INTER", "DISPLAY"])
         .order("created_at", { ascending: false });
 
       if (error) throw error;

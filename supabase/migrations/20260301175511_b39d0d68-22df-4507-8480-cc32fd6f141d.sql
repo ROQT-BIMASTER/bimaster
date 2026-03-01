@@ -1,0 +1,2 @@
+ALTER TABLE public.fabrica_produtos DROP CONSTRAINT fabrica_produtos_tipo_check;
+ALTER TABLE public.fabrica_produtos ADD CONSTRAINT fabrica_produtos_tipo_check CHECK (tipo::text = ANY (ARRAY['MP'::text, 'INTER'::text, 'ACABADO'::text, 'DISPLAY'::text]));

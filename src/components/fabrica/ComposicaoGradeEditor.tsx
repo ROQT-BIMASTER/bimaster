@@ -5,14 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -171,28 +163,26 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
       {/* Filters bar */}
       <div className="flex items-center gap-2">
         <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <Select value={filtroMarca} onValueChange={(v) => { setFiltroMarca(v); setFiltroLinha("__ALL__"); }}>
-          <SelectTrigger className="h-8 text-xs w-[130px]">
-            <SelectValue placeholder="Marca" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__ALL__">Todas Marcas</SelectItem>
-            {marcas.map(m => (
-              <SelectItem key={m} value={m}>{m}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filtroLinha} onValueChange={setFiltroLinha}>
-          <SelectTrigger className="h-8 text-xs w-[140px]">
-            <SelectValue placeholder="Linha" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__ALL__">Todas Linhas</SelectItem>
-            {linhas.map(l => (
-              <SelectItem key={l} value={l}>{l}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <select
+          value={filtroMarca}
+          onChange={(e) => { setFiltroMarca(e.target.value); setFiltroLinha("__ALL__"); }}
+          className="h-8 text-xs w-[130px] rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-2 focus:ring-ring/30"
+        >
+          <option value="__ALL__">Todas Marcas</option>
+          {marcas.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+        <select
+          value={filtroLinha}
+          onChange={(e) => setFiltroLinha(e.target.value)}
+          className="h-8 text-xs w-[140px] rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-2 focus:ring-ring/30"
+        >
+          <option value="__ALL__">Todas Linhas</option>
+          {linhas.map(l => (
+            <option key={l} value={l}>{l}</option>
+          ))}
+        </select>
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
