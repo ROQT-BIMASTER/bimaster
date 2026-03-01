@@ -23,10 +23,11 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban } from "lucide-react";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ProdutoCard } from "@/components/fabrica/ProdutoCard";
+import { ProdutoKanbanBoard } from "@/components/fabrica/ProdutoKanbanBoard";
 import { ProdutosAcabadosAdminDashboard } from "@/components/fabrica/ProdutosAcabadosAdminDashboard";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
 import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
@@ -47,7 +48,7 @@ export default function FabricaProdutosAcabados() {
   const [filtroMarca, setFiltroMarca] = useState("none");
   const [filtroLinha, setFiltroLinha] = useState("none");
   const [agrupamentoAtivo, setAgrupamentoAtivo] = useState(false);
-  const [viewMode, setViewMode] = useState<"tabela" | "cards">("tabela");
+  const [viewMode, setViewMode] = useState<"tabela" | "cards" | "kanban">("tabela");
   const [agruparPor, setAgruparPor] = useState("marca");
   const [showAdminDash, setShowAdminDash] = useState(false);
 
@@ -566,6 +567,7 @@ export default function FabricaProdutosAcabados() {
                 variant={viewMode === "tabela" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("tabela")}
+                title="Tabela"
               >
                 <TableIcon className="h-4 w-4" />
               </Button>
@@ -573,8 +575,17 @@ export default function FabricaProdutosAcabados() {
                 variant={viewMode === "cards" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("cards")}
+                title="Grade"
               >
                 <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "kanban" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("kanban")}
+                title="Kanban"
+              >
+                <Kanban className="h-4 w-4" />
               </Button>
             </div>
 
@@ -599,8 +610,17 @@ export default function FabricaProdutosAcabados() {
               <div className="text-center py-8 text-muted-foreground">
                 Nenhum produto encontrado
               </div>
+            ) : viewMode === "kanban" ? (
+              /* Kanban View */
+              <ProdutoKanbanBoard
+                produtos={produtosFiltrados || []}
+                fichasMap={fichasMap}
+                custoTotalMap={custoTotalMap}
+                produtosComAumento={produtosComAumento}
+                formatarMoeda={formatarMoeda}
+                onProdutoClick={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
+              />
             ) : viewMode === "cards" ? (
-              /* Card View */
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {agrupamentoAtivo
                   ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
