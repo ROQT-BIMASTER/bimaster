@@ -15,6 +15,7 @@ interface GradeItem {
   codigo_barras_ean: string | null;
   quantidade: number;
   ordem: number;
+  cor_numero?: string;
 }
 
 interface ComposicaoGradeEditorProps {
@@ -63,6 +64,7 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
       codigo_barras_ean: produto.codigo_barras_ean,
       quantidade: 1,
       ordem: items.length,
+      cor_numero: "",
     };
     onChange([...items, novo]);
     setBusca("");
@@ -78,6 +80,12 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
     if (quantidade < 1) return;
     const novos = [...items];
     novos[index] = { ...novos[index], quantidade };
+    onChange(novos);
+  };
+
+  const atualizarCorNumero = (index: number, cor_numero: string) => {
+    const novos = [...items];
+    novos[index] = { ...novos[index], cor_numero };
     onChange(novos);
   };
 
@@ -163,6 +171,14 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
+                  <Input
+                    type="text"
+                    value={item.cor_numero || ""}
+                    onChange={(e) => atualizarCorNumero(index, e.target.value)}
+                    className="w-12 h-7 text-xs text-center"
+                    placeholder="Nº"
+                    title="Número da cor/variante"
+                  />
                   <Input
                     type="number"
                     min={1}

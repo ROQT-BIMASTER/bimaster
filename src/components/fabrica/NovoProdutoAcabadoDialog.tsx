@@ -71,6 +71,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
     status: "ativo",
     ativo: true,
     origem: "nacional",
+    tipo_rotulagem: "",
   });
 
   const [gradeItems, setGradeItems] = useState<any[]>([]);
@@ -133,13 +134,14 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         status: produtoEdit.status || "ativo",
         ativo: produtoEdit.ativo ?? true,
         origem: produtoEdit.origem || "nacional",
+        tipo_rotulagem: produtoEdit.tipo_rotulagem || "",
       });
 
       // Load grade items for DISPLAY products
       if (produtoEdit.tipo === "DISPLAY") {
         supabase
           .from("fabrica_produto_grade_itens")
-          .select("produto_filho_id, quantidade, ordem, produto_filho:fabrica_produtos!produto_filho_id(nome, codigo, codigo_barras_ean)")
+          .select("produto_filho_id, quantidade, ordem, cor_numero, produto_filho:fabrica_produtos!produto_filho_id(nome, codigo, codigo_barras_ean)")
           .eq("produto_pai_id", produtoEdit.id)
           .order("ordem")
           .then(({ data }) => {
@@ -152,6 +154,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                   codigo_barras_ean: d.produto_filho?.codigo_barras_ean || null,
                   quantidade: d.quantidade,
                   ordem: d.ordem,
+                  cor_numero: d.cor_numero || "",
                 }))
               );
             }
@@ -187,6 +190,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         status: "ativo",
         ativo: true,
         origem: "nacional",
+        tipo_rotulagem: "",
       });
       setGradeItems([]);
     }
@@ -224,6 +228,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         status: formData.status,
         ativo: formData.ativo,
         origem: formData.origem,
+        tipo_rotulagem: formData.tipo_rotulagem.trim() || null,
         created_by: user.id,
       };
 
@@ -266,6 +271,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                 produto_filho_id: item.produto_filho_id,
                 quantidade: item.quantidade,
                 ordem: index,
+                cor_numero: item.cor_numero || null,
               }))
             );
 
@@ -571,6 +577,31 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                   Nomenclatura Comum do Mercosul
                 </p>
               </div>
+
+              {formData.tipo === "DISPLAY" && (
+                <div>
+                  <Label htmlFor="tipo_rotulagem">Tipo de Rotulagem</Label>
+                  <Select
+                    value={formData.tipo_rotulagem || "SEM_TIPO"}
+                    onValueChange={(value) => setFormData({ ...formData, tipo_rotulagem: value === "SEM_TIPO" ? "" : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="SEM_TIPO">Nenhum</SelectItem>
+                      <SelectItem value="sticker">Sticker</SelectItem>
+                      <SelectItem value="label">Label</SelectItem>
+                      <SelectItem value="sleeve">Sleeve</SelectItem>
+                      <SelectItem value="tag">Tag</SelectItem>
+                      <SelectItem value="outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Tipo de rotulagem aplicada no produto (sticker, label, sleeve...)
+                  </p>
+                </div>
+              )}
             </TabsContent>
 
             {/* Aba Grade - only for DISPLAY type */}
