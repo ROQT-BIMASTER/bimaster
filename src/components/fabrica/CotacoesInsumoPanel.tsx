@@ -166,10 +166,65 @@ export function CotacoesInsumoPanel({ produtoCustoId, produtoId, mpId, custoAtua
   };
 
   const handleSelecionar = async (cotacaoId: string) => {
+    // 1. Mark as selected
     await supabase.from("fabrica_mp_cotacoes").update({ selecionada: false } as any).eq("produto_custo_id", produtoCustoId);
     await supabase.from("fabrica_mp_cotacoes").update({ selecionada: true } as any).eq("id", cotacaoId);
+    
+    // 2. Auto-save to cofre
+    const cotacao = cotacoes.find(c => c.id === cotacaoId);
+    if (cotacao) {
+      try {
+        const user = (await supabase.auth.getUser()).data.user;
+        const nome = user?.user_metadata?.nome || user?.email || "Usuário";
+
+        // Find active revision for this product
+        const { data: revisao } = await supabase
+          .from("fabrica_revisoes" as any)
+          .select("id")
+          .eq("produto_id", produtoId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        const total = Number(cotacao.custo_nf) + Number(cotacao.custo_servico) + Number(cotacao.custo_condicao);
+
+        await supabase.from("fabrica_revisao_documentos" as any).insert({
+          revisao_id: (revisao as any)?.id || null,
+          produto_id: produtoId,
+          nome_arquivo: cotacao.arquivo_nome || `Orçamento - ${cotacao.fornecedor_nome}`,
+          arquivo_path: cotacao.arquivo_url || "",
+          tipo_arquivo: "application/pdf",
+          tamanho: 0,
+          categoria: "orcamento",
+          status: "ativo",
+          enviado_por: user?.id,
+          enviado_por_nome: nome,
+          materia_prima_id: mpId,
+          metadata: {
+            tipo: "cotacao",
+            fornecedor: cotacao.fornecedor_nome,
+            custo_nf: Number(cotacao.custo_nf),
+            custo_servico: Number(cotacao.custo_servico),
+            custo_condicao: Number(cotacao.custo_condicao),
+            total,
+            condicao_pagamento: cotacao.condicao_pagamento,
+            validade: cotacao.validade,
+            observacoes: cotacao.observacoes,
+            insumo_nome: insumoNome,
+            cotacao_id: cotacao.id,
+          },
+        } as any);
+
+        toast.success("Cotação selecionada e salva no Cofre");
+      } catch (e) {
+        console.error("Erro ao salvar no cofre:", e);
+        toast.success("Cotação selecionada");
+      }
+    } else {
+      toast.success("Cotação selecionada");
+    }
+    
     carregarCotacoes();
-    toast.success("Cotação selecionada");
   };
 
   const handleRemover = async (id: string) => {
