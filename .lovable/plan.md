@@ -1,42 +1,43 @@
 
 
-## Plano: Auto-logout por Inatividade de 2 Horas
+## Plano: Monitoramento de Acessos por Tela e Usuário
 
-### Abordagem
+### O que será feito
 
-Criar um hook isolado `useInactivityTimeout` e um modal de aviso `InactivityModal`, ambos **separados** do `AuthContext.tsx` para minimizar risco em produção. O `AuthContext` permanece inalterado -- o hook apenas consome `useAuth()` e chama `signOut` quando necessário.
+1. **Hook `usePageTracking`** — registra automaticamente cada navegação de tela no `access_audit_log` (tabela já existente), gravando `user_id`, `tela_codigo` (pathname), `modulo_codigo` (extraído do path), `action: "page_view"`, e `user_agent`.
+
+2. **Integrar no `DashboardLayout`** — uma linha de import + chamada do hook. Cada vez que o `pathname` mudar, registra o acesso.
+
+3. **Componente `MonitoramentoAcessos`** — painel admin na página de Configurações (nova aba "Acessos") com:
+   - Filtro por data (dia) e por usuário
+   - Tabela mostrando: Usuário, Tela, Quantidade de acessos no dia, Último acesso
+   - Query agrupada por `user_id + tela_codigo + data`, com contagem
+   - Visível apenas para admins
 
 ### Arquivos
 
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---|---|
-| `src/hooks/useInactivityTimeout.ts` | NOVO: hook que monitora atividade e dispara logout |
-| `src/components/auth/InactivityModal.tsx` | NOVO: modal de aviso 5 min antes do logout |
-| `src/components/dashboard/DashboardLayout.tsx` | Adicionar hook + modal (2 linhas) |
+| `src/hooks/usePageTracking.ts` | NOVO: hook que registra page_view no access_audit_log |
+| `src/components/dashboard/DashboardLayout.tsx` | Adicionar chamada do hook (1 linha) |
+| `src/components/configuracoes/MonitoramentoAcessos.tsx` | NOVO: painel admin com tabela de acessos |
+| `src/pages/Configuracoes.tsx` | Adicionar aba "Acessos" para admins |
 
 ### Detalhes Técnicos
 
-**Hook `useInactivityTimeout`:**
-- Timer de **2 horas** (120 min) de inatividade
-- Eventos monitorados: `mousemove`, `mousedown`, `keydown`, `touchstart`, `scroll` -- com throttle de 30s para evitar overhead
-- Aos **115 min** (5 min antes): ativa estado `showWarning` com contagem regressiva
-- Aos **120 min**: executa `supabase.auth.signOut()`, limpa caches, redireciona para `/auth/login`
-- Registra evento `session_timeout` no `access_audit_log`
-- Timer **pausa quando a aba está oculta** (`visibilitychange`) para não deslogar quem alternou de aba e voltou dentro do prazo
-- Cleanup completo no unmount (todos os listeners e intervals removidos)
+**Hook `usePageTracking`:**
+- Usa `useLocation()` para detectar mudanças de rota
+- Throttle de 2s para evitar registros duplicados em navegação rápida
+- Extrai módulo do pathname (ex: `/dashboard/fabrica/produtos` → `fabrica`)
+- Insert fire-and-forget com `try/catch` (falha silenciosa)
+- Política RLS de INSERT já necessária — será adicionada via migração
 
-**Modal `InactivityModal`:**
-- Dialog simples com contagem regressiva (mm:ss)
-- Botão "Continuar Sessão" que reseta o timer
-- Usa componentes existentes (Dialog, Button) -- zero dependência nova
+**Migração SQL:**
+- Adicionar política de INSERT no `access_audit_log` para `authenticated` com `user_id = auth.uid()`
 
-**Integração no `DashboardLayout`:**
-- Apenas 2 adições: import do hook/modal e renderização condicional
-- Sem alterar `AuthContext.tsx` (zero risco de quebra no fluxo de autenticação)
-
-**Proteção contra erros em produção:**
-- Hook usa `try/catch` em todo signOut e audit log
-- Se o insert no audit falhar, o logout prossegue normalmente
-- Se o signOut falhar, faz fallback com `navigate("/auth/login")`
-- Não altera nenhum estado do `AuthContext` diretamente
+**Painel `MonitoramentoAcessos`:**
+- Query: `SELECT user_id, tela_codigo, COUNT(*), MAX(created_at) FROM access_audit_log WHERE action='page_view' AND created_at::date = ? GROUP BY user_id, tela_codigo`
+- Join com `profiles` para mostrar nome do usuário
+- DatePicker para selecionar o dia
+- Filtro opcional por usuário (select)
 
