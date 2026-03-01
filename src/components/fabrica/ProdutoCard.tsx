@@ -2,7 +2,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
-import { DollarSign, Edit, Trash2, TrendingUp, Clock, Package, Barcode } from "lucide-react";
+import { DollarSign, Edit, Trash2, TrendingUp, Clock, Package, Barcode, Layers } from "lucide-react";
+import { ComposicaoGradeCard } from "@/components/fabrica/ComposicaoGradeCard";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
 import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
 
@@ -48,6 +49,11 @@ export function ProdutoCard({
               <Badge variant={produto.origem === "importado" ? "destructive" : "secondary"} className="text-[10px] px-1.5 py-0">
                 {produto.origem === "importado" ? "Importado" : "Nacional"}
               </Badge>
+              {produto.tipo === "DISPLAY" && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5 border-primary/40 text-primary">
+                  <Layers className="h-2.5 w-2.5" /> Display
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -60,6 +66,11 @@ export function ProdutoCard({
             <Badge variant="outline" className="text-[10px]">Sem Ficha</Badge>
           )}
         </div>
+
+        {/* Display grade summary */}
+        {produto.tipo === "DISPLAY" && (
+          <ComposicaoGradeCard produtoId={produto.id} compact />
+        )}
 
         {/* Info grid */}
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
