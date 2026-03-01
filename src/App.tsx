@@ -159,6 +159,7 @@ const FabricaTabelasPreco = lazyWithRetry(() => import("./pages/FabricaTabelasPr
 const FabricaAprovacaoPrecos = lazyWithRetry(() => import("./pages/FabricaAprovacaoPrecos"));
 const FabricaLancamentos = lazyWithRetry(() => import("./pages/FabricaLancamentos"));
 const FabricaExecutiveDashboard = lazyWithRetry(() => import("./pages/FabricaExecutiveDashboard"));
+const FabricaManualPage = lazyWithRetry(() => import("./pages/FabricaManualPage"));
 const ComercialModule = lazyWithRetry(() => import("./pages/modules/ComercialModule"));
 const WhitespaceAnalysis = lazyWithRetry(() => import("./pages/WhitespaceAnalysis"));
 const MunicipiosIntelligence = lazyWithRetry(() => import("./pages/MunicipiosIntelligence"));
@@ -388,6 +389,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica/revisao-fichas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_revisao_fichas"><FichaRevisaoDiretoria /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/comunicacao-revisoes" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><FabricaComunicacaoRevisoes /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/executivo" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_dashboard"><FabricaExecutiveDashboard /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/manual" element={<ProtectedRoute><FabricaManualPage /></ProtectedRoute>} />
 
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ComercialModule /></ModuleProtectedRoute></ProtectedRoute>} />

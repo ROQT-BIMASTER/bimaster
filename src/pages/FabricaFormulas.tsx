@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Search, Package, FileText, History, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -105,10 +106,13 @@ export default function FabricaFormulas() {
               Gerencie as fórmulas (BOM) dos produtos
             </p>
           </div>
-          <Button onClick={() => navigate("/dashboard/fabrica/formulas/nova")}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Fórmula
-          </Button>
+          <div className="flex gap-2">
+            <ManualFabricaDrawer screen="formulas" />
+            <Button onClick={() => navigate("/dashboard/fabrica/formulas/nova")}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Fórmula
+            </Button>
+          </div>
         </div>
 
         {/* Busca */}

@@ -23,7 +23,8 @@ import {
   Clock,
   Plus,
   ChevronDown,
-  Zap
+  Zap,
+  BookOpen
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -134,11 +135,19 @@ const FabricaModule = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div data-tour="fabrica-header">
-          <h1 className="text-3xl font-bold">Módulo Fábrica</h1>
-          <p className="text-muted-foreground mt-1">
-            Gestão de produção, matérias-primas e qualidade
-          </p>
+        <div data-tour="fabrica-header" className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Módulo Fábrica</h1>
+            <p className="text-muted-foreground mt-1">
+              Gestão de produção, matérias-primas e qualidade
+            </p>
+          </div>
+          <Button asChild variant="outline" className="gap-2">
+            <Link to="/dashboard/fabrica/manual">
+              <BookOpen className="h-4 w-4" />
+              Manual de Uso
+            </Link>
+          </Button>
         </div>
 
         {/* Ações Rápidas */}
