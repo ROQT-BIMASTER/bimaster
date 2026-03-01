@@ -4406,6 +4406,7 @@ export type Database = {
           nome_arquivo: string
           produto_custo_id: string | null
           produto_id: string
+          requisito_id: string | null
           revisao_item_id: string | null
           tamanho_bytes: number | null
           tipo_arquivo: string | null
@@ -4420,6 +4421,7 @@ export type Database = {
           nome_arquivo: string
           produto_custo_id?: string | null
           produto_id: string
+          requisito_id?: string | null
           revisao_item_id?: string | null
           tamanho_bytes?: number | null
           tipo_arquivo?: string | null
@@ -4434,6 +4436,7 @@ export type Database = {
           nome_arquivo?: string
           produto_custo_id?: string | null
           produto_id?: string
+          requisito_id?: string | null
           revisao_item_id?: string | null
           tamanho_bytes?: number | null
           tipo_arquivo?: string | null
@@ -4447,6 +4450,13 @@ export type Database = {
             columns: ["produto_custo_id"]
             isOneToOne: false
             referencedRelation: "fabrica_produto_custos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_custo_evidencias_requisito_id_fkey"
+            columns: ["requisito_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_revisao_requisitos"
             referencedColumns: ["id"]
           },
         ]
@@ -8188,6 +8198,8 @@ export type Database = {
           contestado_em: string | null
           contestado_por: string | null
           created_at: string
+          criado_por: string | null
+          criado_por_nome: string | null
           cumprido: boolean
           cumprido_em: string | null
           descricao: string
@@ -8207,6 +8219,8 @@ export type Database = {
           contestado_em?: string | null
           contestado_por?: string | null
           created_at?: string
+          criado_por?: string | null
+          criado_por_nome?: string | null
           cumprido?: boolean
           cumprido_em?: string | null
           descricao: string
@@ -8226,6 +8240,8 @@ export type Database = {
           contestado_em?: string | null
           contestado_por?: string | null
           created_at?: string
+          criado_por?: string | null
+          criado_por_nome?: string | null
           cumprido?: boolean
           cumprido_em?: string | null
           descricao?: string
