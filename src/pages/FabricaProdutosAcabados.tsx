@@ -606,10 +606,6 @@ export default function FabricaProdutosAcabados() {
               <div className="text-center py-8 text-muted-foreground">
                 Carregando produtos...
               </div>
-            ) : produtosFiltrados?.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhum produto encontrado
-              </div>
             ) : viewMode === "kanban" ? (
               /* Kanban View */
               <ProdutoKanbanBoard
@@ -620,6 +616,10 @@ export default function FabricaProdutosAcabados() {
                 formatarMoeda={formatarMoeda}
                 onProdutoClick={(p) => navigate(`/dashboard/fabrica/produtos/${p.id}/custos`)}
               />
+            ) : produtosFiltrados?.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhum produto encontrado
+              </div>
             ) : viewMode === "cards" ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {agrupamentoAtivo
