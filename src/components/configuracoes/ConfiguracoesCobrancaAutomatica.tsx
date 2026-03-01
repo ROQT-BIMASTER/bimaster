@@ -65,8 +65,9 @@ export function ConfiguracoesCobrancaAutomatica() {
 
   const loadConfig = async () => {
     try {
+      // Read from safe view (tokens are masked as '***')
       const { data, error } = await supabase
-        .from("configuracoes_cobranca" as any)
+        .from("configuracoes_cobranca_safe" as any)
         .select("*")
         .single();
 
