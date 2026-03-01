@@ -418,7 +418,21 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                   <Label htmlFor="tipo">Tipo de Produto</Label>
                   <Select
                     value={formData.tipo}
-                    onValueChange={(value) => setFormData({ ...formData, tipo: value })}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, tipo: value });
+                      // Clear grade items when switching away from DISPLAY
+                      if (value !== "DISPLAY") {
+                        setGradeItems([]);
+                        // Also delete from DB if editing an existing product
+                        if (produtoEdit?.id && produtoEdit.tipo === "DISPLAY") {
+                          supabase
+                            .from("fabrica_produto_grade_itens")
+                            .delete()
+                            .eq("produto_pai_id", produtoEdit.id)
+                            .then(() => {});
+                        }
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />

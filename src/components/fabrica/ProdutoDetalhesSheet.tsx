@@ -61,6 +61,7 @@ export function ProdutoDetalhesSheet({ open, onOpenChange, produtoId }: ProdutoD
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [fullProdutoData, setFullProdutoData] = useState<any>(null);
+  const [usadoEmDisplays, setUsadoEmDisplays] = useState<{ id: string; nome: string; codigo: string }[]>([]);
 
   useEffect(() => {
     if (!open || !produtoId) return;
@@ -68,16 +69,22 @@ export function ProdutoDetalhesSheet({ open, onOpenChange, produtoId }: ProdutoD
 
     const fetchData = async () => {
       // Fetch display data + full product data for edit dialog
-      const [prodRes, fullProdRes, configRes, insumosRes] = await Promise.all([
+      const [prodRes, fullProdRes, configRes, insumosRes, usadoEmRes] = await Promise.all([
         supabase.from("fabrica_produtos").select("id, nome, codigo, marca, linha, origem, ncm, processo_anvisa, lead_time_dias, itens_display, ativo, modo_foco, foto_url, tipo").eq("id", produtoId).single(),
         supabase.from("fabrica_produtos").select("*").eq("id", produtoId).single(),
         supabase.from("fabrica_produto_custos_config").select("custo_mao_obra_nf, custo_mao_obra_servico, percentual_markup").eq("produto_id", produtoId).maybeSingle(),
         supabase.from("fabrica_produto_custos").select("id, nome, codigo, custo_nf, custo_servico").eq("produto_id", produtoId).order("ordem"),
+        supabase.from("fabrica_produto_grade_itens").select("produto_pai:fabrica_produtos!produto_pai_id(id, nome, codigo)").eq("produto_filho_id", produtoId),
       ]);
 
       if (prodRes.data) setProduto(prodRes.data as unknown as ProdutoData);
       if (fullProdRes.data) setFullProdutoData(fullProdRes.data);
       if (configRes.data) setCustoConfig(configRes.data as CustoConfigData);
+      setUsadoEmDisplays(
+        (usadoEmRes.data || [])
+          .map((d: any) => d.produto_pai)
+          .filter(Boolean)
+      );
       
       const ins = (insumosRes.data || []) as InsumoFormula[];
       setInsumos(ins);
@@ -221,6 +228,27 @@ export function ProdutoDetalhesSheet({ open, onOpenChange, produtoId }: ProdutoD
                 <>
                   <Separator />
                   <ComposicaoGradeCard produtoId={produto.id} />
+                </>
+              )}
+
+              {/* Reverse traceability: show which displays use this product */}
+              {usadoEmDisplays.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      <Layers className="h-3 w-3 inline mr-1" />
+                      Usado em Displays ({usadoEmDisplays.length})
+                    </h4>
+                    <div className="space-y-1">
+                      {usadoEmDisplays.map((d) => (
+                        <div key={d.id} className="flex items-center gap-2 py-1.5 px-2 rounded bg-muted/30 text-xs">
+                          <Badge variant="outline" className="text-[9px] py-0 px-1 shrink-0">{d.codigo}</Badge>
+                          <span className="truncate">{d.nome}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </>
               )}
 
