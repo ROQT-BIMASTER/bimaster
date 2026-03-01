@@ -202,10 +202,11 @@ export function CofreFullscreenModal({ open, onOpenChange, produtoId, produtoNom
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast.dismiss(); toast.error("Não autenticado"); return; }
 
-      // Generate secure token
+      // Generate cryptographically secure 32-char token
       const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-      let tokenValue = "";
-      for (let i = 0; i < 12; i++) tokenValue += chars[Math.floor(Math.random() * chars.length)];
+      const randomBytes = new Uint8Array(32);
+      crypto.getRandomValues(randomBytes);
+      const tokenValue = Array.from(randomBytes, (b) => chars[b % chars.length]).join("");
 
       const lotesUsados = [...new Set(selectedDocs.map(d => d.lote).filter(Boolean))];
       const loteNome = lotesUsados.length > 0 ? lotesUsados.join(", ") : null;

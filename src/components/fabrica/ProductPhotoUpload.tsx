@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Camera, Loader2, Trash2, Upload } from "lucide-react";
@@ -14,6 +14,20 @@ interface ProductPhotoUploadProps {
 
 const BUCKET = "fabrica-produto-fotos";
 
+/** Resolve a storage path or old public URL into a signed URL */
+async function resolvePhotoUrl(url: string | null): Promise<string | null> {
+  if (!url) return null;
+  // If it's already a signed URL or external URL, use as-is
+  if (url.includes("token=")) return url;
+  // Extract the path from a public URL pattern
+  const bucketPath = `/storage/v1/object/public/${BUCKET}/`;
+  const idx = url.indexOf(bucketPath);
+  const filePath = idx >= 0 ? url.substring(idx + bucketPath.length) : null;
+  if (!filePath) return url; // external URL, return as-is
+  const { data } = await supabase.storage.from(BUCKET).createSignedUrl(filePath, 31536000); // 1 year
+  return data?.signedUrl || null;
+}
+
 export default function ProductPhotoUpload({
   currentUrl,
   onUrlChange,
@@ -21,8 +35,13 @@ export default function ProductPhotoUpload({
   className,
 }: ProductPhotoUploadProps) {
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(currentUrl);
+  const [preview, setPreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Resolve the initial URL to a signed URL
+  useEffect(() => {
+    resolvePhotoUrl(currentUrl).then(setPreview);
+  }, [currentUrl]);
 
   const handleFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -46,11 +65,12 @@ export default function ProductPhotoUpload({
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage.from(BUCKET).getPublicUrl(fileName);
-      const publicUrl = data.publicUrl;
+      // Use signed URL instead of public URL
+      const { data } = await supabase.storage.from(BUCKET).createSignedUrl(fileName, 31536000); // 1 year
+      const signedUrl = data?.signedUrl || "";
 
-      setPreview(publicUrl);
-      onUrlChange(publicUrl);
+      setPreview(signedUrl);
+      onUrlChange(signedUrl);
       toast.success("Foto atualizada!");
     } catch (err: any) {
       console.error("Upload error:", err);

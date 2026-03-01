@@ -6,12 +6,42 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// In-memory rate limiter (resets on cold start, which is acceptable for edge functions)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 10; // max requests
+const RATE_WINDOW_MS = 60_000; // per minute
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return false;
+  }
+  entry.count++;
+  if (entry.count > RATE_LIMIT) return true;
+  return false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Rate limiting by IP
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() 
+      || req.headers.get("cf-connecting-ip") 
+      || "unknown";
+
+    if (isRateLimited(clientIp)) {
+      console.warn(`⚠️ Rate limited IP: ${clientIp}`);
+      return new Response(
+        JSON.stringify({ error: "Muitas requisições. Tente novamente em 1 minuto." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const url = new URL(req.url);
     const token = url.searchParams.get("token");
 
@@ -34,6 +64,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (tokenError || !shareToken) {
+      console.log(`🔒 Invalid token attempt from IP: ${clientIp}, UA: ${req.headers.get("user-agent")}`);
       return new Response(
         JSON.stringify({ error: "Token inválido ou não encontrado" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -69,6 +100,9 @@ Deno.serve(async (req) => {
       .from("cofre_share_tokens")
       .update({ access_count: shareToken.access_count + 1 })
       .eq("id", shareToken.id);
+
+    // Audit log
+    console.log(`📋 Token access: token=${token.substring(0, 6)}***, IP=${clientIp}, UA=${req.headers.get("user-agent")}, count=${shareToken.access_count + 1}/${shareToken.max_access}`);
 
     // Fetch documents
     const documentIds = shareToken.document_ids as string[];
