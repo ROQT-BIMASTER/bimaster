@@ -24,6 +24,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare } from "lucide-react";
+import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ProdutoCard } from "@/components/fabrica/ProdutoCard";
 import { ProdutosAcabadosAdminDashboard } from "@/components/fabrica/ProdutosAcabadosAdminDashboard";
@@ -262,6 +263,9 @@ export default function FabricaProdutosAcabados() {
 
     return (
       <TableRow key={produto.id} className={isEmRevisao ? "bg-red-50 dark:bg-red-950/20" : ""}>
+        <TableCell className="pr-0">
+          <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
+        </TableCell>
         <TableCell className="font-mono">{produto.codigo}</TableCell>
         <TableCell className="font-medium">{produto.nome}</TableCell>
         <TableCell>
@@ -642,6 +646,7 @@ export default function FabricaProdutosAcabados() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[52px]"></TableHead>
                     <TableHead>Código</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Tipo</TableHead>
@@ -659,7 +664,7 @@ export default function FabricaProdutosAcabados() {
                     ? Array.from(dadosAgrupados.entries()).map(([grupo, items]) => (
                         <>
                           <TableRow key={`group-${grupo}`} className="bg-muted/50 hover:bg-muted/50">
-                            <TableCell colSpan={10} className="font-semibold text-sm py-2">
+                            <TableCell colSpan={11} className="font-semibold text-sm py-2">
                               <div className="flex items-center gap-2">
                                 <Layers className="h-4 w-4 text-muted-foreground" />
                                 {grupo}
