@@ -1,32 +1,54 @@
 
 
-# Kanban de Status de Produtos
+# Salvar Anexo do Chat no Cofre com Categorização Expandida
 
-## Conceito
-Criar uma visão Kanban na tela de Produtos Acabados que agrupa automaticamente os produtos em 3 colunas baseadas no status da ficha de custos: **Sem Ficha**, **Em Revisão** e **Aprovado**. Cada card destaca a foto do produto em tamanho grande.
+## Contexto
+Atualmente, o usuário só pode enviar documentos para o cofre **no momento do envio** (checkbox "Vincular ao Cofre"). A solicitação pede que o usuário possa selecionar **um anexo já enviado no chat** e enviá-lo para o cofre depois, com categorização obrigatória e vinculação a matéria-prima quando aplicável.
 
 ## Alterações
 
-### 1. Criar `src/components/fabrica/ProdutoKanbanBoard.tsx`
-- Componente read-only (sem drag-and-drop, pois o status é derivado da ficha de custos)
-- 3 colunas com cores distintas:
-  - **Sem Ficha** (cinza) - produtos sem registro em `fabrica_produto_custos_config`
-  - **Em Revisão** (amarelo/laranja) - `status_aprovacao` = `revisao_solicitada` ou `em_revisao`
-  - **Aprovado** (verde) - `status_aprovacao` = `aprovada`
-- Cada card exibe: foto do produto (destaque grande usando `ProductThumbnail` size `xl`), nome, codigo, marca/linha, e custo total quando disponivel
-- Clicar no card abre o `ProdutoDetalhesSheet` ou navega para a ficha de custos
+### 1. Expandir categorias de documentos
+Atualizar `CATEGORIAS` em `DocumentosTab.tsx` e em todos os locais relevantes:
+- **orcamento** (Orçamento)
+- **nf** (Nota Fiscal)
+- **art** (ART)
+- **embalagem_tampa** (Tampa)
+- **embalagem_frasco** (Frasco)
+- **embalagem_rotulo** (Rótulo)
+- **embalagem_caixa** (Caixa)
+- **materia_prima** (Matéria-Prima)
+- **evidencia** (Evidência)
+- **contrato** (Contrato)
+- **geral** (Geral)
 
-### 2. Criar `src/components/fabrica/ProdutoKanbanCard.tsx`
-- Card individual com foto em destaque (topo do card, largura total)
-- Nome do produto, codigo, marca, badge de origem
-- Custo total se disponivel
+### 2. Criar dialog `EnviarParaCofreDialog.tsx`
+Dialog modal que aparece ao clicar em um anexo do chat para enviá-lo ao cofre:
+- Mostra nome do arquivo
+- Select obrigatório de **categoria**
+- Se categoria = `materia_prima`, exibe select obrigatório de matéria-prima (carregado de `fabrica_materias_primas` via fórmula do produto ou busca direta)
+  - Se a MP não existir, botão "Cadastrar nova matéria-prima" (abre dialog inline ou redireciona)
+- Se categoria = `embalagem_*`, opcionalmente vincular à MP do insumo correspondente
+- Botão "Salvar no Cofre" que:
+  1. Insere registro em `fabrica_revisao_documentos` com categoria e `materia_prima_id`
+  2. Atualiza o anexo na mensagem original marcando `enviado_para_cofre: true`
+  3. Toast de sucesso
 
-### 3. Editar `src/pages/FabricaProdutosAcabados.tsx`
-- Adicionar toggle de visualizacao: Tabela | Grade | **Kanban** (ao lado dos botoes existentes de modo de visualizacao)
-- Quando Kanban selecionado, renderizar `ProdutoKanbanBoard` passando os dados ja carregados (`produtos`, `fichasMap`, `custoTotalMap`)
+### 3. Editar `RevisaoChatPanel.tsx`
+- Em cada anexo do chat que **não** esteja marcado como `enviado_para_cofre`, adicionar um botão/ícone de "Enviar para o Cofre" (ícone Shield ou Lock)
+- Ao clicar, abre `EnviarParaCofreDialog` passando: `anexo`, `revisaoId`, `produtoId`, `mensagemId`
+- Após salvar, atualizar a mensagem localmente para refletir o badge "Cofre"
 
-### Arquivos
-- **Criar**: `src/components/fabrica/ProdutoKanbanBoard.tsx`
-- **Criar**: `src/components/fabrica/ProdutoKanbanCard.tsx`
-- **Editar**: `src/pages/FabricaProdutosAcabados.tsx` (adicionar toggle e renderizacao condicional)
+### 4. Atualizar `DocumentosTab.tsx`
+- Expandir array `CATEGORIAS` com as novas categorias
+- Adicionar ícones para as novas categorias (embalagem, art, materia_prima)
+- Labels em português nos selects de filtro e categorização
+
+### 5. Atualizar categorias no envio direto do chat
+- Quando o checkbox "Vincular ao Cofre" está ativo no envio de anexo, mostrar o select de categoria obrigatório antes do envio
+- Se categoria = `materia_prima`, obrigar vinculação à MP
+
+## Arquivos
+- **Criar**: `src/components/fabrica/EnviarParaCofreDialog.tsx`
+- **Editar**: `src/components/fabrica/RevisaoChatPanel.tsx` (botão cofre nos anexos, integrar dialog)
+- **Editar**: `src/components/fabrica/DocumentosTab.tsx` (expandir categorias e ícones)
 
