@@ -14,6 +14,7 @@ import { MessageSquare, Send, Loader2, Reply, X, Check, CheckCheck, Lock, Unlock
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { DocumentosTab } from "@/components/fabrica/DocumentosTab";
 import { EnviarParaCofreDialog } from "@/components/fabrica/EnviarParaCofreDialog";
+import { CofreFullscreenModal } from "@/components/fabrica/CofreFullscreenModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
@@ -105,6 +106,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
   const [enviarParaCofre, setEnviarParaCofre] = useState(false);
   const [showDocPanel, setShowDocPanel] = useState(false);
   const [docRefreshKey, setDocRefreshKey] = useState(0);
+  const [showCofreFullscreen, setShowCofreFullscreen] = useState(false);
   const [materiaPrimaSelecionada, setMateriaPrimaSelecionada] = useState<string>("none");
   const [materiasPrimasDisponiveis, setMateriasPrimasDisponiveis] = useState<{ id: string; nome: string; codigo: string }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -420,15 +422,26 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                 )
               )}
               {produtoId && (
-                <Button
-                  variant={showDocPanel ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setShowDocPanel(v => !v)}
-                  className="text-[10px] h-6 gap-0.5"
-                >
-                  <FolderOpen className="h-3 w-3" />
-                  Cofre
-                </Button>
+                <>
+                  <Button
+                    variant={showDocPanel ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setShowDocPanel(v => !v)}
+                    className="text-[10px] h-6 gap-0.5"
+                  >
+                    <FolderOpen className="h-3 w-3" />
+                    Cofre
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowCofreFullscreen(true)}
+                    className="text-[10px] h-6 gap-0.5"
+                  >
+                    <Shield className="h-3 w-3" />
+                    Tela Cheia
+                  </Button>
+                </>
               )}
             </div>
           </div>
@@ -840,6 +853,13 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
           mensagemId={cofreDialog.mensagemId}
           mensagemAnexos={cofreDialog.mensagemAnexos}
           onSaved={() => { carregarMensagens(); setDocRefreshKey(k => k + 1); }}
+        />
+      )}
+      {produtoId && (
+        <CofreFullscreenModal
+          open={showCofreFullscreen}
+          onOpenChange={setShowCofreFullscreen}
+          produtoId={produtoId}
         />
       )}
     </ResizablePanelGroup>
