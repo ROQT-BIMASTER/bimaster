@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
 import { InactivityModal } from "@/components/auth/InactivityModal";
+import { usePageTracking } from "@/hooks/usePageTracking";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -31,6 +32,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { t, dir } = useLanguage();
   const isRTL = dir === "rtl";
   useSyncOfflineData();
+  usePageTracking();
   const { showWarning, secondsLeft, resetTimer } = useInactivityTimeout();
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
 
