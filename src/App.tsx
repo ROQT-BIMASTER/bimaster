@@ -192,6 +192,7 @@ const FinanceiroConsolidadoDashboard = lazyWithRetry(() => import("./pages/Finan
 const PortalPrecos = lazyWithRetry(() => import("./pages/portal/PortalPrecos"));
 const PortalPerfil = lazyWithRetry(() => import("./pages/portal/PortalPerfil"));
 const FormularioEquipe = lazyWithRetry(() => import("./pages/FormularioEquipe"));
+const CofreSharePage = lazyWithRetry(() => import("./pages/CofreSharePage"));
 
 // Loading component
 const PageLoader = () => (
@@ -455,6 +456,7 @@ function AppContent() {
 
             {/* Formulário público - sem autenticação */}
             <Route path="/formulario-equipe" element={<FormularioEquipe />} />
+            <Route path="/cofre-share" element={<CofreSharePage />} />
 
             <Route path="/not-found" element={<NotFound />} />
             {/* Catch-all route - must be last */}

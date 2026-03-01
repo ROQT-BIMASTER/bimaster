@@ -1635,6 +1635,51 @@ export type Database = {
           },
         ]
       }
+      cofre_share_tokens: {
+        Row: {
+          access_count: number
+          created_at: string
+          created_by: string
+          document_ids: string[]
+          expires_at: string
+          id: string
+          is_revoked: boolean
+          lote_nome: string | null
+          max_access: number
+          produto_id: string
+          produto_nome: string | null
+          token: string
+        }
+        Insert: {
+          access_count?: number
+          created_at?: string
+          created_by: string
+          document_ids: string[]
+          expires_at: string
+          id?: string
+          is_revoked?: boolean
+          lote_nome?: string | null
+          max_access?: number
+          produto_id: string
+          produto_nome?: string | null
+          token: string
+        }
+        Update: {
+          access_count?: number
+          created_at?: string
+          created_by?: string
+          document_ids?: string[]
+          expires_at?: string
+          id?: string
+          is_revoked?: boolean
+          lote_nome?: string | null
+          max_access?: number
+          produto_id?: string
+          produto_nome?: string | null
+          token?: string
+        }
+        Relationships: []
+      }
       competitor_comparison_photos: {
         Row: {
           competitor_id: string | null

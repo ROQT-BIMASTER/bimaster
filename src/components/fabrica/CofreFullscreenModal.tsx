@@ -195,20 +195,51 @@ export function CofreFullscreenModal({ open, onOpenChange, produtoId, produtoNom
     const selectedDocs = documentos.filter(d => selectedIds.has(d.id));
     if (selectedDocs.length === 0) { toast.error("Selecione ao menos um documento"); return; }
 
-    // Generate signed URLs
-    const links: string[] = [];
-    for (const doc of selectedDocs) {
-      const { data } = await supabase.storage.from("fabrica-revisao-docs").createSignedUrl(doc.arquivo_path, 86400);
-      if (data?.signedUrl) links.push(`📄 ${doc.nome_arquivo} (${getCategoriaLabel(doc.categoria)}):\n${data.signedUrl}`);
+    try {
+      toast.loading("Gerando token de acesso seguro...");
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.dismiss(); toast.error("Não autenticado"); return; }
+
+      // Generate secure token
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let tokenValue = "";
+      for (let i = 0; i < 12; i++) tokenValue += chars[Math.floor(Math.random() * chars.length)];
+
+      const lotesUsados = [...new Set(selectedDocs.map(d => d.lote).filter(Boolean))];
+      const loteNome = lotesUsados.length > 0 ? lotesUsados.join(", ") : null;
+
+      // Save token to DB (expires in 48h, max 50 accesses)
+      const { error: insertError } = await supabase
+        .from("cofre_share_tokens" as any)
+        .insert({
+          token: tokenValue,
+          produto_id: produtoId,
+          produto_nome: produtoNome || null,
+          document_ids: selectedDocs.map(d => d.id),
+          lote_nome: loteNome,
+          created_by: user.id,
+          expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+        } as any);
+
+      if (insertError) throw insertError;
+
+      const shareUrl = `${window.location.origin}/cofre-share?token=${tokenValue}`;
+
+      const loteTexto = loteNome ? `\n🏷️ Lote: ${loteNome}` : "";
+      const docList = selectedDocs.map(d => `  📄 ${d.nome_arquivo} (${getCategoriaLabel(d.categoria)})`).join("\n");
+
+      const mensagem = `🔒 *Cofre de Documentos*\n📦 Produto: ${produtoNome || "—"}${loteTexto}\n\n${docList}\n\n🔗 Acesse os documentos:\n${shareUrl}\n\n🔑 Token: ${tokenValue}\n⏰ Válido por 48h\n\n_${selectedDocs.length} documento(s) compartilhado(s) com segurança_`;
+
+      toast.dismiss();
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+      window.open(waUrl, "_blank");
+      toast.success("Link seguro gerado com sucesso!");
+    } catch (err: any) {
+      toast.dismiss();
+      toast.error("Erro ao gerar link: " + (err.message || "Tente novamente"));
     }
-
-    const lotesUsados = [...new Set(selectedDocs.map(d => d.lote).filter(Boolean))];
-    const loteTexto = lotesUsados.length > 0 ? `\n🏷️ Lote(s): ${lotesUsados.join(", ")}` : "";
-
-    const mensagem = `🔒 *Cofre de Documentos*\n📦 Produto: ${produtoNome || "—"}${loteTexto}\n\n${links.join("\n\n")}\n\n_${selectedDocs.length} documento(s) compartilhado(s)_`;
-
-    const url = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
-    window.open(url, "_blank");
   };
 
   const isImage = (tipo: string) => tipo?.startsWith("image/");
@@ -241,11 +272,21 @@ export function CofreFullscreenModal({ open, onOpenChange, produtoId, produtoNom
                   {CATEGORIAS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={filtroLote} onValueChange={setFiltroLote}>
+              <Select value={filtroLote} onValueChange={(v) => {
+                setFiltroLote(v);
+                // Auto-select all docs in chosen lote
+                if (v !== "all") {
+                  const loteDocIds = documentos.filter(d => d.lote === v).map(d => d.id);
+                  setSelectedIds(new Set(loteDocIds));
+                }
+              }}>
                 <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Lote" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos lotes</SelectItem>
-                  {lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                  {lotes.map(l => {
+                    const count = documentos.filter(d => d.lote === l).length;
+                    return <SelectItem key={l} value={l}>{l} ({count})</SelectItem>;
+                  })}
                 </SelectContent>
               </Select>
 
