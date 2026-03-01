@@ -1,45 +1,65 @@
 
 
-## Plano: Acesso de Compras/Faturamento a Matérias-Primas + Correções da Fábrica
+## Diagnóstico
 
-### 1. Corrigir inconsistência de screenCode na rota de Matérias-Primas
+Analisei a estrutura atual dos requisitos obrigatórios e evidências na ficha de custo. Identifiquei os seguintes gaps:
 
-**Bug encontrado:** Em `App.tsx`, a rota `/dashboard/fabrica/materias-primas` usa `screenCode="fabrica_materias_primas"`, mas a tela no banco tem código `fabrica_mps`. Isso pode bloquear acesso mesmo para quem tem permissão. Corrigir para `screenCode="fabrica_mps"`.
+### Problemas encontrados
 
-### 2. Garantir acesso para Compras/Faturamento
+1. **Sem rastreabilidade de solicitante nos requisitos**: A tabela `fabrica_revisao_requisitos` não registra **quem criou** cada requisito (o diretor que solicitou). Apenas grava `contestado_por` e `resolvido_por`.
 
-O sistema usa permissões por tela (`usuario_permissoes_telas`) vinculadas ao código da tela. Duas opções para liberar acesso:
+2. **Sem histórico de múltiplas solicitações por data**: Quando há revisões em datas diferentes para o mesmo produto, os requisitos ficam isolados por `revisao_id`, mas não há uma visão consolidada que mostre o **histórico de todas as solicitações** ao longo do tempo.
 
-- **Via banco:** Inserir permissão `fabrica_mps` para os usuários do departamento Compras/Faturamento (se o departamento não existe, criá-lo).
-- **Via código:** Não é necessário alterar código além da correção do screenCode, pois o sistema já suporta permissões individuais por usuário e departamento. O administrador pode conceder acesso pela tela de Permissões.
+3. **Evidências sem vínculo ao requisito específico**: Os uploads vão para `fabrica_custo_evidencias` com `produto_custo_id`, mas sem referência direta ao `requisito_id` que motivou o envio — dificultando saber qual evidência atende qual requisito.
 
-**Ação:** Como não existe departamento "Compras/Faturamento" no banco, criar via migration e vincular a permissão do módulo `fabrica` e da tela `fabrica_mps` a esse departamento para que todos os membros tenham acesso automático.
+4. **Sem visualização de timeline**: Não existe uma visualização que agrupe requisitos por data/versão de revisão, mostrando quem pediu o quê e quando.
 
-### 3. Testar funcionalidades da Fábrica via navegação
+---
 
-Após as correções, navegar pelo módulo Fábrica para verificar:
-- Matérias-Primas (listagem, criação, edição, exclusão)
-- Produtos Acabados
-- Fórmulas BOM
-- Ordens de Produção
-- Vinculação de XML (novo e salvos)
-- Configuração Fiscal
+## Plano de Implementação
 
-### Arquivos afetados
+### 1. Migração de banco — Adicionar campos de rastreabilidade
 
-- `src/App.tsx` — corrigir `fabrica_materias_primas` → `fabrica_mps` na rota (linha 372)
-- Migration SQL — criar departamento "Compras e Faturamento" e vincular permissão da tela `fabrica_mps` e módulo `fabrica` ao departamento
+```sql
+-- Adicionar solicitante nos requisitos
+ALTER TABLE fabrica_revisao_requisitos 
+  ADD COLUMN criado_por uuid REFERENCES auth.users(id),
+  ADD COLUMN criado_por_nome text;
 
-### Detalhes técnicos
-
-```text
-App.tsx linha 372:
-  ANTES: screenCode="fabrica_materias_primas"
-  DEPOIS: screenCode="fabrica_mps"
-
-Migration SQL:
-  1. INSERT departamento "Compras e Faturamento"
-  2. INSERT departamento_permissoes_modulos → módulo fabrica
-  3. INSERT (se tabela existir) permissão de tela fabrica_mps
+-- Vincular evidências ao requisito que atenderam
+ALTER TABLE fabrica_custo_evidencias 
+  ADD COLUMN requisito_id uuid REFERENCES fabrica_revisao_requisitos(id);
 ```
+
+### 2. Atualizar criação de requisitos (useFichaRevisao.ts)
+
+Ao inserir requisitos na tabela, gravar `criado_por` e `criado_por_nome` com os dados do diretor logado.
+
+### 3. Vincular upload de evidência ao requisito
+
+Nos handlers de upload dentro do painel de requisitos (`FichaCustoProdutoEditor.tsx`), passar o `requisito_id` ao inserir em `fabrica_custo_evidencias`.
+
+### 4. Criar componente de Timeline de Requisitos
+
+Novo componente `RequisitosHistoricoTimeline` que:
+- Agrupa requisitos por revisão (versão + data)
+- Mostra quem solicitou cada requisito e quando
+- Lista evidências vinculadas a cada requisito
+- Exibe status (Pendente / Cumprido / Contestado) com badges visuais
+- Permite expandir para ver detalhes de resolução/contestação
+
+### 5. Integrar Timeline na Ficha de Custo
+
+Adicionar uma aba ou seção colapsável "Histórico de Solicitações" abaixo do painel de requisitos atual, visível quando houver mais de uma revisão.
+
+---
+
+### Resumo de arquivos impactados
+
+| Arquivo | Alteração |
+|---|---|
+| Migração SQL | Novos campos `criado_por`, `criado_por_nome`, `requisito_id` |
+| `src/hooks/useFichaRevisao.ts` | Gravar solicitante ao criar requisitos |
+| `src/components/fabrica/FichaCustoProdutoEditor.tsx` | Vincular `requisito_id` nos uploads; integrar timeline |
+| `src/components/fabrica/RequisitosHistoricoTimeline.tsx` | **Novo** — componente de timeline |
 
