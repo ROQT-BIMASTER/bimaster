@@ -1,11 +1,27 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Plus, Trash2, GripVertical, Package, Barcode } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Search, Plus, Trash2, Package, Barcode, Filter, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface GradeItem {
@@ -16,6 +32,19 @@ interface GradeItem {
   quantidade: number;
   ordem: number;
   cor_numero?: string;
+  linha?: string;
+  marca?: string;
+}
+
+interface ProdutoDisponivel {
+  id: string;
+  nome: string;
+  codigo: string;
+  codigo_barras_ean: string | null;
+  foto_url: string | null;
+  linha: string | null;
+  marca: string | null;
+  categoria: string | null;
 }
 
 interface ComposicaoGradeEditorProps {
@@ -25,38 +54,69 @@ interface ComposicaoGradeEditorProps {
 }
 
 export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: ComposicaoGradeEditorProps) {
+  const [produtos, setProdutos] = useState<ProdutoDisponivel[]>([]);
+  const [carregando, setCarregando] = useState(false);
   const [busca, setBusca] = useState("");
-  const [resultados, setResultados] = useState<any[]>([]);
-  const [buscando, setBuscando] = useState(false);
+  const [filtroMarca, setFiltroMarca] = useState("__ALL__");
+  const [filtroLinha, setFiltroLinha] = useState("__ALL__");
 
-  const buscarProdutos = useCallback(async (termo: string) => {
-    if (termo.length < 2) {
-      setResultados([]);
-      return;
-    }
-    setBuscando(true);
-    const { data } = await supabase
-      .from("fabrica_produtos")
-      .select("id, nome, codigo, codigo_barras_ean, foto_url")
-      .or(`nome.ilike.%${termo}%,codigo.ilike.%${termo}%,codigo_barras_ean.ilike.%${termo}%`)
-      .eq("ativo", true)
-      .neq("tipo", "MP")
-      .neq("tipo", "DISPLAY")
-      .limit(10);
-
-    // Filter out already-added items and the parent itself
-    const ids = new Set(items.map(i => i.produto_filho_id));
-    if (produtoPaiId) ids.add(produtoPaiId);
-    setResultados((data || []).filter(p => !ids.has(p.id)));
-    setBuscando(false);
-  }, [items, produtoPaiId]);
-
+  // Load all eligible products once
   useEffect(() => {
-    const timeout = setTimeout(() => buscarProdutos(busca), 300);
-    return () => clearTimeout(timeout);
-  }, [busca, buscarProdutos]);
+    const carregarProdutos = async () => {
+      setCarregando(true);
+      const { data, error } = await supabase
+        .from("fabrica_produtos")
+        .select("id, nome, codigo, codigo_barras_ean, foto_url, linha, marca, categoria")
+        .eq("ativo", true)
+        .neq("tipo", "MP")
+        .neq("tipo", "DISPLAY")
+        .order("nome");
 
-  const adicionarItem = (produto: any) => {
+      if (!error && data) {
+        setProdutos(data);
+      }
+      setCarregando(false);
+    };
+    carregarProdutos();
+  }, []);
+
+  // Extract distinct brands and lines
+  const marcas = useMemo(() => {
+    const set = new Set(produtos.map(p => p.marca).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [produtos]);
+
+  const linhas = useMemo(() => {
+    let filtered = produtos;
+    if (filtroMarca !== "__ALL__") {
+      filtered = filtered.filter(p => p.marca === filtroMarca);
+    }
+    const set = new Set(filtered.map(p => p.linha).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [produtos, filtroMarca]);
+
+  // Filter products
+  const produtosFiltrados = useMemo(() => {
+    const idsJaAdicionados = new Set(items.map(i => i.produto_filho_id));
+    if (produtoPaiId) idsJaAdicionados.add(produtoPaiId);
+
+    return produtos.filter(p => {
+      if (idsJaAdicionados.has(p.id)) return false;
+      if (filtroMarca !== "__ALL__" && p.marca !== filtroMarca) return false;
+      if (filtroLinha !== "__ALL__" && p.linha !== filtroLinha) return false;
+      if (busca.length >= 2) {
+        const termo = busca.toLowerCase();
+        const match =
+          p.nome.toLowerCase().includes(termo) ||
+          p.codigo.toLowerCase().includes(termo) ||
+          (p.codigo_barras_ean && p.codigo_barras_ean.toLowerCase().includes(termo));
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [produtos, items, produtoPaiId, filtroMarca, filtroLinha, busca]);
+
+  const adicionarItem = (produto: ProdutoDisponivel) => {
     const novo: GradeItem = {
       produto_filho_id: produto.id,
       nome: produto.nome,
@@ -65,10 +125,10 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
       quantidade: 1,
       ordem: items.length,
       cor_numero: "",
+      linha: produto.linha || "",
+      marca: produto.marca || "",
     };
     onChange([...items, novo]);
-    setBusca("");
-    setResultados([]);
   };
 
   const removerItem = (index: number) => {
@@ -92,7 +152,8 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
   const totalItens = items.reduce((acc, i) => acc + i.quantidade, 0);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Header with summary */}
       <div className="flex items-center justify-between">
         <Label className="text-sm font-semibold">Composição de Grade</Label>
         {items.length > 0 && (
@@ -107,99 +168,140 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
         )}
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-        <Input
-          placeholder="Buscar produto para adicionar..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          className="pl-8 h-9 text-sm"
-        />
-        {resultados.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
-            {resultados.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => adicionarItem(p)}
-                className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-accent text-sm transition-colors"
-              >
-                <Plus className="h-3.5 w-3.5 text-primary shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-xs">{p.nome}</p>
-                  <p className="text-[10px] text-muted-foreground font-mono">{p.codigo}</p>
-                </div>
-                {p.codigo_barras_ean && (
-                  <Badge variant="outline" className="text-[9px] shrink-0">
-                    <Barcode className="h-2.5 w-2.5 mr-0.5" />
-                    {p.codigo_barras_ean}
-                  </Badge>
-                )}
-              </button>
+      {/* Filters bar */}
+      <div className="flex items-center gap-2">
+        <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <Select value={filtroMarca} onValueChange={(v) => { setFiltroMarca(v); setFiltroLinha("__ALL__"); }}>
+          <SelectTrigger className="h-8 text-xs w-[130px]">
+            <SelectValue placeholder="Marca" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__ALL__">Todas Marcas</SelectItem>
+            {marcas.map(m => (
+              <SelectItem key={m} value={m}>{m}</SelectItem>
             ))}
-          </div>
-        )}
+          </SelectContent>
+        </Select>
+        <Select value={filtroLinha} onValueChange={setFiltroLinha}>
+          <SelectTrigger className="h-8 text-xs w-[140px]">
+            <SelectValue placeholder="Linha" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__ALL__">Todas Linhas</SelectItem>
+            {linhas.map(l => (
+              <SelectItem key={l} value={l}>{l}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar nome, código ou EAN..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="pl-7 h-8 text-xs"
+          />
+        </div>
       </div>
 
-      {/* Items list */}
+      {/* Products table */}
+      <div className="border rounded-md">
+        <ScrollArea className="h-[200px]">
+          {carregando ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : produtosFiltrados.length === 0 ? (
+            <div className="text-center py-6 text-xs text-muted-foreground">
+              {produtos.length === 0 ? "Nenhum produto acabado cadastrado" : "Nenhum produto encontrado com esses filtros"}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="h-8 text-[10px] w-[50px]"></TableHead>
+                  <TableHead className="h-8 text-[10px] w-[90px]">Código</TableHead>
+                  <TableHead className="h-8 text-[10px]">Nome</TableHead>
+                  <TableHead className="h-8 text-[10px] w-[90px]">Linha</TableHead>
+                  <TableHead className="h-8 text-[10px] w-[120px]">EAN</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {produtosFiltrados.map((p) => (
+                  <TableRow key={p.id} className="cursor-pointer hover:bg-accent/50" onClick={() => adicionarItem(p)}>
+                    <TableCell className="py-1.5 px-2">
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); adicionarItem(p); }}>
+                        <Plus className="h-3.5 w-3.5 text-primary" />
+                      </Button>
+                    </TableCell>
+                    <TableCell className="py-1.5 text-[11px] font-mono">{p.codigo}</TableCell>
+                    <TableCell className="py-1.5 text-[11px] font-medium truncate max-w-[180px]">{p.nome}</TableCell>
+                    <TableCell className="py-1.5 text-[10px] text-muted-foreground">{p.linha || "—"}</TableCell>
+                    <TableCell className="py-1.5 text-[10px] font-mono text-muted-foreground">{p.codigo_barras_ean || "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </ScrollArea>
+      </div>
+
+      {/* Selected items */}
       {items.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-6 text-center">
-          <Package className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+        <div className="rounded-lg border border-dashed p-4 text-center">
+          <Package className="h-6 w-6 text-muted-foreground/30 mx-auto mb-1.5" />
           <p className="text-xs text-muted-foreground">
-            Nenhum produto na grade. Busque e adicione produtos acima.
+            Clique em <Plus className="inline h-3 w-3" /> na tabela acima para adicionar produtos ao kit.
           </p>
         </div>
       ) : (
-        <ScrollArea className="max-h-[240px]">
-          <div className="space-y-1.5">
-            {items.map((item, index) => (
-              <div
-                key={item.produto_filho_id}
-                className="flex items-center gap-2 rounded-lg border bg-muted/20 px-2.5 py-2"
-              >
-                <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{item.nome}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[10px] text-muted-foreground font-mono">{item.codigo}</span>
-                    {item.codigo_barras_ean && (
-                      <Badge variant="outline" className="text-[9px] py-0 px-1">
-                        {item.codigo_barras_ean}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <Input
-                    type="text"
-                    value={item.cor_numero || ""}
-                    onChange={(e) => atualizarCorNumero(index, e.target.value)}
-                    className="w-12 h-7 text-xs text-center"
-                    placeholder="Nº"
-                    title="Número da cor/variante"
-                  />
-                  <Input
-                    type="number"
-                    min={1}
-                    value={item.quantidade}
-                    onChange={(e) => atualizarQuantidade(index, parseInt(e.target.value) || 1)}
-                    className="w-14 h-7 text-xs text-center"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => removerItem(index)}
-                  >
-                    <Trash2 className="h-3 w-3 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
+        <div>
+          <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Itens selecionados</Label>
+          <ScrollArea className="max-h-[200px]">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="h-7 text-[10px] w-[80px]">Código</TableHead>
+                  <TableHead className="h-7 text-[10px]">Nome</TableHead>
+                  <TableHead className="h-7 text-[10px] w-[60px] text-center">Nº Cor</TableHead>
+                  <TableHead className="h-7 text-[10px] w-[65px] text-center">Qtd</TableHead>
+                  <TableHead className="h-7 text-[10px] w-[40px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item, index) => (
+                  <TableRow key={item.produto_filho_id}>
+                    <TableCell className="py-1 text-[11px] font-mono">{item.codigo}</TableCell>
+                    <TableCell className="py-1 text-[11px] truncate max-w-[160px]">{item.nome}</TableCell>
+                    <TableCell className="py-1">
+                      <Input
+                        type="text"
+                        value={item.cor_numero || ""}
+                        onChange={(e) => atualizarCorNumero(index, e.target.value)}
+                        className="w-12 h-6 text-[10px] text-center px-1"
+                        placeholder="Nº"
+                      />
+                    </TableCell>
+                    <TableCell className="py-1">
+                      <Input
+                        type="number"
+                        min={1}
+                        value={item.quantidade}
+                        onChange={(e) => atualizarQuantidade(index, parseInt(e.target.value) || 1)}
+                        className="w-14 h-6 text-[10px] text-center px-1"
+                      />
+                    </TableCell>
+                    <TableCell className="py-1">
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removerItem(index)}>
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </div>
       )}
     </div>
   );

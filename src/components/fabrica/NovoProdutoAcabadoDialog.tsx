@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ComposicaoGradeEditor } from "@/components/fabrica/ComposicaoGradeEditor";
+import { ExportarDisplayGrade } from "@/components/fabrica/ExportarDisplayGrade";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -614,6 +615,16 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                   items={gradeItems}
                   onChange={setGradeItems}
                 />
+                {gradeItems.length > 0 && produtoEdit?.id && (
+                  <div className="pt-2 border-t">
+                    <Label className="text-xs text-muted-foreground mb-2 block">Exportar Grade</Label>
+                    <ExportarDisplayGrade
+                      produtoId={produtoEdit.id}
+                      produtoNome={formData.nome}
+                      produtoCodigo={formData.codigo}
+                    />
+                  </div>
+                )}
               </TabsContent>
             )}
 

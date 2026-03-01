@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { FileSpreadsheet, Loader2 } from "lucide-react";
+import { FileSpreadsheet, Loader2, Printer } from "lucide-react";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
@@ -12,32 +12,41 @@ interface ExportarDisplayGradeProps {
   produtoCodigo: string;
 }
 
+async function carregarDadosGrade(produtoId: string) {
+  const { data: displayProduto, error: prodError } = await supabase
+    .from("fabrica_produtos")
+    .select("id, nome, codigo, codigo_barras_ean, foto_url, ncm, processo_anvisa, tipo_rotulagem, itens_display")
+    .eq("id", produtoId)
+    .single();
+
+  if (prodError || !displayProduto) throw new Error("Produto não encontrado");
+
+  const { data: gradeItens, error: gradeError } = await supabase
+    .from("fabrica_produto_grade_itens")
+    .select("quantidade, ordem, cor_numero, produto_filho:fabrica_produtos!produto_filho_id(id, nome, codigo, codigo_barras_ean, foto_url, ncm, processo_anvisa, tipo_rotulagem)")
+    .eq("produto_pai_id", produtoId)
+    .order("ordem");
+
+  if (gradeError) throw gradeError;
+
+  if (!gradeItens || gradeItens.length === 0) {
+    toast.warning("Este display não possui itens na grade.");
+    return null;
+  }
+
+  return { displayProduto, gradeItens };
+}
+
 export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: ExportarDisplayGradeProps) {
-  const [exportando, setExportando] = useState(false);
+  const [exportandoExcel, setExportandoExcel] = useState(false);
+  const [exportandoPdf, setExportandoPdf] = useState(false);
 
-  const exportar = async () => {
-    setExportando(true);
+  const exportarExcel = async () => {
+    setExportandoExcel(true);
     try {
-      const { data: displayProduto, error: prodError } = await supabase
-        .from("fabrica_produtos")
-        .select("id, nome, codigo, codigo_barras_ean, foto_url, ncm, processo_anvisa, tipo_rotulagem, itens_display")
-        .eq("id", produtoId)
-        .single();
-
-      if (prodError || !displayProduto) throw new Error("Produto não encontrado");
-
-      const { data: gradeItens, error: gradeError } = await supabase
-        .from("fabrica_produto_grade_itens")
-        .select("quantidade, ordem, cor_numero, produto_filho:fabrica_produtos!produto_filho_id(id, nome, codigo, codigo_barras_ean, foto_url, ncm, processo_anvisa, tipo_rotulagem)")
-        .eq("produto_pai_id", produtoId)
-        .order("ordem");
-
-      if (gradeError) throw gradeError;
-
-      if (!gradeItens || gradeItens.length === 0) {
-        toast.warning("Este display não possui itens na grade.");
-        return;
-      }
+      const dados = await carregarDadosGrade(produtoId);
+      if (!dados) return;
+      const { displayProduto, gradeItens } = dados;
 
       const workbook = new ExcelJS.Workbook();
       workbook.creator = "BiMaster";
@@ -45,7 +54,6 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
 
       const ws = workbook.addWorksheet("Display Grade");
 
-      // Define columns with differentiated headers
       ws.columns = [
         { header: "Item No.", key: "item_no", width: 18 },
         { header: "Color No.", key: "cor_numero", width: 12 },
@@ -64,23 +72,16 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
         { header: "NCM", key: "ncm", width: 14 },
       ];
 
-      // Style header row
       const headerRow = ws.getRow(1);
       headerRow.height = 32;
       headerRow.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
-      headerRow.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FF4472C4" },
-      };
+      headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4472C4" } };
       headerRow.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
 
-      const totalQty = gradeItens.reduce((s, i) => s + (i.quantidade || 0), 0);
+      const totalQty = gradeItens.reduce((s: number, i: any) => s + (i.quantidade || 0), 0);
 
-      // Add data rows — item_no on ALL rows
       gradeItens.forEach((item: any, index: number) => {
         const filho = item.produto_filho;
-
         const row = ws.addRow({
           item_no: displayProduto.codigo,
           cor_numero: item.cor_numero || String(index + 1),
@@ -98,12 +99,10 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
           proc_anvisa: filho?.processo_anvisa || displayProduto.processo_anvisa || "",
           ncm: filho?.ncm || displayProduto.ncm || "",
         });
-
         row.height = 22;
         row.font = { size: 10 };
         row.alignment = { vertical: "middle" };
 
-        // Add hyperlinks for photos
         if (filho?.foto_url) {
           const cell = row.getCell("picture");
           cell.value = { text: "Ver foto", hyperlink: filho.foto_url };
@@ -111,7 +110,6 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
         }
       });
 
-      // Add TOTAL footer row
       const totalRow = ws.addRow({
         item_no: displayProduto.codigo,
         cor_numero: "",
@@ -132,21 +130,15 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
 
       totalRow.height = 26;
       totalRow.font = { bold: true, size: 10 };
-      totalRow.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFD9E2F3" },
-      };
+      totalRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E2F3" } };
       totalRow.alignment = { vertical: "middle" };
 
-      // Hyperlink for display box photo
       if (displayProduto.foto_url) {
         const cell = totalRow.getCell("picture_box");
         cell.value = { text: "Ver foto", hyperlink: displayProduto.foto_url };
         cell.font = { bold: true, size: 10, color: { argb: "FF0563C1" }, underline: true };
       }
 
-      // Apply borders to all cells
       ws.eachRow((row) => {
         row.eachCell((cell) => {
           cell.border = {
@@ -166,30 +158,121 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       saveAs(blob, filename);
-
       toast.success("Planilha exportada com sucesso!");
     } catch (error: any) {
       console.error("Erro ao exportar grade:", error);
       toast.error("Erro ao exportar: " + (error.message || "Erro desconhecido"));
     } finally {
-      setExportando(false);
+      setExportandoExcel(false);
+    }
+  };
+
+  const imprimirPdf = async () => {
+    setExportandoPdf(true);
+    try {
+      const dados = await carregarDadosGrade(produtoId);
+      if (!dados) return;
+      const { displayProduto, gradeItens } = dados;
+
+      const totalQty = gradeItens.reduce((s: number, i: any) => s + (i.quantidade || 0), 0);
+
+      const linhasHtml = gradeItens.map((item: any, index: number) => {
+        const filho = item.produto_filho;
+        return `<tr>
+          <td>${displayProduto.codigo}</td>
+          <td style="text-align:center">${item.cor_numero || index + 1}</td>
+          <td>${filho?.nome || ""}</td>
+          <td style="text-align:center">${item.quantidade || 1}</td>
+          <td>${filho?.tipo_rotulagem || displayProduto.tipo_rotulagem || ""}</td>
+          <td style="font-family:monospace">${filho?.codigo_barras_ean || ""}</td>
+          <td>${filho?.processo_anvisa || displayProduto.processo_anvisa || ""}</td>
+          <td>${filho?.ncm || displayProduto.ncm || ""}</td>
+        </tr>`;
+      }).join("");
+
+      const html = `<!DOCTYPE html>
+<html><head><title>Grade - ${displayProduto.codigo}</title>
+<style>
+  @media print { @page { size: landscape; margin: 10mm; } }
+  body { font-family: Arial, sans-serif; font-size: 11px; margin: 20px; }
+  h2 { margin: 0 0 4px; font-size: 16px; }
+  p.sub { color: #666; margin: 0 0 12px; font-size: 11px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #4472C4; color: #fff; padding: 6px 8px; text-align: left; font-size: 10px; }
+  td { border: 1px solid #ccc; padding: 5px 8px; font-size: 11px; }
+  tr:nth-child(even) { background: #f5f7fa; }
+  tr.total { background: #D9E2F3; font-weight: bold; }
+  .footer { margin-top: 12px; font-size: 9px; color: #999; }
+</style></head><body>
+<h2>Grade do Display: ${displayProduto.nome}</h2>
+<p class="sub">Código: ${displayProduto.codigo} | EAN: ${displayProduto.codigo_barras_ean || "—"} | Gerado em: ${new Date().toLocaleDateString("pt-BR")}</p>
+<table>
+  <thead><tr>
+    <th>Item No.</th><th>Color No.</th><th>Nome</th><th>Qtd</th><th>Tipo</th><th>Barcode</th><th>Proc. Anvisa</th><th>NCM</th>
+  </tr></thead>
+  <tbody>
+    ${linhasHtml}
+    <tr class="total">
+      <td>${displayProduto.codigo}</td>
+      <td style="text-align:center">—</td>
+      <td>${displayProduto.nome} (TOTAL)</td>
+      <td style="text-align:center">${totalQty}</td>
+      <td>${displayProduto.tipo_rotulagem || ""}</td>
+      <td style="font-family:monospace">${displayProduto.codigo_barras_ean || ""}</td>
+      <td>${displayProduto.processo_anvisa || ""}</td>
+      <td>${displayProduto.ncm || ""}</td>
+    </tr>
+  </tbody>
+</table>
+<p class="footer">BiMaster — Composição de Grade</p>
+</body></html>`;
+
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 400);
+      }
+      toast.success("Janela de impressão aberta!");
+    } catch (error: any) {
+      console.error("Erro ao gerar PDF:", error);
+      toast.error("Erro ao gerar PDF: " + (error.message || "Erro desconhecido"));
+    } finally {
+      setExportandoPdf(false);
     }
   };
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      className="w-full"
-      onClick={exportar}
-      disabled={exportando}
-    >
-      {exportando ? (
-        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-      ) : (
-        <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
-      )}
-      Exportar Grade Excel
-    </Button>
+    <div className="flex gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1"
+        onClick={exportarExcel}
+        disabled={exportandoExcel}
+      >
+        {exportandoExcel ? (
+          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+        ) : (
+          <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
+        )}
+        Excel
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1"
+        onClick={imprimirPdf}
+        disabled={exportandoPdf}
+      >
+        {exportandoPdf ? (
+          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+        ) : (
+          <Printer className="h-3.5 w-3.5 mr-1.5" />
+        )}
+        Imprimir PDF
+      </Button>
+    </div>
   );
 }
