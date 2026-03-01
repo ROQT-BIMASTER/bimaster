@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
+import { NovoProdutoAcabadoDialog } from "@/components/fabrica/NovoProdutoAcabadoDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import {
@@ -56,19 +57,24 @@ export function ProdutoDetalhesSheet({ open, onOpenChange, produtoId }: ProdutoD
   const [insumos, setInsumos] = useState<InsumoFormula[]>([]);
   const [custoTotal, setCustoTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [fullProdutoData, setFullProdutoData] = useState<any>(null);
 
   useEffect(() => {
     if (!open || !produtoId) return;
     setLoading(true);
 
     const fetchData = async () => {
-      const [prodRes, configRes, insumosRes] = await Promise.all([
+      // Fetch display data + full product data for edit dialog
+      const [prodRes, fullProdRes, configRes, insumosRes] = await Promise.all([
         supabase.from("fabrica_produtos").select("id, nome, codigo, marca, linha, origem, ncm, processo_anvisa, lead_time_dias, itens_display, ativo, modo_foco, foto_url").eq("id", produtoId).single(),
+        supabase.from("fabrica_produtos").select("*").eq("id", produtoId).single(),
         supabase.from("fabrica_produto_custos_config").select("custo_mao_obra_nf, custo_mao_obra_servico, percentual_markup").eq("produto_id", produtoId).maybeSingle(),
         supabase.from("fabrica_produto_custos").select("id, nome, codigo, custo_nf, custo_servico").eq("produto_id", produtoId).order("ordem"),
       ]);
 
       if (prodRes.data) setProduto(prodRes.data as unknown as ProdutoData);
+      if (fullProdRes.data) setFullProdutoData(fullProdRes.data);
       if (configRes.data) setCustoConfig(configRes.data as CustoConfigData);
       
       const ins = (insumosRes.data || []) as InsumoFormula[];
@@ -93,8 +99,9 @@ export function ProdutoDetalhesSheet({ open, onOpenChange, produtoId }: ProdutoD
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const goToEdit = () => {
-    onOpenChange(false);
-    navigate(`/dashboard/fabrica/produtos?edit=${produtoId}`);
+    if (fullProdutoData) {
+      setEditDialogOpen(true);
+    }
   };
 
   const DetailRow = ({ icon: Icon, label, value, editable = true }: { icon: React.ElementType; label: string; value: React.ReactNode; editable?: boolean }) => (
@@ -241,6 +248,21 @@ export function ProdutoDetalhesSheet({ open, onOpenChange, produtoId }: ProdutoD
           )}
         </ScrollArea>
       </SheetContent>
+
+      <NovoProdutoAcabadoDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        produtoEdit={fullProdutoData}
+        onSuccess={() => {
+          setEditDialogOpen(false);
+          // Reload product data
+          setLoading(true);
+          supabase.from("fabrica_produtos").select("id, nome, codigo, marca, linha, origem, ncm, processo_anvisa, lead_time_dias, itens_display, ativo, modo_foco, foto_url").eq("id", produtoId).single().then(({ data }) => {
+            if (data) setProduto(data as unknown as ProdutoData);
+            setLoading(false);
+          });
+        }}
+      />
     </Sheet>
   );
 }
