@@ -1,65 +1,88 @@
 
 
-## Diagnóstico
+## Plano: Sistema de Composição de Grade / Display (Kit)
 
-Analisei a estrutura atual dos requisitos obrigatórios e evidências na ficha de custo. Identifiquei os seguintes gaps:
+### Contexto
 
-### Problemas encontrados
+A imagem mostra um card de produto "Bronzer cremoso stick" com uma seção **"Composição de Grade"** listando variantes (Desert Haze, Sunlit Sand, Warm Touch, Sunset Sienna) — cada uma com EAN próprio e código de barras. Isso representa um **Display/Kit**: uma embalagem que agrupa vários produtos acabados (com cores, EANs e quantidades distintas) em uma unidade de venda.
 
-1. **Sem rastreabilidade de solicitante nos requisitos**: A tabela `fabrica_revisao_requisitos` não registra **quem criou** cada requisito (o diretor que solicitou). Apenas grava `contestado_por` e `resolvido_por`.
-
-2. **Sem histórico de múltiplas solicitações por data**: Quando há revisões em datas diferentes para o mesmo produto, os requisitos ficam isolados por `revisao_id`, mas não há uma visão consolidada que mostre o **histórico de todas as solicitações** ao longo do tempo.
-
-3. **Evidências sem vínculo ao requisito específico**: Os uploads vão para `fabrica_custo_evidencias` com `produto_custo_id`, mas sem referência direta ao `requisito_id` que motivou o envio — dificultando saber qual evidência atende qual requisito.
-
-4. **Sem visualização de timeline**: Não existe uma visualização que agrupe requisitos por data/versão de revisão, mostrando quem pediu o quê e quando.
+O modelo é análogo à fórmula BOM (matéria-prima → produto acabado), mas no nível acima: **produto acabado → display/kit**.
 
 ---
 
-## Plano de Implementação
+### Estrutura de Dados
 
-### 1. Migração de banco — Adicionar campos de rastreabilidade
+**Nova tabela: `fabrica_produto_grade_itens`**
 
-```sql
--- Adicionar solicitante nos requisitos
-ALTER TABLE fabrica_revisao_requisitos 
-  ADD COLUMN criado_por uuid REFERENCES auth.users(id),
-  ADD COLUMN criado_por_nome text;
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `id` | uuid PK | |
+| `produto_pai_id` | uuid FK → fabrica_produtos | O Display/Kit |
+| `produto_filho_id` | uuid FK → fabrica_produtos | O produto acabado que compõe o kit |
+| `quantidade` | integer | Quantas unidades desse produto no display |
+| `ordem` | integer | Ordem de exibição |
+| `created_at` | timestamp | |
 
--- Vincular evidências ao requisito que atenderam
-ALTER TABLE fabrica_custo_evidencias 
-  ADD COLUMN requisito_id uuid REFERENCES fabrica_revisao_requisitos(id);
+**Alteração em `fabrica_produtos`**: Adicionar novo tipo `DISPLAY` no fluxo (o select de tipo já aceita strings livres). O campo `itens_display` existente será calculado automaticamente a partir da soma dos itens da grade.
+
+---
+
+### Componentes e Arquivos
+
+#### 1. Migração SQL
+- Criar tabela `fabrica_produto_grade_itens` com RLS
+- Índices em `produto_pai_id` e `produto_filho_id`
+
+#### 2. `NovoProdutoAcabadoDialog.tsx`
+- Adicionar opção `DISPLAY` no select de Tipo de Produto
+- Quando tipo = DISPLAY, exibir seção para montar a composição de grade
+
+#### 3. Novo componente: `ComposicaoGradeEditor.tsx`
+- Buscador de produtos acabados existentes (autocomplete)
+- Lista dos itens selecionados com quantidade, EAN do produto filho, e ação de remover
+- Cálculo automático do total de variantes e total de itens
+- Drag-and-drop para reordenar (usa @dnd-kit já instalado)
+
+#### 4. Novo componente: `ComposicaoGradeCard.tsx`
+- Card visual (como na imagem) para exibir no `ProdutoDetalhesSheet` e no `ProdutoKanbanCard`
+- Lista compacta: nome da variante + badge EAN
+- Rodapé: "Total de Variantes: X"
+
+#### 5. `ProdutoDetalhesSheet.tsx`
+- Quando o produto é tipo DISPLAY, renderizar `ComposicaoGradeCard` na lateral
+- Buscar itens de `fabrica_produto_grade_itens` com join nos produtos filhos
+
+#### 6. `ProdutoKanbanCard.tsx`
+- Para produtos DISPLAY, exibir mini-indicador de composição (ex: badge "Kit · 6 itens")
+
+#### 7. Custo do Display
+- O custo total do Display será calculado como soma dos custos unitários dos produtos filhos × quantidade, mais os insumos próprios do display (embalagem terciária, acessórios)
+- Integrar no `useFichaCustoProduto` para displays
+
+---
+
+### Fluxo do Usuário
+
+```text
+1. Criar produto tipo DISPLAY (código, nome, EAN do display)
+2. Na aba "Composição de Grade", buscar e adicionar produtos acabados
+3. Definir quantidade de cada variante no display
+4. Salvar → itens_display é calculado automaticamente
+5. Na Ficha de Custo, o custo dos filhos aparece como linha de referência
+6. No Kanban e no painel de detalhes, a grade é visualizada
 ```
 
-### 2. Atualizar criação de requisitos (useFichaRevisao.ts)
-
-Ao inserir requisitos na tabela, gravar `criado_por` e `criado_por_nome` com os dados do diretor logado.
-
-### 3. Vincular upload de evidência ao requisito
-
-Nos handlers de upload dentro do painel de requisitos (`FichaCustoProdutoEditor.tsx`), passar o `requisito_id` ao inserir em `fabrica_custo_evidencias`.
-
-### 4. Criar componente de Timeline de Requisitos
-
-Novo componente `RequisitosHistoricoTimeline` que:
-- Agrupa requisitos por revisão (versão + data)
-- Mostra quem solicitou cada requisito e quando
-- Lista evidências vinculadas a cada requisito
-- Exibe status (Pendente / Cumprido / Contestado) com badges visuais
-- Permite expandir para ver detalhes de resolução/contestação
-
-### 5. Integrar Timeline na Ficha de Custo
-
-Adicionar uma aba ou seção colapsável "Histórico de Solicitações" abaixo do painel de requisitos atual, visível quando houver mais de uma revisão.
-
 ---
 
-### Resumo de arquivos impactados
+### Arquivos Impactados
 
-| Arquivo | Alteração |
+| Arquivo | Ação |
 |---|---|
-| Migração SQL | Novos campos `criado_por`, `criado_por_nome`, `requisito_id` |
-| `src/hooks/useFichaRevisao.ts` | Gravar solicitante ao criar requisitos |
-| `src/components/fabrica/FichaCustoProdutoEditor.tsx` | Vincular `requisito_id` nos uploads; integrar timeline |
-| `src/components/fabrica/RequisitosHistoricoTimeline.tsx` | **Novo** — componente de timeline |
+| Migração SQL | Nova tabela + RLS + índices |
+| `NovoProdutoAcabadoDialog.tsx` | Tipo DISPLAY + aba composição |
+| `ComposicaoGradeEditor.tsx` | **Novo** — editor da grade |
+| `ComposicaoGradeCard.tsx` | **Novo** — visualização da grade |
+| `ProdutoDetalhesSheet.tsx` | Renderizar grade para displays |
+| `ProdutoKanbanCard.tsx` | Badge indicador de kit |
+| `useFichaCustoProduto.ts` | Considerar custo dos filhos |
 
