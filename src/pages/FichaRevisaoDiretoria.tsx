@@ -12,17 +12,22 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import {
   CheckCircle2, AlertTriangle, Eye, Loader2, ClipboardList, Search,
-  BarChart3, ChevronDown, ChevronUp, Clock, Inbox, MessageSquare, FolderOpen,
+  BarChart3, ChevronDown, ChevronUp, Clock, Inbox, MessageSquare, FolderOpen, CalendarIcon,
 } from "lucide-react";
 import { useFichaRevisaoDiretoria } from "@/hooks/useFichaRevisao";
 import { FichaAnalisePanel } from "@/components/fabrica/FichaAnalisePanel";
 import { RevisaoChatConsolidado } from "@/components/fabrica/RevisaoChatConsolidado";
 import { DocumentosCofre } from "@/components/fabrica/DocumentosCofre";
 import { supabase } from "@/integrations/supabase/client";
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
+import { format, startOfDay, startOfMonth, startOfYear, subDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function FichaRevisaoDiretoria() {
   const { fichasPendentes, isLoading, processando, aprovarFicha, solicitarRevisao, refetch } = useFichaRevisaoDiretoria();
@@ -33,6 +38,9 @@ export default function FichaRevisaoDiretoria() {
   const [filtroProduto, setFiltroProduto] = useState("all");
   const [adminOpen, setAdminOpen] = useState(true);
   const [tabAtiva, setTabAtiva] = useState("fichas");
+  const [granularidade, setGranularidade] = useState<"dia" | "mes" | "ano">("dia");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 30));
+  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
   // Admin dashboard data
   const [allRevisoes, setAllRevisoes] = useState<any[]>([]);
@@ -123,24 +131,30 @@ export default function FichaRevisaoDiretoria() {
     return { pendentes, aprovadas, revisaoSolicitada, tempoMedio, paradas };
   }, [allRevisoes]);
 
-  // Chart data
-  const pieData = useMemo(() => {
-    const statusMap: Record<string, number> = {};
-    allRevisoes.forEach(r => { statusMap[r.status] = (statusMap[r.status] || 0) + 1; });
-    return Object.entries(statusMap).map(([name, value]) => ({ name: name.replace("_", " "), value }));
-  }, [allRevisoes]);
-
-  const barData = useMemo(() => {
-    const weeks: Record<string, number> = {};
-    allRevisoes.forEach(r => {
+  // Chart data with granularity and date filter
+  const chartData = useMemo(() => {
+    const filtered = allRevisoes.filter(r => {
       const d = new Date(r.submetido_em);
-      const weekKey = `${d.getFullYear()}-S${Math.ceil((d.getDate()) / 7).toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
-      weeks[weekKey] = (weeks[weekKey] || 0) + 1;
+      if (dateFrom && d < startOfDay(dateFrom)) return false;
+      if (dateTo && d > new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate(), 23, 59, 59)) return false;
+      return true;
     });
-    return Object.entries(weeks).slice(-8).map(([semana, total]) => ({ semana, total }));
-  }, [allRevisoes]);
 
-  const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--warning))", "hsl(var(--success))", "hsl(var(--destructive))"];
+    const groups: Record<string, number> = {};
+    filtered.forEach(r => {
+      const d = new Date(r.submetido_em);
+      let key: string;
+      if (granularidade === "dia") {
+        key = format(d, "dd/MM/yy");
+      } else if (granularidade === "mes") {
+        key = format(d, "MMM/yy", { locale: ptBR });
+      } else {
+        key = format(d, "yyyy");
+      }
+      groups[key] = (groups[key] || 0) + 1;
+    });
+    return Object.entries(groups).map(([periodo, total]) => ({ periodo, total }));
+  }, [allRevisoes, granularidade, dateFrom, dateTo]);
 
   const handleAprovarEClose = async (revisaoId: string, configId: string, parecer: string) => {
     await aprovarFicha(revisaoId, configId, parecer);
@@ -211,38 +225,68 @@ export default function FichaRevisaoDiretoria() {
                   </Card>
                 </div>
 
-                {/* Charts */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card className="shadow-none">
-                    <CardHeader className="pb-2"><CardTitle className="text-sm">Distribuição de Status</CardTitle></CardHeader>
-                    <CardContent>
-                      <ChartContainer config={{}} className="h-[200px]">
-                        <PieChart>
-                          <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" label={({ name, value }) => `${name} (${value})`}>
-                            {pieData.map((_, index) => (
-                              <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ChartContainer>
-                    </CardContent>
-                  </Card>
-                  <Card className="shadow-none">
-                    <CardHeader className="pb-2"><CardTitle className="text-sm">Revisões por Semana</CardTitle></CardHeader>
-                    <CardContent>
-                      <ChartContainer config={{}} className="h-[200px]">
-                        <BarChart data={barData}>
+                {/* Date filter + single chart */}
+                <Card className="shadow-none">
+                  <CardHeader className="pb-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <CardTitle className="text-sm">Revisões por Período</CardTitle>
+                      <div className="flex items-center gap-2">
+                        {/* Date From */}
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal text-xs", !dateFrom && "text-muted-foreground")}>
+                              <CalendarIcon className="mr-1 h-3 w-3" />
+                              {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "De"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className="p-3 pointer-events-auto" locale={ptBR} />
+                          </PopoverContent>
+                        </Popover>
+                        {/* Date To */}
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal text-xs", !dateTo && "text-muted-foreground")}>
+                              <CalendarIcon className="mr-1 h-3 w-3" />
+                              {dateTo ? format(dateTo, "dd/MM/yyyy") : "Até"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className="p-3 pointer-events-auto" locale={ptBR} />
+                          </PopoverContent>
+                        </Popover>
+                        {/* Granularity */}
+                        <Select value={granularidade} onValueChange={(v) => setGranularidade(v as any)}>
+                          <SelectTrigger className="w-[100px] h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="dia">Dia</SelectItem>
+                            <SelectItem value="mes">Mês</SelectItem>
+                            <SelectItem value="ano">Ano</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {chartData.length > 0 ? (
+                      <ChartContainer config={{}} className="h-[220px]">
+                        <BarChart data={chartData}>
                           <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                          <XAxis dataKey="semana" tick={{ fontSize: 10 }} />
-                          <YAxis tick={{ fontSize: 10 }} />
-                          <Tooltip />
-                          <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                          <XAxis dataKey="periodo" tick={{ fontSize: 10 }} />
+                          <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                          <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
+                          <Bar dataKey="total" name="Revisões" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ChartContainer>
-                    </CardContent>
-                  </Card>
-                </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-[220px] text-sm text-muted-foreground">
+                        Nenhuma revisão no período selecionado
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </>
             )}
           </CollapsibleContent>
