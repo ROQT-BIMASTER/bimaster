@@ -1,54 +1,87 @@
 
 
-# Salvar Anexo do Chat no Cofre com Categorização Expandida
+# Security Hardening Plan (Zero Downtime)
 
-## Contexto
-Atualmente, o usuário só pode enviar documentos para o cofre **no momento do envio** (checkbox "Vincular ao Cofre"). A solicitação pede que o usuário possa selecionar **um anexo já enviado no chat** e enviá-lo para o cofre depois, com categorização obrigatória e vinculação a matéria-prima quando aplicável.
+All changes are backward-compatible with the production application. No breaking changes.
 
-## Alterações
+---
 
-### 1. Expandir categorias de documentos
-Atualizar `CATEGORIAS` em `DocumentosTab.tsx` e em todos os locais relevantes:
-- **orcamento** (Orçamento)
-- **nf** (Nota Fiscal)
-- **art** (ART)
-- **embalagem_tampa** (Tampa)
-- **embalagem_frasco** (Frasco)
-- **embalagem_rotulo** (Rótulo)
-- **embalagem_caixa** (Caixa)
-- **materia_prima** (Matéria-Prima)
-- **evidencia** (Evidência)
-- **contrato** (Contrato)
-- **geral** (Geral)
+## Step 1: Add JWT Authentication to 5 Unprotected Edge Functions
 
-### 2. Criar dialog `EnviarParaCofreDialog.tsx`
-Dialog modal que aparece ao clicar em um anexo do chat para enviá-lo ao cofre:
-- Mostra nome do arquivo
-- Select obrigatório de **categoria**
-- Se categoria = `materia_prima`, exibe select obrigatório de matéria-prima (carregado de `fabrica_materias_primas` via fórmula do produto ou busca direta)
-  - Se a MP não existir, botão "Cadastrar nova matéria-prima" (abre dialog inline ou redireciona)
-- Se categoria = `embalagem_*`, opcionalmente vincular à MP do insumo correspondente
-- Botão "Salvar no Cofre" que:
-  1. Insere registro em `fabrica_revisao_documentos` com categoria e `materia_prima_id`
-  2. Atualiza o anexo na mensagem original marcando `enviado_para_cofre: true`
-  3. Toast de sucesso
+Add authentication validation at the top of each function handler. The frontend already sends auth headers via `getAuthHeaders()` for ElevenLabs functions, and `supabase.functions.invoke` for sofia-voice-token.
 
-### 3. Editar `RevisaoChatPanel.tsx`
-- Em cada anexo do chat que **não** esteja marcado como `enviado_para_cofre`, adicionar um botão/ícone de "Enviar para o Cofre" (ícone Shield ou Lock)
-- Ao clicar, abre `EnviarParaCofreDialog` passando: `anexo`, `revisaoId`, `produtoId`, `mensagemId`
-- Após salvar, atualizar a mensagem localmente para refletir o badge "Cofre"
+**Files to edit:**
+- `supabase/functions/elevenlabs-tts/index.ts`
+- `supabase/functions/elevenlabs-sfx/index.ts`
+- `supabase/functions/elevenlabs-music/index.ts`
+- `supabase/functions/sofia-voice-token/index.ts`
+- `supabase/functions/expense-ai-assistant/index.ts`
 
-### 4. Atualizar `DocumentosTab.tsx`
-- Expandir array `CATEGORIAS` com as novas categorias
-- Adicionar ícones para as novas categorias (embalagem, art, materia_prima)
-- Labels em português nos selects de filtro e categorização
+Pattern to add after CORS check:
+```typescript
+const authHeader = req.headers.get("Authorization");
+if (!authHeader?.startsWith("Bearer ")) {
+  return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+}
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: { headers: { Authorization: authHeader } }
+});
+const { data, error } = await supabaseClient.auth.getClaims(authHeader.replace("Bearer ", ""));
+if (error || !data?.claims) {
+  return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+}
+```
 
-### 5. Atualizar categorias no envio direto do chat
-- Quando o checkbox "Vincular ao Cofre" está ativo no envio de anexo, mostrar o select de categoria obrigatório antes do envio
-- Se categoria = `materia_prima`, obrigar vinculação à MP
+**geocode-batch** already uses service role and is meant for admin/cron tasks -- will add API key validation instead of JWT (it's called server-side, not from the browser).
 
-## Arquivos
-- **Criar**: `src/components/fabrica/EnviarParaCofreDialog.tsx`
-- **Editar**: `src/components/fabrica/RevisaoChatPanel.tsx` (botão cofre nos anexos, integrar dialog)
-- **Editar**: `src/components/fabrica/DocumentosTab.tsx` (expandir categorias e ícones)
+---
+
+## Step 2: Remove Overly Permissive RLS on `cofre_share_tokens`
+
+**Database migration:**
+- Drop the `"Anon can read tokens for validation"` policy (the edge function uses service role key, so RLS is bypassed anyway)
+
+```sql
+DROP POLICY IF EXISTS "Anon can read tokens for validation" ON public.cofre_share_tokens;
+```
+
+---
+
+## Step 3: Strengthen Share Token from 12 to 32 Characters
+
+**File:** `src/components/fabrica/CofreFullscreenModal.tsx`
+
+Change token generation from 12 chars to 32 chars using `crypto.getRandomValues()` for cryptographic randomness.
+
+---
+
+## Step 4: Make `fabrica-produto-fotos` Bucket Private
+
+**Database migration:**
+```sql
+UPDATE storage.buckets SET public = false WHERE id = 'fabrica-produto-fotos';
+```
+
+**Frontend:** Search for all usages of `getPublicUrl` on this bucket and replace with `createSignedUrl`. This bucket is used for product photos in the factory module.
+
+---
+
+## Step 5: Add Rate Limiting to `cofre-share` Edge Function
+
+**File:** `supabase/functions/cofre-share/index.ts`
+
+Add IP-based rate limiting using KV/in-memory map (10 requests/min per IP). Log access with IP and user-agent for audit trail.
+
+---
+
+## Impact Assessment
+
+| Change | Breaking? | Risk |
+|--------|-----------|------|
+| JWT on ElevenLabs functions | No -- frontend already sends auth headers | None |
+| JWT on expense-ai-assistant | No -- frontend already sends auth header | None |
+| Drop anon RLS on cofre_share_tokens | No -- edge function uses service role | None |
+| 32-char tokens | No -- only affects new tokens | None |
+| Private fabrica-produto-fotos | Low -- need to update `getPublicUrl` calls | Low |
+| Rate limiting on cofre-share | No -- legitimate use well under 10/min | None |
 
