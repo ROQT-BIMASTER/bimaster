@@ -18,6 +18,7 @@ import {
   CheckCircle2, AlertTriangle, Plus, Trash2, FileText, Receipt,
   MessageSquare, Download, ShieldAlert, ShieldCheck, MessageCircle,
   ClipboardList, Loader2, X, History, TrendingUp, TrendingDown,
+  ChevronDown, ChevronRight, Trophy,
 } from "lucide-react";
 import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
 import { DocumentosTab } from "@/components/fabrica/DocumentosTab";
@@ -64,6 +65,8 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   const [requisitosStatus, setRequisitosStatus] = useState<any[]>([]);
   const [loadingEvidencias, setLoadingEvidencias] = useState(false);
   const [historicoVersoes, setHistoricoVersoes] = useState<any[]>([]);
+  const [cotacoesByInsumo, setCotacoesByInsumo] = useState<Record<string, any[]>>({});
+  const [expandedInsumo, setExpandedInsumo] = useState<string | null>(null);
 
   const formatarMoeda = (valor: number) =>
     valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
@@ -72,14 +75,24 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
     const loadExtras = async () => {
       setLoadingEvidencias(true);
       try {
-        const [evRes, reqRes, histRes] = await Promise.all([
+        const [evRes, reqRes, histRes, cotRes] = await Promise.all([
           supabase.from("fabrica_custo_evidencias" as any).select("*").eq("produto_id", ficha.produto_id),
           supabase.from("fabrica_revisao_requisitos" as any).select("*").eq("revisao_id", ficha.id),
           supabase.from("fabrica_ficha_custo_revisoes").select("*").eq("config_id", ficha.config_id).order("versao", { ascending: false }),
+          supabase.from("fabrica_mp_cotacoes" as any).select("*").eq("produto_id", ficha.produto_id),
         ]);
         setEvidencias((evRes.data as any[]) || []);
         setRequisitosStatus((reqRes.data as any[]) || []);
         setHistoricoVersoes((histRes.data as any[]) || []);
+
+        // Group cotações by produto_custo_id (insumo id)
+        const cotMap: Record<string, any[]> = {};
+        ((cotRes.data as any[]) || []).forEach((c: any) => {
+          const key = c.produto_custo_id;
+          if (!cotMap[key]) cotMap[key] = [];
+          cotMap[key].push(c);
+        });
+        setCotacoesByInsumo(cotMap);
       } catch (e) { console.error(e); }
       finally { setLoadingEvidencias(false); }
     };
@@ -191,6 +204,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-8"></TableHead>
                         <TableHead>Código</TableHead>
                         <TableHead>Insumo</TableHead>
                         <TableHead>Fornecedor</TableHead>
@@ -207,25 +221,107 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         const custoPrev = prev ? (Number(prev.custo_nf) || 0) + (Number(prev.custo_servico) || 0) + (Number(prev.custo_condicao) || 0) : null;
                         const variacao = custoPrev ? ((custoAtual - custoPrev) / custoPrev * 100) : null;
                         const changed = variacao !== null && Math.abs(variacao) > 0.01;
+                        const cotacoes = cotacoesByInsumo[insumo.id] || [];
+                        const isExpanded = expandedInsumo === insumo.id;
+                        const hasCotacoes = cotacoes.length > 0;
+
+                        // Find lowest total cost among cotações
+                        const cotacoesComTotal = cotacoes.map(c => ({
+                          ...c,
+                          total: (Number(c.custo_nf) || 0) + (Number(c.custo_servico) || 0) + (Number(c.custo_condicao) || 0),
+                        }));
+                        const menorTotal = cotacoesComTotal.length > 0 ? Math.min(...cotacoesComTotal.map(c => c.total)) : null;
+
                         return (
-                          <TableRow key={idx} className={changed ? "bg-warning/5" : ""}>
-                            <TableCell className="font-mono text-sm">{insumo.codigo}</TableCell>
-                            <TableCell>{insumo.nome}</TableCell>
-                            <TableCell>{insumo.fornecedor || "-"}</TableCell>
-                            <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_nf) || 0)}</TableCell>
-                            <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_servico) || 0)}</TableCell>
-                            <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_condicao) || 0)}</TableCell>
-                            {versaoAnterior && (
-                              <TableCell className="text-right">
-                                {variacao !== null ? (
-                                  <span className={`flex items-center justify-end gap-1 text-xs font-medium ${variacao > 0 ? "text-destructive" : variacao < 0 ? "text-green-600" : "text-muted-foreground"}`}>
-                                    {variacao > 0 ? <TrendingUp className="h-3 w-3" /> : variacao < 0 ? <TrendingDown className="h-3 w-3" /> : null}
-                                    {variacao > 0 ? "+" : ""}{variacao.toFixed(1)}%
-                                  </span>
-                                ) : <span className="text-xs text-muted-foreground">Novo</span>}
+                          <React.Fragment key={idx}>
+                            <TableRow
+                              className={`${changed ? "bg-warning/5" : ""} ${hasCotacoes ? "cursor-pointer hover:bg-muted/50" : ""}`}
+                              onClick={() => hasCotacoes && setExpandedInsumo(isExpanded ? null : insumo.id)}
+                            >
+                              <TableCell className="w-8 px-2">
+                                {hasCotacoes ? (
+                                  isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                ) : null}
                               </TableCell>
+                              <TableCell className="font-mono text-sm">{insumo.codigo}</TableCell>
+                              <TableCell>
+                                {insumo.nome}
+                                {hasCotacoes && (
+                                  <Badge variant="outline" className="ml-2 text-[10px]">{cotacoes.length} cotações</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>{insumo.fornecedor || "-"}</TableCell>
+                              <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_nf) || 0)}</TableCell>
+                              <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_servico) || 0)}</TableCell>
+                              <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_condicao) || 0)}</TableCell>
+                              {versaoAnterior && (
+                                <TableCell className="text-right">
+                                  {variacao !== null ? (
+                                    <span className={`flex items-center justify-end gap-1 text-xs font-medium ${variacao > 0 ? "text-destructive" : variacao < 0 ? "text-green-600" : "text-muted-foreground"}`}>
+                                      {variacao > 0 ? <TrendingUp className="h-3 w-3" /> : variacao < 0 ? <TrendingDown className="h-3 w-3" /> : null}
+                                      {variacao > 0 ? "+" : ""}{variacao.toFixed(1)}%
+                                    </span>
+                                  ) : <span className="text-xs text-muted-foreground">Novo</span>}
+                                </TableCell>
+                              )}
+                            </TableRow>
+                            {/* Expanded supplier comparison */}
+                            {isExpanded && (
+                              <TableRow>
+                                <TableCell colSpan={versaoAnterior ? 8 : 7} className="p-0 bg-muted/30">
+                                  <div className="px-6 py-3 space-y-2">
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Comparativo de Fornecedores</p>
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow className="hover:bg-transparent">
+                                          <TableHead className="text-xs h-8">Fornecedor</TableHead>
+                                          <TableHead className="text-xs text-right h-8">NF</TableHead>
+                                          <TableHead className="text-xs text-right h-8">Serviço</TableHead>
+                                          <TableHead className="text-xs text-right h-8">Condição</TableHead>
+                                          <TableHead className="text-xs text-right h-8">Total</TableHead>
+                                          <TableHead className="text-xs text-right h-8">Pgto</TableHead>
+                                          <TableHead className="text-xs text-center h-8">Status</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {cotacoesComTotal
+                                          .sort((a, b) => a.total - b.total)
+                                          .map((cot, ci) => {
+                                            const isMenor = cot.total === menorTotal;
+                                            return (
+                                              <TableRow key={ci} className={`hover:bg-muted/50 ${isMenor ? "bg-green-50 dark:bg-green-950/20" : ""}`}>
+                                                <TableCell className="text-sm py-1.5">
+                                                  <span className="flex items-center gap-1.5">
+                                                    {isMenor && <Trophy className="h-3.5 w-3.5 text-amber-500" />}
+                                                    {cot.fornecedor_nome}
+                                                  </span>
+                                                </TableCell>
+                                                <TableCell className="text-right text-sm py-1.5">{formatarMoeda(Number(cot.custo_nf) || 0)}</TableCell>
+                                                <TableCell className="text-right text-sm py-1.5">{formatarMoeda(Number(cot.custo_servico) || 0)}</TableCell>
+                                                <TableCell className="text-right text-sm py-1.5">{formatarMoeda(Number(cot.custo_condicao) || 0)}</TableCell>
+                                                <TableCell className={`text-right text-sm font-semibold py-1.5 ${isMenor ? "text-green-700 dark:text-green-400" : ""}`}>
+                                                  {formatarMoeda(cot.total)}
+                                                </TableCell>
+                                                <TableCell className="text-right text-xs text-muted-foreground py-1.5">
+                                                  {cot.condicao_pagamento || "-"}
+                                                </TableCell>
+                                                <TableCell className="text-center py-1.5">
+                                                  {cot.selecionada ? (
+                                                    <Badge variant="default" className="text-[10px]">Selecionada</Badge>
+                                                  ) : (
+                                                    <span className="text-xs text-muted-foreground">—</span>
+                                                  )}
+                                                </TableCell>
+                                              </TableRow>
+                                            );
+                                          })}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
                             )}
-                          </TableRow>
+                          </React.Fragment>
                         );
                       })}
                     </TableBody>
