@@ -22,6 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import ProductPhotoUpload from "@/components/fabrica/ProductPhotoUpload";
 import { useMutationWithTimeout } from "@/hooks/useMutationWithTimeout";
 
 interface Props {
@@ -582,13 +583,11 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
             {/* Aba Outros */}
             <TabsContent value="outros" className="space-y-4 mt-4">
               <div>
-                <Label htmlFor="foto_url">URL da Foto</Label>
-                <Input
-                  id="foto_url"
-                  type="url"
-                  value={formData.foto_url}
-                  onChange={(e) => setFormData({ ...formData, foto_url: e.target.value })}
-                  placeholder="https://..."
+                <Label>Foto do Produto</Label>
+                <ProductPhotoUpload
+                  currentUrl={formData.foto_url || null}
+                  onUrlChange={(url) => setFormData({ ...formData, foto_url: url })}
+                  produtoId={produtoEdit?.id}
                 />
               </div>
             </TabsContent>
