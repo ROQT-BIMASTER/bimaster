@@ -17,27 +17,24 @@ interface NovaMateriaPrimaDialogProps {
 
 export function NovaMateriaPrimaDialog({ open, onOpenChange, onSuccess }: NovaMateriaPrimaDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [categorias, setCategorias] = useState<any[]>([]);
   const [fornecedores, setFornecedores] = useState<any[]>([]);
   const [unidades, setUnidades] = useState<any[]>([]);
   const [formData, setFormData] = useState({
-    codigo: "",
-    nome: "",
-    categoria_id: "",
-    fornecedor_id: "",
-    unidade_medida_id: "",
-    estoque_atual: "0",
-    estoque_minimo: "0",
-    custo_unitario: "0",
-    status: "disponivel",
-    data_validade: "",
-    lote: "",
-    observacoes: "",
+    codigo: "", nome: "", categoria_id: "", fornecedor_id: "",
+    unidade_medida_id: "", estoque_atual: "0", estoque_minimo: "0",
+    custo_unitario: "0", status: "disponivel", data_validade: "",
+    lote: "", observacoes: "",
   });
 
   useEffect(() => {
     if (open) {
+      const timer = setTimeout(() => setMounted(true), 100);
       fetchData();
+      return () => clearTimeout(timer);
+    } else {
+      setMounted(false);
     }
   }, [open]);
 
@@ -48,7 +45,6 @@ export function NovaMateriaPrimaDialog({ open, onOpenChange, onSuccess }: NovaMa
         supabase.from("fabrica_fornecedores").select("*").eq("ativo", true).order("razao_social"),
         supabase.from("fabrica_unidades_medida").select("*").order("sigla"),
       ]);
-
       if (categoriasRes.data) setCategorias(categoriasRes.data);
       if (fornecedoresRes.data) setFornecedores(fornecedoresRes.data);
       if (unidadesRes.data) setUnidades(unidadesRes.data);
@@ -60,55 +56,27 @@ export function NovaMateriaPrimaDialog({ open, onOpenChange, onSuccess }: NovaMa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
-
       const payload = {
-        codigo: formData.codigo.trim(),
-        nome: formData.nome.trim(),
-        categoria_id: formData.categoria_id || null,
-        fornecedor_id: formData.fornecedor_id || null,
+        codigo: formData.codigo.trim(), nome: formData.nome.trim(),
+        categoria_id: formData.categoria_id || null, fornecedor_id: formData.fornecedor_id || null,
         unidade_medida_id: formData.unidade_medida_id || null,
         estoque_atual: parseFloat(formData.estoque_atual) || 0,
         estoque_minimo: parseFloat(formData.estoque_minimo) || 0,
         custo_unitario: parseFloat(formData.custo_unitario) || 0,
-        status: formData.status,
-        data_validade: formData.data_validade || null,
-        lote: formData.lote || null,
-        observacoes: formData.observacoes || null,
+        status: formData.status, data_validade: formData.data_validade || null,
+        lote: formData.lote || null, observacoes: formData.observacoes || null,
         created_by: user.id,
       };
-
-      const { error } = await supabase
-        .from("fabrica_materias_primas")
-        .insert([payload]);
-
-      if (error) {
-        console.error("Erro Supabase:", error);
-        throw new Error(error.message || "Erro ao salvar");
-      }
-
+      const { error } = await supabase.from("fabrica_materias_primas").insert([payload]);
+      if (error) throw new Error(error.message || "Erro ao salvar");
       toast.success("Matéria-prima cadastrada com sucesso!");
       onSuccess();
       onOpenChange(false);
-      setFormData({
-        codigo: "",
-        nome: "",
-        categoria_id: "",
-        fornecedor_id: "",
-        unidade_medida_id: "",
-        estoque_atual: "0",
-        estoque_minimo: "0",
-        custo_unitario: "0",
-        status: "disponivel",
-        data_validade: "",
-        lote: "",
-        observacoes: "",
-      });
+      setFormData({ codigo: "", nome: "", categoria_id: "", fornecedor_id: "", unidade_medida_id: "", estoque_atual: "0", estoque_minimo: "0", custo_unitario: "0", status: "disponivel", data_validade: "", lote: "", observacoes: "" });
     } catch (error: any) {
-      console.error("Erro ao cadastrar:", error);
       toast.error(error.message || "Erro ao cadastrar matéria-prima");
     } finally {
       setLoading(false);
@@ -121,147 +89,93 @@ export function NovaMateriaPrimaDialog({ open, onOpenChange, onSuccess }: NovaMa
         <DialogHeader>
           <DialogTitle>Cadastrar Nova Matéria-Prima</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Código *</Label>
-              <Input
-                placeholder="MP-001"
-                value={formData.codigo}
-                onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nome *</Label>
-              <Input
-                placeholder="Nome da matéria-prima"
-                value={formData.nome}
-                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Categoria</Label>
-              <Select value={formData.categoria_id} onValueChange={(v) => setFormData({ ...formData, categoria_id: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categorias.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Fornecedor</Label>
-              <Select value={formData.fornecedor_id} onValueChange={(v) => setFormData({ ...formData, fornecedor_id: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {fornecedores.map((forn) => (
-                    <SelectItem key={forn.id} value={forn.id}>
-                      {forn.razao_social}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Unidade de Medida *</Label>
-              <Select value={formData.unidade_medida_id} onValueChange={(v) => setFormData({ ...formData, unidade_medida_id: v })} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {unidades.map((un) => (
-                    <SelectItem key={un.id} value={un.id}>
-                      {un.sigla} - {un.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Estoque Atual</Label>
-              <Input
-                type="number"
-                step="0.001"
-                value={formData.estoque_atual}
-                onChange={(e) => setFormData({ ...formData, estoque_atual: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Estoque Mínimo</Label>
-              <Input
-                type="number"
-                step="0.001"
-                value={formData.estoque_minimo}
-                onChange={(e) => setFormData({ ...formData, estoque_minimo: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Custo Unitário (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.custo_unitario}
-                onChange={(e) => setFormData({ ...formData, custo_unitario: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="disponivel">Disponível</SelectItem>
-                  <SelectItem value="quarentena">Quarentena</SelectItem>
-                  <SelectItem value="bloqueado">Bloqueado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Data de Validade</Label>
-              <Input
-                type="date"
-                value={formData.data_validade}
-                onChange={(e) => setFormData({ ...formData, data_validade: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Lote</Label>
-              <Input
-                placeholder="Número do lote"
-                value={formData.lote}
-                onChange={(e) => setFormData({ ...formData, lote: e.target.value })}
-              />
-            </div>
+        {!mounted ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-          <div className="space-y-2">
-            <Label>Observações</Label>
-            <Textarea
-              placeholder="Informações adicionais..."
-              value={formData.observacoes}
-              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-              rows={3}
-            />
-          </div>
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Salvar
-            </Button>
-          </div>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Código *</Label>
+                <Input placeholder="MP-001" value={formData.codigo} onChange={(e) => setFormData({ ...formData, codigo: e.target.value })} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Nome *</Label>
+                <Input placeholder="Nome da matéria-prima" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Categoria</Label>
+                <Select value={formData.categoria_id} onValueChange={(v) => setFormData({ ...formData, categoria_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {categorias.map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.nome}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Fornecedor</Label>
+                <Select value={formData.fornecedor_id} onValueChange={(v) => setFormData({ ...formData, fornecedor_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {fornecedores.map((forn) => (<SelectItem key={forn.id} value={forn.id}>{forn.razao_social}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Unidade de Medida *</Label>
+                <Select value={formData.unidade_medida_id} onValueChange={(v) => setFormData({ ...formData, unidade_medida_id: v })} required>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {unidades.map((un) => (<SelectItem key={un.id} value={un.id}>{un.sigla} - {un.nome}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Estoque Atual</Label>
+                <Input type="number" step="0.001" value={formData.estoque_atual} onChange={(e) => setFormData({ ...formData, estoque_atual: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Estoque Mínimo</Label>
+                <Input type="number" step="0.001" value={formData.estoque_minimo} onChange={(e) => setFormData({ ...formData, estoque_minimo: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Custo Unitário (R$)</Label>
+                <Input type="number" step="0.01" value={formData.custo_unitario} onChange={(e) => setFormData({ ...formData, custo_unitario: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="disponivel">Disponível</SelectItem>
+                    <SelectItem value="quarentena">Quarentena</SelectItem>
+                    <SelectItem value="bloqueado">Bloqueado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Data de Validade</Label>
+                <Input type="date" value={formData.data_validade} onChange={(e) => setFormData({ ...formData, data_validade: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Lote</Label>
+                <Input placeholder="Número do lote" value={formData.lote} onChange={(e) => setFormData({ ...formData, lote: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea placeholder="Informações adicionais..." value={formData.observacoes} onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })} rows={3} />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button type="submit" disabled={loading}>
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Salvar
+              </Button>
+            </div>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
