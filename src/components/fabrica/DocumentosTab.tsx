@@ -40,7 +40,19 @@ interface MPInfo {
   codigo: string;
 }
 
-const CATEGORIAS = ["orcamento", "evidencia", "nf", "contrato", "geral"];
+const CATEGORIAS = [
+  { value: "orcamento", label: "Orçamento" },
+  { value: "nf", label: "Nota Fiscal" },
+  { value: "art", label: "ART" },
+  { value: "embalagem_tampa", label: "Tampa" },
+  { value: "embalagem_frasco", label: "Frasco" },
+  { value: "embalagem_rotulo", label: "Rótulo" },
+  { value: "embalagem_caixa", label: "Caixa" },
+  { value: "materia_prima", label: "Matéria-Prima" },
+  { value: "evidencia", label: "Evidência" },
+  { value: "contrato", label: "Contrato" },
+  { value: "geral", label: "Geral" },
+];
 
 function getCategoriaIcon(cat: string) {
   switch (cat) {
@@ -48,6 +60,12 @@ function getCategoriaIcon(cat: string) {
     case "evidencia": return <FileCheck className="h-4 w-4 text-green-600" />;
     case "nf": return <FileText className="h-4 w-4 text-orange-600" />;
     case "contrato": return <Shield className="h-4 w-4 text-purple-600" />;
+    case "art": return <FileCheck className="h-4 w-4 text-red-600" />;
+    case "materia_prima": return <FlaskConical className="h-4 w-4 text-amber-600" />;
+    case "embalagem_tampa":
+    case "embalagem_frasco":
+    case "embalagem_rotulo":
+    case "embalagem_caixa": return <Tag className="h-4 w-4 text-teal-600" />;
     default: return <File className="h-4 w-4 text-muted-foreground" />;
   }
 }
@@ -172,7 +190,7 @@ export function DocumentosTab({ produtoId }: Props) {
           <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="Categoria" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
-            {CATEGORIAS.map(c => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
+            {CATEGORIAS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filtroStatus} onValueChange={setFiltroStatus}>
@@ -228,9 +246,9 @@ export function DocumentosTab({ produtoId }: Props) {
                             {doc.status}
                           </Badge>
                           <Select value={doc.categoria} onValueChange={v => handleCategorizar(doc.id, v)}>
-                            <SelectTrigger className="h-7 w-24 text-[10px]"><Tag className="h-3 w-3 mr-1" /><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-7 w-28 text-[10px]"><Tag className="h-3 w-3 mr-1" /><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {CATEGORIAS.map(c => <SelectItem key={c} value={c} className="text-xs capitalize">{c}</SelectItem>)}
+                              {CATEGORIAS.map(c => <SelectItem key={c.value} value={c.value} className="text-xs">{c.label}</SelectItem>)}
                             </SelectContent>
                           </Select>
                           <div className="flex gap-0.5">

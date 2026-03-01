@@ -13,6 +13,7 @@ import {
 import { MessageSquare, Send, Loader2, Reply, X, Check, CheckCheck, Lock, Unlock, AtSign, Paperclip, FileText, Download, Shield, FolderOpen } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { DocumentosTab } from "@/components/fabrica/DocumentosTab";
+import { EnviarParaCofreDialog } from "@/components/fabrica/EnviarParaCofreDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
@@ -108,6 +109,9 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [cofreDialog, setCofreDialog] = useState<{ open: boolean; anexo: any; anexoIndex: number; mensagemId: string; mensagemAnexos: any[] }>({
+    open: false, anexo: null, anexoIndex: 0, mensagemId: "", mensagemAnexos: [],
+  });
 
   // Load current user
   useEffect(() => {
@@ -560,27 +564,45 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                             {msg.anexos.map((anexo, ai) => {
                               const isCofre = !!(anexo as any).enviado_para_cofre;
                               return (
-                                <button
-                                  key={ai}
-                                  onClick={async () => {
-                                    const { signedUrl } = await getSignedUrl("fabrica-revisao-docs", anexo.path);
-                                    if (signedUrl) window.open(signedUrl, "_blank");
-                                  }}
-                                  className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs w-full text-left transition-colors ${
-                                    isCofre
-                                      ? "bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 text-emerald-900"
-                                      : isDiretoria
-                                        ? "bg-blue-500/30 hover:bg-blue-500/50"
-                                        : "bg-muted hover:bg-muted-foreground/10"
-                                  }`}
-                                >
-                                  {isCofre ? <Shield className="h-3 w-3 shrink-0 text-emerald-600" /> : <FileText className="h-3 w-3 shrink-0" />}
-                                  <span className="truncate flex-1">{anexo.nome}</span>
-                                  {isCofre && (
-                                    <Badge variant="outline" className="text-[8px] py-0 px-1 border-emerald-400 text-emerald-700 shrink-0">Cofre</Badge>
+                                <div key={ai} className="flex items-center gap-1">
+                                  <button
+                                    onClick={async () => {
+                                      const { signedUrl } = await getSignedUrl("fabrica-revisao-docs", anexo.path);
+                                      if (signedUrl) window.open(signedUrl, "_blank");
+                                    }}
+                                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs flex-1 min-w-0 text-left transition-colors ${
+                                      isCofre
+                                        ? "bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 text-emerald-900"
+                                        : isDiretoria
+                                          ? "bg-blue-500/30 hover:bg-blue-500/50"
+                                          : "bg-muted hover:bg-muted-foreground/10"
+                                    }`}
+                                  >
+                                    {isCofre ? <Shield className="h-3 w-3 shrink-0 text-emerald-600" /> : <FileText className="h-3 w-3 shrink-0" />}
+                                    <span className="truncate flex-1">{anexo.nome}</span>
+                                    {isCofre && (
+                                      <Badge variant="outline" className="text-[8px] py-0 px-1 border-emerald-400 text-emerald-700 shrink-0">Cofre</Badge>
+                                    )}
+                                    <Download className="h-3 w-3 shrink-0 opacity-60" />
+                                  </button>
+                                  {!isCofre && produtoId && (
+                                    <button
+                                      onClick={() => setCofreDialog({
+                                        open: true,
+                                        anexo,
+                                        anexoIndex: ai,
+                                        mensagemId: msg.id,
+                                        mensagemAnexos: msg.anexos,
+                                      })}
+                                      className={`shrink-0 p-1 rounded transition-colors ${
+                                        isDiretoria ? "hover:bg-blue-500/40 text-blue-200" : "hover:bg-muted-foreground/10 text-muted-foreground"
+                                      }`}
+                                      title="Enviar para o Cofre"
+                                    >
+                                      <Shield className="h-3.5 w-3.5" />
+                                    </button>
                                   )}
-                                  <Download className="h-3 w-3 shrink-0 opacity-60" />
-                                </button>
+                                </div>
                               );
                             })}
                           </div>
@@ -805,6 +827,19 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
             </div>
           </ResizablePanel>
         </>
+      )}
+      {cofreDialog.open && cofreDialog.anexo && produtoId && (
+        <EnviarParaCofreDialog
+          open={cofreDialog.open}
+          onOpenChange={(open) => setCofreDialog(prev => ({ ...prev, open }))}
+          anexo={cofreDialog.anexo}
+          anexoIndex={cofreDialog.anexoIndex}
+          revisaoId={revisaoId}
+          produtoId={produtoId}
+          mensagemId={cofreDialog.mensagemId}
+          mensagemAnexos={cofreDialog.mensagemAnexos}
+          onSaved={() => carregarMensagens()}
+        />
       )}
     </ResizablePanelGroup>
   );
