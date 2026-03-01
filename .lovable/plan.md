@@ -1,38 +1,42 @@
 
 
-## Plano: Reformular Grade com Tabela de Seleção, Filtros e Exportação PDF/Excel
+## Plano: Auto-logout por Inatividade de 2 Horas
 
-### Contexto
-Atualmente o editor de grade usa apenas uma barra de busca textual. O usuário quer:
-1. Ver todos os produtos acabados em uma mini-tabela com filtros por Marca, Linha e busca
-2. Selecionar produtos via checkbox e definir quantidade
-3. Exportar a grade completa para PDF (impressão) ou Excel
+### Abordagem
 
-### Dados disponíveis
-- 21 produtos, todos marca MELU, com linhas: Banana, Game on, MELU - Sérum, Pistache
-- Campos: id, nome, codigo, marca, linha, categoria, foto_url, codigo_barras_ean
+Criar um hook isolado `useInactivityTimeout` e um modal de aviso `InactivityModal`, ambos **separados** do `AuthContext.tsx` para minimizar risco em produção. O `AuthContext` permanece inalterado -- o hook apenas consome `useAuth()` e chama `signOut` quando necessário.
 
-### Alterações
+### Arquivos
 
-**1. Reescrever `ComposicaoGradeEditor.tsx`** -- Substituir busca simples por:
-- Barra de filtros: Select para **Marca** e **Linha** (valores distintos carregados do banco) + Input de busca textual
-- Mini-tabela abaixo dos filtros mostrando produtos filtrados com colunas: Código, Nome, Linha, EAN, botão "+"
-- Carregar todos os produtos elegíveis ao abrir (tipo != MP, != DISPLAY, ativo = true), filtrar no frontend
-- Manter a lista de itens selecionados abaixo com quantidade editável, Nº cor e botão remover
-- ScrollArea para a tabela (max ~200px) e para os itens selecionados (max ~200px)
-
-**2. Adicionar exportação PDF ao `ExportarDisplayGrade.tsx`** -- Novo botão "Imprimir PDF" ao lado do Excel:
-- Gerar HTML formatado com tabela da grade no mesmo layout do Excel
-- Abrir em nova janela com `window.print()` para impressão/PDF nativo do navegador
-- Colunas: Item No., Color No., Color Name, Qty, Type, Barcode, Proc Anvisa, NCM
-
-**3. Atualizar `NovoProdutoAcabadoDialog.tsx`** -- Na aba Grade, mostrar dois botões de exportação (PDF + Excel) abaixo do editor quando houver itens na grade (mesmo antes de salvar, para preview)
-
-### Arquivos impactados
-
-| Arquivo | Ação |
+| Arquivo | Acao |
 |---|---|
-| `ComposicaoGradeEditor.tsx` | Reescrever: tabela de seleção com filtros Marca/Linha/Busca |
-| `ExportarDisplayGrade.tsx` | Adicionar botão de impressão PDF via `window.print()` |
-| `NovoProdutoAcabadoDialog.tsx` | Exibir botões PDF/Excel na aba Grade |
+| `src/hooks/useInactivityTimeout.ts` | NOVO: hook que monitora atividade e dispara logout |
+| `src/components/auth/InactivityModal.tsx` | NOVO: modal de aviso 5 min antes do logout |
+| `src/components/dashboard/DashboardLayout.tsx` | Adicionar hook + modal (2 linhas) |
+
+### Detalhes Técnicos
+
+**Hook `useInactivityTimeout`:**
+- Timer de **2 horas** (120 min) de inatividade
+- Eventos monitorados: `mousemove`, `mousedown`, `keydown`, `touchstart`, `scroll` -- com throttle de 30s para evitar overhead
+- Aos **115 min** (5 min antes): ativa estado `showWarning` com contagem regressiva
+- Aos **120 min**: executa `supabase.auth.signOut()`, limpa caches, redireciona para `/auth/login`
+- Registra evento `session_timeout` no `access_audit_log`
+- Timer **pausa quando a aba está oculta** (`visibilitychange`) para não deslogar quem alternou de aba e voltou dentro do prazo
+- Cleanup completo no unmount (todos os listeners e intervals removidos)
+
+**Modal `InactivityModal`:**
+- Dialog simples com contagem regressiva (mm:ss)
+- Botão "Continuar Sessão" que reseta o timer
+- Usa componentes existentes (Dialog, Button) -- zero dependência nova
+
+**Integração no `DashboardLayout`:**
+- Apenas 2 adições: import do hook/modal e renderização condicional
+- Sem alterar `AuthContext.tsx` (zero risco de quebra no fluxo de autenticação)
+
+**Proteção contra erros em produção:**
+- Hook usa `try/catch` em todo signOut e audit log
+- Se o insert no audit falhar, o logout prossegue normalmente
+- Se o signOut falhar, faz fallback com `navigate("/auth/login")`
+- Não altera nenhum estado do `AuthContext` diretamente
 
