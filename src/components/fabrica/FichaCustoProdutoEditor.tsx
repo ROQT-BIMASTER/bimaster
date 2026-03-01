@@ -145,8 +145,47 @@ export function FichaCustoProdutoEditor({
   const [showTermoCiencia, setShowTermoCiencia] = useState(false);
   const [termoCienciaAceito, setTermoCienciaAceito] = useState(false);
   const [submittingComTermo, setSubmittingComTermo] = useState(false);
+  const [uploadingEvidenciaGeral, setUploadingEvidenciaGeral] = useState(false);
+  const evidenciaFileRef = useRef<HTMLInputElement>(null);
 
   const isLocked = statusAprovacao === "em_revisao" || statusAprovacao === "aprovada";
+
+  const handleEvidenciaGeral = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploadingEvidenciaGeral(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Usuário não autenticado"); return; }
+
+      let uploaded = 0;
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop();
+        const path = `${produto.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("fabrica-custo-evidencias").upload(path, file);
+        if (uploadError) { console.error(uploadError); continue; }
+
+        await supabase.from("fabrica_custo_evidencias" as any).insert({
+          produto_id: produto.id,
+          nome_arquivo: file.name,
+          url_arquivo: path,
+          tipo_arquivo: file.type,
+          tamanho_bytes: file.size,
+          descricao: "Evidência geral",
+          usuario_id: user.id,
+          usuario_nome: user.user_metadata?.nome || user.email || "Usuário",
+        });
+        uploaded++;
+      }
+      toast.success(`${uploaded} evidência(s) enviada(s) com sucesso`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao enviar evidências");
+    } finally {
+      setUploadingEvidenciaGeral(false);
+      if (evidenciaFileRef.current) evidenciaFileRef.current.value = "";
+    }
+  };
 
   // Map de insumo_id -> apontamentos
   const apontamentosPorInsumo = useMemo(() => {
@@ -1318,6 +1357,18 @@ export function FichaCustoProdutoEditor({
             <Download className="h-4 w-4 mr-2" />
             Exportar Excel
           </Button>
+          <Button variant="outline" onClick={() => evidenciaFileRef.current?.click()}>
+            <Upload className="h-4 w-4 mr-2" />
+            Subir Evidências
+          </Button>
+          <input
+            ref={evidenciaFileRef}
+            type="file"
+            multiple
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+            className="hidden"
+            onChange={handleEvidenciaGeral}
+          />
         </div>
         <div className="flex gap-2">
           {!isLocked && (
