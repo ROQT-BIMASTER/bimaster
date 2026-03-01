@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY') || '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,25 +46,64 @@ serve(async (req) => {
   try {
     console.log('🌍 geocode-batch: Iniciando');
 
+    // ===== AUTHENTICATION: Verify JWT and admin role =====
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    // Verify user identity with their token
+    const supabaseUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    const { data: { user: caller }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !caller) {
+      console.error('❌ Auth failed:', authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    // Use service role to check admin status
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", caller.id)
+      .eq("role", "admin");
+
+    if (!roles || roles.length === 0) {
+      console.log(`❌ Usuário ${caller.id} não é admin`);
+      return new Response(
+        JSON.stringify({ error: "Apenas administradores podem executar geocodificação em lote" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      );
+    }
+    // ===== END AUTHENTICATION =====
+
     if (!GOOGLE_API_KEY) {
       throw new Error('GOOGLE_PLACES_API_KEY não configurado');
     }
-
-    // Use service role to bypass RLS for batch processing
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false }
-    });
 
     const body = await req.json().catch(() => ({}));
     const table = body.table || 'clientes'; // 'clientes' or 'prospects'
     const batchSize = Math.min(body.batch_size || 100, 200);
 
-    console.log(`📊 Processando tabela: ${table}, batch: ${batchSize}`);
+    console.log(`📊 Processando tabela: ${table}, batch: ${batchSize}, admin: ${caller.id}`);
 
     // Fetch records without coordinates
     let query;
     if (table === 'clientes') {
-      query = supabase
+      query = supabaseAdmin
         .from('clientes')
         .select('id, endereco, cidade, uf, bairro, cep')
         .is('latitude', null)
@@ -71,7 +111,7 @@ serve(async (req) => {
         .not('uf', 'is', null)
         .limit(batchSize);
     } else {
-      query = supabase
+      query = supabaseAdmin
         .from('prospects')
         .select('id, endereco, municipio, uf, bairro, logradouro, tipo_logradouro, numero, cep')
         .is('latitude', null)
@@ -134,7 +174,7 @@ serve(async (req) => {
     // Update coordinates in database
     let updated = 0;
     for (const result of results) {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from(table)
         .update({ latitude: result.latitude, longitude: result.longitude })
         .eq('id', result.id);
