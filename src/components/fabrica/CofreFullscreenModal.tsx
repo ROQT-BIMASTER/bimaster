@@ -39,6 +39,7 @@ interface Documento {
   enviado_por_nome: string | null;
   materia_prima_id: string | null;
   lote: string | null;
+  metadata: any | null;
   created_at: string;
 }
 
@@ -92,6 +93,7 @@ export function CofreFullscreenModal({ open, onOpenChange, produtoId, produtoNom
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewName, setPreviewName] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<Documento | null>(null);
   const [loteEditDoc, setLoteEditDoc] = useState<string | null>(null);
   const [loteEditValue, setLoteEditValue] = useState("");
 
@@ -151,16 +153,28 @@ export function CofreFullscreenModal({ open, onOpenChange, produtoId, produtoNom
     else setSelectedIds(new Set(filtered.map(d => d.id)));
   };
 
+  const handleSelectDoc = (doc: Documento) => {
+    setSelectedDoc(doc);
+    if (canPreview(doc.tipo_arquivo) && doc.arquivo_path) {
+      handlePreview(doc);
+    } else {
+      setPreviewUrl(null);
+    }
+  };
+
   const handlePreview = async (doc: Documento) => {
     setPreviewLoading(true);
     setPreviewName(doc.nome_arquivo);
     try {
       const { data } = await supabase.storage.from("fabrica-revisao-docs").createSignedUrl(doc.arquivo_path, 3600);
       if (data?.signedUrl) setPreviewUrl(data.signedUrl);
-      else toast.error("Erro ao gerar preview");
-    } catch { toast.error("Erro ao gerar preview"); }
+      else setPreviewUrl(null);
+    } catch { setPreviewUrl(null); }
     finally { setPreviewLoading(false); }
   };
+
+  const formatarMoeda = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
   const handleDownload = async (doc: Documento) => {
     const { data } = await supabase.storage.from("fabrica-revisao-docs").createSignedUrl(doc.arquivo_path, 3600);
@@ -274,6 +288,56 @@ export function CofreFullscreenModal({ open, onOpenChange, produtoId, produtoNom
               </div>
             )}
 
+            {/* Quotation summary table when filtering orcamento */}
+            {filtroCategoria === "orcamento" && (() => {
+              const cotacaoDocs = filtered.filter(d => d.metadata?.tipo === "cotacao");
+              if (cotacaoDocs.length === 0) return null;
+              const menorTotal = Math.min(...cotacaoDocs.map(d => d.metadata?.total || Infinity));
+              return (
+                <div className="px-4 py-2 border-b shrink-0">
+                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Comparativo de Orçamentos</h4>
+                  <div className="border rounded-lg overflow-hidden text-xs">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-muted/50 text-muted-foreground">
+                          <th className="px-2 py-1.5 text-left font-medium">Fornecedor</th>
+                          <th className="px-2 py-1.5 text-left font-medium">Insumo</th>
+                          <th className="px-2 py-1.5 text-right font-medium">NF</th>
+                          <th className="px-2 py-1.5 text-right font-medium">Serviço</th>
+                          <th className="px-2 py-1.5 text-right font-medium">Condição</th>
+                          <th className="px-2 py-1.5 text-right font-medium">Total</th>
+                          <th className="px-2 py-1.5 text-left font-medium">Pagamento</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {cotacaoDocs.map(d => {
+                          const m = d.metadata;
+                          const isMenor = (m?.total || 0) === menorTotal && cotacaoDocs.length > 1;
+                          return (
+                            <tr
+                              key={d.id}
+                              className={`cursor-pointer hover:bg-muted/30 ${isMenor ? "bg-green-50 dark:bg-green-950/20" : ""}`}
+                              onClick={() => handleSelectDoc(d)}
+                            >
+                              <td className="px-2 py-1.5 font-medium">{m?.fornecedor || "—"}</td>
+                              <td className="px-2 py-1.5 text-muted-foreground">{m?.insumo_nome || "—"}</td>
+                              <td className="px-2 py-1.5 text-right font-mono">{formatarMoeda(m?.custo_nf || 0)}</td>
+                              <td className="px-2 py-1.5 text-right font-mono">{formatarMoeda(m?.custo_servico || 0)}</td>
+                              <td className="px-2 py-1.5 text-right font-mono">{formatarMoeda(m?.custo_condicao || 0)}</td>
+                              <td className={`px-2 py-1.5 text-right font-mono font-bold ${isMenor ? "text-green-700 dark:text-green-400" : ""}`}>
+                                {formatarMoeda(m?.total || 0)}
+                              </td>
+                              <td className="px-2 py-1.5 text-muted-foreground">{m?.condicao_pagamento || "—"}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Select all */}
             <div className="px-4 py-1.5 border-b flex items-center gap-2 shrink-0">
               <Checkbox
@@ -307,7 +371,7 @@ export function CofreFullscreenModal({ open, onOpenChange, produtoId, produtoNom
                         onCheckedChange={() => toggleSelect(doc.id)}
                       />
                       <div className="shrink-0">{getCategoriaIcon(doc.categoria)}</div>
-                      <div className="flex-1 min-w-0" onClick={() => canPreview(doc.tipo_arquivo) && handlePreview(doc)}>
+                      <div className="flex-1 min-w-0" onClick={() => handleSelectDoc(doc)}>
                         <p className="text-sm font-medium truncate">{doc.nome_arquivo}</p>
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                           <span>{getCategoriaLabel(doc.categoria)}</span>
@@ -320,6 +384,14 @@ export function CofreFullscreenModal({ open, onOpenChange, produtoId, produtoNom
                               <span>•</span>
                               <Badge variant="outline" className="text-[9px] py-0 px-1 gap-0.5">
                                 <Package className="h-2.5 w-2.5" /> {doc.lote}
+                              </Badge>
+                            </>
+                          )}
+                          {doc.metadata?.tipo === "cotacao" && (
+                            <>
+                              <span>•</span>
+                              <Badge className="text-[9px] py-0 px-1 bg-blue-100 text-blue-800 border-blue-300">
+                                {doc.metadata.fornecedor} — {formatarMoeda(doc.metadata.total || 0)}
                               </Badge>
                             </>
                           )}
@@ -370,36 +442,103 @@ export function CofreFullscreenModal({ open, onOpenChange, produtoId, produtoNom
             )}
           </div>
 
-          {/* RIGHT - Preview */}
+          {/* RIGHT - Preview & Metadata */}
           <div className="w-[45%] flex flex-col min-w-0">
-            {previewUrl ? (
+            {selectedDoc ? (
               <>
                 <div className="px-4 py-2.5 border-b flex items-center gap-2 shrink-0">
                   <Eye className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs font-medium truncate flex-1">{previewName}</span>
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setPreviewUrl(null)}>
+                  <span className="text-xs font-medium truncate flex-1">{selectedDoc.nome_arquivo}</span>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setSelectedDoc(null); setPreviewUrl(null); }}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 </div>
+
+                {/* Metadata table for cotações */}
+                {selectedDoc.metadata?.tipo === "cotacao" && (
+                  <div className="px-4 py-3 border-b shrink-0">
+                    <h4 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
+                      <Receipt className="h-3.5 w-3.5 text-blue-600" />
+                      Dados do Orçamento
+                    </h4>
+                    <div className="border rounded-lg overflow-hidden text-xs">
+                      <table className="w-full">
+                        <tbody className="divide-y">
+                          <tr className="bg-muted/30">
+                            <td className="px-3 py-1.5 font-medium text-muted-foreground w-[40%]">Fornecedor</td>
+                            <td className="px-3 py-1.5 font-semibold">{selectedDoc.metadata.fornecedor}</td>
+                          </tr>
+                          <tr>
+                            <td className="px-3 py-1.5 font-medium text-muted-foreground">Insumo</td>
+                            <td className="px-3 py-1.5">{selectedDoc.metadata.insumo_nome || "—"}</td>
+                          </tr>
+                          <tr className="bg-muted/30">
+                            <td className="px-3 py-1.5 font-medium text-muted-foreground">Custo NF</td>
+                            <td className="px-3 py-1.5 font-mono">{formatarMoeda(selectedDoc.metadata.custo_nf || 0)}</td>
+                          </tr>
+                          <tr>
+                            <td className="px-3 py-1.5 font-medium text-muted-foreground">Custo Serviço</td>
+                            <td className="px-3 py-1.5 font-mono">{formatarMoeda(selectedDoc.metadata.custo_servico || 0)}</td>
+                          </tr>
+                          <tr className="bg-muted/30">
+                            <td className="px-3 py-1.5 font-medium text-muted-foreground">Custo Condição</td>
+                            <td className="px-3 py-1.5 font-mono">{formatarMoeda(selectedDoc.metadata.custo_condicao || 0)}</td>
+                          </tr>
+                          <tr className="bg-blue-50 dark:bg-blue-950/20">
+                            <td className="px-3 py-1.5 font-semibold">Total</td>
+                            <td className="px-3 py-1.5 font-mono font-bold text-blue-700 dark:text-blue-400">{formatarMoeda(selectedDoc.metadata.total || 0)}</td>
+                          </tr>
+                          {selectedDoc.metadata.condicao_pagamento && (
+                            <tr>
+                              <td className="px-3 py-1.5 font-medium text-muted-foreground">Pagamento</td>
+                              <td className="px-3 py-1.5">{selectedDoc.metadata.condicao_pagamento}</td>
+                            </tr>
+                          )}
+                          {selectedDoc.metadata.validade && (
+                            <tr className="bg-muted/30">
+                              <td className="px-3 py-1.5 font-medium text-muted-foreground">Validade</td>
+                              <td className="px-3 py-1.5">{format(new Date(selectedDoc.metadata.validade), "dd/MM/yyyy", { locale: ptBR })}</td>
+                            </tr>
+                          )}
+                          {selectedDoc.metadata.observacoes && (
+                            <tr>
+                              <td className="px-3 py-1.5 font-medium text-muted-foreground">Observações</td>
+                              <td className="px-3 py-1.5 italic">{selectedDoc.metadata.observacoes}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* File preview */}
                 <div className="flex-1 bg-muted/30 overflow-auto">
                   {previewLoading ? (
                     <div className="flex-1 flex items-center justify-center h-full">
                       <Loader2 className="h-6 w-6 animate-spin" />
                     </div>
-                  ) : previewName.match(/\.(pdf)$/i) || previewUrl.includes("pdf") ? (
-                    <iframe src={previewUrl} className="w-full h-full border-0" title="Preview" />
-                  ) : (
-                    <div className="flex items-center justify-center h-full p-4">
-                      <img src={previewUrl} alt={previewName} className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                  ) : previewUrl ? (
+                    previewName.match(/\.(pdf)$/i) || previewUrl.includes("pdf") ? (
+                      <iframe src={previewUrl} className="w-full h-full border-0" title="Preview" />
+                    ) : (
+                      <div className="flex items-center justify-center h-full p-4">
+                        <img src={previewUrl} alt={previewName} className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                      </div>
+                    )
+                  ) : !selectedDoc.metadata ? (
+                    <div className="flex-1 flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
+                      <FileText className="h-8 w-8 opacity-20" />
+                      <p className="text-xs">Sem preview disponível</p>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
                 <Eye className="h-10 w-10 opacity-20" />
                 <p className="text-sm">Selecione um documento para visualizar</p>
-                <p className="text-[10px]">Suporta PDF e imagens</p>
+                <p className="text-[10px]">Suporta PDF, imagens e orçamentos tabulados</p>
               </div>
             )}
           </div>

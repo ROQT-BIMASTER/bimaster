@@ -7908,6 +7908,7 @@ export type Database = {
           lote: string | null
           materia_prima_id: string | null
           mensagem_id: string | null
+          metadata: Json | null
           nome_arquivo: string
           produto_id: string
           revisao_id: string | null
@@ -7927,6 +7928,7 @@ export type Database = {
           lote?: string | null
           materia_prima_id?: string | null
           mensagem_id?: string | null
+          metadata?: Json | null
           nome_arquivo: string
           produto_id: string
           revisao_id?: string | null
@@ -7946,6 +7948,7 @@ export type Database = {
           lote?: string | null
           materia_prima_id?: string | null
           mensagem_id?: string | null
+          metadata?: Json | null
           nome_arquivo?: string
           produto_id?: string
           revisao_id?: string | null
