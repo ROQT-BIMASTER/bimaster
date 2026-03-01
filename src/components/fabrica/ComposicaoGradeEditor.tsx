@@ -13,8 +13,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Plus, Trash2, Package, Barcode, Filter, Loader2 } from "lucide-react";
+import { Search, Plus, Trash2, Package, Filter, Loader2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface GradeItem {
   produto_filho_id: string;
@@ -43,6 +60,61 @@ interface ComposicaoGradeEditorProps {
   produtoPaiId?: string;
   items: GradeItem[];
   onChange: (items: GradeItem[]) => void;
+}
+
+interface SortableGradeRowProps {
+  item: GradeItem;
+  index: number;
+  onUpdateQtd: (index: number, qty: number) => void;
+  onUpdateCor: (index: number, cor: string) => void;
+  onRemove: (index: number) => void;
+}
+
+function SortableGradeRow({ item, index, onUpdateQtd, onUpdateCor, onRemove }: SortableGradeRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.produto_filho_id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style}>
+      <TableCell className="py-1 px-1">
+        <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-0.5 text-muted-foreground hover:text-foreground">
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+      </TableCell>
+      <TableCell className="py-1 text-[11px] font-mono">{item.codigo}</TableCell>
+      <TableCell className="py-1 text-[11px] truncate max-w-[160px]">{item.nome}</TableCell>
+      <TableCell className="py-1">
+        <Input
+          type="text"
+          value={item.cor_numero || ""}
+          onChange={(e) => onUpdateCor(index, e.target.value)}
+          className="w-12 h-6 text-[10px] text-center px-1"
+          placeholder="Nº"
+        />
+      </TableCell>
+      <TableCell className="py-1">
+        <Input
+          type="number"
+          min={1}
+          value={item.quantidade}
+          onChange={(e) => onUpdateQtd(index, parseInt(e.target.value) || 1)}
+          className="w-14 h-6 text-[10px] text-center px-1"
+        />
+      </TableCell>
+      <TableCell className="py-1">
+        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => onRemove(index)}>
+          <Trash2 className="h-3 w-3 text-destructive" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
 }
 
 export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: ComposicaoGradeEditorProps) {
@@ -142,6 +214,21 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
   };
 
   const totalItens = items.reduce((acc, i) => acc + i.quantidade, 0);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.findIndex(i => i.produto_filho_id === active.id);
+    const newIndex = items.findIndex(i => i.produto_filho_id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(items, oldIndex, newIndex).map((item, i) => ({ ...item, ordem: i }));
+    onChange(reordered);
+  };
 
   return (
     <div className="space-y-4">
@@ -246,11 +333,14 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
         </div>
       ) : (
         <div>
-          <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Itens selecionados</Label>
+          <Label className="text-xs font-semibold text-muted-foreground mb-2 block">
+            Itens selecionados <span className="font-normal">(arraste para reordenar)</span>
+          </Label>
           <ScrollArea className="max-h-[200px]">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  <TableHead className="h-7 text-[10px] w-[30px]"></TableHead>
                   <TableHead className="h-7 text-[10px] w-[80px]">Código</TableHead>
                   <TableHead className="h-7 text-[10px]">Nome</TableHead>
                   <TableHead className="h-7 text-[10px] w-[60px] text-center">Nº Cor</TableHead>
@@ -258,37 +348,22 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
                   <TableHead className="h-7 text-[10px] w-[40px]"></TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {items.map((item, index) => (
-                  <TableRow key={item.produto_filho_id}>
-                    <TableCell className="py-1 text-[11px] font-mono">{item.codigo}</TableCell>
-                    <TableCell className="py-1 text-[11px] truncate max-w-[160px]">{item.nome}</TableCell>
-                    <TableCell className="py-1">
-                      <Input
-                        type="text"
-                        value={item.cor_numero || ""}
-                        onChange={(e) => atualizarCorNumero(index, e.target.value)}
-                        className="w-12 h-6 text-[10px] text-center px-1"
-                        placeholder="Nº"
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={items.map(i => i.produto_filho_id)} strategy={verticalListSortingStrategy}>
+                  <TableBody>
+                    {items.map((item, index) => (
+                      <SortableGradeRow
+                        key={item.produto_filho_id}
+                        item={item}
+                        index={index}
+                        onUpdateQtd={atualizarQuantidade}
+                        onUpdateCor={atualizarCorNumero}
+                        onRemove={removerItem}
                       />
-                    </TableCell>
-                    <TableCell className="py-1">
-                      <Input
-                        type="number"
-                        min={1}
-                        value={item.quantidade}
-                        onChange={(e) => atualizarQuantidade(index, parseInt(e.target.value) || 1)}
-                        className="w-14 h-6 text-[10px] text-center px-1"
-                      />
-                    </TableCell>
-                    <TableCell className="py-1">
-                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removerItem(index)}>
-                        <Trash2 className="h-3 w-3 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
+                    ))}
+                  </TableBody>
+                </SortableContext>
+              </DndContext>
             </Table>
           </ScrollArea>
         </div>
