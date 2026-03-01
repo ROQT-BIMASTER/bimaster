@@ -369,7 +369,7 @@ function AppContent() {
             {/* Módulo de Fábrica */}
             <Route path="/dashboard/fabrica" element={<ProtectedRoute><FabricaModule /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/recebimentos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_recebimentos"><FabricaRecebimentos /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/materias-primas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_materias_primas"><FabricaMateriasPrimas /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/materias-primas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_mps"><FabricaMateriasPrimas /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/formulas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_formulas"><FabricaFormulas /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/formulas/nova" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_formulas"><FabricaFormulaEditor /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/formulas/:id" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_formulas"><FabricaFormulaEditor /></ScreenProtectedRoute></ProtectedRoute>} />
