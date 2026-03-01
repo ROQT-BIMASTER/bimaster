@@ -3275,6 +3275,45 @@ export type Database = {
           },
         ]
       }
+      dimensao_vendedores: {
+        Row: {
+          cliente_clivend: string
+          cnpj_par: string | null
+          created_at: string
+          equipe_vnd: number | null
+          id: string
+          id_vnd: number
+          nome_eqp: string | null
+          nomemapa_vnd: string
+          row_num: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_clivend: string
+          cnpj_par?: string | null
+          created_at?: string
+          equipe_vnd?: number | null
+          id?: string
+          id_vnd: number
+          nome_eqp?: string | null
+          nomemapa_vnd: string
+          row_num?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_clivend?: string
+          cnpj_par?: string | null
+          created_at?: string
+          equipe_vnd?: number | null
+          id?: string
+          id_vnd?: number
+          nome_eqp?: string | null
+          nomemapa_vnd?: string
+          row_num?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       empresas: {
         Row: {
           ativa: boolean | null
