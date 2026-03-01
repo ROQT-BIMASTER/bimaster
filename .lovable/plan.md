@@ -1,61 +1,41 @@
 
 
-## Plano: Exportação Excel de Kits/Displays + Campos Faltantes
+## Validação Completa e Melhorias Sugeridas
 
-### Análise da Imagem vs Sistema Atual
+### Status Atual
 
-A planilha de referência possui estas colunas:
+**Banco de dados**: Schema correto — tabela `fabrica_produto_grade_itens` com 7 colunas (id, produto_pai_id, produto_filho_id, quantidade, ordem, created_at, cor_numero). RLS ativo com políticas para CRUD. Campos `tipo_rotulagem` e `processo_anvisa` existem em `fabrica_produtos`. Nenhum dado de grade ainda (0 registros), 21 produtos todos tipo ACABADO.
 
-| Coluna da planilha | Existe no sistema? | Campo no banco |
-|---|---|---|
-| Item No. (código do display) | Sim | `fabrica_produtos.codigo` |
-| Color/Commercial name (nº) | Parcial | `ordem` na grade, mas sem campo "número da cor" dedicado |
-| Color/Commercial name (texto) | Sim | `nome` do produto filho |
-| Picture | Sim | `foto_url` do produto filho |
-| Picture of box (foto do display) | Sim | `foto_url` do produto pai |
-| Item Name (nome do display) | Sim | `nome` do produto pai |
-| Quantity of pieces per box | Sim | `itens_display` (soma das quantidades) |
-| Type (sticker, etc.) | **Nao existe** | Precisa novo campo |
-| Barcode NO. | Sim | `codigo_barras_ean` do produto filho |
-| Batch NO. | **Parcial** | Existe `fabrica_lotes.codigo_lote`, mas não vinculado ao display diretamente |
-| Production date | **Parcial** | `fabrica_lotes.data_fabricacao` |
-| Expiry date | **Parcial** | `fabrica_lotes.data_validade` |
-| Proc Anvisa | Sim | `fabrica_produtos.processo_anvisa` |
-| NCM | Sim | `fabrica_produtos.ncm` |
+**Componentes**: Todos os 5 arquivos principais existem e estão funcionais:
+- `ComposicaoGradeEditor.tsx` — busca, adiciona, remove, quantidade, cor_numero, filtro anti-DISPLAY ✅
+- `ComposicaoGradeCard.tsx` — modo compact (badge) e full (lista com thumbnails) ✅
+- `ExportarDisplayGrade.tsx` — Excel com header azul, hyperlinks de foto, bordas ✅
+- `NovoProdutoAcabadoDialog.tsx` — aba Grade condicional, limpeza ao trocar tipo, tipo_rotulagem ✅
+- `ProdutoDetalhesSheet.tsx` — grade card + export button + "usado em displays" reverso ✅
 
-### Campos que precisam ser adicionados
+### Problemas Encontrados
 
-1. **`tipo_rotulagem`** (text) em `fabrica_produtos` -- Para o campo "Type" (sticker, label, sleeve, etc.)
-2. **`cor_numero`** (text) em `fabrica_produto_grade_itens` -- Para numerar as cores/variantes dentro do display (1, 2, 3...)
+1. **Export Excel — `item_no` só na última linha**: O código coloca o código do display apenas na última linha (`isLast`). Na planilha de referência, o código aparece em TODAS as linhas do grupo. Precisa corrigir.
 
-O Batch NO., Production date e Expiry date são dados de **lote de produção**, não do cadastro do produto. Na exportação, esses campos serão opcionais (preenchidos manualmente ou via seleção de lote).
+2. **Export Excel — `qty_per_box` individual ausente**: Cada linha deveria mostrar a quantidade daquela variante. Atualmente só mostra o total na última linha. Falta a quantidade individual por item.
 
-### Componente: `ExportarDisplayGrade.tsx`
+3. **Export Excel — colunas "Color/Commercial name" duplicadas**: As duas colunas têm o mesmo header "Color/Commercial name" mas keys diferentes (`cor_numero` e `cor_nome`). Na planilha original o header é diferenciado (número vs nome).
 
-Novo componente que será adicionado ao `ProdutoDetalhesSheet` quando o produto for tipo DISPLAY. Funcionalidade:
+4. **`tipo_rotulagem` só aparece no DISPLAY**: O campo "Tipo de Rotulagem" está condicionado a `formData.tipo === "DISPLAY"`, mas cada **produto filho** individual também pode ter seu próprio tipo. O export já tenta ler `filho?.tipo_rotulagem`, mas não há UI para definir isso em produtos ACABADO.
 
-- Botão "Exportar Grade" no painel de detalhes do display
-- Busca o display + todos os itens da grade com joins nos produtos filhos
-- Gera planilha Excel no formato da imagem, com:
-  - Linhas agrupadas por display (código do display só na última linha de cada grupo)
-  - Colunas: Item No., Color No., Color Name, Item Name, Qty per box, Type, Barcode, Proc Anvisa, NCM
-  - Batch, Production date, Expiry date como colunas vazias (para preenchimento manual ou futura integração com lotes)
-  - Estilo: header com fundo azul, bordas, merge de células do display
+5. **Busca por EAN ausente no editor de grade**: O `ComposicaoGradeEditor` busca por `nome` e `codigo`, mas não por `codigo_barras_ean`. Sendo que EAN é fundamental para kits, deveria ser incluído.
 
-### Migração SQL
+6. **Sem validação de grade vazia ao salvar DISPLAY**: É possível salvar um produto DISPLAY sem nenhum item na grade. Deveria ter um warning ou bloqueio.
 
-```sql
-ALTER TABLE fabrica_produtos ADD COLUMN IF NOT EXISTS tipo_rotulagem text;
-ALTER TABLE fabrica_produto_grade_itens ADD COLUMN IF NOT EXISTS cor_numero text;
-```
+### Plano de Melhorias
 
-### Arquivos impactados
-
-| Arquivo | Ação |
-|---|---|
-| Migração SQL | Adicionar `tipo_rotulagem` e `cor_numero` |
-| `ExportarDisplayGrade.tsx` | **Novo** -- exportação Excel no formato da imagem |
-| `ProdutoDetalhesSheet.tsx` | Adicionar botão de exportação para produtos DISPLAY |
-| `NovoProdutoAcabadoDialog.tsx` | Adicionar campo `tipo_rotulagem` (sticker/label/sleeve) |
-| `ComposicaoGradeEditor.tsx` | Adicionar campo `cor_numero` editável por item da grade |
+| # | Melhoria | Arquivo | Ação |
+|---|---|---|---|
+| 1 | Corrigir `item_no` em todas as linhas do Excel | `ExportarDisplayGrade.tsx` | Colocar `displayProduto.codigo` em cada linha, não só na última |
+| 2 | Mostrar `quantidade` individual por linha + total na última | `ExportarDisplayGrade.tsx` | Cada linha mostra `item.quantidade`, última linha mostra `totalQty` como "Total" |
+| 3 | Diferenciar headers de cor | `ExportarDisplayGrade.tsx` | Renomear para "Color No." e "Color/Commercial Name" |
+| 4 | Mover `tipo_rotulagem` para todos os tipos de produto | `NovoProdutoAcabadoDialog.tsx` | Remover a condição `tipo === "DISPLAY"` do campo tipo_rotulagem |
+| 5 | Incluir EAN na busca do editor | `ComposicaoGradeEditor.tsx` | Adicionar `codigo_barras_ean.ilike` no `.or()` |
+| 6 | Warning ao salvar DISPLAY sem grade | `NovoProdutoAcabadoDialog.tsx` | Adicionar `toast.warning` no `handleSubmit` se tipo=DISPLAY e gradeItems vazio |
+| 7 | Adicionar linha de rodapé "TOTAL" no Excel | `ExportarDisplayGrade.tsx` | Linha extra com soma total, fundo cinza claro |
 
