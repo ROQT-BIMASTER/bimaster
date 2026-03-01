@@ -68,6 +68,12 @@ export function ExportarTabelaPDF({ open, onOpenChange, tabela, precos }: Props)
       };
 
       toast.success("PDF gerado com sucesso!");
+
+      // Audit export
+      import("@/lib/utils/sensitive-audit").then(({ auditExport }) =>
+        auditExport("pdf", "fabrica_tabela_precos", precos.length, `Tabela_${tabela?.codigo}`)
+      );
+
       onOpenChange(false);
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);

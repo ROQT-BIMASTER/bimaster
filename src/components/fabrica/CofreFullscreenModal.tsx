@@ -237,6 +237,15 @@ export function CofreFullscreenModal({ open, onOpenChange, produtoId, produtoNom
       const waUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
       window.open(waUrl, "_blank");
       toast.success("Link seguro gerado com sucesso!");
+
+      // Audit share action (fire-and-forget)
+      const { auditShare } = await import("@/lib/utils/sensitive-audit");
+      auditShare("share_documents_whatsapp", "cofre_share_tokens", produtoId, {
+        document_count: selectedDocs.length,
+        token_prefix: tokenValue.substring(0, 6),
+        lote: loteNome,
+        produto: produtoNome,
+      });
     } catch (err: any) {
       toast.dismiss();
       toast.error("Erro ao gerar link: " + (err.message || "Tente novamente"));

@@ -4,6 +4,7 @@
  */
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { auditExport } from '@/lib/utils/sensitive-audit';
 
 export interface ExcelColumn {
   header: string;
@@ -93,6 +94,9 @@ export async function exportToExcel<T extends Record<string, any>>(
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
   });
   saveAs(blob, filename);
+
+  // Audit log (fire-and-forget)
+  auditExport('excel', sheetName, data.length, filename);
 }
 
 /**

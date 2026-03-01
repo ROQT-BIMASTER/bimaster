@@ -101,8 +101,29 @@ Deno.serve(async (req) => {
       .update({ access_count: shareToken.access_count + 1 })
       .eq("id", shareToken.id);
 
-    // Audit log
-    console.log(`📋 Token access: token=${token.substring(0, 6)}***, IP=${clientIp}, UA=${req.headers.get("user-agent")}, count=${shareToken.access_count + 1}/${shareToken.max_access}`);
+    // Audit log - console + database
+    const auditData = {
+      token_prefix: token.substring(0, 6),
+      ip: clientIp,
+      user_agent: req.headers.get("user-agent"),
+      access_count: shareToken.access_count + 1,
+      max_access: shareToken.max_access,
+      produto_id: shareToken.produto_id,
+      documento_count: (shareToken.document_ids as string[]).length,
+    };
+    console.log(`📋 Token access:`, JSON.stringify(auditData));
+
+    // Persist audit to database
+    await supabase.from("audit_logs").insert({
+      action: "SHARE:document_access",
+      entity_type: "cofre_share_tokens",
+      entity_id: shareToken.id,
+      ip_address: clientIp,
+      user_agent: req.headers.get("user-agent"),
+      metadata: auditData,
+    }).then(({ error }) => {
+      if (error) console.error("Audit insert error:", error.message);
+    });
 
     // Fetch documents
     const documentIds = shareToken.document_ids as string[];
