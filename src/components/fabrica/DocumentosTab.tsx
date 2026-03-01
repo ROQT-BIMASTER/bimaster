@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/collapsible";
 import {
   FileText, Download, Loader2, CheckCircle2, Archive,
-  Receipt, FileCheck, File, Shield, Tag, FlaskConical, ChevronRight,
+  Receipt, FileCheck, File, Shield, Tag, FlaskConical, ChevronRight, BarChart3,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -54,6 +54,20 @@ const CATEGORIAS = [
   { value: "geral", label: "Geral" },
 ];
 
+const CATEGORIA_COLORS: Record<string, string> = {
+  orcamento: "bg-blue-500",
+  nf: "bg-orange-500",
+  art: "bg-red-500",
+  embalagem_tampa: "bg-teal-500",
+  embalagem_frasco: "bg-teal-400",
+  embalagem_rotulo: "bg-teal-600",
+  embalagem_caixa: "bg-teal-300",
+  materia_prima: "bg-amber-500",
+  evidencia: "bg-green-500",
+  contrato: "bg-purple-500",
+  geral: "bg-gray-400",
+};
+
 function getCategoriaIcon(cat: string) {
   switch (cat) {
     case "orcamento": return <Receipt className="h-4 w-4 text-blue-600" />;
@@ -83,6 +97,7 @@ export function DocumentosTab({ produtoId }: Props) {
   const [filtroCategoria, setFiltroCategoria] = useState("all");
   const [filtroStatus, setFiltroStatus] = useState("all");
   const [openMPs, setOpenMPs] = useState<Set<string>>(new Set());
+  const [modoFoco, setModoFoco] = useState(false);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -150,6 +165,19 @@ export function DocumentosTab({ produtoId }: Props) {
     return matchCat && matchStatus;
   });
 
+  // Chart data for modo foco
+  const chartData = useMemo(() => {
+    const counts = new Map<string, number>();
+    documentos.forEach(d => {
+      counts.set(d.categoria, (counts.get(d.categoria) || 0) + 1);
+    });
+    const total = documentos.length || 1;
+    return CATEGORIAS
+      .map(c => ({ ...c, count: counts.get(c.value) || 0, pct: ((counts.get(c.value) || 0) / total) * 100 }))
+      .filter(c => c.count > 0)
+      .sort((a, b) => b.count - a.count);
+  }, [documentos]);
+
   // Group by materia_prima_id
   const mpGroups = (() => {
     const groups = new Map<string | "geral", Documento[]>();
@@ -185,7 +213,7 @@ export function DocumentosTab({ produtoId }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap items-center">
         <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
           <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="Categoria" /></SelectTrigger>
           <SelectContent>
@@ -202,8 +230,50 @@ export function DocumentosTab({ produtoId }: Props) {
             <SelectItem value="arquivado">Arquivado</SelectItem>
           </SelectContent>
         </Select>
-        <Badge variant="outline" className="text-xs ml-auto">{filtered.length} documento{filtered.length !== 1 ? "s" : ""}</Badge>
+        <div className="flex items-center gap-1.5 ml-auto">
+          <Button
+            variant={modoFoco ? "default" : "ghost"}
+            size="sm"
+            className="h-7 text-[10px] gap-1"
+            onClick={() => setModoFoco(v => !v)}
+          >
+            <BarChart3 className="h-3 w-3" /> Foco
+          </Button>
+          <Badge variant="outline" className="text-xs">{filtered.length} doc{filtered.length !== 1 ? "s" : ""}</Badge>
+        </div>
       </div>
+
+      {/* Modo Foco - Category Chart */}
+      {modoFoco && (
+        <div className="border rounded-lg p-3 bg-muted/20 space-y-2">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Distribuição por Categoria</p>
+          {chartData.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-2">Nenhum documento para exibir.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {chartData.map(c => (
+                <button
+                  key={c.value}
+                  onClick={() => setFiltroCategoria(filtroCategoria === c.value ? "all" : c.value)}
+                  className={`w-full text-left group ${filtroCategoria === c.value ? "ring-1 ring-primary rounded-md" : ""}`}
+                >
+                  <div className="flex items-center gap-2 text-xs">
+                    {getCategoriaIcon(c.value)}
+                    <span className="flex-1 truncate font-medium">{c.label}</span>
+                    <span className="text-muted-foreground tabular-nums">{c.count}</span>
+                  </div>
+                  <div className="mt-0.5 h-2 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${CATEGORIA_COLORS[c.value] || "bg-gray-400"}`}
+                      style={{ width: `${Math.max(c.pct, 3)}%` }}
+                    />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <div className="text-center py-6 text-muted-foreground text-sm">Nenhum documento vinculado a este produto.</div>
