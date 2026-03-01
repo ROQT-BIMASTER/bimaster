@@ -37,6 +37,7 @@ import { NovoProdutoAcabadoDialog } from "@/components/fabrica/NovoProdutoAcabad
 import { toast } from "sonner";
 import { useTour } from "@/components/tour/TourProvider";
 import { FABRICA_PRODUTOS_ACABADOS_TOUR_ID, fabricaProdutosAcabadosTourSteps } from "@/components/tour/tours/fabricaProdutosAcabadosTour";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 
 export default function FabricaProdutosAcabados() {
   const { hasPermission, loading: permLoading } = useScreenPermissions();
@@ -365,6 +366,7 @@ export default function FabricaProdutosAcabados() {
             </p>
           </div>
           <div className="flex gap-2">
+            <ManualFabricaDrawer screen="produtos-acabados" />
             <Button
               variant="ghost"
               size="icon"

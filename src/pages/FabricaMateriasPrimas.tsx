@@ -23,6 +23,7 @@ import { DetalhesMateriaPrimaDialog } from "@/components/fabrica/DetalhesMateria
 import { DadosFiscaisProdutoDialog } from "@/components/fabrica/DadosFiscaisProdutoDialog";
 import { TourButton } from "@/components/tour/TourButton";
 import { FABRICA_MATERIAS_PRIMAS_TOUR_ID, fabricaMateriasPrimasTourSteps } from "@/components/tour/tours/fabricaMateriasPrimasTour";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 
 interface MateriaPrima {
   id: string;
@@ -180,10 +181,13 @@ export default function FabricaMateriasPrimas() {
             <h1 className="text-3xl font-bold text-foreground mb-2">Matérias-Primas</h1>
             <p className="text-muted-foreground">Gestão de insumos, embalagens e componentes</p>
           </div>
-          <Button data-tour="mps-add-button" className="gap-2" onClick={() => setNovoDialogOpen(true)}>
-            <Plus className="w-4 h-4" />
-            Nova Matéria-Prima
-          </Button>
+          <div className="flex gap-2">
+            <ManualFabricaDrawer screen="materias-primas" />
+            <Button data-tour="mps-add-button" className="gap-2" onClick={() => setNovoDialogOpen(true)}>
+              <Plus className="w-4 h-4" />
+              Nova Matéria-Prima
+            </Button>
+          </div>
         </div>
 
         <Card data-tour="mps-filters" className="mb-6">

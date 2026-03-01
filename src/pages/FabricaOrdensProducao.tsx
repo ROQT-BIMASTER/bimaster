@@ -18,6 +18,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { TourButton } from "@/components/tour/TourButton";
 import { FABRICA_ORDENS_TOUR_ID, fabricaOrdensTourSteps } from "@/components/tour/tours/fabricaOrdensTour";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 
 export default function FabricaOrdensProducao() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -75,10 +76,13 @@ export default function FabricaOrdensProducao() {
               Gerencie as ordens de produção
             </p>
           </div>
-          <Button data-tour="ordens-nova" onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Ordem
-          </Button>
+          <div className="flex gap-2">
+            <ManualFabricaDrawer screen="ordens-producao" />
+            <Button data-tour="ordens-nova" onClick={() => setDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Ordem
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}
