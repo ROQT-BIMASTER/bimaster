@@ -49,6 +49,7 @@ import { FichaApontamentosPanel } from "./FichaApontamentosPanel";
 import { RevisaoChatPanel } from "./RevisaoChatPanel";
 import type { StatusAprovacao, RevisaoItem, Revisao } from "@/hooks/useFichaRevisao";
 import { SendHorizonal } from "lucide-react";
+import { RequisitosHistoricoTimeline } from "./RequisitosHistoricoTimeline";
 
 interface Props {
   produto: any;
@@ -693,7 +694,7 @@ export function FichaCustoProdutoEditor({
                                         const { data: signedData, error: signError } = await supabase.storage.from("fabrica-custo-evidencias").createSignedUrl(path, 31536000);
                                         if (signError || !signedData?.signedUrl) throw signError || new Error('Falha ao gerar URL');
                                         const user = (await supabase.auth.getUser()).data.user;
-                                        await supabase.from("fabrica_custo_evidencias" as any).insert({
+                                         await supabase.from("fabrica_custo_evidencias" as any).insert({
                                           produto_custo_id: req.insumo_id || config?.id,
                                           produto_id: produto.id,
                                           nome_arquivo: file.name,
@@ -702,6 +703,7 @@ export function FichaCustoProdutoEditor({
                                           tamanho_bytes: file.size,
                                           usuario_id: user?.id,
                                           usuario_nome: user?.user_metadata?.nome || user?.email || "",
+                                          requisito_id: req.id,
                                         } as any);
                                       }
                                       toast.success("Arquivo(s) enviado(s)!");
@@ -858,6 +860,11 @@ export function FichaCustoProdutoEditor({
             }, 100);
           }}
         />
+      )}
+
+      {/* Timeline de histórico de solicitações */}
+      {config?.id && (
+        <RequisitosHistoricoTimeline produtoId={produto.id} configId={config.id} />
       )}
 
       {/* Header do produto */}

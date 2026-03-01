@@ -318,6 +318,8 @@ export function useFichaRevisaoDiretoria() {
           descricao: r.descricao,
           quantidade_minima: r.quantidade_minima,
           insumo_id: r.insumo_id || null,
+          criado_por: user?.user?.id || null,
+          criado_por_nome: user?.user?.user_metadata?.nome || user?.user?.email || "Diretor",
         }));
         await supabase.from("fabrica_revisao_requisitos" as any).insert(reqRows as any);
       }
