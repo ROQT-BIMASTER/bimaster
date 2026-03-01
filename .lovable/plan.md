@@ -1,25 +1,32 @@
 
 
-# Adicionar botão "Detalhes do Produto" no cabeçalho do chat
+# Kanban de Status de Produtos
 
-## O que será feito
-Adicionar um botão no header do chat (ao lado do avatar do produto) que abre um painel lateral (Sheet) com os detalhes completos do produto vinculado à conversa, incluindo link rápido para a ficha de custos.
+## Conceito
+Criar uma visão Kanban na tela de Produtos Acabados que agrupa automaticamente os produtos em 3 colunas baseadas no status da ficha de custos: **Sem Ficha**, **Em Revisão** e **Aprovado**. Cada card destaca a foto do produto em tamanho grande.
 
 ## Alterações
 
-### 1. Criar componente `ProdutoDetalhesSheet.tsx`
-- Sheet lateral que recebe o `produtoId` e carrega os dados do produto da tabela `fabrica_produtos`
-- Exibe: foto, nome, código, marca, linha, origem, NCM, Anvisa, lead time, itens/display, status ativo/inativo, modo foco
-- Carrega e exibe a última ficha de custos (custo total) via `fabrica_produto_custos_config`
-- Lista as matérias-primas da fórmula ativa do produto
-- Botão "Ver Ficha de Custos" que navega para `/dashboard/fabrica/produtos/{id}/custos`
-- Botão "Editar Produto" que abre o `NovoProdutoAcabadoDialog` em modo edição
+### 1. Criar `src/components/fabrica/ProdutoKanbanBoard.tsx`
+- Componente read-only (sem drag-and-drop, pois o status é derivado da ficha de custos)
+- 3 colunas com cores distintas:
+  - **Sem Ficha** (cinza) - produtos sem registro em `fabrica_produto_custos_config`
+  - **Em Revisão** (amarelo/laranja) - `status_aprovacao` = `revisao_solicitada` ou `em_revisao`
+  - **Aprovado** (verde) - `status_aprovacao` = `aprovada`
+- Cada card exibe: foto do produto (destaque grande usando `ProductThumbnail` size `xl`), nome, codigo, marca/linha, e custo total quando disponivel
+- Clicar no card abre o `ProdutoDetalhesSheet` ou navega para a ficha de custos
 
-### 2. Integrar no `RevisaoChatConsolidado.tsx`
-- Adicionar botão com ícone `Info` ou `ExternalLink` no header rico do chat (ao lado do nome do produto)
-- Ao clicar, abre o `ProdutoDetalhesSheet` com os dados do produto da conversa selecionada
+### 2. Criar `src/components/fabrica/ProdutoKanbanCard.tsx`
+- Card individual com foto em destaque (topo do card, largura total)
+- Nome do produto, codigo, marca, badge de origem
+- Custo total se disponivel
+
+### 3. Editar `src/pages/FabricaProdutosAcabados.tsx`
+- Adicionar toggle de visualizacao: Tabela | Grade | **Kanban** (ao lado dos botoes existentes de modo de visualizacao)
+- Quando Kanban selecionado, renderizar `ProdutoKanbanBoard` passando os dados ja carregados (`produtos`, `fichasMap`, `custoTotalMap`)
 
 ### Arquivos
-- **Criar**: `src/components/fabrica/ProdutoDetalhesSheet.tsx`
-- **Editar**: `src/components/fabrica/RevisaoChatConsolidado.tsx` (adicionar botão e importar o sheet)
+- **Criar**: `src/components/fabrica/ProdutoKanbanBoard.tsx`
+- **Criar**: `src/components/fabrica/ProdutoKanbanCard.tsx`
+- **Editar**: `src/pages/FabricaProdutosAcabados.tsx` (adicionar toggle e renderizacao condicional)
 
