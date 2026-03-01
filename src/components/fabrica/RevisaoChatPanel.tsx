@@ -104,6 +104,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
   const [uploadingAnexos, setUploadingAnexos] = useState(false);
   const [enviarParaCofre, setEnviarParaCofre] = useState(false);
   const [showDocPanel, setShowDocPanel] = useState(false);
+  const [docRefreshKey, setDocRefreshKey] = useState(0);
   const [materiaPrimaSelecionada, setMateriaPrimaSelecionada] = useState<string>("none");
   const [materiasPrimasDisponiveis, setMateriasPrimasDisponiveis] = useState<{ id: string; nome: string; codigo: string }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -572,16 +573,16 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                                     }}
                                     className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs flex-1 min-w-0 text-left transition-colors ${
                                       isCofre
-                                        ? "bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 text-emerald-900"
+                                        ? "bg-orange-100 hover:bg-orange-200 border border-orange-300 text-orange-900"
                                         : isDiretoria
                                           ? "bg-blue-500/30 hover:bg-blue-500/50"
                                           : "bg-muted hover:bg-muted-foreground/10"
                                     }`}
                                   >
-                                    {isCofre ? <Shield className="h-3 w-3 shrink-0 text-emerald-600" /> : <FileText className="h-3 w-3 shrink-0" />}
+                                    {isCofre ? <Shield className="h-3 w-3 shrink-0 text-orange-600" /> : <FileText className="h-3 w-3 shrink-0" />}
                                     <span className="truncate flex-1">{anexo.nome}</span>
                                     {isCofre && (
-                                      <Badge variant="outline" className="text-[8px] py-0 px-1 border-emerald-400 text-emerald-700 shrink-0">Cofre</Badge>
+                                      <Badge variant="outline" className="text-[8px] py-0 px-1 border-orange-400 text-orange-700 shrink-0">Cofre</Badge>
                                     )}
                                     <Download className="h-3 w-3 shrink-0 opacity-60" />
                                   </button>
@@ -823,7 +824,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                   <X className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              <DocumentosTab produtoId={produtoId} />
+              <DocumentosTab key={docRefreshKey} produtoId={produtoId} />
             </div>
           </ResizablePanel>
         </>
@@ -838,7 +839,7 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
           produtoId={produtoId}
           mensagemId={cofreDialog.mensagemId}
           mensagemAnexos={cofreDialog.mensagemAnexos}
-          onSaved={() => carregarMensagens()}
+          onSaved={() => { carregarMensagens(); setDocRefreshKey(k => k + 1); }}
         />
       )}
     </ResizablePanelGroup>
