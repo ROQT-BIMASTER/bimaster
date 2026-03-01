@@ -54,6 +54,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
     fabricante: "",
     modelo: "",
     versao_variacao: "",
+    ncm: "",
     
     // Dados técnicos
     formula_id: "",
@@ -117,6 +118,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         fabricante: produtoEdit.fabricante || "",
         modelo: produtoEdit.modelo || "",
         versao_variacao: produtoEdit.versao_variacao || "",
+        ncm: produtoEdit.ncm || "",
         formula_id: produtoEdit.formula_id || "",
         unidade_medida_id: produtoEdit.unidade_medida_id || "",
         tipo: produtoEdit.tipo || "ACABADO",
@@ -145,6 +147,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         fabricante: "",
         modelo: "",
         versao_variacao: "",
+        ncm: "",
         formula_id: "",
         unidade_medida_id: "",
         tipo: "ACABADO",
@@ -180,6 +183,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         fabricante: formData.fabricante.trim() || null,
         modelo: formData.modelo.trim() || null,
         versao_variacao: formData.versao_variacao.trim() || null,
+        ncm: formData.ncm.trim() || null,
         formula_id: formData.formula_id || null,
         unidade_medida_id: formData.unidade_medida_id || null,
         tipo: formData.tipo,
@@ -475,6 +479,19 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                     placeholder="Versão ou variação"
                   />
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="ncm">NCM</Label>
+                <Input
+                  id="ncm"
+                  value={formData.ncm}
+                  onChange={(e) => setFormData({ ...formData, ncm: e.target.value })}
+                  placeholder="Ex: 3304.99.10"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Nomenclatura Comum do Mercosul
+                </p>
               </div>
             </TabsContent>
 
