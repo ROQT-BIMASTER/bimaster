@@ -45,7 +45,7 @@ serve(async (req) => {
 
     const { userId, newPassword } = await req.json();
     if (!userId || !newPassword) throw new Error("userId e newPassword são obrigatórios");
-    if (newPassword.length < 6) throw new Error("Senha deve ter no mínimo 6 caracteres");
+    if (newPassword.length < 8) throw new Error("Senha deve ter no mínimo 8 caracteres");
 
     const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       password: newPassword,
