@@ -1,232 +1,159 @@
 project_id = "aokkyrgaqjarhlywhjju"
 
-# Edge Functions
-[functions.cofre-share]
-verify_jwt = false
-
-[functions.cobranca-automation-api]
-verify_jwt = false
-
-[functions.cobranca-whatsapp-webhook]
-verify_jwt = false
-
-[functions.publish-scheduled-posts]
-verify_jwt = false
-
-# Cron job para publicar posts agendados (executa a cada 5 minutos)
-[[edge_runtime.schedules]]
-function = "publish-scheduled-posts"
-schedule = "*/5 * * * *"
-
-[functions.ai-insights]
-verify_jwt = true
-
-[functions.analyze-competitor-photo]
-verify_jwt = true
-
-[functions.analyze-brand-website]
-verify_jwt = true
-
-[functions.save-brand-analysis]
-verify_jwt = true
-
-[functions.send-notifications]
-verify_jwt = true
-
-[functions.export-pdf]
-verify_jwt = true
-
-[functions.geocode-address]
-verify_jwt = true
-
-[functions.get-mapbox-token]
-verify_jwt = true
-
-[functions.create-checkout]
-verify_jwt = true
-
-[functions.check-subscription]
-verify_jwt = true
-
-[functions.customer-portal]
-verify_jwt = true
-
-[functions.padronizar-municipio]
-verify_jwt = true
-
-[functions.analisar-planilha-ia]
-verify_jwt = false
-
-[functions.analyze-shelf-photos]
-verify_jwt = true
-
-[functions.ai-filter]
-verify_jwt = true
-
-[functions.export-prospects]
-verify_jwt = true
-
-[functions.export-conversion-rates]
-verify_jwt = true
-
-[functions.export-all-data]
-verify_jwt = true
-
-[functions.cnpjbiz-consulta]
-verify_jwt = true
-
-[functions.analyze-gondola-competition]
-verify_jwt = true
-
-[functions.realtime-call-session]
-verify_jwt = true
-
-[functions.process-call-result]
-verify_jwt = true
-
-[functions.process-photo-analysis-queue]
-verify_jwt = false
-
-[functions.padronizar-nome-cliente]
-verify_jwt = true
-
-[functions.whatsapp-webhook]
-verify_jwt = false
-
-[functions.analyze-whatsapp-sentiment]
-verify_jwt = true
-
-[functions.marketing-insights]
-verify_jwt = true
-
-[functions.social-media-metrics]
-verify_jwt = true
-
-[functions.social-media-cron]
-verify_jwt = false
-
-[functions.pollo-generate-image]
-verify_jwt = true
-
-[functions.pollo-generate-video]
-verify_jwt = true
-
-[functions.pollo-check-status]
-verify_jwt = true
-
-[functions.pollo-analyze-website]
-verify_jwt = true
-
-[functions.contas-pagar-api]
-verify_jwt = false
-
-[functions.contas-receber-api]
-verify_jwt = false
-
-[functions.datawarehouse-api]
-verify_jwt = false
-
-[functions.produtos-api]
-verify_jwt = true
-
-[functions.classificar-conta-departamento]
-verify_jwt = true
-
-[functions.classificar-contas-pagar-ia]
-verify_jwt = true
-
-[functions.classificar-contas-batch]
-verify_jwt = true
-
-[functions.processar-transacao-n8n]
-verify_jwt = false
-
-[functions.trigger-photo-queue]
-verify_jwt = true
-
-[functions.price-table-approval]
-verify_jwt = true
-
-[functions.process-nfe-xml]
-verify_jwt = true
-
-[functions.ai-analytics]
-verify_jwt = true
-
-[functions.api-health-check]
-verify_jwt = true
-
-[functions.export-datawarehouse]
-verify_jwt = true
-
-[functions.sync-all-accounts]
-verify_jwt = true
-
-[functions.integration-router]
-verify_jwt = false
-
-[functions.whatsapp-business-api]
-verify_jwt = false
-
-[functions.auditoria-contas-receber]
-verify_jwt = true
-
-[functions.generate-product-creative]
-verify_jwt = true
-
-[functions.n8n-contas-receber]
-verify_jwt = false
-
-[functions.qa-agent]
-verify_jwt = true
-
-[functions.huggs-agent-chat]
-verify_jwt = true
-
-[functions.nano-banana-video]
-verify_jwt = true
-
-[functions.generate-video]
-verify_jwt = true
-
-[functions.ai-map-csv-columns]
-verify_jwt = true
-
-[functions.create-admin-users]
-verify_jwt = false
-
-[functions.opencnpj-consulta]
-verify_jwt = false
-
-[functions.google-places-search]
-verify_jwt = false
-
-# Google Maps - serve a chave de forma segura
-[functions.get-google-maps-key]
-verify_jwt = false
-
-# Geocodificação em lote via Google Geocoding API
-[functions.geocode-batch]
-verify_jwt = false
-
-# Assistente IA para despesas corporativas
-[functions.expense-ai-assistant]
-verify_jwt = false
-
-[functions.team-form-submit]
-verify_jwt = false
-
-[functions.lead-insight]
-verify_jwt = true
-
-[functions.sofia-voice-token]
-verify_jwt = false
-
-[functions.elevenlabs-tts]
-verify_jwt = false
-
-[functions.admin-reset-password]
-verify_jwt = false
-
-[functions.update-user-password]
-verify_jwt = false
+[edge_runtime]
+
+  [[edge_runtime.schedules]]
+    function = "publish-scheduled-posts"
+    schedule = "*/5 * * * *"
+
+[functions]
+  [functions.admin-reset-password]
+    verify_jwt = false
+  [functions.ai-analytics]
+    verify_jwt = true
+  [functions.ai-filter]
+    verify_jwt = true
+  [functions.ai-insights]
+    verify_jwt = true
+  [functions.ai-map-csv-columns]
+    verify_jwt = true
+  [functions.analisar-planilha-ia]
+    verify_jwt = false
+  [functions.analyze-brand-website]
+    verify_jwt = true
+  [functions.analyze-competitor-photo]
+    verify_jwt = true
+  [functions.analyze-gondola-competition]
+    verify_jwt = true
+  [functions.analyze-shelf-photos]
+    verify_jwt = true
+  [functions.analyze-whatsapp-sentiment]
+    verify_jwt = true
+  [functions.api-health-check]
+    verify_jwt = true
+  [functions.auditoria-contas-receber]
+    verify_jwt = true
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.check-subscription]
+    verify_jwt = true
+  [functions.classificar-conta-departamento]
+    verify_jwt = true
+  [functions.classificar-contas-batch]
+    verify_jwt = true
+  [functions.classificar-contas-pagar-ia]
+    verify_jwt = true
+  [functions.cnpjbiz-consulta]
+    verify_jwt = true
+  [functions.cobranca-automation-api]
+    verify_jwt = false
+  [functions.cobranca-whatsapp-webhook]
+    verify_jwt = false
+  [functions.cofre-share]
+    verify_jwt = false
+  [functions.contas-pagar-api]
+    verify_jwt = false
+  [functions.contas-receber-api]
+    verify_jwt = false
+  [functions.create-admin-users]
+    verify_jwt = false
+  [functions.create-checkout]
+    verify_jwt = true
+  [functions.customer-portal]
+    verify_jwt = true
+  [functions.datawarehouse-api]
+    verify_jwt = false
+  [functions.elevenlabs-tts]
+    verify_jwt = false
+  [functions.expense-ai-assistant]
+    verify_jwt = false
+  [functions.export-all-data]
+    verify_jwt = true
+  [functions.export-conversion-rates]
+    verify_jwt = true
+  [functions.export-datawarehouse]
+    verify_jwt = true
+  [functions.export-pdf]
+    verify_jwt = true
+  [functions.export-prospects]
+    verify_jwt = true
+  [functions.generate-product-creative]
+    verify_jwt = true
+  [functions.generate-video]
+    verify_jwt = true
+  [functions.geocode-address]
+    verify_jwt = true
+  [functions.geocode-batch]
+    verify_jwt = false
+  [functions.get-google-maps-key]
+    verify_jwt = false
+  [functions.get-mapbox-token]
+    verify_jwt = true
+  [functions.google-places-search]
+    verify_jwt = false
+  [functions.huggs-agent-chat]
+    verify_jwt = true
+  [functions.integration-router]
+    verify_jwt = false
+  [functions.lead-insight]
+    verify_jwt = true
+  [functions.marketing-insights]
+    verify_jwt = true
+  [functions.n8n-contas-receber]
+    verify_jwt = false
+  [functions.nano-banana-video]
+    verify_jwt = true
+  [functions.opencnpj-consulta]
+    verify_jwt = false
+  [functions.padronizar-municipio]
+    verify_jwt = true
+  [functions.padronizar-nome-cliente]
+    verify_jwt = true
+  [functions.pollo-analyze-website]
+    verify_jwt = true
+  [functions.pollo-check-status]
+    verify_jwt = true
+  [functions.pollo-generate-image]
+    verify_jwt = true
+  [functions.pollo-generate-video]
+    verify_jwt = true
+  [functions.price-table-approval]
+    verify_jwt = true
+  [functions.process-call-result]
+    verify_jwt = true
+  [functions.process-nfe-xml]
+    verify_jwt = true
+  [functions.process-photo-analysis-queue]
+    verify_jwt = false
+  [functions.processar-transacao-n8n]
+    verify_jwt = false
+  [functions.produtos-api]
+    verify_jwt = true
+  [functions.publish-scheduled-posts]
+    verify_jwt = false
+  [functions.qa-agent]
+    verify_jwt = true
+  [functions.realtime-call-session]
+    verify_jwt = true
+  [functions.save-brand-analysis]
+    verify_jwt = true
+  [functions.send-notifications]
+    verify_jwt = true
+  [functions.social-media-cron]
+    verify_jwt = false
+  [functions.social-media-metrics]
+    verify_jwt = true
+  [functions.sofia-voice-token]
+    verify_jwt = false
+  [functions.sync-all-accounts]
+    verify_jwt = true
+  [functions.team-form-submit]
+    verify_jwt = false
+  [functions.trigger-photo-queue]
+    verify_jwt = true
+  [functions.update-user-password]
+    verify_jwt = false
+  [functions.whatsapp-business-api]
+    verify_jwt = false
+  [functions.whatsapp-webhook]
+    verify_jwt = false
