@@ -38,7 +38,7 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
     const { data } = await supabase
       .from("fabrica_produtos")
       .select("id, nome, codigo, codigo_barras_ean, foto_url")
-      .or(`nome.ilike.%${termo}%,codigo.ilike.%${termo}%`)
+      .or(`nome.ilike.%${termo}%,codigo.ilike.%${termo}%,codigo_barras_ean.ilike.%${termo}%`)
       .eq("ativo", true)
       .neq("tipo", "MP")
       .neq("tipo", "DISPLAY")
