@@ -12,6 +12,20 @@ serve(async (req) => {
   }
 
   try {
+    // Autenticação via API Key (N8N_API_KEY ou POLLO_API_KEY)
+    const apiKey = req.headers.get("x-api-key");
+    const validKeys = [
+      Deno.env.get("N8N_API_KEY"),
+      Deno.env.get("POLLO_API_KEY"),
+    ].filter(Boolean);
+
+    if (!apiKey || !validKeys.includes(apiKey)) {
+      return new Response(
+        JSON.stringify({ error: "API key inválida" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
