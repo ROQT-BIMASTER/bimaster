@@ -7905,6 +7905,7 @@ export type Database = {
           enviado_por: string | null
           enviado_por_nome: string | null
           id: string
+          lote: string | null
           materia_prima_id: string | null
           mensagem_id: string | null
           nome_arquivo: string
@@ -7923,6 +7924,7 @@ export type Database = {
           enviado_por?: string | null
           enviado_por_nome?: string | null
           id?: string
+          lote?: string | null
           materia_prima_id?: string | null
           mensagem_id?: string | null
           nome_arquivo: string
@@ -7941,6 +7943,7 @@ export type Database = {
           enviado_por?: string | null
           enviado_por_nome?: string | null
           id?: string
+          lote?: string | null
           materia_prima_id?: string | null
           mensagem_id?: string | null
           nome_arquivo?: string
