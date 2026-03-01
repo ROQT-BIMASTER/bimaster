@@ -34,6 +34,7 @@ import { AtribuirDepartamentoUsuario } from "@/components/configuracoes/Atribuir
 import { ConfiguracoesCobrancaAutomatica } from "@/components/configuracoes/ConfiguracoesCobrancaAutomatica";
 import { DocumentacaoIntegracaoERP } from "@/components/configuracoes/DocumentacaoIntegracaoERP";
 import ConfigurarCategoriasDRE from "@/components/configuracoes/ConfigurarCategoriasDRE";
+import { MonitoramentoAcessos } from "@/components/configuracoes/MonitoramentoAcessos";
 
 interface Profile {
   id: string;
@@ -262,6 +263,7 @@ function Configuracoes() {
               {isAdmin && <TabsTrigger value="categorias-dre">Categorias DRE</TabsTrigger>}
               {isAdmin && <TabsTrigger value="cobranca">Cobrança Auto</TabsTrigger>}
               {isAdmin && <TabsTrigger value="integracao-erp">Integrações ERP</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="acessos">Acessos</TabsTrigger>}
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
               {isAdmin && (
                 <TabsTrigger 
@@ -373,6 +375,12 @@ function Configuracoes() {
             {isAdmin && (
               <TabsContent value="integracao-erp">
                 <DocumentacaoIntegracaoERP />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="acessos">
+                <MonitoramentoAcessos />
               </TabsContent>
             )}
 
