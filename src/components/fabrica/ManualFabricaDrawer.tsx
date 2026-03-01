@@ -14,6 +14,7 @@ export type ManualScreen =
   | "home"
   | "materias-primas"
   | "produtos-acabados"
+  | "displays-kits"
   | "formulas"
   | "ordens-producao"
   | "recebimentos"
@@ -83,7 +84,7 @@ const manualContent: Record<ManualScreen, { title: string; sections: { heading: 
       },
       {
         heading: "Como cadastrar um produto",
-        content: '1. Clique em "+ Novo Produto"\n2. Preencha:\n   • Código: ex. PROD-001 (obrigatório)\n   • Nome: ex. Sérum Facial Coco 35ml (obrigatório)\n   • Tipo: ACABADO ou INTERMEDIÁRIO\n   • Origem: Nacional ou Importado\n   • Marca e Linha (opcionais)\n   • Fórmula: pode vincular depois\n3. Clique em "Cadastrar"',
+        content: '1. Clique em "+ Novo Produto"\n2. Preencha:\n   • Código: ex. PROD-001 (obrigatório)\n   • Nome: ex. Sérum Facial Coco 35ml (obrigatório)\n   • Tipo: ACABADO, INTERMEDIÁRIO ou DISPLAY\n   • Origem: Nacional ou Importado\n   • Marca e Linha (opcionais)\n   • Fórmula: pode vincular depois\n3. Clique em "Cadastrar"',
       },
       {
         heading: "Ações por produto",
@@ -94,8 +95,49 @@ const manualContent: Record<ManualScreen, { title: string; sections: { heading: 
         content: '1. Ative o toggle "Agrupar"\n2. Produtos organizados por Marca → Linha\n3. Útil para catálogos grandes',
       },
       {
+        heading: "📦 Displays / Kits",
+        content: 'Para criar um Display ou Kit, selecione tipo "Display / Kit" no cadastro.\n\nIsso habilita:\n• Aba "Grade" no formulário de cadastro\n• Composição de grade com busca por nome, código ou EAN\n• Campo Nº da Cor e Quantidade por variante\n• Exportação Excel da grade\n• Rastreabilidade reversa ("Usado em Displays")\n\n⚠️ Detalhes completos: veja o manual de Displays/Kits.',
+      },
+      {
         heading: "Painel Administrativo",
         content: "Acesse fichas de custos pendentes de revisão e acompanhe aprovações.\n\nFluxo:\n1️⃣ Monte a ficha → 2️⃣ Submeta para aprovação → 3️⃣ Diretoria analisa → 4️⃣ Aprovada ✅ ou Revisão 🔄",
+      },
+    ],
+  },
+  "displays-kits": {
+    title: "📦 Manual — Displays / Kits",
+    sections: [
+      {
+        heading: "O que é um Display / Kit?",
+        content: "Um Display (ou Kit) é um produto composto por outros produtos acabados, montado em uma embalagem de apresentação para exposição no ponto de venda.\n\nExemplos:\n• Display de Esmaltes com 12 cores sortidas\n• Kit Presente com Shampoo + Condicionador + Máscara\n• Caixa expositora com 24 unidades mistas\n\nNo sistema, um Display é um produto do tipo DISPLAY que possui uma Composição de Grade — a lista de produtos filhos que o compõem.",
+      },
+      {
+        heading: "Como criar um Display — Passo a passo",
+        content: '1. Acesse Produtos Acabados → "+ Novo Produto"\n2. No campo Tipo, selecione "Display / Kit"\n   → A aba "Grade" aparece automaticamente\n3. Preencha dados básicos:\n   • Código: ex. DSP-001\n   • Nome: ex. Display Esmaltes Verão 2026\n   • Marca e Linha (opcionais)\n4. Vá para a aba "Grade"\n5. No campo de busca, digite o nome, código ou EAN do produto\n6. Clique no produto para adicioná-lo\n7. Preencha:\n   • Nº — Número da cor ou variante (ex: "01", "A2")\n   • Qtd — Quantidade daquela variante no display\n8. Repita para todos os itens\n9. Clique em "Cadastrar"\n\n⚠️ Se salvar um Display sem nenhum item na grade, um alerta será exibido.',
+      },
+      {
+        heading: "Tipo de Rotulagem",
+        content: "Cada produto pode ter um tipo de rotulagem definido:\n\n• Sticker — Adesivo aplicado sobre a embalagem\n• Label — Rótulo envolvente colado\n• Sleeve — Manga termocontrátil\n• Tag — Etiqueta pendurada/amarrada\n• Sem Rotulagem — Produto sem identificação adicional\n\nO tipo de rotulagem é informado no cadastro do produto e aparece na exportação Excel da grade.",
+      },
+      {
+        heading: "Composição de Grade — Detalhes",
+        content: "A grade mostra os produtos que compõem o Display:\n\n📋 Cada linha contém:\n• Nome e Código do produto filho\n• EAN (código de barras), se cadastrado\n• Nº da Cor/Variante — identificador interno\n• Quantidade — quantas unidades desse item no display\n\n🔍 Busca:\n• Busque por nome, código ou EAN\n• Resultados filtram automaticamente produtos já adicionados\n\n🚫 Regras:\n• Não é possível adicionar outro DISPLAY dentro de um Display\n• Matérias-primas (MP) também não aparecem na busca\n• Ao trocar o tipo de produto de DISPLAY para outro, a grade é limpa automaticamente",
+      },
+      {
+        heading: "Exportação Excel",
+        content: 'No painel de detalhes do produto (clique no nome), use o botão "Exportar Grade (Excel)".\n\nA planilha gerada contém:\n• Item No. — Código do display (em todas as linhas)\n• Item Name — Nome do display\n• Color No. — Número da cor/variante\n• Color/Commercial Name — Nome do produto filho\n• Barcode (EAN) — Código de barras do produto\n• Qty per box — Quantidade individual da variante\n• Labelling type — Tipo de rotulagem\n• Photo — Link para a foto do produto (se houver)\n\n📊 Linha TOTAL ao final com:\n• Soma total de unidades no display\n• Foto do display (se houver)\n\nFormato: cabeçalho azul escuro, bordas em todas as células, links clicáveis para fotos.',
+      },
+      {
+        heading: "Rastreabilidade Reversa",
+        content: 'No painel de detalhes de qualquer produto acabado, a seção "Usado em Displays" mostra todos os Displays que contêm aquele produto.\n\nIsso permite:\n• Saber em quantos displays um produto aparece\n• Ver a quantidade usada em cada display\n• Navegar diretamente para o display pai',
+      },
+      {
+        heading: "Exemplo Prático Completo",
+        content: "📦 Display Esmaltes Verão 2026 (DSP-001)\n\nComposição de Grade:\n┌────┬─────────────────────┬────┬─────┐\n│ Nº │ Produto             │ EAN         │ Qtd │\n├────┼─────────────────────┼────┼─────┤\n│ 01 │ Esmalte Rosa Quartzo │ 7891234001  │  4  │\n│ 02 │ Esmalte Coral Vivo   │ 7891234002  │  4  │\n│ 03 │ Esmalte Nude Pérola  │ 7891234003  │  4  │\n└────┴─────────────────────┴────┴─────┘\nTotal: 12 unidades por display\n\nExportação Excel:\n→ 3 linhas de dados + 1 linha TOTAL (12 un)\n→ Cada linha com código DSP-001 e foto linkada",
+      },
+      {
+        heading: "Fluxo Recomendado",
+        content: "1️⃣ Cadastre os produtos acabados que farão parte do display\n2️⃣ Crie um novo produto tipo \"Display / Kit\"\n3️⃣ Na aba Grade, busque e adicione cada produto\n4️⃣ Preencha Nº da cor e Quantidade para cada item\n5️⃣ Salve o display\n6️⃣ No painel de detalhes, exporte a grade em Excel\n7️⃣ Configure dados fiscais do display (NCM, CFOP)\n8️⃣ Inclua na Tabela de Preço para precificação",
       },
     ],
   },
