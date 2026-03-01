@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { ComposicaoGradeCard } from "@/components/fabrica/ComposicaoGradeCard";
+import { ExportarDisplayGrade } from "@/components/fabrica/ExportarDisplayGrade";
 import { NovoProdutoAcabadoDialog } from "@/components/fabrica/NovoProdutoAcabadoDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -228,6 +229,11 @@ export function ProdutoDetalhesSheet({ open, onOpenChange, produtoId }: ProdutoD
                 <>
                   <Separator />
                   <ComposicaoGradeCard produtoId={produto.id} />
+                  <ExportarDisplayGrade
+                    produtoId={produto.id}
+                    produtoNome={produto.nome}
+                    produtoCodigo={produto.codigo}
+                  />
                 </>
               )}
 

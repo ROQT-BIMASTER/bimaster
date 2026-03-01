@@ -7476,6 +7476,7 @@ export type Database = {
       }
       fabrica_produto_grade_itens: {
         Row: {
+          cor_numero: string | null
           created_at: string
           id: string
           ordem: number
@@ -7484,6 +7485,7 @@ export type Database = {
           quantidade: number
         }
         Insert: {
+          cor_numero?: string | null
           created_at?: string
           id?: string
           ordem?: number
@@ -7492,6 +7494,7 @@ export type Database = {
           quantidade?: number
         }
         Update: {
+          cor_numero?: string | null
           created_at?: string
           id?: string
           ordem?: number
@@ -7591,6 +7594,7 @@ export type Database = {
           subcategoria: string | null
           tempo_producao_minutos: number | null
           tipo: string | null
+          tipo_rotulagem: string | null
           unidade_medida_id: string | null
           updated_at: string | null
           versao_variacao: string | null
@@ -7631,6 +7635,7 @@ export type Database = {
           subcategoria?: string | null
           tempo_producao_minutos?: number | null
           tipo?: string | null
+          tipo_rotulagem?: string | null
           unidade_medida_id?: string | null
           updated_at?: string | null
           versao_variacao?: string | null
@@ -7671,6 +7676,7 @@ export type Database = {
           subcategoria?: string | null
           tempo_producao_minutos?: number | null
           tipo?: string | null
+          tipo_rotulagem?: string | null
           unidade_medida_id?: string | null
           updated_at?: string | null
           versao_variacao?: string | null
