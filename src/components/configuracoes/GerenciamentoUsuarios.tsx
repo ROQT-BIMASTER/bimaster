@@ -179,6 +179,14 @@ export const GerenciamentoUsuarios = () => {
 
       const userId = result.userId;
 
+      // Audit admin action (fire-and-forget)
+      const { auditAdminAction } = await import("@/lib/utils/sensitive-audit");
+      auditAdminAction("create_user", "user", userId, {
+        email: validatedData.email,
+        role: validatedData.tipo_usuario,
+        nome: validatedData.nome,
+      });
+
       // Atualizar supervisor se selecionado
       if (selectedSupervisor && userId) {
         await supabase

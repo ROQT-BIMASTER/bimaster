@@ -169,8 +169,14 @@ export default function TradeReportClients() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `relatorio-clientes-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    const filename = `relatorio-clientes-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.download = filename;
     link.click();
+
+    // Audit export
+    import("@/lib/utils/sensitive-audit").then(({ auditExport }) =>
+      auditExport("csv", "trade_report_clients", filteredClients.length, filename)
+    );
   };
 
   const formatCompact = (value: number) => {

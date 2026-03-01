@@ -171,8 +171,14 @@ export default function TradeReportSellers() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `relatorio-vendedores-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    const filename = `relatorio-vendedores-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.download = filename;
     link.click();
+
+    // Audit export
+    import("@/lib/utils/sensitive-audit").then(({ auditExport }) =>
+      auditExport("csv", "trade_report_sellers", filteredSellers.length, filename)
+    );
   };
 
   const getInitials = (name: string) => {

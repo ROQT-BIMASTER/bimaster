@@ -251,6 +251,11 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, `Tabela_Precos_${tabela?.codigo}_${new Date().toISOString().split('T')[0]}.xlsx`);
     toast.success("Tabela exportada com sucesso!");
+
+    // Audit export
+    import("@/lib/utils/sensitive-audit").then(({ auditExport }) =>
+      auditExport("excel", "fabrica_tabela_precos", dadosExportacao.length, `Tabela_Precos_${tabela?.codigo}`)
+    );
   };
 
   const getMargemBadge = (margem: number) => {
