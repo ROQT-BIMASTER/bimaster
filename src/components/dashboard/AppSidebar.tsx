@@ -254,7 +254,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const { toast } = useToast();
   const { permissions, loading: permissionsLoading, hasPermission } = useScreenPermissions();
   const { hasModulePermission, loading: modulesLoading } = useModulePermissions();
-  const { isAdminOrSupervisor } = useUserRole();
+  const { isAdminOrSupervisor, isAdmin } = useUserRole();
   const { user } = useAuth();
   const { data: userDepartments = [] } = useUserDepartments();
   const { t, dir } = useLanguage();
@@ -506,7 +506,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         <SidebarGroup className="py-2">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1 px-2">
-              {hasPermission("auditoria") && (
+              {isAdmin && hasPermission("auditoria") && (
                 <MenuItemLink to="/dashboard/auditoria" icon={Shield} title={t("nav.audit")} />
               )}
               
