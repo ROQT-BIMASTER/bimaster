@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
 // Gerar hash para detectar alterações
@@ -108,6 +108,53 @@ Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // ============= AUTENTICAÇÃO OBRIGATÓRIA =============
+  // Aceita API key via x-api-key header OU JWT via Authorization header
+  const apiKey = req.headers.get('x-api-key');
+  const authHeader = req.headers.get('authorization');
+  let authenticated = false;
+
+  // Verificar API key (para Power Query / integrações externas)
+  if (apiKey) {
+    const validKeys = [
+      Deno.env.get('N8N_API_KEY'),
+      Deno.env.get('POWERQUERY_API_KEY'),
+      Deno.env.get('POLLO_API_KEY'),
+    ].filter(Boolean);
+    
+    if (validKeys.includes(apiKey)) {
+      authenticated = true;
+      console.log('🔑 Autenticado via API key');
+    }
+  }
+
+  // Verificar JWT (para chamadas autenticadas do frontend)
+  if (!authenticated && authHeader?.startsWith('Bearer ')) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const { createClient: createAnonClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const anonSupabase = createAnonClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    const token = authHeader.replace('Bearer ', '');
+    const { data, error } = await anonSupabase.auth.getClaims(token);
+    if (!error && data?.claims?.sub) {
+      authenticated = true;
+      console.log(`🔑 Autenticado via JWT: ${data.claims.sub}`);
+    }
+  }
+
+  if (!authenticated) {
+    console.warn('❌ Requisição sem autenticação bloqueada');
+    return new Response(
+      JSON.stringify({ 
+        error: 'Não autorizado. Envie x-api-key ou Authorization Bearer JWT.',
+        hint: 'Configure o header x-api-key com a chave de API fornecida pelo administrador'
+      }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   // Handle GET requests - return status/info (useful for testing connectivity)

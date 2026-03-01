@@ -8,8 +8,8 @@ const corsHeaders = {
 
 // Simple in-memory rate limiting (resets on cold start)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 10; // max requests per window
-const RATE_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT = 5; // max requests per window (tightened for PII protection)
+const RATE_WINDOW_MS = 120_000; // 2 minutes
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
