@@ -25,6 +25,7 @@ export function ConfiguracaoEmpresaDialog() {
     regime_apuracao_icms: "normal",
     regime_apuracao_pis_cofins: "cumulativo",
     contribuinte_ipi: false,
+    iva_dual_habilitado: false,
     observacoes: "",
   });
 
@@ -54,6 +55,7 @@ export function ConfiguracaoEmpresaDialog() {
           regime_apuracao_icms: data.regime_apuracao_icms || "normal",
           regime_apuracao_pis_cofins: data.regime_apuracao_pis_cofins || "cumulativo",
           contribuinte_ipi: data.contribuinte_ipi || false,
+          iva_dual_habilitado: data.iva_dual_habilitado || false,
           observacoes: data.observacoes || "",
         });
       }
@@ -197,6 +199,14 @@ export function ConfiguracaoEmpresaDialog() {
                 onCheckedChange={(checked) => setFormData({ ...formData, contribuinte_ipi: checked as boolean })}
               />
               <Label htmlFor="contribuinte_ipi">Contribuinte de IPI</Label>
+            </div>
+            <div className="col-span-2 flex items-center space-x-2">
+              <Checkbox
+                id="iva_dual_habilitado"
+                checked={formData.iva_dual_habilitado}
+                onCheckedChange={(checked) => setFormData({ ...formData, iva_dual_habilitado: checked as boolean })}
+              />
+              <Label htmlFor="iva_dual_habilitado">Habilitar IVA Dual (CBS/IBS) — Reforma Tributária</Label>
             </div>
             <div className="col-span-2">
               <Label>Observações</Label>

@@ -4611,8 +4611,10 @@ export type Database = {
       }
       fabrica_dados_fiscais_produto: {
         Row: {
+          aliquota_cbs_padrao: number | null
           aliquota_cofins: number | null
           aliquota_fcp: number | null
+          aliquota_ibs_padrao: number | null
           aliquota_icms: number | null
           aliquota_ipi: number | null
           aliquota_pis: number | null
@@ -4651,6 +4653,7 @@ export type Database = {
           desconto_compra: number | null
           desconto_entrada: number | null
           desconto_maximo: number | null
+          elegivel_credito_iva: boolean | null
           estoque_maximo: number | null
           estoque_minimo: number | null
           excecao_ncm: string | null
@@ -4707,8 +4710,10 @@ export type Database = {
           volume_m3: number | null
         }
         Insert: {
+          aliquota_cbs_padrao?: number | null
           aliquota_cofins?: number | null
           aliquota_fcp?: number | null
+          aliquota_ibs_padrao?: number | null
           aliquota_icms?: number | null
           aliquota_ipi?: number | null
           aliquota_pis?: number | null
@@ -4747,6 +4752,7 @@ export type Database = {
           desconto_compra?: number | null
           desconto_entrada?: number | null
           desconto_maximo?: number | null
+          elegivel_credito_iva?: boolean | null
           estoque_maximo?: number | null
           estoque_minimo?: number | null
           excecao_ncm?: string | null
@@ -4803,8 +4809,10 @@ export type Database = {
           volume_m3?: number | null
         }
         Update: {
+          aliquota_cbs_padrao?: number | null
           aliquota_cofins?: number | null
           aliquota_fcp?: number | null
+          aliquota_ibs_padrao?: number | null
           aliquota_icms?: number | null
           aliquota_ipi?: number | null
           aliquota_pis?: number | null
@@ -4843,6 +4851,7 @@ export type Database = {
           desconto_compra?: number | null
           desconto_entrada?: number | null
           desconto_maximo?: number | null
+          elegivel_credito_iva?: boolean | null
           estoque_maximo?: number | null
           estoque_minimo?: number | null
           excecao_ncm?: string | null
@@ -4916,6 +4925,7 @@ export type Database = {
           created_by: string | null
           id: string
           inscricao_estadual: string | null
+          iva_dual_habilitado: boolean | null
           observacoes: string | null
           razao_social: string
           regime_apuracao_icms: string | null
@@ -4931,6 +4941,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           inscricao_estadual?: string | null
+          iva_dual_habilitado?: boolean | null
           observacoes?: string | null
           razao_social: string
           regime_apuracao_icms?: string | null
@@ -4946,6 +4957,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           inscricao_estadual?: string | null
+          iva_dual_habilitado?: boolean | null
           observacoes?: string | null
           razao_social?: string
           regime_apuracao_icms?: string | null
@@ -5812,9 +5824,13 @@ export type Database = {
       }
       fabrica_itens_nf: {
         Row: {
+          aliquota_cbs: number | null
+          aliquota_ibs: number | null
           aliquota_icms_st: number | null
           aliquota_ipi: number | null
+          base_cbs: number | null
           base_cofins: number | null
+          base_ibs: number | null
           base_icms: number | null
           base_icms_st: number | null
           base_pis: number | null
@@ -5828,6 +5844,7 @@ export type Database = {
           custo_unitario_entrada: number | null
           descricao: string
           divergencia_percentual: number | null
+          elegivel_credito_iva: boolean | null
           id: string
           lote: string | null
           ncm: string | null
@@ -5848,15 +5865,21 @@ export type Database = {
           validado_em: string | null
           validado_fiscalmente: boolean | null
           validado_por: string | null
+          valor_cbs: number | null
+          valor_ibs: number | null
           valor_icms_st: number | null
           valor_ipi: number | null
           valor_total: number
           valor_unitario: number
         }
         Insert: {
+          aliquota_cbs?: number | null
+          aliquota_ibs?: number | null
           aliquota_icms_st?: number | null
           aliquota_ipi?: number | null
+          base_cbs?: number | null
           base_cofins?: number | null
+          base_ibs?: number | null
           base_icms?: number | null
           base_icms_st?: number | null
           base_pis?: number | null
@@ -5870,6 +5893,7 @@ export type Database = {
           custo_unitario_entrada?: number | null
           descricao: string
           divergencia_percentual?: number | null
+          elegivel_credito_iva?: boolean | null
           id?: string
           lote?: string | null
           ncm?: string | null
@@ -5890,15 +5914,21 @@ export type Database = {
           validado_em?: string | null
           validado_fiscalmente?: boolean | null
           validado_por?: string | null
+          valor_cbs?: number | null
+          valor_ibs?: number | null
           valor_icms_st?: number | null
           valor_ipi?: number | null
           valor_total: number
           valor_unitario: number
         }
         Update: {
+          aliquota_cbs?: number | null
+          aliquota_ibs?: number | null
           aliquota_icms_st?: number | null
           aliquota_ipi?: number | null
+          base_cbs?: number | null
           base_cofins?: number | null
+          base_ibs?: number | null
           base_icms?: number | null
           base_icms_st?: number | null
           base_pis?: number | null
@@ -5912,6 +5942,7 @@ export type Database = {
           custo_unitario_entrada?: number | null
           descricao?: string
           divergencia_percentual?: number | null
+          elegivel_credito_iva?: boolean | null
           id?: string
           lote?: string | null
           ncm?: string | null
@@ -5932,6 +5963,8 @@ export type Database = {
           validado_em?: string | null
           validado_fiscalmente?: boolean | null
           validado_por?: string | null
+          valor_cbs?: number | null
+          valor_ibs?: number | null
           valor_icms_st?: number | null
           valor_ipi?: number | null
           valor_total?: number
@@ -8783,6 +8816,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fabrica_tax_rates_iva: {
+        Row: {
+          aliquota_cbs: number
+          aliquota_ibs: number
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          data_fim: string | null
+          data_inicio: string
+          id: string
+          nome_regra: string
+        }
+        Insert: {
+          aliquota_cbs?: number
+          aliquota_ibs?: number
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio: string
+          id?: string
+          nome_regra: string
+        }
+        Update: {
+          aliquota_cbs?: number
+          aliquota_ibs?: number
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          nome_regra?: string
+        }
+        Relationships: []
       }
       fabrica_templates_lancamento: {
         Row: {

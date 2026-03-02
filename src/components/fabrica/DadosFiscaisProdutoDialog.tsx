@@ -83,6 +83,11 @@ export const DadosFiscaisProdutoDialog = ({
 
   // Outros
   const [observacoes, setObservacoes] = useState("");
+
+  // IVA Dual
+  const [aliquotaCbsPadrao, setAliquotaCbsPadrao] = useState("");
+  const [aliquotaIbsPadrao, setAliquotaIbsPadrao] = useState("");
+  const [elegivelCreditoIva, setElegivelCreditoIva] = useState(true);
   
   // Valores da nota para validação
   const [valorUnitarioNota, setValorUnitarioNota] = useState(0);
@@ -156,6 +161,11 @@ export const DadosFiscaisProdutoDialog = ({
         setUnidadeCompra(data.unidade_compra || "");
         setUnidadeVenda(data.unidade_venda || "");
         setObservacoes(data.observacoes || "");
+
+        // IVA Dual
+        setAliquotaCbsPadrao((data as any).aliquota_cbs_padrao?.toString() || "");
+        setAliquotaIbsPadrao((data as any).aliquota_ibs_padrao?.toString() || "");
+        setElegivelCreditoIva((data as any).elegivel_credito_iva !== false);
         
         // Valores da nota para validação
         setValorUnitarioNota(data.preco_custo || 0);
@@ -264,6 +274,11 @@ export const DadosFiscaisProdutoDialog = ({
         unidade_venda: unidadeVenda || null,
         observacoes: observacoes || null,
         
+        // IVA Dual
+        aliquota_cbs_padrao: aliquotaCbsPadrao ? parseFloat(aliquotaCbsPadrao) : null,
+        aliquota_ibs_padrao: aliquotaIbsPadrao ? parseFloat(aliquotaIbsPadrao) : null,
+        elegivel_credito_iva: elegivelCreditoIva,
+        
         updated_at: new Date().toISOString()
       };
 
@@ -335,8 +350,9 @@ export const DadosFiscaisProdutoDialog = ({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             <Tabs defaultValue="fiscal" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="fiscal">Fiscal</TabsTrigger>
+                <TabsTrigger value="iva">IVA Dual</TabsTrigger>
                 <TabsTrigger value="precos">Preços</TabsTrigger>
                 <TabsTrigger value="estoque">Estoque</TabsTrigger>
                 <TabsTrigger value="outros">Outros</TabsTrigger>
@@ -463,6 +479,47 @@ export const DadosFiscaisProdutoDialog = ({
                       onChange={setAliquotaCofins}
                       type="number"
                     />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="iva" className="space-y-4">
+                <div className="rounded-lg border p-4 bg-muted/30">
+                  <h3 className="font-medium mb-1">Reforma Tributária — IVA Dual</h3>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Configure as alíquotas padrão de CBS e IBS para este produto.
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Alíquota CBS Padrão (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={aliquotaCbsPadrao}
+                        onChange={(e) => setAliquotaCbsPadrao(e.target.value)}
+                        placeholder="Ex: 8.80"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Alíquota IBS Padrão (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={aliquotaIbsPadrao}
+                        onChange={(e) => setAliquotaIbsPadrao(e.target.value)}
+                        placeholder="Ex: 17.70"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-4">
+                    <input
+                      type="checkbox"
+                      id="elegivel_credito_iva"
+                      checked={elegivelCreditoIva}
+                      onChange={(e) => setElegivelCreditoIva(e.target.checked)}
+                      className="h-4 w-4 rounded border-input"
+                    />
+                    <Label htmlFor="elegivel_credito_iva">Elegível para crédito de IVA (entradas)</Label>
                   </div>
                 </div>
               </TabsContent>
