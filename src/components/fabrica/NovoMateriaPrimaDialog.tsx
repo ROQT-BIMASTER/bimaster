@@ -158,7 +158,7 @@ export const NovoMateriaPrimaDialog = ({ open, onOpenChange, onSuccess }: NovoMa
         categoria_id: formData.categoria_id || null,
         unidade_medida_id: formData.unidade_medida_id,
         custo_unitario: parseFloat(formData.custo_unitario),
-        status: "ativo",
+        status: "disponivel",
         created_by: session.session.user.id,
       };
 
