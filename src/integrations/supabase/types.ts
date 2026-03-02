@@ -7515,6 +7515,7 @@ export type Database = {
       }
       fabrica_produto_grade_itens: {
         Row: {
+          cor_hex: string | null
           cor_numero: string | null
           created_at: string
           id: string
@@ -7524,6 +7525,7 @@ export type Database = {
           quantidade: number
         }
         Insert: {
+          cor_hex?: string | null
           cor_numero?: string | null
           created_at?: string
           id?: string
@@ -7533,6 +7535,7 @@ export type Database = {
           quantidade?: number
         }
         Update: {
+          cor_hex?: string | null
           cor_numero?: string | null
           created_at?: string
           id?: string

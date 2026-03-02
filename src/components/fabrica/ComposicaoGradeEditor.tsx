@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Search, Plus, Trash2, Package, Filter, Loader2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
+import { ColorPickerPopover } from "@/components/fabrica/ColorPickerPopover";
 import {
   DndContext,
   closestCenter,
@@ -41,6 +42,7 @@ interface GradeItem {
   quantidade: number;
   ordem: number;
   cor_numero?: string;
+  cor_hex?: string;
   linha?: string;
   marca?: string;
 }
@@ -67,10 +69,11 @@ interface SortableGradeRowProps {
   index: number;
   onUpdateQtd: (index: number, qty: number) => void;
   onUpdateCor: (index: number, cor: string) => void;
+  onUpdateCorHex: (index: number, hex: string) => void;
   onRemove: (index: number) => void;
 }
 
-function SortableGradeRow({ item, index, onUpdateQtd, onUpdateCor, onRemove }: SortableGradeRowProps) {
+function SortableGradeRow({ item, index, onUpdateQtd, onUpdateCor, onUpdateCorHex, onRemove }: SortableGradeRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.produto_filho_id,
   });
@@ -91,13 +94,19 @@ function SortableGradeRow({ item, index, onUpdateQtd, onUpdateCor, onRemove }: S
       <TableCell className="py-1 text-[11px] font-mono">{item.codigo}</TableCell>
       <TableCell className="py-1 text-[11px] truncate max-w-[160px]">{item.nome}</TableCell>
       <TableCell className="py-1">
-        <Input
-          type="text"
-          value={item.cor_numero || ""}
-          onChange={(e) => onUpdateCor(index, e.target.value)}
-          className="w-12 h-6 text-[10px] text-center px-1"
-          placeholder="Nº"
-        />
+        <div className="flex items-center gap-1">
+          <ColorPickerPopover
+            value={item.cor_hex || ""}
+            onChange={(hex) => onUpdateCorHex(index, hex)}
+          />
+          <Input
+            type="text"
+            value={item.cor_numero || ""}
+            onChange={(e) => onUpdateCor(index, e.target.value)}
+            className="w-16 h-6 text-[10px] px-1"
+            placeholder="Nome/Nº"
+          />
+        </div>
       </TableCell>
       <TableCell className="py-1">
         <Input
@@ -210,6 +219,12 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
   const atualizarCorNumero = (index: number, cor_numero: string) => {
     const novos = [...items];
     novos[index] = { ...novos[index], cor_numero };
+    onChange(novos);
+  };
+
+  const atualizarCorHex = (index: number, cor_hex: string) => {
+    const novos = [...items];
+    novos[index] = { ...novos[index], cor_hex };
     onChange(novos);
   };
 
@@ -343,7 +358,7 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
                   <TableHead className="h-7 text-[10px] w-[30px]"></TableHead>
                   <TableHead className="h-7 text-[10px] w-[80px]">Código</TableHead>
                   <TableHead className="h-7 text-[10px]">Nome</TableHead>
-                  <TableHead className="h-7 text-[10px] w-[60px] text-center">Nº Cor</TableHead>
+                  <TableHead className="h-7 text-[10px] w-[100px] text-center">Cor</TableHead>
                   <TableHead className="h-7 text-[10px] w-[65px] text-center">Qtd</TableHead>
                   <TableHead className="h-7 text-[10px] w-[40px]"></TableHead>
                 </TableRow>
@@ -358,6 +373,7 @@ export function ComposicaoGradeEditor({ produtoPaiId, items, onChange }: Composi
                         index={index}
                         onUpdateQtd={atualizarQuantidade}
                         onUpdateCor={atualizarCorNumero}
+                        onUpdateCorHex={atualizarCorHex}
                         onRemove={removerItem}
                       />
                     ))}

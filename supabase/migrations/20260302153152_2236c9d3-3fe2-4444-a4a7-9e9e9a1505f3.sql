@@ -1,0 +1,1 @@
+ALTER TABLE public.fabrica_produto_grade_itens ADD COLUMN cor_hex TEXT;
