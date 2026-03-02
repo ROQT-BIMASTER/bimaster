@@ -311,7 +311,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>
             {produtoEdit ? "Editar Produto Acabado" : "Novo Produto Acabado"}
