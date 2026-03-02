@@ -217,13 +217,23 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     fetchPermissions();
 
     // Listener para mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    let initialFetchDone = false;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (!isMountedRef.current) return;
       
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        // CRITICAL: Set loading=true immediately to prevent premature permission checks
-        setLoading(true);
-        fetchPermissions(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+        const hasCachedPerms = globalPermissionsCache && globalPermissionsCache.userId === userId;
+        
+        // Don't block UI if we already have permissions for this user (session restore)
+        if (initialFetchDone && hasCachedPerms) {
+          // Silent background refresh - no loading state change
+          fetchPermissions(true);
+        } else {
+          setLoading(true);
+          fetchPermissions(true).then(() => { initialFetchDone = true; });
+        }
       } else if (event === "SIGNED_OUT") {
         globalPermissionsCache = null;
         try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
