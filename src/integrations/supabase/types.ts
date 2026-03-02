@@ -20212,6 +20212,10 @@ export type Database = {
         Args: { _module_code?: string; _user_id: string }
         Returns: boolean
       }
+      check_user_access_tela: {
+        Args: { _tela_code: string; _user_id: string }
+        Returns: boolean
+      }
       cleanup_audit_logs_batch: {
         Args: { batch_size?: number; retention_days?: number }
         Returns: number

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Loader2, Receipt } from "lucide-react";
+import { Plus, Search, Filter, Loader2, Receipt, FileText } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -21,6 +21,7 @@ import { NovoMateriaPrimaDialog } from "@/components/fabrica/NovoMateriaPrimaDia
 import { EditarMateriaPrimaDialog } from "@/components/fabrica/EditarMateriaPrimaDialog";
 import { DetalhesMateriaPrimaDialog } from "@/components/fabrica/DetalhesMateriaPrimaDialog";
 import { DadosFiscaisProdutoDialog } from "@/components/fabrica/DadosFiscaisProdutoDialog";
+import { VincularXmlInsumoDialog } from "@/components/fabrica/VincularXmlInsumoDialog";
 import { TourButton } from "@/components/tour/TourButton";
 import { FABRICA_MATERIAS_PRIMAS_TOUR_ID, fabricaMateriasPrimasTourSteps } from "@/components/tour/tours/fabricaMateriasPrimasTour";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
@@ -62,6 +63,7 @@ export default function FabricaMateriasPrimas() {
   const [editarDialogOpen, setEditarDialogOpen] = useState(false);
   const [detalhesDialogOpen, setDetalhesDialogOpen] = useState(false);
   const [dadosFiscaisDialogOpen, setDadosFiscaisDialogOpen] = useState(false);
+  const [xmlDialogOpen, setXmlDialogOpen] = useState(false);
   const [selectedMP, setSelectedMP] = useState<MateriaPrima | null>(null);
 
   useEffect(() => {
@@ -116,6 +118,31 @@ export default function FabricaMateriasPrimas() {
   const handleDadosFiscais = (mp: MateriaPrima) => {
     setSelectedMP(mp);
     setDadosFiscaisDialogOpen(true);
+  };
+
+  const handleVincularXml = (mp: MateriaPrima) => {
+    setSelectedMP(mp);
+    setXmlDialogOpen(true);
+  };
+
+  const handleXmlVinculado = async (dados: { fornecedor: string; custo_nf: number; nf_referencia: string; codigo: string; dados_fiscais?: { ncm: string; cfop: string } }) => {
+    if (!selectedMP) return;
+    try {
+      const updates: Record<string, any> = {
+        custo_unitario: dados.custo_nf,
+      };
+
+      const { error } = await supabase
+        .from("fabrica_materias_primas")
+        .update(updates)
+        .eq("id", selectedMP.id);
+
+      if (error) throw error;
+      toast.success(`Custo atualizado para R$ ${dados.custo_nf.toFixed(2)} via ${dados.nf_referencia}`);
+      fetchMateriasPrimas();
+    } catch (error: any) {
+      toast.error("Erro ao atualizar matéria-prima: " + error.message);
+    }
   };
 
   const handleExcluir = async (mp: MateriaPrima) => {
@@ -289,6 +316,17 @@ export default function FabricaMateriasPrimas() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
+                              handleVincularXml(mp);
+                            }}
+                          >
+                            <FileText className="h-4 w-4 mr-1" />
+                            XML
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
                               handleEdit(mp);
                             }}
                           >
@@ -351,6 +389,14 @@ export default function FabricaMateriasPrimas() {
             onOpenChange={setDadosFiscaisDialogOpen}
             produtoId={selectedMP.id}
             produtoNome={selectedMP.nome}
+          />
+          <VincularXmlInsumoDialog
+            open={xmlDialogOpen}
+            onOpenChange={setXmlDialogOpen}
+            insumoNome={selectedMP.nome}
+            insumoId={selectedMP.id}
+            mpId={selectedMP.id}
+            onVincular={handleXmlVinculado}
           />
         </>
       )}
