@@ -882,28 +882,38 @@ export function FichaCustoProdutoEditor({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <CardTitle className="text-xl">
-                  Ficha de Custos - {produto?.nome}
-                </CardTitle>
-                {produto?.tipo === "DISPLAY" && (
-                  <DisplayGradePopover
-                    produtoId={produto.id}
-                    produtoNome={produto.nome}
-                    produtoCodigo={produto.codigo}
-                  />
-                )}
-              </div>
-              <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1 flex-wrap">
-                <span>Código: <span className="font-mono">{produto?.codigo}</span></span>
-                <span>|</span>
-                <span className="flex items-center gap-1">
-                  Origem:{" "}
-                  <Badge variant={produto?.origem === "importado" ? "destructive" : "secondary"}>
-                    {produto?.origem === "importado" ? "Importado" : "Nacional"}
-                  </Badge>
-                </span>
+            <div className="flex items-center gap-4">
+              {produto?.foto_url && (
+                <img
+                  src={produto.foto_url}
+                  alt={produto.nome}
+                  className="h-14 w-14 rounded-lg object-contain border bg-muted/30 shrink-0"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              )}
+              <div>
+                <div className="flex items-center gap-3">
+                  <CardTitle className="text-xl">
+                    Ficha de Custos – {produto?.nome}
+                  </CardTitle>
+                  {produto?.tipo === "DISPLAY" && (
+                    <DisplayGradePopover
+                      produtoId={produto.id}
+                      produtoNome={produto.nome}
+                      produtoCodigo={produto.codigo}
+                    />
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1 flex-wrap">
+                  <span>Código: <span className="font-mono">{produto?.codigo}</span></span>
+                  <span>|</span>
+                  <span className="flex items-center gap-1">
+                    Origem:{" "}
+                    <Badge variant={produto?.origem === "importado" ? "destructive" : "secondary"}>
+                      {produto?.origem === "importado" ? "Importado" : "Nacional"}
+                    </Badge>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
