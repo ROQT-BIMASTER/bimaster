@@ -10,9 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 interface CadastroIAStepProps {
   onBack: () => void;
   onDataExtracted: (data: Record<string, any>, method: "text" | "image") => void;
+  edgeFunctionName?: string;
 }
 
-export function CadastroIAStep({ onBack, onDataExtracted }: CadastroIAStepProps) {
+export function CadastroIAStep({ onBack, onDataExtracted, edgeFunctionName = "extrair-produto-ia" }: CadastroIAStepProps) {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -58,7 +59,7 @@ export function CadastroIAStep({ onBack, onDataExtracted }: CadastroIAStepProps)
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("extrair-produto-ia", {
+      const { data, error } = await supabase.functions.invoke(edgeFunctionName, {
         body: {
           text: text.trim() || undefined,
           imageBase64: imageBase64 || undefined,
