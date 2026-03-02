@@ -5994,6 +5994,72 @@ export type Database = {
           },
         ]
       }
+      fabrica_itens_nf_saida: {
+        Row: {
+          aliquota_cbs: number | null
+          aliquota_ibs: number | null
+          base_cbs: number | null
+          base_ibs: number | null
+          created_at: string
+          descricao: string
+          id: string
+          nota_saida_id: string
+          produto_id: string | null
+          quantidade: number
+          valor_cbs: number | null
+          valor_ibs: number | null
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          aliquota_cbs?: number | null
+          aliquota_ibs?: number | null
+          base_cbs?: number | null
+          base_ibs?: number | null
+          created_at?: string
+          descricao: string
+          id?: string
+          nota_saida_id: string
+          produto_id?: string | null
+          quantidade?: number
+          valor_cbs?: number | null
+          valor_ibs?: number | null
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Update: {
+          aliquota_cbs?: number | null
+          aliquota_ibs?: number | null
+          base_cbs?: number | null
+          base_ibs?: number | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          nota_saida_id?: string
+          produto_id?: string | null
+          quantidade?: number
+          valor_cbs?: number | null
+          valor_ibs?: number | null
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_itens_nf_saida_nota_saida_id_fkey"
+            columns: ["nota_saida_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_notas_fiscais_saida"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_itens_nf_saida_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_limites_preco_tabela: {
         Row: {
           ativo: boolean | null
@@ -6907,6 +6973,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fabrica_notas_fiscais_saida: {
+        Row: {
+          cliente_cnpj: string | null
+          cliente_nome: string
+          created_at: string
+          created_by: string | null
+          data_emissao: string
+          id: string
+          numero_nf: string
+          observacoes: string | null
+          serie: string | null
+          status: string
+          valor_total: number
+        }
+        Insert: {
+          cliente_cnpj?: string | null
+          cliente_nome: string
+          created_at?: string
+          created_by?: string | null
+          data_emissao?: string
+          id?: string
+          numero_nf: string
+          observacoes?: string | null
+          serie?: string | null
+          status?: string
+          valor_total?: number
+        }
+        Update: {
+          cliente_cnpj?: string | null
+          cliente_nome?: string
+          created_at?: string
+          created_by?: string | null
+          data_emissao?: string
+          id?: string
+          numero_nf?: string
+          observacoes?: string | null
+          serie?: string | null
+          status?: string
+          valor_total?: number
+        }
+        Relationships: []
       }
       fabrica_operadores: {
         Row: {

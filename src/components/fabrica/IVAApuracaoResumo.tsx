@@ -31,16 +31,16 @@ export function IVAApuracaoResumo() {
 
       if (errItens) throw errItens;
 
-      // Buscar débitos da apuração fiscal existente (CBS/IBS)
-      const { data: apuracoes, error: errAp } = await supabase
-        .from("fabrica_apuracao_fiscal")
-        .select("tipo_imposto, total_debitos, total_creditos, saldo_periodo")
-        .eq("periodo", periodo)
-        .in("tipo_imposto", ["CBS", "IBS"]);
+      // Buscar débitos reais dos itens de NF de saída no período
+      const { data: itensSaida, error: errSaida } = await (supabase
+        .from("fabrica_itens_nf_saida") as any)
+        .select("valor_cbs, valor_ibs, created_at")
+        .gte("created_at", inicioMes)
+        .lte("created_at", fimMes);
 
-      if (errAp) throw errAp;
+      if (errSaida) throw errSaida;
 
-      // Calcular créditos dos itens de NF
+      // Calcular créditos dos itens de NF de entrada
       const creditos_cbs = arredondamentoFiscal(
         (itensNF || [])
           .filter((i) => i.elegivel_credito_iva !== false)
@@ -52,12 +52,13 @@ export function IVAApuracaoResumo() {
           .reduce((s, i) => s + (i.valor_ibs || 0), 0)
       );
 
-      // Pegar débitos da apuração (se existirem)
-      const apCBS = apuracoes?.find((a) => a.tipo_imposto === "CBS");
-      const apIBS = apuracoes?.find((a) => a.tipo_imposto === "IBS");
-
-      const debitos_cbs = apCBS?.total_debitos || 0;
-      const debitos_ibs = apIBS?.total_debitos || 0;
+      // Calcular débitos reais dos itens de NF de saída
+      const debitos_cbs = arredondamentoFiscal(
+        (itensSaida || []).reduce((s: number, i: any) => s + (i.valor_cbs || 0), 0)
+      );
+      const debitos_ibs = arredondamentoFiscal(
+        (itensSaida || []).reduce((s: number, i: any) => s + (i.valor_ibs || 0), 0)
+      );
 
       return {
         debitos_cbs,
@@ -66,7 +67,7 @@ export function IVAApuracaoResumo() {
         creditos_ibs,
         cbs_a_recolher: arredondamentoFiscal(debitos_cbs - creditos_cbs),
         ibs_a_recolher: arredondamentoFiscal(debitos_ibs - creditos_ibs),
-        total_itens: itensNF?.length || 0,
+        total_itens: (itensNF?.length || 0) + (itensSaida?.length || 0),
       };
     },
     enabled: !!periodo,

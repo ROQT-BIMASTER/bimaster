@@ -238,9 +238,100 @@ export function VincularXmlInsumoDialog({
       }
     }
 
+    // ── Fase 1: Gerar créditos CBS/IBS automaticamente ──
+    await gerarCreditosIVA(produto, nfRef);
+
     onVincular(dados);
     toast.success(`Insumo vinculado à ${nfRef}`);
     handleClose();
+  };
+
+  /**
+   * Gera automaticamente créditos CBS/IBS em fabrica_creditos_tributarios
+   * quando a feature flag IVA Dual está ativa e o produto é elegível.
+   */
+  const gerarCreditosIVA = async (produto: NFeXmlProduto, nfRef: string) => {
+    try {
+      // Verificar feature flag
+      const { data: config } = await supabase
+        .from("fabrica_empresa_config")
+        .select("iva_dual_habilitado")
+        .maybeSingle();
+
+      if (!config?.iva_dual_habilitado) return;
+
+      // Buscar alíquotas do produto (se mpId disponível)
+      let aliquotaCbs = 0;
+      let aliquotaIbs = 0;
+
+      if (mpId) {
+        const { data: dadosFiscais } = await supabase
+          .from("fabrica_dados_fiscais_produto")
+          .select("aliquota_cbs_padrao, aliquota_ibs_padrao, elegivel_credito_iva")
+          .eq("produto_id", mpId)
+          .maybeSingle();
+
+        if (dadosFiscais?.elegivel_credito_iva === false) return;
+
+        aliquotaCbs = dadosFiscais?.aliquota_cbs_padrao || 0;
+        aliquotaIbs = dadosFiscais?.aliquota_ibs_padrao || 0;
+      }
+
+      // Se não encontrou alíquotas no produto, buscar da tabela de taxas ativas
+      if (!aliquotaCbs && !aliquotaIbs) {
+        const { data: taxRate } = await (supabase
+          .from("fabrica_tax_rates_iva") as any)
+          .select("aliquota_cbs, aliquota_ibs")
+          .eq("ativo", true)
+          .order("data_inicio", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        aliquotaCbs = taxRate?.aliquota_cbs || 0;
+        aliquotaIbs = taxRate?.aliquota_ibs || 0;
+      }
+
+      if (!aliquotaCbs && !aliquotaIbs) return;
+
+      const baseCalculo = produto.valor_total || 0;
+      if (baseCalculo <= 0) return;
+
+      const now = new Date();
+      const periodoApuracao = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+      const creditos = [];
+
+      if (aliquotaCbs > 0) {
+        creditos.push({
+          tipo_credito: "CBS",
+          base_calculo: baseCalculo,
+          aliquota: aliquotaCbs,
+          valor_credito: Math.round(baseCalculo * aliquotaCbs) / 100,
+          produto_id: mpId || insumoId,
+          periodo_apuracao: periodoApuracao,
+          descricao: `Crédito CBS automático - ${nfRef}`,
+        });
+      }
+
+      if (aliquotaIbs > 0) {
+        creditos.push({
+          tipo_credito: "IBS",
+          base_calculo: baseCalculo,
+          aliquota: aliquotaIbs,
+          valor_credito: Math.round(baseCalculo * aliquotaIbs) / 100,
+          produto_id: mpId || insumoId,
+          periodo_apuracao: periodoApuracao,
+          descricao: `Crédito IBS automático - ${nfRef}`,
+        });
+      }
+
+      if (creditos.length > 0) {
+        await (supabase.from("fabrica_creditos_tributarios") as any).insert(creditos);
+        toast.success(`Créditos CBS/IBS gerados automaticamente`);
+      }
+    } catch (err) {
+      console.warn("Erro ao gerar créditos IVA:", err);
+    }
   };
 
   const handleClose = () => {
