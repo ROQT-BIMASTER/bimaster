@@ -1,47 +1,47 @@
 
 
-## Diagnóstico: Tela de "Carregando..." infinita após login
+## Filtrar menções (@) no chat de revisão para exibir apenas usuários relevantes
 
-### Causa raiz
+### Problema atual
+A query de menções carrega **todos os perfis aprovados** do sistema (`profiles.aprovado = true`), exibindo dezenas de usuários irrelevantes no autocomplete do `@`.
 
-O problema **não está mais no AuthContext** (já corrigido). Agora o gargalo é o **PermissionsContext**, conforme confirmam os logs:
+### Solução
+Filtrar a lista de menções no `RevisaoChatPanel` para exibir apenas:
+1. **Usuários do departamento "Compras e Faturamento"** (inclui "Compras" e "Faturamento")
+2. **Erika** (sem departamento vinculado, mas participante ativa)
+3. **Usuários que já participaram da conversa** (ex: Leandro — diretoria)
 
+### Implementação
+
+**Arquivo: `src/components/fabrica/RevisaoChatPanel.tsx`**
+
+Alterar o `useEffect` de carregamento de perfis (linha 125-129) para:
+
+1. Buscar perfis do departamento "Compras e Faturamento" via join com `departamentos`
+2. Buscar a Erika pelo nome (perfil sem departamento)
+3. Buscar usuários que já enviaram mensagens nesta revisão (para incluir diretoria/outros participantes)
+4. Unir os 3 grupos removendo duplicatas
+
+A query ficará algo como:
+```sql
+-- Grupo 1: departamento Compras e Faturamento
+SELECT p.id, p.nome FROM profiles p 
+  JOIN departamentos d ON d.id = p.departamento_id 
+  WHERE d.nome = 'Compras e Faturamento' AND p.aprovado = true
+
+-- Grupo 2: Erika (busca por nome)  
+SELECT p.id, p.nome FROM profiles p 
+  WHERE p.nome ILIKE '%erika%' AND p.aprovado = true
+
+-- Grupo 3: participantes da conversa atual
+SELECT DISTINCT usuario_id, usuario_nome FROM fabrica_revisao_mensagens 
+  WHERE revisao_id = ?
 ```
-[PermissionsContext] Safety timeout triggered - forcing loading to false
-```
 
-Isso aparece 12 segundos após o carregamento da página — o safety timeout do PermissionsContext é de 12s.
+Esses serão combinados no código em um único `Set` de IDs para eliminar duplicatas.
 
-#### Sequência do problema:
-
-1. Página carrega → `fetchPermissions()` é chamado no mount
-2. `onAuthStateChange` dispara `SIGNED_IN` (restauração de sessão) quase ao mesmo tempo
-3. No handler, `initialFetchDone` é `false` (variável local, nunca foi setada porque o fetch do passo 1 ainda não terminou), então cai no `else` → **`setLoading(true)` novamente** + nova chamada `fetchPermissions(true)`
-4. Agora há **duas chamadas** ao RPC `get_all_user_permissions` correndo em paralelo
-5. Se o RPC estiver lento ou falhar, `loading` fica `true` por **12 segundos** até o safety timeout disparar
-6. Durante esses 12s, `ProtectedRoute` mostra spinner (espera `permLoading` ficar `false`), e `DashboardLayout` **também** mostra spinner (espera `authLoading` via `useAuth`)
-
-O resultado: usuário vê spinner por 12 segundos ou mais, dando a impressão de que o sistema travou.
-
-### Plano de correção
-
-#### 1. PermissionsContext — Nunca bloquear UI no SIGNED_IN/TOKEN_REFRESHED
-
-No `onAuthStateChange`, **nunca** chamar `setLoading(true)`. A atualização de permissões deve ser feita em background sem bloquear a interface:
-
-- Se já tem cache (localStorage ou memória), mostrar dados do cache imediatamente
-- Fazer refresh silencioso em background
-- Só atualizar o state quando os novos dados chegarem
-
-#### 2. PermissionsContext — Evitar fetch duplicado
-
-O `fetchPermissions()` do mount e o do `onAuthStateChange` rodam quase simultaneamente. Adicionar um flag `fetchInProgressRef` para evitar chamadas duplicadas — se já há um fetch em andamento, ignorar a nova chamada.
-
-#### 3. Reduzir safety timeout
-
-12 segundos é muito longo para o usuário esperar. Com as correções acima o timeout raramente será atingido, mas reduzi-lo para 5 segundos garante uma experiência melhor caso ocorra.
-
-### Arquivos a modificar
-
-- `src/contexts/PermissionsContext.tsx` — Remover `setLoading(true)` do handler de SIGNED_IN, evitar fetch duplicado, reduzir timeout
+### Detalhes técnicos
+- A interface `PerfilUsuario` permanece inalterada (`{ id, nome }`)
+- O `filteredUsuarios` com `useMemo` continua funcionando normalmente
+- O efeito passa a depender de `revisaoId` para incluir participantes da conversa
 
