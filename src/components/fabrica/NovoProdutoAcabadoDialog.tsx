@@ -341,8 +341,12 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
 
     const updates: any = {};
     for (const [aiKey, formKey] of Object.entries(fieldMap)) {
-      const val = data[aiKey];
+      let val = data[aiKey];
       if (val !== null && val !== undefined && val !== "") {
+        // Normalize select values
+        if (formKey === "origem") {
+          val = String(val).toLowerCase().includes("import") ? "importado" : "nacional";
+        }
         updates[formKey] = String(val);
         filled.add(formKey);
       }
