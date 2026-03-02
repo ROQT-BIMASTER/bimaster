@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Trash2, GripVertical, Save, FileText, Info, Printer, Download, History, AlertTriangle, ChevronDown, ChevronRight, ArrowRight, Paperclip, Upload, X, Eye, MessageSquare, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, FileText, Info, Printer, Download, History, AlertTriangle, ChevronDown, ChevronRight, ArrowRight, Paperclip, Upload, X, Eye, MessageSquare, ShieldCheck, CheckCircle2, PackageOpen, Loader2, RefreshCw } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -31,9 +31,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CustoInsumo, CustoConfig, Totais, BaseCalculoMarkup } from "@/hooks/useFichaCustoProduto";
+import { CustoInsumo, CustoConfig, Totais, BaseCalculoMarkup, CustoFilho } from "@/hooks/useFichaCustoProduto";
 import { AdicionarInsumoCustoDialog } from "./AdicionarInsumoCustoDialog";
 import { ImportarInsumosIA } from "./ImportarInsumosIA";
+import { DisplayGradePopover } from "./DisplayGradePopover";
 import { HistoricoCustosInsumoDialog } from "./HistoricoCustosInsumoDialog";
 import { AlterarCustoDialog } from "./AlterarCustoDialog";
 import { CotacoesInsumoPanel } from "./CotacoesInsumoPanel";
@@ -69,6 +70,10 @@ interface Props {
   requisitos?: any[];
   submitting?: boolean;
   onSubmeterAprovacao?: () => void;
+  custosFilhos?: CustoFilho[];
+  loadingFilhos?: boolean;
+  onImportarCustosFilhos?: () => Promise<void>;
+  onRecarregarCustosFilhos?: () => Promise<void>;
 }
 
 function DecimalInput({
@@ -121,8 +126,14 @@ export function FichaCustoProdutoEditor({
   requisitos = [],
   submitting = false,
   onSubmeterAprovacao,
+  custosFilhos = [],
+  loadingFilhos = false,
+  onImportarCustosFilhos,
+  onRecarregarCustosFilhos,
 }: Props) {
   const [dialogAberto, setDialogAberto] = useState(false);
+  const [importDialogAberto, setImportDialogAberto] = useState(false);
+  const [importando, setImportando] = useState(false);
   const [historicoInsumo, setHistoricoInsumo] = useState<{ id: string; nome: string } | null>(null);
   const [expandedInsumos, setExpandedInsumos] = useState<Set<string>>(new Set());
   const [evidencias, setEvidencias] = useState<Record<string, any[]>>({});
@@ -872,9 +883,18 @@ export function FichaCustoProdutoEditor({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl">
-                Ficha de Custos - {produto?.nome}
-              </CardTitle>
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-xl">
+                  Ficha de Custos - {produto?.nome}
+                </CardTitle>
+                {produto?.tipo === "DISPLAY" && (
+                  <DisplayGradePopover
+                    produtoId={produto.id}
+                    produtoNome={produto.nome}
+                    produtoCodigo={produto.codigo}
+                  />
+                )}
+              </div>
               <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1 flex-wrap">
                 <span>Código: <span className="font-mono">{produto?.codigo}</span></span>
                 <span>|</span>
@@ -965,7 +985,29 @@ export function FichaCustoProdutoEditor({
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Insumos</CardTitle>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {produto?.tipo === "DISPLAY" && custosFilhos.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setImportDialogAberto(true)}
+                  disabled={loadingFilhos}
+                >
+                  {loadingFilhos ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <PackageOpen className="h-4 w-4 mr-1" />}
+                  Importar do Kit
+                </Button>
+              )}
+              {produto?.tipo === "DISPLAY" && onRecarregarCustosFilhos && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={onRecarregarCustosFilhos}
+                  disabled={loadingFilhos}
+                  title="Atualizar custos dos produtos filhos"
+                >
+                  <RefreshCw className={`h-4 w-4 ${loadingFilhos ? 'animate-spin' : ''}`} />
+                </Button>
+              )}
               <ImportarInsumosIA
                 onImportar={(insumos) => {
                   insumos.forEach((insumo) => onAdicionarInsumo(insumo));
@@ -1033,7 +1075,12 @@ export function FichaCustoProdutoEditor({
                             </div>
                           </TableCell>
                           <TableCell className="font-medium">
-                            {insumo.nome}
+                            <div className="flex items-center gap-1.5">
+                              {insumo.nome}
+                              {insumo.tipo_insumo === "importado_kit" && (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Kit</Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Select
@@ -1599,6 +1646,62 @@ export function FichaCustoProdutoEditor({
           }}
         />
       )}
+
+      {/* Dialog de importação de custos dos filhos */}
+      <Dialog open={importDialogAberto} onOpenChange={setImportDialogAberto}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>📥 Importar Custos dos Produtos do Kit</DialogTitle>
+            <DialogDescription>
+              Os custos totais de cada produto filho serão importados como insumos editáveis na ficha.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {custosFilhos.map((filho) => (
+              <div key={filho.produtoFilhoId} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                <div>
+                  <p className="font-medium text-sm">{filho.produtoFilhoNome}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{filho.produtoFilhoCodigo} — ×{filho.quantidade}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Unit: {formatarMoeda(filho.custoUnitarioTotal)}</p>
+                  <p className="font-semibold text-sm">{formatarMoeda(filho.custoTotalLinha)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {custosFilhos.length > 0 && (
+            <div className="flex justify-between items-center pt-2 border-t">
+              <span className="text-sm font-medium">Total a importar:</span>
+              <span className="font-bold">{formatarMoeda(custosFilhos.reduce((s, f) => s + f.custoTotalLinha, 0))}</span>
+            </div>
+          )}
+          {custosFilhos.some(f => f.custoUnitarioTotal === 0) && (
+            <p className="text-xs text-warning flex items-center gap-1">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Alguns produtos não possuem ficha de custos preenchida.
+            </p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportDialogAberto(false)}>Cancelar</Button>
+            <Button
+              onClick={async () => {
+                setImportando(true);
+                try {
+                  await onImportarCustosFilhos?.();
+                  setImportDialogAberto(false);
+                } finally {
+                  setImportando(false);
+                }
+              }}
+              disabled={importando}
+            >
+              {importando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <PackageOpen className="h-4 w-4 mr-1" />}
+              Importar {custosFilhos.length} produto(s)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

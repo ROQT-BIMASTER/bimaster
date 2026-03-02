@@ -25,6 +25,10 @@ export default function FichaCustoProduto() {
     atualizarConfig,
     salvarFicha,
     TIPOS_INSUMO,
+    custosFilhos,
+    loadingFilhos,
+    importarCustosFilhos,
+    carregarCustosFilhos,
   } = useFichaCustoProduto(id);
 
   const {
@@ -105,6 +109,10 @@ export default function FichaCustoProduto() {
           requisitos={requisitos}
           submitting={submitting}
           onSubmeterAprovacao={handleSubmeter}
+          custosFilhos={custosFilhos}
+          loadingFilhos={loadingFilhos}
+          onImportarCustosFilhos={importarCustosFilhos}
+          onRecarregarCustosFilhos={carregarCustosFilhos}
         />
       </div>
     </DashboardLayout>
