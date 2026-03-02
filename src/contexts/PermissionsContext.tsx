@@ -25,7 +25,7 @@ let globalPermissionsCache: {
 } | null = null;
 
 const CACHE_DURATION = 30 * 1000; // 30 segundos
-const SAFETY_TIMEOUT = 12000; // 12s - mobile connections need more time
+const SAFETY_TIMEOUT = 5000; // 5s - reduced from 12s
 const LOCAL_STORAGE_KEY = "permissions_cache_v1";
 
 // Restore from localStorage on startup for instant loading
@@ -217,23 +217,20 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     fetchPermissions();
 
     // Listener para mudanças de autenticação
-    let initialFetchDone = false;
+    const fetchInProgressRef = { current: false };
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (!isMountedRef.current) return;
       
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        const { data: { session } } = await supabase.auth.getSession();
-        const userId = session?.user?.id;
-        const hasCachedPerms = globalPermissionsCache && globalPermissionsCache.userId === userId;
-        
-        // Don't block UI if we already have permissions for this user (session restore)
-        if (initialFetchDone && hasCachedPerms) {
-          // Silent background refresh - no loading state change
-          fetchPermissions(true);
-        } else {
-          setLoading(true);
-          fetchPermissions(true).then(() => { initialFetchDone = true; });
+        // NEVER set loading=true here — causes infinite spinner on session restore.
+        // If a fetch is already in progress (from mount), skip duplicate call.
+        if (fetchInProgressRef.current) {
+          console.log("[PermissionsContext] Fetch already in progress, skipping duplicate from", event);
+          return;
         }
+        fetchInProgressRef.current = true;
+        // Silent background refresh — no loading state change
+        fetchPermissions(true).finally(() => { fetchInProgressRef.current = false; });
       } else if (event === "SIGNED_OUT") {
         globalPermissionsCache = null;
         try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
