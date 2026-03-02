@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, FileSpreadsheet, Sparkles, Download, ArrowLeft } from "lucide-react";
+import { Upload, FileSpreadsheet, Sparkles, Download, ArrowLeft, ShieldAlert, Loader2 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import ExcelJS from 'exceljs';
@@ -23,6 +25,7 @@ export default function ImportarProdutosAcabados() {
   const [textoIA, setTextoIA] = useState("");
   const [pdfIA, setPdfIA] = useState<File | null>(null);
   const [loadingIA, setLoadingIA] = useState(false);
+  const [termoAceito, setTermoAceito] = useState(false);
 
   if (permissionsLoading) {
     return (
@@ -443,13 +446,45 @@ export default function ImportarProdutosAcabados() {
                   </div>
                 )}
 
+                {/* Termo de responsabilidade */}
+                <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800 p-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <ShieldAlert className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                        Termo de Responsabilidade
+                      </p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 leading-relaxed">
+                        Declaro estar ciente de que os dados extraídos por Inteligência Artificial
+                        são sugestões automáticas e podem conter erros ou imprecisões. Assumo total
+                        responsabilidade pela revisão, validação e correção de todos os campos antes
+                        de salvar o cadastro do produto.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pl-7">
+                    <Checkbox
+                      id="termo-ia-import"
+                      checked={termoAceito}
+                      onCheckedChange={(checked) => setTermoAceito(checked === true)}
+                    />
+                    <Label htmlFor="termo-ia-import" className="text-xs font-medium cursor-pointer">
+                      Li e concordo com os termos acima
+                    </Label>
+                  </div>
+                </div>
+
                 <Button
                   className="w-full"
                   onClick={handleImportIA}
-                  disabled={(!textoIA.trim() && !pdfIA) || loadingIA}
+                  disabled={(!textoIA.trim() && !pdfIA) || !termoAceito || loadingIA}
                 >
                   {loadingIA ? (
-                    <>Analisando com IA...</>
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analisando com IA...
+                    </>
                   ) : (
                     <>
                       <Sparkles className="mr-2 h-4 w-4" />
