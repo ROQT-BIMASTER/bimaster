@@ -38,6 +38,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const isMountedRef = useRef(true);
   const hasCheckedRef = useRef(false);
+  const initialCheckDoneRef = useRef(false);
+  const currentUserIdRef = useRef<string | null>(null);
 
   // Monitor online status
   useEffect(() => {
@@ -150,10 +152,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (currentSession?.user) {
         setSession(currentSession);
+        currentUserIdRef.current = currentSession.user.id;
         const { approved: isApproved, isActive: userIsActive } = await fetchApprovalStatus(currentSession.user.id, forceRefresh);
         if (isMountedRef.current) {
           setApproved(isApproved);
           setIsActive(userIsActive);
+          initialCheckDoneRef.current = true;
         }
       } else {
         setSession(null);
@@ -204,8 +208,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         setSession(newSession);
         if (newSession?.user) {
-          // CRITICAL: Set loading=true immediately to prevent premature redirects
-          setLoading(true);
+          const isSameUser = currentUserIdRef.current === newSession.user.id;
+          const isSessionRestore = initialCheckDoneRef.current && isSameUser;
+          currentUserIdRef.current = newSession.user.id;
+          
+          // Only block UI for genuinely new logins, not session restores
+          if (!isSessionRestore) {
+            setLoading(true);
+          }
           
           // Para SIGNED_IN após login, forçar verificação
           const shouldForce = event === "SIGNED_IN";
@@ -217,12 +227,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               if (isMountedRef.current) {
                 setApproved(isApproved);
                 setIsActive(userIsActive);
-                setLoading(false);
+                initialCheckDoneRef.current = true;
+                if (!isSessionRestore) {
+                  setLoading(false);
+                }
               }
             } catch (error) {
               console.error("[AuthContext] Erro no auth state change:", error);
               if (isMountedRef.current) {
-                setLoading(false);
+                if (!isSessionRestore) {
+                  setLoading(false);
+                }
               }
             }
           }, 0);
@@ -233,6 +248,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsActive(false);
         globalAuthCache = null;
         hasCheckedRef.current = false;
+        initialCheckDoneRef.current = false;
+        currentUserIdRef.current = null;
         localStorage.removeItem("user_approved_cache");
         localStorage.removeItem("user_active_cache");
         localStorage.removeItem("user_role_cache");
