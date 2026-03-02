@@ -29,7 +29,7 @@ export function ProdutoKanbanCard({
           <img
             src={produto.foto_url}
             alt={produto.nome}
-            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
