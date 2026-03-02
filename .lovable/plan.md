@@ -1,54 +1,63 @@
 
 
-## Plano: Campo de Cor Visual nos Itens de Grade
+## Plano: Importação automática de custos dos filhos (Display/Kit) + Manual
 
-### Contexto atual
-A tabela `fabrica_produto_grade_itens` já possui o campo `cor_numero` (texto livre para "Nº da cor"). O editor de grade (`ComposicaoGradeEditor`) exibe apenas um input de texto estreito para esse número. Não há campo para nome da cor nem seletor visual de cor (hex).
+### Resumo
 
-### O que será feito
+Para produtos do tipo **DISPLAY**, oferecer um botão "Importar Custos dos Produtos" na Ficha de Custos que puxa automaticamente o custo total de cada produto filho (da grade), exibindo como linhas somente-leitura agrupadas. O modo manual atual permanece como padrão — a importação é uma **ação opcional** via botão.
 
-**1. Migração de banco — adicionar coluna `cor_hex`**
-- Adicionar `cor_hex TEXT` à tabela `fabrica_produto_grade_itens` para armazenar o código hexadecimal da cor selecionada (ex: `#FF5733`)
+Além disso, atualizar o manual contextual da tela com orientações específicas para Displays/Kits.
 
-**2. Atualizar interface `GradeItem` e persistência**
-- Adicionar `cor_hex?: string` na interface `GradeItem` em `ComposicaoGradeEditor.tsx`
-- Garantir que o campo seja salvo/carregado no `NovoProdutoAcabadoDialog.tsx`
+---
 
-**3. Reformular coluna "Nº Cor" no editor de grade**
-Substituir o input simples por uma célula mais rica contendo:
-- **Input de texto** para o nome/número da cor (ex: "Rosa Quartzo", "01")
-- **Swatch de cor clicável** (quadradinho colorido) que abre um **Popover com color picker**
-- O color picker terá: uma paleta de cores pré-definidas comuns (12-16 cores) + input hex livre para cores personalizadas
-- O swatch exibe a cor selecionada; se nenhuma, mostra um ícone de paleta
+### 1. Hook — buscar custos dos filhos
 
-**4. Exibição da cor nos componentes de visualização**
-- `DisplayGradePopover`: mostrar o swatch de cor ao lado do nome do item
-- `ComposicaoGradeCard`: exibir swatches coloridos no resumo compacto
-- Exportação Excel: incluir coluna "Cor" com o nome e preencher o fundo da célula com o hex
+**Arquivo:** `src/hooks/useFichaCustoProduto.ts`
 
-**5. Impressão**
-- Na função `handlePrint` do `DisplayGradePopover`, incluir coluna "Cor" com um quadrado colorido inline
+- Criar função `carregarCustosFilhos()` que, quando `produto.tipo === 'DISPLAY'`:
+  1. Busca itens da grade em `fabrica_produto_grade_itens` (com `produto_id = produtoId`)
+  2. Para cada `produto_item_id`, busca o custo total consolidado via `fabrica_produto_custos` + `fabrica_produto_custos_config`
+  3. Calcula: custo unitário total × quantidade da grade
+- Expor `custosFilhos[]` e `importarCustosFilhos()` no retorno do hook
+- `importarCustosFilhos()` insere os custos como insumos na tabela `fabrica_produto_custos` com um campo indicador (tipo_insumo = `"importado_filho"` ou marcador no nome)
 
-### Detalhes técnicos
+### 2. UI — Botão de importação no Editor
 
-**Color Picker** — componente leve customizado (sem dependência externa):
-```
-┌──────────────────────────┐
-│  Cores rápidas (grid)    │
-│  🔴🟠🟡🟢🔵🟣⚫⚪     │
-│  🩷🩵🤎🟤 ...           │
-│ ─────────────────────── │
-│  Hex: [#______] [✓]     │
-└──────────────────────────┘
-```
+**Arquivo:** `src/components/fabrica/FichaCustoProdutoEditor.tsx`
 
-**Arquivos a criar:**
-- `src/components/fabrica/ColorPickerPopover.tsx` — componente reutilizável de seleção de cor
+- Quando `produto.tipo === 'DISPLAY'`, exibir acima da tabela de insumos:
+  - Botão "📥 Importar Custos dos Produtos do Kit" 
+  - Ao clicar, abre Dialog de confirmação listando os produtos filhos com seus custos unitários e quantidades
+  - Após confirmar, insere linhas na tabela de insumos (editáveis, como qualquer outro insumo)
+  - Badge "Importado de [Produto X]" nas linhas importadas para rastreabilidade
+- Também adicionar o `DisplayGradePopover` no header (conforme plano anterior aprovado)
 
-**Arquivos a editar:**
-- Migration SQL — `ALTER TABLE ... ADD COLUMN cor_hex`
-- `src/components/fabrica/ComposicaoGradeEditor.tsx` — interface + UI da célula de cor
-- `src/components/fabrica/NovoProdutoAcabadoDialog.tsx` — persistir `cor_hex`
-- `src/components/fabrica/DisplayGradePopover.tsx` — exibir swatch na visualização e impressão
-- `src/components/fabrica/ComposicaoGradeCard.tsx` — exibir swatches no resumo
+### 3. Manual contextual atualizado
+
+**Arquivo:** `src/components/fabrica/ManualFabricaDrawer.tsx`
+
+- Adicionar nova seção no conteúdo de `"ficha-custos"`:
+  - **"Ficha de Custos para Displays/Kits"** com orientações:
+    - Opção 1: Digitar insumos manualmente (como produto normal)
+    - Opção 2: Usar "Importar Custos dos Produtos" para puxar automaticamente os custos dos produtos filhos já cadastrados
+    - Explicar que os custos importados ficam editáveis
+    - Orientar a adicionar insumos extras do kit (embalagem terciária, acessórios, etc.)
+    - Lembrar de configurar M.O. e Markup específicos do kit
+
+### 4. Tipos de insumo
+
+**Arquivo:** `src/hooks/useFichaCustoProduto.ts`
+
+- Adicionar ao array `TIPOS_INSUMO`: `{ value: "importado_kit", label: "Produto do Kit" }`
+
+---
+
+### Fluxo do usuário
+
+1. Abre Ficha de Custos de um Display
+2. Vê botão "Importar Custos dos Produtos do Kit" (se a grade tiver itens)
+3. Clica → Dialog mostra lista dos filhos com custo unitário e qtd
+4. Confirma → Linhas são inseridas com badge "Produto do Kit"
+5. Pode editar valores, adicionar insumos extras, configurar M.O./Markup
+6. Consulta o manual (📘) para orientações específicas de Display
 
