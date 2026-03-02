@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { DollarSign, Edit, Trash2, TrendingUp, Clock, Package, Barcode, Layers } from "lucide-react";
 import { ComposicaoGradeCard } from "@/components/fabrica/ComposicaoGradeCard";
+import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { StatusAprovacaoBadge } from "@/components/fabrica/FichaAprovacaoBanner";
 import type { StatusAprovacao } from "@/hooks/useFichaRevisao";
 
@@ -69,7 +70,10 @@ export function ProdutoCard({
 
         {/* Display grade summary */}
         {produto.tipo === "DISPLAY" && (
-          <ComposicaoGradeCard produtoId={produto.id} compact />
+          <div className="flex items-center gap-2">
+            <ComposicaoGradeCard produtoId={produto.id} compact />
+            <DisplayGradePopover produtoId={produto.id} produtoNome={produto.nome} produtoCodigo={produto.codigo} />
+          </div>
         )}
 
         {/* Info grid */}
