@@ -1,42 +1,29 @@
 
 
-## Diagnóstico: Tela branca no carregamento inicial
+## Plano: Adicionar filtros por Categoria, Marca, Linha e Display na Visualização de Preços
 
-### Causa raiz identificada
+### O que será feito
 
-Existe uma **race condition** entre `AuthContext` e `PermissionsContext` durante a restauração da sessão existente:
+Adicionar uma barra de filtros entre a busca e a tabela no `VisualizacaoPrecosDialog.tsx`, com 4 selects:
 
-1. `checkAuth()` executa, obtém sessão, faz fetch, seta `loading = false`
-2. `onAuthStateChange` dispara `SIGNED_IN` (restauração automática do Supabase)
-3. **AuthContext seta `loading = true` novamente** (linha 208)
-4. **PermissionsContext seta `loading = true` novamente** (linha 225)
-5. `ProtectedRoute` depende de `authLoading || permLoading` — ambos voltam a `true`
-6. A tela mostra o spinner ou fica branca até os fetches assíncronos completarem de novo
-7. Com rede lenta, isso pode demorar vários segundos
+1. **Categoria** — valores únicos extraídos dos produtos carregados
+2. **Marca** — valores únicos extraídos dos produtos carregados
+3. **Linha** — valores únicos extraídos dos produtos carregados
+4. **Display** — filtro booleano (Todos / Apenas Displays / Excluir Displays), baseado no campo `tipo` do produto
 
-O F5 funciona porque o `sessionStorage` e caches já estão populados, tornando o ciclo mais rápido.
+### Como funciona
 
-### Plano de correção
+- Os valores dos selects serão extraídos dinamicamente dos dados já carregados (`precos`), sem queries adicionais
+- Os filtros combinam com a busca textual existente (AND logic)
+- A query de produtos já traz `categoria`, `marca`, `linha` — precisa adicionar `tipo` ao select
+- Botão "Limpar filtros" para resetar todos de uma vez
+- Layout: linha horizontal com 4 selects + botão limpar, estilo compacto
 
-#### 1. AuthContext — evitar re-loading na restauração de sessão
-
-- Adicionar flag `initialCheckDoneRef` que rastreia se o `checkAuth()` inicial já completou
-- No handler de `SIGNED_IN`, **não setar `loading = true`** se o `checkAuth` inicial já terminou para o **mesmo usuário** (é apenas restauração de sessão, não login novo)
-- Só setar `loading = true` quando for um login genuinamente novo (userId diferente ou `initialCheckDoneRef === false`)
-
-#### 2. PermissionsContext — mesma proteção
-
-- Adicionar flag `initialFetchDoneRef` 
-- No handler de `SIGNED_IN`, verificar se já temos permissões carregadas para o mesmo usuário no cache global
-- Se sim, não resetar `loading = true` — apenas fazer refresh silencioso em background (sem bloquear UI)
-
-#### 3. ProtectedRoute — fallback com timeout
-
-- Adicionar safety timeout de 5s: se loading persistir, usar dados do cache e liberar a tela
-- Isso garante que mesmo em cenários extremos o usuário não fique preso na tela branca
-
-### Arquivos a editar
-- `src/contexts/AuthContext.tsx`
-- `src/contexts/PermissionsContext.tsx`  
-- `src/components/auth/ProtectedRoute.tsx` (safety timeout)
+### Arquivo editado
+- `src/components/fabrica/VisualizacaoPrecosDialog.tsx`
+  - Adicionar `tipo` ao select de `fabrica_produtos` (linha 82-94)
+  - Adicionar estados para os 4 filtros
+  - Extrair valores únicos dos dados para popular os selects
+  - Expandir `precosFiltrados` para incluir os novos filtros
+  - Inserir UI dos filtros entre busca (linha 371) e tabela (linha 374)
 
