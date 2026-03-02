@@ -21,6 +21,28 @@ const loginSchema = z.object({
     .max(100, "Senha deve ter no máximo 100 caracteres"),
 });
 
+const ROLE_REDIRECT_TIMEOUT = 3000;
+
+/** Fetch role with timeout — fallback to null on failure */
+const fetchUserRoleWithTimeout = async (userId: string): Promise<string | null> => {
+  try {
+    const result = await Promise.race([
+      supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), ROLE_REDIRECT_TIMEOUT)
+      ),
+    ]);
+    if (result.error) return null;
+    return result.data?.role ?? null;
+  } catch {
+    return null;
+  }
+};
+
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -99,7 +121,23 @@ export const LoginForm = () => {
           title: "Login realizado!",
           description: "Bem-vindo de volta",
         });
-        navigate("/dashboard");
+
+        // Navigate immediately to dashboard (ProtectedRoute handles approval/active checks)
+        navigate("/dashboard", { replace: true });
+
+        // Asynchronously check role and redirect clientes to portal
+        fetchUserRoleWithTimeout(data.user.id).then((role) => {
+          if (role === "cliente") {
+            // Fire-and-forget RPC
+            Promise.resolve(
+              supabase.rpc("registrar_acesso_portal", {
+                p_acao: "login",
+                p_detalhes: {}
+              })
+            ).catch(() => {});
+            navigate("/portal/precos", { replace: true });
+          }
+        });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -113,7 +151,6 @@ export const LoginForm = () => {
       setLoading(false);
     }
   };
-
 
   return (
     <Card>
