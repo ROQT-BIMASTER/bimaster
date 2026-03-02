@@ -67,6 +67,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.expense-ai-assistant]
     verify_jwt = false
+  [functions.extrair-produto-ia]
+    verify_jwt = false
   [functions.export-all-data]
     verify_jwt = true
   [functions.export-conversion-rates]

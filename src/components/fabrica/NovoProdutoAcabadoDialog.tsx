@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ComposicaoGradeEditor } from "@/components/fabrica/ComposicaoGradeEditor";
 import { ExportarDisplayGrade } from "@/components/fabrica/ExportarDisplayGrade";
@@ -24,10 +24,13 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, PenLine, Sparkles, Bot } from "lucide-react";
 import ProductPhotoUpload from "@/components/fabrica/ProductPhotoUpload";
 import { useMutationWithTimeout } from "@/hooks/useMutationWithTimeout";
 import { ProdutoHistoricoTimeline } from "@/components/fabrica/ProdutoHistoricoTimeline";
+import { CadastroIAStep } from "@/components/fabrica/CadastroIAStep";
+import { logAuditAction } from "@/lib/auditLog";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   open: boolean;
@@ -37,6 +40,11 @@ interface Props {
 }
 
 export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSuccess }: Props) {
+  // Mode: "choose" (new product only), "ai", "form"
+  const [mode, setMode] = useState<"choose" | "ai" | "form">("choose");
+  const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
+  const [aiMethod, setAiMethod] = useState<"text" | "image" | null>(null);
+  const [termoAceitoEm, setTermoAceitoEm] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     // Identificação básica
     codigo: "",
@@ -109,6 +117,10 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
 
   useEffect(() => {
     if (produtoEdit && open) {
+      setMode("form"); // Edit goes straight to form
+      setAiFilledFields(new Set());
+      setAiMethod(null);
+      setTermoAceitoEm(null);
       setFormData({
         codigo: produtoEdit.codigo || "",
         sku: produtoEdit.sku || "",
@@ -166,6 +178,10 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         setGradeItems([]);
       }
     } else if (!produtoEdit && open) {
+      setMode("choose"); // New product: show choose screen
+      setAiFilledFields(new Set());
+      setAiMethod(null);
+      setTermoAceitoEm(null);
       setFormData({
         codigo: "",
         sku: "",
@@ -195,6 +211,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         origem: "nacional",
         tipo_rotulagem: "",
       });
+      setGradeItems([]);
       setGradeItems([]);
     }
   }, [produtoEdit, open]);
@@ -258,13 +275,11 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
 
       // Save grade items for DISPLAY type
       if (formData.tipo === "DISPLAY" && produtoId) {
-        // Delete existing items
         await supabase
           .from("fabrica_produto_grade_itens")
           .delete()
           .eq("produto_pai_id", produtoId);
 
-        // Insert new items
         if (gradeItems.length > 0) {
           const { error: gradeError } = await supabase
             .from("fabrica_produto_grade_itens")
@@ -282,6 +297,22 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
           if (gradeError) throw gradeError;
         }
       }
+
+      // Audit log for AI-assisted registration
+      if (aiMethod && !produtoEdit) {
+        await logAuditAction({
+          entityType: "product",
+          entityId: produtoId,
+          action: "create_product_via_ia",
+          fieldChanged: "cadastro_ia",
+          oldValue: null as any,
+          newValue: JSON.stringify({
+            metodo: aiMethod,
+            termo_aceito_em: termoAceitoEm,
+            campos_preenchidos_ia: Array.from(aiFilledFields),
+          }),
+        });
+      }
     },
     timeout: 15000,
     invalidateKeys: [["fabrica-produtos-acabados"], ["fabrica-produtos"]],
@@ -291,6 +322,36 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
       onOpenChange(false);
     },
   });
+
+  const handleAIDataExtracted = (data: Record<string, any>, method: "text" | "image") => {
+    setAiMethod(method);
+    setTermoAceitoEm(new Date().toISOString());
+    const filled = new Set<string>();
+
+    const fieldMap: Record<string, string> = {
+      codigo: "codigo", sku: "sku", codigo_barras_ean: "codigo_barras_ean",
+      codigo_legado: "codigo_legado", nome: "nome", nome_comercial: "nome_comercial",
+      descricao_curta: "descricao_curta", descricao_completa: "descricao_completa",
+      categoria: "categoria", subcategoria: "subcategoria", linha: "linha",
+      marca: "marca", fabricante: "fabricante", modelo: "modelo",
+      versao_variacao: "versao_variacao", ncm: "ncm", origem: "origem",
+      tipo_rotulagem: "tipo_rotulagem", rendimento: "rendimento",
+      tempo_producao_minutos: "tempo_producao_minutos",
+    };
+
+    const updates: any = {};
+    for (const [aiKey, formKey] of Object.entries(fieldMap)) {
+      const val = data[aiKey];
+      if (val !== null && val !== undefined && val !== "") {
+        updates[formKey] = String(val);
+        filled.add(formKey);
+      }
+    }
+
+    setFormData((prev) => ({ ...prev, ...updates }));
+    setAiFilledFields(filled);
+    setMode("form");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -312,15 +373,65 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
     salvarMutation.mutate();
   };
 
+  const AiBadge = ({ field }: { field: string }) =>
+    aiFilledFields.has(field) ? (
+      <Badge variant="outline" className="ml-2 text-[10px] px-1.5 py-0 gap-1 text-primary border-primary/30">
+        <Bot className="h-3 w-3" /> IA
+      </Badge>
+    ) : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent className={cn("max-h-[90vh] overflow-y-auto", mode === "choose" ? "max-w-lg" : "max-w-4xl")} onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>
             {produtoEdit ? "Editar Produto Acabado" : "Novo Produto Acabado"}
           </DialogTitle>
         </DialogHeader>
 
+        {/* CHOOSE MODE */}
+        {mode === "choose" && !produtoEdit && (
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground text-center">
+              Como deseja cadastrar o produto?
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setMode("form")}
+                className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:bg-accent/50 transition-all group"
+              >
+                <PenLine className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                <div className="text-center">
+                  <p className="font-semibold text-sm">Preencher Manualmente</p>
+                  <p className="text-xs text-muted-foreground mt-1">Preencha todos os campos</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("ai")}
+                className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:bg-accent/50 transition-all group"
+              >
+                <Sparkles className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                <div className="text-center">
+                  <p className="font-semibold text-sm">Cadastrar com IA</p>
+                  <p className="text-xs text-muted-foreground mt-1">Cole texto ou envie print do ERP</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* AI MODE */}
+        {mode === "ai" && (
+          <CadastroIAStep
+            onBack={() => setMode("choose")}
+            onDataExtracted={handleAIDataExtracted}
+          />
+        )}
+
+        {/* FORM MODE */}
+        {mode === "form" && (
         <form onSubmit={handleSubmit}>
           <Tabs defaultValue="identificacao" className="w-full">
             <TabsList className={cn("grid w-full", 
@@ -344,7 +455,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
             <TabsContent value="identificacao" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="codigo">ID Interno / Código *</Label>
+                  <Label htmlFor="codigo" className="flex items-center">ID Interno / Código *<AiBadge field="codigo" /></Label>
                   <Input
                     id="codigo"
                     value={formData.codigo}
@@ -355,7 +466,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                 </div>
 
                 <div>
-                  <Label htmlFor="sku">SKU</Label>
+                  <Label htmlFor="sku" className="flex items-center">SKU<AiBadge field="sku" /></Label>
                   <Input
                     id="sku"
                     value={formData.sku}
@@ -367,7 +478,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="codigo_barras_ean">Código de Barras EAN/GTIN</Label>
+                  <Label htmlFor="codigo_barras_ean" className="flex items-center">Código de Barras EAN/GTIN<AiBadge field="codigo_barras_ean" /></Label>
                   <Input
                     id="codigo_barras_ean"
                     value={formData.codigo_barras_ean}
@@ -388,7 +499,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
               </div>
 
               <div>
-                <Label htmlFor="nome">Nome do Produto *</Label>
+                <Label htmlFor="nome" className="flex items-center">Nome do Produto *<AiBadge field="nome" /></Label>
                 <Input
                   id="nome"
                   value={formData.nome}
@@ -409,7 +520,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
               </div>
 
               <div>
-                <Label htmlFor="descricao_curta">Descrição Curta</Label>
+                <Label htmlFor="descricao_curta" className="flex items-center">Descrição Curta<AiBadge field="descricao_curta" /></Label>
                 <Textarea
                   id="descricao_curta"
                   value={formData.descricao_curta}
@@ -752,6 +863,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
