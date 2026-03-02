@@ -1,50 +1,30 @@
 
 
-## Plano: Termo de Responsabilidade para Cadastro via IA
-
-### Contexto
-O projeto já possui um padrão de termos de responsabilidade na Ficha de Custos (checkbox + texto legal + registro no banco). Vamos replicar esse padrão para o fluxo de cadastro de produto via IA.
+## Plano: Cadastro de Matéria-Prima com IA
 
 ### O que será feito
 
-**1. Tela de escolha no dialog (novo produto, não edição)**
-- Ao abrir "Novo Produto Acabado", exibir duas opções: **Preencher Manualmente** e **Cadastrar com IA**
-- Edição de produto existente vai direto para o formulário (sem opção IA)
+Replicar o mesmo fluxo de cadastro com IA dos Produtos Acabados para o dialog de Matérias-Primas, incluindo termo de responsabilidade, input de texto/imagem e preenchimento automático do formulário.
 
-**2. Fluxo IA com termo obrigatório**
-- Se o usuário escolher IA, exibir uma tela com:
-  - Textarea para colar texto do ERP
-  - Upload de imagem (print do ERP)
-  - Botão "Analisar com IA"
-- **Antes de analisar**, o usuário deve aceitar um termo de responsabilidade:
-  - Texto explicando que os dados extraídos pela IA são sugestões e devem ser validados
-  - Checkbox obrigatório: "Li e concordo com os termos"
-  - O botão "Analisar com IA" fica desabilitado até aceitar
+### Implementação
 
-**3. Termo de responsabilidade (texto)**
-```
-"Declaro estar ciente de que os dados extraídos por Inteligência Artificial 
-são sugestões automáticas e podem conter erros ou imprecisões. Assumo total 
-responsabilidade pela revisão, validação e correção de todos os campos antes 
-de salvar o cadastro do produto."
-```
+**1. Nova Edge Function `extrair-materia-prima-ia`**
+- Mesma estrutura da `extrair-produto-ia`, mas com prompt e campos específicos para matéria-prima: `codigo`, `nome`, `unidade_medida`, `custo_unitario`, `estoque_atual`, `estoque_minimo`, `status`, `lote`, `data_validade`, `observacoes`
+- Registrar no `config.toml` com `verify_jwt = false`
 
-**4. Nova Edge Function `extrair-produto-ia`**
-- Recebe texto ou imagem (base64)
-- Usa `google/gemini-2.5-flash` para texto, `google/gemini-2.5-pro` para imagem
-- Prompt especializado para extrair campos do produto (código, nome, SKU, EAN, NCM, categoria, marca, linha, origem, etc.)
-- Retorna JSON estruturado
+**2. Componente `CadastroIAStepMP` (ou reutilizar `CadastroIAStep` com prop `functionName`)**
+- Melhor abordagem: tornar o `CadastroIAStep` genérico adicionando uma prop `edgeFunctionName` (default `"extrair-produto-ia"`) para que matéria-prima passe `"extrair-materia-prima-ia"`
+- Mesmo layout: textarea, upload imagem, termo de responsabilidade, botão analisar
 
-**5. Após análise da IA**
-- Preenche automaticamente os campos do formulário
-- Exibe o formulário normal para revisão e ajustes manuais
-- Campos preenchidos pela IA recebem um indicador visual sutil (badge ou ícone)
-
-**6. Registro de auditoria**
-- Ao salvar um produto cadastrado via IA, registrar no `audit_logs` que o cadastro usou IA, incluindo: usuário, data/hora do aceite do termo, e método (texto/imagem)
+**3. Modificar `NovaMateriaPrimaDialog.tsx`**
+- Adicionar estados `mode` (`"choose"` | `"ai"` | `"form"`), `aiFilledFields`, `aiMethod`
+- Tela de escolha: "Preencher Manualmente" vs "Cadastrar com IA"
+- Após IA extrair dados, mapear os campos retornados ao `formData` e exibir badges `🤖 IA` nos campos preenchidos
+- Mapeamento de `unidade_medida` (sigla retornada pela IA) para o `unidade_medida_id` correspondente consultando a lista de unidades já carregada
 
 ### Arquivos envolvidos
-- `src/components/fabrica/NovoProdutoAcabadoDialog.tsx` — adicionar estados de modo (choose/ai/form), componente do termo e input IA
-- `supabase/functions/extrair-produto-ia/index.ts` — nova edge function
-- `supabase/config.toml` — registrar a nova function com `verify_jwt = false`
+- `supabase/functions/extrair-materia-prima-ia/index.ts` — nova edge function com prompt específico
+- `supabase/config.toml` — registrar nova function
+- `src/components/fabrica/CadastroIAStep.tsx` — adicionar prop `edgeFunctionName` para reutilização
+- `src/components/fabrica/NovaMateriaPrimaDialog.tsx` — adicionar fluxo choose/ai/form com badges IA
 
