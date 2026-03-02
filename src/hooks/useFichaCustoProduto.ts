@@ -48,8 +48,18 @@ const TIPOS_INSUMO = [
   { value: "embalagem_secundaria", label: "Emb. Secundária" },
   { value: "rotulo", label: "Rótulo" },
   { value: "acessorio", label: "Acessório" },
+  { value: "importado_kit", label: "Produto do Kit" },
   { value: "outro", label: "Outro" },
 ];
+
+export interface CustoFilho {
+  produtoFilhoId: string;
+  produtoFilhoNome: string;
+  produtoFilhoCodigo: string;
+  quantidade: number;
+  custoUnitarioTotal: number;
+  custoTotalLinha: number;
+}
 
 export function useFichaCustoProduto(produtoId: string | undefined) {
   const [produto, setProduto] = useState<any>(null);
@@ -342,6 +352,110 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
     []
   );
 
+  // Carregar custos dos filhos (para Displays/Kits)
+  const [custosFilhos, setCustosFilhos] = useState<CustoFilho[]>([]);
+  const [loadingFilhos, setLoadingFilhos] = useState(false);
+
+  const carregarCustosFilhos = useCallback(async () => {
+    if (!produtoId || produto?.tipo !== "DISPLAY") {
+      setCustosFilhos([]);
+      return;
+    }
+
+    setLoadingFilhos(true);
+    try {
+      // Buscar itens da grade
+      const { data: gradeItens, error: gradeError } = await supabase
+        .from("fabrica_produto_grade_itens")
+        .select("produto_filho_id, quantidade, produto_filho:fabrica_produtos!produto_filho_id(nome, codigo)")
+        .eq("produto_pai_id", produtoId)
+        .order("ordem");
+
+      if (gradeError || !gradeItens?.length) {
+        setCustosFilhos([]);
+        return;
+      }
+
+      // Para cada filho, calcular custo total
+      const filhosComCusto: CustoFilho[] = [];
+      for (const item of gradeItens) {
+        const filhoId = item.produto_filho_id;
+        const filho = item.produto_filho as any;
+
+        // Buscar insumos do filho
+        const { data: insumosFilho } = await supabase
+          .from("fabrica_produto_custos")
+          .select("custo_nf, custo_servico, custo_condicao")
+          .eq("produto_id", filhoId);
+
+        // Buscar config do filho
+        const { data: configFilho } = await supabase
+          .from("fabrica_produto_custos_config")
+          .select("custo_mao_obra_nf, custo_mao_obra_servico, percentual_markup, base_calculo_markup")
+          .eq("produto_id", filhoId)
+          .maybeSingle();
+
+        // Calcular custo unitário total do filho
+        const totalNFIns = (insumosFilho || []).reduce((s, i) => s + (Number(i.custo_nf) || 0), 0);
+        const totalServIns = (insumosFilho || []).reduce((s, i) => s + (Number(i.custo_servico) || 0), 0);
+        const totalCondIns = (insumosFilho || []).reduce((s, i) => s + (Number(i.custo_condicao) || 0), 0);
+        const moNF = Number(configFilho?.custo_mao_obra_nf) || 0;
+        const moServ = Number(configFilho?.custo_mao_obra_servico) || 0;
+        const tNF = totalNFIns + moNF;
+        const tServ = totalServIns + moServ;
+        const tCond = totalCondIns;
+        const subtotal = tNF + tServ + tCond;
+        const pctMarkup = Number(configFilho?.percentual_markup) || 0;
+        const baseMarkup = (configFilho?.base_calculo_markup as BaseCalculoMarkup) || 'total';
+        const mNF = (baseMarkup === 'total' || baseMarkup === 'nf' || baseMarkup === 'nf_servico') ? tNF * (pctMarkup / 100) : 0;
+        const mServ = (baseMarkup === 'total' || baseMarkup === 'servico' || baseMarkup === 'nf_servico') ? tServ * (pctMarkup / 100) : 0;
+        const mCond = baseMarkup === 'total' ? tCond * (pctMarkup / 100) : 0;
+        const custoUnit = subtotal + mNF + mServ + mCond;
+
+        filhosComCusto.push({
+          produtoFilhoId: filhoId,
+          produtoFilhoNome: filho?.nome || "",
+          produtoFilhoCodigo: filho?.codigo || "",
+          quantidade: item.quantidade || 1,
+          custoUnitarioTotal: custoUnit,
+          custoTotalLinha: custoUnit * (item.quantidade || 1),
+        });
+      }
+
+      setCustosFilhos(filhosComCusto);
+    } catch (err) {
+      console.error("Erro ao carregar custos dos filhos:", err);
+    } finally {
+      setLoadingFilhos(false);
+    }
+  }, [produtoId, produto?.tipo]);
+
+  // Carregar custos dos filhos quando produto carregar
+  useEffect(() => {
+    if (produto?.tipo === "DISPLAY") {
+      carregarCustosFilhos();
+    }
+  }, [produto?.tipo, carregarCustosFilhos]);
+
+  // Importar custos dos filhos como insumos editáveis
+  const importarCustosFilhos = useCallback(async () => {
+    if (!produtoId || custosFilhos.length === 0) return;
+
+    for (const filho of custosFilhos) {
+      await adicionarInsumo({
+        codigo: filho.produtoFilhoCodigo,
+        nome: `${filho.produtoFilhoNome} (×${filho.quantidade})`,
+        tipo_insumo: "importado_kit",
+        custo_nf: filho.custoTotalLinha,
+        custo_servico: 0,
+        custo_condicao: 0,
+        fornecedor: "Importado do Kit",
+      });
+    }
+
+    toast.success(`${custosFilhos.length} produto(s) importado(s) para a ficha`);
+  }, [produtoId, custosFilhos, adicionarInsumo]);
+
   return {
     produto,
     insumos,
@@ -357,5 +471,9 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
     reordenarInsumos,
     recarregar: carregarDados,
     TIPOS_INSUMO,
+    custosFilhos,
+    loadingFilhos,
+    importarCustosFilhos,
+    carregarCustosFilhos,
   };
 }

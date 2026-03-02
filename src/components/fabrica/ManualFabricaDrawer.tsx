@@ -257,6 +257,10 @@ const manualContent: Record<ManualScreen, { title: string; sections: { heading: 
         heading: "Chat com Diretoria",
         content: "• Mensagens em tempo real dentro da ficha\n• Apontamentos por insumo\n• Requisitos obrigatórios (orçamentos, evidências)\n• Histórico preservado entre versões",
       },
+      {
+        heading: "📦 Ficha de Custos para Displays / Kits",
+        content: "Quando o produto é do tipo DISPLAY (Kit), você tem duas opções para preencher a ficha de custos:\n\n🔹 Opção 1 — Manual (padrão)\nDigite cada insumo manualmente, como faria para qualquer produto. Útil quando o kit não possui fichas de custo individuais nos produtos filhos.\n\n🔹 Opção 2 — Importar Custos dos Produtos do Kit\nClique no botão \"📥 Importar Custos dos Produtos\" acima da tabela de insumos. O sistema irá:\n1. Buscar cada produto da grade do display\n2. Calcular o custo total unitário de cada filho (insumos + M.O. + markup)\n3. Multiplicar pela quantidade da grade\n4. Inserir como linhas editáveis na ficha com o tipo \"Produto do Kit\"\n\n⚠️ Pré-requisito: Os produtos filhos devem ter suas fichas de custo preenchidas.\n\n✏️ Após importar, você pode:\n• Editar os valores importados normalmente\n• Adicionar insumos extras do kit (embalagem terciária, acessórios, montagem)\n• Configurar M.O. e Markup específicos do display\n\n💡 Dica: Use o botão \"👁 Grade\" no cabeçalho para consultar a composição do display a qualquer momento.",
+      },
     ],
   },
   "comunicacao": {
