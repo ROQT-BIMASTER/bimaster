@@ -1,47 +1,50 @@
 
 
-## Filtrar menções (@) no chat de revisão para exibir apenas usuários relevantes
+## Plano: Termo de Responsabilidade para Cadastro via IA
 
-### Problema atual
-A query de menções carrega **todos os perfis aprovados** do sistema (`profiles.aprovado = true`), exibindo dezenas de usuários irrelevantes no autocomplete do `@`.
+### Contexto
+O projeto já possui um padrão de termos de responsabilidade na Ficha de Custos (checkbox + texto legal + registro no banco). Vamos replicar esse padrão para o fluxo de cadastro de produto via IA.
 
-### Solução
-Filtrar a lista de menções no `RevisaoChatPanel` para exibir apenas:
-1. **Usuários do departamento "Compras e Faturamento"** (inclui "Compras" e "Faturamento")
-2. **Erika** (sem departamento vinculado, mas participante ativa)
-3. **Usuários que já participaram da conversa** (ex: Leandro — diretoria)
+### O que será feito
 
-### Implementação
+**1. Tela de escolha no dialog (novo produto, não edição)**
+- Ao abrir "Novo Produto Acabado", exibir duas opções: **Preencher Manualmente** e **Cadastrar com IA**
+- Edição de produto existente vai direto para o formulário (sem opção IA)
 
-**Arquivo: `src/components/fabrica/RevisaoChatPanel.tsx`**
+**2. Fluxo IA com termo obrigatório**
+- Se o usuário escolher IA, exibir uma tela com:
+  - Textarea para colar texto do ERP
+  - Upload de imagem (print do ERP)
+  - Botão "Analisar com IA"
+- **Antes de analisar**, o usuário deve aceitar um termo de responsabilidade:
+  - Texto explicando que os dados extraídos pela IA são sugestões e devem ser validados
+  - Checkbox obrigatório: "Li e concordo com os termos"
+  - O botão "Analisar com IA" fica desabilitado até aceitar
 
-Alterar o `useEffect` de carregamento de perfis (linha 125-129) para:
-
-1. Buscar perfis do departamento "Compras e Faturamento" via join com `departamentos`
-2. Buscar a Erika pelo nome (perfil sem departamento)
-3. Buscar usuários que já enviaram mensagens nesta revisão (para incluir diretoria/outros participantes)
-4. Unir os 3 grupos removendo duplicatas
-
-A query ficará algo como:
-```sql
--- Grupo 1: departamento Compras e Faturamento
-SELECT p.id, p.nome FROM profiles p 
-  JOIN departamentos d ON d.id = p.departamento_id 
-  WHERE d.nome = 'Compras e Faturamento' AND p.aprovado = true
-
--- Grupo 2: Erika (busca por nome)  
-SELECT p.id, p.nome FROM profiles p 
-  WHERE p.nome ILIKE '%erika%' AND p.aprovado = true
-
--- Grupo 3: participantes da conversa atual
-SELECT DISTINCT usuario_id, usuario_nome FROM fabrica_revisao_mensagens 
-  WHERE revisao_id = ?
+**3. Termo de responsabilidade (texto)**
+```
+"Declaro estar ciente de que os dados extraídos por Inteligência Artificial 
+são sugestões automáticas e podem conter erros ou imprecisões. Assumo total 
+responsabilidade pela revisão, validação e correção de todos os campos antes 
+de salvar o cadastro do produto."
 ```
 
-Esses serão combinados no código em um único `Set` de IDs para eliminar duplicatas.
+**4. Nova Edge Function `extrair-produto-ia`**
+- Recebe texto ou imagem (base64)
+- Usa `google/gemini-2.5-flash` para texto, `google/gemini-2.5-pro` para imagem
+- Prompt especializado para extrair campos do produto (código, nome, SKU, EAN, NCM, categoria, marca, linha, origem, etc.)
+- Retorna JSON estruturado
 
-### Detalhes técnicos
-- A interface `PerfilUsuario` permanece inalterada (`{ id, nome }`)
-- O `filteredUsuarios` com `useMemo` continua funcionando normalmente
-- O efeito passa a depender de `revisaoId` para incluir participantes da conversa
+**5. Após análise da IA**
+- Preenche automaticamente os campos do formulário
+- Exibe o formulário normal para revisão e ajustes manuais
+- Campos preenchidos pela IA recebem um indicador visual sutil (badge ou ícone)
+
+**6. Registro de auditoria**
+- Ao salvar um produto cadastrado via IA, registrar no `audit_logs` que o cadastro usou IA, incluindo: usuário, data/hora do aceite do termo, e método (texto/imagem)
+
+### Arquivos envolvidos
+- `src/components/fabrica/NovoProdutoAcabadoDialog.tsx` — adicionar estados de modo (choose/ai/form), componente do termo e input IA
+- `supabase/functions/extrair-produto-ia/index.ts` — nova edge function
+- `supabase/config.toml` — registrar a nova function com `verify_jwt = false`
 
