@@ -12,6 +12,7 @@ interface GradeFilho {
   codigo_barras_ean: string | null;
   foto_url: string | null;
   quantidade: number;
+  cor_hex: string | null;
 }
 
 interface ComposicaoGradeCardProps {
@@ -28,7 +29,7 @@ export function ComposicaoGradeCard({ produtoId, compact = false }: ComposicaoGr
       setLoading(true);
       const { data } = await supabase
         .from("fabrica_produto_grade_itens")
-        .select("id, quantidade, ordem, produto_filho:fabrica_produtos!produto_filho_id(nome, codigo, codigo_barras_ean, foto_url)")
+        .select("id, quantidade, ordem, cor_hex, produto_filho:fabrica_produtos!produto_filho_id(nome, codigo, codigo_barras_ean, foto_url)")
         .eq("produto_pai_id", produtoId)
         .order("ordem");
 
@@ -41,6 +42,7 @@ export function ComposicaoGradeCard({ produtoId, compact = false }: ComposicaoGr
             codigo_barras_ean: d.produto_filho?.codigo_barras_ean || null,
             foto_url: d.produto_filho?.foto_url || null,
             quantidade: d.quantidade,
+            cor_hex: d.cor_hex || null,
           }))
         );
       }
@@ -85,6 +87,12 @@ export function ComposicaoGradeCard({ produtoId, compact = false }: ComposicaoGr
             className="flex items-center justify-between py-1.5 px-2 rounded bg-muted/30 text-xs"
           >
             <div className="flex items-center gap-2 min-w-0">
+              {item.cor_hex && (
+                <span
+                  className="h-4 w-4 rounded-sm border border-border shrink-0"
+                  style={{ backgroundColor: item.cor_hex }}
+                />
+              )}
               {item.foto_url ? (
                 <img src={item.foto_url} alt="" className="h-5 w-5 rounded object-cover shrink-0" />
               ) : (

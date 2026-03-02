@@ -103,6 +103,20 @@ export function ExportarDisplayGrade({ produtoId, produtoNome, produtoCodigo }: 
         row.font = { size: 10 };
         row.alignment = { vertical: "middle" };
 
+        // Apply color fill to cor_numero cell if cor_hex exists
+        if (item.cor_hex) {
+          const corCell = row.getCell("cor_numero");
+          const hexColor = item.cor_hex.replace("#", "FF");
+          corCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: hexColor } };
+          // Use white text for dark backgrounds
+          const r = parseInt(item.cor_hex.slice(1, 3), 16);
+          const g = parseInt(item.cor_hex.slice(3, 5), 16);
+          const b = parseInt(item.cor_hex.slice(5, 7), 16);
+          if ((r * 0.299 + g * 0.587 + b * 0.114) < 128) {
+            corCell.font = { size: 10, color: { argb: "FFFFFFFF" } };
+          }
+        }
+
         if (filho?.foto_url) {
           const cell = row.getCell("picture");
           cell.value = { text: "Ver foto", hyperlink: filho.foto_url };

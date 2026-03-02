@@ -13,6 +13,8 @@ interface GradeFilho {
   codigo_barras_ean: string | null;
   foto_url: string | null;
   quantidade: number;
+  cor_hex: string | null;
+  cor_numero: string | null;
 }
 
 interface DisplayGradePopoverProps {
@@ -33,7 +35,7 @@ export function DisplayGradePopover({ produtoId, produtoNome, produtoCodigo }: D
       setLoading(true);
       const { data } = await supabase
         .from("fabrica_produto_grade_itens")
-        .select("id, quantidade, ordem, produto_filho:fabrica_produtos!produto_filho_id(nome, codigo, codigo_barras_ean, foto_url)")
+        .select("id, quantidade, ordem, cor_numero, cor_hex, produto_filho:fabrica_produtos!produto_filho_id(nome, codigo, codigo_barras_ean, foto_url)")
         .eq("produto_pai_id", produtoId)
         .order("ordem");
 
@@ -46,6 +48,8 @@ export function DisplayGradePopover({ produtoId, produtoNome, produtoCodigo }: D
             codigo_barras_ean: d.produto_filho?.codigo_barras_ean || null,
             foto_url: d.produto_filho?.foto_url || null,
             quantidade: d.quantidade,
+            cor_hex: d.cor_hex || null,
+            cor_numero: d.cor_numero || null,
           }))
         );
       }
@@ -85,12 +89,13 @@ export function DisplayGradePopover({ produtoId, produtoNome, produtoCodigo }: D
         <div class="subtitle">${produtoCodigo || ""} · ${itens.length} variantes · ${totalItens} unidades</div>
         <table>
           <thead>
-            <tr><th>#</th><th>Código</th><th>Produto</th><th>EAN</th><th class="right">Qtd</th></tr>
+            <tr><th>#</th><th>Cor</th><th>Código</th><th>Produto</th><th>EAN</th><th class="right">Qtd</th></tr>
           </thead>
           <tbody>
             ${itens.map((item, i) => `
               <tr>
                 <td>${i + 1}</td>
+                <td>${item.cor_hex ? `<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${item.cor_hex};border:1px solid #ccc;vertical-align:middle;margin-right:4px"></span>` : ""}${item.cor_numero || "—"}</td>
                 <td class="mono">${item.codigo}</td>
                 <td>${item.nome}</td>
                 <td class="mono">${item.codigo_barras_ean || "—"}</td>
@@ -98,7 +103,7 @@ export function DisplayGradePopover({ produtoId, produtoNome, produtoCodigo }: D
               </tr>
             `).join("")}
             <tr class="total-row">
-              <td colspan="4">Total</td>
+              <td colspan="5">Total</td>
               <td class="right">${totalItens}</td>
             </tr>
           </tbody>
@@ -145,6 +150,13 @@ export function DisplayGradePopover({ produtoId, produtoNome, produtoCodigo }: D
                   className="flex items-center justify-between py-1.5 px-2 rounded bg-muted/30 text-xs"
                 >
                   <div className="flex items-center gap-2 min-w-0">
+                    {item.cor_hex && (
+                      <span
+                        className="h-4 w-4 rounded-sm border border-border shrink-0"
+                        style={{ backgroundColor: item.cor_hex }}
+                        title={item.cor_numero || item.cor_hex}
+                      />
+                    )}
                     {item.foto_url ? (
                       <img src={item.foto_url} alt="" className="h-5 w-5 rounded object-cover shrink-0" />
                     ) : (

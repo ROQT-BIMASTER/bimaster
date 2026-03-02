@@ -143,7 +143,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
       if (produtoEdit.tipo === "DISPLAY") {
         supabase
           .from("fabrica_produto_grade_itens")
-          .select("produto_filho_id, quantidade, ordem, cor_numero, produto_filho:fabrica_produtos!produto_filho_id(nome, codigo, codigo_barras_ean)")
+          .select("produto_filho_id, quantidade, ordem, cor_numero, cor_hex, produto_filho:fabrica_produtos!produto_filho_id(nome, codigo, codigo_barras_ean)")
           .eq("produto_pai_id", produtoEdit.id)
           .order("ordem")
           .then(({ data }) => {
@@ -157,6 +157,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                   quantidade: d.quantidade,
                   ordem: d.ordem,
                   cor_numero: d.cor_numero || "",
+                  cor_hex: d.cor_hex || "",
                 }))
               );
             }
@@ -274,6 +275,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                 quantidade: item.quantidade,
                 ordem: index,
                 cor_numero: item.cor_numero || null,
+                cor_hex: item.cor_hex || null,
               }))
             );
 
