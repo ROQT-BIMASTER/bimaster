@@ -1,30 +1,35 @@
 
 
-## Plano: Cadastro de Matéria-Prima com IA
+## Diagnóstico e Plano
 
-### O que será feito
+### Problema 1: Matérias-primas não carregam na tabela
 
-Replicar o mesmo fluxo de cadastro com IA dos Produtos Acabados para o dialog de Matérias-Primas, incluindo termo de responsabilidade, input de texto/imagem e preenchimento automático do formulário.
+A consulta ao banco confirma que existem 2 registros com `ativo: false`. A tabela aparece vazia porque a policy RLS `fmp_select` exige `check_user_access(auth.uid(), 'fabrica')`, que verifica o módulo `fabrica` — diferente da permissão de tela `fabrica_mps` que libera o acesso à página. Para usuários do departamento "Compras e Faturamento", a tela aparece mas o SELECT retorna vazio.
 
-### Implementação
+**Correção:** Atualizar a policy `fmp_select` para também aceitar o módulo/tela `fabrica_mps`, ou criar uma função auxiliar que cubra ambos os cenários. A abordagem mais simples é alterar a policy para usar uma verificação que inclua a permissão de tela `fabrica_mps`.
 
-**1. Nova Edge Function `extrair-materia-prima-ia`**
-- Mesma estrutura da `extrair-produto-ia`, mas com prompt e campos específicos para matéria-prima: `codigo`, `nome`, `unidade_medida`, `custo_unitario`, `estoque_atual`, `estoque_minimo`, `status`, `lote`, `data_validade`, `observacoes`
-- Registrar no `config.toml` com `verify_jwt = false`
+Adicionalmente, o `NovoMateriaPrimaDialog` insere `status: "ativo"` ao invés de `"disponivel"`, causando inconsistência com os labels da tabela (`disponivel`, `quarentena`, `bloqueado`). Isso será corrigido.
 
-**2. Componente `CadastroIAStepMP` (ou reutilizar `CadastroIAStep` com prop `functionName`)**
-- Melhor abordagem: tornar o `CadastroIAStep` genérico adicionando uma prop `edgeFunctionName` (default `"extrair-produto-ia"`) para que matéria-prima passe `"extrair-materia-prima-ia"`
-- Mesmo layout: textarea, upload imagem, termo de responsabilidade, botão analisar
+### Problema 2: Associação de XML à Matéria-Prima (novo recurso)
 
-**3. Modificar `NovaMateriaPrimaDialog.tsx`**
-- Adicionar estados `mode` (`"choose"` | `"ai"` | `"form"`), `aiFilledFields`, `aiMethod`
-- Tela de escolha: "Preencher Manualmente" vs "Cadastrar com IA"
-- Após IA extrair dados, mapear os campos retornados ao `formData` e exibir badges `🤖 IA` nos campos preenchidos
-- Mapeamento de `unidade_medida` (sigla retornada pela IA) para o `unidade_medida_id` correspondente consultando a lista de unidades já carregada
+Adicionar ao cadastro/edição de matéria-prima a opção de vincular um XML de NF-e (igual ao fluxo de insumos na Ficha de Custo), permitindo:
+- Importar dados do fornecedor, custo unitário e dados fiscais (NCM/CFOP) automaticamente do XML
+- Reutilizar XMLs já salvos no banco
+- Atualizar o custo e fornecedor da matéria-prima com base na NF-e selecionada
 
-### Arquivos envolvidos
-- `supabase/functions/extrair-materia-prima-ia/index.ts` — nova edge function com prompt específico
-- `supabase/config.toml` — registrar nova function
-- `src/components/fabrica/CadastroIAStep.tsx` — adicionar prop `edgeFunctionName` para reutilização
-- `src/components/fabrica/NovaMateriaPrimaDialog.tsx` — adicionar fluxo choose/ai/form com badges IA
+**Implementação:**
+1. Na tela de listagem (`FabricaMateriasPrimas.tsx`), adicionar um botão "Vincular XML" nas ações de cada matéria-prima
+2. Reutilizar o componente `VincularXmlInsumoDialog` existente, passando o `mpId` da matéria-prima
+3. No callback `onVincular`, atualizar o `custo_unitario`, `fornecedor_id` (ou campo de referência) e dados fiscais da matéria-prima diretamente no banco
+4. Corrigir a policy RLS para garantir que usuários com permissão `fabrica_mps` consigam ler/editar
+
+### Arquivos a modificar
+- **Migration SQL**: Atualizar policy `fmp_select` para incluir verificação de `fabrica_mps`
+- **`src/pages/FabricaMateriasPrimas.tsx`**: Adicionar botão "Vincular XML" e integrar `VincularXmlInsumoDialog`
+- **`src/components/fabrica/NovoMateriaPrimaDialog.tsx`**: Corrigir `status: "ativo"` para `status: "disponivel"`
+
+### Detalhes técnicos
+- A policy RLS será alterada via `DROP POLICY` + `CREATE POLICY` usando `check_user_access(auth.uid(), 'fabrica') OR check_user_access_tela(auth.uid(), 'fabrica_mps')` (ou equivalente existente)
+- O `VincularXmlInsumoDialog` já aceita `mpId` e salva NCM/CFOP na matéria-prima — basta integrá-lo na listagem
+- O callback atualizará `custo_unitario` e `fornecedor_id` via update no banco
 
