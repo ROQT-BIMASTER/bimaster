@@ -50,6 +50,7 @@ export default function FabricaProdutosAcabados() {
   const [busca, setBusca] = useState("");
   const [filtroMarca, setFiltroMarca] = useState("none");
   const [filtroLinha, setFiltroLinha] = useState("none");
+  const [filtroTipo, setFiltroTipo] = useState("none");
   const [agrupamentoAtivo, setAgrupamentoAtivo] = useState(false);
   const [viewMode, setViewMode] = useState<"tabela" | "cards" | "kanban">("tabela");
   const [agruparPor, setAgruparPor] = useState("marca");
@@ -166,11 +167,12 @@ export default function FabricaProdutosAcabados() {
     return linhas as string[];
   }, [produtos]);
 
-  const temFiltrosAtivos = filtroMarca !== "none" || filtroLinha !== "none";
+  const temFiltrosAtivos = filtroMarca !== "none" || filtroLinha !== "none" || filtroTipo !== "none";
 
   const limparFiltros = () => {
     setFiltroMarca("none");
     setFiltroLinha("none");
+    setFiltroTipo("none");
   };
 
   const fichasMap = useMemo(() => {
@@ -186,9 +188,10 @@ export default function FabricaProdutosAcabados() {
         p.codigo.toLowerCase().includes(busca.toLowerCase());
       const matchMarca = filtroMarca === "none" || p.marca === filtroMarca;
       const matchLinha = filtroLinha === "none" || p.linha === filtroLinha;
-      return matchBusca && matchMarca && matchLinha;
+      const matchTipo = filtroTipo === "none" || p.tipo === filtroTipo;
+      return matchBusca && matchMarca && matchLinha && matchTipo;
     });
-  }, [produtos, busca, filtroMarca, filtroLinha]);
+  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo]);
 
   const dadosAgrupados = useMemo(() => {
     if (!produtosFiltrados) return new Map<string, any[]>();
@@ -250,10 +253,11 @@ export default function FabricaProdutosAcabados() {
     }
   };
 
-  const tipoLabels = {
+  const tipoLabels: Record<string, string> = {
     ACABADO: "Acabado",
     INTER: "Intermediário",
     MP: "Matéria-Prima",
+    DISPLAY: "Display",
   };
 
   const formatarMoeda = (valor: number) =>
@@ -265,16 +269,25 @@ export default function FabricaProdutosAcabados() {
     const custoTotal = custoTotalMap.get(produto.id);
     const temAumento = produtosComAumento.has(produto.id);
 
+    const isDisplay = produto.tipo === "DISPLAY";
+
     return (
-      <TableRow key={produto.id} className={isEmRevisao ? "bg-red-50 dark:bg-red-950/20" : ""}>
+      <TableRow key={produto.id} className={isEmRevisao ? "bg-red-50 dark:bg-red-950/20" : isDisplay ? "bg-primary/5" : ""}>
         <TableCell className="pr-0">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
         </TableCell>
         <TableCell className="font-mono">{produto.codigo}</TableCell>
-        <TableCell className="font-medium">{produto.nome}</TableCell>
+        <TableCell className="font-medium">
+          <div className="flex items-center gap-1.5">
+            {isDisplay && <Layers className="h-3.5 w-3.5 text-primary shrink-0" />}
+            {produto.nome}
+          </div>
+        </TableCell>
         <TableCell>
-          <Badge variant="outline">
-            {tipoLabels[produto.tipo as keyof typeof tipoLabels]}
+          <Badge variant={isDisplay ? "default" : "outline"} className={isDisplay ? "gap-1" : ""}>
+            {isDisplay && <Layers className="h-3 w-3" />}
+            {tipoLabels[produto.tipo] || produto.tipo}
+            {isDisplay && produto.itens_display ? ` (${produto.itens_display} un.)` : ""}
           </Badge>
         </TableCell>
         <TableCell>
@@ -425,7 +438,7 @@ export default function FabricaProdutosAcabados() {
         </Collapsible>
 
         {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-5" data-tour="pa-kpis">
+        <div className="grid gap-4 md:grid-cols-6" data-tour="pa-kpis">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
@@ -465,11 +478,26 @@ export default function FabricaProdutosAcabados() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Nacionais</CardTitle>
-              <Package className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-sm font-medium">Displays / Kits</CardTitle>
+              <Layers className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-primary">
+                {produtos?.filter((p) => p.tipo === "DISPLAY").length || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {produtos?.filter((p) => p.tipo === "DISPLAY").reduce((s, p) => s + (p.itens_display || 0), 0) || 0} itens total
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Nacionais</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
                 {produtos?.filter((p) => p.origem === "nacional" || !p.origem).length || 0}
               </div>
             </CardContent>
@@ -478,10 +506,10 @@ export default function FabricaProdutosAcabados() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Importados</CardTitle>
-              <Package className="h-4 w-4 text-orange-600" />
+              <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
+              <div className="text-2xl font-bold">
                 {produtos?.filter((p) => p.origem === "importado").length || 0}
               </div>
             </CardContent>
@@ -521,6 +549,22 @@ export default function FabricaProdutosAcabados() {
                   {marcasUnicas.map((m) => (
                     <SelectItem key={m} value={m}>{m}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro Tipo */}
+            <div className="min-w-[160px]">
+              <Label className="text-xs text-muted-foreground mb-1 block">Tipo</Label>
+              <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Todos</SelectItem>
+                  <SelectItem value="ACABADO">Acabado</SelectItem>
+                  <SelectItem value="DISPLAY">Display / Kit</SelectItem>
+                  <SelectItem value="INTER">Intermediário</SelectItem>
                 </SelectContent>
               </Select>
             </div>
