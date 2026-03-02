@@ -13,7 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, Search, DollarSign } from "lucide-react";
+import { Download, Search, DollarSign, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import { toast } from "sonner";
 
@@ -24,6 +25,10 @@ interface Props {
 export function PortalTabelaPreco({ cnpj }: Props) {
   const [busca, setBusca] = useState("");
   const [tabelaSelecionada, setTabelaSelecionada] = useState<string>("");
+  const [filtroCategoria, setFiltroCategoria] = useState<string>("__all__");
+  const [filtroMarca, setFiltroMarca] = useState<string>("__all__");
+  const [filtroLinha, setFiltroLinha] = useState<string>("__all__");
+  const [filtroDisplay, setFiltroDisplay] = useState<string>("__all__");
 
   // Buscar CNPJs do usuário
   const { data: userCNPJs } = useQuery({
@@ -81,7 +86,7 @@ export function PortalTabelaPreco({ cnpj }: Props) {
       const produtoIds = [...new Set(data.map(d => d.produto_id))];
       const { data: produtos, error: produtosError } = await supabase
         .from("fabrica_produtos")
-        .select("id, codigo, nome, tipo, origem")
+        .select("id, codigo, nome, tipo, origem, categoria, marca, linha")
         .in("id", produtoIds);
 
       if (produtosError) throw produtosError;
@@ -95,11 +100,37 @@ export function PortalTabelaPreco({ cnpj }: Props) {
     enabled: !!tabelaSelecionada,
   });
 
-  const precosFiltrados = precos?.filter(
-    (p) =>
-      p.produto?.nome?.toLowerCase().includes(busca.toLowerCase()) ||
-      p.produto?.codigo?.toLowerCase().includes(busca.toLowerCase())
-  );
+  const categoriasUnicas = [...new Set(precos?.map(p => p.produto?.categoria).filter(Boolean) || [])].sort();
+  const marcasUnicas = [...new Set(precos?.map(p => p.produto?.marca).filter(Boolean) || [])].sort();
+  const linhasUnicas = [...new Set(precos?.map(p => p.produto?.linha).filter(Boolean) || [])].sort();
+
+  const temFiltrosAtivos = filtroCategoria !== "__all__" || filtroMarca !== "__all__" || filtroLinha !== "__all__" || filtroDisplay !== "__all__";
+
+  const limparFiltros = () => {
+    setFiltroCategoria("__all__");
+    setFiltroMarca("__all__");
+    setFiltroLinha("__all__");
+    setFiltroDisplay("__all__");
+  };
+
+  const precosFiltrados = precos?.filter((p) => {
+    if (busca) {
+      const buscaLower = busca.toLowerCase();
+      const matchBusca =
+        p.produto?.nome?.toLowerCase().includes(buscaLower) ||
+        p.produto?.codigo?.toLowerCase().includes(buscaLower);
+      if (!matchBusca) return false;
+    }
+    if (filtroCategoria !== "__all__" && p.produto?.categoria !== filtroCategoria) return false;
+    if (filtroMarca !== "__all__" && p.produto?.marca !== filtroMarca) return false;
+    if (filtroLinha !== "__all__" && p.produto?.linha !== filtroLinha) return false;
+    if (filtroDisplay === "apenas_display") {
+      if (p.produto?.tipo !== "DISPLAY") return false;
+    } else if (filtroDisplay === "excluir_display") {
+      if (p.produto?.tipo === "DISPLAY") return false;
+    }
+    return true;
+  });
 
   const handleExportarCSV = () => {
     if (!precos || precos.length === 0) {
@@ -231,6 +262,62 @@ export function PortalTabelaPreco({ cnpj }: Props) {
                     onChange={(e) => setBusca(e.target.value)}
                     className="pl-10"
                   />
+                </div>
+                {/* Filtros */}
+                <div className="flex items-center gap-2 flex-wrap mt-3">
+                  <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
+                    <SelectTrigger className="w-[150px] h-8 text-xs">
+                      <SelectValue placeholder="Categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todas Categorias</SelectItem>
+                      {categoriasUnicas.map((cat) => (
+                        <SelectItem key={cat} value={cat!}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={filtroMarca} onValueChange={setFiltroMarca}>
+                    <SelectTrigger className="w-[150px] h-8 text-xs">
+                      <SelectValue placeholder="Marca" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todas Marcas</SelectItem>
+                      {marcasUnicas.map((marca) => (
+                        <SelectItem key={marca} value={marca!}>{marca}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={filtroLinha} onValueChange={setFiltroLinha}>
+                    <SelectTrigger className="w-[150px] h-8 text-xs">
+                      <SelectValue placeholder="Linha" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todas Linhas</SelectItem>
+                      {linhasUnicas.map((linha) => (
+                        <SelectItem key={linha} value={linha!}>{linha}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={filtroDisplay} onValueChange={setFiltroDisplay}>
+                    <SelectTrigger className="w-[150px] h-8 text-xs">
+                      <SelectValue placeholder="Display" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todos</SelectItem>
+                      <SelectItem value="apenas_display">Apenas Displays</SelectItem>
+                      <SelectItem value="excluir_display">Excluir Displays</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {temFiltrosAtivos && (
+                    <Button variant="ghost" size="sm" onClick={limparFiltros} className="h-8 text-xs gap-1">
+                      <X className="h-3 w-3" />
+                      Limpar
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
