@@ -7636,6 +7636,7 @@ export type Database = {
           tipo_rotulagem: string | null
           unidade_medida_id: string | null
           updated_at: string | null
+          updated_by: string | null
           versao_variacao: string | null
         }
         Insert: {
@@ -7677,6 +7678,7 @@ export type Database = {
           tipo_rotulagem?: string | null
           unidade_medida_id?: string | null
           updated_at?: string | null
+          updated_by?: string | null
           versao_variacao?: string | null
         }
         Update: {
@@ -7718,6 +7720,7 @@ export type Database = {
           tipo_rotulagem?: string | null
           unidade_medida_id?: string | null
           updated_at?: string | null
+          updated_by?: string | null
           versao_variacao?: string | null
         }
         Relationships: [
@@ -7733,6 +7736,47 @@ export type Database = {
             columns: ["unidade_medida_id"]
             isOneToOne: false
             referencedRelation: "fabrica_unidades_medida"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fabrica_produtos_historico: {
+        Row: {
+          acao: string
+          campos_alterados: Json | null
+          created_at: string
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          id: string
+          produto_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          acao: string
+          campos_alterados?: Json | null
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          produto_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          acao?: string
+          campos_alterados?: Json | null
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          produto_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fabrica_produtos_historico_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
           },
         ]

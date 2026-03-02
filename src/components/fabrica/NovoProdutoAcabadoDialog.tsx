@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import ProductPhotoUpload from "@/components/fabrica/ProductPhotoUpload";
 import { useMutationWithTimeout } from "@/hooks/useMutationWithTimeout";
+import { ProdutoHistoricoTimeline } from "@/components/fabrica/ProdutoHistoricoTimeline";
 
 interface Props {
   open: boolean;
@@ -238,7 +239,7 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
       if (produtoEdit) {
         const { error } = await supabase
           .from("fabrica_produtos")
-          .update({ ...payload, itens_display: formData.tipo === "DISPLAY" ? gradeItems.reduce((s, i) => s + i.quantidade, 0) : (payload as any).itens_display })
+          .update({ ...payload, updated_by: user.id, itens_display: formData.tipo === "DISPLAY" ? gradeItems.reduce((s, i) => s + i.quantidade, 0) : (payload as any).itens_display } as any)
           .eq("id", produtoEdit.id)
           .select();
 
@@ -320,7 +321,11 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
 
         <form onSubmit={handleSubmit}>
           <Tabs defaultValue="identificacao" className="w-full">
-            <TabsList className={cn("grid w-full", formData.tipo === "DISPLAY" ? "grid-cols-5" : "grid-cols-4")}>
+            <TabsList className={cn("grid w-full", 
+              formData.tipo === "DISPLAY" 
+                ? (produtoEdit ? "grid-cols-6" : "grid-cols-5")
+                : (produtoEdit ? "grid-cols-5" : "grid-cols-4")
+            )}>
               <TabsTrigger value="identificacao">Identificação</TabsTrigger>
               <TabsTrigger value="classificacao">Classificação</TabsTrigger>
               {formData.tipo === "DISPLAY" && (
@@ -328,6 +333,9 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
               )}
               <TabsTrigger value="producao">Produção</TabsTrigger>
               <TabsTrigger value="outros">Outros</TabsTrigger>
+              {produtoEdit && (
+                <TabsTrigger value="historico">Histórico</TabsTrigger>
+              )}
             </TabsList>
 
             {/* Aba Identificação */}
@@ -723,6 +731,13 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
                 />
               </div>
             </TabsContent>
+
+            {/* Aba Histórico */}
+            {produtoEdit && (
+              <TabsContent value="historico" className="mt-4">
+                <ProdutoHistoricoTimeline produtoId={produtoEdit.id} />
+              </TabsContent>
+            )}
           </Tabs>
 
           <DialogFooter className="mt-6">
