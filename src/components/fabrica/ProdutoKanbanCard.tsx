@@ -24,7 +24,7 @@ export function ProdutoKanbanCard({
       className="group cursor-pointer rounded-xl border bg-card shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
     >
       {/* Product Photo - Hero */}
-      <div className="aspect-[3/2] w-full bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden">
+      <div className="aspect-[16/9] w-full bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden">
         {produto.foto_url ? (
           <img
             src={produto.foto_url}
