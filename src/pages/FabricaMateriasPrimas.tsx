@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
-import { NovaMateriaPrimaDialog } from "@/components/fabrica/NovaMateriaPrimaDialog";
+import { NovoMateriaPrimaDialog } from "@/components/fabrica/NovoMateriaPrimaDialog";
 import { EditarMateriaPrimaDialog } from "@/components/fabrica/EditarMateriaPrimaDialog";
 import { DetalhesMateriaPrimaDialog } from "@/components/fabrica/DetalhesMateriaPrimaDialog";
 import { DadosFiscaisProdutoDialog } from "@/components/fabrica/DadosFiscaisProdutoDialog";
@@ -327,10 +327,10 @@ export default function FabricaMateriasPrimas() {
         </Card>
       </div>
 
-      <NovaMateriaPrimaDialog
+      <NovoMateriaPrimaDialog
         open={novoDialogOpen}
         onOpenChange={setNovoDialogOpen}
-        onSuccess={fetchMateriasPrimas}
+        onSuccess={() => fetchMateriasPrimas()}
       />
 
       {selectedMP && (
