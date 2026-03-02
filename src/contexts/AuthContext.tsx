@@ -208,49 +208,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         setSession(newSession);
         if (newSession?.user) {
-          const isSameUser = currentUserIdRef.current === newSession.user.id;
-          const isSessionRestore = initialCheckDoneRef.current && isSameUser;
           currentUserIdRef.current = newSession.user.id;
           
-          // NEVER block UI if initial check already completed — prevents loading hang
-          const shouldBlockUI = !initialCheckDoneRef.current && !isSessionRestore;
-          if (shouldBlockUI) {
-            setLoading(true);
-          }
-          
+          // NEVER set loading=true here — it causes the infinite spinner.
+          // The initial checkAuth already handles loading. 
+          // Approval check runs in background without blocking UI.
           const shouldForce = event === "SIGNED_IN";
           
-          // Safety timeout: force loading=false after 8s max
-          const safetyTimeout = shouldBlockUI
-            ? setTimeout(() => {
-                if (isMountedRef.current) {
-                  console.warn("[AuthContext] Safety timeout 8s — forcing loading=false");
-                  setLoading(false);
-                }
-              }, 8000)
-            : null;
-          
-          // Defer to avoid deadlock
-          setTimeout(async () => {
-            try {
-              const { approved: isApproved, isActive: userIsActive } = await fetchApprovalStatus(newSession.user.id, shouldForce);
+          fetchApprovalStatus(newSession.user.id, shouldForce)
+            .then(({ approved: isApproved, isActive: userIsActive }) => {
               if (isMountedRef.current) {
                 setApproved(isApproved);
                 setIsActive(userIsActive);
                 initialCheckDoneRef.current = true;
-                if (shouldBlockUI) {
-                  setLoading(false);
-                }
               }
-            } catch (error) {
+            })
+            .catch((error) => {
               console.error("[AuthContext] Erro no auth state change:", error);
-              if (isMountedRef.current && shouldBlockUI) {
+            })
+            .finally(() => {
+              // Always ensure loading is false after auth state change
+              if (isMountedRef.current) {
                 setLoading(false);
               }
-            } finally {
-              if (safetyTimeout) clearTimeout(safetyTimeout);
-            }
-          }, 0);
+            });
         }
       } else if (event === "SIGNED_OUT") {
         setSession(null);
