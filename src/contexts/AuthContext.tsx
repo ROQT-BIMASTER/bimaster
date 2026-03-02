@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const hasCheckedRef = useRef(false);
   const initialCheckDoneRef = useRef(false);
   const currentUserIdRef = useRef<string | null>(null);
+  const authCheckInProgressRef = useRef(false);
 
   // Monitor online status
   useEffect(() => {
@@ -128,6 +129,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (hasCheckedRef.current && !forceRefresh) {
       return;
     }
+    if (authCheckInProgressRef.current && !forceRefresh) {
+      return;
+    }
+    authCheckInProgressRef.current = true;
     
     try {
       console.log("[AuthContext] Iniciando checkAuth");
@@ -178,7 +183,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsActive(localStorage.getItem("user_active_cache") !== "false");
       } else {
         setSession(null);
-        // Manter approved do cache se já estava true
         if (localStorage.getItem("user_approved_cache") !== "true") {
           setApproved(false);
         }
@@ -187,6 +191,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } finally {
+      authCheckInProgressRef.current = false;
       if (isMountedRef.current) {
         console.log("[AuthContext] Finalizando checkAuth");
         setLoading(false);
@@ -210,11 +215,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (newSession?.user) {
           currentUserIdRef.current = newSession.user.id;
           
-          // NEVER set loading=true here — it causes the infinite spinner.
-          // The initial checkAuth already handles loading. 
-          // Approval check runs in background without blocking UI.
-          const shouldForce = event === "SIGNED_IN";
+          // If checkAuth is still running, skip — it will handle approval
+          if (authCheckInProgressRef.current) {
+            console.log("[AuthContext] checkAuth in progress, skipping duplicate approval fetch from", event);
+            return;
+          }
           
+          // Silent background refresh — no loading state change
+          const shouldForce = event === "SIGNED_IN";
           fetchApprovalStatus(newSession.user.id, shouldForce)
             .then(({ approved: isApproved, isActive: userIsActive }) => {
               if (isMountedRef.current) {
@@ -225,12 +233,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             })
             .catch((error) => {
               console.error("[AuthContext] Erro no auth state change:", error);
-            })
-            .finally(() => {
-              // Always ensure loading is false after auth state change
-              if (isMountedRef.current) {
-                setLoading(false);
-              }
             });
         }
       } else if (event === "SIGNED_OUT") {

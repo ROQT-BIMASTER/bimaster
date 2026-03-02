@@ -58,6 +58,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(initialCache?.isAdmin || false);
   const [loading, setLoading] = useState(!initialCache); // If we have cache, start as not loading
   const isMountedRef = useRef(true);
+  const fetchInProgressRef = useRef(false);
 
   // Timeout de segurança - garante que loading nunca fica infinito
   useEffect(() => {
@@ -81,6 +82,13 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
   }, [loading]);
 
   const fetchPermissions = useCallback(async (forceRefresh = false) => {
+    // Prevent duplicate concurrent fetches
+    if (fetchInProgressRef.current) {
+      console.log("[PermissionsContext] Fetch already in progress, skipping");
+      return;
+    }
+    fetchInProgressRef.current = true;
+
     try {
       console.log("[PermissionsContext] Iniciando fetchPermissions");
       // Usar getSession (memória) em vez de getUser (rede)
@@ -162,6 +170,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("[PermissionsContext] Erro ao carregar permissões:", error);
     } finally {
+      fetchInProgressRef.current = false;
       if (isMountedRef.current) {
         console.log("[PermissionsContext] Finalizando fetchPermissions");
         setLoading(false);
@@ -217,20 +226,13 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     fetchPermissions();
 
     // Listener para mudanças de autenticação
-    const fetchInProgressRef = { current: false };
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (!isMountedRef.current) return;
       
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        // NEVER set loading=true here — causes infinite spinner on session restore.
-        // If a fetch is already in progress (from mount), skip duplicate call.
-        if (fetchInProgressRef.current) {
-          console.log("[PermissionsContext] Fetch already in progress, skipping duplicate from", event);
-          return;
-        }
-        fetchInProgressRef.current = true;
+        // fetchInProgressRef is checked inside fetchPermissions itself
         // Silent background refresh — no loading state change
-        fetchPermissions(true).finally(() => { fetchInProgressRef.current = false; });
+        fetchPermissions(true);
       } else if (event === "SIGNED_OUT") {
         globalPermissionsCache = null;
         try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
