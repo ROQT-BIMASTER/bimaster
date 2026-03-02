@@ -212,13 +212,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const isSessionRestore = initialCheckDoneRef.current && isSameUser;
           currentUserIdRef.current = newSession.user.id;
           
-          // Only block UI for genuinely new logins, not session restores
-          if (!isSessionRestore) {
+          // NEVER block UI if initial check already completed — prevents loading hang
+          const shouldBlockUI = !initialCheckDoneRef.current && !isSessionRestore;
+          if (shouldBlockUI) {
             setLoading(true);
           }
           
-          // Para SIGNED_IN após login, forçar verificação
           const shouldForce = event === "SIGNED_IN";
+          
+          // Safety timeout: force loading=false after 8s max
+          const safetyTimeout = shouldBlockUI
+            ? setTimeout(() => {
+                if (isMountedRef.current) {
+                  console.warn("[AuthContext] Safety timeout 8s — forcing loading=false");
+                  setLoading(false);
+                }
+              }, 8000)
+            : null;
           
           // Defer to avoid deadlock
           setTimeout(async () => {
@@ -228,17 +238,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setApproved(isApproved);
                 setIsActive(userIsActive);
                 initialCheckDoneRef.current = true;
-                if (!isSessionRestore) {
+                if (shouldBlockUI) {
                   setLoading(false);
                 }
               }
             } catch (error) {
               console.error("[AuthContext] Erro no auth state change:", error);
-              if (isMountedRef.current) {
-                if (!isSessionRestore) {
-                  setLoading(false);
-                }
+              if (isMountedRef.current && shouldBlockUI) {
+                setLoading(false);
               }
+            } finally {
+              if (safetyTimeout) clearTimeout(safetyTimeout);
             }
           }, 0);
         }
