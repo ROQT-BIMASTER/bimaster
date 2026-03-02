@@ -1,0 +1,133 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const SYSTEM_PROMPT = `Você é um assistente especializado em extrair dados de cadastro de matérias-primas/insumos a partir de textos ou imagens de sistemas ERP.
+
+Analise o conteúdo fornecido e extraia o máximo de informações possível para preencher o cadastro de uma matéria-prima.
+
+Você DEVE retornar APENAS um JSON com os campos abaixo (use null para campos não encontrados):
+
+{
+  "codigo": "código interno da matéria-prima",
+  "nome": "nome completo da matéria-prima",
+  "unidade_medida": "sigla da unidade de medida (UN, KG, G, LT, ML, M, CM, CX, PCT, etc.)",
+  "custo_unitario": "custo unitário numérico (apenas número, sem R$)",
+  "categoria": "categoria da matéria-prima (ex: Embalagem, Químico, Aditivo, Base, Corante, etc.)",
+  "estoque_minimo": "estoque mínimo numérico se disponível",
+  "fornecedor": "nome do fornecedor principal se disponível",
+  "observacoes": "observações adicionais relevantes"
+}
+
+Regras:
+- Extraia TODOS os campos que conseguir identificar no texto/imagem
+- Se um campo não for encontrado, use null
+- Para "custo_unitario", extraia apenas o valor numérico (ex: 12.50, não "R$ 12,50")
+- Para "unidade_medida", use a sigla padrão (UN, KG, G, LT, ML, M, CM, CX, PCT, etc.)
+- Não invente dados, extraia apenas o que está presente
+- Retorne SOMENTE o JSON, sem markdown, sem explicações`;
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { text, imageBase64 } = await req.json();
+
+    if (!text && !imageBase64) {
+      return new Response(
+        JSON.stringify({ error: "Forneça texto ou imagem para análise" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    const messages: any[] = [
+      { role: "system", content: SYSTEM_PROMPT },
+    ];
+
+    if (imageBase64) {
+      messages.push({
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: "Analise esta imagem de um sistema ERP e extraia os dados da matéria-prima cadastrada. Retorne APENAS o JSON estruturado.",
+          },
+          {
+            type: "image_url",
+            image_url: { url: `data:image/png;base64,${imageBase64}` },
+          },
+        ],
+      });
+    } else {
+      messages.push({
+        role: "user",
+        content: `Analise o seguinte texto copiado de um sistema ERP e extraia os dados da matéria-prima:\n\n${text}`,
+      });
+    }
+
+    const model = imageBase64 ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash";
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.1,
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Créditos de IA esgotados. Entre em contato com o administrador." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
+      throw new Error(`AI gateway error: ${response.status}`);
+    }
+
+    const aiResponse = await response.json();
+    const content = aiResponse.choices?.[0]?.message?.content || "";
+
+    let jsonStr = content.trim();
+    if (jsonStr.startsWith("```")) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    }
+
+    const extractedData = JSON.parse(jsonStr);
+
+    return new Response(
+      JSON.stringify({ data: extractedData, model }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Error:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Erro ao processar dados" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
