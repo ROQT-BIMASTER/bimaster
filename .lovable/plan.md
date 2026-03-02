@@ -1,75 +1,54 @@
 
 
-## Plano: Análise de Segurança Completa e Correções
+## Plano: Campo de Cor Visual nos Itens de Grade
 
-### Resultados da Auditoria
+### Contexto atual
+A tabela `fabrica_produto_grade_itens` já possui o campo `cor_numero` (texto livre para "Nº da cor"). O editor de grade (`ComposicaoGradeEditor`) exibe apenas um input de texto estreito para esse número. Não há campo para nome da cor nem seletor visual de cor (hex).
 
-Scan realizado em 307 tabelas, 1900+ políticas RLS, 390+ funções SECURITY DEFINER, 85+ edge functions.
+### O que será feito
 
-| # | Vulnerabilidade | Severidade | Status |
-|---|----------------|-----------|--------|
-| 1 | View `fabrica_fornecedores_safe` com `security_invoker=off` (DEFINER) | CRITICO | Aberta |
-| 2 | `configuracoes_cobranca` expõe `api_key` e `whatsapp_verify_token` ao frontend | CRITICO | Aberta |
-| 3 | `team_member_details`: supervisores veem CPF/RG via `supervisor_team_read_access` | ALTO | Aberta |
-| 4 | `stores`: dados bancários acessíveis via tabela direta (sem bloqueio de SELECT) | ALTO | Aberta |
-| 5 | `clientes_safe` é INVOKER mas `clientes` tabela base não bloqueia SELECT direto | MEDIO | Aberta |
-| 6 | search_path injection em SECURITY DEFINER | -- | ✅ Corrigido |
-| 7 | Storage buckets públicos | -- | ✅ Corrigido |
-| 8 | Extensions em public (pg_net) | -- | ✅ Ignorado (limitação plataforma) |
+**1. Migração de banco — adicionar coluna `cor_hex`**
+- Adicionar `cor_hex TEXT` à tabela `fabrica_produto_grade_itens` para armazenar o código hexadecimal da cor selecionada (ex: `#FF5733`)
 
-### Correções Propostas
+**2. Atualizar interface `GradeItem` e persistência**
+- Adicionar `cor_hex?: string` na interface `GradeItem` em `ComposicaoGradeEditor.tsx`
+- Garantir que o campo seja salvo/carregado no `NovoProdutoAcabadoDialog.tsx`
 
-**1. Corrigir `fabrica_fornecedores_safe` -- security_invoker=on** (Migração SQL)
+**3. Reformular coluna "Nº Cor" no editor de grade**
+Substituir o input simples por uma célula mais rica contendo:
+- **Input de texto** para o nome/número da cor (ex: "Rosa Quartzo", "01")
+- **Swatch de cor clicável** (quadradinho colorido) que abre um **Popover com color picker**
+- O color picker terá: uma paleta de cores pré-definidas comuns (12-16 cores) + input hex livre para cores personalizadas
+- O swatch exibe a cor selecionada; se nenhuma, mostra um ícone de paleta
 
-Recriar a view com `security_invoker=on` para que RLS do usuário seja respeitado. Isso resolve o alerta ERROR do linter.
+**4. Exibição da cor nos componentes de visualização**
+- `DisplayGradePopover`: mostrar o swatch de cor ao lado do nome do item
+- `ComposicaoGradeCard`: exibir swatches coloridos no resumo compacto
+- Exportação Excel: incluir coluna "Cor" com o nome e preencher o fundo da célula com o hex
 
-**2. Criar `configuracoes_cobranca_safe` e bloquear SELECT direto** (Migração SQL)
+**5. Impressão**
+- Na função `handlePrint` do `DisplayGradePopover`, incluir coluna "Cor" com um quadrado colorido inline
 
-- Criar view que retorna `'***'` para `api_key` e `whatsapp_verify_token`
-- Adicionar política RLS `USING(false)` para SELECT na tabela base
-- Atualizar o componente `ConfiguracoesCobrancaAutomatica.tsx` para usar a view safe
-- Admin vê os tokens mascarados na UI; edge functions continuam lendo via service_role
+### Detalhes técnicos
 
-**3. Remover `supervisor_team_read_access` de `team_member_details`** (Migração SQL)
-
-Supervisores não precisam ver CPF/RG. A política `team_details_select_strict` já cobre admin + dono do registro. Remover a política que vaza PII.
-
-**4. Bloquear SELECT direto na tabela `stores` e forçar uso de `stores_safe`** (Migração SQL)
-
-- Substituir a política `stores_select` por `USING(false)` na tabela base
-- A view `stores_safe` já mascara dados bancários e já é `security_invoker=on`
-- Verificar que o frontend usa `stores_safe` (ou `stores` via view -- a tipagem Supabase já referencia `stores_safe`)
-
-**5. Atualizar findings de segurança** (Security registry)
-
-Marcar issues resolvidas e criar novos findings para itens pendentes.
-
-### Arquivos Impactados
-
-| Arquivo | Ação |
-|---|---|
-| Nova migração SQL | Views + RLS para 4 correções |
-| `src/components/configuracoes/ConfiguracoesCobrancaAutomatica.tsx` | Usar view safe, mascarar tokens na UI |
-| Security findings registry | Atualizar status |
-
-### Detalhes Técnicos
-
-```text
-ANTES (vulnerável)                    DEPOIS (blindado)
-┌─────────────────────┐              ┌─────────────────────┐
-│ Frontend SELECT     │              │ Frontend SELECT     │
-│ configuracoes_      │──→ api_key   │ configuracoes_      │──→ '***'
-│ cobranca            │              │ cobranca_safe       │
-└─────────────────────┘              └─────────────────────┘
-                                     │ tabela base: USING(false)
-                                     │ edge functions: service_role ✅
-
-┌─────────────────────┐              ┌─────────────────────┐
-│ Supervisor SELECT   │              │ Supervisor SELECT   │
-│ team_member_details │──→ CPF, RG   │ team_member_details │──→ BLOQUEADO
-└─────────────────────┘              └─────────────────────┘
-                                     │ Apenas admin + próprio usuário
+**Color Picker** — componente leve customizado (sem dependência externa):
+```
+┌──────────────────────────┐
+│  Cores rápidas (grid)    │
+│  🔴🟠🟡🟢🔵🟣⚫⚪     │
+│  🩷🩵🤎🟤 ...           │
+│ ─────────────────────── │
+│  Hex: [#______] [✓]     │
+└──────────────────────────┘
 ```
 
-A migração será uma única transação SQL atômica -- se qualquer parte falhar, nada é aplicado.
+**Arquivos a criar:**
+- `src/components/fabrica/ColorPickerPopover.tsx` — componente reutilizável de seleção de cor
+
+**Arquivos a editar:**
+- Migration SQL — `ALTER TABLE ... ADD COLUMN cor_hex`
+- `src/components/fabrica/ComposicaoGradeEditor.tsx` — interface + UI da célula de cor
+- `src/components/fabrica/NovoProdutoAcabadoDialog.tsx` — persistir `cor_hex`
+- `src/components/fabrica/DisplayGradePopover.tsx` — exibir swatch na visualização e impressão
+- `src/components/fabrica/ComposicaoGradeCard.tsx` — exibir swatches no resumo
 
