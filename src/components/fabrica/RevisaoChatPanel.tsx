@@ -121,12 +121,66 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id || null));
   }, []);
 
-  // Load profiles for mentions
+  // Load profiles for mentions — only relevant users (Compras, Faturamento, Erika, participants)
   useEffect(() => {
-    supabase.from("profiles").select("id, nome").eq("aprovado", true).then(({ data }) => {
-      if (data) setUsuarios(data.filter((p: any) => p.nome) as PerfilUsuario[]);
-    });
-  }, []);
+    (async () => {
+      const allProfiles = new Map<string, PerfilUsuario>();
+
+      // Grupo 1: Usuários dos departamentos "Compras" e "Faturamento"
+      const { data: deptUsers } = await supabase
+        .from("profiles")
+        .select("id, nome, departamento_id")
+        .eq("aprovado", true)
+        .not("departamento_id", "is", null);
+
+      if (deptUsers && deptUsers.length > 0) {
+        const deptIds = [...new Set(deptUsers.map((u: any) => u.departamento_id).filter(Boolean))];
+        const { data: depts } = await supabase
+          .from("departamentos")
+          .select("id, nome")
+          .in("id", deptIds);
+
+        const relevantDeptIds = new Set(
+          (depts || [])
+            .filter((d: any) => /compras|faturamento/i.test(d.nome))
+            .map((d: any) => d.id)
+        );
+
+        for (const u of deptUsers) {
+          if (u.nome && relevantDeptIds.has(u.departamento_id)) {
+            allProfiles.set(u.id, { id: u.id, nome: u.nome });
+          }
+        }
+      }
+
+      // Grupo 2: Erika (participante sem departamento vinculado)
+      const { data: erika } = await supabase
+        .from("profiles")
+        .select("id, nome")
+        .eq("aprovado", true)
+        .ilike("nome", "%erika%");
+
+      for (const u of erika || []) {
+        if (u.nome) allProfiles.set(u.id, { id: u.id, nome: u.nome });
+      }
+
+      // Grupo 3: Participantes da conversa atual
+      if (revisaoId) {
+        const { data: participantes } = await supabase
+          .from("fabrica_revisao_mensagens" as any)
+          .select("usuario_id, usuario_nome")
+          .eq("revisao_id", revisaoId);
+
+        for (const p of participantes || []) {
+          if ((p as any).usuario_id && (p as any).usuario_nome && !allProfiles.has((p as any).usuario_id)) {
+            allProfiles.set((p as any).usuario_id, { id: (p as any).usuario_id, nome: (p as any).usuario_nome });
+          }
+        }
+      }
+
+      setUsuarios(Array.from(allProfiles.values()));
+    })();
+  }, [revisaoId]);
 
   // Load matérias-primas for the product
   useEffect(() => {
