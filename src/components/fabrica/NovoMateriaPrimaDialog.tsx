@@ -305,7 +305,7 @@ export const NovoMateriaPrimaDialog = ({ open, onOpenChange, onSuccess }: NovoMa
                   </Button>
                 </div>
                 <Select
-                  value={formData.categoria_id}
+                  value={formData.categoria_id || undefined}
                   onValueChange={(v) => setFormData({ ...formData, categoria_id: v })}
                 >
                   <SelectTrigger>
@@ -327,7 +327,7 @@ export const NovoMateriaPrimaDialog = ({ open, onOpenChange, onSuccess }: NovoMa
                   {renderAIBadge("unidade_medida_id")}
                 </div>
                 <Select
-                  value={formData.unidade_medida_id}
+                  value={formData.unidade_medida_id || undefined}
                   onValueChange={(v) => setFormData({ ...formData, unidade_medida_id: v })}
                   required
                 >
