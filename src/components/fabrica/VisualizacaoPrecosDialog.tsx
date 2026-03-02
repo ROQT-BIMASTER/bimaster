@@ -35,7 +35,8 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatarMoeda, formatarPercentual } from "@/lib/fabrica/pricing-calculator";
-import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag, Edit, Trash2, FileText, History, Shield, AlertTriangle, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Download, Search, TrendingUp, TrendingDown, Minus, Package, DollarSign, Tag, Edit, Trash2, FileText, History, Shield, AlertTriangle, Eye, X } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
@@ -52,6 +53,10 @@ interface Props {
 
 export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) {
   const [busca, setBusca] = useState("");
+  const [filtroCategoria, setFiltroCategoria] = useState<string>("__all__");
+  const [filtroMarca, setFiltroMarca] = useState<string>("__all__");
+  const [filtroLinha, setFiltroLinha] = useState<string>("__all__");
+  const [filtroDisplay, setFiltroDisplay] = useState<string>("__all__");
   const [produtoEditando, setProdutoEditando] = useState<string | null>(null);
   const [precoExcluindo, setPrecoExcluindo] = useState<any>(null);
   const [showExportPDF, setShowExportPDF] = useState(false);
@@ -90,6 +95,7 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
           marca,
           linha,
           modelo,
+          tipo,
           unidade_medida_id
         `)
         .in("id", produtoIds);
@@ -180,16 +186,50 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
     },
   });
 
+  // Extrair valores únicos para filtros
+  const categoriasUnicas = [...new Set(precos?.map(p => p.produto?.categoria).filter(Boolean) || [])].sort();
+  const marcasUnicas = [...new Set(precos?.map(p => p.produto?.marca).filter(Boolean) || [])].sort();
+  const linhasUnicas = [...new Set(precos?.map(p => p.produto?.linha).filter(Boolean) || [])].sort();
+
+  const temFiltrosAtivos = filtroCategoria !== "__all__" || filtroMarca !== "__all__" || filtroLinha !== "__all__" || filtroDisplay !== "__all__";
+
+  const limparFiltros = () => {
+    setFiltroCategoria("__all__");
+    setFiltroMarca("__all__");
+    setFiltroLinha("__all__");
+    setFiltroDisplay("__all__");
+  };
+
   const precosFiltrados = precos?.filter((preco) => {
-    if (!busca) return true;
-    const buscaLower = busca.toLowerCase();
-    return (
-      preco.produto?.nome?.toLowerCase().includes(buscaLower) ||
-      preco.produto?.codigo?.toLowerCase().includes(buscaLower) ||
-      preco.produto?.sku?.toLowerCase().includes(buscaLower) ||
-      preco.produto?.categoria?.toLowerCase().includes(buscaLower) ||
-      preco.produto?.marca?.toLowerCase().includes(buscaLower)
-    );
+    // Filtro por busca textual
+    if (busca) {
+      const buscaLower = busca.toLowerCase();
+      const matchBusca =
+        preco.produto?.nome?.toLowerCase().includes(buscaLower) ||
+        preco.produto?.codigo?.toLowerCase().includes(buscaLower) ||
+        preco.produto?.sku?.toLowerCase().includes(buscaLower) ||
+        preco.produto?.categoria?.toLowerCase().includes(buscaLower) ||
+        preco.produto?.marca?.toLowerCase().includes(buscaLower);
+      if (!matchBusca) return false;
+    }
+
+    // Filtro por categoria
+    if (filtroCategoria !== "__all__" && preco.produto?.categoria !== filtroCategoria) return false;
+
+    // Filtro por marca
+    if (filtroMarca !== "__all__" && preco.produto?.marca !== filtroMarca) return false;
+
+    // Filtro por linha
+    if (filtroLinha !== "__all__" && preco.produto?.linha !== filtroLinha) return false;
+
+    // Filtro por display
+    if (filtroDisplay === "apenas_display") {
+      if (preco.produto?.tipo !== "DISPLAY") return false;
+    } else if (filtroDisplay === "excluir_display") {
+      if (preco.produto?.tipo === "DISPLAY") return false;
+    }
+
+    return true;
   });
 
   const estatisticas = {
@@ -370,6 +410,63 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
           />
         </div>
 
+        {/* Filtros */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas Categorias</SelectItem>
+              {categoriasUnicas.map((cat) => (
+                <SelectItem key={cat} value={cat!}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filtroMarca} onValueChange={setFiltroMarca}>
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Marca" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas Marcas</SelectItem>
+              {marcasUnicas.map((marca) => (
+                <SelectItem key={marca} value={marca!}>{marca}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filtroLinha} onValueChange={setFiltroLinha}>
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Linha" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas Linhas</SelectItem>
+              {linhasUnicas.map((linha) => (
+                <SelectItem key={linha} value={linha!}>{linha}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filtroDisplay} onValueChange={setFiltroDisplay}>
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Display" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos</SelectItem>
+              <SelectItem value="apenas_display">Apenas Displays</SelectItem>
+              <SelectItem value="excluir_display">Excluir Displays</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {temFiltrosAtivos && (
+            <Button variant="ghost" size="sm" onClick={limparFiltros} className="h-8 text-xs gap-1">
+              <X className="h-3 w-3" />
+              Limpar filtros
+            </Button>
+          )}
+        </div>
+
         {/* Tabela de Preços */}
         <div className="flex-1 overflow-auto border rounded-lg">
           {isLoading ? (
@@ -532,7 +629,7 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
         <div className="flex items-center justify-between text-sm text-muted-foreground border-t pt-3">
           <span>
             {precosFiltrados?.length} produto{precosFiltrados?.length !== 1 ? 's' : ''} 
-            {busca && ` encontrado${precosFiltrados?.length !== 1 ? 's' : ''}`}
+            {(busca || temFiltrosAtivos) && ` encontrado${precosFiltrados?.length !== 1 ? 's' : ''}`}
           </span>
           <span>
             Tabela: <strong>{tabela.codigo}</strong>
