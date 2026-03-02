@@ -30,8 +30,9 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authErr } = await supabase.auth.getUser();
-    if (authErr || !user) {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: authErr } = await supabase.auth.getClaims(token);
+    if (authErr || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -54,6 +55,7 @@ Deno.serve(async (req) => {
       const inicioMes = new Date(ano, mes - 1, 1).toISOString();
       const fimMes = new Date(ano, mes, 0, 23, 59, 59).toISOString();
 
+      // Créditos de entrada
       const { data: itens } = await supabase
         .from("fabrica_itens_nf")
         .select("valor_cbs, valor_ibs, elegivel_credito_iva")
@@ -61,11 +63,12 @@ Deno.serve(async (req) => {
         .lte("created_at", fimMes)
         .not("valor_cbs", "is", null);
 
-      const { data: apuracoes } = await supabase
-        .from("fabrica_apuracao_fiscal")
-        .select("tipo_imposto, total_debitos, total_creditos, saldo_periodo")
-        .eq("periodo", periodo)
-        .in("tipo_imposto", ["CBS", "IBS"]);
+      // Débitos de saída
+      const { data: itensSaida } = await supabase
+        .from("fabrica_itens_nf_saida" as any)
+        .select("valor_cbs, valor_ibs")
+        .gte("created_at", inicioMes)
+        .lte("created_at", fimMes);
 
       const creditos_cbs = arredondamentoFiscal(
         (itens || []).filter((i: any) => i.elegivel_credito_iva !== false).reduce((s: number, i: any) => s + (i.valor_cbs || 0), 0)
@@ -74,19 +77,23 @@ Deno.serve(async (req) => {
         (itens || []).filter((i: any) => i.elegivel_credito_iva !== false).reduce((s: number, i: any) => s + (i.valor_ibs || 0), 0)
       );
 
-      const apCBS = (apuracoes || []).find((a: any) => a.tipo_imposto === "CBS");
-      const apIBS = (apuracoes || []).find((a: any) => a.tipo_imposto === "IBS");
+      const debitos_cbs = arredondamentoFiscal(
+        ((itensSaida as any[]) || []).reduce((s: number, i: any) => s + (i.valor_cbs || 0), 0)
+      );
+      const debitos_ibs = arredondamentoFiscal(
+        ((itensSaida as any[]) || []).reduce((s: number, i: any) => s + (i.valor_ibs || 0), 0)
+      );
 
       const result = {
         periodo,
-        total_debitos_cbs: apCBS?.total_debitos || 0,
-        total_debitos_ibs: apIBS?.total_debitos || 0,
+        total_debitos_cbs: debitos_cbs,
+        total_debitos_ibs: debitos_ibs,
         total_creditos_cbs: creditos_cbs,
         total_creditos_ibs: creditos_ibs,
-        cbs_a_recolher: arredondamentoFiscal((apCBS?.total_debitos || 0) - creditos_cbs),
-        ibs_a_recolher: arredondamentoFiscal((apIBS?.total_debitos || 0) - creditos_ibs),
+        cbs_a_recolher: arredondamentoFiscal(debitos_cbs - creditos_cbs),
+        ibs_a_recolher: arredondamentoFiscal(debitos_ibs - creditos_ibs),
         saldo_iva: arredondamentoFiscal(
-          ((apCBS?.total_debitos || 0) - creditos_cbs) + ((apIBS?.total_debitos || 0) - creditos_ibs)
+          (debitos_cbs - creditos_cbs) + (debitos_ibs - creditos_ibs)
         ),
       };
 
@@ -97,11 +104,15 @@ Deno.serve(async (req) => {
 
     // GET /debitos
     if (req.method === "GET" && path === "debitos") {
+      const [ano, mes] = periodo.split("-").map(Number);
+      const inicioMes = new Date(ano, mes - 1, 1).toISOString();
+      const fimMes = new Date(ano, mes, 0, 23, 59, 59).toISOString();
+
       const { data } = await supabase
-        .from("fabrica_apuracao_fiscal")
-        .select("*")
-        .eq("periodo", periodo)
-        .in("tipo_imposto", ["CBS", "IBS"]);
+        .from("fabrica_itens_nf_saida" as any)
+        .select("*, nota_saida_id")
+        .gte("created_at", inicioMes)
+        .lte("created_at", fimMes);
 
       return new Response(JSON.stringify({ debitos: data || [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -121,14 +132,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    // GET /saidas
+    if (req.method === "GET" && path === "saidas") {
+      const { data } = await supabase
+        .from("fabrica_notas_fiscais_saida" as any)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      return new Response(JSON.stringify({ notas: data || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // POST /simular
     if (req.method === "POST" && path === "simular") {
       const body = await req.json();
-      const itens = body.itens || [];
+      const simItens = body.itens || [];
       const debitos: any[] = [];
       const creditos: any[] = [];
 
-      for (const item of itens) {
+      for (const item of simItens) {
         const base = item.base_calculo || 0;
         const cbs = item.aliquota_cbs || 0;
         const ibs = item.aliquota_ibs || 0;
