@@ -52,7 +52,8 @@ async function withRetry<T>(
     try {
       return await operation();
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
+      const errorStr = error instanceof Error ? error.message : (typeof error === 'object' ? JSON.stringify(error) : String(error));
+      lastError = error instanceof Error ? error : new Error(errorStr);
       const errorMessage = lastError.message.toLowerCase();
       
       const isRetryable = 
@@ -102,7 +103,7 @@ async function safeExecute<T>(
     const result = await withRetry(operation, { operationName, maxRetries: MAX_RETRIES });
     return { data: result, success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : (typeof error === 'object' ? JSON.stringify(error) : String(error));
     console.error(`⚠️ [${operationName}] Retornando fallback após erro:`, errorMessage);
     return { data: fallbackValue, success: false, error: errorMessage };
   }
@@ -120,7 +121,7 @@ function logSuccess(operation: string, details?: Record<string, unknown>) {
 
 function logError(operation: string, error: unknown, context?: Record<string, unknown>) {
   const timestamp = new Date().toISOString();
-  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorMessage = error instanceof Error ? error.message : (typeof error === 'object' ? JSON.stringify(error) : String(error));
   console.error(`❌ [${timestamp}] ${operation}: ${errorMessage}`, context ? JSON.stringify(context) : '');
 }
 
