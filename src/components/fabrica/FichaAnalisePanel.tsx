@@ -790,10 +790,31 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                 <Textarea value={parecer} onChange={(e) => setParecer(e.target.value)}
                   placeholder="Observações sobre a ficha de custos..." rows={3} />
               </div>
-              {vinculadosDinamicos.some((v: any) => v.relacao === "filho" && v._dinamico) && (
-                <div className="flex items-center gap-2 p-2 rounded bg-destructive/10 border border-destructive/30 text-sm text-destructive">
-                  <ShieldAlert className="h-4 w-4 shrink-0" />
-                  <span>Produto(s) da grade sem revisão — é obrigatório submeter e revisar antes de aprovar o Kit.</span>
+              {vinculadosDinamicos.filter((v: any) => v.relacao === "filho" && v._dinamico).length > 0 && (
+                <div className="rounded border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                    <ShieldAlert className="h-4 w-4 shrink-0" />
+                    Produto(s) da grade sem revisão — obrigatório revisar antes de aprovar o Kit
+                  </div>
+                  {vinculadosDinamicos.filter((v: any) => v.relacao === "filho" && v._dinamico).map((v: any) => (
+                    <div key={v.id} className="flex items-center justify-between bg-background rounded border p-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Badge variant="outline" className="text-[10px]">{v.produto?.codigo}</Badge>
+                        <span className="font-medium">{v.produto?.nome}</span>
+                        <Badge variant="destructive" className="text-[10px]">Sem revisão</Badge>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        onClick={() => {
+                          window.open(`/dashboard/fabrica/produtos/${v.produto_id}/custos`, '_blank');
+                        }}
+                      >
+                        <Eye className="h-3 w-3 mr-1" /> Abrir Ficha de Custos
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               )}
               <div className="flex gap-2 justify-end">
