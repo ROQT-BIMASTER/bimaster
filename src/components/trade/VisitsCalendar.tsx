@@ -62,6 +62,7 @@ interface Visit {
 interface VisitsCalendarProps {
   userId?: string;
   onVisitClick?: (visitId: string) => void;
+  refreshKey?: number;
 }
 
 type ViewMode = "month" | "week";
@@ -75,7 +76,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; dotColor: st
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-export const VisitsCalendar = ({ userId, onVisitClick }: VisitsCalendarProps) => {
+export const VisitsCalendar = ({ userId, onVisitClick, refreshKey }: VisitsCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -85,7 +86,7 @@ export const VisitsCalendar = ({ userId, onVisitClick }: VisitsCalendarProps) =>
 
   useEffect(() => {
     fetchVisits();
-  }, [userId]);
+  }, [userId, refreshKey]);
 
   const fetchVisits = async () => {
     try {

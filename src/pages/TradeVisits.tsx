@@ -61,6 +61,7 @@ const TradeVisits = () => {
   const [aiCriteria, setAiCriteria] = useState<any>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [selectedTeamMember, setSelectedTeamMember] = useState<string | null>(null);
+  const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!permissionsLoading && hasPermission("trade_visits")) {
@@ -132,6 +133,7 @@ const TradeVisits = () => {
       toast.error("Erro ao carregar visitas");
     } finally {
       setLoading(false);
+      setCalendarRefreshKey(prev => prev + 1);
     }
   };
 
@@ -475,6 +477,7 @@ const TradeVisits = () => {
           <TabsContent value="calendario" className="mt-6">
             <VisitsCalendar 
               userId={currentUserId || undefined}
+              refreshKey={calendarRefreshKey}
               onVisitClick={(visitId) => {
                 setSelectedVisitId(visitId);
                 setShowDetailDialog(true);
