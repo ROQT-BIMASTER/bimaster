@@ -829,7 +829,18 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
               revisaoId={ficha.id}
               configId={ficha.config_id}
               produtoId={ficha.produto_id}
-              insumos={snapshotInsumos.map((i: any) => ({ id: i.id, nome: i.nome, codigo: i.codigo }))}
+              insumos={[
+                ...snapshotInsumos.map((i: any) => ({ id: i.id, nome: i.nome, codigo: i.codigo, tipo_insumo: i.tipo_insumo })),
+                ...produtosVinculados.flatMap((v: any) =>
+                  (v.snapshot_insumos || []).map((i: any) => ({
+                    id: i.id,
+                    nome: `↳ ${v.produto?.codigo || ''} → ${i.nome}`,
+                    codigo: i.codigo,
+                    tipo_insumo: i.tipo_insumo,
+                    _vinculado: true,
+                  }))
+                ),
+              ]}
               tipoRemetente="diretoria"
             />
           </div>

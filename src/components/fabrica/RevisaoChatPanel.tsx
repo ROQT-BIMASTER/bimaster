@@ -719,12 +719,13 @@ export function RevisaoChatPanel({ revisaoId, configId, insumos = [], tipoRemete
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sem referência a insumo</SelectItem>
-                    {insumos.map((i) => {
+                    {insumos.map((i: any) => {
                       const deveRevisar = insumosComApontamento.has(i.id);
+                      const isVinculado = i._vinculado;
                       return (
                         <SelectItem key={i.id} value={i.id}>
-                          <span className={deveRevisar ? "text-destructive font-semibold" : ""}>
-                            {i.codigo} - {i.nome}
+                          <span className={`${deveRevisar ? "text-destructive font-semibold" : ""} ${isVinculado ? "text-blue-600 dark:text-blue-400" : ""}`}>
+                            {isVinculado ? i.nome : `${i.codigo} - ${i.nome}`}
                             {deveRevisar && " — Revisar"}
                           </span>
                         </SelectItem>
