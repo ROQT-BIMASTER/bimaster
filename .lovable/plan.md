@@ -1,36 +1,41 @@
 
 
-## Persistir filtro de módulos no menu lateral
+## Corrigir entrada de decimais como 0,05
 
 ### Problema
-O filtro "Todos os Módulos" no sidebar usa `useState` local, então ao navegar para qualquer tela o componente re-renderiza e o filtro volta ao estado inicial (sem filtro).
+No `DecimalInput`, ao digitar "0,0" (etapa intermediária de "0,05"), o `parseFloat("0.0")` retorna `0`, apagando o que o usuário digitou. O campo volta para "0" e impede a digitação natural.
+
+### Causa (linha 102)
+```typescript
+onChange(raw === "" ? 0 : raw.endsWith(".") ? raw : parseFloat(raw) || 0);
+```
+- `parseFloat("0.0")` → `0` → campo reseta para "0"
+- Mesma coisa com "0.00" → perde o estado intermediário
 
 ### Solução
-Persistir o `selectedModules` no `sessionStorage` para que sobreviva à navegação entre telas durante a sessão.
+Manter o valor como **string crua** enquanto o usuário está digitando, e só converter para número quando o valor é "final" (não termina em "." e não termina em "0" após o ponto):
 
-### Alteração
-
-**`src/components/dashboard/AppSidebar.tsx`**:
-
-1. Inicializar `selectedModules` lendo do `sessionStorage`:
 ```typescript
-const [selectedModules, setSelectedModules] = useState<Set<string>>(() => {
-  try {
-    const saved = sessionStorage.getItem("sidebar-module-filter");
-    return saved ? new Set(JSON.parse(saved)) : new Set();
-  } catch { return new Set(); }
-});
+onChange={(e) => {
+  const raw = e.target.value.replace(",", ".");
+  if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
+    // Keep as string while user is still typing decimals
+    if (raw === "" ) {
+      onChange(0);
+    } else if (raw.endsWith(".") || /\.\d*0$/.test(raw)) {
+      onChange(raw); // preserve intermediate state like "0.0", "0.00"
+    } else {
+      onChange(parseFloat(raw) || 0);
+    }
+  }
+}}
 ```
 
-2. Adicionar `useEffect` para salvar no `sessionStorage` quando mudar:
+Também ajustar o `displayValue` para preservar strings intermediárias:
 ```typescript
-useEffect(() => {
-  sessionStorage.setItem(
-    "sidebar-module-filter",
-    JSON.stringify(Array.from(selectedModules))
-  );
-}, [selectedModules]);
+const displayValue = typeof value === "string" ? value : (value === 0 ? "0" : String(value));
 ```
 
-Isso mantém o filtro ativo enquanto o usuário navega entre telas, sem necessidade de contexto global ou mudanças em outros arquivos. O filtro reseta apenas quando a aba do navegador é fechada.
+### Arquivo
+- `src/components/fabrica/FichaCustoProdutoEditor.tsx` — componente `DecimalInput` (linhas 79-109)
 
