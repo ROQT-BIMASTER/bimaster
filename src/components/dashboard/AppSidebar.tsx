@@ -271,7 +271,19 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const [precosOpen, setPrecosOpen] = useState(true);
   const [tabelasPendentes, setTabelasPendentes] = useState(0);
   const [userName, setUserName] = useState<string>("");
-  const [selectedModules, setSelectedModules] = useState<Set<string>>(new Set());
+  const [selectedModules, setSelectedModules] = useState<Set<string>>(() => {
+    try {
+      const saved = sessionStorage.getItem("sidebar-module-filter");
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem(
+      "sidebar-module-filter",
+      JSON.stringify(Array.from(selectedModules))
+    );
+  }, [selectedModules]);
 
   const loading = permissionsLoading || modulesLoading;
 
