@@ -400,7 +400,6 @@ Deno.serve(async (req) => {
     const validateApiKey = () => {
       const apiKey = req.headers.get('x-api-key');
       const expectedKey = Deno.env.get('N8N_API_KEY');
-      console.log(`🔑 [auth-debug] apiKey present: ${!!apiKey}, expectedKey present: ${!!expectedKey}, match: ${apiKey === expectedKey}, apiKey prefix: "${apiKey?.substring(0, 12)}", expectedKey prefix: "${expectedKey?.substring(0, 12)}"`);
       return apiKey && apiKey === expectedKey;
     };
 
