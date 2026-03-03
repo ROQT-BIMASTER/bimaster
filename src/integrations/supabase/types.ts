@@ -20753,6 +20753,7 @@ export type Database = {
       }
       pis_cofins_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       pis_cofins_tipo_credito: { Args: { p_cst: string }; Returns: string }
+      recalculate_contas_pagar_status: { Args: never; Returns: Json }
       refresh_all_materialized_views: { Args: never; Returns: undefined }
       refresh_analise_departamentos: { Args: never; Returns: undefined }
       refresh_daily_kpis: { Args: { target_date?: string }; Returns: undefined }
