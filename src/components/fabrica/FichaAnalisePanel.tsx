@@ -70,6 +70,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   const [historicoVersoes, setHistoricoVersoes] = useState<any[]>([]);
   const [cotacoesByInsumo, setCotacoesByInsumo] = useState<Record<string, any[]>>({});
   const [expandedInsumo, setExpandedInsumo] = useState<string | null>(null);
+  const [expandedVinculado, setExpandedVinculado] = useState<string | null>(null);
 
   const formatarMoeda = (valor: number) =>
     valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
@@ -212,7 +213,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
               </div>
             </div>
 
-            {/* Produtos Vinculados (Kit ↔ Unidade) */}
+            {/* Produtos Vinculados (Kit ↔ Unidade) com insumos expandíveis */}
             {produtosVinculados.length > 0 && (
               <Card className="border-blue-400/50 bg-blue-50/20 dark:bg-blue-950/10">
                 <CardContent className="p-3 space-y-2">
@@ -221,23 +222,80 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                   </p>
                   {produtosVinculados.map((v: any) => {
                     const custoVinc = v.snapshot_totais?.custoTotal || 0;
+                    const vincInsumos = (v.snapshot_insumos || []) as any[];
+                    const isVincExpanded = expandedVinculado === v.id;
                     return (
-                      <div key={v.id} className="flex items-center justify-between p-2 bg-background rounded border text-sm">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Badge variant="outline" className="text-[10px] shrink-0">
-                            {v.relacao === "pai" ? "Kit (Display)" : "Unidade"}
-                          </Badge>
-                          <span className="font-medium truncate">{v.produto?.nome}</span>
-                          <Badge variant="secondary" className="text-[10px]">v{v.versao}</Badge>
+                      <div key={v.id} className="bg-background rounded border overflow-hidden">
+                        <div
+                          className="flex items-center justify-between p-2 text-sm cursor-pointer hover:bg-muted/50"
+                          onClick={() => setExpandedVinculado(isVincExpanded ? null : v.id)}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {isVincExpanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                            <Badge variant="outline" className="text-[10px] shrink-0">
+                              {v.relacao === "pai" ? "Kit (Display)" : "Unidade"}
+                            </Badge>
+                            <span className="font-medium truncate">{v.produto?.nome}</span>
+                            <Badge variant="secondary" className="text-[10px]">v{v.versao}</Badge>
+                            <Badge variant="outline" className="text-[10px]">{vincInsumos.length} insumos</Badge>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="font-semibold">{formatarMoeda(custoVinc)}</span>
+                            {onSelectFicha && (
+                              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); onSelectFicha(v); }}>
+                                <Eye className="h-3 w-3 mr-1" /> Ver ficha
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="font-semibold">{formatarMoeda(custoVinc)}</span>
-                          {onSelectFicha && (
-                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onSelectFicha(v)}>
-                              <Eye className="h-3 w-3 mr-1" /> Ver
-                            </Button>
-                          )}
-                        </div>
+                        {isVincExpanded && vincInsumos.length > 0 && (
+                          <div className="border-t px-2 pb-2">
+                            <ScrollArea className="max-h-[250px]">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="text-xs">Código</TableHead>
+                                    <TableHead className="text-xs">Insumo</TableHead>
+                                    <TableHead className="text-xs">Fornecedor</TableHead>
+                                    <TableHead className="text-xs text-right">NF (R$)</TableHead>
+                                    <TableHead className="text-xs text-right">Serviço (R$)</TableHead>
+                                    <TableHead className="text-xs text-right">Condição (R$)</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {vincInsumos.map((ins: any, idx: number) => (
+                                    <TableRow key={idx}>
+                                      <TableCell className="font-mono text-xs py-1.5">{ins.codigo}</TableCell>
+                                      <TableCell className="text-xs py-1.5">{ins.nome}</TableCell>
+                                      <TableCell className="text-xs py-1.5">{ins.fornecedor || "-"}</TableCell>
+                                      <TableCell className="text-right text-xs py-1.5">{formatarMoeda(Number(ins.custo_nf) || 0)}</TableCell>
+                                      <TableCell className="text-right text-xs py-1.5">{formatarMoeda(Number(ins.custo_servico) || 0)}</TableCell>
+                                      <TableCell className="text-right text-xs py-1.5">{formatarMoeda(Number(ins.custo_condicao) || 0)}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </ScrollArea>
+                            <div className="grid grid-cols-4 gap-2 mt-2">
+                              <div className="p-2 bg-muted rounded text-center">
+                                <p className="text-[10px] text-muted-foreground">NF</p>
+                                <p className="font-bold text-xs">{formatarMoeda((v.snapshot_totais?.totalNF || 0) + (v.snapshot_totais?.markupNF || 0))}</p>
+                              </div>
+                              <div className="p-2 bg-muted rounded text-center">
+                                <p className="text-[10px] text-muted-foreground">Serviço</p>
+                                <p className="font-bold text-xs">{formatarMoeda((v.snapshot_totais?.totalServico || 0) + (v.snapshot_totais?.markupServico || 0))}</p>
+                              </div>
+                              <div className="p-2 bg-muted rounded text-center">
+                                <p className="text-[10px] text-muted-foreground">Condição</p>
+                                <p className="font-bold text-xs">{formatarMoeda((v.snapshot_totais?.totalCondicao || 0) + (v.snapshot_totais?.markupCondicao || 0))}</p>
+                              </div>
+                              <div className="p-2 bg-primary/10 rounded text-center border border-primary/30">
+                                <p className="text-[10px] text-muted-foreground">Custo Total</p>
+                                <p className="font-bold text-xs text-primary">{formatarMoeda(custoVinc)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
