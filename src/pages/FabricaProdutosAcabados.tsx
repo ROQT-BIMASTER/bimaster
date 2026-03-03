@@ -224,7 +224,13 @@ export default function FabricaProdutosAcabados() {
     const result: any[] = [];
 
     for (const p of filtered) {
-      if (childrenPlaced.has(p.id)) continue; // já foi inserido como filho
+      // Se é filho e o pai está na lista, pular (será inserido após o pai)
+      if (filhoParaPaiMap.has(p.id) && filteredIds.has(filhoParaPaiMap.get(p.id)!)) {
+        if (childrenPlaced.has(p.id)) continue;
+        // Não adicionar agora, será adicionado quando o pai for processado
+        continue;
+      }
+      if (childrenPlaced.has(p.id)) continue;
       result.push(p);
       // Se é pai (Display), inserir filhos logo após
       const childIds = paiParaFilhosMap.get(p.id);
@@ -238,6 +244,12 @@ export default function FabricaProdutosAcabados() {
             }
           }
         }
+      }
+    }
+    // Adicionar filhos órfãos (cujo pai não está na lista filtrada)
+    for (const p of filtered) {
+      if (!childrenPlaced.has(p.id) && !result.includes(p)) {
+        result.push(p);
       }
     }
     return result;
