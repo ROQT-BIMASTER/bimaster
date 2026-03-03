@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { 
   FileText, 
@@ -26,6 +27,7 @@ interface N8NTabContentProps {
 
 export function N8NTabContent({ stats, isSyncing, onRefresh }: N8NTabContentProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isTriggering, setIsTriggering] = useState(false);
   const [triggerResult, setTriggerResult] = useState<{
     success: boolean;
@@ -65,8 +67,13 @@ export function N8NTabContent({ stats, isSyncing, onRefresh }: N8NTabContentProp
           description: 'O workflow N8N foi iniciado. Aguarde alguns segundos e atualize.',
         });
         
-        // Atualizar dados após um delay
+        // Invalidar cache e atualizar dados após delay
         setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar-dashboard'] });
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar-table'] });
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar-dre-view'] });
+          queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
           onRefresh();
         }, 5000);
       } else {
