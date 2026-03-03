@@ -217,23 +217,49 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
               .eq("produto_id", filhoId)
               .maybeSingle();
 
-            if (!filhoConfig || filhoConfig.status_aprovacao === "em_revisao") continue;
+            // Se já está em_revisao, pular (já foi submetido)
+            if (filhoConfig?.status_aprovacao === "em_revisao") continue;
 
-            // Buscar insumos do filho
+            let configParaUsar = filhoConfig;
+
+            // Se o filho não tem config, criar uma com valores padrão
+            if (!configParaUsar) {
+              const { data: novoConfig, error: errConfig } = await supabase
+                .from("fabrica_produto_custos_config")
+                .insert({
+                  produto_id: filhoId,
+                  margem_lucro: 0,
+                  impostos_percentual: 0,
+                  frete_percentual: 0,
+                  comissao_percentual: 0,
+                  markup_desejado: 0,
+                  status_aprovacao: "rascunho",
+                })
+                .select()
+                .single();
+
+              if (errConfig || !novoConfig) {
+                console.warn(`Não foi possível criar config para filho ${filhoId}:`, errConfig);
+                continue;
+              }
+              configParaUsar = novoConfig;
+            }
+
+            // Buscar insumos do filho (pode ser vazio)
             const { data: filhoInsumos } = await supabase
               .from("fabrica_produto_custos")
               .select("*")
               .eq("produto_id", filhoId)
               .order("ordem");
 
-            if (!filhoInsumos || filhoInsumos.length === 0) continue;
+            const insumosParaUsar = (filhoInsumos || []) as any[];
 
             // Calcular totais do filho
-            const filhoTotais = calcularTotaisSimples(filhoInsumos as any[], filhoConfig as any);
+            const filhoTotais = calcularTotaisSimples(insumosParaUsar, configParaUsar as any);
 
             await submeterFichaUnica(
-              filhoConfig.id, filhoId,
-              filhoInsumos as any[], filhoConfig as any, filhoTotais,
+              configParaUsar.id, filhoId,
+              insumosParaUsar, configParaUsar as any, filhoTotais,
               user?.user?.id || null
             );
           } catch (err) {
