@@ -1,41 +1,32 @@
 
 
-## Corrigir entrada de decimais como 0,05
+## Dados de Contas a Pagar não atualizam após sincronização
 
 ### Problema
-No `DecimalInput`, ao digitar "0,0" (etapa intermediária de "0,05"), o `parseFloat("0.0")` retorna `0`, apagando o que o usuário digitou. O campo volta para "0" e impede a digitação natural.
-
-### Causa (linha 102)
-```typescript
-onChange(raw === "" ? 0 : raw.endsWith(".") ? raw : parseFloat(raw) || 0);
-```
-- `parseFloat("0.0")` → `0` → campo reseta para "0"
-- Mesma coisa com "0.00" → perde o estado intermediário
+O hook `useContasPagarSync` sincroniza dados via N8N ou API direta, mas nunca invalida o cache do React Query. As queries em `ContasAPagar.tsx` e `ContasPagarDREView.tsx` usam keys como `contas-pagar-dashboard`, `contas-pagar-table`, `contas-pagar-calendario` e `contas-pagar-dre-view` -- todas permanecem com dados antigos no cache.
 
 ### Solução
-Manter o valor como **string crua** enquanto o usuário está digitando, e só converter para número quando o valor é "final" (não termina em "." e não termina em "0" após o ponto):
+Adicionar `queryClient.invalidateQueries()` no hook `useContasPagarSync.ts` após cada sincronização bem-sucedida (tanto `syncDirect` quanto `fetchStats`).
+
+### Alteração
+
+**`src/hooks/useContasPagarSync.ts`**:
+
+1. Importar `useQueryClient` do `@tanstack/react-query`
+2. Inicializar `const queryClient = useQueryClient()` no hook
+3. Após sync bem-sucedida no `syncDirect`, invalidar todas as queries relevantes:
 
 ```typescript
-onChange={(e) => {
-  const raw = e.target.value.replace(",", ".");
-  if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
-    // Keep as string while user is still typing decimals
-    if (raw === "" ) {
-      onChange(0);
-    } else if (raw.endsWith(".") || /\.\d*0$/.test(raw)) {
-      onChange(raw); // preserve intermediate state like "0.0", "0.00"
-    } else {
-      onChange(parseFloat(raw) || 0);
-    }
-  }
-}}
+queryClient.invalidateQueries({ queryKey: ['contas-pagar-dashboard'] });
+queryClient.invalidateQueries({ queryKey: ['contas-pagar-table'] });
+queryClient.invalidateQueries({ queryKey: ['contas-pagar-calendario'] });
+queryClient.invalidateQueries({ queryKey: ['contas-pagar-dre-view'] });
+queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
+queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
 ```
 
-Também ajustar o `displayValue` para preservar strings intermediárias:
-```typescript
-const displayValue = typeof value === "string" ? value : (value === 0 ? "0" : String(value));
-```
+Isso garante que qualquer tela aberta com dados de contas a pagar refaça a consulta automaticamente após a sincronização.
 
 ### Arquivo
-- `src/components/fabrica/FichaCustoProdutoEditor.tsx` — componente `DecimalInput` (linhas 79-109)
+- `src/hooks/useContasPagarSync.ts`
 
