@@ -104,7 +104,88 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
     { enabled: !!configId }
   );
 
-  // Submeter para aprovação
+  // Função auxiliar para calcular totais simples de uma ficha
+  const calcularTotaisSimples = (insumosArr: any[], configObj: any) => {
+    let totalNF = 0, totalServico = 0, totalCondicao = 0;
+    insumosArr.forEach((i: any) => {
+      totalNF += Number(i.custo_nf) || 0;
+      totalServico += Number(i.custo_servico) || 0;
+      totalCondicao += Number(i.custo_condicao) || 0;
+    });
+    totalNF += Number(configObj.custo_mao_obra_nf) || 0;
+    totalServico += Number(configObj.custo_mao_obra_servico) || 0;
+
+    const perc = Number(configObj.percentual_markup) || 0;
+    const base = configObj.base_calculo_markup || "nf_servico";
+    let baseMarkup = 0;
+    if (base === "total") baseMarkup = totalNF + totalServico + totalCondicao;
+    else if (base === "nf") baseMarkup = totalNF;
+    else if (base === "servico") baseMarkup = totalServico;
+    else baseMarkup = totalNF + totalServico;
+
+    const markupValor = baseMarkup * (perc / 100);
+    const custoTotal = totalNF + totalServico + totalCondicao + markupValor;
+
+    return { totalNF, totalServico, totalCondicao, markupNF: base === "nf" || base === "nf_servico" || base === "total" ? markupValor * (totalNF / (baseMarkup || 1)) : 0, markupServico: 0, markupCondicao: 0, custoTotal };
+  };
+
+  // Função auxiliar para submeter uma única ficha
+  const submeterFichaUnica = async (
+    cfgId: string, prodId: string,
+    insumosArr: CustoInsumo[], configObj: CustoConfig, totaisObj: any,
+    userId: string | null
+  ) => {
+    const { data: ultimaRevisao } = await supabase
+      .from("fabrica_ficha_custo_revisoes")
+      .select("versao")
+      .eq("config_id", cfgId)
+      .order("versao", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const novaVersao = (ultimaRevisao?.versao || 0) + 1;
+
+    // Buscar alterações recentes
+    const insumoIds = insumosArr.map(i => i.id);
+    let alteracoesPendentes: any[] = [];
+    if (insumoIds.length > 0) {
+      const { data: alteracoes } = await supabase
+        .from("fabrica_insumo_custo_historico" as any)
+        .select("*")
+        .in("produto_custo_id", insumoIds)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (alteracoes) {
+        alteracoesPendentes = (alteracoes as any[]).map((a: any) => ({
+          insumo_id: a.produto_custo_id,
+          insumo_nome: insumosArr.find(i => i.id === a.produto_custo_id)?.nome || "",
+          campo: a.campo, valor_anterior: a.valor_anterior, valor_novo: a.valor_novo,
+          motivo: a.motivo, usuario_nome: a.usuario_nome, data: a.created_at,
+        }));
+      }
+    }
+
+    const { data: revisao, error } = await supabase
+      .from("fabrica_ficha_custo_revisoes")
+      .insert({
+        config_id: cfgId, produto_id: prodId, status: "pendente",
+        snapshot_insumos: insumosArr as any, snapshot_config: configObj as any,
+        snapshot_totais: { ...totaisObj, alteracoes_pendentes: alteracoesPendentes } as any,
+        submetido_por: userId, versao: novaVersao,
+      })
+      .select().single();
+
+    if (error) throw error;
+
+    await supabase
+      .from("fabrica_produto_custos_config")
+      .update({ status_aprovacao: "em_revisao", revisao_ativa_id: revisao.id })
+      .eq("id", cfgId);
+
+    return revisao;
+  };
+
+  // Submeter para aprovação (inclui filhos vinculados se Display/Kit)
   const submeterParaAprovacao = useCallback(async (
     insumos: CustoInsumo[],
     config: CustoConfig,
@@ -113,68 +194,53 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
     if (!produtoId || !configId) return;
     setSubmitting(true);
     try {
-      // Buscar última versão
-      const { data: ultimaRevisao } = await supabase
-        .from("fabrica_ficha_custo_revisoes")
-        .select("versao")
-        .eq("config_id", configId)
-        .order("versao", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const novaVersao = (ultimaRevisao?.versao || 0) + 1;
-
       const { data: user } = await supabase.auth.getUser();
 
-      // Buscar alterações recentes de custo dos insumos deste produto
-      const insumoIds = insumos.map(i => i.id);
-      let alteracoesPendentes: any[] = [];
-      if (insumoIds.length > 0) {
-        const { data: alteracoes } = await supabase
-          .from("fabrica_insumo_custo_historico" as any)
-          .select("*")
-          .in("produto_custo_id", insumoIds)
-          .order("created_at", { ascending: false })
-          .limit(50);
-        if (alteracoes) {
-          alteracoesPendentes = (alteracoes as any[]).map((a: any) => ({
-            insumo_id: a.produto_custo_id,
-            insumo_nome: insumos.find(i => i.id === a.produto_custo_id)?.nome || "",
-            campo: a.campo,
-            valor_anterior: a.valor_anterior,
-            valor_novo: a.valor_novo,
-            motivo: a.motivo,
-            usuario_nome: a.usuario_nome,
-            data: a.created_at,
-          }));
+      // Submeter a ficha principal
+      await submeterFichaUnica(configId, produtoId, insumos, config, totais, user?.user?.id || null);
+
+      // Verificar se é um Display/Kit e submeter filhos vinculados
+      const { data: gradeItens } = await supabase
+        .from("fabrica_produto_grade_itens")
+        .select("produto_filho_id")
+        .eq("produto_pai_id", produtoId);
+
+      if (gradeItens && gradeItens.length > 0) {
+        const filhoIds = [...new Set((gradeItens as any[]).map((g: any) => g.produto_filho_id))];
+        
+        for (const filhoId of filhoIds) {
+          try {
+            // Buscar config do filho
+            const { data: filhoConfig } = await supabase
+              .from("fabrica_produto_custos_config")
+              .select("*")
+              .eq("produto_id", filhoId)
+              .maybeSingle();
+
+            if (!filhoConfig || filhoConfig.status_aprovacao === "em_revisao") continue;
+
+            // Buscar insumos do filho
+            const { data: filhoInsumos } = await supabase
+              .from("fabrica_produto_custos")
+              .select("*")
+              .eq("produto_id", filhoId)
+              .order("ordem");
+
+            if (!filhoInsumos || filhoInsumos.length === 0) continue;
+
+            // Calcular totais do filho
+            const filhoTotais = calcularTotaisSimples(filhoInsumos as any[], filhoConfig as any);
+
+            await submeterFichaUnica(
+              filhoConfig.id, filhoId,
+              filhoInsumos as any[], filhoConfig as any, filhoTotais,
+              user?.user?.id || null
+            );
+          } catch (err) {
+            console.warn(`Erro ao submeter filho ${filhoId}:`, err);
+          }
         }
       }
-
-      const { data: revisao, error } = await supabase
-        .from("fabrica_ficha_custo_revisoes")
-        .insert({
-          config_id: configId,
-          produto_id: produtoId,
-          status: "pendente",
-          snapshot_insumos: insumos as any,
-          snapshot_config: config as any,
-          snapshot_totais: { ...totais, alteracoes_pendentes: alteracoesPendentes } as any,
-          submetido_por: user?.user?.id || null,
-          versao: novaVersao,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Atualizar config com status e revisao_ativa_id
-      await supabase
-        .from("fabrica_produto_custos_config")
-        .update({
-          status_aprovacao: "em_revisao",
-          revisao_ativa_id: revisao.id,
-        })
-        .eq("id", configId);
 
       toast.success("Ficha submetida para aprovação da Diretoria!");
       refetchRevisao();
