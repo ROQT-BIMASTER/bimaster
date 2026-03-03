@@ -111,6 +111,13 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   };
 
   const handleAprovar = async () => {
+    // Verificar se há filhos sem revisão
+    const filhosSemRev = vinculadosDinamicos.filter((v: any) => v.relacao === "filho" && v._dinamico);
+    if (filhosSemRev.length > 0) {
+      const { toast } = await import("sonner");
+      toast.error(`Produto(s) vinculado(s) sem revisão: ${filhosSemRev.map((f: any) => f.produto?.nome || f.produto?.codigo).join(", ")}. É obrigatório revisar todos os produtos da grade antes de aprovar o Kit.`);
+      return;
+    }
     await onAprovar(ficha.id, ficha.config_id, parecer);
   };
 
@@ -783,6 +790,12 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                 <Textarea value={parecer} onChange={(e) => setParecer(e.target.value)}
                   placeholder="Observações sobre a ficha de custos..." rows={3} />
               </div>
+              {vinculadosDinamicos.some((v: any) => v.relacao === "filho" && v._dinamico) && (
+                <div className="flex items-center gap-2 p-2 rounded bg-destructive/10 border border-destructive/30 text-sm text-destructive">
+                  <ShieldAlert className="h-4 w-4 shrink-0" />
+                  <span>Produto(s) da grade sem revisão — é obrigatório submeter e revisar antes de aprovar o Kit.</span>
+                </div>
+              )}
               <div className="flex gap-2 justify-end">
                 {!modoRevisao ? (
                   <>
