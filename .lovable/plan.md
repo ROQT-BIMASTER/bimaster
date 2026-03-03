@@ -1,32 +1,54 @@
 
 
-## Dados de Contas a Pagar não atualizam após sincronização
+# Fix: Loop Infinito no N8N - Contas a Pagar
 
-### Problema
-O hook `useContasPagarSync` sincroniza dados via N8N ou API direta, mas nunca invalida o cache do React Query. As queries em `ContasAPagar.tsx` e `ContasPagarDREView.tsx` usam keys como `contas-pagar-dashboard`, `contas-pagar-table`, `contas-pagar-calendario` e `contas-pagar-dre-view` -- todas permanecem com dados antigos no cache.
+## Problema Identificado
 
-### Solução
-Adicionar `queryClient.invalidateQueries()` no hook `useContasPagarSync.ts` após cada sincronização bem-sucedida (tanto `syncDirect` quanto `fetchStats`).
+Dois problemas encadeados estão causando o loop infinito:
 
-### Alteração
+### 1. Erro na Função SQL: `relation "contas_pagar" does not exist`
+Os logs mostram que a função `bulk_upsert_contas_pagar_v2` está falhando com erro `42P01` - a tabela `contas_pagar` não é encontrada. Isso aconteceu porque ao dropar a versão de 1 parâmetro da função (`DROP FUNCTION IF EXISTS public.bulk_upsert_contas_pagar_v2(jsonb)`), o PostgreSQL pode ter removido a versão errada ou a função de 2 parâmetros ficou com o `search_path` incorreto.
 
-**`src/hooks/useContasPagarSync.ts`**:
+### 2. `sync_control` Nunca Atualiza
+Como todos os registros falham e caem no fallback (skipped), a otimização na linha 934 do edge function diz "só registrar em sync_control se houve alterações reais". Como nunca há alterações (tudo é skipped por erro), o `/last-sync` retorna sempre a mesma data antiga, e o n8n busca os mesmos dados infinitamente.
 
-1. Importar `useQueryClient` do `@tanstack/react-query`
-2. Inicializar `const queryClient = useQueryClient()` no hook
-3. Após sync bem-sucedida no `syncDirect`, invalidar todas as queries relevantes:
+## Plano de Correção
 
-```typescript
-queryClient.invalidateQueries({ queryKey: ['contas-pagar-dashboard'] });
-queryClient.invalidateQueries({ queryKey: ['contas-pagar-table'] });
-queryClient.invalidateQueries({ queryKey: ['contas-pagar-calendario'] });
-queryClient.invalidateQueries({ queryKey: ['contas-pagar-dre-view'] });
-queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
-queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
+### Tarefa 1: Recriar a função `bulk_upsert_contas_pagar_v2` corretamente
+- Criar migration SQL que recria a função de 2 parâmetros com `SET search_path = public` explícito
+- Garantir que referencia `public.contas_pagar` com schema completo
+
+### Tarefa 2: Sempre atualizar `sync_control` no endpoint `/sync`
+- Modificar o edge function para SEMPRE registrar em `sync_control` após processar, mesmo quando todos os registros são skipped
+- Isso garante que `/last-sync` retorna uma data atualizada e o n8n não reenvia os mesmos dados
+
+### Tarefa 3: Redesenhar a Edge Function
+- No endpoint `/sync` (linhas 933-951), remover a condicional `if (result.inserted > 0 || result.updated > 0)` e sempre inserir no `sync_control`
+- Isso quebra o ciclo infinito mesmo em cenários de erro
+
+## Detalhes Técnicos
+
+**Migration SQL:**
+```sql
+CREATE OR REPLACE FUNCTION public.bulk_upsert_contas_pagar_v2(
+  p_records jsonb, 
+  p_force_update boolean DEFAULT false
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$ ... $$;
 ```
 
-Isso garante que qualquer tela aberta com dados de contas a pagar refaça a consulta automaticamente após a sincronização.
+**Edge Function - remover condicional:**
+```typescript
+// ANTES (linha 934):
+if (result.inserted > 0 || result.updated > 0) {
+  await supabase.from('sync_control').insert({...});
+}
 
-### Arquivo
-- `src/hooks/useContasPagarSync.ts`
+// DEPOIS:
+await supabase.from('sync_control').insert({...});
+```
 
