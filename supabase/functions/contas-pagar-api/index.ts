@@ -950,6 +950,16 @@ Deno.serve(async (req) => {
         console.log(`⏭️ [sync-legado] Nenhuma alteração - sync_control ignorado (${result.skipped} skipped)`);
       }
 
+      // Recalcular status baseado em datas (pendente->vencido, vencido->pendente)
+      try {
+        const { data: statusResult } = await supabase.rpc('recalculate_contas_pagar_status');
+        if (statusResult) {
+          console.log(`🔄 [sync-legado] Status recalculados:`, JSON.stringify(statusResult));
+        }
+      } catch (statusErr) {
+        console.warn('⚠️ [sync-legado] Erro ao recalcular status:', statusErr);
+      }
+
       if (processSuccess) {
         logSuccess('sync-legado', { total: contas.length, duration_ms: duration, force_update: forceUpdate });
       } else {
