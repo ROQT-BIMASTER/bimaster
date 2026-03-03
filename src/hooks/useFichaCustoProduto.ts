@@ -242,9 +242,14 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
         prev.map((i) => (i.id === id ? { ...i, [campo]: valor } : i))
       );
 
+      // Não salvar no banco se é string intermediária (ex: "0.0", "1.")
+      const isIntermediateString = typeof valor === "string" && (valor.endsWith(".") || /\.\d*0$/.test(valor) || valor === "");
+      if (isIntermediateString) return;
+
+      const dbValue = typeof valor === "string" ? (parseFloat(valor) || 0) : valor;
       const { error } = await supabase
         .from("fabrica_produto_custos")
-        .update({ [campo]: valor })
+        .update({ [campo]: dbValue })
         .eq("id", id);
 
       if (error) {

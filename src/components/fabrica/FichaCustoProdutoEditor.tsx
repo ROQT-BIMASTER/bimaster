@@ -233,7 +233,7 @@ export function FichaCustoProdutoEditor({
     onAtualizarInsumo(insumoId, campo as keyof CustoInsumo, valorNovo);
 
     // Se é string parcial (digitando decimais), não pedir justificativa ainda
-    if (typeof valorNovo === "string" && (valorNovo.endsWith(".") || valorNovo === "")) {
+    if (typeof valorNovo === "string" && (valorNovo.endsWith(".") || valorNovo === "" || /\.\d*0$/.test(valorNovo))) {
       // Cancelar timer anterior se existir
       if (custoChangeTimerRef.current) clearTimeout(custoChangeTimerRef.current);
       pendingCustoChangeRef.current = null;
