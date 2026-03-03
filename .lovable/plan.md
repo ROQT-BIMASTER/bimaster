@@ -1,47 +1,25 @@
 
 
-# Fix: Pagamentos não finalizando corretamente
+# Visual Link Between Kit Item and Origin Product
 
-## Diagnóstico
+## Problem
+When expanding a "Produto do Kit" row in the cost sheet, the `InsumosOrigemPanel` shows the origin product's cost breakdown, but there's no visual indication connecting the kit item to its origin. The user wants it to be visually obvious that one is linked to the other.
 
-Os dados **estão chegando** do n8n (última sync: 20:40 UTC, 4313 registros processados, 167 inseridos, 48 atualizados). O loop infinito foi corrigido. Porém há um **bug na lógica de status** da função SQL `bulk_upsert_contas_pagar_v2`:
+## Solution
 
-```sql
--- ERRADO (atual):
-WHEN t.valor_aberto <= 0 OR t.valor_pago > 0 THEN 'pago'
-```
+### 1. Style the "importado_kit" table row distinctly
+- Add a left border accent (e.g., `border-l-2 border-l-blue-500`) and subtle background (`bg-blue-50/50 dark:bg-blue-950/20`) to rows with `tipo_insumo === "importado_kit"`, similar to the Display kit pattern already used in the product listing.
+- Add a small link icon (`Link2` from lucide) next to the "Kit" badge on the item name.
 
-O operador **`OR`** marca qualquer registro com `valor_pago > 0` como "pago", mesmo que `valor_aberto > 0` (pagamento parcial). Isso mistura pagos com parciais.
+### 2. Style the InsumosOrigemPanel with visual connection
+- Wrap the panel in a container with a matching left border (`border-l-2 border-l-blue-500 ml-4`) to create a visual "tree branch" effect connecting it to the parent row.
+- Add a connecting line element (a small vertical + horizontal line) from the parent row to the panel header, reinforcing the parent-child relationship.
 
-Além disso, a função `recalculate_contas_pagar_status` só corrige registros com `status IN ('pendente', 'vencido')`, então registros **incorretamente marcados como 'pago'** pelo bulk_upsert não são reclassificados.
+### 3. Enhanced header on InsumosOrigemPanel
+- Show the origin product code prominently with a link icon.
+- Add a subtle "Vinculado a:" label before the product name.
 
-## Plano de Correção
-
-### 1. Corrigir lógica de status na `bulk_upsert_contas_pagar_v2`
-
-Substituir a lógica de status (aparece 2x: INSERT e UPDATE) de:
-```sql
-WHEN t.valor_aberto <= 0 OR t.valor_pago > 0 THEN 'pago'
-```
-Para:
-```sql
-WHEN t.valor_aberto <= 0 THEN 'pago'
-WHEN t.valor_pago > 0 AND t.valor_aberto > 0 THEN 'parcial'
-WHEN t.data_vencimento < v_today THEN 'vencido'
-ELSE 'pendente'
-```
-
-### 2. Expandir `recalculate_contas_pagar_status` para corrigir registros "pago" incorretos
-
-Adicionar regra para reclassificar:
-- `status = 'pago' AND valor_aberto > 0 AND valor_pago > 0` → 'parcial'
-- `status = 'pago' AND valor_aberto > 0 AND valor_pago = 0` → 'vencido' ou 'pendente' conforme data
-
-### 3. Corrigir dados existentes
-
-Executar UPDATE para corrigir registros já incorretos no banco.
-
-## Detalhes Técnicos
-
-Uma migration SQL recriará ambas as funções. A edge function não precisa de alteração — ela apenas chama `bulk_upsert_contas_pagar_v2` e `recalculate_contas_pagar_status`.
+## Files to Change
+- `src/components/fabrica/FichaCustoProdutoEditor.tsx` — Add distinct styling to `importado_kit` rows and link icon.
+- `src/components/fabrica/InsumosOrigemPanel.tsx` — Add left border connector and enhanced header with link visual.
 
