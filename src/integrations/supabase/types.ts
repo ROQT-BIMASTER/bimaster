@@ -20064,9 +20064,10 @@ export type Database = {
         Args: { p_cliente_codigo: string }
         Returns: string
       }
-      bulk_upsert_contas_pagar_v2:
-        | { Args: { p_records: Json }; Returns: Json }
-        | { Args: { p_force_update?: boolean; p_records: Json }; Returns: Json }
+      bulk_upsert_contas_pagar_v2: {
+        Args: { p_force_update?: boolean; p_records: Json }
+        Returns: Json
+      }
       bulk_upsert_contas_receber: { Args: { p_records: Json }; Returns: Json }
       bulk_upsert_contas_receber_v2: {
         Args: { p_records: Json }
