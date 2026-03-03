@@ -406,7 +406,7 @@ export default function FabricaProdutosAcabados() {
           )}
         </TableCell>
         <TableCell>
-          {produto.unidade?.sigla || "-"}
+          {produto.tipo === "DISPLAY" ? "Display" : (produto.unidade?.sigla || "-")}
         </TableCell>
         <TableCell>
           <Badge variant={produto.ativo ? "default" : "secondary"}>
