@@ -51,6 +51,7 @@ import { RevisaoChatPanel } from "./RevisaoChatPanel";
 import type { StatusAprovacao, RevisaoItem, Revisao } from "@/hooks/useFichaRevisao";
 import { SendHorizonal } from "lucide-react";
 import { RequisitosHistoricoTimeline } from "./RequisitosHistoricoTimeline";
+import { InsumosOrigemPanel } from "./InsumosOrigemPanel";
 
 interface Props {
   produto: any;
@@ -1267,6 +1268,11 @@ export function FichaCustoProdutoEditor({
                                       Ver histórico completo →
                                     </Button>
                                   </div>
+                                )}
+
+                                {/* Insumos da Origem (para itens importados do Kit) */}
+                                {insumo.tipo_insumo === "importado_kit" && insumo.codigo && (
+                                  <InsumosOrigemPanel codigoProdutoOrigem={insumo.codigo} />
                                 )}
 
                                 {/* Cotações / Orçamentos */}
