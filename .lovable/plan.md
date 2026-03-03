@@ -1,42 +1,36 @@
 
 
-# Vincular Visualmente Unidade ao Kit na Listagem de Produtos
+# Agrupar Kit + Unidade na Aprovação de Fichas
 
 ## Contexto
-Na tabela de Produtos Acabados, produtos DISPLAY (Kits) e seus produtos-filhos (unidades) aparecem como linhas independentes, sem relação visual. O usuário quer que a unidade (ex: HB 573 Acabado) apareça visualmente "aninhada" abaixo do seu Display/Kit correspondente, como um sub-item indentado.
+Atualmente, cada produto tem sua ficha de custo submetida e revisada de forma independente. O usuário quer que, na tela da Diretoria (FichaRevisaoDiretoria), quando um Display/Kit e seu produto-filho (unidade) estiverem ambos pendentes, eles apareçam visualmente agrupados — da mesma forma que já aparece na listagem de Produtos Acabados.
 
 ## Solução
 
-### 1. Buscar relacionamentos Kit → Filhos
-- Na query principal ou em query paralela, buscar `fabrica_produto_grade_itens` para montar um mapa: `Map<produto_filho_id, produto_pai_id>`.
-- Isso permite saber quais produtos são filhos de quais Displays.
+### 1. Buscar relacionamentos Kit → Filhos na tela da Diretoria
+- Na `FichaRevisaoDiretoria.tsx`, adicionar uma query a `fabrica_produto_grade_itens` para construir o mapa `filho → pai` e `pai → filhos[]`.
+- Usar esse mapa para reordenar `fichasFiltradas`, posicionando fichas de produtos-filhos imediatamente após a ficha do produto-pai (Display).
 
-### 2. Reorganizar a lista para agrupar filhos sob seus pais
-- No `useMemo` de `produtosFiltrados`, após filtrar, reordenar a lista para que produtos-filhos fiquem imediatamente após seu produto-pai (Display).
-- Produtos que não são filhos de nenhum Display mantêm sua posição normal.
-- Produtos que são filhos **e também aparecem independentemente** ficam duplicados apenas visualmente (aparecem na posição do pai como sub-item).
+### 2. Renderizar fichas filhas com indentação visual
+- Na tabela de fichas pendentes, detectar se a ficha pertence a um produto-filho.
+- Se sim: aplicar indentação (`pl-8`), borda lateral azul (`border-l-2 border-l-blue-400`), fundo sutil (`bg-blue-50/30`), e ícone `Link2` com label "↳ Kit: [nome do pai]".
+- Fichas de Display mantêm seu estilo atual.
 
-### 3. Renderizar sub-itens com indentação visual
-- No `renderProdutoRow`, detectar se o produto é filho de um Display usando o mapa.
-- Se for filho: aplicar indentação (`pl-8`), borda lateral azul (`border-l-2 border-l-blue-400`), fundo sutil (`bg-blue-50/30`), e um ícone de link (`Link2`) com label "↳ Kit: [código do pai]".
-- O Display pai mantém seu estilo atual (borda primária, fundo `bg-primary/5`).
+### 3. Agrupar no FichaAnalisePanel
+- No painel de análise, quando a ficha analisada for de um Display, buscar e exibir um resumo da ficha do produto-filho vinculado (se existir como pendente), com link para alternar entre elas.
+- Adicionar uma seção "Produtos Vinculados" mostrando o custo total consolidado (Display + Unidade).
 
-### 4. Mapa visual resultante
-
+### 4. Mapa visual resultante (Diretoria)
 ```text
-┌─────────────────────────────────────────┐
-│ 🟣 HB 573 DISPLAY    | Display (3 un.) │  ← bg-primary/5, borda primary
-│   ↳ 🔗 HB 573        | Acabado         │  ← indentado, bg-blue-50/30, borda blue
-├─────────────────────────────────────────┤
-│    Outro produto      | Acabado         │  ← normal
-└─────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│ HB 573 DISPLAY       | v2 | 01/03/2026 | R$ 45,00   │  ← normal
+│   ↳ 🔗 HB 573       | v3 | 01/03/2026 | R$ 12,50   │  ← indentado, bg-blue
+├───────────────────────────────────────────────────────┤
+│ Outro Produto        | v1 | 28/02/2026 | R$ 8,00    │  ← normal
+└───────────────────────────────────────────────────────┘
 ```
 
 ## Arquivos a Alterar
-
-- **`src/pages/FabricaProdutosAcabados.tsx`**:
-  - Nova query para `fabrica_produto_grade_itens` (buscar `produto_pai_id, produto_filho_id`).
-  - `useMemo` para criar `Map<filho_id, pai_id>` e `Map<pai_id, filho_ids[]>`.
-  - Reordenar `produtosFiltrados` para posicionar filhos após pais.
-  - No `renderProdutoRow`: detectar filhos e aplicar indentação + estilo visual + badge de vínculo.
+- **`src/pages/FichaRevisaoDiretoria.tsx`**: Query `fabrica_produto_grade_itens`, reordenar fichas, estilizar linhas filhas.
+- **`src/components/fabrica/FichaAnalisePanel.tsx`**: Adicionar seção "Produtos Vinculados" mostrando ficha do filho/pai quando aplicável.
 
