@@ -1,54 +1,47 @@
 
 
-# Fix: Loop Infinito no N8N - Contas a Pagar
+# Fix: Pagamentos não finalizando corretamente
 
-## Problema Identificado
+## Diagnóstico
 
-Dois problemas encadeados estão causando o loop infinito:
+Os dados **estão chegando** do n8n (última sync: 20:40 UTC, 4313 registros processados, 167 inseridos, 48 atualizados). O loop infinito foi corrigido. Porém há um **bug na lógica de status** da função SQL `bulk_upsert_contas_pagar_v2`:
 
-### 1. Erro na Função SQL: `relation "contas_pagar" does not exist`
-Os logs mostram que a função `bulk_upsert_contas_pagar_v2` está falhando com erro `42P01` - a tabela `contas_pagar` não é encontrada. Isso aconteceu porque ao dropar a versão de 1 parâmetro da função (`DROP FUNCTION IF EXISTS public.bulk_upsert_contas_pagar_v2(jsonb)`), o PostgreSQL pode ter removido a versão errada ou a função de 2 parâmetros ficou com o `search_path` incorreto.
+```sql
+-- ERRADO (atual):
+WHEN t.valor_aberto <= 0 OR t.valor_pago > 0 THEN 'pago'
+```
 
-### 2. `sync_control` Nunca Atualiza
-Como todos os registros falham e caem no fallback (skipped), a otimização na linha 934 do edge function diz "só registrar em sync_control se houve alterações reais". Como nunca há alterações (tudo é skipped por erro), o `/last-sync` retorna sempre a mesma data antiga, e o n8n busca os mesmos dados infinitamente.
+O operador **`OR`** marca qualquer registro com `valor_pago > 0` como "pago", mesmo que `valor_aberto > 0` (pagamento parcial). Isso mistura pagos com parciais.
+
+Além disso, a função `recalculate_contas_pagar_status` só corrige registros com `status IN ('pendente', 'vencido')`, então registros **incorretamente marcados como 'pago'** pelo bulk_upsert não são reclassificados.
 
 ## Plano de Correção
 
-### Tarefa 1: Recriar a função `bulk_upsert_contas_pagar_v2` corretamente
-- Criar migration SQL que recria a função de 2 parâmetros com `SET search_path = public` explícito
-- Garantir que referencia `public.contas_pagar` com schema completo
+### 1. Corrigir lógica de status na `bulk_upsert_contas_pagar_v2`
 
-### Tarefa 2: Sempre atualizar `sync_control` no endpoint `/sync`
-- Modificar o edge function para SEMPRE registrar em `sync_control` após processar, mesmo quando todos os registros são skipped
-- Isso garante que `/last-sync` retorna uma data atualizada e o n8n não reenvia os mesmos dados
+Substituir a lógica de status (aparece 2x: INSERT e UPDATE) de:
+```sql
+WHEN t.valor_aberto <= 0 OR t.valor_pago > 0 THEN 'pago'
+```
+Para:
+```sql
+WHEN t.valor_aberto <= 0 THEN 'pago'
+WHEN t.valor_pago > 0 AND t.valor_aberto > 0 THEN 'parcial'
+WHEN t.data_vencimento < v_today THEN 'vencido'
+ELSE 'pendente'
+```
 
-### Tarefa 3: Redesenhar a Edge Function
-- No endpoint `/sync` (linhas 933-951), remover a condicional `if (result.inserted > 0 || result.updated > 0)` e sempre inserir no `sync_control`
-- Isso quebra o ciclo infinito mesmo em cenários de erro
+### 2. Expandir `recalculate_contas_pagar_status` para corrigir registros "pago" incorretos
+
+Adicionar regra para reclassificar:
+- `status = 'pago' AND valor_aberto > 0 AND valor_pago > 0` → 'parcial'
+- `status = 'pago' AND valor_aberto > 0 AND valor_pago = 0` → 'vencido' ou 'pendente' conforme data
+
+### 3. Corrigir dados existentes
+
+Executar UPDATE para corrigir registros já incorretos no banco.
 
 ## Detalhes Técnicos
 
-**Migration SQL:**
-```sql
-CREATE OR REPLACE FUNCTION public.bulk_upsert_contas_pagar_v2(
-  p_records jsonb, 
-  p_force_update boolean DEFAULT false
-)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$ ... $$;
-```
-
-**Edge Function - remover condicional:**
-```typescript
-// ANTES (linha 934):
-if (result.inserted > 0 || result.updated > 0) {
-  await supabase.from('sync_control').insert({...});
-}
-
-// DEPOIS:
-await supabase.from('sync_control').insert({...});
-```
+Uma migration SQL recriará ambas as funções. A edge function não precisa de alteração — ela apenas chama `bulk_upsert_contas_pagar_v2` e `recalculate_contas_pagar_status`.
 
