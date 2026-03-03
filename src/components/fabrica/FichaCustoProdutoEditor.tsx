@@ -459,8 +459,8 @@ export function FichaCustoProdutoEditor({
     return valor.toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4,
     });
   };
 
