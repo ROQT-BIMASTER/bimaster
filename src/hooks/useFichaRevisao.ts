@@ -217,8 +217,7 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
               .eq("produto_id", filhoId)
               .maybeSingle();
 
-            // Se já está em_revisao, pular (já foi submetido)
-            if (filhoConfig?.status_aprovacao === "em_revisao") continue;
+            // Filhos já em_revisao serão re-submetidos junto com o Kit pai
 
             let configParaUsar = filhoConfig;
 
