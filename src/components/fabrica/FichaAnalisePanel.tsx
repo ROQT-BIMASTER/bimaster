@@ -140,26 +140,83 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   const snapshotConfig = (ficha.snapshot_config || {}) as any;
   const snapshotTotais = (ficha.snapshot_totais || {}) as any;
 
-  // Produtos vinculados (Kit ↔ Unidade)
-  const produtosVinculados = useMemo(() => {
-    if (!gradeRelMap || !fichasPendentes) return [];
-    const vinculados: any[] = [];
-    // Se este produto é pai, buscar filhos
-    const childIds = gradeRelMap.paiToFilhos.get(ficha.produto_id);
-    if (childIds) {
-      childIds.forEach(childId => {
-        const childFicha = fichasPendentes.find((f: any) => f.produto_id === childId);
-        if (childFicha) vinculados.push({ ...childFicha, relacao: "filho" });
-      });
-    }
-    // Se este produto é filho, buscar pai
-    const paiId = gradeRelMap.filhoToPai.get(ficha.produto_id);
-    if (paiId) {
-      const paiFicha = fichasPendentes.find((f: any) => f.produto_id === paiId);
-      if (paiFicha) vinculados.push({ ...paiFicha, relacao: "pai" });
-    }
-    return vinculados;
+  // Produtos vinculados (Kit ↔ Unidade) - inclui dados dinâmicos do DB
+  const [vinculadosDinamicos, setVinculadosDinamicos] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadVinculados = async () => {
+      if (!gradeRelMap) return;
+
+      const vinculados: any[] = [];
+
+      // Se este produto é pai, buscar filhos
+      const childIds = gradeRelMap.paiToFilhos.get(ficha.produto_id);
+      if (childIds) {
+        for (const childId of childIds) {
+          // Primeiro tentar encontrar na lista de pendentes
+          const childFicha = fichasPendentes?.find((f: any) => f.produto_id === childId);
+          if (childFicha) {
+            vinculados.push({ ...childFicha, relacao: "filho" });
+          } else {
+            // Buscar dados dinâmicos do DB
+            const [prodRes, configRes, insumosRes] = await Promise.all([
+              supabase.from("fabrica_produtos").select("id, codigo, nome, marca, linha, tipo").eq("id", childId).maybeSingle(),
+              supabase.from("fabrica_produto_custos_config").select("*").eq("produto_id", childId).maybeSingle(),
+              supabase.from("fabrica_produto_custos").select("*").eq("produto_id", childId).order("ordem"),
+            ]);
+
+            if (prodRes.data) {
+              const insumos = (insumosRes.data || []) as any[];
+              const cfg: any = configRes.data || {};
+              const sumNF = insumos.reduce((s: number, i: any) => s + (Number(i.custo_nf) || 0), 0);
+              const sumServico = insumos.reduce((s: number, i: any) => s + (Number(i.custo_servico) || 0), 0);
+              const sumCondicao = insumos.reduce((s: number, i: any) => s + (Number(i.custo_condicao) || 0), 0);
+              const moNF = Number(cfg.custo_mao_obra_nf) || 0;
+              const moServico = Number(cfg.custo_mao_obra_servico) || 0;
+              const totalNF = sumNF + moNF;
+              const totalServico = sumServico + moServico;
+              const totalCondicao = sumCondicao;
+              const subtotal = totalNF + totalServico + totalCondicao;
+              const pctMarkup = Number(cfg.percentual_markup) || 0;
+              const baseMarkup = cfg.base_calculo_markup || "total";
+              const mkNF = (baseMarkup === "total" || baseMarkup === "nf" || baseMarkup === "nf_servico") ? totalNF * (pctMarkup / 100) : 0;
+              const mkServico = (baseMarkup === "total" || baseMarkup === "servico" || baseMarkup === "nf_servico") ? totalServico * (pctMarkup / 100) : 0;
+              const mkCondicao = baseMarkup === "total" ? totalCondicao * (pctMarkup / 100) : 0;
+              const custoTotal = subtotal + mkNF + mkServico + mkCondicao;
+
+              vinculados.push({
+                id: `dynamic-${childId}`,
+                produto_id: childId,
+                produto: prodRes.data,
+                relacao: "filho",
+                versao: 0,
+                snapshot_insumos: insumos,
+                snapshot_config: cfg,
+                snapshot_totais: {
+                  totalNF, totalServico, totalCondicao,
+                  markupNF: mkNF, markupServico: mkServico, markupCondicao: mkCondicao,
+                  custoTotal,
+                },
+                _dinamico: true,
+              });
+            }
+          }
+        }
+      }
+
+      // Se este produto é filho, buscar pai
+      const paiId = gradeRelMap.filhoToPai.get(ficha.produto_id);
+      if (paiId) {
+        const paiFicha = fichasPendentes?.find((f: any) => f.produto_id === paiId);
+        if (paiFicha) vinculados.push({ ...paiFicha, relacao: "pai" });
+      }
+
+      setVinculadosDinamicos(vinculados);
+    };
+    loadVinculados();
   }, [ficha.produto_id, gradeRelMap, fichasPendentes]);
+
+  const produtosVinculados = vinculadosDinamicos;
 
   // Comparar com versão anterior
   const versaoAnterior = historicoVersoes.find((v: any) => v.versao === ficha.versao - 1);
@@ -238,12 +295,13 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                               {v.relacao === "pai" ? "Kit (Display)" : "Unidade"}
                             </Badge>
                             <span className="font-medium truncate">{v.produto?.nome}</span>
-                            <Badge variant="secondary" className="text-[10px]">v{v.versao}</Badge>
+                            {v.versao > 0 && <Badge variant="secondary" className="text-[10px]">v{v.versao}</Badge>}
+                            {v._dinamico && <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-600">Dados atuais</Badge>}
                             <Badge variant="outline" className="text-[10px]">{vincInsumos.length} insumos</Badge>
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
                             <span className="font-semibold">{formatarMoeda(custoVinc)}</span>
-                            {onSelectFicha && (
+                            {onSelectFicha && !v._dinamico && (
                               <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); onSelectFicha(v); }}>
                                 <Eye className="h-3 w-3 mr-1" /> Ver ficha
                               </Button>
