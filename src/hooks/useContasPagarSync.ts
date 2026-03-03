@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface SyncResult {
   success: boolean;
@@ -49,6 +50,7 @@ export interface ErpCredentials {
 
 export function useContasPagarSync() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [stats, setStats] = useState<ContasPagarStats | null>(null);
@@ -245,6 +247,14 @@ export function useContasPagarSync() {
         title: 'Sincronização Concluída',
         description: `${data?.statistics?.processed || 0} registros processados em ${((data?.duration_ms || 0) / 1000).toFixed(1)}s`,
       });
+
+      // Invalidar cache do React Query
+      queryClient.invalidateQueries({ queryKey: ['contas-pagar-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['contas-pagar-table'] });
+      queryClient.invalidateQueries({ queryKey: ['contas-pagar-calendario'] });
+      queryClient.invalidateQueries({ queryKey: ['contas-pagar-dre-view'] });
+      queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
+      queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
 
       // Atualizar estatísticas e histórico
       await Promise.all([fetchStats(), fetchSyncHistory()]);
