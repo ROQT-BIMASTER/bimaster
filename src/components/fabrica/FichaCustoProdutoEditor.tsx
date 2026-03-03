@@ -985,6 +985,9 @@ export function FichaCustoProdutoEditor({
                   <SelectItem value="servico">Somente Serviço</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground italic">
+                💡 A base mais utilizada nos seus lançamentos é <span className="font-medium text-foreground/70">NF + Serviço</span>
+              </p>
             </div>
           </div>
         </CardContent>
