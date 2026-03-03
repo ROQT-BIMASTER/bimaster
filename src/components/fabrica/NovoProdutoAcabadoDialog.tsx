@@ -273,6 +273,26 @@ export function NovoProdutoAcabadoDialog({ open, onOpenChange, produtoEdit, onSu
         produtoId = data.id;
       }
 
+      // Auto-set unidade_venda = 'Display' for DISPLAY products
+      if (formData.tipo === "DISPLAY" && produtoId) {
+        const { data: existingFiscal } = await supabase
+          .from("fabrica_dados_fiscais_produto")
+          .select("id")
+          .eq("produto_id", produtoId)
+          .maybeSingle();
+
+        if (existingFiscal) {
+          await supabase
+            .from("fabrica_dados_fiscais_produto")
+            .update({ unidade_venda: "Display" })
+            .eq("id", existingFiscal.id);
+        } else {
+          await supabase
+            .from("fabrica_dados_fiscais_produto")
+            .insert({ produto_id: produtoId, unidade_venda: "Display" });
+        }
+      }
+
       // Save grade items for DISPLAY type
       if (formData.tipo === "DISPLAY" && produtoId) {
         await supabase
