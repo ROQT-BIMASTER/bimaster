@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
 import { DocumentosTab } from "@/components/fabrica/DocumentosTab";
+import { InsumosOrigemPanel } from "@/components/fabrica/InsumosOrigemPanel";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ApontamentoForm {
@@ -70,6 +71,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   const [historicoVersoes, setHistoricoVersoes] = useState<any[]>([]);
   const [cotacoesByInsumo, setCotacoesByInsumo] = useState<Record<string, any[]>>({});
   const [expandedInsumo, setExpandedInsumo] = useState<string | null>(null);
+  const [expandedKitInsumo, setExpandedKitInsumo] = useState<string | null>(null);
   const [expandedVinculado, setExpandedVinculado] = useState<string | null>(null);
 
   const formatarMoeda = (valor: number) =>
@@ -345,6 +347,8 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         const cotacoes = cotacoesByInsumo[insumo.id] || [];
                         const isExpanded = expandedInsumo === insumo.id;
                         const hasCotacoes = cotacoes.length > 0;
+                        const isImportadoKit = insumo.tipo_insumo === "importado_kit";
+                        const isKitExpanded = expandedKitInsumo === insumo.id;
 
                         // Find lowest total cost among cotações
                         const cotacoesComTotal = cotacoes.map(c => ({
@@ -353,23 +357,41 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         }));
                         const menorTotal = cotacoesComTotal.length > 0 ? Math.min(...cotacoesComTotal.map(c => c.total)) : null;
 
+                        const canExpand = hasCotacoes || isImportadoKit;
+
                         return (
                           <React.Fragment key={idx}>
                             <TableRow
-                              className={`${changed ? "bg-warning/5" : ""} ${hasCotacoes ? "cursor-pointer hover:bg-muted/50" : ""}`}
-                              onClick={() => hasCotacoes && setExpandedInsumo(isExpanded ? null : insumo.id)}
+                              className={`${changed ? "bg-warning/5" : ""} ${isImportadoKit ? "bg-blue-50/50 dark:bg-blue-950/20 border-l-2 border-l-blue-500" : ""} ${canExpand ? "cursor-pointer hover:bg-muted/50" : ""}`}
+                              onClick={() => {
+                                if (isImportadoKit) {
+                                  setExpandedKitInsumo(isKitExpanded ? null : insumo.id);
+                                } else if (hasCotacoes) {
+                                  setExpandedInsumo(isExpanded ? null : insumo.id);
+                                }
+                              }}
                             >
                               <TableCell className="w-8 px-2">
-                                {hasCotacoes ? (
-                                  isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                {canExpand ? (
+                                  (isImportadoKit ? isKitExpanded : isExpanded)
+                                    ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                    : <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                 ) : null}
                               </TableCell>
                               <TableCell className="font-mono text-sm">{insumo.codigo}</TableCell>
                               <TableCell>
-                                {insumo.nome}
-                                {hasCotacoes && (
-                                  <Badge variant="outline" className="ml-2 text-[10px]">{cotacoes.length} cotações</Badge>
-                                )}
+                                <div className="flex items-center gap-1.5">
+                                  {insumo.nome}
+                                  {isImportadoKit && (
+                                    <>
+                                      <Link2 className="h-3 w-3 text-blue-500" />
+                                      <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-600">Kit</Badge>
+                                    </>
+                                  )}
+                                  {hasCotacoes && (
+                                    <Badge variant="outline" className="ml-1 text-[10px]">{cotacoes.length} cotações</Badge>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell>{insumo.fornecedor || "-"}</TableCell>
                               <TableCell className="text-right">{formatarMoeda(Number(insumo.custo_nf) || 0)}</TableCell>
@@ -386,8 +408,20 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                                 </TableCell>
                               )}
                             </TableRow>
+
+                            {/* Expanded: Insumos do produto vinculado (Kit) */}
+                            {isImportadoKit && isKitExpanded && insumo.codigo && (
+                              <TableRow>
+                                <TableCell colSpan={versaoAnterior ? 8 : 7} className="p-0 bg-blue-50/30 dark:bg-blue-950/10">
+                                  <div className="px-6 py-3 ml-4 pl-4 border-l-2 border-l-blue-500/60">
+                                    <InsumosOrigemPanel codigoProdutoOrigem={insumo.codigo} />
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+
                             {/* Expanded supplier comparison */}
-                            {isExpanded && (
+                            {isExpanded && hasCotacoes && (
                               <TableRow>
                                 <TableCell colSpan={versaoAnterior ? 8 : 7} className="p-0 bg-muted/30">
                                   <div className="px-6 py-3 space-y-2">
