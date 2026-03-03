@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,6 +120,29 @@ export default function ContasAPagar() {
   const [selectedIdsIA, setSelectedIdsIA] = useState<Set<string>>(new Set());
   const [batchDepartamentoIA, setBatchDepartamentoIA] = useState<string>("");
   const [batchPlanoContasIA, setBatchPlanoContasIA] = useState<string>("");
+
+  // Realtime: auto-refresh quando contas_pagar mudar (ex: sync via n8n)
+  useEffect(() => {
+    const channel = supabase
+      .channel('contas-pagar-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'contas_pagar' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar-dashboard'] });
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar-table'] });
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar-calendario'] });
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar-dre-view'] });
+          queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
+          queryClient.invalidateQueries({ queryKey: ['lancamentos-dre'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   // Query departamentos
   const { data: departamentos } = useQuery({
