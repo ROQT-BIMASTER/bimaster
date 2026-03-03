@@ -89,7 +89,7 @@ function DecimalInput({
   className?: string;
   id?: string;
 }) {
-  const displayValue = value === 0 ? "0" : (value || "");
+  const displayValue = typeof value === "string" ? value : (value === 0 ? "0" : String(value));
   return (
     <Input
       id={id}
@@ -99,7 +99,13 @@ function DecimalInput({
       onChange={(e) => {
         const raw = e.target.value.replace(",", ".");
         if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
-          onChange(raw === "" ? 0 : raw.endsWith(".") ? raw : parseFloat(raw) || 0);
+          if (raw === "") {
+            onChange(0);
+          } else if (raw.endsWith(".") || /\.\d*0$/.test(raw)) {
+            onChange(raw);
+          } else {
+            onChange(parseFloat(raw) || 0);
+          }
         }
       }}
       className={className}
