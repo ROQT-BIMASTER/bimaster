@@ -359,12 +359,6 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                       </div>
                     );
                   })}
-                  <div className="flex items-center justify-between pt-1 border-t text-sm">
-                    <span className="text-muted-foreground font-medium">Custo Consolidado</span>
-                    <span className="font-bold text-primary">
-                      {formatarMoeda((snapshotTotais.custoTotal || 0) + produtosVinculados.reduce((s: number, v: any) => s + (v.snapshot_totais?.custoTotal || 0), 0))}
-                    </span>
-                  </div>
                 </CardContent>
               </Card>
             )}
