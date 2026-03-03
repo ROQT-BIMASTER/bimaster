@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, Upload, DollarSign, FileX, Filter, Layers, X, TrendingUp, ClipboardList, HelpCircle, LayoutGrid, TableIcon, BarChart3, ChevronDown, MessageSquare, Kanban, Link2 } from "lucide-react";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ProdutoCard } from "@/components/fabrica/ProdutoCard";
@@ -85,6 +85,31 @@ export default function FabricaProdutosAcabados() {
       refetchOnWindowFocus: false,
     }
   );
+
+  // Buscar relacionamentos Kit → Filhos (grade de itens do Display)
+  const { data: gradeItens } = useSupabaseQuery(
+    ["fabrica-produto-grade-itens"],
+    async () => {
+      const { data, error } = await supabase
+        .from("fabrica_produto_grade_itens")
+        .select("produto_pai_id, produto_filho_id");
+      if (error) throw error;
+      return data;
+    },
+    { staleTime: 5 * 60 * 1000 }
+  );
+
+  // Mapas de relacionamento pai-filho
+  const { filhoParaPaiMap, paiParaFilhosMap } = useMemo(() => {
+    const filhoParaPai = new Map<string, string>();
+    const paiParaFilhos = new Map<string, string[]>();
+    gradeItens?.forEach((item) => {
+      filhoParaPai.set(item.produto_filho_id, item.produto_pai_id);
+      if (!paiParaFilhos.has(item.produto_pai_id)) paiParaFilhos.set(item.produto_pai_id, []);
+      paiParaFilhos.get(item.produto_pai_id)!.push(item.produto_filho_id);
+    });
+    return { filhoParaPaiMap: filhoParaPai, paiParaFilhosMap: paiParaFilhos };
+  }, [gradeItens]);
 
   const { data: fichasConfig } = useSupabaseQuery(
     ["fabrica-produtos-fichas-config"],
@@ -182,7 +207,7 @@ export default function FabricaProdutosAcabados() {
   }, [fichasConfig]);
 
   const produtosFiltrados = useMemo(() => {
-    return produtos?.filter((p) => {
+    const filtered = produtos?.filter((p) => {
       const matchBusca =
         p.nome.toLowerCase().includes(busca.toLowerCase()) ||
         p.codigo.toLowerCase().includes(busca.toLowerCase());
@@ -191,7 +216,32 @@ export default function FabricaProdutosAcabados() {
       const matchTipo = filtroTipo === "none" || p.tipo === filtroTipo;
       return matchBusca && matchMarca && matchLinha && matchTipo;
     });
-  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo]);
+    if (!filtered) return [];
+
+    // Reordenar: posicionar filhos imediatamente após seus pais
+    const filteredIds = new Set(filtered.map(p => p.id));
+    const childrenPlaced = new Set<string>();
+    const result: any[] = [];
+
+    for (const p of filtered) {
+      if (childrenPlaced.has(p.id)) continue; // já foi inserido como filho
+      result.push(p);
+      // Se é pai (Display), inserir filhos logo após
+      const childIds = paiParaFilhosMap.get(p.id);
+      if (childIds) {
+        for (const childId of childIds) {
+          if (filteredIds.has(childId) && !childrenPlaced.has(childId)) {
+            const child = filtered.find(c => c.id === childId);
+            if (child) {
+              result.push(child);
+              childrenPlaced.add(childId);
+            }
+          }
+        }
+      }
+    }
+    return result;
+  }, [produtos, busca, filtroMarca, filtroLinha, filtroTipo, paiParaFilhosMap]);
 
   const dadosAgrupados = useMemo(() => {
     if (!produtosFiltrados) return new Map<string, any[]>();
@@ -271,8 +321,12 @@ export default function FabricaProdutosAcabados() {
 
     const isDisplay = produto.tipo === "DISPLAY";
 
+    const isChild = filhoParaPaiMap.has(produto.id);
+    const parentId = filhoParaPaiMap.get(produto.id);
+    const parentProduct = isChild && produtos ? produtos.find(p => p.id === parentId) : null;
+
     return (
-      <TableRow key={produto.id} className={isEmRevisao ? "bg-red-50 dark:bg-red-950/20" : isDisplay ? "bg-primary/5" : ""}>
+      <TableRow key={produto.id} className={`${isEmRevisao ? "bg-red-50 dark:bg-red-950/20" : isDisplay ? "bg-primary/5" : isChild ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400" : ""}`}>
         <TableCell className="pr-0">
           <ProductThumbnail src={produto.foto_url} alt={produto.nome} size="sm" />
         </TableCell>
@@ -280,8 +334,19 @@ export default function FabricaProdutosAcabados() {
         <TableCell className="font-medium">
           <div className="flex items-center gap-1.5">
             {isDisplay && <Layers className="h-3.5 w-3.5 text-primary shrink-0" />}
-            {produto.nome}
+            {isChild && (
+              <span className="text-blue-500 shrink-0 flex items-center gap-1 mr-1">
+                <span className="text-muted-foreground">↳</span>
+                <Link2 className="h-3 w-3" />
+              </span>
+            )}
+            <span className={isChild ? "pl-4" : ""}>{produto.nome}</span>
           </div>
+          {isChild && parentProduct && (
+            <div className="text-[10px] text-blue-500 mt-0.5 pl-9">
+              Kit: {parentProduct.codigo}
+            </div>
+          )}
         </TableCell>
         <TableCell>
           <Badge variant={isDisplay ? "default" : "outline"} className={isDisplay ? "gap-1" : ""}>
