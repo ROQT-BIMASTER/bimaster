@@ -459,6 +459,7 @@ export default function FichaRevisaoDiretoria() {
                 fichasPendentes={fichasFiltradas}
                 gradeRelMap={gradeRelMap}
                 onSelectFicha={setFichaAberta}
+                onRefetch={refetch}
               />
             )}
           </TabsContent>
