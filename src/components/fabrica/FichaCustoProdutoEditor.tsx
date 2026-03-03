@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Trash2, GripVertical, Save, FileText, Info, Printer, Download, History, AlertTriangle, ChevronDown, ChevronRight, ArrowRight, Paperclip, Upload, X, Eye, MessageSquare, ShieldCheck, CheckCircle2, PackageOpen, Loader2, RefreshCw } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, FileText, Info, Printer, Download, History, AlertTriangle, ChevronDown, ChevronRight, ArrowRight, Paperclip, Upload, X, Eye, MessageSquare, ShieldCheck, CheckCircle2, PackageOpen, Loader2, RefreshCw, Link2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -1072,7 +1072,7 @@ export function FichaCustoProdutoEditor({
 
                     return (
                       <React.Fragment key={insumo.id}>
-                        <TableRow id={`insumo-row-${insumo.id}`} className={temApontamento ? "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500" : ""}>
+                        <TableRow id={`insumo-row-${insumo.id}`} className={`${temApontamento ? "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500" : ""} ${insumo.tipo_insumo === "importado_kit" ? "bg-blue-50/50 dark:bg-blue-950/20 border-l-2 border-l-blue-500" : ""}`}>
                           <TableCell className="px-2">
                             <div className="flex items-center gap-0.5">
                               <Button
@@ -1098,7 +1098,10 @@ export function FichaCustoProdutoEditor({
                             <div className="flex items-center gap-1.5">
                               {insumo.nome}
                               {insumo.tipo_insumo === "importado_kit" && (
-                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Kit</Badge>
+                                <>
+                                  <Link2 className="h-3 w-3 text-blue-500" />
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">Kit</Badge>
+                                </>
                               )}
                             </div>
                           </TableCell>
@@ -1272,7 +1275,10 @@ export function FichaCustoProdutoEditor({
 
                                 {/* Insumos da Origem (para itens importados do Kit) */}
                                 {insumo.tipo_insumo === "importado_kit" && insumo.codigo && (
-                                  <InsumosOrigemPanel codigoProdutoOrigem={insumo.codigo} />
+                                  <div className="ml-4 pl-4 border-l-2 border-l-blue-500/60 relative">
+                                    <div className="absolute -left-[1px] top-0 w-4 h-0 border-t-2 border-t-blue-500/60" />
+                                    <InsumosOrigemPanel codigoProdutoOrigem={insumo.codigo} />
+                                  </div>
                                 )}
 
                                 {/* Cotações / Orçamentos */}

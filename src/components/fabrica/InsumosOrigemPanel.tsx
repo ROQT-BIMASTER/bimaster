@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PackageOpen, Wrench, TrendingUp, Calculator } from "lucide-react";
+import { PackageOpen, Wrench, TrendingUp, Calculator, Link2 } from "lucide-react";
 
 interface InsumoOrigem {
   id: string;
@@ -162,12 +162,13 @@ export function InsumosOrigemPanel({ codigoProdutoOrigem }: InsumosOrigemPanelPr
   return (
     <div>
       <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-        <PackageOpen className="h-4 w-4 text-primary" />
-        Composição de Custo da Origem
+        <Link2 className="h-4 w-4 text-blue-500" />
+        <span className="text-[10px] text-blue-500 uppercase tracking-wide font-medium">Vinculado a:</span>
+        <span className="font-mono text-blue-600 dark:text-blue-400">{codigoProdutoOrigem}</span>
         {produtoNome && (
           <span className="font-normal text-muted-foreground">— {produtoNome}</span>
         )}
-        <Badge variant="outline" className="text-[10px] ml-1">{insumos.length} insumos</Badge>
+        <Badge variant="outline" className="text-[10px] ml-1 border-blue-300 text-blue-600 dark:border-blue-700 dark:text-blue-400">{insumos.length} insumos</Badge>
       </h4>
 
       {/* Insumos table */}
