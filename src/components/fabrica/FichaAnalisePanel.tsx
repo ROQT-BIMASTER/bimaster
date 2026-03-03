@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
 import { DocumentosTab } from "@/components/fabrica/DocumentosTab";
 import { InsumosOrigemPanel } from "@/components/fabrica/InsumosOrigemPanel";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ApontamentoForm {
   insumo_id: string;
@@ -53,9 +54,10 @@ interface Props {
   fichasPendentes?: any[];
   gradeRelMap?: { filhoToPai: Map<string, string>; paiToFilhos: Map<string, string[]> };
   onSelectFicha?: (ficha: any) => void;
+  onRefetch?: () => void;
 }
 
-export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRevisao, onClose, fichasPendentes, gradeRelMap, onSelectFicha }: Props) {
+export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRevisao, onClose, fichasPendentes, gradeRelMap, onSelectFicha, onRefetch }: Props) {
   const [parecer, setParecer] = useState("");
   const [apontamentos, setApontamentos] = useState<ApontamentoForm[]>([]);
   const [modoRevisao, setModoRevisao] = useState(false);
@@ -73,6 +75,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   const [expandedInsumo, setExpandedInsumo] = useState<string | null>(null);
   const [expandedKitInsumo, setExpandedKitInsumo] = useState<string | null>(null);
   const [expandedVinculado, setExpandedVinculado] = useState<string | null>(null);
+  const [submittingFilho, setSubmittingFilho] = useState<string | null>(null);
 
   const formatarMoeda = (valor: number) =>
     valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 6 });
@@ -111,15 +114,101 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   };
 
   const handleAprovar = async () => {
-    // Verificar se há filhos sem revisão
     const filhosSemRev = vinculadosDinamicos.filter((v: any) => v.relacao === "filho" && v._dinamico);
     if (filhosSemRev.length > 0) {
-      const { toast } = await import("sonner");
       toast.error(`Produto(s) vinculado(s) sem revisão: ${filhosSemRev.map((f: any) => f.produto?.nome || f.produto?.codigo).join(", ")}. É obrigatório revisar todos os produtos da grade antes de aprovar o Kit.`);
       return;
     }
     await onAprovar(ficha.id, ficha.config_id, parecer);
   };
+
+  const handleSubmeterFilho = useCallback(async (childProdutoId: string) => {
+    setSubmittingFilho(childProdutoId);
+    try {
+      // Buscar config
+      let { data: cfg } = await supabase
+        .from("fabrica_produto_custos_config")
+        .select("*")
+        .eq("produto_id", childProdutoId)
+        .maybeSingle();
+
+      if (!cfg) {
+        const { data: novoCfg, error: errCfg } = await supabase
+          .from("fabrica_produto_custos_config")
+          .insert({ produto_id: childProdutoId, margem_lucro: 0, impostos_percentual: 0, frete_percentual: 0, comissao_percentual: 0, markup_desejado: 0, status_aprovacao: "rascunho" })
+          .select().single();
+        if (errCfg || !novoCfg) throw new Error("Erro ao criar config do produto");
+        cfg = novoCfg;
+      }
+
+      // Buscar insumos
+      const { data: insumos } = await supabase
+        .from("fabrica_produto_custos")
+        .select("*")
+        .eq("produto_id", childProdutoId)
+        .order("ordem");
+      const insumosArr = (insumos || []) as any[];
+
+      // Calcular totais
+      let totalNF = 0, totalServico = 0, totalCondicao = 0;
+      insumosArr.forEach((i: any) => {
+        totalNF += Number(i.custo_nf) || 0;
+        totalServico += Number(i.custo_servico) || 0;
+        totalCondicao += Number(i.custo_condicao) || 0;
+      });
+      totalNF += Number(cfg.custo_mao_obra_nf) || 0;
+      totalServico += Number(cfg.custo_mao_obra_servico) || 0;
+      const perc = Number(cfg.percentual_markup) || 0;
+      const base = cfg.base_calculo_markup || "nf_servico";
+      let baseMarkup = 0;
+      if (base === "total") baseMarkup = totalNF + totalServico + totalCondicao;
+      else if (base === "nf") baseMarkup = totalNF;
+      else if (base === "servico") baseMarkup = totalServico;
+      else baseMarkup = totalNF + totalServico;
+      const markupValor = baseMarkup * (perc / 100);
+      const custoTotal = totalNF + totalServico + totalCondicao + markupValor;
+
+      // Buscar última versão
+      const { data: ultimaRev } = await supabase
+        .from("fabrica_ficha_custo_revisoes")
+        .select("versao")
+        .eq("config_id", cfg.id)
+        .order("versao", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const novaVersao = (ultimaRev?.versao || 0) + 1;
+
+      // Criar revisão
+      const { data: user } = await supabase.auth.getUser();
+      const { error: errRev } = await supabase
+        .from("fabrica_ficha_custo_revisoes")
+        .insert({
+          config_id: cfg.id,
+          produto_id: childProdutoId,
+          status: "pendente",
+          snapshot_insumos: insumosArr as any,
+          snapshot_config: cfg as any,
+          snapshot_totais: { totalNF, totalServico, totalCondicao, markupNF: 0, markupServico: 0, markupCondicao: 0, custoTotal } as any,
+          submetido_por: user?.user?.id || null,
+          versao: novaVersao,
+        });
+      if (errRev) throw errRev;
+
+      // Atualizar status
+      await supabase
+        .from("fabrica_produto_custos_config")
+        .update({ status_aprovacao: "em_revisao" })
+        .eq("id", cfg.id);
+
+      toast.success("Produto submetido para revisão com sucesso!");
+      onRefetch?.();
+    } catch (err: any) {
+      console.error("Erro ao submeter filho:", err);
+      toast.error("Erro ao submeter: " + (err.message || err));
+    } finally {
+      setSubmittingFilho(null);
+    }
+  }, [onRefetch]);
 
   const handleSolicitarRevisao = async () => {
     const requisitosAtivos = requisitos
@@ -805,13 +894,16 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                       </div>
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="h-7 text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                        onClick={() => {
-                          window.open(`/dashboard/fabrica/produtos/${v.produto_id}/custos`, '_blank');
-                        }}
+                        variant="default"
+                        className="h-7 text-xs"
+                        disabled={submittingFilho === v.produto_id}
+                        onClick={() => handleSubmeterFilho(v.produto_id)}
                       >
-                        <Eye className="h-3 w-3 mr-1" /> Abrir Ficha de Custos
+                        {submittingFilho === v.produto_id ? (
+                          <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Submetendo...</>
+                        ) : (
+                          <><ClipboardList className="h-3 w-3 mr-1" /> Submeter para Revisão</>
+                        )}
                       </Button>
                     </div>
                   ))}
