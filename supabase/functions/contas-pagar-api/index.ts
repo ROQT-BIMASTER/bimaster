@@ -930,25 +930,21 @@ Deno.serve(async (req) => {
       const duration = Date.now() - startTime;
       const empresaId = contas[0] ? (contas[0]['ID Empresa'] || contas[0].empresa_id) : null;
 
-      // ✅ OTIMIZAÇÃO: Só registrar em sync_control se houve alterações reais
-      if (result.inserted > 0 || result.updated > 0) {
-        try {
-          await supabase.from('sync_control').insert({
-            entidade: 'contas_pagar',
-            empresa_id: empresaId,
-            ultima_sync: new Date().toISOString(),
-            total_registros: contas.length,
-            registros_inseridos: result.inserted,
-            registros_atualizados: result.updated,
-            registros_ignorados: result.skipped,
-            duracao_ms: duration,
-            status: processSuccess ? 'success' : 'partial'
-          });
-        } catch (trackErr) {
-          console.warn('⚠️ Erro ao registrar sync_control:', trackErr);
-        }
-      } else {
-        console.log(`⏭️ [sync-legado] Nenhuma alteração - sync_control ignorado (${result.skipped} skipped)`);
+      // ✅ SEMPRE registrar em sync_control para evitar loop infinito no n8n
+      try {
+        await supabase.from('sync_control').insert({
+          entidade: 'contas_pagar',
+          empresa_id: empresaId,
+          ultima_sync: new Date().toISOString(),
+          total_registros: contas.length,
+          registros_inseridos: result.inserted,
+          registros_atualizados: result.updated,
+          registros_ignorados: result.skipped,
+          duracao_ms: duration,
+          status: processSuccess ? 'success' : 'partial'
+        });
+      } catch (trackErr) {
+        console.warn('⚠️ Erro ao registrar sync_control:', trackErr);
       }
 
       // Recalcular status baseado em datas (pendente->vencido, vencido->pendente)
