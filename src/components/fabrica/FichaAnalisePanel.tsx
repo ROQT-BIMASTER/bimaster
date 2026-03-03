@@ -415,23 +415,21 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         }));
                         const menorTotal = cotacoesComTotal.length > 0 ? Math.min(...cotacoesComTotal.map(c => c.total)) : null;
 
-                        const canExpand = hasCotacoes || isImportadoKit;
+                        const canExpand = hasCotacoes;
 
                         return (
                           <React.Fragment key={idx}>
                             <TableRow
                               className={`${changed ? "bg-warning/5" : ""} ${isImportadoKit ? "bg-blue-50/50 dark:bg-blue-950/20 border-l-2 border-l-blue-500" : ""} ${canExpand ? "cursor-pointer hover:bg-muted/50" : ""}`}
                               onClick={() => {
-                                if (isImportadoKit) {
-                                  setExpandedKitInsumo(isKitExpanded ? null : insumo.id);
-                                } else if (hasCotacoes) {
+                                if (hasCotacoes) {
                                   setExpandedInsumo(isExpanded ? null : insumo.id);
                                 }
                               }}
                             >
                               <TableCell className="w-8 px-2">
-                                {canExpand ? (
-                                  (isImportadoKit ? isKitExpanded : isExpanded)
+                                {hasCotacoes ? (
+                                  isExpanded
                                     ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                     : <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                 ) : null}
@@ -467,16 +465,6 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                               )}
                             </TableRow>
 
-                            {/* Expanded: Insumos do produto vinculado (Kit) */}
-                            {isImportadoKit && isKitExpanded && insumo.codigo && (
-                              <TableRow>
-                                <TableCell colSpan={versaoAnterior ? 8 : 7} className="p-0 bg-blue-50/30 dark:bg-blue-950/10">
-                                  <div className="px-6 py-3 ml-4 pl-4 border-l-2 border-l-blue-500/60">
-                                    <InsumosOrigemPanel codigoProdutoOrigem={insumo.codigo} />
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            )}
 
                             {/* Expanded supplier comparison */}
                             {isExpanded && hasCotacoes && (
