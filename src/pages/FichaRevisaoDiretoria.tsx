@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import {
   CheckCircle2, AlertTriangle, Eye, Loader2, ClipboardList, Search,
   BarChart3, ChevronDown, ChevronUp, Clock, Inbox, MessageSquare, FolderOpen, CalendarIcon,
+  Link2,
 } from "lucide-react";
 import { useFichaRevisaoDiretoria } from "@/hooks/useFichaRevisao";
 import { FichaAnalisePanel } from "@/components/fabrica/FichaAnalisePanel";
@@ -95,9 +96,31 @@ export default function FichaRevisaoDiretoria() {
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [fichasPendentes, filtroMarca, filtroLinha]);
 
-  // Filtros
+  // Query grade_itens para mapear Kit → Filhos
+  const [gradeRelMap, setGradeRelMap] = useState<{ filhoToPai: Map<string, string>; paiToFilhos: Map<string, string[]> }>({ filhoToPai: new Map(), paiToFilhos: new Map() });
+
+  useEffect(() => {
+    const loadGrade = async () => {
+      const { data } = await supabase
+        .from("fabrica_produto_grade_itens")
+        .select("produto_pai_id, produto_filho_id");
+      if (!data) return;
+      const f2p = new Map<string, string>();
+      const p2f = new Map<string, string[]>();
+      (data as any[]).forEach((r: any) => {
+        f2p.set(r.produto_filho_id, r.produto_pai_id);
+        const arr = p2f.get(r.produto_pai_id) || [];
+        arr.push(r.produto_filho_id);
+        p2f.set(r.produto_pai_id, arr);
+      });
+      setGradeRelMap({ filhoToPai: f2p, paiToFilhos: p2f });
+    };
+    loadGrade();
+  }, []);
+
+  // Filtros + agrupamento Kit→Filho
   const fichasFiltradas = useMemo(() => {
-    return fichasPendentes.filter((f: any) => {
+    const filtered = fichasPendentes.filter((f: any) => {
       if (filtroMarca !== "all" && f.produto?.marca !== filtroMarca) return false;
       if (filtroLinha !== "all" && f.produto?.linha !== filtroLinha) return false;
       if (filtroProduto !== "all" && f.produto?.id !== filtroProduto) return false;
@@ -107,7 +130,38 @@ export default function FichaRevisaoDiretoria() {
       }
       return true;
     });
-  }, [fichasPendentes, busca, filtroMarca, filtroLinha, filtroProduto]);
+
+    // Reordenar: filhos logo após seus pais
+    const filteredProdutoIds = new Set(filtered.map((f: any) => f.produto_id));
+    const result: any[] = [];
+    const placed = new Set<string>();
+
+    for (const f of filtered) {
+      // Se é filho e o pai está na lista, pular (será inserido após o pai)
+      if (gradeRelMap.filhoToPai.has(f.produto_id) && filteredProdutoIds.has(gradeRelMap.filhoToPai.get(f.produto_id)!)) {
+        continue;
+      }
+      if (placed.has(f.id)) continue;
+      result.push(f);
+      placed.add(f.id);
+      // Se é pai, inserir fichas dos filhos logo após
+      const childIds = gradeRelMap.paiToFilhos.get(f.produto_id);
+      if (childIds) {
+        for (const childProdId of childIds) {
+          const childFicha = filtered.find((cf: any) => cf.produto_id === childProdId && !placed.has(cf.id));
+          if (childFicha) {
+            result.push(childFicha);
+            placed.add(childFicha.id);
+          }
+        }
+      }
+    }
+    // Adicionar órfãos
+    for (const f of filtered) {
+      if (!placed.has(f.id)) result.push(f);
+    }
+    return result;
+  }, [fichasPendentes, busca, filtroMarca, filtroLinha, filtroProduto, gradeRelMap]);
 
   // Admin KPIs
   const kpis = useMemo(() => {
@@ -354,20 +408,40 @@ export default function FichaRevisaoDiretoria() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {fichasFiltradas.map((ficha: any) => (
-                        <TableRow key={ficha.id} className={fichaAberta?.id === ficha.id ? "bg-primary/5" : ""}>
-                          <TableCell className="font-medium">{ficha.produto?.nome}</TableCell>
-                          <TableCell className="font-mono">{ficha.produto?.codigo}</TableCell>
-                          <TableCell><Badge variant="outline">v{ficha.versao}</Badge></TableCell>
-                          <TableCell>{new Date(ficha.submetido_em).toLocaleDateString("pt-BR")}</TableCell>
-                          <TableCell className="font-semibold">{formatarMoeda(ficha.snapshot_totais?.custoTotal || 0)}</TableCell>
-                          <TableCell className="text-right">
-                            <Button size="sm" variant={fichaAberta?.id === ficha.id ? "default" : "outline"} onClick={() => setFichaAberta(fichaAberta?.id === ficha.id ? null : ficha)}>
-                              <Eye className="h-4 w-4 mr-1" /> {fichaAberta?.id === ficha.id ? "Fechar" : "Analisar"}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {fichasFiltradas.map((ficha: any) => {
+                        const paiProdutoId = gradeRelMap.filhoToPai.get(ficha.produto_id);
+                        const paiNaLista = paiProdutoId && fichasFiltradas.some((f: any) => f.produto_id === paiProdutoId);
+                        const isFilho = !!paiNaLista;
+                        const paiNome = isFilho ? fichasFiltradas.find((f: any) => f.produto_id === paiProdutoId)?.produto?.nome : null;
+
+                        return (
+                          <TableRow
+                            key={ficha.id}
+                            className={cn(
+                              fichaAberta?.id === ficha.id ? "bg-primary/5" : "",
+                              isFilho && "bg-blue-50/30 dark:bg-blue-950/20 border-l-2 border-l-blue-400"
+                            )}
+                          >
+                            <TableCell className={cn("font-medium", isFilho && "pl-8")}>
+                              {isFilho && (
+                                <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 mb-0.5">
+                                  <Link2 className="h-3 w-3" /> ↳ Kit: {paiNome}
+                                </span>
+                              )}
+                              {ficha.produto?.nome}
+                            </TableCell>
+                            <TableCell className="font-mono">{ficha.produto?.codigo}</TableCell>
+                            <TableCell><Badge variant="outline">v{ficha.versao}</Badge></TableCell>
+                            <TableCell>{new Date(ficha.submetido_em).toLocaleDateString("pt-BR")}</TableCell>
+                            <TableCell className="font-semibold">{formatarMoeda(ficha.snapshot_totais?.custoTotal || 0)}</TableCell>
+                            <TableCell className="text-right">
+                              <Button size="sm" variant={fichaAberta?.id === ficha.id ? "default" : "outline"} onClick={() => setFichaAberta(fichaAberta?.id === ficha.id ? null : ficha)}>
+                                <Eye className="h-4 w-4 mr-1" /> {fichaAberta?.id === ficha.id ? "Fechar" : "Analisar"}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -382,6 +456,9 @@ export default function FichaRevisaoDiretoria() {
                 onAprovar={handleAprovarEClose}
                 onSolicitarRevisao={handleSolicitarRevisaoEClose}
                 onClose={() => setFichaAberta(null)}
+                fichasPendentes={fichasFiltradas}
+                gradeRelMap={gradeRelMap}
+                onSelectFicha={setFichaAberta}
               />
             )}
           </TabsContent>

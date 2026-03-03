@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ import {
   CheckCircle2, AlertTriangle, Plus, Trash2, FileText, Receipt,
   MessageSquare, Download, ShieldAlert, ShieldCheck, MessageCircle,
   ClipboardList, Loader2, X, History, TrendingUp, TrendingDown,
-  ChevronDown, ChevronRight, Trophy,
+  ChevronDown, ChevronRight, Trophy, Link2, Eye,
 } from "lucide-react";
 import { RevisaoChatPanel } from "@/components/fabrica/RevisaoChatPanel";
 import { DocumentosTab } from "@/components/fabrica/DocumentosTab";
@@ -49,9 +49,12 @@ interface Props {
     itens: any[], requisitos: any[]
   ) => Promise<void>;
   onClose: () => void;
+  fichasPendentes?: any[];
+  gradeRelMap?: { filhoToPai: Map<string, string>; paiToFilhos: Map<string, string[]> };
+  onSelectFicha?: (ficha: any) => void;
 }
 
-export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRevisao, onClose }: Props) {
+export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRevisao, onClose, fichasPendentes, gradeRelMap, onSelectFicha }: Props) {
   const [parecer, setParecer] = useState("");
   const [apontamentos, setApontamentos] = useState<ApontamentoForm[]>([]);
   const [modoRevisao, setModoRevisao] = useState(false);
@@ -134,6 +137,27 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
   const snapshotConfig = (ficha.snapshot_config || {}) as any;
   const snapshotTotais = (ficha.snapshot_totais || {}) as any;
 
+  // Produtos vinculados (Kit ↔ Unidade)
+  const produtosVinculados = useMemo(() => {
+    if (!gradeRelMap || !fichasPendentes) return [];
+    const vinculados: any[] = [];
+    // Se este produto é pai, buscar filhos
+    const childIds = gradeRelMap.paiToFilhos.get(ficha.produto_id);
+    if (childIds) {
+      childIds.forEach(childId => {
+        const childFicha = fichasPendentes.find((f: any) => f.produto_id === childId);
+        if (childFicha) vinculados.push({ ...childFicha, relacao: "filho" });
+      });
+    }
+    // Se este produto é filho, buscar pai
+    const paiId = gradeRelMap.filhoToPai.get(ficha.produto_id);
+    if (paiId) {
+      const paiFicha = fichasPendentes.find((f: any) => f.produto_id === paiId);
+      if (paiFicha) vinculados.push({ ...paiFicha, relacao: "pai" });
+    }
+    return vinculados;
+  }, [ficha.produto_id, gradeRelMap, fichasPendentes]);
+
   // Comparar com versão anterior
   const versaoAnterior = historicoVersoes.find((v: any) => v.versao === ficha.versao - 1);
   const insumosPrevMap = new Map<string, any>();
@@ -187,6 +211,45 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                 <p className="text-lg font-bold text-primary">{formatarMoeda(snapshotTotais.custoTotal || 0)}</p>
               </div>
             </div>
+
+            {/* Produtos Vinculados (Kit ↔ Unidade) */}
+            {produtosVinculados.length > 0 && (
+              <Card className="border-blue-400/50 bg-blue-50/20 dark:bg-blue-950/10">
+                <CardContent className="p-3 space-y-2">
+                  <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+                    <Link2 className="h-3.5 w-3.5" /> Produtos Vinculados
+                  </p>
+                  {produtosVinculados.map((v: any) => {
+                    const custoVinc = v.snapshot_totais?.custoTotal || 0;
+                    return (
+                      <div key={v.id} className="flex items-center justify-between p-2 bg-background rounded border text-sm">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Badge variant="outline" className="text-[10px] shrink-0">
+                            {v.relacao === "pai" ? "Kit (Display)" : "Unidade"}
+                          </Badge>
+                          <span className="font-medium truncate">{v.produto?.nome}</span>
+                          <Badge variant="secondary" className="text-[10px]">v{v.versao}</Badge>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="font-semibold">{formatarMoeda(custoVinc)}</span>
+                          {onSelectFicha && (
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onSelectFicha(v)}>
+                              <Eye className="h-3 w-3 mr-1" /> Ver
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center justify-between pt-1 border-t text-sm">
+                    <span className="text-muted-foreground font-medium">Custo Consolidado</span>
+                    <span className="font-bold text-primary">
+                      {formatarMoeda((snapshotTotais.custoTotal || 0) + produtosVinculados.reduce((s: number, v: any) => s + (v.snapshot_totais?.custoTotal || 0), 0))}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Tabs de conteúdo */}
             <Tabs defaultValue="insumos" className="w-full">
