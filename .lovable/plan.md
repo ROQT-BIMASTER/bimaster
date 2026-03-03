@@ -1,36 +1,31 @@
 
 
-# Agrupar Kit + Unidade na Aprovação de Fichas
+# Corrigir Submissão Automática do Unitário Vinculado ao Kit
 
-## Contexto
-Atualmente, cada produto tem sua ficha de custo submetida e revisada de forma independente. O usuário quer que, na tela da Diretoria (FichaRevisaoDiretoria), quando um Display/Kit e seu produto-filho (unidade) estiverem ambos pendentes, eles apareçam visualmente agrupados — da mesma forma que já aparece na listagem de Produtos Acabados.
+## Problema
+Quando o Kit/Display é enviado para aprovação, o produto unitário vinculado **não está sendo submetido junto**. Isso acontece porque o código atual em `useFichaRevisao.ts` (linhas 220-229) pula o filho se:
+- Não existe `fabrica_produto_custos_config` para o filho
+- O filho não possui insumos cadastrados em `fabrica_produto_custos`
+- O status do filho já é `em_revisao`
+
+Na prática, o produto unitário pode não ter config ou insumos próprios configurados, fazendo o `continue` ser executado.
 
 ## Solução
 
-### 1. Buscar relacionamentos Kit → Filhos na tela da Diretoria
-- Na `FichaRevisaoDiretoria.tsx`, adicionar uma query a `fabrica_produto_grade_itens` para construir o mapa `filho → pai` e `pai → filhos[]`.
-- Usar esse mapa para reordenar `fichasFiltradas`, posicionando fichas de produtos-filhos imediatamente após a ficha do produto-pai (Display).
+### Alteração em `src/hooks/useFichaRevisao.ts`
 
-### 2. Renderizar fichas filhas com indentação visual
-- Na tabela de fichas pendentes, detectar se a ficha pertence a um produto-filho.
-- Se sim: aplicar indentação (`pl-8`), borda lateral azul (`border-l-2 border-l-blue-400`), fundo sutil (`bg-blue-50/30`), e ícone `Link2` com label "↳ Kit: [nome do pai]".
-- Fichas de Display mantêm seu estilo atual.
+Na função `submeterParaAprovacao`, relaxar as condições para os filhos:
 
-### 3. Agrupar no FichaAnalisePanel
-- No painel de análise, quando a ficha analisada for de um Display, buscar e exibir um resumo da ficha do produto-filho vinculado (se existir como pendente), com link para alternar entre elas.
-- Adicionar uma seção "Produtos Vinculados" mostrando o custo total consolidado (Display + Unidade).
+1. **Se o filho não tem config**: criar automaticamente um `fabrica_produto_custos_config` com valores padrão antes de submeter.
+2. **Se o filho não tem insumos**: submeter mesmo assim com array vazio de insumos (o snapshot ficará vazio, mas a revisão será criada e aparecerá na listagem da Diretoria).
+3. **Se o filho já está `em_revisao`**: pular (manter essa condição, pois já foi submetido).
+4. **Se o filho já está com status `aprovada`**: re-submeter com dados atuais para que acompanhe o Kit.
 
-### 4. Mapa visual resultante (Diretoria)
-```text
-┌───────────────────────────────────────────────────────┐
-│ HB 573 DISPLAY       | v2 | 01/03/2026 | R$ 45,00   │  ← normal
-│   ↳ 🔗 HB 573       | v3 | 01/03/2026 | R$ 12,50   │  ← indentado, bg-blue
-├───────────────────────────────────────────────────────┤
-│ Outro Produto        | v1 | 28/02/2026 | R$ 8,00    │  ← normal
-└───────────────────────────────────────────────────────┘
-```
+Mudanças específicas:
+- Remover o `if (!filhoInsumos || filhoInsumos.length === 0) continue;` (linha 229) -- submeter mesmo sem insumos
+- Quando `filhoConfig` não existir, criar um config padrão via insert antes de prosseguir
+- Tratar `filhoInsumos` como `[]` quando null
 
-## Arquivos a Alterar
-- **`src/pages/FichaRevisaoDiretoria.tsx`**: Query `fabrica_produto_grade_itens`, reordenar fichas, estilizar linhas filhas.
-- **`src/components/fabrica/FichaAnalisePanel.tsx`**: Adicionar seção "Produtos Vinculados" mostrando ficha do filho/pai quando aplicável.
+### Arquivo a alterar
+- **`src/hooks/useFichaRevisao.ts`**: Ajustar bloco de submissão de filhos (linhas 208-243)
 
