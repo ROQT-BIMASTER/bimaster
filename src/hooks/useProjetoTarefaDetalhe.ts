@@ -42,10 +42,11 @@ export interface ProdutoAcabado {
   marca: string | null;
   linha: string | null;
   tipo: string | null;
+  foto_url: string | null;
   filhos?: ProdutoAcabado[];
 }
 
-export function useProjetoTarefaDetalhe(tarefaId: string | undefined) {
+export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?: string | null) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -249,11 +250,25 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined) {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  // ===== Linked Product query =====
+  const { data: linkedProduto } = useQuery({
+    queryKey: ["linked-produto", produtoId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("fabrica_produtos" as any)
+        .select("id, codigo, nome, marca, linha, tipo, foto_url")
+        .eq("id", produtoId!)
+        .single();
+      return (data as unknown as ProdutoAcabado) || null;
+    },
+    enabled: !!produtoId,
+  });
+
   // ===== Produtos Acabados search =====
   const searchProdutos = async (query?: string): Promise<ProdutoAcabado[]> => {
     let q = supabase
       .from("fabrica_produtos" as any)
-      .select("id, codigo, nome, marca, linha, tipo")
+      .select("id, codigo, nome, marca, linha, tipo, foto_url")
       .eq("ativo", true)
       .order("nome")
       .limit(20);
@@ -268,7 +283,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined) {
     if (displayIds.length > 0) {
       const { data: gradeItens } = await supabase
         .from("fabrica_produto_grade_itens" as any)
-        .select("produto_pai_id, produto_filho_id, quantidade, produto_filho:fabrica_produtos!produto_filho_id(id, codigo, nome, marca, linha, tipo)")
+        .select("produto_pai_id, produto_filho_id, quantidade, produto_filho:fabrica_produtos!produto_filho_id(id, codigo, nome, marca, linha, tipo, foto_url)")
         .in("produto_pai_id", displayIds);
 
       if (gradeItens) {
@@ -317,5 +332,6 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined) {
     sendMessage,
     searchProdutos,
     teamMembers,
+    linkedProduto: linkedProduto || null,
   };
 }
