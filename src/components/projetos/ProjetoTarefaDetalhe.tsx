@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,7 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -135,7 +136,35 @@ export function ProjetoTarefaDetalhe({
   if (!tarefa) return null;
 
   const isCompleted = tarefa.status === "concluida";
+  const isPendingValidation = (tarefa as any).validacao_status === "pendente_validacao";
   const estagioInfo = ESTAGIO_OPTIONS.find(e => e.value === tarefa.estagio);
+
+  const handleEnviarParaValidacao = async () => {
+    // Check if there are linked products in junction table
+    const { data: links } = await supabase
+      .from("projeto_tarefa_produtos" as any)
+      .select("id")
+      .eq("tarefa_id", tarefa.id);
+    
+    if (!links || links.length === 0) {
+      toast.error("Vincule pelo menos um produto acabado antes de enviar para validação.");
+      return;
+    }
+    
+    // Directly submit for validation (update status)
+    const { error } = await supabase
+      .from("projeto_tarefas")
+      .update({ validacao_status: "pendente_validacao" } as any)
+      .eq("id", tarefa.id);
+    
+    if (error) {
+      toast.error("Erro ao enviar para validação: " + error.message);
+      return;
+    }
+    
+    toast.success("Tarefa enviada para validação!");
+    onUpdate(tarefa.id, {});
+  };
 
   const handleTitleBlur = () => {
     setEditingTitle(false);
@@ -235,36 +264,40 @@ export function ProjetoTarefaDetalhe({
 
           {/* Top bar */}
           <div className="flex items-center gap-2 px-5 py-3 border-b border-border/50">
-            <Button
-              variant={isCompleted ? "default" : "outline"}
-              size="sm"
-              className={cn("gap-1.5 text-xs", isCompleted && "bg-emerald-600 hover:bg-emerald-700")}
-              onClick={() => onToggle(tarefa)}
-            >
-              {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
-              {isCompleted ? "Concluída" : "Marcar como concluída"}
-            </Button>
-            {/* Validation button - shown when task is completed and has product */}
-            {isCompleted && (tarefa as any).produto_id && !(tarefa as any).validacao_status && (
+            {/* Marcar como concluída - bloqueado durante validação pendente */}
+            {isPendingValidation ? (
+              <Badge className="text-[10px] bg-amber-500/20 text-amber-400 border-0 gap-1">
+                <Clock className="h-3 w-3" />
+                Pendente de Aprovação
+              </Badge>
+            ) : (
+              <Button
+                variant={isCompleted ? "default" : "outline"}
+                size="sm"
+                className={cn("gap-1.5 text-xs", isCompleted && "bg-emerald-600 hover:bg-emerald-700")}
+                onClick={() => onToggle(tarefa)}
+                disabled={isPendingValidation}
+              >
+                {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                {isCompleted ? "Concluída" : "Marcar como concluída"}
+              </Button>
+            )}
+            {/* Enviar para Validação - uses junction table, not produto_id */}
+            {isCompleted && !(tarefa as any).validacao_status && (
               <Button
                 size="sm"
                 className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700"
-                onClick={() => setValidacaoDialogOpen(true)}
+                onClick={() => handleEnviarParaValidacao()}
               >
                 <ShieldCheck className="h-4 w-4" />
                 Enviar para Validação
               </Button>
             )}
-            {(tarefa as any).validacao_status && (
-              <Badge className={cn("text-[10px]",
-                (tarefa as any).validacao_status === "pendente_validacao" && "bg-amber-500/20 text-amber-400 border-0",
-                (tarefa as any).validacao_status === "validada" && "bg-emerald-500/20 text-emerald-400 border-0",
-                (tarefa as any).validacao_status === "rejeitada" && "bg-destructive/20 text-destructive border-0",
-              )}>
-                {(tarefa as any).validacao_status === "pendente_validacao" && "Aguardando Validação"}
-                {(tarefa as any).validacao_status === "validada" && "✓ Validada"}
-                {(tarefa as any).validacao_status === "rejeitada" && "✗ Rejeitada"}
-              </Badge>
+            {(tarefa as any).validacao_status === "validada" && (
+              <Badge className="text-[10px] bg-emerald-500/20 text-emerald-400 border-0">✓ Validada</Badge>
+            )}
+            {(tarefa as any).validacao_status === "rejeitada" && (
+              <Badge className="text-[10px] bg-destructive/20 text-destructive border-0">✗ Rejeitada — Corrija e reenvie</Badge>
             )}
             <div className="flex items-center gap-2 ml-auto">
               {tarefa.codigo && (
@@ -309,9 +342,13 @@ export function ProjetoTarefaDetalhe({
                 <div className="grid grid-cols-[120px_1fr] gap-y-3 gap-x-3 text-sm">
                   {/* Status */}
                   <span className="text-muted-foreground">Status</span>
-                  <Select value={tarefa.status} onValueChange={v => onUpdate(tarefa.id, { status: v })}>
+                  <Select value={isPendingValidation ? "pendente_validacao" : tarefa.status} onValueChange={v => {
+                    if (isPendingValidation) { toast.error("Aguardando aprovação. Não é possível alterar o status."); return; }
+                    onUpdate(tarefa.id, { status: v });
+                  }} disabled={isPendingValidation}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
+                      {isPendingValidation && <SelectItem value="pendente_validacao">Pendente de Aprovação</SelectItem>}
                       {STATUS_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
