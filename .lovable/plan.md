@@ -1,38 +1,39 @@
 
 
-## Plano: Correções pendentes nos fluxos de despesas
+## Plano: Chat financeiro visível na Central de Pagamentos — por despesa + consolidado geral
 
-### Análise realizada
+### Problema
 
-Revisei todos os módulos (Trade, Eventos, Departamentos) e o sistema de comunicação inline com o Financeiro. Identifiquei uma lacuna:
+O chat por despesa já está codificado (coluna "Chat" na tabela + aba "Comunicação" no ReviewDialog), mas o usuário não consegue visualizá-lo. Além disso, falta uma visão **consolidada geral** de todas as conversas — no estilo da Fábrica (`RevisaoChatConsolidado`), com lista de conversas à esquerda e chat à direita.
 
-### Problema encontrado
+### O que será feito
 
-| Funcionalidade | Trade | Eventos | Departamentos |
-|---|---|---|---|
-| Chat inline com Financeiro (ícone + dialog) | **Faltando** | OK | OK |
-| `payment_queue_id` salvo na origem | OK | OK | OK |
-| Policy banner no envio | OK | OK | OK |
-| Sugestões IA no envio | OK | OK | OK |
-| Portador como Select | OK | OK | OK |
-| Parcelas/Boleto na tabela | OK | OK | OK |
+#### 1. Nova aba "Comunicação" na Central de Pagamentos
 
-O módulo **Trade (TradeLancamentos.tsx)** salva o `payment_queue_id` ao enviar ao financeiro, mas **não tem o ícone de chat** para o solicitante se comunicar com o financeiro — diferente de Eventos e Departamentos que já possuem.
+Adicionar uma terceira aba na página `FinancialPaymentCentral.tsx`:
 
-### Correção
+```
+[Fila de Pagamentos] [Dashboard Consolidado] [Comunicação]
+```
 
-**`src/pages/TradeLancamentos.tsx`**:
-- Importar `PaymentChatPanel`, `MessageCircle`, e `Dialog`
-- Adicionar state `chatEntry` para controlar qual lançamento abre o chat
-- Adicionar coluna "Chat" na tabela com ícone de balão quando `payment_queue_id` existir
-- Adicionar menu dropdown item "Comunicação Financeiro"
-- Adicionar Dialog com `PaymentChatPanel` embutido
+Esta aba terá layout split-panel (igual à Fábrica):
+- **Painel esquerdo**: Lista de todos os itens da fila que possuem mensagens, ordenados por última mensagem, com badge de não lidas, nome do fornecedor, código, e preview da última mensagem
+- **Painel direito**: `PaymentChatPanel` do item selecionado, com `userType="financeiro"`
 
-Isso padroniza todos os 3 módulos com a mesma experiência de comunicação inline.
+#### 2. Componente `PaymentChatConsolidado`
 
-### Arquivos afetados
+Novo componente inspirado no `RevisaoChatConsolidado` da Fábrica:
+- Busca todos os `financial_payment_messages` agrupados por `payment_queue_id`
+- Exibe lista com: código do item, fornecedor, total de mensagens, não lidas, última mensagem
+- Filtro por busca (fornecedor/código)
+- Indicador de itens sem resposta do financeiro
+- Realtime para atualização automática
+
+#### 3. Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/TradeLancamentos.tsx` | Adicionar ícone chat + dialog comunicação |
+| `src/components/financeiro/payments/PaymentChatConsolidado.tsx` | **Novo** — painel consolidado estilo Fábrica |
+| `src/pages/FinancialPaymentCentral.tsx` | Adicionar aba "Comunicação" com o componente |
+| `src/hooks/usePaymentMessages.ts` | Adicionar hook `useAllPaymentConversations` para listar conversas agrupadas |
 
