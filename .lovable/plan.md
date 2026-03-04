@@ -1,39 +1,41 @@
 
 
-## Plano: Chat financeiro visível na Central de Pagamentos — por despesa + consolidado geral
+## Plano: Adicionar botão "Nova Conversa" no chat consolidado
 
 ### Problema
 
-O chat por despesa já está codificado (coluna "Chat" na tabela + aba "Comunicação" no ReviewDialog), mas o usuário não consegue visualizá-lo. Além disso, falta uma visão **consolidada geral** de todas as conversas — no estilo da Fábrica (`RevisaoChatConsolidado`), com lista de conversas à esquerda e chat à direita.
+O painel de Comunicação no Contas a Pagar (e na Central de Pagamentos) aparece em branco porque só exibe conversas que já possuem mensagens. Não há como o financeiro **iniciar** uma conversa — ele precisa selecionar uma despesa da fila de pagamentos para vincular.
 
-### O que será feito
+### Solução
 
-#### 1. Nova aba "Comunicação" na Central de Pagamentos
+Adicionar um botão "Nova Conversa" no topo do painel de conversas do `PaymentChatConsolidado`. Ao clicar, abre um dialog/popover com uma lista pesquisável de itens da `financial_payment_queue` (que ainda não possuem conversas). O usuário seleciona um item e o chat é aberto — a primeira mensagem enviada cria a conversa.
 
-Adicionar uma terceira aba na página `FinancialPaymentCentral.tsx`:
+### Alterações
 
-```
-[Fila de Pagamentos] [Dashboard Consolidado] [Comunicação]
-```
+**`src/components/financeiro/payments/PaymentChatConsolidado.tsx`**:
+- Adicionar botão "Nova Conversa" (ícone `Plus`) ao lado do título "Conversas"
+- Ao clicar, abrir um Dialog com lista pesquisável de itens da `financial_payment_queue`
+- Filtrar itens que já possuem conversas ativas (excluir `paymentQueueIds` já listados)
+- Ao selecionar um item, criar um `PaymentConversation` temporário e abrir o `PaymentChatPanel` no painel direito
+- A conversa só será persistida quando a primeira mensagem for enviada (comportamento já existente do `PaymentChatPanel`)
 
-Esta aba terá layout split-panel (igual à Fábrica):
-- **Painel esquerdo**: Lista de todos os itens da fila que possuem mensagens, ordenados por última mensagem, com badge de não lidas, nome do fornecedor, código, e preview da última mensagem
-- **Painel direito**: `PaymentChatPanel` do item selecionado, com `userType="financeiro"`
+**`src/hooks/usePaymentMessages.ts`** (ou novo hook):
+- Adicionar query para buscar itens da `financial_payment_queue` disponíveis para nova conversa (sem mensagens existentes)
 
-#### 2. Componente `PaymentChatConsolidado`
+### Fluxo do usuário
 
-Novo componente inspirado no `RevisaoChatConsolidado` da Fábrica:
-- Busca todos os `financial_payment_messages` agrupados por `payment_queue_id`
-- Exibe lista com: código do item, fornecedor, total de mensagens, não lidas, última mensagem
-- Filtro por busca (fornecedor/código)
-- Indicador de itens sem resposta do financeiro
-- Realtime para atualização automática
+1. Abre aba "Comunicação" no Contas a Pagar
+2. Vê lista de conversas (ou vazio)
+3. Clica em "+ Nova Conversa"
+4. Dialog abre com lista pesquisável de despesas da fila de pagamentos
+5. Seleciona uma despesa (fornecedor, valor, vencimento visíveis)
+6. Chat abre no painel direito com o `paymentQueueId` selecionado
+7. Digita e envia a primeira mensagem — conversa criada
 
-#### 3. Arquivos
+### Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/financeiro/payments/PaymentChatConsolidado.tsx` | **Novo** — painel consolidado estilo Fábrica |
-| `src/pages/FinancialPaymentCentral.tsx` | Adicionar aba "Comunicação" com o componente |
-| `src/hooks/usePaymentMessages.ts` | Adicionar hook `useAllPaymentConversations` para listar conversas agrupadas |
+| `src/components/financeiro/payments/PaymentChatConsolidado.tsx` | Adicionar botão + dialog de nova conversa |
+| `src/hooks/usePaymentMessages.ts` | Adicionar hook para buscar itens disponíveis |
 
