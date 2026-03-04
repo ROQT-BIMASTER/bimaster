@@ -11,6 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -34,9 +40,13 @@ import {
   Send,
   Banknote,
   FileText,
+  Barcode,
+  Copy,
+  AlertTriangle,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { PaymentPolicyBanner } from "@/components/financeiro/payments/PaymentPolicyBanner";
+import { toast } from "sonner";
 
 interface EventsExpensesTableProps {
   expenses: EventExpense[];
@@ -86,6 +96,11 @@ export function EventsExpensesTable({ expenses, isLoading, eventStatus }: Events
     setSendFinancialDialogOpen(true);
   };
 
+  const copyBarcode = (barcode: string) => {
+    navigator.clipboard.writeText(barcode);
+    toast.success("Linha digitável copiada!");
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -111,7 +126,7 @@ export function EventsExpensesTable({ expenses, isLoading, eventStatus }: Events
   const canApprove = isAdminOrSupervisor && (eventStatus === "approved" || eventStatus === "in_progress");
 
   return (
-    <>
+    <TooltipProvider>
       <PaymentPolicyBanner />
       <div className="border rounded-lg overflow-x-auto mt-4">
         <Table>
@@ -119,22 +134,37 @@ export function EventsExpensesTable({ expenses, isLoading, eventStatus }: Events
             <TableRow>
               <TableHead>Categoria</TableHead>
               <TableHead>Descrição</TableHead>
+              <TableHead>Parcela</TableHead>
               <TableHead>Data</TableHead>
               <TableHead className="text-right">Valor Previsto</TableHead>
               <TableHead className="text-right">Valor Realizado</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Boleto</TableHead>
               <TableHead>Fornecedor</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {expenses.map((expense) => (
+            {expenses.map((expense: any) => (
               <TableRow key={expense.id}>
                 <TableCell className="font-medium">
                   {getCategoryLabel(expense.category)}
+                  {expense.document_type === "orcamento" && expense.status !== "rejected" && (
+                    <Badge variant="outline" className="ml-2 text-xs border-amber-500 text-amber-600">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Pendente NF
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell className="max-w-[200px] truncate">
                   {expense.description || "-"}
+                </TableCell>
+                <TableCell>
+                  {expense.installment_number && expense.installment_total ? (
+                    <Badge variant="secondary" className="text-xs">
+                      {expense.installment_number}/{expense.installment_total}
+                    </Badge>
+                  ) : "-"}
                 </TableCell>
                 <TableCell>
                   {expense.expense_date 
@@ -149,6 +179,26 @@ export function EventsExpensesTable({ expenses, isLoading, eventStatus }: Events
                 </TableCell>
                 <TableCell>{getStatusBadge(expense.status)}</TableCell>
                 <TableCell>
+                  {expense.boleto_barcode ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => copyBarcode(expense.boleto_barcode)}
+                        >
+                          <Barcode className="h-4 w-4 text-primary" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="font-mono text-xs break-all">{expense.boleto_barcode}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Clique para copiar</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : "-"}
+                </TableCell>
+                <TableCell>
                   {expense.supplier_name || "-"}
                 </TableCell>
                 <TableCell className="text-right">
@@ -159,8 +209,15 @@ export function EventsExpensesTable({ expenses, isLoading, eventStatus }: Events
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      {expense.boleto_barcode && (
+                        <DropdownMenuItem onClick={() => copyBarcode(expense.boleto_barcode)}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copiar Linha Digitável
+                        </DropdownMenuItem>
+                      )}
                       {expense.status === "pending" && canApprove && (
                         <>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleApprove(expense.id)}>
                             <CheckCircle className="mr-2 h-4 w-4 text-success" />
                             Aprovar
@@ -169,14 +226,16 @@ export function EventsExpensesTable({ expenses, isLoading, eventStatus }: Events
                             <XCircle className="mr-2 h-4 w-4 text-destructive" />
                             Rejeitar
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
                         </>
                       )}
                       {expense.status === "approved" && (
-                        <DropdownMenuItem onClick={() => handleSendToFinancial(expense.id)}>
-                          <Send className="mr-2 h-4 w-4" />
-                          Enviar ao Financeiro
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleSendToFinancial(expense.id)}>
+                            <Send className="mr-2 h-4 w-4" />
+                            Enviar ao Financeiro
+                          </DropdownMenuItem>
+                        </>
                       )}
                       {expense.status === "pending_financial" && (
                         <DropdownMenuItem disabled>
@@ -203,6 +262,6 @@ export function EventsExpensesTable({ expenses, isLoading, eventStatus }: Events
           }}
         />
       )}
-    </>
+    </TooltipProvider>
   );
 }
