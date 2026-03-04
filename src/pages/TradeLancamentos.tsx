@@ -68,6 +68,9 @@ import { EditarLancamentoDialog } from "@/components/trade/EditarLancamentoDialo
 import { EnviarFinanceiroTradeDialog } from "@/components/trade/EnviarFinanceiroTradeDialog";
 import { PaymentPolicyBanner } from "@/components/financeiro/payments/PaymentPolicyBanner";
 import { ExpenseAIChatFloat } from "@/components/ai/ExpenseAIChatFloat";
+import { PaymentChatPanel } from "@/components/financeiro/payments/PaymentChatPanel";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MessageCircle } from "lucide-react";
 
 export default function TradeLancamentos() {
   const navigate = useNavigate();
@@ -81,6 +84,7 @@ export default function TradeLancamentos() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [sendFinancialDialogOpen, setSendFinancialDialogOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [chatEntry, setChatEntry] = useState<any>(null);
 
   useEffect(() => {
     getCurrentUser();
@@ -541,7 +545,16 @@ export default function TradeLancamentos() {
                                   </DropdownMenuItem>
                                 </>
                               )}
-                              {!canEdit(entry) && !canAddEvidence(entry) && !canSendToFinancial(entry) && !entry.boleto_barcode && (
+                              {entry.payment_queue_id && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => setChatEntry(entry)}>
+                                    <MessageCircle className="mr-2 h-4 w-4" />
+                                    Comunicação Financeiro
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {!canEdit(entry) && !canAddEvidence(entry) && !canSendToFinancial(entry) && !entry.boleto_barcode && !entry.payment_queue_id && (
                                 <DropdownMenuItem disabled>
                                   <Eye className="mr-2 h-4 w-4" />
                                   Sem ações disponíveis
@@ -582,6 +595,25 @@ export default function TradeLancamentos() {
           />
         </>
       )}
+
+      <Dialog open={!!chatEntry} onOpenChange={(open) => !open && setChatEntry(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-primary" />
+              Comunicação com Financeiro
+            </DialogTitle>
+          </DialogHeader>
+          {chatEntry?.payment_queue_id && (
+            <PaymentChatPanel
+              paymentQueueId={chatEntry.payment_queue_id}
+              userType="solicitante"
+              compact
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <ExpenseAIChatFloat
         context={{ screen: "trade_lancamentos", totalEntries: entries.length }}
         contextLabel="Lançamentos Trade"
