@@ -25,7 +25,7 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -118,6 +118,7 @@ export function ProjetoTarefaDetalhe({
   const [produtoResults, setProdutoResults] = useState<ProdutoAcabado[]>([]);
   const [showProdutoSearch, setShowProdutoSearch] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedSubtarefa, setSelectedSubtarefa] = useState<ProjetoTarefa | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -585,20 +586,94 @@ export function ProjetoTarefaDetalhe({
                       </span>
                     )}
                   </h3>
-                  <div className="space-y-1">
-                    {tarefa.subtarefas?.map(st => (
-                      <div key={st.id} className="flex items-center gap-2 py-1">
-                        <button onClick={() => onToggle(st)} className={cn(
-                          "flex-shrink-0",
-                          st.status === "concluida" ? "text-emerald-400" : "text-muted-foreground hover:text-foreground"
-                        )}>
-                          {st.status === "concluida" ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
-                        </button>
-                        <span className={cn("text-sm", st.status === "concluida" && "line-through text-muted-foreground")}>
-                          {st.titulo}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="space-y-1.5">
+                    {tarefa.subtarefas?.map(st => {
+                      const stEstagioInfo = ESTAGIO_OPTIONS.find(e => e.value === st.estagio);
+                      return (
+                        <div key={st.id} className="group border border-border/30 rounded-lg p-2.5 bg-muted/10 hover:bg-muted/20 transition-colors space-y-2">
+                          {/* Row 1: checkbox + title + open button */}
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => onToggle(st)} className={cn(
+                              "flex-shrink-0",
+                              st.status === "concluida" ? "text-emerald-400" : "text-muted-foreground hover:text-foreground"
+                            )}>
+                              {st.status === "concluida" ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                            </button>
+                            <span className={cn("text-sm flex-1 min-w-0 truncate", st.status === "concluida" && "line-through text-muted-foreground")}>
+                              {st.titulo}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => setSelectedSubtarefa(st)}
+                            >
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          {/* Row 2: inline admin controls */}
+                          <div className="flex items-center gap-1.5 pl-6 flex-wrap">
+                            {/* Status */}
+                            <Select value={st.status} onValueChange={v => onUpdate(st.id, { status: v })}>
+                              <SelectTrigger className="h-6 text-[10px] w-auto min-w-[80px] gap-1 border-border/30">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                            {/* Prioridade */}
+                            <Select value={st.prioridade} onValueChange={v => onUpdate(st.id, { prioridade: v })}>
+                              <SelectTrigger className="h-6 text-[10px] w-auto min-w-[60px] gap-1 border-border/30">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {PRIORIDADE_OPTIONS.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                            {/* Estágio */}
+                            <Select value={st.estagio || ""} onValueChange={v => onUpdate(st.id, { estagio: v } as any)}>
+                              <SelectTrigger className="h-6 text-[10px] w-auto min-w-[70px] gap-1 border-border/30">
+                                {stEstagioInfo ? (
+                                  <Badge className={cn("text-[9px] border-0 px-1 py-0", stEstagioInfo.color)}>{stEstagioInfo.label}</Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">Estágio</span>
+                                )}
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ESTAGIO_OPTIONS.map(e => (
+                                  <SelectItem key={e.value} value={e.value}>
+                                    <Badge className={cn("text-[9px] border-0", e.color)}>{e.label}</Badge>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {/* Responsável */}
+                            {st.responsavel ? (
+                              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                <Avatar className="h-4 w-4">
+                                  <AvatarImage src={st.responsavel.avatar_url || undefined} />
+                                  <AvatarFallback className="text-[7px] bg-primary/20 text-primary">
+                                    {st.responsavel.nome?.substring(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="truncate max-w-[60px]">{st.responsavel.nome?.split(" ")[0]}</span>
+                              </div>
+                            ) : null}
+                            {/* Data prazo */}
+                            {st.data_prazo && (
+                              <span className={cn("text-[10px] px-1.5 py-0.5 rounded",
+                                new Date(st.data_prazo) < new Date() && st.status !== "concluida"
+                                  ? "text-destructive bg-destructive/10"
+                                  : "text-muted-foreground bg-muted/50"
+                              )}>
+                                {format(new Date(st.data_prazo), "dd MMM", { locale: ptBR })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                   {onAddSubtarefa && (
                     <div className="flex items-center gap-2 mt-2">
@@ -828,6 +903,19 @@ export function ProjetoTarefaDetalhe({
           produtoId={(tarefa as any).produto_id}
           produtoNome={linkedProduto?.nome}
           onSuccess={() => onUpdate(tarefa.id, {})}
+        />
+      )}
+
+      {/* Subtask Detail - recursive */}
+      {selectedSubtarefa && (
+        <ProjetoTarefaDetalhe
+          tarefa={selectedSubtarefa}
+          open={!!selectedSubtarefa}
+          onOpenChange={(open) => { if (!open) setSelectedSubtarefa(null); }}
+          onUpdate={onUpdate}
+          onToggle={onToggle}
+          secoes={secoes}
+          onMoveTarefa={onMoveTarefa}
         />
       )}
     </>
