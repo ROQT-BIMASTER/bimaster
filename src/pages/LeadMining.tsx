@@ -117,7 +117,7 @@ const LeadMining = () => {
     queryFn: async (): Promise<Array<{ nome: string }>> => {
       if (!selectedUF) return [];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const res = await (supabase as any).from("ibge_municipios").select("nome").eq("uf", selectedUF).order("nome");
+      const res = await (supabase as any).from("ibge_municipios").select("nome").eq("uf_sigla", selectedUF).order("nome");
       return res.data || [];
     },
     enabled: !!selectedUF,
