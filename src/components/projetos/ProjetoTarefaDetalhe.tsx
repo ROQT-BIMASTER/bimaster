@@ -22,8 +22,9 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -90,6 +91,7 @@ interface ProjetoTarefaDetalheProps {
 export function ProjetoTarefaDetalhe({
   tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], onMoveTarefa,
 }: ProjetoTarefaDetalheProps) {
+  const navigate = useNavigate();
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
     sendToCofre, messages, sendMessage, searchProdutos, teamMembers,
@@ -170,11 +172,15 @@ export function ProjetoTarefaDetalhe({
 
   const handleProdutoSearch = async (q: string) => {
     setProdutoSearch(q);
-    if (q.length >= 2) {
-      const results = await searchProdutos(q);
+    const results = await searchProdutos(q || undefined);
+    setProdutoResults(results);
+  };
+
+  const handleProdutoFocus = async () => {
+    setShowProdutoSearch(true);
+    if (produtoResults.length === 0) {
+      const results = await searchProdutos();
       setProdutoResults(results);
-    } else {
-      setProdutoResults([]);
     }
   };
 
@@ -390,25 +396,43 @@ export function ProjetoTarefaDetalhe({
                           <Input
                             value={produtoSearch}
                             onChange={e => handleProdutoSearch(e.target.value)}
-                            onFocus={() => setShowProdutoSearch(true)}
-                            placeholder="Buscar produto..."
+                            onFocus={handleProdutoFocus}
+                            placeholder="Buscar produto por nome ou código..."
                             className="h-8 text-xs pl-7"
                           />
                         </div>
-                        {showProdutoSearch && produtoResults.length > 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-40 overflow-auto">
-                            {produtoResults.map(p => (
+                        {showProdutoSearch && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-52 overflow-auto">
+                            {produtoResults.length > 0 ? (
+                              produtoResults.map(p => (
+                                <button
+                                  key={p.id}
+                                  onClick={() => handleSelectProduto(p)}
+                                  className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted/50 transition-colors"
+                                >
+                                  <Package className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  <span className="font-mono text-muted-foreground flex-shrink-0">{p.codigo}</span>
+                                  <span className="truncate">{p.nome}</span>
+                                  {p.marca && <Badge variant="outline" className="text-[9px] px-1 flex-shrink-0">{p.marca}</Badge>}
+                                </button>
+                              ))
+                            ) : (
+                              <div className="px-3 py-3 text-xs text-muted-foreground text-center">
+                                Nenhum produto encontrado
+                              </div>
+                            )}
+                            <div className="border-t border-border/50">
                               <button
-                                key={p.id}
-                                onClick={() => handleSelectProduto(p)}
-                                className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted/50"
+                                onClick={() => {
+                                  setShowProdutoSearch(false);
+                                  navigate("/dashboard/fabrica/produtos-acabados");
+                                }}
+                                className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-primary hover:bg-primary/5 transition-colors font-medium"
                               >
-                                <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="font-mono text-muted-foreground">{p.codigo}</span>
-                                <span className="truncate">{p.nome}</span>
-                                {p.marca && <Badge variant="outline" className="text-[9px] px-1">{p.marca}</Badge>}
+                                <Plus className="h-3.5 w-3.5" />
+                                Cadastrar novo produto
                               </button>
-                            ))}
+                            </div>
                           </div>
                         )}
                       </div>

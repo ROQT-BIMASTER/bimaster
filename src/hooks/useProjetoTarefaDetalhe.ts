@@ -248,12 +248,16 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined) {
   });
 
   // ===== Produtos Acabados search =====
-  const searchProdutos = async (query: string): Promise<ProdutoAcabado[]> => {
-    const { data } = await supabase
+  const searchProdutos = async (query?: string): Promise<ProdutoAcabado[]> => {
+    let q = supabase
       .from("fabrica_produtos" as any)
       .select("id, codigo, nome, marca, linha")
-      .or(`nome.ilike.%${query}%,codigo.ilike.%${query}%`)
-      .limit(10);
+      .order("nome")
+      .limit(20);
+    if (query && query.length >= 1) {
+      q = q.or(`nome.ilike.%${query}%,codigo.ilike.%${query}%`);
+    }
+    const { data } = await q;
     return (data || []) as unknown as ProdutoAcabado[];
   };
 
