@@ -6,12 +6,14 @@ import { NovaSecaoInline } from "./NovaSecaoInline";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
+import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  CheckCircle2, Circle, Calendar, GripVertical, Plus,
+  CheckCircle2, Circle, Calendar, Eye, ListChecks, Plus,
 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -159,6 +161,47 @@ export function ProjetoKanbanView({ projetoId }: Props) {
   );
 }
 
+/* ───────── Subtask Popover ───────── */
+function SubtarefasPopover({ subtarefas }: { subtarefas: ProjetoTarefa[] }) {
+  const completed = subtarefas.filter(s => s.status === "concluida").length;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          title="Ver subtarefas"
+        >
+          <ListChecks className="h-3.5 w-3.5" />
+          <span>{completed}/{subtarefas.length}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-64 p-2"
+        align="start"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-xs font-semibold mb-2 text-muted-foreground">Subtarefas</p>
+        <div className="space-y-1 max-h-48 overflow-y-auto">
+          {subtarefas.map(st => (
+            <div key={st.id} className="flex items-center gap-2 text-xs py-1">
+              {st.status === "concluida"
+                ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                : <Circle className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              }
+              <span className={cn("truncate", st.status === "concluida" && "line-through text-muted-foreground")}>
+                {st.titulo}
+              </span>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/* ───────── Kanban Card ───────── */
 function KanbanCard({
   tarefa,
   onSelect,
@@ -229,24 +272,37 @@ function KanbanCard({
             {STATUS_LABELS[tarefa.status] || tarefa.status}
           </Badge>
         )}
-        {subtaskTotal > 0 && (
-          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 gap-0.5">
-            {subtaskCompleted}/{subtaskTotal}
-          </Badge>
-        )}
       </div>
 
-      {/* Footer: date + avatar */}
+      {/* Footer: date + grade eye + subtasks + avatar */}
       <div className="flex items-center justify-between mt-2.5">
-        {tarefa.data_prazo ? (
-          <span className={cn(
-            "text-[10px] flex items-center gap-1",
-            isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : "text-muted-foreground"
-          )}>
-            <Calendar className="h-3 w-3" />
-            {format(new Date(tarefa.data_prazo), "dd MMM", { locale: ptBR })}
-          </span>
-        ) : <span />}
+        <div className="flex items-center gap-2">
+          {tarefa.data_prazo ? (
+            <span className={cn(
+              "text-[10px] flex items-center gap-1",
+              isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : "text-muted-foreground"
+            )}>
+              <Calendar className="h-3 w-3" />
+              {format(new Date(tarefa.data_prazo), "dd MMM", { locale: ptBR })}
+            </span>
+          ) : null}
+
+          {/* Eye icon - Grade do produto (only for DISPLAY type) */}
+          {tarefa.produto_id && (tarefa as any).produto_tipo === "DISPLAY" && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <DisplayGradePopover
+                produtoId={tarefa.produto_id}
+                produtoNome={tarefa.titulo}
+                produtoCodigo={tarefa.codigo || undefined}
+              />
+            </div>
+          )}
+
+          {/* Subtasks popover */}
+          {subtaskTotal > 0 && tarefa.subtarefas && (
+            <SubtarefasPopover subtarefas={tarefa.subtarefas} />
+          )}
+        </div>
 
         <div className="flex items-center -space-x-1">
           {tarefa.responsavel && (
