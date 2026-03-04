@@ -4,14 +4,17 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageSquare, Search, Inbox, X } from "lucide-react";
+import { MessageSquare, Search, Inbox, X, Plus } from "lucide-react";
 import { PaymentChatPanel } from "./PaymentChatPanel";
-import { useAllPaymentConversations, type PaymentConversation } from "@/hooks/usePaymentMessages";
+import { useAllPaymentConversations, useAvailablePaymentQueues, type PaymentConversation } from "@/hooks/usePaymentMessages";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatRelativeTime } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const SOURCE_LABELS: Record<string, string> = {
   trade: "Trade",
@@ -40,12 +43,23 @@ function ConversaListSkeleton() {
   );
 }
 
+const SOURCE_LABELS_DIALOG: Record<string, string> = {
+  trade: "Trade",
+  eventos: "Eventos",
+  departamentos: "Departamentos",
+};
+
 export function PaymentChatConsolidado() {
   const { data: conversas = [], isLoading } = useAllPaymentConversations();
   const [busca, setBusca] = useState("");
   const [selected, setSelected] = useState<PaymentConversation | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogBusca, setDialogBusca] = useState("");
   const isMobile = useIsMobile();
+
+  const existingQueueIds = useMemo(() => conversas.map(c => c.paymentQueueId), [conversas]);
+  const { data: availableItems = [], isLoading: loadingItems } = useAvailablePaymentQueues(existingQueueIds);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id || null));
@@ -84,6 +98,33 @@ export function PaymentChatConsolidado() {
     );
   }, [conversas, busca]);
 
+  const filteredItems = useMemo(() => {
+    if (!dialogBusca) return availableItems;
+    const lower = dialogBusca.toLowerCase();
+    return availableItems.filter(item =>
+      item.fornecedor.toLowerCase().includes(lower) ||
+      item.descricao.toLowerCase().includes(lower)
+    );
+  }, [availableItems, dialogBusca]);
+
+  const handleSelectNewItem = (item: typeof availableItems[0]) => {
+    const tempConversation: PaymentConversation = {
+      paymentQueueId: item.id,
+      fornecedor: item.fornecedor,
+      descricao: item.descricao,
+      sourceType: item.source_type,
+      status: item.financial_status,
+      totalMessages: 0,
+      unread: 0,
+      lastMessage: "",
+      lastMessageDate: new Date().toISOString(),
+      lastSender: "",
+    };
+    setSelected(tempConversation);
+    setDialogOpen(false);
+    setDialogBusca("");
+  };
+
   const totalUnread = conversas.reduce((sum, c) => sum + c.unread, 0);
 
   const renderList = () => (
@@ -97,6 +138,10 @@ export function PaymentChatConsolidado() {
               <Badge variant="destructive" className="text-[10px] h-5 min-w-[20px] justify-center">{totalUnread}</Badge>
             )}
           </div>
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            Nova Conversa
+          </Button>
         </div>
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -262,26 +307,99 @@ export function PaymentChatConsolidado() {
     );
   };
 
+  const renderDialog = () => (
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <DialogContent className="max-w-lg max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>Nova Conversa</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar fornecedor / descrição..."
+              value={dialogBusca}
+              onChange={(e) => setDialogBusca(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <ScrollArea className="h-[400px]">
+            {loadingItems ? (
+              <div className="space-y-2 p-2">
+                {[1, 2, 3].map(i => (
+                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : filteredItems.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                Nenhuma despesa disponível para iniciar conversa.
+              </div>
+            ) : (
+              <div className="space-y-1 p-1">
+                {filteredItems.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectNewItem(item)}
+                    className="w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium text-sm truncate">{item.fornecedor}</span>
+                      <Badge variant="outline" className="text-[10px] shrink-0">
+                        {SOURCE_LABELS_DIALOG[item.source_type] || item.source_type}
+                      </Badge>
+                    </div>
+                    {item.descricao && (
+                      <p className="text-xs text-muted-foreground truncate mb-1">{item.descricao}</p>
+                    )}
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {item.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </span>
+                      {item.vencimento && (
+                        <>
+                          <span>•</span>
+                          <span>Venc. {format(new Date(item.vencimento + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR })}</span>
+                        </>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   if (isMobile) {
-    return selected ? (
-      <div className="h-[calc(100vh-8rem)] bg-background rounded-lg border overflow-hidden">
-        {renderChat()}
-      </div>
-    ) : (
-      <div className="h-[calc(100vh-8rem)] bg-background rounded-lg border overflow-hidden">
-        {renderList()}
-      </div>
+    return (
+      <>
+        {selected ? (
+          <div className="h-[calc(100vh-8rem)] bg-background rounded-lg border overflow-hidden">
+            {renderChat()}
+          </div>
+        ) : (
+          <div className="h-[calc(100vh-8rem)] bg-background rounded-lg border overflow-hidden">
+            {renderList()}
+          </div>
+        )}
+        {renderDialog()}
+      </>
     );
   }
 
   return (
-    <div className="flex h-[calc(100vh-14rem)] rounded-xl border bg-background overflow-hidden shadow-sm">
-      <div className="w-[340px] min-w-[280px] max-w-[400px] border-r flex flex-col bg-card/50">
-        {renderList()}
+    <>
+      <div className="flex h-[calc(100vh-14rem)] rounded-xl border bg-background overflow-hidden shadow-sm">
+        <div className="w-[340px] min-w-[280px] max-w-[400px] border-r flex flex-col bg-card/50">
+          {renderList()}
+        </div>
+        <div className="flex-1 flex flex-col min-w-0">
+          {renderChat()}
+        </div>
       </div>
-      <div className="flex-1 flex flex-col min-w-0">
-        {renderChat()}
-      </div>
-    </div>
+      {renderDialog()}
+    </>
   );
 }
