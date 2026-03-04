@@ -15,11 +15,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { 
   Download, Receipt, AlertCircle, CheckCircle, Clock, TrendingUp, Plus, FileText, Eye, BookOpen, 
   ArrowLeft, Brain, Bot, Pencil, User, Lock, ArrowUpDown, ArrowUp, ArrowDown, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown, RefreshCw, CreditCard
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2, Tags, Building2, LayoutDashboard, CalendarDays, ChevronsUpDown, RefreshCw, CreditCard, MessageSquare
 } from "lucide-react";
 import { DashboardContasPagar } from "@/components/financeiro/DashboardContasPagar";
 import { CalendarioVencimentos } from "@/components/financeiro/CalendarioVencimentos";
 import { SofiaFloatingChat } from "@/components/financeiro/SofiaFloatingChat";
+import { PaymentChatConsolidado } from "@/components/financeiro/payments/PaymentChatConsolidado";
 import { ContasPagarDREView } from "@/components/financeiro/ContasPagarDREView";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -1259,6 +1260,10 @@ export default function ContasAPagar() {
               <TrendingUp className="h-4 w-4" />
               Ajuste para o DRE
             </TabsTrigger>
+            <TabsTrigger value="comunicacao" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Comunicação
+            </TabsTrigger>
             <Link to="/dashboard/financeiro/central-pagamentos">
               <Button variant="ghost" className="gap-2 h-9 px-3 text-sm font-medium">
                 <CreditCard className="h-4 w-4" />
@@ -2028,6 +2033,11 @@ export default function ContasAPagar() {
                 })()}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Aba Comunicação */}
+          <TabsContent value="comunicacao" className="space-y-6">
+            <PaymentChatConsolidado />
           </TabsContent>
         </Tabs>
 
