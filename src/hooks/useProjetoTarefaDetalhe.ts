@@ -153,11 +153,10 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
 
   // ===== Send to Cofre =====
   const sendToCofre = useMutation({
-    mutationFn: async ({ anexoIds, produtoId, categoria }: { anexoIds: string[]; produtoId: string; categoria: string }) => {
+    mutationFn: async ({ anexoIds, produtoId, categoriasPorAnexo }: { anexoIds: string[]; produtoId: string; categoriasPorAnexo: Record<string, string> }) => {
       const selectedAnexos = anexos.filter(a => anexoIds.includes(a.id));
       
       for (const anexo of selectedAnexos) {
-        // Copy file from projeto-anexos to fabrica-cotacoes (same bucket used by cofre)
         const destPath = `cofre/${produtoId}/${Date.now()}_${anexo.nome}`;
         const { data: signedUrl } = await supabase.storage.from("projeto-anexos").createSignedUrl(anexo.storage_path, 60);
         
@@ -171,16 +170,17 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
           .upload(destPath, blob);
         if (uploadErr) throw uploadErr;
 
-        // Insert into cofre
         await supabase.from("fabrica_revisao_documentos" as any).insert({
           produto_id: produtoId,
           nome_arquivo: anexo.nome,
           arquivo_path: destPath,
           tipo_arquivo: anexo.tipo_arquivo,
           tamanho: anexo.tamanho,
-          categoria,
+          categoria: categoriasPorAnexo[anexo.id] || "outro",
           status: "ativo",
           enviado_por: user!.id,
+          origem_projeto_tarefa_id: tarefaId || null,
+          visivel_fabrica: false,
         } as any);
       }
     },

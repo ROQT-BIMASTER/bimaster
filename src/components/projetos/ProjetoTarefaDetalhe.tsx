@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { ProjetoTarefa, ProjetoSecao as ProjetoSecaoType } from "@/hooks/useProjetoTarefas";
 import { useProjetoTarefaDetalhe, ProdutoAcabado } from "@/hooks/useProjetoTarefaDetalhe";
+import { ValidacaoFinalDialog, AprovacaoPanel } from "./ValidacaoFinalDialog";
 import { MentionInput } from "./MentionInput";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
@@ -24,9 +25,10 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -51,17 +53,19 @@ const PRIORIDADE_OPTIONS = [
 ];
 
 const COFRE_CATEGORIAS = [
-  "orcamento", "nota_fiscal", "art", "laudo", "certificado", "rotulo", "ficha_tecnica", "outro"
+  "briefing", "arte_final", "rotulo", "ficha_tecnica", "laudo", "certificado", "orcamento", "nota_fiscal", "art", "outro"
 ];
 
 const COFRE_CATEGORIA_LABELS: Record<string, string> = {
+  briefing: "Briefing",
+  arte_final: "Arte Final",
+  rotulo: "Rótulo",
+  ficha_tecnica: "Ficha Técnica",
+  laudo: "Laudo",
+  certificado: "Certificado",
   orcamento: "Orçamento",
   nota_fiscal: "Nota Fiscal",
   art: "ART",
-  laudo: "Laudo",
-  certificado: "Certificado",
-  rotulo: "Rótulo",
-  ficha_tecnica: "Ficha Técnica",
   outro: "Outro",
 };
 
@@ -108,7 +112,8 @@ export function ProjetoTarefaDetalhe({
   const [chatValue, setChatValue] = useState("");
   const [cofreDialogOpen, setCofreDialogOpen] = useState(false);
   const [selectedAnexoIds, setSelectedAnexoIds] = useState<string[]>([]);
-  const [cofreCategoria, setCofreCategoria] = useState("outro");
+  const [categoriasPorAnexo, setCategoriasPorAnexo] = useState<Record<string, string>>({});
+  const [validacaoDialogOpen, setValidacaoDialogOpen] = useState(false);
   const [produtoSearch, setProdutoSearch] = useState("");
   const [produtoResults, setProdutoResults] = useState<ProdutoAcabado[]>([]);
   const [showProdutoSearch, setShowProdutoSearch] = useState(false);
@@ -199,16 +204,21 @@ export function ProjetoTarefaDetalhe({
 
   const handleSendToCofre = () => {
     const prodId = (tarefa as any).produto_id;
-    if (!prodId) {
+    if (!prodId) return;
+    // Check all selected have a category
+    const allHaveCategory = selectedAnexoIds.every(id => categoriasPorAnexo[id]);
+    if (!allHaveCategory) {
+      toast.error("Selecione uma categoria para cada documento.");
       return;
     }
     sendToCofre.mutate({
       anexoIds: selectedAnexoIds,
       produtoId: prodId,
-      categoria: cofreCategoria,
+      categoriasPorAnexo,
     });
     setCofreDialogOpen(false);
     setSelectedAnexoIds([]);
+    setCategoriasPorAnexo({});
   };
 
   // linkedProduto now comes from the hook
@@ -233,6 +243,28 @@ export function ProjetoTarefaDetalhe({
               {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
               {isCompleted ? "Concluída" : "Marcar como concluída"}
             </Button>
+            {/* Validation button - shown when task is completed and has product */}
+            {isCompleted && (tarefa as any).produto_id && !(tarefa as any).validacao_status && (
+              <Button
+                size="sm"
+                className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => setValidacaoDialogOpen(true)}
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Enviar para Validação
+              </Button>
+            )}
+            {(tarefa as any).validacao_status && (
+              <Badge className={cn("text-[10px]",
+                (tarefa as any).validacao_status === "pendente_validacao" && "bg-amber-500/20 text-amber-400 border-0",
+                (tarefa as any).validacao_status === "validada" && "bg-emerald-500/20 text-emerald-400 border-0",
+                (tarefa as any).validacao_status === "rejeitada" && "bg-destructive/20 text-destructive border-0",
+              )}>
+                {(tarefa as any).validacao_status === "pendente_validacao" && "Aguardando Validação"}
+                {(tarefa as any).validacao_status === "validada" && "✓ Validada"}
+                {(tarefa as any).validacao_status === "rejeitada" && "✗ Rejeitada"}
+              </Badge>
+            )}
             <div className="flex items-center gap-2 ml-auto">
               {tarefa.codigo && (
                 <span className="text-xs text-muted-foreground font-mono">{tarefa.codigo}</span>
@@ -512,6 +544,21 @@ export function ProjetoTarefaDetalhe({
                   )}
                 </div>
 
+                {/* Approval Panel */}
+                {(tarefa as any).validacao_status === "pendente_validacao" && (
+                  <>
+                    <Separator />
+                    <AprovacaoPanel
+                      tarefaId={tarefa.id}
+                      validacaoStatus={(tarefa as any).validacao_status}
+                      onStatusChange={() => {
+                        // Refresh tarefa data
+                        onUpdate(tarefa.id, {});
+                      }}
+                    />
+                  </>
+                )}
+
                 <Separator />
 
                 {/* Descrição */}
@@ -727,7 +774,7 @@ export function ProjetoTarefaDetalhe({
         </SheetContent>
       </Sheet>
 
-      {/* Cofre Dialog */}
+      {/* Cofre Dialog - Per-attachment category */}
       <Dialog open={cofreDialogOpen} onOpenChange={setCofreDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -738,26 +785,28 @@ export function ProjetoTarefaDetalhe({
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-sm">Documentos selecionados</Label>
-              <div className="mt-1 space-y-1">
+              <Label className="text-sm">Documentos selecionados — selecione a categoria de cada um</Label>
+              <div className="mt-2 space-y-2">
                 {anexos.filter(a => selectedAnexoIds.includes(a.id)).map(a => (
-                  <div key={a.id} className="flex items-center gap-2 text-xs p-1.5 bg-muted/30 rounded">
+                  <div key={a.id} className="flex items-center gap-2 text-xs p-2 bg-muted/30 rounded-md">
                     {getFileIcon(a.tipo_arquivo)}
-                    <span className="truncate">{a.nome}</span>
+                    <span className="truncate flex-1 min-w-0">{a.nome}</span>
+                    <Select
+                      value={categoriasPorAnexo[a.id] || ""}
+                      onValueChange={v => setCategoriasPorAnexo(prev => ({ ...prev, [a.id]: v }))}
+                    >
+                      <SelectTrigger className="h-7 w-[130px] text-[11px]">
+                        <SelectValue placeholder="Categoria..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COFRE_CATEGORIAS.map(c => (
+                          <SelectItem key={c} value={c}>{COFRE_CATEGORIA_LABELS[c]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 ))}
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Categoria</Label>
-              <Select value={cofreCategoria} onValueChange={setCofreCategoria}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {COFRE_CATEGORIAS.map(c => (
-                    <SelectItem key={c} value={c}>{COFRE_CATEGORIA_LABELS[c]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -769,6 +818,18 @@ export function ProjetoTarefaDetalhe({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Validação Final Dialog */}
+      {(tarefa as any).produto_id && (
+        <ValidacaoFinalDialog
+          open={validacaoDialogOpen}
+          onOpenChange={setValidacaoDialogOpen}
+          tarefaId={tarefa.id}
+          produtoId={(tarefa as any).produto_id}
+          produtoNome={linkedProduto?.nome}
+          onSuccess={() => onUpdate(tarefa.id, {})}
+        />
+      )}
     </>
   );
 }

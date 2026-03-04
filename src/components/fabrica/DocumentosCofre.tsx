@@ -134,6 +134,7 @@ export function DocumentosCofre() {
         .from("fabrica_revisao_documentos" as any)
         .select("*")
         .in("status", filtroStatus === "all" ? ["ativo", "aprovado", "arquivado"] : [filtroStatus])
+        .eq("visivel_fabrica", true)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
