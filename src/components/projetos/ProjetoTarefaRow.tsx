@@ -6,6 +6,7 @@ import { format, isPast, isToday, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { GRID_COLS } from "./ProjetoListView";
 
@@ -25,6 +26,13 @@ const STATUS_LABELS: Record<string, string> = {
   bloqueada: "Bloqueada",
 };
 
+const STATUS_OPTIONS = [
+  { value: "pendente", label: "Não iniciado" },
+  { value: "em_andamento", label: "Em andamento" },
+  { value: "concluida", label: "Concluído" },
+  { value: "bloqueada", label: "Bloqueada" },
+];
+
 const ESTAGIO_COLORS: Record<string, string> = {
   briefing: "bg-purple-500/20 text-purple-400",
   em_criacao: "bg-blue-500/20 text-blue-400",
@@ -43,15 +51,25 @@ const ESTAGIO_LABELS: Record<string, string> = {
   lancamento: "Lançamento",
 };
 
+const ESTAGIO_OPTIONS = [
+  { value: "briefing", label: "Briefing" },
+  { value: "em_criacao", label: "Em Criação" },
+  { value: "revisao", label: "Revisão" },
+  { value: "aprovado", label: "Aprovado" },
+  { value: "producao", label: "Produção" },
+  { value: "lancamento", label: "Lançamento" },
+];
+
 interface ProjetoTarefaRowProps {
   tarefa: ProjetoTarefa;
   indented?: boolean;
   selected?: boolean;
   onToggle: (tarefa: ProjetoTarefa) => void;
   onSelect?: (tarefa: ProjetoTarefa) => void;
+  onUpdate?: (id: string, updates: Record<string, any>) => void;
 }
 
-export function ProjetoTarefaRow({ tarefa, indented = false, selected = false, onToggle, onSelect }: ProjetoTarefaRowProps) {
+export function ProjetoTarefaRow({ tarefa, indented = false, selected = false, onToggle, onSelect, onUpdate }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
   const hasSubtarefas = (tarefa.subtarefas?.length || 0) > 0;
   const isCompleted = tarefa.status === "concluida";
@@ -184,27 +202,92 @@ export function ProjetoTarefaRow({ tarefa, indented = false, selected = false, o
           ) : null}
         </div>
 
-        {/* Status */}
+        {/* Status - inline editable */}
         <div className="flex justify-center">
-          <Badge className={cn("text-[10px] px-2 py-0 h-5 font-medium border-0 whitespace-nowrap", STATUS_COLORS[tarefa.status])}>
-            {STATUS_LABELS[tarefa.status] || tarefa.status}
-          </Badge>
+          <InlineSelector
+            value={tarefa.status}
+            options={STATUS_OPTIONS}
+            colors={STATUS_COLORS}
+            labels={STATUS_LABELS}
+            onChange={(val) => onUpdate?.(tarefa.id, { status: val })}
+          />
         </div>
 
-        {/* Estágio */}
+        {/* Estágio - inline editable */}
         <div className="flex justify-center">
-          {tarefa.estagio && ESTAGIO_LABELS[tarefa.estagio] ? (
-            <Badge className={cn("text-[10px] px-2 py-0 h-5 font-medium border-0 whitespace-nowrap", ESTAGIO_COLORS[tarefa.estagio])}>
-              {ESTAGIO_LABELS[tarefa.estagio]}
-            </Badge>
-          ) : null}
+          <InlineSelector
+            value={tarefa.estagio || ""}
+            options={ESTAGIO_OPTIONS}
+            colors={ESTAGIO_COLORS}
+            labels={ESTAGIO_LABELS}
+            onChange={(val) => onUpdate?.(tarefa.id, { estagio: val })}
+            placeholder="—"
+          />
         </div>
       </div>
 
       {/* Subtarefas */}
       {expanded && tarefa.subtarefas?.map(st => (
-        <ProjetoTarefaRow key={st.id} tarefa={st} indented onToggle={onToggle} onSelect={onSelect} selected={false} />
+        <ProjetoTarefaRow key={st.id} tarefa={st} indented onToggle={onToggle} onSelect={onSelect} onUpdate={onUpdate} selected={false} />
       ))}
     </>
+  );
+}
+
+/* ───────── Inline Selector Popover ───────── */
+function InlineSelector({
+  value,
+  options,
+  colors,
+  labels,
+  onChange,
+  placeholder = "—",
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  colors: Record<string, string>;
+  labels: Record<string, string>;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const display = labels[value] || placeholder;
+  const hasValue = !!value && !!labels[value];
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className="focus:outline-none"
+        >
+          {hasValue ? (
+            <Badge className={cn("text-[10px] px-2 py-0 h-5 font-medium border-0 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity", colors[value])}>
+              {display}
+            </Badge>
+          ) : (
+            <span className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
+              {placeholder}
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-40 p-1" align="center" onClick={(e) => e.stopPropagation()}>
+        {options.map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => { onChange(opt.value); setOpen(false); }}
+            className={cn(
+              "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-muted/50 transition-colors text-left",
+              value === opt.value && "bg-muted/30 font-medium"
+            )}
+          >
+            <Badge className={cn("text-[9px] px-1.5 py-0 h-4 font-medium border-0", colors[opt.value])}>
+              {opt.label}
+            </Badge>
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }

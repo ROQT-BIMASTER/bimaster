@@ -91,6 +91,7 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
             onToggleTarefa={handleToggle}
             onSelectTarefa={handleSelectTarefa}
             onAddTarefa={handleAddTarefa}
+            onUpdateTarefa={handleUpdateTarefa}
           />
         ))}
 
