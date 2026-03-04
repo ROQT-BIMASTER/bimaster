@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,12 +13,13 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
-import { CheckCircle2, XCircle, FileText, ExternalLink, Store, CreditCard, Calendar, User, DollarSign, Send, Paperclip, Building2, Image, File, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, ExternalLink, Store, CreditCard, Calendar, User, DollarSign, Send, Paperclip, Building2, Image, File, Loader2, SplitSquareVertical, Barcode, Copy } from "lucide-react";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 function AttachmentRow({ attachment }: { attachment: any }) {
   const [loading, setLoading] = useState(false);
@@ -89,6 +90,25 @@ export function AprovarLancamentoDialog({
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState<"approve" | "reject" | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [siblingEntries, setSiblingEntries] = useState<any[]>([]);
+  const [approvingAll, setApprovingAll] = useState(false);
+
+  const isInstallment = entry?.installment_group_id && entry?.installment_number && entry?.installment_total;
+
+  // Fetch sibling installments when it's part of a group
+  useEffect(() => {
+    if (open && isInstallment) {
+      supabase
+        .from("trade_financial_entries")
+        .select("id, installment_number, installment_total, amount, due_date, approval_status, boleto_barcode")
+        .eq("installment_group_id", entry.installment_group_id)
+        .neq("id", entry.id)
+        .order("installment_number")
+        .then(({ data }) => setSiblingEntries(data || []));
+    } else {
+      setSiblingEntries([]);
+    }
+  }, [open, entry?.installment_group_id]);
 
   const handleApprove = async () => {
     setLoading(true);
@@ -254,6 +274,63 @@ export function AprovarLancamentoDialog({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Installment Group Context */}
+            {isInstallment && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <SplitSquareVertical className="h-4 w-4" />
+                  Parcela {entry.installment_number} de {entry.installment_total}
+                </div>
+                {entry.boleto_barcode && (
+                  <Alert variant="info">
+                    <Barcode className="h-4 w-4" />
+                    <AlertDescription className="flex items-center justify-between">
+                      <span className="font-mono text-xs break-all">{entry.boleto_barcode}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 ml-2"
+                        onClick={() => {
+                          navigator.clipboard.writeText(entry.boleto_barcode);
+                          toast.success("Linha digitável copiada!");
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {siblingEntries.length > 0 && (
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardContent className="pt-4 space-y-2">
+                      <p className="text-xs text-muted-foreground font-medium">Outras parcelas do grupo:</p>
+                      {siblingEntries.map((s) => (
+                        <div key={s.id} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[10px]">
+                              {s.installment_number}/{s.installment_total}
+                            </Badge>
+                            <span>R$ {parseFloat(s.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {s.due_date && (
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(s.due_date).toLocaleDateString("pt-BR")}
+                              </span>
+                            )}
+                            <Badge variant={s.approval_status === "approved" ? "default" : s.approval_status === "rejected" ? "destructive" : "outline"} className="text-[10px]">
+                              {s.approval_status === "approved" ? "Aprovada" : s.approval_status === "rejected" ? "Rejeitada" : "Pendente"}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
 
             {/* Solicitante */}
             {entry.created_by_profile && (
@@ -576,6 +653,46 @@ export function AprovarLancamentoDialog({
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 Aprovar
               </Button>
+              {/* Approve all siblings */}
+              {isInstallment && siblingEntries.some(s => s.approval_status === "pending") && (
+                <Button 
+                  onClick={async () => {
+                    setApprovingAll(true);
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user) throw new Error("Não autenticado");
+                      
+                      const pendingIds = [entry.id, ...siblingEntries.filter(s => s.approval_status === "pending").map(s => s.id)];
+                      
+                      const { error } = await supabase
+                        .from("trade_financial_entries")
+                        .update({
+                          approval_status: "approved",
+                          status: "approved",
+                          approved_by: user.id,
+                          approved_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
+                        })
+                        .in("id", pendingIds);
+                      
+                      if (error) throw error;
+                      toast.success(`${pendingIds.length} parcelas aprovadas!`);
+                      onSuccess();
+                      onOpenChange(false);
+                    } catch (error: any) {
+                      toast.error(getSafeErrorMessage(error));
+                    } finally {
+                      setApprovingAll(false);
+                    }
+                  }} 
+                  disabled={loading || approvingAll}
+                  variant="default"
+                >
+                  {approvingAll && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Aprovar Todas
+                </Button>
+              )}
               {type === "entry" && onApproveAndSend && (
                 <Button 
                   onClick={async () => {

@@ -26,7 +26,7 @@ import { ExpenseAttachments } from "@/components/events/ExpenseAttachments";
 import { TRADE_EXPENSE_CATEGORIES } from "./tradeExpenseCategories";
 import { useQuery } from "@tanstack/react-query";
 import { useUserEmpresas, useAllEmpresas } from "@/hooks/useUserEmpresas";
-import { Building, Target, Loader2, Clock } from "lucide-react";
+import { Building, Target, Loader2, Clock, Barcode, SplitSquareVertical } from "lucide-react";
 import { FornecedorCombobox } from "./FornecedorCombobox";
 import { LojaCombobox } from "./LojaCombobox";
 
@@ -52,7 +52,6 @@ export function EditarLancamentoDialog({
   const { data: userEmpresas = [], isLoading: loadingUserEmpresas } = useUserEmpresas();
   const { data: allEmpresas = [], isLoading: loadingAllEmpresas } = useAllEmpresas();
 
-  // Fallback: se user_empresas estiver vazio, usar todas as empresas ativas
   const empresasDisponiveis = userEmpresas.length > 0
     ? userEmpresas.map(ue => ({ id: ue.empresa_id, nome: ue.empresa.nome, is_primary: ue.is_primary }))
     : allEmpresas.map(e => ({ id: e.id, nome: e.nome, is_primary: false }));
@@ -73,8 +72,9 @@ export function EditarLancamentoDialog({
   const [notes, setNotes] = useState("");
   const [attachments, setAttachments] = useState<any[]>([]);
   const [documentType, setDocumentType] = useState("none");
+  const [boletoBarcode, setBoletoBarcode] = useState("");
+  const [installmentInfo, setInstallmentInfo] = useState<{ number: number; total: number; groupId: string } | null>(null);
 
-  // Buscar campanhas
   const { data: campaigns = [] } = useQuery({
     queryKey: ['edit-lancamento-campaigns'],
     queryFn: async () => {
@@ -90,8 +90,6 @@ export function EditarLancamentoDialog({
     staleTime: 5 * 60 * 1000,
     enabled: open,
   });
-
-  // fornecedores query removed - handled by FornecedorCombobox
 
   useEffect(() => {
     if (open && entryId) {
@@ -140,6 +138,18 @@ export function EditarLancamentoDialog({
       setFornecedorId(data.fornecedor_id || "none");
       setEmpresaId(data.empresa_id?.toString() || "");
       setDocumentType(data.document_type || "none");
+      setBoletoBarcode((data as any).boleto_barcode || "");
+      
+      // Set installment info
+      if ((data as any).installment_number && (data as any).installment_total) {
+        setInstallmentInfo({
+          number: (data as any).installment_number,
+          total: (data as any).installment_total,
+          groupId: (data as any).installment_group_id || "",
+        });
+      } else {
+        setInstallmentInfo(null);
+      }
       
       const savedAttachments = data.attachments;
       if (Array.isArray(savedAttachments) && savedAttachments.length > 0) {
@@ -177,7 +187,6 @@ export function EditarLancamentoDialog({
         e => e.id.toString() === empresaId
       );
 
-      // Resolver fornecedor
       let supplierName: string | null = null;
       let supplierDocument: string | null = null;
       const hasFornecedor = fornecedorId !== "none";
@@ -218,6 +227,7 @@ export function EditarLancamentoDialog({
           approval_status: "pending",
           rejected_reason: null,
           document_type: documentType !== "none" ? documentType : null,
+          boleto_barcode: boletoBarcode.trim() || null,
         })
         .eq("id", entryId);
 
@@ -250,6 +260,19 @@ export function EditarLancamentoDialog({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Installment info banner */}
+            {installmentInfo && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <SplitSquareVertical className="h-4 w-4 text-primary" />
+                  Parcela {installmentInfo.number} de {installmentInfo.total}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Grupo: {installmentInfo.groupId}
+                </p>
+              </div>
+            )}
+
             {/* Filial */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
@@ -438,6 +461,20 @@ export function EditarLancamentoDialog({
                   Lançamentos com orçamento ficam sinalizados como pendentes de NF
                 </p>
               )}
+            </div>
+
+            {/* Linha Digitável do Boleto */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Barcode className="h-4 w-4" />
+                Linha Digitável do Boleto
+              </Label>
+              <Input
+                placeholder="Cole aqui a linha digitável..."
+                className="font-mono text-sm"
+                value={boletoBarcode}
+                onChange={(e) => setBoletoBarcode(e.target.value)}
+              />
             </div>
 
             {/* Anexos */}
