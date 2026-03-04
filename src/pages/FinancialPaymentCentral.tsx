@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, CreditCard, ArrowLeft, Download, Loader2, LayoutDashboard, CalendarDays, Settings2 } from "lucide-react";
+import { RefreshCw, CreditCard, ArrowLeft, Download, Loader2, LayoutDashboard, CalendarDays, Settings2, MessageSquare } from "lucide-react";
+import { PaymentChatConsolidado } from "@/components/financeiro/payments/PaymentChatConsolidado";
 import { PaymentPolicyConfigDialog } from "@/components/financeiro/payments/PaymentPolicyConfigDialog";
 import { PaymentPolicyBanner } from "@/components/financeiro/payments/PaymentPolicyBanner";
 import { PaymentQueueKPIs } from "@/components/financeiro/payments/PaymentQueueKPIs";
@@ -209,14 +210,18 @@ export default function FinancialPaymentCentral() {
 
         {/* Tabs */}
         <Tabs defaultValue="fila" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="fila" className="gap-2">
               <CreditCard className="h-4 w-4" />
               Fila de Pagamentos
             </TabsTrigger>
             <TabsTrigger value="consolidado" className="gap-2">
               <LayoutDashboard className="h-4 w-4" />
-              Dashboard Consolidado
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="comunicacao" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Comunicação
             </TabsTrigger>
           </TabsList>
 
@@ -353,6 +358,11 @@ export default function FinancialPaymentCentral() {
             ) : (
               <ConsolidadoDespesasTable despesas={consolidado.despesas} />
             )}
+          </TabsContent>
+
+          {/* Tab: Comunicação */}
+          <TabsContent value="comunicacao">
+            <PaymentChatConsolidado />
           </TabsContent>
         </Tabs>
 
