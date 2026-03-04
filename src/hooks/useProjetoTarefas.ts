@@ -36,6 +36,7 @@ export interface ProjetoTarefa {
   criador?: { id: string; nome: string; avatar_url: string | null } | null;
   colaboradores?: { user_id: string; nome: string; avatar_url: string | null }[];
   produto_foto_url?: string | null;
+  produto_tipo?: string | null;
 }
 
 export function useProjetoTarefas(projetoId: string | undefined) {
@@ -120,14 +121,14 @@ export function useProjetoTarefas(projetoId: string | undefined) {
 
       // Fetch product photos for tarefas with produto_id
       const produtoIds = [...new Set((data as ProjetoTarefa[]).filter(t => t.produto_id).map(t => t.produto_id!))];
-      let produtoFotos: Record<string, string | null> = {};
+      let produtoInfo: Record<string, { foto_url: string | null; tipo: string | null }> = {};
       if (produtoIds.length > 0) {
         const { data: produtos } = await supabase
           .from("fabrica_produtos" as any)
-          .select("id, foto_url")
+          .select("id, foto_url, tipo")
           .in("id", produtoIds);
         if (produtos) {
-          produtoFotos = Object.fromEntries((produtos as any[]).map(p => [p.id, p.foto_url]));
+          produtoInfo = Object.fromEntries((produtos as any[]).map(p => [p.id, { foto_url: p.foto_url, tipo: p.tipo }]));
         }
       }
 
@@ -136,7 +137,8 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         responsavel: t.responsavel_id ? profiles[t.responsavel_id] || null : null,
         criador: t.criador_id ? profiles[t.criador_id] || null : null,
         colaboradores: colabMap[t.id] || [],
-        produto_foto_url: t.produto_id ? (produtoFotos[t.produto_id] || null) : null,
+        produto_foto_url: t.produto_id ? (produtoInfo[t.produto_id]?.foto_url || null) : null,
+        produto_tipo: t.produto_id ? (produtoInfo[t.produto_id]?.tipo || null) : null,
       }));
     },
     enabled: !!projetoId && !!user,
