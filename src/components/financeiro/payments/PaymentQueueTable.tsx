@@ -1,13 +1,17 @@
+import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Eye, Target, Calendar, Loader2, Building } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Search, Eye, Target, Calendar, Loader2, Building, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { PaymentQueueItem, PaymentQueueStatus, SourceType } from "@/hooks/useFinancialPaymentQueue";
+import { usePaymentMessageCounts } from "@/hooks/usePaymentMessages";
+import { PaymentChatPanel } from "./PaymentChatPanel";
 
 interface Department {
   id: string;
@@ -58,6 +62,9 @@ const sourceTypeConfig: Record<SourceType, { label: string; icon: typeof Target;
 };
 
 export function PaymentQueueTable({ items, isLoading, onReview, departments, empresas, filters, onFiltersChange }: PaymentQueueTableProps) {
+  const [chatItem, setChatItem] = useState<PaymentQueueItem | null>(null);
+  const { data: messageCounts } = usePaymentMessageCounts(items.map(i => i.id));
+
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -158,19 +165,20 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, emp
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Vencimento</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-[50px]">Chat</TableHead>
               <TableHead className="w-[100px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                   Nenhum item encontrado
                 </TableCell>
               </TableRow>
@@ -233,6 +241,31 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, emp
                       <Badge variant={status.variant}>{status.label}</Badge>
                     </TableCell>
                     <TableCell>
+                      {(() => {
+                        const counts = messageCounts?.[item.id];
+                        return (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 relative"
+                            onClick={() => setChatItem(item)}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                            {counts && counts.unread > 0 && (
+                              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
+                                {counts.unread}
+                              </span>
+                            )}
+                            {counts && counts.total > 0 && counts.unread === 0 && (
+                              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-muted text-muted-foreground text-[10px] flex items-center justify-center">
+                                {counts.total}
+                              </span>
+                            )}
+                          </Button>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -249,6 +282,24 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, emp
           </TableBody>
         </Table>
       </div>
+
+      {/* Chat Dialog */}
+      <Dialog open={!!chatItem} onOpenChange={(open) => !open && setChatItem(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              Comunicação — {chatItem?.code}
+            </DialogTitle>
+          </DialogHeader>
+          {chatItem && (
+            <PaymentChatPanel
+              paymentQueueId={chatItem.id}
+              userType="financeiro"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

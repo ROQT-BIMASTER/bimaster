@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ import { AttachmentAcknowledgement } from "./AttachmentAcknowledgement";
 import { SupplierDetailsCard } from "./SupplierDetailsCard";
 import { SupplierPaymentHistory } from "./SupplierPaymentHistory";
 import { ReceiptUploadSection } from "./ReceiptUploadSection";
+import { PaymentChatPanel } from "./PaymentChatPanel";
+import { usePaymentMessages } from "@/hooks/usePaymentMessages";
 
 interface PaymentReviewDialogProps {
   open: boolean;
@@ -66,6 +69,7 @@ export function PaymentReviewDialog({
   const [notes, setNotes] = useState("");
   const [action, setAction] = useState<'accept' | 'reject' | 'paid' | null>(null);
   const [allAttachmentsAcknowledged, setAllAttachmentsAcknowledged] = useState(false);
+  const { messages } = usePaymentMessages(item?.id || null);
 
   const handleAction = (actionType: 'accept' | 'reject' | 'paid') => {
     if (!item) return;
@@ -105,6 +109,34 @@ export function PaymentReviewDialog({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Revisão de Pagamento
+            </DialogTitle>
+            <Badge className={cn("text-white", status.color)}>{status.label}</Badge>
+          </div>
+          <DialogDescription>
+            {item.code} • {sourceTypeLabels[item.source_type]}
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">Detalhes</TabsTrigger>
+            <TabsTrigger value="chat" className="gap-1.5">
+              <MessageCircle className="h-3.5 w-3.5" />
+              Comunicação
+              {messages.length > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-1">
+                  {messages.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="mt-4">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
@@ -364,6 +396,15 @@ export function PaymentReviewDialog({
             </div>
           )}
         </div>
+          </TabsContent>
+
+          <TabsContent value="chat" className="mt-4">
+            <PaymentChatPanel
+              paymentQueueId={item.id}
+              userType="financeiro"
+            />
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={handleClose} disabled={isProcessing}>

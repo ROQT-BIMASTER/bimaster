@@ -24,11 +24,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DepartmentExpense, DEPARTMENT_EXPENSE_CATEGORIES } from "@/hooks/useDepartmentExpenses";
 import { EnviarFinanceiroDepDialog } from "@/components/departments/EnviarFinanceiroDepDialog";
 import { AprovarDespesaDepartamentoDialog } from "@/components/departments/AprovarDespesaDepartamentoDialog";
 import { DepartmentExpenseAttachments } from "@/components/departments/DepartmentExpenseAttachments";
+import { PaymentChatPanel } from "@/components/financeiro/payments/PaymentChatPanel";
 import { toast } from "sonner";
 import { 
   Search, 
@@ -44,6 +51,7 @@ import {
   Barcode,
   Copy,
   AlertTriangle,
+  MessageCircle,
 } from "lucide-react";
 
 interface DepartmentExpensesTableProps {
@@ -65,6 +73,7 @@ export function DepartmentExpensesTable({
   const [enviarFinanceiroOpen, setEnviarFinanceiroOpen] = useState(false);
   const [aprovarOpen, setAprovarOpen] = useState(false);
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+  const [chatExpense, setChatExpense] = useState<DepartmentExpense | null>(null);
   const [selectedExpense, setSelectedExpense] = useState<DepartmentExpense | null>(null);
 
   const filteredExpenses = expenses.filter(expense =>
@@ -171,6 +180,7 @@ export function DepartmentExpensesTable({
                   <TableHead>Status</TableHead>
                   <TableHead>Boleto</TableHead>
                   <TableHead>Anexos</TableHead>
+                  <TableHead>Chat</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -245,6 +255,20 @@ export function DepartmentExpensesTable({
                         {expense.attachments?.length || 0}
                       </Button>
                     </TableCell>
+                    <TableCell>
+                      {(expense as any).payment_queue_id ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setChatExpense(expense)}
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -262,6 +286,13 @@ export function DepartmentExpensesTable({
                             <DropdownMenuItem onClick={() => copyBarcode(expense.boleto_barcode)}>
                               <Copy className="mr-2 h-4 w-4" />
                               Copiar Linha Digitável
+                            </DropdownMenuItem>
+                          )}
+                          
+                          {(expense as any).payment_queue_id && (
+                            <DropdownMenuItem onClick={() => setChatExpense(expense)}>
+                              <MessageCircle className="mr-2 h-4 w-4" />
+                              Comunicação Financeiro
                             </DropdownMenuItem>
                           )}
                           
@@ -319,6 +350,24 @@ export function DepartmentExpensesTable({
           />
         </>
       )}
+
+      {/* Chat Dialog */}
+      <Dialog open={!!chatExpense} onOpenChange={(open) => !open && setChatExpense(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              Comunicação — {chatExpense?.code}
+            </DialogTitle>
+          </DialogHeader>
+          {chatExpense && (chatExpense as any).payment_queue_id && (
+            <PaymentChatPanel
+              paymentQueueId={(chatExpense as any).payment_queue_id}
+              userType="solicitante"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }
