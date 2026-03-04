@@ -180,7 +180,7 @@ export function useAvailablePaymentQueues(existingQueueIds: string[]) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("financial_payment_queue")
-        .select("id, fornecedor, descricao, valor, vencimento, source_type, financial_status")
+        .select("id, supplier_name, description, amount, due_date, source_type, financial_status")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -189,10 +189,10 @@ export function useAvailablePaymentQueues(existingQueueIds: string[]) {
         .filter((item: any) => !existingQueueIds.includes(item.id))
         .map((item: any) => ({
           id: item.id,
-          fornecedor: item.fornecedor || "—",
-          descricao: item.descricao || "",
-          valor: item.valor || 0,
-          vencimento: item.vencimento || "",
+          fornecedor: item.supplier_name || "—",
+          descricao: item.description || "",
+          valor: item.amount || 0,
+          vencimento: item.due_date || "",
           source_type: item.source_type || "",
           financial_status: item.financial_status || "",
         })) as PaymentQueueItem[];
@@ -244,7 +244,7 @@ export function useAllPaymentConversations() {
       const queueIds = [...grouped.keys()];
       const { data: queueItems } = await supabase
         .from("financial_payment_queue")
-        .select("id, fornecedor, descricao, source_type, financial_status")
+        .select("id, supplier_name, description, source_type, financial_status")
         .in("id", queueIds);
 
       const queueMap = new Map<string, any>();
@@ -262,8 +262,8 @@ export function useAllPaymentConversations() {
 
         conversations.push({
           paymentQueueId: qId,
-          fornecedor: queueItem?.fornecedor || "—",
-          descricao: queueItem?.descricao || "",
+          fornecedor: queueItem?.supplier_name || "—",
+          descricao: queueItem?.description || "",
           sourceType: queueItem?.source_type || "",
           status: queueItem?.financial_status || "",
           totalMessages: msgs.length,
